@@ -46,8 +46,8 @@ type InMemoryClusterReconciler struct {
 	CloudManager cloud.Manager
 	APIServerMux *server.WorkloadClustersMux
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 
 	hotRestartDone bool
 	hotRestartLock sync.RWMutex

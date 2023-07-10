@@ -59,6 +59,7 @@ import (
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
 	"sigs.k8s.io/cluster-api/util/flags"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/version"
 )
 
@@ -75,6 +76,7 @@ var (
 	leaderElectionRetryPeriod   time.Duration
 	watchNamespace              string
 	watchFilterValue            string
+	watchExpressionValue        string
 	profilerAddress             string
 	enableContentionProfiling   bool
 	concurrency                 int
@@ -125,6 +127,9 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&watchFilterValue, "watch-filter", "",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
+
+	fs.StringVar(&watchExpressionValue, "watch-expression", "",
+		"More generic version of watch-filter which allows to pass a label selector to filter reconcled objects. If unspecified, then the behavior defaults to the watch-filter argument")
 
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
@@ -306,10 +311,16 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	labelSelector, err := predicates.InitLabelMatcher(setupLog, predicates.ComposeFilterExpression(watchExpressionValue, watchFilterValue))
+	if err != nil {
+		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
+		os.Exit(1)
+	}
+
 	if err := (&remote.ClusterCacheReconciler{
-		Client:           mgr.GetClient(),
-		Tracker:          tracker,
-		WatchFilterValue: watchFilterValue,
+		Client:               mgr.GetClient(),
+		Tracker:              tracker,
+		WatchFilterPredicate: labelSelector,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
@@ -318,10 +329,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.DockerMachineReconciler{
-		Client:           mgr.GetClient(),
-		ContainerRuntime: runtimeClient,
-		Tracker:          tracker,
-		WatchFilterValue: watchFilterValue,
+		Client:               mgr.GetClient(),
+		ContainerRuntime:     runtimeClient,
+		Tracker:              tracker,
+		WatchFilterPredicate: labelSelector,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
@@ -330,9 +341,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.DockerClusterReconciler{
-		Client:           mgr.GetClient(),
-		ContainerRuntime: runtimeClient,
-		WatchFilterValue: watchFilterValue,
+		Client:               mgr.GetClient(),
+		ContainerRuntime:     runtimeClient,
+		WatchFilterPredicate: labelSelector,
 	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
 		os.Exit(1)
@@ -340,10 +351,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.DockerMachinePoolReconciler{
-			Client:           mgr.GetClient(),
-			ContainerRuntime: runtimeClient,
-			Tracker:          tracker,
-			WatchFilterValue: watchFilterValue,
+			Client:               mgr.GetClient(),
+			ContainerRuntime:     runtimeClient,
+			Tracker:              tracker,
+			WatchFilterPredicate: labelSelector,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePool")
 			os.Exit(1)

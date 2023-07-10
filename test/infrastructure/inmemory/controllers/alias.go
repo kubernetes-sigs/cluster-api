@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud"
 	inmemorycontrollers "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/controllers"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -38,17 +39,17 @@ type InMemoryClusterReconciler struct {
 	CloudManager cloud.Manager
 	APIServerMux *server.WorkloadClustersMux // TODO: find a way to use an interface here
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&inmemorycontrollers.InMemoryClusterReconciler{
-		Client:           r.Client,
-		CloudManager:     r.CloudManager,
-		APIServerMux:     r.APIServerMux,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		CloudManager:         r.CloudManager,
+		APIServerMux:         r.APIServerMux,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -58,16 +59,16 @@ type InMemoryMachineReconciler struct {
 	CloudManager cloud.Manager
 	APIServerMux *server.WorkloadClustersMux // TODO: find a way to use an interface here
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&inmemorycontrollers.InMemoryMachineReconciler{
-		Client:           r.Client,
-		CloudManager:     r.CloudManager,
-		APIServerMux:     r.APIServerMux,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		CloudManager:         r.CloudManager,
+		APIServerMux:         r.APIServerMux,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }

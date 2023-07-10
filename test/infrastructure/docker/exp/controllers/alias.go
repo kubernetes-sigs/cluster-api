@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	dockermachinepoolcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/controllers"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.
@@ -37,17 +38,17 @@ type DockerMachinePoolReconciler struct {
 	ContainerRuntime container.Runtime
 	Tracker          *remote.ClusterCacheTracker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockermachinepoolcontrollers.DockerMachinePoolReconciler{
-		Client:           r.Client,
-		Scheme:           r.Scheme,
-		ContainerRuntime: r.ContainerRuntime,
-		Tracker:          r.Tracker,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		Scheme:               r.Scheme,
+		ContainerRuntime:     r.ContainerRuntime,
+		Tracker:              r.Tracker,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }

@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	dockercontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -38,17 +39,17 @@ type DockerMachineReconciler struct {
 	ContainerRuntime container.Runtime
 	Tracker          *remote.ClusterCacheTracker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockercontrollers.DockerMachineReconciler{
-		Client:           r.Client,
-		ContainerRuntime: r.ContainerRuntime,
-		Tracker:          r.Tracker,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		ContainerRuntime:     r.ContainerRuntime,
+		Tracker:              r.Tracker,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -57,15 +58,15 @@ type DockerClusterReconciler struct {
 	Client           client.Client
 	ContainerRuntime container.Runtime
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockercontrollers.DockerClusterReconciler{
-		Client:           r.Client,
-		ContainerRuntime: r.ContainerRuntime,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		ContainerRuntime:     r.ContainerRuntime,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }

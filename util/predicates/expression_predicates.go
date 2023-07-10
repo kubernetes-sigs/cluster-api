@@ -62,7 +62,11 @@ func GetExpressionMatcher() *ExpressionMatcher {
 func (m *ExpressionMatcher) matches(log logr.Logger, o client.Object) bool {
 	matches, err := m.matchesExpression(log, o)
 	if err != nil {
+		log.V(6).Info(fmt.Sprintf("Rejecting object %+v due to errror: %s", o, err))
 		return false
+	}
+	if !matches {
+		log.V(6).Info(fmt.Sprintf("Rejecting object - does not match expression %+v", o))
 	}
 
 	return matches

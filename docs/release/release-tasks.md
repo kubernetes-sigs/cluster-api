@@ -386,7 +386,34 @@ We should inform at least the following providers via a new issue on their respe
  - Packet: https://github.com/kubernetes-sigs/cluster-api-provider-packet/issues/new
  - vSphere: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
 
-TODO: Right now we don't have a template for this message but the Comms Team will provide one later. 
+Below mentioned template can be used to update CAPI providers for the beta releases. The versions and dates should be updated.
+
+```
+<!-- title -->
+# CAPI $RELEASE_TAG has been released and is ready for testing 
+<!-- title -->
+
+<!-- body -->
+Looking forward to your feedback before the release on $FULL_RELEASE_DATE!
+
+## For quick reference: 
+- [CAPI $RELEASE_TAG release notes](https://github.com/kubernetes-sigs/cluster-api/releases/tag/$RELEASE_TAG)
+- [Shortcut to CAPI git issues](https://github.com/kubernetes-sigs/cluster-api/issues)
+
+TODO: Insert updated release calendar from `docs/release/releases/release-XXXX`
+## Following are the planned dates for the upcoming releases:
+|Release|Expected Date|
+|-----|-----|
+|v1.5.0-beta.x | Tuesday 5th July 2023|
+|release-1.5 branch created (Begin [Code Freeze])|Tuesday 11th July 2023|
+|v1.5.0-rc.0 released|Tuesday 11th July 2023|
+| release-1.5 jobs created | Tuesday 11th July 2023 |
+| v1.5.0-rc.x released | Tuesday 18th July 2023 |
+| v1.5.0 released	| Tuesday 25th July 2023 |
+<!-- body -->
+
+<!-- [List of CAPI providers](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#communicate-beta-to-providers) -->
+```
 
 ## CI Signal/Bug Triage/Automation Manager
 

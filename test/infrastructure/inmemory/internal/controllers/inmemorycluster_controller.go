@@ -210,6 +210,7 @@ func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 		For(&infrav1.InMemoryCluster{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("InMemoryCluster"), mgr.GetClient(), &infrav1.InMemoryCluster{})),

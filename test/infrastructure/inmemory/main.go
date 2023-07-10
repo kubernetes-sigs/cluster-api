@@ -52,6 +52,7 @@ import (
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
 	"sigs.k8s.io/cluster-api/util/flags"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/version"
 )
 
@@ -68,6 +69,7 @@ var (
 	leaderElectionRetryPeriod   time.Duration
 	watchNamespace              string
 	watchFilterValue            string
+	watchExpressionValue        string
 	profilerAddress             string
 	enableContentionProfiling   bool
 	clusterConcurrency          int
@@ -119,6 +121,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&watchFilterValue, "watch-filter", "",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
+
+	fs.StringVar(&watchExpressionValue, "watch-expression", "",
+		"More generic version of watch-filter which allows to pass a CEL expression evaluating to boolean result to filter reconcled objects. If unspecified, then the behavior defaults to watch-filter argument")
 
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
@@ -271,6 +276,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	apiServerMux, err := server.NewWorkloadClustersMux(cloudMgr, podIP)
 	if err != nil {
 		setupLog.Error(err, "unable to create workload clusters mux")
+		os.Exit(1)
+	}
+
+	if err := predicates.InitExpressionMatcher(setupLog, watchExpressionValue); err != nil {
+		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
 		os.Exit(1)
 	}
 

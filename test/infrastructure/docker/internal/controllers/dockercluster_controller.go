@@ -201,6 +201,7 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		For(&infrav1.DockerCluster{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DockerCluster"), mgr.GetClient(), &infrav1.DockerCluster{})),

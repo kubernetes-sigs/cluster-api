@@ -58,6 +58,7 @@ import (
 
 // Reconciler reconciles the ClusterClass object.
 type Reconciler struct {
+	*predicates.ExpressionMatcher
 	Client    client.Client
 	APIReader client.Reader
 
@@ -82,6 +83,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.extensionConfigToClusterClass),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		Complete(r)
 
 	if err != nil {

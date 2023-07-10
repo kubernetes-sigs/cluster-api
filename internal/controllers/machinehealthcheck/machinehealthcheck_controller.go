@@ -93,6 +93,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToMachineHealthCheck),
@@ -101,6 +102,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 				predicates.All(ctrl.LoggerFrom(ctx),
 					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+					predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx)),
 				),
 			),
 		).Build(r)

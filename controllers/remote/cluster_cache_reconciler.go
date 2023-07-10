@@ -45,6 +45,7 @@ func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 		Named("remote/clustercache").
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
+		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 

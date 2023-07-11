@@ -6,6 +6,3 @@ approvers:
 reviewers:
   - cluster-api-reviewers
   - cluster-api-clusterctl-reviewers
-
-labels:
-  - area/clusterctl

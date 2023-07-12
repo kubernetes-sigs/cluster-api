@@ -18,7 +18,7 @@ require (
 	github.com/go-logr/logr v1.2.4
 	github.com/gobuffalo/flect v1.0.2
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-github/v48 v48.2.0
+	github.com/google/go-github/v53 v53.2.0
 	github.com/google/gofuzz v1.2.0
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/onsi/ginkgo/v2 v2.11.0
@@ -144,7 +144,9 @@ require (
 )
 
 require (
+	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/cloudflare/circl v1.3.3 // indirect
 	github.com/daviddengcn/go-colortext v1.0.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect

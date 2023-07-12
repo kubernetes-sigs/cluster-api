@@ -1512,6 +1512,32 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		return !deletingMachine.DeletionTimestamp.IsZero()
 	}, 30*time.Second).Should(BeTrue())
 
+	// Existing machine that has a InfrastructureRef which does not exist.
+	nilInfraMachineMachine := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "nil-infra-machine-machine",
+			Namespace:   namespace.Name,
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
+			Finalizers:  []string{"testing-finalizer"},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: testCluster.Name,
+			InfrastructureRef: corev1.ObjectReference{
+				Namespace: namespace.Name,
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				DataSecretName: pointer.String("machine-bootstrap-secret"),
+			},
+		},
+	}
+	g.Expect(env.Create(ctx, nilInfraMachineMachine, client.FieldOwner(classicManager))).To(Succeed())
+	// Delete the machine to put it in the deleting state
+
 	kcp := &controlplanev1.KubeadmControlPlane{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmControlPlane",
@@ -1557,6 +1583,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		Machines: collections.Machines{
 			inPlaceMutatingMachine.Name: inPlaceMutatingMachine,
 			deletingMachine.Name:        deletingMachine,
+			nilInfraMachineMachine.Name: nilInfraMachineMachine,
 		},
 		KubeadmConfigs: map[string]*bootstrapv1.KubeadmConfig{
 			inPlaceMutatingMachine.Name: existingKubeadmConfig,

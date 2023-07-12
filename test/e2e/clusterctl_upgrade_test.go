@@ -26,37 +26,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
-var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
-	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
-		return ClusterctlUpgradeSpecInput{
-			E2EConfig:                 e2eConfig,
-			ClusterctlConfigPath:      clusterctlConfigPath,
-			BootstrapClusterProxy:     bootstrapClusterProxy,
-			ArtifactFolder:            artifactFolder,
-			SkipCleanup:               skipCleanup,
-			InfrastructureProvider:    pointer.String("docker"),
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
-			InitWithProvidersContract: "v1alpha4",
-			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
-			InitWithKubernetesVersion: "v1.23.17",
-			WorkloadKubernetesVersion: "v1.23.17",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
-		}
-	})
-})
-
 var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{

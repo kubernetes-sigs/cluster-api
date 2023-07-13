@@ -73,6 +73,8 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 				dst.Spec.Topology.Workers.MachineDeployments[i].Strategy = restored.Spec.Topology.Workers.MachineDeployments[i].Strategy
 				dst.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck
 			}
+
+			dst.Spec.Topology.Workers.MachinePools = restored.Spec.Topology.Workers.MachinePools
 		}
 	}
 
@@ -125,6 +127,7 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.ControlPlane.NodeDrainTimeout = restored.Spec.ControlPlane.NodeDrainTimeout
 	dst.Spec.ControlPlane.NodeVolumeDetachTimeout = restored.Spec.ControlPlane.NodeVolumeDetachTimeout
 	dst.Spec.ControlPlane.NodeDeletionTimeout = restored.Spec.ControlPlane.NodeDeletionTimeout
+	dst.Spec.Workers.MachinePools = restored.Spec.Workers.MachinePools
 
 	for i := range restored.Spec.Workers.MachineDeployments {
 		dst.Spec.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Workers.MachineDeployments[i].MachineHealthCheck
@@ -374,4 +377,14 @@ func Convert_v1beta1_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.Machi
 func Convert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(in *clusterv1.ClusterClass, out *ClusterClass, s apiconversion.Scope) error {
 	// ClusterClass.Status has been added in v1beta1.
 	return autoConvert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(in, out, s)
+}
+
+func Convert_v1beta1_WorkersClass_To_v1alpha4_WorkersClass(in *clusterv1.WorkersClass, out *WorkersClass, s apiconversion.Scope) error {
+	// WorkersClass.MachinePools has been added in v1beta1.
+	return autoConvert_v1beta1_WorkersClass_To_v1alpha4_WorkersClass(in, out, s)
+}
+
+func Convert_v1beta1_WorkersTopology_To_v1alpha4_WorkersTopology(in *clusterv1.WorkersTopology, out *WorkersTopology, s apiconversion.Scope) error {
+	// WorkersTopology.MachinePools has been added in v1beta1.
+	return autoConvert_v1beta1_WorkersTopology_To_v1alpha4_WorkersTopology(in, out, s)
 }

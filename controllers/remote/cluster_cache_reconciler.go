@@ -36,8 +36,8 @@ type ClusterCacheReconciler struct {
 	Client  client.Client
 	Tracker *ClusterCacheTracker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -45,8 +45,7 @@ func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 		Named("remote/clustercache").
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
-		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterPredicate)).
 		Complete(r)
 
 	if err != nil {

@@ -35,6 +35,7 @@ import (
 	machinedeploymenttopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machinedeployment"
 	machinesettopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -46,8 +47,8 @@ type ClusterReconciler struct {
 	UnstructuredCachingClient client.Client
 	APIReader                 client.Reader
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -55,7 +56,7 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Client:                    r.Client,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		APIReader:                 r.APIReader,
-		WatchFilterValue:          r.WatchFilterValue,
+		WatchFilterPredicate:      r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -66,8 +67,8 @@ type MachineReconciler struct {
 	APIReader                 client.Reader
 	Tracker                   *remote.ClusterCacheTracker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 
 	// NodeDrainClientTimeout timeout of the client used for draining nodes.
 	NodeDrainClientTimeout time.Duration
@@ -79,7 +80,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		APIReader:                 r.APIReader,
 		Tracker:                   r.Tracker,
-		WatchFilterValue:          r.WatchFilterValue,
+		WatchFilterPredicate:      r.WatchFilterPredicate,
 		NodeDrainClientTimeout:    r.NodeDrainClientTimeout,
 	}).SetupWithManager(ctx, mgr, options)
 }
@@ -91,8 +92,8 @@ type MachineSetReconciler struct {
 	APIReader                 client.Reader
 	Tracker                   *remote.ClusterCacheTracker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -101,7 +102,7 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		APIReader:                 r.APIReader,
 		Tracker:                   r.Tracker,
-		WatchFilterValue:          r.WatchFilterValue,
+		WatchFilterPredicate:      r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -111,8 +112,8 @@ type MachineDeploymentReconciler struct {
 	UnstructuredCachingClient client.Client
 	APIReader                 client.Reader
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -120,7 +121,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 		Client:                    r.Client,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		APIReader:                 r.APIReader,
-		WatchFilterValue:          r.WatchFilterValue,
+		WatchFilterPredicate:      r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -129,15 +130,15 @@ type MachineHealthCheckReconciler struct {
 	Client  client.Client
 	Tracker *remote.ClusterCacheTracker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinehealthcheckcontroller.Reconciler{
-		Client:           r.Client,
-		Tracker:          r.Tracker,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		Tracker:              r.Tracker,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -150,8 +151,8 @@ type ClusterTopologyReconciler struct {
 
 	RuntimeClient runtimeclient.Client
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
 	// thus allowing to optimize reads for templates or provider specific objects in a managed topology.
@@ -164,7 +165,7 @@ func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ct
 		APIReader:                 r.APIReader,
 		RuntimeClient:             r.RuntimeClient,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
-		WatchFilterValue:          r.WatchFilterValue,
+		WatchFilterPredicate:      r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -176,15 +177,15 @@ type MachineDeploymentTopologyReconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader        client.Reader
-	WatchFilterValue string
+	APIReader            client.Reader
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *MachineDeploymentTopologyReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinedeploymenttopologycontroller.Reconciler{
-		Client:           r.Client,
-		APIReader:        r.APIReader,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		APIReader:            r.APIReader,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -196,15 +197,15 @@ type MachineSetTopologyReconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader        client.Reader
-	WatchFilterValue string
+	APIReader            client.Reader
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *MachineSetTopologyReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinesettopologycontroller.Reconciler{
-		Client:           r.Client,
-		APIReader:        r.APIReader,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		APIReader:            r.APIReader,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -216,8 +217,8 @@ type ClusterClassReconciler struct {
 	// RuntimeClient is a client for calling runtime extensions.
 	RuntimeClient runtimeclient.Client
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
 	// thus allowing to optimize reads for templates or provider specific objects.
@@ -230,6 +231,6 @@ func (r *ClusterClassReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 		APIReader:                 r.APIReader,
 		RuntimeClient:             r.RuntimeClient,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
-		WatchFilterValue:          r.WatchFilterValue,
+		WatchFilterPredicate:      r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }

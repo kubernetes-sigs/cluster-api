@@ -52,8 +52,8 @@ type Reconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader        client.Reader
-	WatchFilterValue string
+	APIReader            client.Reader
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -62,10 +62,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Named("topology/machineset").
 		WithOptions(options).
 		WithEventFilter(predicates.All(ctrl.LoggerFrom(ctx),
-			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterPredicate),
 			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx)),
 		)).
-		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

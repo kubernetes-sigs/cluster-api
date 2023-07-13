@@ -81,8 +81,8 @@ type KubeadmConfigReconciler struct {
 	Tracker             *remote.ClusterCacheTracker
 	KubeadmInitLock     InitLocker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 
 	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	TokenTTL time.Duration
@@ -111,7 +111,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
-		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
+		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterPredicate))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
@@ -126,7 +126,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		builder.WithPredicates(
 			predicates.All(ctrl.LoggerFrom(ctx),
 				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
-				predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+				predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterPredicate),
 			),
 		),
 	)

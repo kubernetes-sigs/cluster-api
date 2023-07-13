@@ -26,6 +26,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/controllers"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
@@ -37,18 +38,18 @@ type KubeadmControlPlaneReconciler struct {
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-		Client:              r.Client,
-		SecretCachingClient: r.SecretCachingClient,
-		Tracker:             r.Tracker,
-		EtcdDialTimeout:     r.EtcdDialTimeout,
-		EtcdCallTimeout:     r.EtcdCallTimeout,
-		WatchFilterValue:    r.WatchFilterValue,
+		Client:               r.Client,
+		SecretCachingClient:  r.SecretCachingClient,
+		Tracker:              r.Tracker,
+		EtcdDialTimeout:      r.EtcdDialTimeout,
+		EtcdCallTimeout:      r.EtcdCallTimeout,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }

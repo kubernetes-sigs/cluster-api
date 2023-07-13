@@ -25,6 +25,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	machinepool "sigs.k8s.io/cluster-api/exp/internal/controllers"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // MachinePoolReconciler reconciles a MachinePool object.
@@ -33,15 +34,15 @@ type MachinePoolReconciler struct {
 	APIReader client.Reader
 	Tracker   *remote.ClusterCacheTracker
 
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
+	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
+	WatchFilterPredicate predicates.LabelMatcher
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinepool.MachinePoolReconciler{
-		Client:           r.Client,
-		APIReader:        r.APIReader,
-		Tracker:          r.Tracker,
-		WatchFilterValue: r.WatchFilterValue,
+		Client:               r.Client,
+		APIReader:            r.APIReader,
+		Tracker:              r.Tracker,
+		WatchFilterPredicate: r.WatchFilterPredicate,
 	}).SetupWithManager(ctx, mgr, options)
 }

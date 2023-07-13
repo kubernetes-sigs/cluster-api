@@ -161,7 +161,7 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 //	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
 //	    predicates.ClusterUnpaused(r.Log),
 //	)
-func ClusterUnpaused(logger logr.Logger) predicate.Funcs {
+func ClusterUnpaused(logger logr.Logger) predicate.Predicate {
 	log := logger.WithValues("predicate", "ClusterUnpaused")
 
 	// Use any to ensure we process either create or update events we care about
@@ -218,7 +218,7 @@ func ClusterControlPlaneInitialized(logger logr.Logger) predicate.Funcs {
 //	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
 //	    predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
 //	)
-func ClusterUnpausedAndInfrastructureReady(logger logr.Logger) predicate.Funcs {
+func ClusterUnpausedAndInfrastructureReady(logger logr.Logger) predicate.Predicate {
 	log := logger.WithValues("predicate", "ClusterUnpausedAndInfrastructureReady")
 
 	// Only continue processing create events if both not paused and infrastructure is ready

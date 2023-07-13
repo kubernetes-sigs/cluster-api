@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -195,9 +196,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	var watchNamespaces []string
+	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
-		watchNamespaces = []string{watchNamespace}
+		watchNamespaces = map[string]cache.Config{
+			watchNamespace: {},
+		}
 	}
 
 	if profilerAddress != "" && enableContentionProfiling {
@@ -209,7 +212,6 @@ func main() {
 
 	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
-		MetricsBindAddress:         metricsBindAddr,
 		LeaderElection:             enableLeaderElection,
 		LeaderElectionID:           "kubeadm-bootstrap-manager-leader-election-capi",
 		LeaseDuration:              &leaderElectionLeaseDuration,
@@ -218,9 +220,12 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
+		Metrics: metricsserver.Options{
+			BindAddress: metricsBindAddr,
+		},
 		Cache: cache.Options{
-			Namespaces: watchNamespaces,
-			SyncPeriod: &syncPeriod,
+			DefaultNamespaces: watchNamespaces,
+			SyncPeriod:        &syncPeriod,
 			ByObject: map[client.Object]cache.ByObject{
 				// Note: Only Secrets with the cluster name label are cached.
 				// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).

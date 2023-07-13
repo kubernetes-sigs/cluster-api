@@ -1,5 +1,6 @@
 resources:
   - ../namespace.yaml
+  - rbac-pprof.yaml
 
 helmCharts:
   - name: parca

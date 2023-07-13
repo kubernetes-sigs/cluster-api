@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -66,25 +65,26 @@ var (
 	controllerName = "cluster-api-docker-controller-manager"
 
 	// flags.
-	metricsBindAddr                string
-	enableLeaderElection           bool
-	leaderElectionLeaseDuration    time.Duration
-	leaderElectionRenewDeadline    time.Duration
-	leaderElectionRetryPeriod      time.Duration
-	watchNamespace                 string
-	watchFilterValue               string
-	profilerAddress                string
-	enableContentionProfiling      bool
+	enableLeaderElection        bool
+	leaderElectionLeaseDuration time.Duration
+	leaderElectionRenewDeadline time.Duration
+	leaderElectionRetryPeriod   time.Duration
+	watchFilterValue            string
+	watchNamespace              string
+	profilerAddress             string
+	enableContentionProfiling   bool
+	syncPeriod                  time.Duration
+	restConfigQPS               float32
+	restConfigBurst             int
+	webhookPort                 int
+	webhookCertDir              string
+	healthAddr                  string
+	tlsOptions                  = flags.TLSOptions{}
+	diagnosticsOptions          = flags.DiagnosticsOptions{}
+	logOptions                  = logs.NewOptions()
+	// CAPD specific flags.
 	concurrency                    int
 	clusterCacheTrackerConcurrency int
-	syncPeriod                     time.Duration
-	restConfigQPS                  float32
-	restConfigBurst                int
-	webhookPort                    int
-	webhookCertDir                 string
-	healthAddr                     string
-	tlsOptions                     = flags.TLSOptions{}
-	logOptions                     = logs.NewOptions()
 )
 
 func init() {
@@ -98,11 +98,8 @@ func init() {
 }
 
 // InitFlags initializes the flags.
-func initFlags(fs *pflag.FlagSet) {
+func InitFlags(fs *pflag.FlagSet) {
 	logsv1.AddFlags(logOptions, fs)
-
-	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",
-		"The address the metric endpoint binds to.")
 
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
@@ -126,7 +123,7 @@ func initFlags(fs *pflag.FlagSet) {
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
-		"Enable block profiling, if profiler-address is set.")
+		"Enable block profiling")
 
 	fs.IntVar(&concurrency, "concurrency", 10,
 		"The number of docker machines to process simultaneously")
@@ -152,10 +149,15 @@ func initFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 	flags.AddTLSOptions(fs, &tlsOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
+
+// Add RBAC for the authorized diagnostics endpoint.
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func main() {
 	if _, err := os.ReadDir("/tmp/"); err != nil {
@@ -163,7 +165,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	initFlags(pflag.CommandLine)
+	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	// Set log level 2 as default.
@@ -192,6 +194,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
+
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
 		watchNamespaces = map[string]cache.Config{
@@ -199,7 +203,7 @@ func main() {
 		}
 	}
 
-	if profilerAddress != "" && enableContentionProfiling {
+	if enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
 	}
 
@@ -216,9 +220,7 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
-		Metrics: metricsserver.Options{
-			BindAddress: metricsBindAddr,
-		},
+		Metrics:                    diagnosticsOpts,
 		Cache: cache.Options{
 			DefaultNamespaces: watchNamespaces,
 			SyncPeriod:        &syncPeriod,

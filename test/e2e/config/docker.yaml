@@ -65,8 +65,8 @@ providers:
   - name: v1.6.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
-    - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+    - old: "--leader-elect"
+      new: "--leader-elect\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -103,8 +103,8 @@ providers:
   - name: v1.6.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
-    - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+    - old: "--leader-elect"
+      new: "--leader-elect\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -141,8 +141,8 @@ providers:
   - name: v1.6.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
-    - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+    - old: "--leader-elect"
+      new: "--leader-elect\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -186,8 +186,8 @@ providers:
   - name: v1.6.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:
-    - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+    - old: "--leader-elect"
+      new: "--leader-elect\n        - --logging-format=json"
     files:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"
@@ -213,16 +213,16 @@ providers:
 - name: in-memory
   type: InfrastructureProvider
   versions:
-    - name: v1.6.99 # next; use manifest from source files
-      value: ../../../test/infrastructure/inmemory/config/default
-      replacements:
-        - old: --metrics-bind-addr=localhost:8080
-          new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
-      files:
-      # Add cluster templates
-      - sourcePath: "../data/infrastructure-inmemory/main/clusterclass-in-memory.yaml"
-      - sourcePath: "../data/infrastructure-inmemory/main/cluster-template.yaml"
-      - sourcePath: "../data/shared/main/metadata.yaml"
+  - name: v1.6.99 # next; use manifest from source files
+    value: ../../../test/infrastructure/inmemory/config/default
+    replacements:
+    - old: "--leader-elect"
+      new: "--leader-elect\n        - --logging-format=json"
+    files:
+    # Add cluster templates
+    - sourcePath: "../data/infrastructure-inmemory/main/clusterclass-in-memory.yaml"
+    - sourcePath: "../data/infrastructure-inmemory/main/cluster-template.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
 
 - name: test-extension
   type: RuntimeExtensionProvider
@@ -262,6 +262,8 @@ variables:
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
+  CAPI_DIAGNOSTICS_ADDRESS: ":8080"
+  CAPI_INSECURE_DIAGNOSTICS: "true"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

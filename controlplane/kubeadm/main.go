@@ -149,7 +149,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
 
 	fs.StringVar(&watchExpressionValue, "watch-expression", "",
-		"More generic version of watch-filter which allows to pass a CEL expression evaluating to boolean result to filter reconcled objects. If unspecified, then the behavior defaults to watch-filter argument")
+		"More generic version of watch-filter which allows to pass a label selector to filter reconcled objects. If unspecified, then the behavior defaults to the watch-filter argument")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
@@ -207,6 +207,12 @@ func main() {
 	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 
+	labelSelector, err := predicates.InitLabelMatcher(setupLog, predicates.ComposeFilterExpression(watchExpressionValue, watchFilterValue))
+	if err != nil {
+		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
+		os.Exit(1)
+	}
+
 	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -219,8 +225,9 @@ func main() {
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
 		Cache: cache.Options{
-			Namespaces: watchNamespaces,
-			SyncPeriod: &syncPeriod,
+			Namespaces:           watchNamespaces,
+			SyncPeriod:           &syncPeriod,
+			DefaultLabelSelector: labelSelector.Selector(),
 			ByObject: map[client.Object]cache.ByObject{
 				// Note: Only Secrets with the cluster name label are cached.
 				// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
@@ -317,27 +324,28 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := predicates.InitExpressionMatcher(setupLog, watchExpressionValue); err != nil {
+	labelSelector, err := predicates.InitLabelMatcher(setupLog, predicates.ComposeFilterExpression(watchExpressionValue, watchFilterValue))
+	if err != nil {
 		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
 		os.Exit(1)
 	}
 
 	if err := (&remote.ClusterCacheReconciler{
-		Client:           mgr.GetClient(),
-		Tracker:          tracker,
-		WatchFilterValue: watchFilterValue,
+		Client:               mgr.GetClient(),
+		Tracker:              tracker,
+		WatchFilterPredicate: labelSelector,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}
 
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-		Client:              mgr.GetClient(),
-		SecretCachingClient: secretCachingClient,
-		Tracker:             tracker,
-		WatchFilterValue:    watchFilterValue,
-		EtcdDialTimeout:     etcdDialTimeout,
-		EtcdCallTimeout:     etcdCallTimeout,
+		Client:               mgr.GetClient(),
+		SecretCachingClient:  secretCachingClient,
+		Tracker:              tracker,
+		WatchFilterPredicate: labelSelector,
+		EtcdDialTimeout:      etcdDialTimeout,
+		EtcdCallTimeout:      etcdCallTimeout,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)

@@ -194,6 +194,12 @@ func main() {
 		goruntime.SetBlockProfileRate(1)
 	}
 
+	labelSelector, err := predicates.InitLabelMatcher(setupLog, predicates.ComposeFilterExpression(watchExpressionValue, watchFilterValue))
+	if err != nil {
+		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
+		os.Exit(1)
+	}
+
 	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -206,8 +212,9 @@ func main() {
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
 		Cache: cache.Options{
-			Namespaces: watchNamespaces,
-			SyncPeriod: &syncPeriod,
+			DefaultLabelSelector: labelSelector.Selector(),
+			Namespaces:           watchNamespaces,
+			SyncPeriod:           &syncPeriod,
 		},
 		Client: client.Options{
 			Cache: &client.CacheOptions{

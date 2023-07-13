@@ -24,7 +24,9 @@ import (
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
@@ -38,13 +40,15 @@ var (
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client client.Client
+	Client               client.Client
+	WatchFilterPredicate LabelMatcher
 }
 
-func (r *Reconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager) error {
+func (r *Reconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
-		WithEventFilter(GetExpressionMatcher().Matches(logger)).
+		WithEventFilter(r.WatchFilterPredicate.Matches(logger)).
+		WithOptions(opts).
 		Complete(r)
 }
 
@@ -61,20 +65,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 }
 
 func TestMain(m *testing.M) {
+	matcher, err := InitLabelMatcher(logger, "!some,one,cluster.x-k8s.io/watch-filter = value")
+	if err != nil {
+		panic(fmt.Sprintf("unable to setup matcher expression: %v", err))
+	}
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		if err := InitExpressionMatcher(logger, "!has(self.metadata.annotations) && ('one' in self.metadata.labels && !('another' in self.metadata.labels))"); err != nil {
-			panic(fmt.Sprintf("unable to setup matcher expression: %v", err))
-		}
-
 		if err := (&Reconciler{
-			Client: mgr.GetClient(),
-		}).SetupWithManager(ctx, mgr); err != nil {
+			Client:               mgr.GetClient(),
+			WatchFilterPredicate: matcher,
+		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 			panic(fmt.Sprintf("unable to create machine reconciler: %v", err))
 		}
 	}
 
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:                m,
+		M: m,
+		CacheOptions: cache.Options{
+			DefaultLabelSelector: matcher.selector,
+		},
 		SetupEnv:         func(e *envtest.Environment) { env = e },
 		SetupReconcilers: setupReconcilers,
 	}))

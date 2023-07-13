@@ -26,6 +26,7 @@ import (
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -33,6 +34,14 @@ import (
 var (
 	logger = logr.New(klogr.New().GetSink())
 )
+
+func TestComposeExpression(t *testing.T) {
+	g := NewWithT(t)
+
+	g.Expect(ComposeFilterExpression("!key", "")).To(Equal("!key"))
+	g.Expect(ComposeFilterExpression("", "")).To(Equal(""))
+	g.Expect(ComposeFilterExpression("", "value")).To(Equal("cluster.x-k8s.io/watch-filter = value"))
+}
 
 func TestMatchExpression(t *testing.T) {
 	g := NewWithT(t)
@@ -42,39 +51,23 @@ func TestMatchExpression(t *testing.T) {
 		obj        client.Object
 		expression string
 		err        string
-		matcherErr string
 		matched    bool
 	}{
 		{
-			name:       "Object with stub expression should be accepted",
-			expression: "true",
-			obj:        &corev1.Node{},
-			matched:    true,
-		},
-		{
-			name:       "Empty object is rejected",
-			expression: "true",
-			matched:    false,
-		},
-		{
-			name:       "Object with expression evaluated to false should be rejected",
-			expression: "false",
-			obj:        &corev1.Node{},
-			matched:    false,
-		},
-		{
-			name:       "Object with self expression should be matched",
-			expression: "self.metadata.name == 'test'",
+			name:       "Set based expression should be accepted",
+			expression: "key notin (value),key in (otherValue)",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
+					Labels: map[string]string{
+						"key": "otherValue",
+					},
 				},
 			},
 			matched: true,
 		},
 		{
-			name:       "Object with matching expression on labels should be matched",
-			expression: "'label' in self.metadata.labels",
+			name:       "Matching expression on label keys",
+			expression: "label",
 			obj: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -85,67 +78,64 @@ func TestMatchExpression(t *testing.T) {
 			matched: true,
 		},
 		{
-			name:       "Logical expression with correctly handled absent key should be matched",
-			expression: "!has(self.metadata.labels) || !('label' in self.metadata.labels)",
+			name:       "Label key not present should be matched",
+			expression: "!label",
 			obj:        &corev1.Node{},
 			matched:    true,
 		},
 		{
-			name:       "Expression error should prevent object from matching",
-			expression: "'label' in self.metadata.labels",
+			name:       "Empty expression should always match object",
+			expression: "",
 			obj:        &corev1.Node{},
-			err:        "no such key: labels",
+			matched:    true,
+		},
+		{
+			name:       "Equality based requirement is supported",
+			expression: "key = value",
+			obj:        &corev1.Node{},
 			matched:    false,
 		},
 		{
-			name:       "Object with non boolean expression should not be matched",
-			expression: "self",
-			obj:        &corev1.Node{},
-			matcherErr: "Expression should evaluate to boolean value",
-			matched:    false,
+			name:       "Compose an expression from watchFilter value matches object",
+			expression: ComposeFilterExpression("", "true"),
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"cluster.x-k8s.io/watch-filter": "true",
+					},
+				},
+			},
+			matched: true,
 		},
 		{
-			name:       "Object with expression on unknown variable should not be matched",
-			expression: "other",
-			obj:        &corev1.Node{},
-			matcherErr: "undeclared reference to 'other'",
-			matched:    false,
+			name:       "Incorrect expression will error out",
+			expression: "what is that?",
+			err:        "couldn't parse the selector string",
 		},
 	}
 
 	for _, tt := range testcases {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := InitExpressionMatcher(logger, tt.expression)
-			if tt.matcherErr != "" {
-				g.Expect(err).To(HaveOccurred())
-				g.Expect(err).To(MatchError(ContainSubstring(tt.matcherErr)))
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred())
-			result, err := GetExpressionMatcher().matchesExpression(logger, tt.obj)
+			matcher, err := InitLabelMatcher(logger, tt.expression)
 			if tt.err != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(MatchError(ContainSubstring(tt.err)))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(tt.matched).To(Equal(result))
-			g.Expect(tt.matched).To(Equal(GetExpressionMatcher().matches(logger, tt.obj)))
+			// Ensure all predicate events are consistent with each other
+			g.Expect(matcher.Matches(logger).Create(event.CreateEvent{Object: tt.obj})).To(Equal(tt.matched))
+			g.Expect(matcher.Matches(logger).Update(event.UpdateEvent{ObjectNew: tt.obj, ObjectOld: tt.obj})).To(Equal(tt.matched))
+			g.Expect(matcher.Matches(logger).Delete(event.DeleteEvent{Object: tt.obj})).To(Equal(tt.matched))
+			g.Expect(matcher.Matches(logger).Generic(event.GenericEvent{Object: tt.obj})).To(Equal(tt.matched))
 		})
 	}
 }
 
-func TestEmptyMatcher(t *testing.T) {
-	expressionMatcher = nil
+func TestMachineReconciliationWithComplexLabelSelector(t *testing.T) {
 	g := NewWithT(t)
-	g.Expect(InitExpressionMatcher(logger, "")).ToNot(HaveOccurred())
-	g.Expect(GetExpressionMatcher()).To(BeNil())
-}
-
-func TestMachineReconciliationWithComplexExpression(t *testing.T) {
-	g := NewWithT(t)
-	ns, err := env.CreateNamespace(ctx, "watch-expression-namespace")
+	ns, err := env.CreateNamespace(ctx, "watch-label-namespace")
 	g.Expect(err).ToNot(HaveOccurred())
 	defer func() {
 		g.Expect(env.Delete(ctx, ns)).To(Succeed())
@@ -163,27 +153,22 @@ func TestMachineReconciliationWithComplexExpression(t *testing.T) {
 		},
 	}
 
-	t.Run("Machine with annotations present should not be reconciled according to expression", func(t *testing.T) {
+	t.Run("Machine with prohibited labels found should not be reconciled according to expression", func(t *testing.T) {
 		g := NewWithT(t)
-		annotatedObj := original.DeepCopy()
-		annotatedObj.Name = "annotated"
+		incorrectlyLabeledObj := original.DeepCopy()
+		incorrectlyLabeledObj.Name = "labeled-incorrectly"
 
-		annotatedObj.SetAnnotations(map[string]string{
-			"some": "annotation",
+		incorrectlyLabeledObj.SetLabels(map[string]string{
+			"some": "label",
 		})
 
-		g.Expect(env.Create(ctx, annotatedObj)).To(Succeed())
-		g.Eventually(func() error {
-			return env.Get(ctx, client.ObjectKeyFromObject(annotatedObj), annotatedObj)
-		}, timeout).Should(Succeed())
-
-		g.Consistently(func() bool {
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(annotatedObj), annotatedObj)).To(Succeed())
-			return annotatedObj.Status.BootstrapReady
-		}, timeout).Should(BeFalse())
+		g.Expect(env.Create(ctx, incorrectlyLabeledObj)).To(Succeed())
+		g.Consistently(func() error {
+			return env.Get(ctx, client.ObjectKeyFromObject(incorrectlyLabeledObj), incorrectlyLabeledObj)
+		}, timeout).ShouldNot(Succeed())
 	})
 
-	t.Run("Machine with one label but not another will be reconciled", func(t *testing.T) {
+	t.Run("Machine with only one label will not be reconciled", func(t *testing.T) {
 		g := NewWithT(t)
 		oneLabel := original.DeepCopy()
 		oneLabel.Name = "one-label"
@@ -192,23 +177,18 @@ func TestMachineReconciliationWithComplexExpression(t *testing.T) {
 		})
 
 		g.Expect(env.Create(ctx, oneLabel)).To(Succeed())
-		g.Eventually(func() error {
+		g.Consistently(func() error {
 			return env.Get(ctx, client.ObjectKeyFromObject(oneLabel), oneLabel)
-		}, timeout).Should(Succeed())
-
-		g.Eventually(func() bool {
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(oneLabel), oneLabel)).To(Succeed())
-			return oneLabel.Status.BootstrapReady
-		}, timeout).Should(BeTrue())
+		}, timeout).ShouldNot(Succeed())
 	})
 
-	t.Run("Machine with another label will not be reconciled", func(t *testing.T) {
+	t.Run("Machine with both labels will be reconciled", func(t *testing.T) {
 		g := NewWithT(t)
 		anotherLabel := original.DeepCopy()
 		anotherLabel.Name = "another-label"
 		anotherLabel.SetLabels(map[string]string{
-			"one":     "",
-			"another": "",
+			"one":                           "",
+			"cluster.x-k8s.io/watch-filter": "value",
 		})
 
 		g.Expect(env.Create(ctx, anotherLabel)).To(Succeed())
@@ -216,9 +196,9 @@ func TestMachineReconciliationWithComplexExpression(t *testing.T) {
 			return env.Get(ctx, client.ObjectKeyFromObject(anotherLabel), anotherLabel)
 		}, timeout).Should(Succeed())
 
-		g.Consistently(func() bool {
+		g.Eventually(func() bool {
 			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(anotherLabel), anotherLabel)).To(Succeed())
 			return anotherLabel.Status.BootstrapReady
-		}, timeout).Should(BeFalse())
+		}, timeout).Should(BeTrue())
 	})
 }

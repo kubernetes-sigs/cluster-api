@@ -35,15 +35,6 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/core-components.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
   - name: v1.0.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/core-components.yaml"
     type: "url"
@@ -82,15 +73,6 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/bootstrap-components.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
   - name: v1.0.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/bootstrap-components.yaml"
     type: "url"
@@ -129,15 +111,6 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/control-plane-components.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
   - name: v1.0.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/control-plane-components.yaml"
     type: "url"
@@ -176,16 +149,6 @@ providers:
 - name: docker
   type: InfrastructureProvider
   versions:
-  - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1alpha4
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v0.4/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v0.4/cluster-template.yaml"
   - name: v1.0.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/infrastructure-components-development.yaml"
     type: "url"

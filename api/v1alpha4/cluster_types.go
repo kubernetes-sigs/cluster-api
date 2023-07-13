@@ -276,6 +276,7 @@ func (v APIEndpoint) String() string {
 // ANCHOR_END: APIEndpoint
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=clusters,shortName=cl,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

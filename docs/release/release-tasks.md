@@ -22,6 +22,7 @@ This document details the responsibilities and tasks for each role in the releas
       - [Prepare main branch for development of the new release](#prepare-main-branch-for-development-of-the-new-release)
       - [Create a new GitHub milestone for the next release](#create-a-new-github-milestone-for-the-next-release)
       - [\[Track\] Remove previously deprecated code](#track-remove-previously-deprecated-code)
+      - 
       - [\[Track\] Bump dependencies](#track-bump-dependencies)
       - [Create a release branch](#create-a-release-branch)
       - [\[Continuously\] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
@@ -94,7 +95,6 @@ is used for e.g. local development and e2e tests. We also modify tests so that t
 This comes down to changing occurrences of the old version to the new version, e.g. `v1.3` to `v1.4`:
 1. Setup E2E tests for the new release:
    1. Goal is that we have clusterctl upgrade tests for the latest stable versions of each contract / for each supported branch. For `v1.5` this means:
-      * v1alpha4: `v0.4`
       * v1beta1: `v1.0`, `v1.3`, `v1.4` (will change with each new release)
    2. Update providers in `docker.yaml`:
        1. Add a new `v1.4.0` entry.

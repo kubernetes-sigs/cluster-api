@@ -90,6 +90,7 @@
           - [v1.2 to v1.3](./developer/providers/migrations/v1.2-to-v1.3.md)
           - [v1.3 to v1.4](./developer/providers/migrations/v1.3-to-v1.4.md)
           - [v1.4 to v1.5](./developer/providers/migrations/v1.4-to-v1.5.md)
+          - [v1.5 to v1.6](./developer/providers/migrations/v1.5-to-v1.6.md)
         - [Provider contracts](./developer/providers/contracts.md)
           - [Cluster Infrastructure](./developer/providers/cluster-infrastructure.md)
           - [Machine Infrastructure](./developer/providers/machine-infrastructure.md)

@@ -39,17 +39,17 @@ type InMemoryClusterReconciler struct {
 	CloudManager cloud.Manager
 	APIServerMux *server.WorkloadClustersMux // TODO: find a way to use an interface here
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&inmemorycontrollers.InMemoryClusterReconciler{
-		Client:               r.Client,
-		CloudManager:         r.CloudManager,
-		APIServerMux:         r.APIServerMux,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		CloudManager:     r.CloudManager,
+		APIServerMux:     r.APIServerMux,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -59,16 +59,16 @@ type InMemoryMachineReconciler struct {
 	CloudManager cloud.Manager
 	APIServerMux *server.WorkloadClustersMux // TODO: find a way to use an interface here
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&inmemorycontrollers.InMemoryMachineReconciler{
-		Client:               r.Client,
-		CloudManager:         r.CloudManager,
-		APIServerMux:         r.APIServerMux,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		CloudManager:     r.CloudManager,
+		APIServerMux:     r.APIServerMux,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

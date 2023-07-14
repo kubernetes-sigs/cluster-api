@@ -70,8 +70,8 @@ type Reconciler struct {
 
 	RuntimeClient runtimeclient.Client
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
 	// thus allowing to optimize reads for templates or provider specific objects in a managed topology.
@@ -104,7 +104,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterPredicate)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {

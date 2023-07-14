@@ -318,20 +318,20 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&remote.ClusterCacheReconciler{
-		Client:               mgr.GetClient(),
-		Tracker:              tracker,
-		WatchFilterPredicate: labelSelector,
+		Client:           mgr.GetClient(),
+		Tracker:          tracker,
+		WatchFilterValue: labelSelector,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}
 
 	if err := (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
-		Client:               mgr.GetClient(),
-		SecretCachingClient:  secretCachingClient,
-		Tracker:              tracker,
-		WatchFilterPredicate: labelSelector,
-		TokenTTL:             tokenTTL,
+		Client:              mgr.GetClient(),
+		SecretCachingClient: secretCachingClient,
+		Tracker:             tracker,
+		WatchFilterValue:    labelSelector,
+		TokenTTL:            tokenTTL,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
 		os.Exit(1)

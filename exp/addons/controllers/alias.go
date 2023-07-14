@@ -33,15 +33,15 @@ type ClusterResourceSetReconciler struct {
 	Client  client.Client
 	Tracker *remote.ClusterCacheTracker
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&clusterresourcesets.ClusterResourceSetReconciler{
-		Client:               r.Client,
-		Tracker:              r.Tracker,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -49,13 +49,13 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 type ClusterResourceSetBindingReconciler struct {
 	Client client.Client
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&clusterresourcesets.ClusterResourceSetBindingReconciler{
-		Client:               r.Client,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

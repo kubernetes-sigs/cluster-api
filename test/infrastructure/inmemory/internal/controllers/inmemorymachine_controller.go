@@ -64,8 +64,8 @@ type InMemoryMachineReconciler struct {
 	CloudManager cloud.Manager
 	APIServerMux *server.WorkloadClustersMux
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemorymachines,verbs=get;list;watch;create;update;patch;delete

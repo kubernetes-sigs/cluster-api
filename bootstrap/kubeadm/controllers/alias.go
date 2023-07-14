@@ -44,8 +44,8 @@ type KubeadmConfigReconciler struct {
 
 	Tracker *remote.ClusterCacheTracker
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 
 	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	TokenTTL time.Duration
@@ -54,10 +54,10 @@ type KubeadmConfigReconciler struct {
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
-		Client:               r.Client,
-		SecretCachingClient:  r.SecretCachingClient,
-		Tracker:              r.Tracker,
-		WatchFilterPredicate: r.WatchFilterPredicate,
-		TokenTTL:             r.TokenTTL,
+		Client:              r.Client,
+		SecretCachingClient: r.SecretCachingClient,
+		Tracker:             r.Tracker,
+		WatchFilterValue:    r.WatchFilterValue,
+		TokenTTL:            r.TokenTTL,
 	}).SetupWithManager(ctx, mgr, options)
 }

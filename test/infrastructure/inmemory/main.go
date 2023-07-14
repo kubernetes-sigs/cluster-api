@@ -294,20 +294,20 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	// Setup reconcilers
 	if err := (&controllers.InMemoryClusterReconciler{
-		Client:               mgr.GetClient(),
-		CloudManager:         cloudMgr,
-		APIServerMux:         apiServerMux,
-		WatchFilterPredicate: labelSelector,
+		Client:           mgr.GetClient(),
+		CloudManager:     cloudMgr,
+		APIServerMux:     apiServerMux,
+		WatchFilterValue: labelSelector,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InMemoryCluster")
 		os.Exit(1)
 	}
 
 	if err := (&controllers.InMemoryMachineReconciler{
-		Client:               mgr.GetClient(),
-		CloudManager:         cloudMgr,
-		APIServerMux:         apiServerMux,
-		WatchFilterPredicate: labelSelector,
+		Client:           mgr.GetClient(),
+		CloudManager:     cloudMgr,
+		APIServerMux:     apiServerMux,
+		WatchFilterValue: labelSelector,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "InMemoryMachine")
 		os.Exit(1)

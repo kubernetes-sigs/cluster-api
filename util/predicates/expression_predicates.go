@@ -22,7 +22,6 @@ import (
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -75,7 +74,7 @@ func InitLabelMatcher(log logr.Logger, labelExpression string) (LabelMatcher, er
 	return matcher, nil
 }
 
-// Selector returns compiled label selector if it was initialized from expression
+// Selector returns compiled label selector if it was initialized from expression.
 func (m *LabelMatcher) Selector() labels.Selector {
 	return m.selector
 }

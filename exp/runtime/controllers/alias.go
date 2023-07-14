@@ -34,15 +34,15 @@ type ExtensionConfigReconciler struct {
 	APIReader     client.Reader
 	RuntimeClient runtimeclient.Client
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 func (r *ExtensionConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&runtimecontrollers.Reconciler{
-		Client:               r.Client,
-		APIReader:            r.APIReader,
-		RuntimeClient:        r.RuntimeClient,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		RuntimeClient:    r.RuntimeClient,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

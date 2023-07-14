@@ -40,14 +40,14 @@ var (
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client               client.Client
-	WatchFilterPredicate LabelMatcher
+	Client           client.Client
+	WatchFilterValue LabelMatcher
 }
 
 func (r *Reconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager, opts controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
-		WithEventFilter(r.WatchFilterPredicate.Matches(logger)).
+		WithEventFilter(r.WatchFilterValue.Matches(logger)).
 		WithOptions(opts).
 		Complete(r)
 }
@@ -71,8 +71,8 @@ func TestMain(m *testing.M) {
 	}
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&Reconciler{
-			Client:               mgr.GetClient(),
-			WatchFilterPredicate: matcher,
+			Client:           mgr.GetClient(),
+			WatchFilterValue: matcher,
 		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 			panic(fmt.Sprintf("unable to create machine reconciler: %v", err))
 		}

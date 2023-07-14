@@ -34,15 +34,15 @@ type MachinePoolReconciler struct {
 	APIReader client.Reader
 	Tracker   *remote.ClusterCacheTracker
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinepool.MachinePoolReconciler{
-		Client:               r.Client,
-		APIReader:            r.APIReader,
-		Tracker:              r.Tracker,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

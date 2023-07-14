@@ -39,17 +39,17 @@ type DockerMachineReconciler struct {
 	ContainerRuntime container.Runtime
 	Tracker          *remote.ClusterCacheTracker
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockercontrollers.DockerMachineReconciler{
-		Client:               r.Client,
-		ContainerRuntime:     r.ContainerRuntime,
-		Tracker:              r.Tracker,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
+		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -58,15 +58,15 @@ type DockerClusterReconciler struct {
 	Client           client.Client
 	ContainerRuntime container.Runtime
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockercontrollers.DockerClusterReconciler{
-		Client:               r.Client,
-		ContainerRuntime:     r.ContainerRuntime,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

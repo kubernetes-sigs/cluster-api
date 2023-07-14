@@ -38,18 +38,18 @@ type KubeadmControlPlaneReconciler struct {
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-		Client:               r.Client,
-		SecretCachingClient:  r.SecretCachingClient,
-		Tracker:              r.Tracker,
-		EtcdDialTimeout:      r.EtcdDialTimeout,
-		EtcdCallTimeout:      r.EtcdCallTimeout,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:              r.Client,
+		SecretCachingClient: r.SecretCachingClient,
+		Tracker:             r.Tracker,
+		EtcdDialTimeout:     r.EtcdDialTimeout,
+		EtcdCallTimeout:     r.EtcdCallTimeout,
+		WatchFilterValue:    r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

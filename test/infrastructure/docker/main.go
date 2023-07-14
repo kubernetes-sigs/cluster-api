@@ -325,9 +325,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&remote.ClusterCacheReconciler{
-		Client:               mgr.GetClient(),
-		Tracker:              tracker,
-		WatchFilterPredicate: labelSelector,
+		Client:           mgr.GetClient(),
+		Tracker:          tracker,
+		WatchFilterValue: labelSelector,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
@@ -336,10 +336,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.DockerMachineReconciler{
-		Client:               mgr.GetClient(),
-		ContainerRuntime:     runtimeClient,
-		Tracker:              tracker,
-		WatchFilterPredicate: labelSelector,
+		Client:           mgr.GetClient(),
+		ContainerRuntime: runtimeClient,
+		Tracker:          tracker,
+		WatchFilterValue: labelSelector,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
@@ -348,9 +348,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.DockerClusterReconciler{
-		Client:               mgr.GetClient(),
-		ContainerRuntime:     runtimeClient,
-		WatchFilterPredicate: labelSelector,
+		Client:           mgr.GetClient(),
+		ContainerRuntime: runtimeClient,
+		WatchFilterValue: labelSelector,
 	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
 		os.Exit(1)
@@ -358,10 +358,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.DockerMachinePoolReconciler{
-			Client:               mgr.GetClient(),
-			ContainerRuntime:     runtimeClient,
-			Tracker:              tracker,
-			WatchFilterPredicate: labelSelector,
+			Client:           mgr.GetClient(),
+			ContainerRuntime: runtimeClient,
+			Tracker:          tracker,
+			WatchFilterValue: labelSelector,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePool")
 			os.Exit(1)

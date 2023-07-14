@@ -38,17 +38,17 @@ type DockerMachinePoolReconciler struct {
 	ContainerRuntime container.Runtime
 	Tracker          *remote.ClusterCacheTracker
 
-	// WatchFilterPredicate is the label selector value used to filter events prior to reconciliation.
-	WatchFilterPredicate predicates.LabelMatcher
+	// WatchFilterValue is the label selector value used to filter events prior to reconciliation.
+	WatchFilterValue predicates.LabelMatcher
 }
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockermachinepoolcontrollers.DockerMachinePoolReconciler{
-		Client:               r.Client,
-		Scheme:               r.Scheme,
-		ContainerRuntime:     r.ContainerRuntime,
-		Tracker:              r.Tracker,
-		WatchFilterPredicate: r.WatchFilterPredicate,
+		Client:           r.Client,
+		Scheme:           r.Scheme,
+		ContainerRuntime: r.ContainerRuntime,
+		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

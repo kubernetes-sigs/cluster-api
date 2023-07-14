@@ -52,8 +52,8 @@ type Reconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader            client.Reader
-	WatchFilterPredicate predicates.LabelMatcher
+	APIReader        client.Reader
+	WatchFilterValue predicates.LabelMatcher
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -62,7 +62,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Named("topology/machineset").
 		WithOptions(options).
 		WithEventFilter(predicates.All(ctrl.LoggerFrom(ctx),
-			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterPredicate),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx)),
 		)).
 		Complete(r)

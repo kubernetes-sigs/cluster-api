@@ -255,6 +255,9 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		)
 	}
 
+	// metadata in topology should be valid
+	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
+
 	// upgrade concurrency should be a numeric value.
 	if concurrency, ok := newCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
 		concurrencyAnnotationField := field.NewPath("metadata", "annotations", clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation)
@@ -628,4 +631,17 @@ func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) error {
 		return errClusterClassNotReconciled
 	}
 	return nil
+}
+
+func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	allErrs = append(allErrs, topology.ControlPlane.Metadata.Validate(fldPath.Child("controlPlane", "metadata"))...)
+	if topology.Workers != nil {
+		for idx, md := range topology.Workers.MachineDeployments {
+			allErrs = append(allErrs, md.Metadata.Validate(
+				fldPath.Child("workers", "machineDeployments").Index(idx).Child("metadata"),
+			)...)
+		}
+	}
+	return allErrs
 }

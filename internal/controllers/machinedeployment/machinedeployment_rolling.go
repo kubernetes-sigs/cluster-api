@@ -210,7 +210,7 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 		oldMSAvailableReplicas := targetMS.Status.AvailableReplicas
 		log.V(4).Info("Found available Machines in old MachineSet",
 			"count", oldMSAvailableReplicas, "target-machineset", client.ObjectKeyFromObject(targetMS).String())
-		if oldMSReplicas == oldMSAvailableReplicas {
+		if oldMSReplicas <= oldMSAvailableReplicas {
 			// no unhealthy replicas found, no scaling required.
 			continue
 		}

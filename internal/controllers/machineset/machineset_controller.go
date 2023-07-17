@@ -45,13 +45,13 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
-	capilabels "sigs.k8s.io/cluster-api/internal/labels"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/labels/format"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -684,7 +684,7 @@ func machineLabelsFromMachineSet(machineSet *clusterv1.MachineSet) map[string]st
 	// Note: If a client tries to create a MachineSet without a selector, the MachineSet webhook
 	// will add this label automatically. But we want this label to always be present even if the MachineSet
 	// has a selector which doesn't include it. Therefore, we have to set it here explicitly.
-	machineLabels[clusterv1.MachineSetNameLabel] = capilabels.MustFormatValue(machineSet.Name)
+	machineLabels[clusterv1.MachineSetNameLabel] = format.MustFormatValue(machineSet.Name)
 	// Propagate the MachineDeploymentNameLabel from MachineSet to Machine if it exists.
 	if mdName, ok := machineSet.Labels[clusterv1.MachineDeploymentNameLabel]; ok {
 		machineLabels[clusterv1.MachineDeploymentNameLabel] = mdName

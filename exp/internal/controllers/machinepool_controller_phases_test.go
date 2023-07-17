@@ -38,10 +38,10 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	capilabels "sigs.k8s.io/cluster-api/internal/labels"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
 const (
@@ -1398,7 +1398,7 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 				"namespace": metav1.NamespaceDefault,
 				"labels": map[string]interface{}{
 					clusterv1.ClusterNameLabel:     clusterName,
-					clusterv1.MachinePoolNameLabel: capilabels.MustFormatValue(machinePool1.Name),
+					clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePool1.Name),
 				},
 			},
 		},
@@ -1413,7 +1413,7 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 				"namespace": metav1.NamespaceDefault,
 				"labels": map[string]interface{}{
 					clusterv1.ClusterNameLabel:     "other-cluster",
-					clusterv1.MachinePoolNameLabel: capilabels.MustFormatValue(machinePoolLongName.Name),
+					clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePoolLongName.Name),
 				},
 			},
 		},
@@ -1428,7 +1428,7 @@ func TestInfraMachineToMachinePoolMapper(t *testing.T) {
 				"namespace": metav1.NamespaceDefault,
 				"labels": map[string]interface{}{
 					clusterv1.ClusterNameLabel:     "other-cluster",
-					clusterv1.MachinePoolNameLabel: capilabels.MustFormatValue("missing-machinepool"),
+					clusterv1.MachinePoolNameLabel: format.MustFormatValue("missing-machinepool"),
 				},
 			},
 		},

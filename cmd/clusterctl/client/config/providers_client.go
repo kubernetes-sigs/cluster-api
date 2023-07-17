@@ -70,6 +70,7 @@ const (
 	KubeadmBootstrapProviderName    = "kubeadm"
 	TalosBootstrapProviderName      = "talos"
 	MicroK8sBootstrapProviderName   = "microk8s"
+	OCNEBootstrapProviderName       = "ocne"
 	KubeKeyK3sBootstrapProviderName = "kubekey-k3s"
 )
 
@@ -79,6 +80,7 @@ const (
 	TalosControlPlaneProviderName      = "talos"
 	MicroK8sControlPlaneProviderName   = "microk8s"
 	NestedControlPlaneProviderName     = "nested"
+	OCNEControlPlaneProviderName       = "ocne"
 	KubeKeyK3sControlPlaneProviderName = "kubekey-k3s"
 )
 
@@ -287,6 +289,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+		&provider{
+			name:         OCNEBootstrapProviderName,
+			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 
 		// ControlPlane providers
 		&provider{
@@ -312,6 +319,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         NestedControlPlaneProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         OCNEControlPlaneProviderName,
+			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 

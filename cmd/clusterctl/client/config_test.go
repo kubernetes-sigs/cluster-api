@@ -23,7 +23,6 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,11 +58,13 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.KubeadmBootstrapProviderName,
 				config.KubeKeyK3sBootstrapProviderName,
 				config.MicroK8sBootstrapProviderName,
+				config.OCNEBootstrapProviderName,
 				config.TalosBootstrapProviderName,
 				config.KubeadmControlPlaneProviderName,
 				config.KubeKeyK3sControlPlaneProviderName,
 				config.MicroK8sControlPlaneProviderName,
 				config.NestedControlPlaneProviderName,
+				config.OCNEControlPlaneProviderName,
 				config.TalosControlPlaneProviderName,
 				config.AWSProviderName,
 				config.AzureProviderName,

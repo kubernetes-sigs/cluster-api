@@ -167,6 +167,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   ProviderType: BootstrapProvider
   URL: https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/
 - File: bootstrap-components.yaml
+  Name: ocne
+  ProviderType: BootstrapProvider
+  URL: https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/
+- File: bootstrap-components.yaml
   Name: talos
   ProviderType: BootstrapProvider
   URL: https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/
@@ -186,6 +190,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: nested
   ProviderType: ControlPlaneProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/
+- File: control-plane-components.yaml
+  Name: ocne
+  ProviderType: ControlPlaneProvider
+  URL: https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/
 - File: control-plane-components.yaml
   Name: talos
   ProviderType: ControlPlaneProvider

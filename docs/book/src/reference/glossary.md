@@ -45,6 +45,12 @@ Cluster API Provider AWS
 ### CABPK
 Cluster API Bootstrap Provider Kubeadm
 
+### CABPOCNE
+Cluster API Bootstrap Provider Oracle Cloud Native Environment (OCNE)
+
+### CACPOCNE
+Cluster API Control Plane Provider Oracle Cloud Native Environment (OCNE)
+
 ### CAPC
 Cluster API Provider CloudStack
 

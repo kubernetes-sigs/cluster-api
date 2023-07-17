@@ -42,11 +42,11 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	capilabels "sigs.k8s.io/cluster-api/internal/labels"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -342,7 +342,7 @@ func (r *MachinePoolReconciler) reconcileMachines(ctx context.Context, mp *expv1
 
 	infraMachineSelector := metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			clusterv1.MachinePoolNameLabel: capilabels.MustFormatValue(mp.Name),
+			clusterv1.MachinePoolNameLabel: format.MustFormatValue(mp.Name),
 			clusterv1.ClusterNameLabel:     mp.Spec.ClusterName,
 		},
 	}
@@ -503,7 +503,7 @@ func getNewMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructure
 	}
 
 	// Enforce that the MachinePoolNameLabel and ClusterNameLabel are present on the Machine.
-	machine.Labels[clusterv1.MachinePoolNameLabel] = capilabels.MustFormatValue(mp.Name)
+	machine.Labels[clusterv1.MachinePoolNameLabel] = format.MustFormatValue(mp.Name)
 	machine.Labels[clusterv1.ClusterNameLabel] = mp.Spec.ClusterName
 
 	return machine
@@ -528,7 +528,7 @@ func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Cont
 		}
 
 		for _, mp := range machinePoolList.Items {
-			if capilabels.MustFormatValue(mp.Name) == poolNameHash {
+			if format.MustFormatValue(mp.Name) == poolNameHash {
 				return []ctrl.Request{
 					{
 						NamespacedName: client.ObjectKey{

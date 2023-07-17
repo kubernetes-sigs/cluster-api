@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	. "github.com/onsi/gomega"
 )
 
 func Test_runGetRepositories(t *testing.T) {

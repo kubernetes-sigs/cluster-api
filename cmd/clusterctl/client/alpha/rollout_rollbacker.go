@@ -77,7 +77,7 @@ func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clu
 	if !force {
 		if msForRevision.Spec.Template.Spec.Version == nil {
 			return errors.Errorf("can't validate version skew policy because verion field of MachineSet %v is not set"+
-				" The result of the operation may vaiolate the Kubernetes version skew policy."+
+				" The result of the operation may not comply with Kubernetes' version skew policy."+
 				" If you want to rollback anyway, use --force option.", msForRevision.Name)
 		}
 

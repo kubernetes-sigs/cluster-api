@@ -28,9 +28,9 @@ After the `.0` release monthly patch release will be created.
 
 ## Release team
 
-| **Role**                                  | **Lead Name** (**GitHub / Slack ID**)                                                      | **Shadow Name(s) (GitHub / Slack ID)**                                                                                                                                                                                                                                          |
-|-------------------------------------------|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Release Lead                              | TBD | TBD   |
-| Communications/Docs/Release Notes Manager | TBD | TBD   |
-| CI Signal/Bug Triage/Automation Manager   | TBD | TBD   |
-| Release Writer                            | TBD | TBD   |
+| **Role**                                  | **Lead** (**GitHub / Slack ID**)                                                      | **Team member(s) (GitHub / Slack ID)** |
+|-------------------------------------------|-------------------------------------------------------------------------------------------|----------------------------------------|
+| Release Lead                              | TBD | TBD                                    |
+| Communications/Docs/Release Notes Manager | TBD | TBD                                    |
+| CI Signal/Bug Triage/Automation Manager   | TBD | TBD                                    |
+| Maintainer                                | TBD | TBD                                    |

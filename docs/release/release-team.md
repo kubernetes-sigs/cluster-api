@@ -82,7 +82,7 @@ When assembling a release team, the release team lead should look for volunteers
 - Can commit to the amount of time required across the release cycle
 - Are enthusiastic about being on the release team
 - Are members of the Cluster Lifecycle SIG
-- Have some prior experience with contributing to CAPI releases (such as shadowing a role for a prior release)
+- Have some prior experience with contributing to CAPI releases (such having been in the release team for a prior release)
 - Have diverse company affiliations (i.e. not all from the same company)
 
 ## Time Commitment

@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"context"
 	"strconv"
 	"testing"
 
@@ -410,6 +411,56 @@ func TestReconcileOldMachineSets(t *testing.T) {
 			},
 			expectedOldMachineSetsReplicas: 8,
 		},
+		{
+			name: "RollingUpdate strategy: It should scale down old MachineSets in a further step when all new replicas are available",
+			machineDeployment: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+							MaxUnavailable: intOrStrPtr(0),
+							MaxSurge:       intOrStrPtr(3),
+						},
+					},
+					Replicas: pointer.Int32(10),
+				},
+			},
+			newMachineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32(5),
+				},
+				Status: clusterv1.MachineSetStatus{
+					Replicas:          5,
+					ReadyReplicas:     5,
+					AvailableReplicas: 5,
+				},
+			},
+			oldMachineSets: []*clusterv1.MachineSet{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "8replicas",
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Replicas: pointer.Int32(8),
+					},
+					Status: clusterv1.MachineSetStatus{
+						Replicas:          10,
+						ReadyReplicas:     10,
+						AvailableReplicas: 10,
+					},
+				},
+			},
+			expectedOldMachineSetsReplicas: 5,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -443,6 +494,107 @@ func TestReconcileOldMachineSets(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(*freshOldMachineSet.Spec.Replicas).To(BeEquivalentTo(tc.expectedOldMachineSetsReplicas))
 			}
+		})
+	}
+}
+
+func TestCleanupUnhealthyReplicas(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		oldReplicas          int32
+		readyReplicas        int32
+		maxCleanupCount      int32
+		cleanupCountExpected int32
+		wantErr              bool
+	}{
+		{
+			name:                 "CleanupUnhealthyReplicas: It should cleanup 1 unhealthy replicas when only 1 replicas need to be cleaned up",
+			oldReplicas:          10,
+			readyReplicas:        8,
+			maxCleanupCount:      1,
+			cleanupCountExpected: 1,
+			wantErr:              false,
+		},
+		{
+			name:                 "CleanupUnhealthyReplicas: It should cleanup 2 unhealthy replicas when only 2 replicas are unhealthy",
+			oldReplicas:          10,
+			readyReplicas:        8,
+			maxCleanupCount:      3,
+			cleanupCountExpected: 2,
+			wantErr:              false,
+		},
+		{
+			name:                 "CleanupUnhealthyReplicas: It should cleanup 0 unhealthy replicas when no replicas need to be cleaned up",
+			oldReplicas:          10,
+			readyReplicas:        8,
+			maxCleanupCount:      0,
+			cleanupCountExpected: 0,
+			wantErr:              false,
+		},
+		{
+			name:                 "CleanupUnhealthyReplicas: It should cleanup 0 unhealthy replicas when no replicas is unhealthy",
+			oldReplicas:          10,
+			readyReplicas:        10,
+			maxCleanupCount:      3,
+			cleanupCountExpected: 0,
+			wantErr:              false,
+		},
+		{
+			name:                 "CleanupUnhealthyReplicas: It should cleanup 0 unhealthy replicas when oldReplicas < AvailableReplicas",
+			oldReplicas:          8,
+			readyReplicas:        10,
+			maxCleanupCount:      3,
+			cleanupCountExpected: 0,
+			wantErr:              false,
+		},
+	}
+
+	for _, tc := range testCases {
+
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			machineDeployment := &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+							MaxUnavailable: intOrStrPtr(2),
+							MaxSurge:       intOrStrPtr(2),
+						},
+					},
+					Replicas: pointer.Int32(10),
+				},
+			}
+
+			oldMS := &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar-v2",
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32(tc.oldReplicas),
+				},
+				Status: clusterv1.MachineSetStatus{
+					AvailableReplicas: tc.readyReplicas,
+				},
+			}
+
+			r := &Reconciler{
+				Client:   fake.NewClientBuilder().WithObjects(oldMS).Build(),
+				recorder: record.NewFakeRecorder(32),
+			}
+
+			_, cleanupCount, err := r.cleanupUnhealthyReplicas(context.TODO(), []*clusterv1.MachineSet{oldMS}, machineDeployment, tc.maxCleanupCount)
+			if tc.wantErr {
+				g.Expect(err).ShouldNot(BeNil())
+				return
+			}
+
+			g.Expect(cleanupCount).Should(Equal(tc.cleanupCountExpected))
 		})
 	}
 }

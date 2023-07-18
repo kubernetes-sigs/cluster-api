@@ -194,7 +194,7 @@ func main() {
 		goruntime.SetBlockProfileRate(1)
 	}
 
-	labelSelector, err := predicates.InitLabelMatcher(setupLog, predicates.ComposeFilterExpression(watchExpressionValue, watchFilterValue))
+	labelSelector, err := predicates.InitLabelMatcher(setupLog, watchExpressionValue)
 	if err != nil {
 		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
 		os.Exit(1)

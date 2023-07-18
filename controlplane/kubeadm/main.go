@@ -207,7 +207,7 @@ func main() {
 	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 
-	labelSelector, err := predicates.InitLabelMatcher(setupLog, predicates.ComposeFilterExpression(watchExpressionValue, watchFilterValue))
+	labelSelector, err := predicates.InitLabelMatcher(setupLog, watchExpressionValue)
 	if err != nil {
 		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
 		os.Exit(1)

@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -29,29 +30,40 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const defaultNodeDeletionTimeout = 10 * time.Second
 
-func (m *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(m).
+		For(&clusterv1.Machine{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-machine,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machines,versions=v1beta1,name=validation.machine.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machine,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machines,versions=v1beta1,name=default.machine.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Validator = &Machine{}
-var _ webhook.Defaulter = &Machine{}
+// Machine implements a validation and defaulting webhook for Machine.
+type Machine struct{}
+
+var _ webhook.CustomValidator = &Machine{}
+var _ webhook.CustomDefaulter = &Machine{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (m *Machine) Default() {
+func (webhook *Machine) Default(_ context.Context, obj runtime.Object) error {
+	m, ok := obj.(*clusterv1.Machine)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", obj))
+	}
+
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[ClusterNameLabel] = m.Spec.ClusterName
+	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.Namespace == "" {
 		m.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
@@ -69,33 +81,46 @@ func (m *Machine) Default() {
 	if m.Spec.NodeDeletionTimeout == nil {
 		m.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: defaultNodeDeletionTimeout}
 	}
+
+	return nil
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (m *Machine) ValidateCreate() (admission.Warnings, error) {
-	return nil, m.validate(nil)
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
+func (webhook *Machine) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	m, ok := obj.(*clusterv1.Machine)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", obj))
+	}
+
+	return nil, webhook.validate(nil, m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (m *Machine) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	oldM, ok := old.(*Machine)
+func (webhook *Machine) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	oldM, ok := oldObj.(*clusterv1.Machine)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", oldObj))
 	}
-	return nil, m.validate(oldM)
+
+	newM, ok := newObj.(*clusterv1.Machine)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Machine but got a %T", newObj))
+	}
+
+	return nil, webhook.validate(oldM, newM)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (m *Machine) ValidateDelete() (admission.Warnings, error) {
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
+func (webhook *Machine) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (m *Machine) validate(old *Machine) error {
+func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 	var allErrs field.ErrorList
 	specPath := field.NewPath("spec")
-	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.DataSecretName == nil {
+	if newM.Spec.Bootstrap.ConfigRef == nil && newM.Spec.Bootstrap.DataSecretName == nil {
 		// MachinePool Machines don't have a bootstrap configRef, so don't require it. The bootstrap config is instead owned by the MachinePool.
-		if !isMachinePoolMachine(m) {
+		if !isMachinePoolMachine(newM) {
 			allErrs = append(
 				allErrs,
 				field.Required(
@@ -106,48 +131,48 @@ func (m *Machine) validate(old *Machine) error {
 		}
 	}
 
-	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.Namespace != m.Namespace {
+	if newM.Spec.Bootstrap.ConfigRef != nil && newM.Spec.Bootstrap.ConfigRef.Namespace != newM.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				specPath.Child("bootstrap", "configRef", "namespace"),
-				m.Spec.Bootstrap.ConfigRef.Namespace,
+				newM.Spec.Bootstrap.ConfigRef.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
-	if m.Spec.InfrastructureRef.Namespace != m.Namespace {
+	if newM.Spec.InfrastructureRef.Namespace != newM.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				specPath.Child("infrastructureRef", "namespace"),
-				m.Spec.InfrastructureRef.Namespace,
+				newM.Spec.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
-	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
+	if oldM != nil && oldM.Spec.ClusterName != newM.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(specPath.Child("clusterName"), "field is immutable"),
 		)
 	}
 
-	if m.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*m.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(specPath.Child("version"), *m.Spec.Version, "must be a valid semantic version"))
+	if newM.Spec.Version != nil {
+		if !version.KubeSemver.MatchString(*newM.Spec.Version) {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("version"), *newM.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Machine").GroupKind(), m.Name, allErrs)
+	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Machine").GroupKind(), newM.Name, allErrs)
 }
 
-func isMachinePoolMachine(m *Machine) bool {
+func isMachinePoolMachine(m *clusterv1.Machine) bool {
 	for _, owner := range m.OwnerReferences {
 		if owner.Kind == "MachinePool" {
 			return true

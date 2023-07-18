@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -1248,7 +1249,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				},
 			},
 		}
-		machineSet.Default()
+		g.Expect((&webhooks.MachineSet{}).Default(ctx, machineSet)).Should(Succeed())
 		g.Expect(env.Create(ctx, machineSet)).To(Succeed())
 
 		// Ensure machines have been created.

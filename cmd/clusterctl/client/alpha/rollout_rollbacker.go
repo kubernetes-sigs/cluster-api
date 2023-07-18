@@ -124,9 +124,11 @@ func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clu
 }
 
 func validateVersionSkewPolicy(cpVersion semver.Version, msVersion semver.Version) error {
+	// More info: https://kubernetes.io/releases/version-skew-policy/"
 	if cpVersion.Major != msVersion.Major || cpVersion.Minor < msVersion.Minor || cpVersion.Minor-msVersion.Minor > 2 {
-		return errors.Errorf("version skew between ControlPlane %v and MachineSet %v is not supporeted by Kubernetes version skew policy."+
-			" If you want to rollback anyway, use --force option.", cpVersion, msVersion)
+		return errors.Errorf("version skew between ControlPlane %v and MachineSet %v is not supporeted by Kubernetes version skew policy:"+
+			" MachineSet must not be newer than ControlPlane, and may be up to two minor versions older.\n"+
+			"If you want to rollback anyway, use --force option.", cpVersion, msVersion)
 	}
 	return nil
 }

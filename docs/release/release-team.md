@@ -1,3 +1,21 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Cluster API Release Team](#cluster-api-release-team)
+  - [Overview](#overview)
+    - [Goals](#goals)
+    - [Non-Goals/Future work](#non-goalsfuture-work)
+  - [Duration of Term](#duration-of-term)
+  - [Specific Responsibilities](#specific-responsibilities)
+  - [Team Roles](#team-roles)
+  - [Team Selection](#team-selection)
+    - [Selection Criteria](#selection-criteria)
+  - [Time Commitment](#time-commitment)
+  - [Why should I volunteer?](#why-should-i-volunteer)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Cluster API Release Team
 
 ## Overview
@@ -49,8 +67,8 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 - **Release Lead**: responsible for coordinating release activities, assembling the release team, taking ultimate accountability for all release tasks to be completed on time, and ensuring that a retrospective happens. The lead is also responsible for ensuring a successor is selected and trained for future release cycles.
 - **Communications/Docs/Release Notes Manager**: Responsible for communicating key dates to the community, improving release process documentation, and polishing release notes. Also responsible for ensuring the user-facing Netlify book and provider upgrade documentation are up to date.
 - **CI Signal/Bug Triage/Automation Manager**: Assumes the responsibility of the quality gate for the release and makes sure blocking issues and bugs are triaged and dealt with in a timely fashion. Helps improve release automation and tools.
-- **Shadow**: Any Release Team member may select one or more mentees to shadow the release process in order to help fulfill future Release Team staffing requirements and continue to grow the CAPI community in general.
-
+- **Team member**: Any Release Team lead or manager may select one or more additional members to help with their tasks. These team members will help fulfill future Release Team staffing requirements and continue to grow the CAPI community in general.
+- **Maintainer**: Responsible for tasks which require write access to the Cluster API repo including creating release tags and creating a release branch. This role must be filled by someone on the [`cluster-api-maintainers` list](https://github.com/kubernetes-sigs/cluster-api/blob/main/OWNERS_ALIASES).
 *Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.  
 
 ## Team Selection

@@ -198,7 +198,7 @@ func TestControlPlane(t *testing.T) {
 		got, err := ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(got).To(Equal(metadata))
+		g.Expect(got).To(BeComparableTo(metadata))
 	})
 
 	t.Run("Manages spec.machineTemplate.nodeDrainTimeout", func(t *testing.T) {

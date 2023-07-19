@@ -242,7 +242,7 @@ func TestControlPlaneMachineHealthCheckClass(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(tt.blueprint.ControlPlaneMachineHealthCheckClass()).To(Equal(tt.want))
+			g.Expect(tt.blueprint.ControlPlaneMachineHealthCheckClass()).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -390,7 +390,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(tt.blueprint.IsMachineDeploymentMachineHealthCheckEnabled(tt.mdTopology)).To(Equal(tt.want))
+			g.Expect(tt.blueprint.IsMachineDeploymentMachineHealthCheckEnabled(tt.mdTopology)).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -461,7 +461,7 @@ func TestMachineDeploymentMachineHealthCheckClass(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			g.Expect(tt.blueprint.MachineDeploymentMachineHealthCheckClass(tt.mdTopology)).To(Equal(tt.want))
+			g.Expect(tt.blueprint.MachineDeploymentMachineHealthCheckClass(tt.mdTopology)).To(BeComparableTo(tt.want))
 		})
 	}
 }

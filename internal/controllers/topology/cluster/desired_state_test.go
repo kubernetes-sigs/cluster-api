@@ -481,7 +481,7 @@ func TestComputeControlPlane(t *testing.T) {
 		expectedLabels := util.MergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels, controlPlaneMachineTemplateLabels)
 		expectedLabels[clusterv1.ClusterNameLabel] = cluster.Name
 		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
-		g.Expect(gotMetadata).To(Equal(&clusterv1.ObjectMeta{
+		g.Expect(gotMetadata).To(BeComparableTo(&clusterv1.ObjectMeta{
 			Labels:      expectedLabels,
 			Annotations: util.MergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations, controlPlaneMachineTemplateAnnotations),
 		}))
@@ -1288,8 +1288,8 @@ func TestComputeCluster(t *testing.T) {
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 
 	// Spec
-	g.Expect(obj.Spec.InfrastructureRef).To(Equal(contract.ObjToRef(infrastructureCluster)))
-	g.Expect(obj.Spec.ControlPlaneRef).To(Equal(contract.ObjToRef(controlPlane)))
+	g.Expect(obj.Spec.InfrastructureRef).To(BeComparableTo(contract.ObjToRef(infrastructureCluster)))
+	g.Expect(obj.Spec.ControlPlaneRef).To(BeComparableTo(contract.ObjToRef(controlPlane)))
 }
 
 func TestComputeMachineDeployment(t *testing.T) {
@@ -1431,7 +1431,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
 		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(topologyMinReadySeconds))
-		g.Expect(*actualMd.Spec.Strategy).To(Equal(topologyStrategy))
+		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(topologyStrategy))
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(topologyDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(topologyDuration))
@@ -1446,7 +1446,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1456,7 +1456,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
 		}))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1486,7 +1486,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		// checking only values from CC defaults
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
-		g.Expect(*actualMd.Spec.Strategy).To(Equal(clusterClassStrategy))
+		g.Expect(*actualMd.Spec.Strategy).To(BeComparableTo(clusterClassStrategy))
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(clusterClassDuration))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(clusterClassDuration))
@@ -1539,17 +1539,17 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
 		})))
-		g.Expect(actualMd.Spec.Selector.MatchLabels).To(Equal(map[string]string{
+		g.Expect(actualMd.Spec.Selector.MatchLabels).To(BeComparableTo(map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
 		}))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1704,7 +1704,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		// Check that the ClusterName and selector are set properly for the MachineHealthCheck.
 		g.Expect(actual.MachineHealthCheck.Spec.ClusterName).To(Equal(cluster.Name))
-		g.Expect(actual.MachineHealthCheck.Spec.Selector).To(Equal(metav1.LabelSelector{MatchLabels: map[string]string{
+		g.Expect(actual.MachineHealthCheck.Spec.Selector).To(BeComparableTo(metav1.LabelSelector{MatchLabels: map[string]string{
 			clusterv1.ClusterTopologyOwnedLabel:                 actual.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel],
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: actual.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel],
 		}}))
@@ -1713,7 +1713,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actual.MachineHealthCheck.Spec.NodeStartupTimeout).To(Equal(nodeTimeoutDuration))
 
 		// Check that UnhealthyConditions are set as expected.
-		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyConditions).To(Equal(unhealthyConditions))
+		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyConditions).To(BeComparableTo(unhealthyConditions))
 	})
 }
 
@@ -2163,7 +2163,7 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 	cloneSpec, ok, err := unstructured.NestedMap(in.obj.UnstructuredContent(), "spec")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
-	g.Expect(cloneSpec).To(Equal(expectedSpec))
+	g.Expect(cloneSpec).To(BeComparableTo(expectedSpec))
 }
 
 func assertNestedField(g *WithT, obj *unstructured.Unstructured, value interface{}, fields ...string) {
@@ -2171,7 +2171,7 @@ func assertNestedField(g *WithT, obj *unstructured.Unstructured, value interface
 
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
-	g.Expect(v).To(Equal(value))
+	g.Expect(v).To(BeComparableTo(value))
 }
 
 func assertNestedFieldUnset(g *WithT, obj *unstructured.Unstructured, fields ...string) {
@@ -2277,7 +2277,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 
 		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec)
 
-		g.Expect(got).To(Equal(want), cmp.Diff(got, want))
+		g.Expect(got).To(BeComparableTo(want), cmp.Diff(got, want))
 	})
 }
 
@@ -2408,7 +2408,7 @@ func TestCalculateRefDesiredAPIVersion(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

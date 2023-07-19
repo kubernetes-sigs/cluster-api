@@ -757,7 +757,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			}
 
 			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machinepool)
-			g.Expect(res).To(Equal(tc.expectResult))
+			g.Expect(res).To(BeComparableTo(tc.expectResult))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

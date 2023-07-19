@@ -53,7 +53,7 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 	g.Expect(mhc.Labels[ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))
 	g.Expect(mhc.Spec.MaxUnhealthy.String()).To(Equal("100%"))
 	g.Expect(mhc.Spec.NodeStartupTimeout).ToNot(BeNil())
-	g.Expect(*mhc.Spec.NodeStartupTimeout).To(Equal(metav1.Duration{Duration: 10 * time.Minute}))
+	g.Expect(*mhc.Spec.NodeStartupTimeout).To(BeComparableTo(metav1.Duration{Duration: 10 * time.Minute}))
 	g.Expect(mhc.Spec.RemediationTemplate.Namespace).To(Equal(mhc.Namespace))
 }
 

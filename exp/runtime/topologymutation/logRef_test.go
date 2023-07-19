@@ -34,5 +34,5 @@ func Test_Log(t *testing.T) {
 	}
 
 	g.Expect(l.String()).To(Equal("group/version/kind/namespace/name"))
-	g.Expect(l.MarshalLog()).To(Equal(logRefWithoutStringFunc(*l)))
+	g.Expect(l.MarshalLog()).To(BeComparableTo(logRefWithoutStringFunc(*l)))
 }

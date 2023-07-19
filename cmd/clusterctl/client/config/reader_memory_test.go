@@ -64,11 +64,11 @@ func TestMemoryReader(t *testing.T) {
 
 			providersOut := []configProvider{}
 			g.Expect(f.UnmarshalKey("providers", &providersOut)).To(Succeed())
-			g.Expect(providersOut).To(Equal(tt.providers))
+			g.Expect(providersOut).To(BeComparableTo(tt.providers))
 
 			imagesOut := map[string]imageMeta{}
 			g.Expect(f.UnmarshalKey("images", &imagesOut)).To(Succeed())
-			g.Expect(imagesOut).To(Equal(tt.imageMetas))
+			g.Expect(imagesOut).To(BeComparableTo(tt.imageMetas))
 
 			for n, v := range tt.variables {
 				outV, err := f.Get(n)

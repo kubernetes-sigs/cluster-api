@@ -71,7 +71,7 @@ func TestParseMajorMinorPatch(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			out, err := ParseMajorMinorPatch(tc.input)
 			g.Expect(err != nil).To(Equal(tc.expectError))
-			g.Expect(out).To(Equal(tc.output))
+			g.Expect(out).To(BeComparableTo(tc.output))
 		})
 	}
 }
@@ -119,7 +119,7 @@ func TestParseMajorMinorPatchTolerant(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			out, err := ParseMajorMinorPatchTolerant(tc.input)
 			g.Expect(err != nil).To(Equal(tc.expectError))
-			g.Expect(out).To(Equal(tc.output))
+			g.Expect(out).To(BeComparableTo(tc.output))
 		})
 	}
 }

@@ -143,7 +143,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				}
 
 				res, err := r.reconcileInfrastructure(ctx, tt.cluster)
-				g.Expect(res).To(Equal(tt.expectResult))
+				g.Expect(res).To(BeComparableTo(tt.expectResult))
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {

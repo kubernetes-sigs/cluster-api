@@ -173,7 +173,7 @@ func TestNew(t *testing.T) {
 		g.Expect(actualConfig.Clusters[tc.cluster]).NotTo(BeNil())
 		g.Expect(actualConfig.Contexts[tc.expectedConfig.CurrentContext]).NotTo(BeNil())
 		g.Expect(actualConfig.CurrentContext).To(Equal(tc.expectedConfig.CurrentContext))
-		g.Expect(actualConfig.Contexts).To(Equal(tc.expectedConfig.Contexts))
+		g.Expect(actualConfig.Contexts).To(BeComparableTo(tc.expectedConfig.Contexts))
 	}
 }
 
@@ -199,7 +199,7 @@ func TestGenerateSecretWithOwner(t *testing.T) {
 	)
 
 	g.Expect(kubeconfigSecret).NotTo(BeNil())
-	g.Expect(kubeconfigSecret).To(Equal(expectedSecret))
+	g.Expect(kubeconfigSecret).To(BeComparableTo(expectedSecret))
 }
 
 func TestGenerateSecret(t *testing.T) {

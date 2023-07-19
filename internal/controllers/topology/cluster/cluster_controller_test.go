@@ -539,7 +539,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(res).To(Equal(tt.wantResult))
+				g.Expect(res).To(BeComparableTo(tt.wantResult))
 				g.Expect(hooks.IsOkToDelete(tt.cluster)).To(Equal(tt.wantOkToDelete))
 				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete) == 1).To(Equal(tt.wantHookToBeCalled))
 			}
@@ -683,7 +683,7 @@ func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
-				g.Expect(res).To(Equal(tt.wantResult))
+				g.Expect(res).To(BeComparableTo(tt.wantResult))
 			}
 		})
 	}

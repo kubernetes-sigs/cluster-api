@@ -300,7 +300,7 @@ func Test_topologyClient_Plan(t *testing.T) {
 				g.Expect(res.ReconciledCluster).To(BeNil())
 			} else {
 				g.Expect(res.ReconciledCluster).NotTo(BeNil())
-				g.Expect(*res.ReconciledCluster).To(Equal(*tt.want.reconciledCluster))
+				g.Expect(*res.ReconciledCluster).To(BeComparableTo(*tt.want.reconciledCluster))
 			}
 
 			// Check the created objects.

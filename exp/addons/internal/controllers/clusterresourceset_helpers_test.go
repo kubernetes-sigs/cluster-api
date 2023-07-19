@@ -159,7 +159,7 @@ func TestGetSecretFromNamespacedName(t *testing.T) {
 			}
 			gs.Expect(err).ToNot(HaveOccurred())
 
-			gs.Expect(*got).To(Equal(*tt.want))
+			gs.Expect(*got).To(BeComparableTo(*tt.want))
 		})
 	}
 }
@@ -216,7 +216,7 @@ func TestGetConfigMapFromNamespacedName(t *testing.T) {
 			}
 			gs.Expect(err).ToNot(HaveOccurred())
 
-			gs.Expect(*got).To(Equal(*tt.want))
+			gs.Expect(*got).To(BeComparableTo(*tt.want))
 		})
 	}
 }

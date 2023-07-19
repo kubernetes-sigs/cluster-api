@@ -1983,7 +1983,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					// Compare MachineDeployment.
 					// Note: We're intentionally only comparing Spec as otherwise we would have to account for
 					// empty vs. filled out TypeMeta.
-					g.Expect(gotMachineDeployment.Spec).To(Equal(wantMachineDeploymentState.Object.Spec))
+					g.Expect(gotMachineDeployment.Spec).To(BeComparableTo(wantMachineDeploymentState.Object.Spec))
 
 					// Compare BootstrapTemplate.
 					gotBootstrapTemplateRef := gotMachineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef

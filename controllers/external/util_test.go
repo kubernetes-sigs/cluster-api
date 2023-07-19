@@ -65,7 +65,7 @@ func TestGetResourceFound(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithObjects(testResource.DeepCopy()).Build()
 	got, err := Get(ctx, fakeClient, testResourceReference, metav1.NamespaceDefault)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(got).To(Equal(testResource))
+	g.Expect(got).To(BeComparableTo(testResource))
 }
 
 func TestGetResourceNotFound(t *testing.T) {
@@ -203,7 +203,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	cloneSpec, ok, err := unstructured.NestedMap(clone.UnstructuredContent(), "spec")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
-	g.Expect(cloneSpec).To(Equal(expectedSpec))
+	g.Expect(cloneSpec).To(BeComparableTo(expectedSpec))
 
 	cloneLabels := clone.GetLabels()
 	g.Expect(cloneLabels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, testClusterName))
@@ -284,7 +284,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	cloneSpec, ok, err := unstructured.NestedMap(clone.UnstructuredContent(), "spec")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
-	g.Expect(cloneSpec).To(Equal(expectedSpec))
+	g.Expect(cloneSpec).To(BeComparableTo(expectedSpec))
 }
 
 func TestCloneTemplateMissingSpecTemplate(t *testing.T) {

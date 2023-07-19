@@ -294,7 +294,7 @@ func TestVersionChecker_WriteStateFile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	var actualVersionState VersionState
 	g.Expect(yaml.Unmarshal(fb, &actualVersionState)).To(Succeed())
-	g.Expect(actualVersionState.LatestRelease).To(Equal(*release))
+	g.Expect(actualVersionState.LatestRelease).To(BeComparableTo(*release))
 }
 
 func TestVersionChecker_ReadFromStateFile(t *testing.T) {

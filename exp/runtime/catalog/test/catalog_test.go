@@ -47,19 +47,19 @@ func TestCatalog(t *testing.T) {
 		// Test GroupVersionHook
 		hookGVH, err := c.GroupVersionHook(hook)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(hookGVH.GroupVersion()).To(Equal(expectedGV))
+		g.Expect(hookGVH.GroupVersion()).To(BeComparableTo(expectedGV))
 		g.Expect(hookGVH.Hook).To(Equal("FakeHook"))
 
 		// Test Request
 		requestGVK, err := c.Request(hookGVH)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(requestGVK.GroupVersion()).To(Equal(expectedGV))
+		g.Expect(requestGVK.GroupVersion()).To(BeComparableTo(expectedGV))
 		g.Expect(requestGVK.Kind).To(Equal("FakeRequest"))
 
 		// Test Response
 		responseGVK, err := c.Response(hookGVH)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(responseGVK.GroupVersion()).To(Equal(expectedGV))
+		g.Expect(responseGVK.GroupVersion()).To(BeComparableTo(expectedGV))
 		g.Expect(responseGVK.Kind).To(Equal("FakeResponse"))
 
 		// Test NewRequest

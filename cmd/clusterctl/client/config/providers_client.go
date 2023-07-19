@@ -67,21 +67,21 @@ const (
 
 // Bootstrap providers.
 const (
-	KubeadmBootstrapProviderName    = "kubeadm"
-	TalosBootstrapProviderName      = "talos"
-	MicroK8sBootstrapProviderName   = "microk8s"
-	OCNEBootstrapProviderName       = "ocne"
-	KubeKeyK3sBootstrapProviderName = "kubekey-k3s"
+	KubeadmBootstrapProviderName           = "kubeadm"
+	TalosBootstrapProviderName             = "talos"
+	MicroK8sBootstrapProviderName          = "microk8s"
+	OracleCloudNativeBootstrapProviderName = "ocne"
+	KubeKeyK3sBootstrapProviderName        = "kubekey-k3s"
 )
 
 // ControlPlane providers.
 const (
-	KubeadmControlPlaneProviderName    = "kubeadm"
-	TalosControlPlaneProviderName      = "talos"
-	MicroK8sControlPlaneProviderName   = "microk8s"
-	NestedControlPlaneProviderName     = "nested"
-	OCNEControlPlaneProviderName       = "ocne"
-	KubeKeyK3sControlPlaneProviderName = "kubekey-k3s"
+	KubeadmControlPlaneProviderName           = "kubeadm"
+	TalosControlPlaneProviderName             = "talos"
+	MicroK8sControlPlaneProviderName          = "microk8s"
+	NestedControlPlaneProviderName            = "nested"
+	OracleCloudNativeControlPlaneProviderName = "ocne"
+	KubeKeyK3sControlPlaneProviderName        = "kubekey-k3s"
 )
 
 // Add-on providers.
@@ -290,7 +290,7 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
-			name:         OCNEBootstrapProviderName,
+			name:         OracleCloudNativeBootstrapProviderName,
 			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
@@ -322,7 +322,7 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{
-			name:         OCNEControlPlaneProviderName,
+			name:         OracleCloudNativeControlPlaneProviderName,
 			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},

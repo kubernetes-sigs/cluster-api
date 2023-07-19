@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -41,6 +42,18 @@ func TestDockerMachineTemplateInvalid(t *testing.T) {
 	newTemplate.Spec.Template.Spec.ExtraMounts = append(newTemplate.Spec.Template.Spec.ExtraMounts, []Mount{{ContainerPath: "/var/run/docker.sock", HostPath: "/var/run/docker.sock"}}...)
 	newTemplateSkipImmutabilityAnnotationSet := newTemplate.DeepCopy()
 	newTemplateSkipImmutabilityAnnotationSet.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
+
+	newTemplateWithInvalidMetadata := newTemplate.DeepCopy()
+	newTemplateWithInvalidMetadata.Spec.Template.ObjectMeta = clusterv1.ObjectMeta{
+		Labels: map[string]string{
+			"foo":          "$invalid-key",
+			"bar":          strings.Repeat("a", 64) + "too-long-value",
+			"/invalid-key": "foo",
+		},
+		Annotations: map[string]string{
+			"/invalid-key": "foo",
+		},
+	}
 
 	tests := []struct {
 		name        string
@@ -83,6 +96,13 @@ func TestDockerMachineTemplateInvalid(t *testing.T) {
 			oldTemplate: &oldTemplate,
 			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(true)}},
 			wantError:   false,
+		},
+		{
+			name:        "don't allow invalid metadata",
+			newTemplate: newTemplateWithInvalidMetadata,
+			oldTemplate: newTemplate,
+			req:         &admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{DryRun: pointer.Bool(true)}},
+			wantError:   true,
 		},
 	}
 	for _, tt := range tests {

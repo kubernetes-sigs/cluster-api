@@ -18,7 +18,10 @@ package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const (
@@ -300,4 +303,17 @@ type ObjectMeta struct {
 	// More info: http://kubernetes.io/docs/user-guide/annotations
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// Validate validates the labels and annotations in ObjectMeta.
+func (metadata *ObjectMeta) Validate(parent *field.Path) field.ErrorList {
+	allErrs := metav1validation.ValidateLabels(
+		metadata.Labels,
+		parent.Child("labels"),
+	)
+	allErrs = append(allErrs, apivalidation.ValidateAnnotations(
+		metadata.Annotations,
+		parent.Child("annotations"),
+	)...)
+	return allErrs
 }

@@ -69,6 +69,8 @@ func (r *KubeadmControlPlaneTemplate) ValidateCreate() (admission.Warnings, erro
 	allErrs := validateKubeadmControlPlaneTemplateResourceSpec(spec, field.NewPath("spec", "template", "spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(spec.KubeadmConfigSpec.ClusterConfiguration, nil, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "template", "spec", "kubeadmConfigSpec"))...)
+	// Validate the metadata of the KubeadmControlPlaneTemplateResource
+	allErrs = append(allErrs, r.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlaneTemplate").GroupKind(), r.Name, allErrs)
 	}
@@ -107,6 +109,11 @@ func validateKubeadmControlPlaneTemplateResourceSpec(s KubeadmControlPlaneTempla
 
 	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
 	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, nil, pathPrefix.Child("rolloutStrategy"))...)
+
+	if s.MachineTemplate != nil {
+		// Validate the metadata of the MachineTemplate
+		allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)
+	}
 
 	return allErrs
 }

@@ -330,6 +330,9 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 		)
 	}
 
+	// Validate the metadata of the MachineTemplate
+	allErrs = append(allErrs, s.MachineTemplate.ObjectMeta.Validate(pathPrefix.Child("machineTemplate", "metadata"))...)
+
 	if !version.KubeSemver.MatchString(s.Version) {
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}

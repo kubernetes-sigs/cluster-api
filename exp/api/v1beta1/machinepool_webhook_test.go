@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -314,6 +315,59 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = m.ValidateUpdate(m)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func TestMachinePoolMetadataValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		labels      map[string]string
+		annotations map[string]string
+		expectErr   bool
+	}{
+		{
+			name: "should return error for invalid labels and annotations",
+			labels: map[string]string{
+				"foo":          "$invalid-key",
+				"bar":          strings.Repeat("a", 64) + "too-long-value",
+				"/invalid-key": "foo",
+			},
+			annotations: map[string]string{
+				"/invalid-key": "foo",
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mp := &MachinePool{
+				Spec: MachinePoolSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Labels:      tt.labels,
+							Annotations: tt.annotations,
+						},
+					},
+				},
+			}
+			if tt.expectErr {
+				warnings, err := mp.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = mp.ValidateUpdate(mp)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			} else {
+				warnings, err := mp.ValidateCreate()
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = mp.ValidateUpdate(mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}

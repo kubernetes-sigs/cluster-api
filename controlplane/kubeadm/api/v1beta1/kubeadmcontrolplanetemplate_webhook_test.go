@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
@@ -100,6 +102,45 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 					Spec: KubeadmControlPlaneTemplateResourceSpec{
 						MachineTemplate: &KubeadmControlPlaneTemplateMachineTemplate{
 							NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
+						},
+					},
+				},
+			},
+		}
+		warnings, err := kcpTemplate.ValidateCreate()
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(warnings).To(BeEmpty())
+	})
+}
+
+func TestKubeadmControlPlaneTemplateValidationMetadata(t *testing.T) {
+	t.Run("create kubeadmcontrolplanetemplate should not pass if metadata is invalid", func(t *testing.T) {
+		g := NewWithT(t)
+		kcpTemplate := &KubeadmControlPlaneTemplate{
+			Spec: KubeadmControlPlaneTemplateSpec{
+				Template: KubeadmControlPlaneTemplateResource{
+					ObjectMeta: clusterv1.ObjectMeta{
+						Labels: map[string]string{
+							"foo":          "$invalid-key",
+							"bar":          strings.Repeat("a", 64) + "too-long-value",
+							"/invalid-key": "foo",
+						},
+						Annotations: map[string]string{
+							"/invalid-key": "foo",
+						},
+					},
+					Spec: KubeadmControlPlaneTemplateResourceSpec{
+						MachineTemplate: &KubeadmControlPlaneTemplateMachineTemplate{
+							ObjectMeta: clusterv1.ObjectMeta{
+								Labels: map[string]string{
+									"foo":          "$invalid-key",
+									"bar":          strings.Repeat("a", 64) + "too-long-value",
+									"/invalid-key": "foo",
+								},
+								Annotations: map[string]string{
+									"/invalid-key": "foo",
+								},
+							},
 						},
 					},
 				},

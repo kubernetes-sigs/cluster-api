@@ -266,6 +266,9 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 		}
 	}
 
+	// Validate the metadata of the template.
+	allErrs = append(allErrs, m.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
+
 	if len(allErrs) == 0 {
 		return nil
 	}

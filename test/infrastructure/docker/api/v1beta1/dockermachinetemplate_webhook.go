@@ -49,7 +49,16 @@ type DockerMachineTemplateWebhook struct{}
 var _ webhook.CustomValidator = &DockerMachineTemplateWebhook{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateCreate(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (*DockerMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
+	obj, ok := raw.(*DockerMachineTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", raw))
+	}
+	// Validate the metadata of the template.
+	allErrs := obj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))
+	if len(allErrs) > 0 {
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), obj.Name, allErrs)
+	}
 	return nil, nil
 }
 
@@ -74,6 +83,9 @@ func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw 
 		!reflect.DeepEqual(newObj.Spec.Template.Spec, oldObj.Spec.Template.Spec) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newObj, dockerMachineTemplateImmutableMsg))
 	}
+	// Validate the metadata of the template.
+	allErrs = append(allErrs, newObj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}

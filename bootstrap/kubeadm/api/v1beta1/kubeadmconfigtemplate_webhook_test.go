@@ -17,12 +17,14 @@ limitations under the License.
 package v1beta1_test
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
@@ -46,7 +48,8 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 
 func TestKubeadmConfigTemplateValidation(t *testing.T) {
 	cases := map[string]struct {
-		in *bootstrapv1.KubeadmConfigTemplate
+		in        *bootstrapv1.KubeadmConfigTemplate
+		expectErr bool
 	}{
 		"valid configuration": {
 			in: &bootstrapv1.KubeadmConfigTemplate{
@@ -61,6 +64,21 @@ func TestKubeadmConfigTemplateValidation(t *testing.T) {
 				},
 			},
 		},
+		"should return error for invalid labels and annotations": {
+			in: &bootstrapv1.KubeadmConfigTemplate{Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+				Template: bootstrapv1.KubeadmConfigTemplateResource{ObjectMeta: clusterv1.ObjectMeta{
+					Labels: map[string]string{
+						"foo":          "$invalid-key",
+						"bar":          strings.Repeat("a", 64) + "too-long-value",
+						"/invalid-key": "foo",
+					},
+					Annotations: map[string]string{
+						"/invalid-key": "foo",
+					},
+				}},
+			}},
+			expectErr: true,
+		},
 	}
 
 	for name, tt := range cases {
@@ -69,10 +87,18 @@ func TestKubeadmConfigTemplateValidation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 			warnings, err := tt.in.ValidateCreate()
-			g.Expect(err).ToNot(HaveOccurred())
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
 			g.Expect(warnings).To(BeEmpty())
 			warnings, err = tt.in.ValidateUpdate(nil)
-			g.Expect(err).ToNot(HaveOccurred())
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
 			g.Expect(warnings).To(BeEmpty())
 		})
 	}

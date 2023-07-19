@@ -94,7 +94,7 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 	}
 
 	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
-	g.Expect(got).To(Equal(expectedResult))
+	g.Expect(got).To(BeComparableTo(expectedResult))
 }
 
 func TestClusterToKubeadmControlPlaneNoControlPlane(t *testing.T) {
@@ -158,7 +158,7 @@ func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result).To(Equal(ctrl.Result{}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 
 	// calling reconcile should return error
 	g.Expect(env.CleanupAndWait(ctx, cluster)).To(Succeed())
@@ -202,7 +202,7 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 	// call reconcile the first time, so we can check if observedGeneration is set when adding a finalizer
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result).To(Equal(ctrl.Result{}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 
 	g.Eventually(func() int64 {
 		errGettingObject = env.Get(ctx, util.ObjectKey(kcp), kcp)
@@ -264,7 +264,7 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result).To(Equal(ctrl.Result{}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())
@@ -454,14 +454,14 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).ToNot(HaveOccurred())
 	// this first requeue is to add finalizer
-	g.Expect(result).To(Equal(ctrl.Result{}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 	g.Expect(r.Client.Get(ctx, util.ObjectKey(kcp), kcp)).To(Succeed())
 	g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 	result, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).ToNot(HaveOccurred())
 	// TODO: this should stop to re-queue as soon as we have a proper remote cluster cache in place.
-	g.Expect(result).To(Equal(ctrl.Result{Requeue: false, RequeueAfter: 20 * time.Second}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: false, RequeueAfter: 20 * time.Second}))
 	g.Expect(r.Client.Get(ctx, util.ObjectKey(kcp), kcp)).To(Succeed())
 
 	// Always expect that the Finalizer is set on the passed in resource
@@ -1339,7 +1339,7 @@ kubernetesVersion: metav1.16.1`,
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).ToNot(HaveOccurred())
 	// this first requeue is to add finalizer
-	g.Expect(result).To(Equal(ctrl.Result{}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 	g.Expect(env.GetAPIReader().Get(ctx, util.ObjectKey(kcp), kcp)).To(Succeed())
 	g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
@@ -1748,22 +1748,22 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify Node timeout values
 	g.Expect(updatedInplaceMutatingMachine.Spec.NodeDrainTimeout).Should(And(
 		Not(BeNil()),
-		HaveValue(Equal(*kcp.Spec.MachineTemplate.NodeDrainTimeout)),
+		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.NodeDrainTimeout)),
 	))
 	g.Expect(updatedInplaceMutatingMachine.Spec.NodeDeletionTimeout).Should(And(
 		Not(BeNil()),
-		HaveValue(Equal(*kcp.Spec.MachineTemplate.NodeDeletionTimeout)),
+		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.NodeDeletionTimeout)),
 	))
 	g.Expect(updatedInplaceMutatingMachine.Spec.NodeVolumeDetachTimeout).Should(And(
 		Not(BeNil()),
-		HaveValue(Equal(*kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout)),
+		HaveValue(BeComparableTo(*kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout)),
 	))
 	// Verify that the non in-place mutating fields remain the same.
 	g.Expect(updatedInplaceMutatingMachine.Spec.FailureDomain).Should(Equal(inPlaceMutatingMachine.Spec.FailureDomain))
 	g.Expect(updatedInplaceMutatingMachine.Spec.ProviderID).Should(Equal(inPlaceMutatingMachine.Spec.ProviderID))
 	g.Expect(updatedInplaceMutatingMachine.Spec.Version).Should(Equal(inPlaceMutatingMachine.Spec.Version))
-	g.Expect(updatedInplaceMutatingMachine.Spec.InfrastructureRef).Should(Equal(inPlaceMutatingMachine.Spec.InfrastructureRef))
-	g.Expect(updatedInplaceMutatingMachine.Spec.Bootstrap).Should(Equal(inPlaceMutatingMachine.Spec.Bootstrap))
+	g.Expect(updatedInplaceMutatingMachine.Spec.InfrastructureRef).Should(BeComparableTo(inPlaceMutatingMachine.Spec.InfrastructureRef))
+	g.Expect(updatedInplaceMutatingMachine.Spec.Bootstrap).Should(BeComparableTo(inPlaceMutatingMachine.Spec.Bootstrap))
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = existingInfraMachine.DeepCopy()
@@ -1783,7 +1783,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify Annotations
 	g.Expect(updatedKubeadmConfig.GetAnnotations()).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
 	// Verify spec remains the same
-	g.Expect(updatedKubeadmConfig.Spec).Should(Equal(existingKubeadmConfig.Spec))
+	g.Expect(updatedKubeadmConfig.Spec).Should(BeComparableTo(existingKubeadmConfig.Spec))
 
 	// The deleting machine should not change.
 	updatedDeletingMachine := deletingMachine.DeepCopy()
@@ -1803,7 +1803,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))
 	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations))
 	// Verify the machine spec is unchanged.
-	g.Expect(updatedDeletingMachine.Spec).Should(Equal(deletingMachine.Spec))
+	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
 }
 
 func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
@@ -2130,7 +2130,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		}
 
 		result, err = r.reconcileDelete(ctx, controlPlane)
-		g.Expect(result).To(Equal(ctrl.Result{}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
 	})
@@ -2179,7 +2179,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		}
 
 		result, err := r.reconcileDelete(ctx, controlPlane)
-		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
@@ -2237,7 +2237,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		}
 
 		result, err := r.reconcileDelete(ctx, controlPlane)
-		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
@@ -2274,7 +2274,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		}
 
 		result, err := r.reconcileDelete(ctx, controlPlane)
-		g.Expect(result).To(Equal(ctrl.Result{}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
 	})

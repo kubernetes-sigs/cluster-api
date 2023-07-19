@@ -111,7 +111,7 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 
 			FilterIntent(tt.ctx)
 
-			g.Expect(tt.ctx.Value).To(Equal(tt.wantValue))
+			g.Expect(tt.ctx.Value).To(BeComparableTo(tt.wantValue))
 		})
 	}
 }
@@ -195,7 +195,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 
 			FilterIntent(tt.ctx)
 
-			g.Expect(tt.ctx.Value).To(Equal(tt.wantValue))
+			g.Expect(tt.ctx.Value).To(BeComparableTo(tt.wantValue))
 		})
 	}
 }

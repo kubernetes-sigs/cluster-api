@@ -122,7 +122,7 @@ func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
 				// Role exists
 				g.Expect(tt.client.Get(ctx, tt.want.role, r)).To(Succeed())
 				// Role ensure grants for the KubeletConfig config map
-				g.Expect(r.Rules).To(Equal([]rbacv1.PolicyRule{
+				g.Expect(r.Rules).To(BeComparableTo([]rbacv1.PolicyRule{
 					{
 						Verbs:         []string{"get"},
 						APIGroups:     []string{""},

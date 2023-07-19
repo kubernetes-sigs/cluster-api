@@ -675,7 +675,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 
 					// Ensure patchKCT was defaulted.
 					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
-					g.Expect(patchKCT.Spec.Template.Spec.Users).To(Equal([]bootstrapv1.User{{Name: "default-user"}}))
+					g.Expect(patchKCT.Spec.Template.Spec.Users).To(BeComparableTo([]bootstrapv1.User{{Name: "default-user"}}))
 				}, 5*time.Second).Should(Succeed())
 			}
 			// Get original for the update.

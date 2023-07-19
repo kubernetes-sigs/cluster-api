@@ -487,7 +487,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 			var actual clusterv1.MachineSet
 			if len(tc.expectedOR) > 0 {
 				g.Expect(msr.Client.Get(ctx, key, &actual)).To(Succeed())
-				g.Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
+				g.Expect(actual.OwnerReferences).To(BeComparableTo(tc.expectedOR))
 			} else {
 				g.Expect(actual.OwnerReferences).To(BeEmpty())
 			}
@@ -527,7 +527,7 @@ func TestMachineSetReconcile(t *testing.T) {
 		}
 		result, err := msr.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(reconcile.Result{}))
+		g.Expect(result).To(BeComparableTo(reconcile.Result{}))
 	})
 
 	t.Run("records event if reconcile fails", func(t *testing.T) {
@@ -665,7 +665,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			gs := NewWithT(t)
 
 			got := r.MachineToMachineSets(ctx, tc.mapObject)
-			gs.Expect(got).To(Equal(tc.expected))
+			gs.Expect(got).To(BeComparableTo(tc.expected))
 		})
 	}
 }
@@ -811,7 +811,7 @@ func TestAdoptOrphan(t *testing.T) {
 		g.Expect(r.Client.Get(ctx, key, &tc.machine)).To(Succeed())
 
 		got := tc.machine.GetOwnerReferences()
-		g.Expect(got).To(Equal(tc.expected))
+		g.Expect(got).To(BeComparableTo(tc.expected))
 	}
 }
 
@@ -1684,7 +1684,7 @@ func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *
 		g.Expect(actualMachine.Annotations).Should(HaveKeyWithValue(k, v))
 	}
 	// Check Spec
-	g.Expect(actualMachine.Spec).Should(Equal(expectedMachine.Spec))
+	g.Expect(actualMachine.Spec).Should(BeComparableTo(expectedMachine.Spec))
 	// Check Finalizer
 	if expectedMachine.Finalizers != nil {
 		g.Expect(actualMachine.Finalizers).Should(Equal(expectedMachine.Finalizers))

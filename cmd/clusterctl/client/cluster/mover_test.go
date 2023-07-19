@@ -912,7 +912,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 				g.Expect(oAfter.GetName()).Should(Equal(oTo.GetName()))
 				g.Expect(oAfter.GetCreationTimestamp()).Should(Equal(oTo.GetCreationTimestamp()))
 				g.Expect(oAfter.GetUID()).Should(Equal(oTo.GetUID()))
-				g.Expect(oAfter.GetOwnerReferences()).Should(Equal(oTo.GetOwnerReferences()))
+				g.Expect(oAfter.GetOwnerReferences()).Should(BeComparableTo(oTo.GetOwnerReferences()))
 			}
 		})
 	}

@@ -124,7 +124,7 @@ func TestNewPatch(t *testing.T) {
 				return
 			}
 			g.Expect(err).To(Not(HaveOccurred()))
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -337,5 +337,5 @@ func TestApplyDoesNotAlterLastTransitionTime(t *testing.T) {
 	err = diff.Apply(latest)
 
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(latest.GetConditions()).To(Equal(after.GetConditions()))
+	g.Expect(latest.GetConditions()).To(BeComparableTo(after.GetConditions()))
 }

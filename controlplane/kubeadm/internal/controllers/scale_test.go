@@ -79,7 +79,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	}
 
 	result, err := r.initializeControlPlane(ctx, controlPlane)
-	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
@@ -156,7 +156,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		}
 
 		result, err := r.scaleUpControlPlane(ctx, controlPlane)
-		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		controlPlaneMachines := clusterv1.MachineList{}
@@ -221,7 +221,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		result, err := r.scaleUpControlPlane(context.Background(), controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 
 		// scaleUpControlPlane is never called due to health check failure and new machine is not created to scale up.
 		controlPlaneMachines := &clusterv1.MachineList{}
@@ -235,7 +235,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		for _, m := range endMachines {
 			bm, ok := beforeMachines[m.Name]
 			g.Expect(ok).To(BeTrue())
-			g.Expect(m).To(Equal(bm))
+			g.Expect(m).To(BeComparableTo(bm))
 		}
 	})
 }
@@ -275,7 +275,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
@@ -317,7 +317,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
@@ -355,7 +355,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
@@ -580,7 +580,7 @@ func TestPreflightChecks(t *testing.T) {
 			}
 			result, err := r.preflightChecks(context.TODO(), controlPlane)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(result).To(Equal(tt.expectResult))
+			g.Expect(result).To(BeComparableTo(tt.expectResult))
 		})
 	}
 }

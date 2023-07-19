@@ -94,7 +94,7 @@ func TestInfrastructureCluster(t *testing.T) {
 		got, err := InfrastructureCluster().FailureDomains().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(failureDomains))
+		g.Expect(*got).To(BeComparableTo(failureDomains))
 	})
 }
 

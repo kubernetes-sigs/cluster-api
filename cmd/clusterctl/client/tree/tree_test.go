@@ -290,7 +290,7 @@ func Test_createGroupNode(t *testing.T) {
 	want.SetName(got.GetName())
 	want.SetUID(got.GetUID())
 
-	g.Expect(got).To(Equal(want))
+	g.Expect(got).To(BeComparableTo(want))
 }
 
 func Test_updateGroupNode(t *testing.T) {
@@ -367,7 +367,7 @@ func Test_updateGroupNode(t *testing.T) {
 	g := NewWithT(t)
 	updateGroupNode(group, GetReadyCondition(group), obj, GetReadyCondition(obj))
 
-	g.Expect(group).To(Equal(want))
+	g.Expect(group).To(BeComparableTo(want))
 }
 
 func Test_Add_setsShowObjectConditionsAnnotation(t *testing.T) {

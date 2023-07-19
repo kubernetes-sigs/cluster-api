@@ -145,7 +145,7 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
-			gs.Expect(tt.resourceSetBinding.GetResource(tt.resourceRef)).To(Equal(tt.want))
+			gs.Expect(tt.resourceSetBinding.GetResource(tt.resourceRef)).To(BeComparableTo(tt.want))
 		})
 	}
 }

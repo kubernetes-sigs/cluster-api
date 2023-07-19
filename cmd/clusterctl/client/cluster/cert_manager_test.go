@@ -715,7 +715,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			actualPlan, err := cm.PlanUpgrade()
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(actualPlan).To(Equal(CertManagerUpgradePlan{}))
+				g.Expect(actualPlan).To(BeComparableTo(CertManagerUpgradePlan{}))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())

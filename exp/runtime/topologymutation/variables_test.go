@@ -66,7 +66,7 @@ func Test_GetRawTemplateVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			value, found, err := GetVariable(tt.variables, tt.variableName)
 
-			g.Expect(value).To(Equal(tt.expectedValue))
+			g.Expect(value).To(BeComparableTo(tt.expectedValue))
 			g.Expect(found).To(Equal(tt.expectedFound))
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())

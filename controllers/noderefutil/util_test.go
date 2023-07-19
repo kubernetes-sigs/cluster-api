@@ -222,7 +222,7 @@ func TestGetReadyCondition(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(GetReadyCondition(test.nodeStatus)).To(Equal(test.expectedCondition))
+			g.Expect(GetReadyCondition(test.nodeStatus)).To(BeComparableTo(test.expectedCondition))
 		})
 	}
 }

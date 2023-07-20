@@ -63,11 +63,17 @@ var (
 		unknown,
 	}
 
+	repo = flag.String("repository", "kubernetes-sigs/cluster-api", "The tag or commit to start from.")
+
 	fromTag = flag.String("from", "", "The tag or commit to start from.")
 
 	since      = flag.String("since", "", "Include commits starting from and including this date. Accepts format: YYYY-MM-DD")
 	until      = flag.String("until", "", "Include commits up to and including this date. Accepts format: YYYY-MM-DD")
 	numWorkers = flag.Int("workers", 10, "Number of concurrent routines to process PR entries. If running into GitHub rate limiting, use 1.")
+
+	prefixAreaLabel = flag.Bool("prefix-area-label", true, "If enabled, will prefix the area label.")
+
+	addKubernetesVersionSupport = flag.Bool("add-kubernetes-version-support", true, "If enabled, will add the Kubernetes version support header.")
 
 	tagRegex = regexp.MustCompile(`^\[release-[\w-\.]*\]`)
 
@@ -154,7 +160,7 @@ func getAreaLabel(merge string) (string, error) {
 	// Get pr id from merge commit
 	prID := strings.Replace(strings.TrimSpace(strings.Split(merge, " ")[3]), "#", "", -1)
 
-	cmd := exec.Command("gh", "api", "repos/kubernetes-sigs/cluster-api/pulls/"+prID) //nolint:gosec
+	cmd := exec.Command("gh", "api", fmt.Sprintf("repos/%s/pulls/%s", *repo, prID)) //nolint:gosec
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -301,8 +307,9 @@ func run() int {
 		}
 	}
 
-	// TODO Turn this into a link (requires knowing the project name + organization)
-	fmt.Print(`## 👌 Kubernetes version support
+	if *addKubernetesVersionSupport {
+		// TODO Turn this into a link (requires knowing the project name + organization)
+		fmt.Print(`## 👌 Kubernetes version support
 
 - Management Cluster: v1.**X**.x -> v1.**X**.x
 - Workload Cluster: v1.**X**.x -> v1.**X**.x
@@ -310,6 +317,8 @@ func run() int {
 [More information about version support can be found here](https://cluster-api.sigs.k8s.io/reference/versions.html)
 
 `)
+	}
+
 	fmt.Printf("## Changes since %v\n---\n", commitRange)
 
 	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
@@ -411,9 +420,14 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	entry := &releaseNoteEntry{}
 	entry.title = trimTitle(c.body)
 	var fork string
-	area, err := getAreaLabel(c.merge)
-	if err != nil {
-		return nil, err
+
+	var area string
+	if *prefixAreaLabel {
+		var err error
+		area, err = getAreaLabel(c.merge)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	switch {
@@ -458,7 +472,13 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	if entry.title == "" {
 		return entry, nil
 	}
-	entry.title = fmt.Sprintf("- %s: %s", area, entry.title)
+
+	if *prefixAreaLabel {
+		entry.title = fmt.Sprintf("- %s: %s", area, entry.title)
+	} else {
+		entry.title = fmt.Sprintf("- %s", entry.title)
+	}
+
 	_, _ = fmt.Sscanf(c.merge, "Merge pull request %s from %s", &entry.prNumber, &fork)
 	entry.title = formatMerge(entry.title, entry.prNumber)
 

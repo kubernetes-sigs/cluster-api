@@ -222,11 +222,21 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 
-		// TODO: remove this as soon as we have a proper remote cluster cache in place.
-		// Make KCP to requeue in case status is not ready, so we can check for node status without waiting for a full resync (by default 10 minutes).
-		// Only requeue if we are not going in exponential backoff due to error, or if we are not already re-queueing, or if the object has a deletion timestamp.
-		if reterr == nil && !res.Requeue && res.RequeueAfter <= 0 && kcp.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Only requeue if there is no error, Requeue or RequeueAfter and the object does not have a deletion timestamp.
+		if reterr == nil && res.IsZero() && kcp.ObjectMeta.DeletionTimestamp.IsZero() {
+			// Make KCP requeue in case node status is not ready, so we can check for node status without waiting for a full
+			// resync (by default 10 minutes).
+			// The alternative solution would be to watch the control plane nodes in the Cluster - similar to how the
+			// MachineSet and MachineHealthCheck controllers watch the nodes under their control.
 			if !kcp.Status.Ready {
+				res = ctrl.Result{RequeueAfter: 20 * time.Second}
+			}
+
+			// Make KCP requeue if ControlPlaneComponentsHealthyCondition is false so we can check for control plane component
+			// status without waiting for a full resync (by default 10 minutes).
+			// Otherwise this condition can lead to a delay in provisioning MachineDeployments when MachineSet preflight checks are enabled.
+			// The alternative solution to this requeue would be watching the relevant pods inside each workload cluster which would be very expensive.
+			if conditions.IsFalse(kcp, controlplanev1.ControlPlaneComponentsHealthyCondition) {
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}
 		}

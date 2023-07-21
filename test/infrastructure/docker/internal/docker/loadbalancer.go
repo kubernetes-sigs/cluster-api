@@ -19,7 +19,7 @@ package docker
 import (
 	"context"
 	"fmt"
-	"net"
+	"strconv"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -38,12 +38,13 @@ type lbCreator interface {
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
 type LoadBalancer struct {
-	name             string
-	image            string
-	container        *types.Node
-	ipFamily         clusterv1.ClusterIPFamily
-	lbCreator        lbCreator
-	controlPlanePort int
+	name                     string
+	image                    string
+	container                *types.Node
+	ipFamily                 clusterv1.ClusterIPFamily
+	lbCreator                lbCreator
+	backendControlPlanePort  string
+	frontendControlPlanePort string
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
@@ -72,12 +73,13 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 	image := getLoadBalancerImage(dockerCluster)
 
 	return &LoadBalancer{
-		name:             cluster.Name,
-		image:            image,
-		container:        container,
-		ipFamily:         ipFamily,
-		lbCreator:        &Manager{},
-		controlPlanePort: dockerCluster.Spec.ControlPlaneEndpoint.Port,
+		name:                     cluster.Name,
+		image:                    image,
+		container:                container,
+		ipFamily:                 ipFamily,
+		lbCreator:                &Manager{},
+		frontendControlPlanePort: strconv.Itoa(dockerCluster.Spec.ControlPlaneEndpoint.Port),
+		backendControlPlanePort:  "6443",
 	}, nil
 }
 
@@ -137,7 +139,7 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 }
 
 // UpdateConfiguration updates the external load balancer configuration with new control plane nodes.
-func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
+func (s *LoadBalancer) UpdateConfiguration(ctx context.Context, unsafeLoadBalancerConfig string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if s.container == nil {
@@ -161,17 +163,25 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
 		if s.ipFamily == clusterv1.IPv6IPFamily {
-			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv6, "6443")
+			backendServers[n.String()] = controlPlaneIPv6
 		} else {
-			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv4, "6443")
+			backendServers[n.String()] = controlPlaneIPv4
 		}
 	}
 
+	loadBalancerConfigTemplate := loadbalancer.DefaultTemplate
+	if unsafeLoadBalancerConfig != "" {
+		loadBalancerConfigTemplate = unsafeLoadBalancerConfig
+	}
+
 	loadBalancerConfig, err := loadbalancer.Config(&loadbalancer.ConfigData{
-		ControlPlanePort: s.controlPlanePort,
-		BackendServers:   backendServers,
-		IPv6:             s.ipFamily == clusterv1.IPv6IPFamily,
-	})
+		FrontendControlPlanePort: s.frontendControlPlanePort,
+		BackendControlPlanePort:  s.backendControlPlanePort,
+		BackendServers:           backendServers,
+		IPv6:                     s.ipFamily == clusterv1.IPv6IPFamily,
+	},
+		loadBalancerConfigTemplate,
+	)
 	if err != nil {
 		return errors.WithStack(err)
 	}

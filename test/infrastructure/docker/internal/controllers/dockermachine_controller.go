@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -167,11 +168,11 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle deleted machines
 	if !dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, machine, dockerMachine, externalMachine, externalLoadBalancer)
+		return ctrl.Result{}, r.reconcileDelete(ctx, dockerCluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
 	}
 
 	// Handle non-deleted machines
-	res, err := r.reconcileNormal(ctx, cluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
+	res, err := r.reconcileNormal(ctx, cluster, dockerCluster, machine, dockerMachine, externalMachine, externalLoadBalancer)
 	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 	// the current cluster because of concurrent access.
 	if errors.Is(err, remote.ErrClusterLocked) {
@@ -204,7 +205,7 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 	)
 }
 
-func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (res ctrl.Result, retErr error) {
+func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, dockerCluster *infrav1.DockerCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (res ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Check if the infrastructure is ready, otherwise return and wait for the cluster object to be updated
@@ -271,7 +272,11 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	// we should only do this once, as reconfiguration more or less ensures
 	// node ref setting fails
 	if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
-		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
+		unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+		}
+		if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
 		dockerMachine.Status.LoadBalancerConfigured = true
@@ -390,7 +395,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	return ctrl.Result{}, nil
 }
 
-func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) error {
+func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) error {
 	// Set the ContainerProvisionedCondition reporting delete is started, and issue a patch in order to make
 	// this visible to the users.
 	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
@@ -411,7 +416,11 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
 	if util.IsControlPlaneMachine(machine) {
-		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
+		unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
+		if err != nil {
+			return errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+		}
+		if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
 			return errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
 	}
@@ -508,6 +517,25 @@ func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine 
 	}
 
 	return base64.StdEncoding.EncodeToString(value), bootstrapv1.Format(format), nil
+}
+
+func (r *DockerMachineReconciler) getUnsafeLoadBalancerConfigTemplate(ctx context.Context, dockerCluster *infrav1.DockerCluster) (string, error) {
+	if dockerCluster.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef == nil {
+		return "", nil
+	}
+	var cm *corev1.ConfigMap
+	key := types.NamespacedName{
+		Name:      dockerCluster.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef.Name,
+		Namespace: dockerCluster.Namespace,
+	}
+	if err := r.Get(ctx, key, cm); err != nil {
+		return "", errors.Wrapf(err, "failed to retrieve custom HAProxy configuration ConfigMap %s", key)
+	}
+	template, ok := cm.Data["value"]
+	if !ok {
+		return "", fmt.Errorf("expected key \"value\" to exist in ConfigMap %s", key)
+	}
+	return template, nil
 }
 
 // setMachineAddress gets the address from the container corresponding to a docker node and sets it on the Machine object.

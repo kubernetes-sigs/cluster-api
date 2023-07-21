@@ -647,12 +647,16 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 	}
 
 	err := wait.PollUntilContextCancel(ctx, in.interval, true, runHealthCheckWithThreshold)
-	// An error returned implies the health check has failed a sufficient number of
-	// times for the cluster to be considered unhealthy
-	// NB. we are ignoring ErrWaitTimeout because this error happens when the channel is close, that in this case
-	// happens when the cache is explicitly stopped.
-	if err != nil && !wait.Interrupted(err) {
+	// An error returned implies the health check has failed a sufficient number of times for the cluster
+	// to be considered unhealthy or the cache was stopped and thus the cache context canceled (we pass the
+	// cache context into wait.PollUntilContextCancel).
+	// NB. Log all errors that occurred even if this error might just be from a cancel of the cache context
+	// when the cache is stopped. Logging an error in this case is not a problem and makes debugging easier.
+	if err != nil {
 		t.log.Error(err, "Error health checking cluster", "Cluster", klog.KRef(in.cluster.Namespace, in.cluster.Name))
-		t.deleteAccessor(ctx, in.cluster)
 	}
+	// Ensure in any case that the accessor is deleted (even if it is a no-op).
+	// NB. It is crucial to ensure the accessor was deleted, so it can be later recreated when the
+	// cluster is reachable again
+	t.deleteAccessor(ctx, in.cluster)
 }

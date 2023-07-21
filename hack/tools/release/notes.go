@@ -313,16 +313,24 @@ func run() int {
 	fmt.Printf("## Changes since %v\n---\n", commitRange)
 
 	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
-	if count := len(commits); count > 0 {
+	if count := len(commits); count == 1 {
+		fmt.Println("- 1 new commit merged")
+	} else if count > 1 {
 		fmt.Printf("- %d new commits merged\n", count)
 	}
-	if count := len(merges[warning]); count > 0 {
+	if count := len(merges[warning]); count == 1 {
+		fmt.Println("- 1 breaking change :warning:")
+	} else if count > 1 {
 		fmt.Printf("- %d breaking changes :warning:\n", count)
 	}
-	if count := len(merges[features]); count > 0 {
+	if count := len(merges[features]); count == 1 {
+		fmt.Println("- 1 feature addition ✨")
+	} else if count > 1 {
 		fmt.Printf("- %d feature additions ✨\n", count)
 	}
-	if count := len(merges[bugs]); count > 0 {
+	if count := len(merges[bugs]); count == 1 {
+		fmt.Println("- 1 bug fixed 🐛")
+	} else if count > 1 {
 		fmt.Printf("- %d bugs fixed 🐛\n", count)
 	}
 	fmt.Println()
@@ -335,11 +343,18 @@ func run() int {
 
 		switch key {
 		case documentation:
-			fmt.Printf(
-				":book: Additionally, there have been %d contributions to our documentation and book. (%s) \n\n",
-				len(mergeslice),
-				strings.Join(mergeslice, ", "),
-			)
+			if len(mergeslice) == 1 {
+				fmt.Printf(
+					":book: Additionally, there has been 1 contribution to our documentation and book. (%s) \n\n",
+					mergeslice[0],
+				)
+			} else {
+				fmt.Printf(
+					":book: Additionally, there have been %d contributions to our documentation and book. (%s) \n\n",
+					len(mergeslice),
+					strings.Join(mergeslice, ", "),
+				)
+			}
 		default:
 			fmt.Println("## " + key)
 			sort.Strings(mergeslice)

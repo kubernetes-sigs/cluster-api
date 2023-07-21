@@ -40,28 +40,28 @@ func getMachines(length int) []*docker.Machine {
 
 func TestMachineDeleteOrder(t *testing.T) {
 	testcases := []struct {
-		name      string
-		machines  []*docker.Machine
-		instances []NodePoolInstance
+		name             string
+		machines         []*docker.Machine
+		nodePoolMachines []NodePoolMachine
 	}{
 		{
 			name:     "no prioritized instances",
 			machines: getMachines(4),
-			instances: []NodePoolInstance{
+			nodePoolMachines: []NodePoolMachine{
 				{
-					InstanceName:     "instance-1",
+					Name:             "instance-1",
 					PrioritizeDelete: false,
 				},
 				{
-					InstanceName:     "instance-2",
+					Name:             "instance-2",
 					PrioritizeDelete: false,
 				},
 				{
-					InstanceName:     "instance-3",
+					Name:             "instance-3",
 					PrioritizeDelete: false,
 				},
 				{
-					InstanceName:     "instance-4",
+					Name:             "instance-4",
 					PrioritizeDelete: false,
 				},
 			},
@@ -69,21 +69,21 @@ func TestMachineDeleteOrder(t *testing.T) {
 		{
 			name:     "sort prioritized instances to front",
 			machines: getMachines(4),
-			instances: []NodePoolInstance{
+			nodePoolMachines: []NodePoolMachine{
 				{
-					InstanceName:     "instance-1",
+					Name:             "instance-1",
 					PrioritizeDelete: false,
 				},
 				{
-					InstanceName:     "instance-2",
+					Name:             "instance-2",
 					PrioritizeDelete: false,
 				},
 				{
-					InstanceName:     "instance-3",
+					Name:             "instance-3",
 					PrioritizeDelete: true,
 				},
 				{
-					InstanceName:     "instance-4",
+					Name:             "instance-4",
 					PrioritizeDelete: true,
 				},
 			},
@@ -97,18 +97,18 @@ func TestMachineDeleteOrder(t *testing.T) {
 			g := NewWithT(t)
 
 			nodePool := &NodePool{
-				nodePoolInstances: tc.instances,
-				machines:          tc.machines,
+				nodePoolMachines: tc.nodePoolMachines,
+				machines:         tc.machines,
 			}
 
 			sort.Sort(nodePool)
 
-			instanceMap := map[string]NodePoolInstance{}
-			for _, instance := range nodePool.nodePoolInstances {
-				instanceMap[instance.InstanceName] = instance
+			instanceMap := map[string]NodePoolMachine{}
+			for _, instance := range nodePool.nodePoolMachines {
+				instanceMap[instance.Name] = instance
 			}
 
-			var prevInstance NodePoolInstance
+			var prevInstance NodePoolMachine
 			for i, machine := range nodePool.machines {
 				instance, ok := instanceMap[machine.Name()]
 				g.Expect(ok).To(BeTrue())

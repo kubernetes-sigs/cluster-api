@@ -249,7 +249,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return res, err
 	}
 
-	nodePoolInstancesResult := pool.GetNodePoolInstances()
+	nodePoolInstancesResult := pool.GetNodePoolMachines()
 
 	// Derive info from Status.Instances
 	dockerMachinePool.Spec.ProviderIDList = []string{}
@@ -312,7 +312,7 @@ func getDockerMachines(ctx context.Context, c client.Client, cluster clusterv1.C
 }
 
 // DeleteOrphanedDockerMachines deletes any DockerMachines owned by the DockerMachinePool that reference an invalid providerID, i.e. not in the latest copy of the node pool instances.
-func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, instances []docker.NodePoolInstance) error {
+func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, instances []docker.NodePoolMachine) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(2).Info("Deleting orphaned machines", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace, "instances", instances)
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
@@ -324,7 +324,7 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 
 	instanceNameSet := map[string]struct{}{}
 	for _, instance := range instances {
-		instanceNameSet[instance.InstanceName] = struct{}{}
+		instanceNameSet[instance.Name] = struct{}{}
 	}
 
 	for i := range dockerMachineList.Items {
@@ -350,7 +350,7 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 }
 
 // CreateDockerMachinesIfNotExists creates a DockerMachine for each instance returned by the node pool if it doesn't exist.
-func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, instances []docker.NodePoolInstance) error {
+func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, instances []docker.NodePoolMachine) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.V(2).Info("Creating missing machines", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace, "instances", instances)
@@ -366,7 +366,7 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 	}
 
 	for _, instance := range instances {
-		if _, exists := instanceNameToDockerMachine[instance.InstanceName]; exists {
+		if _, exists := instanceNameToDockerMachine[instance.Name]; exists {
 			continue
 		}
 
@@ -383,11 +383,11 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 				// Note: This DockerMachine will be owned by the DockerMachinePool until the MachinePool controller creates its parent Machine.
 			},
 			Spec: infrav1.DockerMachineSpec{
-				InstanceName: instance.InstanceName,
+				InstanceName: instance.Name,
 			},
 		}
 
-		log.V(2).Info("Instance name for dockerMachine is", "instanceName", instance.InstanceName, "dockerMachine", dockerMachine.Name)
+		log.V(2).Info("Instance name for dockerMachine is", "instanceName", instance.Name, "dockerMachine", dockerMachine.Name)
 
 		if err := r.Client.Create(ctx, dockerMachine); err != nil {
 			return errors.Wrap(err, "failed to create dockerMachine")
@@ -397,10 +397,8 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) initNodePoolInstanceList(ctx context.Context, dockerMachines []infrav1.DockerMachine) ([]docker.NodePoolInstance, error) {
-	_ = ctrl.LoggerFrom(ctx)
-
-	nodePoolInstances := make([]docker.NodePoolInstance, len(dockerMachines))
+func (r *DockerMachinePoolReconciler) initNodePoolInstanceList(ctx context.Context, dockerMachines []infrav1.DockerMachine) ([]docker.NodePoolMachine, error) {
+	nodePoolInstances := make([]docker.NodePoolMachine, len(dockerMachines))
 	for i := range dockerMachines {
 		// Needed to avoid implicit memory aliasing of the loop variable.
 		dockerMachine := dockerMachines[i]
@@ -421,8 +419,8 @@ func (r *DockerMachinePoolReconciler) initNodePoolInstanceList(ctx context.Conte
 
 		bootstrapped := conditions.IsTrue(&dockerMachine, infrav1.BootstrapExecSucceededCondition)
 
-		nodePoolInstances[i] = docker.NodePoolInstance{
-			InstanceName:     dockerMachine.Spec.InstanceName,
+		nodePoolInstances[i] = docker.NodePoolMachine{
+			Name:             dockerMachine.Spec.InstanceName,
 			Bootstrapped:     bootstrapped,
 			ProviderID:       dockerMachine.Spec.ProviderID,
 			PrioritizeDelete: hasDeleteAnnotation,

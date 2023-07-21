@@ -175,7 +175,7 @@ func TestInitNodePoolInstances(t *testing.T) {
 		name              string
 		dockerMachines    []infrav1.DockerMachine
 		machines          []clusterv1.Machine
-		expectedInstances []docker.NodePoolInstance
+		expectedInstances []docker.NodePoolMachine
 		expectErr         bool
 	}{
 		{
@@ -188,16 +188,16 @@ func TestInitNodePoolInstances(t *testing.T) {
 				machine1,
 				machine2,
 			},
-			expectedInstances: []docker.NodePoolInstance{
+			expectedInstances: []docker.NodePoolMachine{
 				{
-					InstanceName:     dockerMachine1.Spec.InstanceName,
+					Name:             dockerMachine1.Spec.InstanceName,
 					Bootstrapped:     conditions.IsTrue(&dockerMachine1, infrav1.BootstrapExecSucceededCondition),
 					ProviderID:       dockerMachine1.Spec.ProviderID,
 					Addresses:        dockerMachine1.Status.Addresses,
 					PrioritizeDelete: false,
 				},
 				{
-					InstanceName:     dockerMachine2.Spec.InstanceName,
+					Name:             dockerMachine2.Spec.InstanceName,
 					Bootstrapped:     conditions.IsTrue(&dockerMachine2, infrav1.BootstrapExecSucceededCondition),
 					ProviderID:       dockerMachine2.Spec.ProviderID,
 					Addresses:        dockerMachine2.Status.Addresses,

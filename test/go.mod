@@ -6,7 +6,7 @@ replace sigs.k8s.io/cluster-api => ../
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/docker/docker v20.10.24+incompatible
+	github.com/docker/docker v24.0.5-0.20230714235725-36e9e796c6fc+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/emicklei/go-restful/v3 v3.9.0
 	github.com/evanphx/json-patch/v5 v5.6.0
@@ -111,7 +111,6 @@ require (
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect

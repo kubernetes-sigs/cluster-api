@@ -26,7 +26,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -36,7 +35,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	"helm.sh/helm/v3/pkg/repo"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -604,12 +602,7 @@ func cleanupChartTask(path string) taskFunction {
 
 				helmChartVersion := helmChart.Version
 				if helmChartVersion == "" {
-					// If helmChart.Version is not set lookup the latest version.
-					helmChartVersion, err = resolveLatestHelmChartVersion(ctx, helmChart.Repo, helmChart.Name)
-					if err != nil {
-						return err
-					}
-					klog.Infof("[%s] resolved latest Helm Chart version to %q\n", prefix, helmChartVersion)
+					return errors.New("Helm Chart version must be set")
 				}
 
 				// Read Chart.yaml
@@ -644,42 +637,6 @@ func cleanupChartTask(path string) taskFunction {
 			errCh <- errors.Wrapf(err, "failed to cleanup Chart dir %q", path)
 		}
 	}
-}
-
-// resolveLatestHelmChartVersion resolves the latest version of a Helm Chart with name chartName
-// from a given chartRepo.
-func resolveLatestHelmChartVersion(ctx context.Context, chartRepo, chartName string) (string, error) {
-	chartIndexURL := fmt.Sprintf(chartRepo + "/index.yaml")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, chartIndexURL, http.NoBody)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to resolve latest Helm Chart version for Chart %q: failed to create request for chart index from URL %q", chartName, chartIndexURL)
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to resolve latest Helm Chart version for Chart %q: failed to get chart index from URL %q", chartName, chartIndexURL)
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to resolve latest Helm Chart version for Chart %q: failed to parse chart index from URL %q", chartName, chartIndexURL)
-	}
-
-	indexFile := &repo.IndexFile{}
-	if err := yaml.UnmarshalStrict(bodyBytes, indexFile); err != nil {
-		return "", errors.Wrapf(err, "failed to resolve latest Helm Chart version for Chart %q: failed to unmarshal chart index from URL %q", chartName, chartIndexURL)
-	}
-	// Sort entries to ensure the latest version is on top.
-	// This is required to get the latest version.
-	indexFile.SortEntries()
-
-	chartVersion, err := indexFile.Get(chartName, "")
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to resolve latest Helm Chart version for Chart %q: failed to get latest version from chart index from URL %q", chartName, chartIndexURL)
-	}
-	return chartVersion.Version, nil
 }
 
 // kustomizeTask generates a task for running kustomize build on a path and saving the output on a file.

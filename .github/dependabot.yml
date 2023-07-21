@@ -12,11 +12,13 @@ updates:
   labels:
     - "area/ci"
     - "ok-to-test"
-# Go
+
+# Main Go module
 - package-ecosystem: "gomod"
   directory: "/"
   schedule:
     interval: "weekly"
+    day: "monday"
   ignore:
   # Ignore controller-runtime as its upgraded manually.
   - dependency-name: "sigs.k8s.io/controller-runtime"
@@ -25,6 +27,46 @@ updates:
   - dependency-name: "k8s.io/*"
   - dependency-name: "go.etcd.io/*"
   - dependency-name: "google.golang.org/grpc"
+  commit-message:
+    prefix: ":seedling:"
+  labels:
+    - "area/dependency"
+    - "ok-to-test"
+
+  # Test Go module
+- package-ecosystem: "gomod"
+  directory: "/test"
+  schedule:
+    interval: "weekly"
+    day: "tuesday"
+  ignore:
+    # Ignore controller-runtime as its upgraded manually.
+    - dependency-name: "sigs.k8s.io/controller-runtime"
+    # Ignore k8s and its transitives modules as they are upgraded manually
+    # together with controller-runtime.
+    - dependency-name: "k8s.io/*"
+    - dependency-name: "go.etcd.io/*"
+    - dependency-name: "google.golang.org/grpc"
+  commit-message:
+    prefix: ":seedling:"
+  labels:
+    - "area/dependency"
+    - "ok-to-test"
+
+  # Hack/tools Go module
+- package-ecosystem: "gomod"
+  directory: "/hack/tools"
+  schedule:
+    interval: "weekly"
+    day: "wednesday"
+  ignore:
+    # Ignore controller-runtime as its upgraded manually.
+    - dependency-name: "sigs.k8s.io/controller-runtime"
+    # Ignore k8s and its transitives modules as they are upgraded manually
+    # together with controller-runtime.
+    - dependency-name: "k8s.io/*"
+    - dependency-name: "go.etcd.io/*"
+    - dependency-name: "google.golang.org/grpc"
   commit-message:
     prefix: ":seedling:"
   labels:

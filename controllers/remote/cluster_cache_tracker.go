@@ -457,6 +457,13 @@ func (t *ClusterCacheTracker) createClient(ctx context.Context, config *rest.Con
 		return nil, nil, nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheCtx.Err())
 	}
 
+	// Wrap the cached client with a client that sets timeouts on all Get and List calls
+	// If we don't set timeouts here Get and List calls can get stuck if they lazily create a new informer
+	// and the informer than doesn't sync because the workload cluster apiserver is not reachable.
+	// An alternative would be to set timeouts in the contexts we pass into all Get and List calls.
+	// It should be reasonable to have Get and List calls timeout within the duration configured in the restConfig.
+	cachedClient = newClientWithTimeout(cachedClient, config.Timeout)
+
 	// Start cluster healthcheck!!!
 	go t.healthCheckCluster(cacheCtx, &healthCheckInput{
 		cluster:    cluster,
@@ -655,4 +662,34 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 		t.log.Error(err, "Error health checking cluster", "Cluster", klog.KRef(in.cluster.Namespace, in.cluster.Name))
 		t.deleteAccessor(ctx, in.cluster)
 	}
+}
+
+// newClientWithTimeout returns a new client which sets the specified timeout on all Get and List calls.
+// If we don't set timeouts here Get and List calls can get stuck if they lazily create a new informer
+// and the informer than doesn't sync because the workload cluster apiserver is not reachable.
+// An alternative would be to set timeouts in the contexts we pass into all Get and List calls.
+func newClientWithTimeout(client client.Client, timeout time.Duration) client.Client {
+	return clientWithTimeout{
+		Client:  client,
+		timeout: timeout,
+	}
+}
+
+type clientWithTimeout struct {
+	client.Client
+	timeout time.Duration
+}
+
+var _ client.Client = &clientWithTimeout{}
+
+func (c clientWithTimeout) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	return c.Client.Get(ctx, key, obj, opts...)
+}
+
+func (c clientWithTimeout) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+	return c.Client.List(ctx, list, opts...)
 }

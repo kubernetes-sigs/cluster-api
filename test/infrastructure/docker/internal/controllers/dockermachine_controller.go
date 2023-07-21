@@ -236,11 +236,10 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Ready = true
 
-		// TODO: Remove this if we don't need it anymore.
-		// // Bootstrap is handled by the DockerMachinePool controller, we just need to set the condition to true.
-		// if machinePoolOwned && conditions.IsTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition) {
-		// 	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
-		// }
+		// Bootstrap is handled by the DockerMachinePool controller, we just need to set the condition to true.
+		if machinePoolOwned && dockerMachine.Spec.Bootstrapped {
+			conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
+		}
 
 		if externalMachine.Exists() {
 			conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
@@ -275,7 +274,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		}
 
 		// Create the machine if not existing yet
-		if !machinePoolOwned && !externalMachine.Exists() {
+		if !externalMachine.Exists() {
 			// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
 			// each container, so we can check placement.
 			if err := externalMachine.Create(ctx, dockerMachine.Spec.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts); err != nil {
@@ -326,7 +325,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	}
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
-	if !conditions.IsTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition) {
+	if !dockerMachine.Spec.Bootstrapped {
 		timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
 
@@ -354,8 +353,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 				return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
 			}
 		}
-		// TODO: This is causing a problem with the linter.
-		// dockerMachine.Spec.Bootstrapped = true
+		dockerMachine.Spec.Bootstrapped = true
 	}
 
 	// Update the BootstrapExecSucceededCondition condition

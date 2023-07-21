@@ -86,8 +86,8 @@ As of now we ask for volunteers in Slack and office hours.
 
 #### Finalize release schedule and team
 
-1. Finalize release schedule and team in `release-1.4.md`.
-2. Update Slack user group and GitHub team accordingly.
+1. Finalize release schedule and team in the [docs/release/releases](../../docs/release/releases), e.g. [release-1.4.md](../../docs/release/releases/release-1.4.md).
+2. Update @cluster-api-release-team Slack user group and GitHub team accordingly.
    <br>Prior art: https://github.com/kubernetes-sigs/cluster-api/issues/7476
 
 #### Prepare main branch for development of the new release
@@ -123,7 +123,7 @@ Prior art:
 
 #### Create a new GitHub milestone for the next release
 
-The goal of this task is to create a new GitHub milestone for the next release, so that we can already move tasks
+The goal of this task is to create [a new GitHub milestone](https://github.com/kubernetes-sigs/cluster-api/milestones) for the next release, so that we can already move tasks
 out of the current milestone if necessary.
 
 1. Create the milestone for the new release via GitHub UI.

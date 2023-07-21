@@ -12,7 +12,7 @@ updates:
   labels:
     - "area/ci"
     - "ok-to-test"
-# Go
+# Go main module
 - package-ecosystem: "gomod"
   directory: "/"
   schedule:
@@ -25,6 +25,24 @@ updates:
   - dependency-name: "k8s.io/*"
   - dependency-name: "go.etcd.io/*"
   - dependency-name: "google.golang.org/grpc"
+  commit-message:
+    prefix: ":seedling:"
+  labels:
+    - "area/dependency"
+    - "ok-to-test"
+  # Go test module
+- package-ecosystem: "gomod"
+  directory: "/test"
+  schedule:
+    interval: "daily"
+  ignore:
+    # Ignore controller-runtime as its upgraded manually.
+    - dependency-name: "sigs.k8s.io/controller-runtime"
+    # Ignore k8s and its transitives modules as they are upgraded manually
+    # together with controller-runtime.
+    - dependency-name: "k8s.io/*"
+    - dependency-name: "go.etcd.io/*"
+    - dependency-name: "google.golang.org/grpc"
   commit-message:
     prefix: ":seedling:"
   labels:

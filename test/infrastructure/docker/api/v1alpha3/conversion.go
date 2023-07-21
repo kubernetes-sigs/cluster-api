@@ -82,13 +82,30 @@ func (dst *DockerClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachine)
 
-	return Convert_v1alpha3_DockerMachine_To_v1beta1_DockerMachine(src, dst, nil)
+	if err := Convert_v1alpha3_DockerMachine_To_v1beta1_DockerMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &infrav1.DockerMachine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.InstanceName = restored.Spec.InstanceName
+
+	return nil
 }
 
 func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerMachine)
 
-	return Convert_v1beta1_DockerMachine_To_v1alpha3_DockerMachine(src, dst, nil)
+	if err := Convert_v1beta1_DockerMachine_To_v1alpha3_DockerMachine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *DockerMachineList) ConvertTo(dstRaw conversion.Hub) error {
@@ -117,6 +134,7 @@ func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+	dst.Spec.Template.Spec.InstanceName = restored.Spec.Template.Spec.InstanceName
 
 	return nil
 }
@@ -157,4 +175,8 @@ func Convert_v1beta1_DockerClusterSpec_To_v1alpha3_DockerClusterSpec(in *infrav1
 func Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha3_DockerMachineTemplateResource(in *infrav1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
 	return autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha3_DockerMachineTemplateResource(in, out, s)
+}
+
+func Convert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in *infrav1.DockerMachineSpec, out *DockerMachineSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in, out, s)
 }

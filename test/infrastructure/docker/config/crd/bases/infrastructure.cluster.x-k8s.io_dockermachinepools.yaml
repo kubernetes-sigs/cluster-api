@@ -503,6 +503,10 @@ spec:
                   - type
                   type: object
                 type: array
+              infrastructureMachineKind:
+                description: InfrastructureMachineKind is the kind of the infrastructure
+                  resources behind MachinePool Machines.
+                type: string
               instances:
                 description: Instances contains the status for each instance in the
                   pool

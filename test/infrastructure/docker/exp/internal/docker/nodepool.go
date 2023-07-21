@@ -22,6 +22,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"math/rand"
+	"sort"
 	"strings"
 	"time"
 
@@ -56,22 +57,59 @@ type NodePool struct {
 	dockerMachinePool *infraexpv1.DockerMachinePool
 	labelFilters      map[string]string
 	machines          []*docker.Machine
+	nodePoolInstances []NodePoolInstance // Note: This must be initialized when creating a new node pool and updated to reflect the `machines` slice.
+}
+
+// NodePoolInstance is a representation of a node pool instance used to provide the information to construct DockerMachines.
+type NodePoolInstance struct {
+	InstanceName     string
+	Bootstrapped     bool
+	ProviderID       *string
+	PrioritizeDelete bool
+	Addresses        []clusterv1.MachineAddress
+	Ready            bool
+}
+
+func (np NodePool) Len() int      { return len(np.machines) }
+func (np NodePool) Swap(i, j int) { np.machines[i], np.machines[j] = np.machines[j], np.machines[i] }
+func (np NodePool) Less(i, j int) bool {
+	var instanceI, instanceJ NodePoolInstance
+	for k := range np.nodePoolInstances {
+		instance := np.nodePoolInstances[k]
+		if instance.InstanceName == np.machines[i].Name() {
+			instanceI = instance
+		}
+		if instance.InstanceName == np.machines[j].Name() {
+			instanceJ = instance
+		}
+	}
+	if instanceI.PrioritizeDelete == instanceJ.PrioritizeDelete {
+		return instanceI.InstanceName < instanceJ.InstanceName
+	}
+
+	return instanceI.PrioritizeDelete
 }
 
 // NewNodePool creates a new node pool instances.
-func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, mp *expv1.MachinePool, dmp *infraexpv1.DockerMachinePool) (*NodePool, error) {
+func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, mp *expv1.MachinePool, dmp *infraexpv1.DockerMachinePool, nodePoolInstances []NodePoolInstance) (*NodePool, error) {
 	np := &NodePool{
 		client:            c,
 		cluster:           cluster,
 		machinePool:       mp,
 		dockerMachinePool: dmp,
 		labelFilters:      map[string]string{dockerMachinePoolLabel: dmp.Name},
+		nodePoolInstances: nodePoolInstances,
 	}
 
 	if err := np.refresh(ctx); err != nil {
 		return np, errors.Wrapf(err, "failed to refresh the node pool")
 	}
 	return np, nil
+}
+
+// GetNodePoolInstances returns the node pool instances providing the information to construct DockerMachines.
+func (np *NodePool) GetNodePoolInstances() []NodePoolInstance {
+	return np.nodePoolInstances
 }
 
 // ReconcileMachines will build enough machines to satisfy the machine pool / docker machine pool spec
@@ -87,6 +125,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.C
 	// Delete all the machines in excess (outdated machines or machines exceeding desired replica count).
 	machineDeleted := false
 	totalNumberOfMachines := 0
+	// We start deleting machines from the front of the list, so we need to sort the machines prioritized for deletion to the beginning.
 	for _, machine := range np.machines {
 		totalNumberOfMachines++
 		if totalNumberOfMachines > desiredReplicas || !np.isMachineMatchingInfrastructureSpec(machine) {
@@ -127,9 +166,9 @@ func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.C
 	// First remove instance status for machines no longer existing, then reconcile the existing machines.
 	// NOTE: the status is the only source of truth for understanding if the machine is already bootstrapped, ready etc.
 	// so we are preserving the existing status and using it as a bases for the next reconcile machine.
-	instances := make([]infraexpv1.DockerMachinePoolInstanceStatus, 0, len(np.machines))
-	for i := range np.dockerMachinePool.Status.Instances {
-		instance := np.dockerMachinePool.Status.Instances[i]
+	instances := make([]NodePoolInstance, 0, len(np.machines))
+	for i := range np.nodePoolInstances {
+		instance := np.nodePoolInstances[i]
 		for j := range np.machines {
 			if instance.InstanceName == np.machines[j].Name() {
 				instances = append(instances, instance)
@@ -137,7 +176,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.C
 			}
 		}
 	}
-	np.dockerMachinePool.Status.Instances = instances
+	np.nodePoolInstances = instances
 
 	result := ctrl.Result{}
 	for i := range np.machines {
@@ -164,6 +203,8 @@ func (np *NodePool) Delete(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to delete machine %s", machine.Name())
 		}
 	}
+
+	// Note: We can set `np.nodePoolInstances = nil` here, but it shouldn't be necessary on Delete().
 
 	return nil
 }
@@ -241,6 +282,9 @@ func (np *NodePool) refresh(ctx context.Context) error {
 			np.machines = append(np.machines, machine)
 		}
 	}
+
+	sort.Sort(np)
+
 	return nil
 }
 
@@ -248,29 +292,28 @@ func (np *NodePool) refresh(ctx context.Context) error {
 func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine, remoteClient client.Client) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	var machineStatus infraexpv1.DockerMachinePoolInstanceStatus
+	var nodePoolInstance NodePoolInstance
 	isFound := false
-	for _, instanceStatus := range np.dockerMachinePool.Status.Instances {
-		if instanceStatus.InstanceName == machine.Name() {
-			machineStatus = instanceStatus
+	for _, instance := range np.nodePoolInstances {
+		if instance.InstanceName == machine.Name() {
+			nodePoolInstance = instance
 			isFound = true
 		}
 	}
 	if !isFound {
 		log.Info("Creating instance record", "instance", machine.Name())
-		machineStatus = infraexpv1.DockerMachinePoolInstanceStatus{
+		nodePoolInstance = NodePoolInstance{
 			InstanceName: machine.Name(),
-			Version:      np.machinePool.Spec.Template.Spec.Version,
 		}
-		np.dockerMachinePool.Status.Instances = append(np.dockerMachinePool.Status.Instances, machineStatus)
+		np.nodePoolInstances = append(np.nodePoolInstances, nodePoolInstance)
 		// return to surface the new machine exists.
 		return ctrl.Result{Requeue: true}, nil
 	}
 
 	defer func() {
-		for i, instanceStatus := range np.dockerMachinePool.Status.Instances {
-			if instanceStatus.InstanceName == machine.Name() {
-				np.dockerMachinePool.Status.Instances[i] = machineStatus
+		for i, instance := range np.nodePoolInstances {
+			if instance.InstanceName == machine.Name() {
+				np.nodePoolInstances[i] = instance
 			}
 		}
 	}()
@@ -281,7 +324,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 	}
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
-	if !machineStatus.Bootstrapped {
+	if !nodePoolInstance.Bootstrapped {
 		timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
 
@@ -309,13 +352,12 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 				return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
 			}
 		}
-		machineStatus.Bootstrapped = true
 
 		// return to surface the machine has been bootstrapped.
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if machineStatus.Addresses == nil {
+	if nodePoolInstance.Addresses == nil {
 		log.Info("Fetching instance addresses", "instance", machine.Name())
 		// set address in machine status
 		machineAddresses, err := externalMachine.Address(ctx)
@@ -325,14 +367,14 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
 		}
 
-		machineStatus.Addresses = []clusterv1.MachineAddress{
+		nodePoolInstance.Addresses = []clusterv1.MachineAddress{
 			{
 				Type:    clusterv1.MachineHostName,
 				Address: externalMachine.ContainerName(),
 			},
 		}
 		for _, addr := range machineAddresses {
-			machineStatus.Addresses = append(machineStatus.Addresses,
+			nodePoolInstance.Addresses = append(nodePoolInstance.Addresses,
 				clusterv1.MachineAddress{
 					Type:    clusterv1.MachineInternalIP,
 					Address: addr,
@@ -344,7 +386,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		}
 	}
 
-	if machineStatus.ProviderID == nil {
+	if nodePoolInstance.ProviderID == nil {
 		log.Info("Fetching instance provider ID", "instance", machine.Name())
 		// Usually a cloud provider will do this, but there is no docker-cloud provider.
 		// Requeue if there is an error, as this is likely momentary load balancer
@@ -353,12 +395,8 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 			log.V(4).Info("transient error setting the provider id")
 			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
 		}
-		// Set ProviderID so the Cluster API Machine Controller can pull it
-		providerID := externalMachine.ProviderID()
-		machineStatus.ProviderID = &providerID
 	}
 
-	machineStatus.Ready = true
 	return ctrl.Result{}, nil
 }
 

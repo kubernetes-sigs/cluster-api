@@ -274,6 +274,14 @@ spec:
                               type: boolean
                           type: object
                         type: array
+                      instanceName:
+                        description: InstanceName indicates the name of the Docker
+                          container associated with this DockerMachine. Since the
+                          provider ID is not set until after the container is online,
+                          this field is used to maintain the association. If it is
+                          not populated, the name of the container will be the same
+                          as the name of the owner Machine.
+                        type: string
                       preLoadImages:
                         description: PreLoadImages allows to pre-load images in a
                           newly created machine. This can be used to speed up tests

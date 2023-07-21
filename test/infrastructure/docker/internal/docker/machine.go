@@ -163,6 +163,12 @@ func (m *Machine) Name() string {
 	return m.machine
 }
 
+// SetName sets the name of the machine.
+// Note: this is meant to be used primarily for testing. It will not rename the container.
+func (m *Machine) SetName(name string) {
+	m.machine = name
+}
+
 // ContainerName return the name of the container for this machine.
 func (m *Machine) ContainerName() string {
 	return machineContainerName(m.cluster, m.machine)

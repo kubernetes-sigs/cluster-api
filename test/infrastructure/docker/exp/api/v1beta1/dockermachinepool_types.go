@@ -82,6 +82,10 @@ type DockerMachinePoolStatus struct {
 	// Conditions defines current service state of the DockerMachinePool.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
+	// +optional
+	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
 }
 
 // DockerMachinePoolInstanceStatus contains status information about a DockerMachinePool.
@@ -130,13 +134,13 @@ type DockerMachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (c *DockerMachinePool) GetConditions() clusterv1.Conditions {
-	return c.Status.Conditions
+func (d *DockerMachinePool) GetConditions() clusterv1.Conditions {
+	return d.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (c *DockerMachinePool) SetConditions(conditions clusterv1.Conditions) {
-	c.Status.Conditions = conditions
+func (d *DockerMachinePool) SetConditions(conditions clusterv1.Conditions) {
+	d.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

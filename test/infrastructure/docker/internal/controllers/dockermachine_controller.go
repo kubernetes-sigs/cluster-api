@@ -151,13 +151,6 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	if _, hasDeleteAnnotation := machine.Annotations[clusterv1.DeleteMachineAnnotation]; hasDeleteAnnotation {
-		if dockerMachine.Annotations == nil {
-			dockerMachine.Annotations = map[string]string{}
-		}
-		dockerMachine.Annotations[clusterv1.DeleteMachineAnnotation] = "true"
-	}
-
 	if dockerMachine.Spec.InstanceName == "" {
 		log.V(2).Info("InstanceName not set for DockerMachine, defaulting to owner machine name", "machine", machine.Name)
 		dockerMachine.Spec.InstanceName = machine.Name

@@ -89,6 +89,7 @@ As of now we ask for volunteers in Slack and office hours.
 1. Finalize release schedule and team in the [docs/release/releases](../../docs/release/releases), e.g. [release-1.4.md](../../docs/release/releases/release-1.4.md).
 2. Update @cluster-api-release-team Slack user group and GitHub team accordingly.
    <br>Prior art: https://github.com/kubernetes-sigs/cluster-api/issues/7476
+3. Announce the _release team_ and _release schedule_ to the mailing list.
 
 #### Prepare main branch for development of the new release
 
@@ -346,6 +347,7 @@ upcoming code freezes etc based on the [release timeline (1.4 example)](./releas
 
 Information can be distributed via:
 * `sig-cluster-lifecycle` mailing list
+  * Note: The person sending out the email should ensure that they are first part of the mailing list. If the email is sent out is not received by the community, reach out to the maintainers to unblock and approve the email.
 * Slack
 * Office hours
 * Cluster API book

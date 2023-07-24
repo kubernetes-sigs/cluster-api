@@ -1,25 +1,96 @@
-name: release
+name: Create Release
 
 on:
   push:
-    # Sequence of patterns matched against refs/tags
-    tags:
-    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
-
+    branches:
+      - main
+    paths:
+      - 'CHANGELOG/*.md'
+  
 permissions:
-  contents: write # Allow to create a release.
+  contents: write # Allow to push a tag, create a release branch and publish a draft release.
 
 jobs:
-  build:
+  push_release_tags:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.release-version.outputs.release_version }}
+    steps:
+      - name: Checkout code 
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # tag=v3.5.3
+        with:
+          fetch-depth: 0
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@920e7b9ae1d45913fc81f86c956fee89c77d2e5e # tag=v37.5.0
+      - name: Get release version
+        id: release-version
+        run: |
+            if [[ ${{ steps.changed-files.outputs.all_changed_files_count }} != 1 ]]; then
+              echo "1 release notes file should be changed to create a release tag, found ${{ steps.changed-files.outputs.all_changed_files_count }}"
+              exit 1
+            fi
+            for changed_file in ${{ steps.changed-files.outputs.all_changed_files }}; do
+              export RELEASE_VERSION=$(echo "${changed_file}" | grep -oP '(?<=/)[^/]+(?=\.md)')
+              echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_ENV
+              echo "RELEASE_VERSION=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+              if [[ "$RELEASE_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+                echo "Valid semver: $RELEASE_VERSION"
+              else
+                echo "Invalid semver: $RELEASE_VERSION"
+                exit 1
+              fi
+            done
+      - name: Determine the release branch to use
+        run: |
+            if [[ $RELEASE_VERSION =~ beta ]] || [[ $RELEASE_VERSION =~ alpha ]]; then
+              export RELEASE_BRANCH=main
+              echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
+              echo "This is a beta or alpha release, will use release branch $RELEASE_BRANCH"
+            else
+              export RELEASE_BRANCH=release-$(echo $RELEASE_VERSION | sed -E 's/^v([0-9]+)\.([0-9]+)\..*$/\1.\2/')
+              echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
+              echo "This is not a beta or alpha release, will use release branch $RELEASE_BRANCH"
+            fi
+      - name: Create or checkout release branch
+        run: |
+          if git show-ref --verify --quiet "refs/remotes/origin/$RELEASE_BRANCH"; then
+            echo "Branch $RELEASE_BRANCH already exists"
+            git checkout "$RELEASE_BRANCH"
+          else
+            git checkout -b "$RELEASE_BRANCH"
+            git push origin "$RELEASE_BRANCH"
+            echo "Created branch $RELEASE_BRANCH"
+          fi
+      - name: Validate tag does not already exist
+        run: |
+          if [[ $(git tag -l $RELEASE_VERSION) ]]; then
+            echo "Tag $RELEASE_VERSION already exists, exiting"
+            exit 1
+          fi
+      - name: Create Release Tag
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git tag -a ${RELEASE_VERSION} -m ${RELEASE_VERSION}
+          git tag test/${RELEASE_VERSION}
+          git push origin ${RELEASE_VERSION}
+          git push origin test/${RELEASE_VERSION}
+          echo "Created tags $RELEASE_VERSION and test/${RELEASE_VERSION}"
+  release:
     name: create draft release
     runs-on: ubuntu-latest
+    needs: push_release_tags
     steps:
       - name: Set env
-        run:  echo "RELEASE_TAG=${GITHUB_REF:10}" >> $GITHUB_ENV
+        run:  echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+        env:
+          RELEASE_TAG: ${{needs.push_release_tags.outputs.release_tag}}
       - name: checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # tag=v3.5.3
         with:
           fetch-depth: 0
+          ref: ${{ env.RELEASE_TAG }}
       - name: Calculate go version
         run: echo "go_version=$(make go-version)" >> $GITHUB_ENV
       - name: Set up Go
@@ -29,9 +100,14 @@ jobs:
       - name: generate release artifacts
         run: |
           make release
+      - name: get release notes
+        run: |
+          curl -L "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG/${{ env.RELEASE_TAG }}.md" \
+          -o "${{ env.RELEASE_TAG }}.md"
       - name: Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # tag=v1
         with:
           draft: true
           files: out/*
-          body: "TODO: Copy release notes shared by the comms team"
+          body_path: ${{ env.RELEASE_TAG }}.md
+          tag_name: ${{ env.RELEASE_TAG }}

@@ -67,19 +67,21 @@ const (
 
 // Bootstrap providers.
 const (
-	KubeadmBootstrapProviderName    = "kubeadm"
-	TalosBootstrapProviderName      = "talos"
-	MicroK8sBootstrapProviderName   = "microk8s"
-	KubeKeyK3sBootstrapProviderName = "kubekey-k3s"
+	KubeadmBootstrapProviderName           = "kubeadm"
+	TalosBootstrapProviderName             = "talos"
+	MicroK8sBootstrapProviderName          = "microk8s"
+	OracleCloudNativeBootstrapProviderName = "ocne"
+	KubeKeyK3sBootstrapProviderName        = "kubekey-k3s"
 )
 
 // ControlPlane providers.
 const (
-	KubeadmControlPlaneProviderName    = "kubeadm"
-	TalosControlPlaneProviderName      = "talos"
-	MicroK8sControlPlaneProviderName   = "microk8s"
-	NestedControlPlaneProviderName     = "nested"
-	KubeKeyK3sControlPlaneProviderName = "kubekey-k3s"
+	KubeadmControlPlaneProviderName           = "kubeadm"
+	TalosControlPlaneProviderName             = "talos"
+	MicroK8sControlPlaneProviderName          = "microk8s"
+	NestedControlPlaneProviderName            = "nested"
+	OracleCloudNativeControlPlaneProviderName = "ocne"
+	KubeKeyK3sControlPlaneProviderName        = "kubekey-k3s"
 )
 
 // Add-on providers.
@@ -287,6 +289,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+		&provider{
+			name:         OracleCloudNativeBootstrapProviderName,
+			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 
 		// ControlPlane providers
 		&provider{
@@ -312,6 +319,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         NestedControlPlaneProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         OracleCloudNativeControlPlaneProviderName,
+			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 

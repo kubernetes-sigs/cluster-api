@@ -366,7 +366,11 @@ func run() int {
 			}
 		default:
 			fmt.Println("## " + key)
-			sort.Strings(mergeslice)
+			sort.Slice(mergeslice, func(i int, j int) bool {
+				str1 := strings.ToLower(mergeslice[i])
+				str2 := strings.ToLower(mergeslice[j])
+				return str1 < str2
+			})
 			for _, merge := range mergeslice {
 				fmt.Println(merge)
 			}

@@ -27,6 +27,9 @@ updates:
   - dependency-name: "k8s.io/*"
   - dependency-name: "go.etcd.io/*"
   - dependency-name: "google.golang.org/grpc"
+  # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi
+  # as a dependency.
+  - dependency-name: "sigs.k8s.io/kustomize/api"
   commit-message:
     prefix: ":seedling:"
   labels:
@@ -47,6 +50,9 @@ updates:
     - dependency-name: "k8s.io/*"
     - dependency-name: "go.etcd.io/*"
     - dependency-name: "google.golang.org/grpc"
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi
+    # as a dependency.
+    - dependency-name: "sigs.k8s.io/kustomize/api"
   commit-message:
     prefix: ":seedling:"
   labels:
@@ -67,6 +73,9 @@ updates:
     - dependency-name: "k8s.io/*"
     - dependency-name: "go.etcd.io/*"
     - dependency-name: "google.golang.org/grpc"
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi
+    # as a dependency.
+    - dependency-name: "sigs.k8s.io/kustomize/api"
   commit-message:
     prefix: ":seedling:"
   labels:

@@ -175,6 +175,10 @@ func getAreaLabel(merge string) (string, error) {
 	var areaLabels []string
 	for _, label := range pr.Labels {
 		if area, ok := trimAreaLabel(label.Name); ok {
+			if userFriendlyArea, ok := userFriendlyAreas[area]; ok {
+				area = userFriendlyArea
+			}
+
 			areaLabels = append(areaLabels, area)
 		}
 	}
@@ -183,13 +187,9 @@ func getAreaLabel(merge string) (string, error) {
 	case 0:
 		return missingAreaLabelPrefix, nil
 	case 1:
-		area := areaLabels[0]
-		if userFriendlyArea, ok := userFriendlyAreas[area]; ok {
-			area = userFriendlyArea
-		}
-		return area, nil
+		return areaLabels[0], nil
 	default:
-		return multipleAreaLabelsPrefix + strings.Join(areaLabels, "|") + "]", nil
+		return multipleAreaLabelsPrefix + strings.Join(areaLabels, "/") + "]", nil
 	}
 }
 
@@ -371,6 +371,7 @@ func run() int {
 				str2 := strings.ToLower(mergeslice[j])
 				return str1 < str2
 			})
+
 			for _, merge := range mergeslice {
 				fmt.Println(merge)
 			}

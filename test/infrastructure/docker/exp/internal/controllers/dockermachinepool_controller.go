@@ -392,7 +392,9 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 				// Note: This DockerMachine will be owned by the DockerMachinePool until the MachinePool controller creates its parent Machine.
 			},
 			Spec: infrav1.DockerMachineSpec{
-				InstanceName: instance.Name,
+				InstanceName:  instance.Name,
+				CustomImage:   dockerMachinePool.Spec.Template.CustomImage,
+				PreLoadImages: dockerMachinePool.Spec.Template.PreLoadImages,
 			},
 		}
 

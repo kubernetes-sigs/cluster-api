@@ -38,12 +38,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/labels/format"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -221,7 +223,37 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	}
 
 	// Be sure to include the MachinePool label in the DockerMachine along with the selector labels.
-	_, machinePoolOwned := dockerMachine.Labels[clusterv1.MachinePoolNameLabel]
+	labels := dockerMachine.GetLabels()
+	_, machinePoolOwned := labels[clusterv1.MachinePoolNameLabel]
+	var machinePool *expv1.MachinePool
+	if machinePoolOwned {
+		machinePoolList := &expv1.MachinePoolList{}
+		selector := map[string]string{}
+		if clusterName, ok := labels[clusterv1.ClusterNameLabel]; ok {
+			selector = map[string]string{clusterv1.ClusterNameLabel: clusterName}
+		}
+
+		if poolNameHash, ok := labels[clusterv1.MachinePoolNameLabel]; ok {
+			if err := r.Client.List(ctx, machinePoolList, client.InNamespace(dockerMachine.Namespace), client.MatchingLabels(selector)); err != nil {
+				log.Error(err, "failed to get MachinePool for InfraMachine")
+				return ctrl.Result{}, err
+			}
+
+			for _, mp := range machinePoolList.Items {
+				if format.MustFormatValue(mp.Name) == poolNameHash {
+					machinePool = &mp
+					break
+				}
+			}
+		}
+	}
+
+	var dataSecretName *string
+	if machinePoolOwned {
+		dataSecretName = machinePool.Spec.Template.Spec.Bootstrap.DataSecretName
+	} else {
+		dataSecretName = machine.Spec.Bootstrap.DataSecretName
+	}
 
 	// if the machine is already provisioned, return
 	if dockerMachine.Spec.ProviderID != nil {
@@ -230,9 +262,9 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		dockerMachine.Status.Ready = true
 
 		// Bootstrap is handled by the DockerMachinePool controller, we just need to set the condition to true.
-		if machinePoolOwned && dockerMachine.Spec.Bootstrapped {
-			conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
-		}
+		// if machinePoolOwned && dockerMachine.Spec.Bootstrapped {
+		// 	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
+		// }
 
 		if externalMachine.Exists() {
 			conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
@@ -246,56 +278,56 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		return ctrl.Result{}, nil
 	}
 
-	if !machinePoolOwned {
-		// Make sure bootstrap data is available and populated.
-		if machine.Spec.Bootstrap.DataSecretName == nil {
-			if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-				log.Info("Waiting for the control plane to be initialized")
-				conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
-				return ctrl.Result{}, nil
-			}
-
-			log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
-			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+	// if !machinePoolOwned {
+	// Make sure bootstrap data is available and populated.
+	if dataSecretName == nil {
+		if !util.IsControlPlaneMachine(machine) && !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+			log.Info("Waiting for the control plane to be initialized")
+			conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
 			return ctrl.Result{}, nil
 		}
 
-		// Create the docker container hosting the machine
-		role := constants.WorkerNodeRoleValue
-		if util.IsControlPlaneMachine(machine) {
-			role = constants.ControlPlaneNodeRoleValue
-		}
+		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+		conditions.MarkFalse(dockerMachine, infrav1.ContainerProvisionedCondition, infrav1.WaitingForBootstrapDataReason, clusterv1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, nil
+	}
 
-		// Create the machine if not existing yet
-		if !externalMachine.Exists() {
-			// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
-			// each container, so we can check placement.
-			if err := externalMachine.Create(ctx, dockerMachine.Spec.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
-			}
-		}
+	// Create the docker container hosting the machine
+	role := constants.WorkerNodeRoleValue
+	if util.IsControlPlaneMachine(machine) {
+		role = constants.ControlPlaneNodeRoleValue
+	}
 
-		// Preload images into the container
-		if len(dockerMachine.Spec.PreLoadImages) > 0 {
-			if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to pre-load images into the DockerMachine")
-			}
-		}
-
-		// if the machine is a control plane update the load balancer configuration
-		// we should only do this once, as reconfiguration more or less ensures
-		// node ref setting fails
-		if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
-			unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
-			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
-			}
-			if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
-			}
-			dockerMachine.Status.LoadBalancerConfigured = true
+	// Create the machine if not existing yet
+	if !externalMachine.Exists() {
+		// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
+		// each container, so we can check placement.
+		if err := externalMachine.Create(ctx, dockerMachine.Spec.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
 		}
 	}
+
+	// Preload images into the container
+	if len(dockerMachine.Spec.PreLoadImages) > 0 {
+		if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to pre-load images into the DockerMachine")
+		}
+	}
+
+	// if the machine is a control plane update the load balancer configuration
+	// we should only do this once, as reconfiguration more or less ensures
+	// node ref setting fails
+	if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
+		unsafeLoadBalancerConfigTemplate, err := r.getUnsafeLoadBalancerConfigTemplate(ctx, dockerCluster)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to retrieve HAProxy configuration from CustomHAProxyConfigTemplateRef")
+		}
+		if err := externalLoadBalancer.UpdateConfiguration(ctx, unsafeLoadBalancerConfigTemplate); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
+		}
+		dockerMachine.Status.LoadBalancerConfigured = true
+	}
+	// }
 
 	// Update the ContainerProvisionedCondition condition
 	// NOTE: it is required to create the patch helper before this change otherwise it wont surface if
@@ -327,39 +359,52 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		// but bootstrapped is never set on the object. We only try to bootstrap if the machine
 		// is not already bootstrapped.
 		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
-			if !machinePoolOwned {
-				bootstrapData, format, err := r.getBootstrapData(timeoutCtx, machine)
-				if err != nil {
-					return ctrl.Result{}, err
-				}
+			var objType string
+			if machinePoolOwned {
+				objType = "MachinePool"
+			} else {
+				objType = "Machine"
+			}
+			if dataSecretName == nil {
+				return ctrl.Result{}, errors.New(fmt.Sprintf("error retrieving bootstrap data: linked %s's bootstrap.dataSecretName is nil", objType))
+			}
+			bootstrapData, format, err := r.getBootstrapData(timeoutCtx, dockerMachine.Namespace, *dataSecretName)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 
-				// Setup a go routing to check for the machine being deleted while running bootstrap as a
-				// synchronous process, e.g. due to remediation. The routine stops when timeoutCtx is Done
-				// (either because canceled intentionally due to machine deletion or canceled by the defer cancel()
-				// call when exiting from this func).
-				go func() {
-					for {
-						select {
-						case <-timeoutCtx.Done():
+			// Setup a go routing to check for the machine being deleted while running bootstrap as a
+			// synchronous process, e.g. due to remediation. The routine stops when timeoutCtx is Done
+			// (either because canceled intentionally due to machine deletion or canceled by the defer cancel()
+			// call when exiting from this func).
+			go func() {
+				for {
+					select {
+					case <-timeoutCtx.Done():
+						return
+					default:
+						updatedDockerMachine := &infrav1.DockerMachine{}
+						if err := r.Client.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
+							!updatedDockerMachine.DeletionTimestamp.IsZero() {
+							log.Info("Cancelling Bootstrap because the underlying machine has been deleted")
+							cancel()
 							return
-						default:
-							updatedDockerMachine := &infrav1.DockerMachine{}
-							if err := r.Client.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
-								!updatedDockerMachine.DeletionTimestamp.IsZero() {
-								log.Info("Cancelling Bootstrap because the underlying machine has been deleted")
-								cancel()
-								return
-							}
-							time.Sleep(5 * time.Second)
 						}
+						time.Sleep(5 * time.Second)
 					}
-				}()
-
-				// Run the bootstrap script. Simulates cloud-init/Ignition.
-				if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, machine.Spec.Version, dockerMachine.Spec.CustomImage); err != nil {
-					conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
-					return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 				}
+			}()
+
+			var version *string
+			if machinePoolOwned {
+				version = machinePool.Spec.Template.Spec.Version
+			} else {
+				version = machine.Spec.Version
+			}
+			// Run the bootstrap script. Simulates cloud-init/Ignition.
+			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, version, dockerMachine.Spec.CustomImage); err != nil {
+				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
+				return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 			}
 
 			// Check for bootstrap success
@@ -513,15 +558,13 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(ctx context.Cont
 	return result
 }
 
-func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine *clusterv1.Machine) (string, bootstrapv1.Format, error) {
-	if machine.Spec.Bootstrap.DataSecretName == nil {
-		return "", "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
-	}
+func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, namespace string, dataSecretName string) (string, bootstrapv1.Format, error) {
 
 	s := &corev1.Secret{}
-	key := client.ObjectKey{Namespace: machine.GetNamespace(), Name: *machine.Spec.Bootstrap.DataSecretName}
+	key := client.ObjectKey{Namespace: namespace, Name: dataSecretName}
 	if err := r.Client.Get(ctx, key, s); err != nil {
-		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachine %s", klog.KObj(machine))
+		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret %s", dataSecretName)
+		// return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachine %s", klog.KObj(machine))
 	}
 
 	value, ok := s.Data["value"]

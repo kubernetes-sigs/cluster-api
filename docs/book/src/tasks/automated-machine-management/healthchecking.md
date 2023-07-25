@@ -217,7 +217,7 @@ Implicit skipping when the resource is paused (using `cluster.x-k8s.io/paused` a
 - A cluster or a machine is usually paused automatically by Cluster API when it detects a migration.
 
 Explicit skipping using `cluster.x-k8s.io/skip-remediation` annotation:
-- Users can also skip any machine for remediation by setting the `cluster.x-k8s.io/skip-remediation` for that machine.
+- Applying the 'cluster.x-k8s.io/paused' annotation selectively suspends cluster reconciliation without affecting other resource reconciliations, including MHC.
 
 ## Limitations and Caveats of a MachineHealthCheck
 

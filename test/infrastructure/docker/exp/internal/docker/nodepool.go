@@ -103,6 +103,7 @@ func (n NodePoolMachines) Less(i, j int) bool {
 
 // NewNodePool creates a new node pool.
 func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, mp *expv1.MachinePool, dmp *infraexpv1.DockerMachinePool, nodePoolMachineStatuses []NodePoolMachineStatus) (*NodePool, error) {
+	log := ctrl.LoggerFrom(ctx)
 	np := &NodePool{
 		client:            c,
 		cluster:           cluster,
@@ -111,13 +112,13 @@ func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluste
 		labelFilters:      map[string]string{dockerMachinePoolLabel: dmp.Name},
 	}
 
-	nodePoolMachines := make([]NodePoolMachine, len(nodePoolMachineStatuses))
+	np.nodePoolMachines = make([]NodePoolMachine, len(nodePoolMachineStatuses))
 	for _, status := range nodePoolMachineStatuses {
-		nodePoolMachines = append(nodePoolMachines, NodePoolMachine{
+		np.nodePoolMachines = append(np.nodePoolMachines, NodePoolMachine{
 			Status: &status,
 		})
 	}
-	np.nodePoolMachines = nodePoolMachines
+	log.Info("nodePoolMachines init with statuses and no machine", "nodePoolMachines", np.nodePoolMachines)
 
 	if err := np.refresh(ctx); err != nil {
 		return np, errors.Wrapf(err, "failed to refresh the node pool")
@@ -132,7 +133,7 @@ func (np *NodePool) GetNodePoolMachineStatuses() []NodePoolMachineStatus {
 		statusList[i] = *nodePoolMachine.Status
 	}
 
-	return nil
+	return statusList
 }
 
 // ReconcileMachines will build enough machines to satisfy the machine pool / docker machine pool spec
@@ -143,6 +144,7 @@ func (np *NodePool) GetNodePoolMachineStatuses() []NodePoolMachineStatus {
 // (all existing machines are killed before new ones are created).
 // TODO: consider if to support a Rollout strategy (a more progressive node replacement).
 func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.Client) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
 	desiredReplicas := int(*np.machinePool.Spec.Replicas)
 
 	// Delete all the machines in excess (outdated machines or machines exceeding desired replica count).
@@ -173,6 +175,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.C
 	// Add new machines if missing.
 	machineAdded := false
 	matchingMachineCount := len(np.machinesMatchingInfrastructureSpec())
+	log.Info("MatchingMachineCount", "count", matchingMachineCount)
 	if matchingMachineCount < desiredReplicas {
 		for i := 0; i < desiredReplicas-matchingMachineCount; i++ {
 			if err := np.addMachine(ctx); err != nil {
@@ -295,6 +298,9 @@ func (np *NodePool) addMachine(ctx context.Context) error {
 // refresh asks docker to list all the machines matching the node pool label and updates the cached list of node pool
 // machines.
 func (np *NodePool) refresh(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("nodePoolMachines are", "nodePoolMachines", np.nodePoolMachines)
+
 	// Construct a map of the existing nodePoolMachines so we can look up the status as it's the source of truth about the state of the docker.Machine.
 	nodePoolMachineStatusMap := make(map[string]*NodePoolMachineStatus, len(np.nodePoolMachines))
 	for i := range np.nodePoolMachines {
@@ -315,9 +321,13 @@ func (np *NodePool) refresh(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to list all machines in the cluster")
 	}
+	log.Info("Machines by cluster")
+	for _, machine := range machines {
+		log.Info("Machine", "name", machine.Name())
+	}
 
 	// Construct a new list of nodePoolMachines but keep the existing status.
-	nodePoolMachines := make(NodePoolMachines, 0, len(machines))
+	np.nodePoolMachines = make(NodePoolMachines, 0, len(machines))
 	for i := range machines {
 		machine := machines[i]
 		// makes sure no control plane machines gets selected by chance.
@@ -328,11 +338,11 @@ func (np *NodePool) refresh(ctx context.Context) error {
 			if existingStatus, ok := nodePoolMachineStatusMap[machine.Name()]; ok {
 				nodePoolMachine.Status = existingStatus
 			}
-			nodePoolMachines = append(nodePoolMachines, nodePoolMachine)
+			np.nodePoolMachines = append(np.nodePoolMachines, nodePoolMachine)
 		}
 	}
 
-	sort.Sort(nodePoolMachines)
+	sort.Sort(np.nodePoolMachines)
 
 	return nil
 }

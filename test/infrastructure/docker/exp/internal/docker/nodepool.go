@@ -78,7 +78,7 @@ type NodePoolMachineStatus struct {
 	Ready            bool
 }
 
-type NodePoolMachines []*NodePoolMachine
+type NodePoolMachines []NodePoolMachine
 
 func (n NodePoolMachines) Len() int      { return len(n) }
 func (n NodePoolMachines) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
@@ -113,9 +113,9 @@ func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluste
 	}
 
 	log.Info("NewNodePool got nodePoolMachineStatuses", "nodePoolMachineStatuses", nodePoolMachineStatuses)
-	np.nodePoolMachines = make([]*NodePoolMachine, 0, len(nodePoolMachineStatuses))
+	np.nodePoolMachines = make([]NodePoolMachine, 0, len(nodePoolMachineStatuses))
 	for i := range nodePoolMachineStatuses {
-		np.nodePoolMachines = append(np.nodePoolMachines, &NodePoolMachine{
+		np.nodePoolMachines = append(np.nodePoolMachines, NodePoolMachine{
 			Status: &nodePoolMachineStatuses[i],
 		})
 	}
@@ -209,7 +209,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.C
 	result := ctrl.Result{}
 	for i := range np.nodePoolMachines {
 		// machine := &np.nodePoolMachines[i].Machine
-		if res, err := np.reconcileMachine(ctx, np.nodePoolMachines[i], remoteClient); err != nil || !res.IsZero() {
+		if res, err := np.reconcileMachine(ctx, &np.nodePoolMachines[i], remoteClient); err != nil || !res.IsZero() {
 			if err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "failed to reconcile machine")
 			}
@@ -333,7 +333,7 @@ func (np *NodePool) refresh(ctx context.Context) error {
 		machine := machines[i]
 		// makes sure no control plane machines gets selected by chance.
 		if !machine.IsControlPlane() {
-			nodePoolMachine := &NodePoolMachine{
+			nodePoolMachine := NodePoolMachine{
 				Machine: machine,
 			}
 			if existingStatus, ok := nodePoolMachineStatusMap[machine.Name()]; ok {

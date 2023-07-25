@@ -387,11 +387,7 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 				Labels:       labels,
 				Annotations:  make(map[string]string),
 				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: dockerMachinePool.APIVersion,
-						Kind:       dockerMachinePool.Kind,
-						Name:       dockerMachinePool.Name,
-					},
+					*metav1.NewControllerRef(dockerMachinePool, dockerMachineList.GroupVersionKind()),
 				},
 				// Note: This DockerMachine will be owned by the DockerMachinePool until the MachinePool controller creates its parent Machine.
 			},

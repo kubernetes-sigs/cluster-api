@@ -333,6 +333,28 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 					return ctrl.Result{}, err
 				}
 
+				// Setup a go routing to check for the machine being deleted while running bootstrap as a
+				// synchronous process, e.g. due to remediation. The routine stops when timeoutCtx is Done
+				// (either because canceled intentionally due to machine deletion or canceled by the defer cancel()
+				// call when exiting from this func).
+				go func() {
+					for {
+						select {
+						case <-timeoutCtx.Done():
+							return
+						default:
+							updatedDockerMachine := &infrav1.DockerMachine{}
+							if err := r.Client.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
+								!updatedDockerMachine.DeletionTimestamp.IsZero() {
+								log.Info("Cancelling Bootstrap because the underlying machine has been deleted")
+								cancel()
+								return
+							}
+							time.Sleep(5 * time.Second)
+						}
+					}
+				}()
+
 				// Run the bootstrap script. Simulates cloud-init/Ignition.
 				if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, machine.Spec.Version, dockerMachine.Spec.CustomImage); err != nil {
 					conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")

@@ -38,7 +38,7 @@ const (
 	clusterName = "test-cluster"
 )
 
-func TestInitNodePoolInstances(t *testing.T) {
+func TestInitNodePoolMachineStatuses(t *testing.T) {
 	machine1 := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine1",
@@ -175,7 +175,7 @@ func TestInitNodePoolInstances(t *testing.T) {
 		name              string
 		dockerMachines    []infrav1.DockerMachine
 		machines          []clusterv1.Machine
-		expectedInstances []docker.NodePoolMachine
+		expectedInstances []docker.NodePoolMachineStatus
 		expectErr         bool
 	}{
 		{
@@ -188,7 +188,7 @@ func TestInitNodePoolInstances(t *testing.T) {
 				machine1,
 				machine2,
 			},
-			expectedInstances: []docker.NodePoolMachine{
+			expectedInstances: []docker.NodePoolMachineStatus{
 				{
 					Name:             dockerMachine1.Spec.InstanceName,
 					Bootstrapped:     conditions.IsTrue(&dockerMachine1, infrav1.BootstrapExecSucceededCondition),
@@ -238,7 +238,7 @@ func TestInitNodePoolInstances(t *testing.T) {
 				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
-			result, err := r.initNodePoolInstanceList(context.Background(), tc.dockerMachines)
+			result, err := r.initNodePoolMachineStatusList(context.Background(), tc.dockerMachines)
 			if tc.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

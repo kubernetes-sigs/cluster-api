@@ -84,18 +84,23 @@ func (n NodePoolMachines) Len() int      { return len(n) }
 func (n NodePoolMachines) Swap(i, j int) { n[i], n[j] = n[j], n[i] }
 func (n NodePoolMachines) Less(i, j int) bool {
 	var prioritizeI, prioritizeJ bool
-	// var nameI, nameJ string
+	var nameI, nameJ string
 	if n[i].Status != nil {
 		prioritizeI = n[i].Status.PrioritizeDelete
-		// nameI = n[i].Status.Name
+		nameI = n[i].Status.Name
+	} else {
+		nameI = n[i].Machine.Name()
 	}
+
 	if n[j].Status != nil {
 		prioritizeJ = n[j].Status.PrioritizeDelete
-		// nameJ = n[j].Status.Name
+		nameJ = n[j].Status.Name
+	} else {
+		nameJ = n[j].Machine.Name()
 	}
 
 	if prioritizeI == prioritizeJ {
-		return n[i].Machine.Name() < n[j].Machine.Name()
+		return nameI < nameJ
 	}
 
 	return prioritizeI

@@ -116,7 +116,7 @@ func TestMachineDeleteOrder(t *testing.T) {
 				if nodePoolMachine.Status.PrioritizeDelete && i > 0 {
 					g.Expect(prevMachine.Status.PrioritizeDelete).To(BeTrue())
 				}
-
+				prevMachine = nodePoolMachine
 			}
 		})
 	}

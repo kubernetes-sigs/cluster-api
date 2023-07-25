@@ -36,6 +36,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -155,7 +156,7 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 		Spec:       corev1.PodSpec{NodeName: n.Name},
 	})).To(Succeed())
 	g.Expect(c.Create(ctx, &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "notSelectedPod", Namespace: metav1.NamespaceDefault},
+		ObjectMeta: metav1.ObjectMeta{Name: "labelSelectedPod", Namespace: metav1.NamespaceDefault, Labels: map[string]string{"name": "labelSelectedPod"}},
 	})).To(Succeed())
 
 	pl := &corev1.PodList{}
@@ -166,8 +167,15 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 	g.Expect(pl.Items).To(HaveLen(1))
 	g.Expect(pl.Items[0].Name).To(Equal("bar"))
 
-	// get
+	// list with label selector on pod
+	labelSelector := &client.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labels.Set{"name": "labelSelectedPod"}),
+	}
+	g.Expect(c.List(ctx, pl, labelSelector)).To(Succeed())
+	g.Expect(pl.Items).To(HaveLen(1))
+	g.Expect(pl.Items[0].Name).To(Equal("labelSelectedPod"))
 
+	// get
 	n = &corev1.Node{}
 	err = c.Get(ctx, client.ObjectKey{Name: "foo"}, n)
 	g.Expect(err).ToNot(HaveOccurred())

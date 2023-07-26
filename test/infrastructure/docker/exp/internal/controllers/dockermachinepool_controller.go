@@ -249,14 +249,8 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 	log.Info("Initialized node pool")
 
-	// Reconcile machines and updates Status.Instances
-	remoteClient, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(cluster))
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to generate workload cluster client")
-	}
-
 	log.Info("Reconciling node pool machines")
-	res, err := pool.ReconcileMachines(ctx, remoteClient)
+	res, err := pool.ReconcileMachines(ctx)
 	if err != nil {
 		return res, err
 	}

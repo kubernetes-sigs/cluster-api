@@ -19,7 +19,6 @@ package docker
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"math/rand"
 	"sort"
@@ -27,14 +26,11 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
@@ -73,6 +69,8 @@ type NodePoolMachineStatus struct {
 	PrioritizeDelete bool
 }
 
+// NodePoolMachines is a sortable slice of NodePoolMachine based on the deletion priority.
+// Machines with PrioritizeDelete set to true will be sorted to the front of the list.
 type NodePoolMachines []NodePoolMachine
 
 func (n NodePoolMachines) Len() int      { return len(n) }
@@ -144,7 +142,7 @@ func (np *NodePool) GetNodePoolMachineStatuses() []NodePoolMachineStatus {
 // currently the nodepool supports only a recreate strategy for replacing old nodes with new ones
 // (all existing machines are killed before new ones are created).
 // TODO: consider if to support a Rollout strategy (a more progressive node replacement).
-func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.Client) (ctrl.Result, error) {
+func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	desiredReplicas := int(*np.machinePool.Spec.Replicas)
 
@@ -283,7 +281,7 @@ func (np *NodePool) refresh(ctx context.Context) error {
 		var name string
 		// At least one of Machine or Status should be non-nil.
 		// When this is called in NewNodePool(), we expect Machine to be nil as we're passing in an existing list of statuses.
-		// When this is being called during reconcilation, we expect both Machine and Status to be non-nil.
+		// When this is being called during reconciliation, we expect both Machine and Status to be non-nil.
 		if np.nodePoolMachines[i].Machine != nil {
 			name = np.nodePoolMachines[i].Machine.Name()
 		} else {
@@ -325,29 +323,4 @@ func (np *NodePool) refresh(ctx context.Context) error {
 	sort.Sort(np.nodePoolMachines)
 
 	return nil
-}
-
-// getBootstrapData fetches the bootstrap data for the machine pool.
-func getBootstrapData(ctx context.Context, c client.Client, machinePool *expv1.MachinePool) (string, bootstrapv1.Format, error) {
-	if machinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
-		return "", "", errors.New("error retrieving bootstrap data: linked MachinePool's bootstrap.dataSecretName is nil")
-	}
-
-	s := &corev1.Secret{}
-	key := client.ObjectKey{Namespace: machinePool.GetNamespace(), Name: *machinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
-	if err := c.Get(ctx, key, s); err != nil {
-		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachinePool instance %s", klog.KObj(machinePool))
-	}
-
-	value, ok := s.Data["value"]
-	if !ok {
-		return "", "", errors.New("error retrieving bootstrap data: secret value key is missing")
-	}
-
-	format := s.Data["format"]
-	if len(format) == 0 {
-		format = []byte(bootstrapv1.CloudConfig)
-	}
-
-	return base64.StdEncoding.EncodeToString(value), bootstrapv1.Format(format), nil
 }

@@ -18,25 +18,11 @@ limitations under the License.
 package docker
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 
 	. "github.com/onsi/gomega"
-
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 )
-
-func getMachines(length int) []*docker.Machine {
-	machines := []*docker.Machine{}
-	for i := 0; i < length; i++ {
-		machine := &docker.Machine{}
-		machine.SetName(fmt.Sprintf("instance-%d", i+1))
-		machines = append(machines, machine)
-	}
-
-	return machines
-}
 
 func TestMachineDeleteOrder(t *testing.T) {
 	testcases := []struct {

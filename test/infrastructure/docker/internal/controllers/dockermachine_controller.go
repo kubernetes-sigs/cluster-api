@@ -241,7 +241,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	} else {
 		dataSecretName = machine.Spec.Bootstrap.DataSecretName
 		version = machine.Spec.Version
-
 	}
 
 	// if the machine is already provisioned, return
@@ -349,7 +348,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		// is not already bootstrapped.
 		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
 			if dataSecretName == nil {
-				return ctrl.Result{}, errors.New(fmt.Sprintf("error retrieving bootstrap data: linked bootstrap.dataSecretName is nil"))
+				return ctrl.Result{}, errors.Errorf("error retrieving bootstrap data: linked bootstrap.dataSecretName is nil")
 			}
 			bootstrapData, format, err := r.getBootstrapData(timeoutCtx, dockerMachine.Namespace, *dataSecretName)
 			if err != nil {
@@ -536,12 +535,10 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(ctx context.Cont
 }
 
 func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, namespace string, dataSecretName string) (string, bootstrapv1.Format, error) {
-
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: namespace, Name: dataSecretName}
 	if err := r.Client.Get(ctx, key, s); err != nil {
 		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret %s", dataSecretName)
-		// return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachine %s", klog.KObj(machine))
 	}
 
 	value, ok := s.Data["value"]

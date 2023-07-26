@@ -330,17 +330,25 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 	for i := range dockerMachineList.Items {
 		dockerMachine := &dockerMachineList.Items[i]
 		if _, ok := instanceNameSet[dockerMachine.Spec.InstanceName]; !ok {
-			machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
-			if err != nil {
-				return errors.Wrapf(err, "failed to get owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-			}
-			if machine == nil {
-				return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
+			if mpDeleted := isMachinePoolDeleted(ctx, r.Client, machinePool); mpDeleted {
+				// If MachinePool is deleted, the DockerMachine will never have an owner Machine, so we can just delete it.
+				if err := r.Client.Delete(ctx, dockerMachine); err != nil {
+					return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+				}
+			} else {
+				machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
+				if err != nil {
+					return errors.Wrapf(err, "failed to get owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+				}
+				if machine == nil {
+					return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
+				}
+
+				if err := r.Client.Delete(ctx, machine); err != nil {
+					return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
+				}
 			}
 
-			if err := r.Client.Delete(ctx, machine); err != nil {
-				return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-			}
 		} else {
 			log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 		}
@@ -419,7 +427,7 @@ func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.
 			return nil, errors.Wrapf(err, "failed to get owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 		}
 		if machine == nil {
-			return nil, errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
+			return nil, errors.Errorf("DockerMachine %s/%s has no parent Machine, will initializing list once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
 		}
 
 		hasDeleteAnnotation := false
@@ -434,6 +442,16 @@ func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.
 	}
 
 	return nodePoolInstances, nil
+}
+
+func isMachinePoolDeleted(ctx context.Context, c client.Client, machinePool *expv1.MachinePool) bool {
+	mp := &expv1.MachinePool{}
+	key := client.ObjectKey{Name: machinePool.Name, Namespace: machinePool.Namespace}
+	if err := c.Get(ctx, key, mp); apierrors.IsNotFound(err) || !mp.DeletionTimestamp.IsZero() {
+		return true
+	}
+
+	return false
 }
 
 func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) string {

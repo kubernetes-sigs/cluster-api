@@ -33,6 +33,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
+	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -514,30 +515,19 @@ func getNewMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructure
 func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Context, o client.Object) []ctrl.Request {
 	log := ctrl.LoggerFrom(ctx)
 
-	machinePoolList := &expv1.MachinePoolList{}
-	labels := o.GetLabels()
-	selector := map[string]string{}
-	if clusterName, ok := labels[clusterv1.ClusterNameLabel]; ok {
-		selector = map[string]string{clusterv1.ClusterNameLabel: clusterName}
+	machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), o.GetLabels())
+	if err != nil {
+		log.Error(err, "failed to get MachinePool for InfraMachine")
+		return nil
 	}
-
-	if poolNameHash, ok := labels[clusterv1.MachinePoolNameLabel]; ok {
-		if err := r.Client.List(ctx, machinePoolList, client.InNamespace(o.GetNamespace()), client.MatchingLabels(selector)); err != nil {
-			log.Error(err, "failed to get MachinePool for InfraMachine")
-			return nil
-		}
-
-		for _, mp := range machinePoolList.Items {
-			if format.MustFormatValue(mp.Name) == poolNameHash {
-				return []ctrl.Request{
-					{
-						NamespacedName: client.ObjectKey{
-							Namespace: mp.Namespace,
-							Name:      mp.Name,
-						},
-					},
-				}
-			}
+	if machinePool != nil {
+		return []ctrl.Request{
+			{
+				NamespacedName: client.ObjectKey{
+					Namespace: machinePool.Namespace,
+					Name:      machinePool.Name,
+				},
+			},
 		}
 	}
 

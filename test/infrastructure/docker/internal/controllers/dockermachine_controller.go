@@ -39,13 +39,13 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/labels/format"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -227,24 +227,12 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	_, machinePoolOwned := labels[clusterv1.MachinePoolNameLabel]
 	var machinePool *expv1.MachinePool
 	if machinePoolOwned {
-		machinePoolList := &expv1.MachinePoolList{}
-		selector := map[string]string{}
-		if clusterName, ok := labels[clusterv1.ClusterNameLabel]; ok {
-			selector = map[string]string{clusterv1.ClusterNameLabel: clusterName}
+		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, dockerMachine.GetNamespace(), labels)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get machine pool for DockerMachine %s/%s", dockerMachine.GetNamespace(), dockerMachine.GetName())
 		}
-
-		if poolNameHash, ok := labels[clusterv1.MachinePoolNameLabel]; ok {
-			if err := r.Client.List(ctx, machinePoolList, client.InNamespace(dockerMachine.Namespace), client.MatchingLabels(selector)); err != nil {
-				log.Error(err, "failed to get MachinePool for InfraMachine")
-				return ctrl.Result{}, err
-			}
-
-			for _, mp := range machinePoolList.Items {
-				if format.MustFormatValue(mp.Name) == poolNameHash {
-					machinePool = &mp
-					break
-				}
-			}
+		if machinePool == nil {
+			return ctrl.Result{}, errors.Errorf("machine pool for DockerMachine %s/%s not found", dockerMachine.GetNamespace(), dockerMachine.GetName())
 		}
 	}
 
@@ -359,14 +347,8 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		// but bootstrapped is never set on the object. We only try to bootstrap if the machine
 		// is not already bootstrapped.
 		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
-			var objType string
-			if machinePoolOwned {
-				objType = "MachinePool"
-			} else {
-				objType = "Machine"
-			}
 			if dataSecretName == nil {
-				return ctrl.Result{}, errors.New(fmt.Sprintf("error retrieving bootstrap data: linked %s's bootstrap.dataSecretName is nil", objType))
+				return ctrl.Result{}, errors.New(fmt.Sprintf("error retrieving bootstrap data: linked bootstrap.dataSecretName is nil"))
 			}
 			bootstrapData, format, err := r.getBootstrapData(timeoutCtx, dockerMachine.Namespace, *dataSecretName)
 			if err != nil {

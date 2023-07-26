@@ -25,11 +25,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
 // GetOwnerMachinePool returns the MachinePool objects owning the current resource.
@@ -49,7 +51,7 @@ func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 	return nil, nil
 }
 
-// GetMachinePoolByName finds and returns a MachinePool object usting the specified params.
+// GetMachinePoolByName finds and returns a MachinePool object using the specified params.
 func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*expv1.MachinePool, error) {
 	m := &expv1.MachinePool{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
@@ -57,6 +59,32 @@ func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 		return nil, err
 	}
 	return m, nil
+}
+
+// GetMachinePoolByLabels finds and returns a MachinePool object using the value of clusterv1.MachinePoolNameLabel.
+// This differs from GetMachinePoolByName as the label value can be a hash.
+func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace string, labels map[string]string) (*expv1.MachinePool, error) {
+	selector := map[string]string{}
+	if clusterName, ok := labels[clusterv1.ClusterNameLabel]; ok {
+		selector = map[string]string{clusterv1.ClusterNameLabel: clusterName}
+	}
+
+	if poolNameHash, ok := labels[clusterv1.MachinePoolNameLabel]; ok {
+		machinePoolList := &expv1.MachinePoolList{}
+		if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(selector)); err != nil {
+			return nil, errors.Wrapf(err, "failed to list MachinePools using labels %v", selector)
+		}
+
+		for _, mp := range machinePoolList.Items {
+			if format.MustFormatValue(mp.Name) == poolNameHash {
+				return &mp, nil
+			}
+		}
+	} else {
+		return nil, errors.Errorf("labels missing required key `%s`", clusterv1.MachinePoolNameLabel)
+	}
+
+	return nil, nil
 }
 
 // MachinePoolToInfrastructureMapFunc returns a handler.MapFunc that watches for

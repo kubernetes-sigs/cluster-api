@@ -38,7 +38,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
@@ -222,10 +221,12 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		return ctrl.Result{}, nil
 	}
 
+	var dataSecretName *string
+	var version *string
+
 	// Be sure to include the MachinePool label in the DockerMachine along with the selector labels.
 	labels := dockerMachine.GetLabels()
 	_, machinePoolOwned := labels[clusterv1.MachinePoolNameLabel]
-	var machinePool *expv1.MachinePool
 	if machinePoolOwned {
 		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, dockerMachine.GetNamespace(), labels)
 		if err != nil {
@@ -234,13 +235,13 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		if machinePool == nil {
 			return ctrl.Result{}, errors.Errorf("machine pool for DockerMachine %s/%s not found", dockerMachine.GetNamespace(), dockerMachine.GetName())
 		}
-	}
 
-	var dataSecretName *string
-	if machinePoolOwned {
 		dataSecretName = machinePool.Spec.Template.Spec.Bootstrap.DataSecretName
+		version = machinePool.Spec.Template.Spec.Version
 	} else {
 		dataSecretName = machine.Spec.Bootstrap.DataSecretName
+		version = machine.Spec.Version
+
 	}
 
 	// if the machine is already provisioned, return
@@ -377,12 +378,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 				}
 			}()
 
-			var version *string
-			if machinePoolOwned {
-				version = machinePool.Spec.Template.Spec.Version
-			} else {
-				version = machine.Spec.Version
-			}
 			// Run the bootstrap script. Simulates cloud-init/Ignition.
 			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, version, dockerMachine.Spec.CustomImage); err != nil {
 				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")

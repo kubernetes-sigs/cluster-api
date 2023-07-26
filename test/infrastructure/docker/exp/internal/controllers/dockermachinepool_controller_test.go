@@ -31,7 +31,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/docker"
-	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -191,16 +190,10 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 			expectedInstances: []docker.NodePoolMachineStatus{
 				{
 					Name:             dockerMachine1.Spec.InstanceName,
-					Bootstrapped:     conditions.IsTrue(&dockerMachine1, infrav1.BootstrapExecSucceededCondition),
-					ProviderID:       dockerMachine1.Spec.ProviderID,
-					Addresses:        dockerMachine1.Status.Addresses,
 					PrioritizeDelete: false,
 				},
 				{
 					Name:             dockerMachine2.Spec.InstanceName,
-					Bootstrapped:     conditions.IsTrue(&dockerMachine2, infrav1.BootstrapExecSucceededCondition),
-					ProviderID:       dockerMachine2.Spec.ProviderID,
-					Addresses:        dockerMachine2.Status.Addresses,
 					PrioritizeDelete: true,
 				},
 			},

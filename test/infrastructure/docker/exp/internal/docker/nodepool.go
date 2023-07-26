@@ -70,11 +70,7 @@ type NodePoolMachine struct {
 // information must be maintained through reconciliation.
 type NodePoolMachineStatus struct {
 	Name             string
-	Bootstrapped     bool
-	ProviderID       *string
 	PrioritizeDelete bool
-	Addresses        []clusterv1.MachineAddress
-	Ready            bool
 }
 
 type NodePoolMachines []NodePoolMachine
@@ -195,32 +191,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.C
 		}
 	}
 
-	// First remove instance status for nodePoolMachines no longer existing, then reconcile the existing nodePoolMachines.
-	// NOTE: the status is the only source of truth for understanding if the machine is already bootstrapped, ready etc.
-	// so we are preserving the existing status and using it as a bases for the next reconcile machine.
-	// nodePoolMachines := make([]NodePoolMachine, 0, len(np.machines))
-	// for i := range np.nodePoolMachines {
-	// 	machine := np.nodePoolMachines[i]
-	// 	for j := range np.machines {
-	// 		if machine.Name == np.machines[j].Name() {
-	// 			nodePoolMachines = append(nodePoolMachines, machine)
-	// 			break
-	// 		}
-	// 	}
-	// }
-	// np.nodePoolMachines = nodePoolMachines
-
-	result := ctrl.Result{}
-	for i := range np.nodePoolMachines {
-		// machine := &np.nodePoolMachines[i].Machine
-		if res, err := np.reconcileMachine(ctx, &np.nodePoolMachines[i], remoteClient); err != nil || !res.IsZero() {
-			if err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to reconcile machine")
-			}
-			result = util.LowestNonZeroResult(result, res)
-		}
-	}
-	return result, nil
+	return ctrl.Result{}, nil
 }
 
 // Delete will delete all of the machines in the node pool.
@@ -342,6 +313,10 @@ func (np *NodePool) refresh(ctx context.Context) error {
 			}
 			if existingStatus, ok := nodePoolMachineStatusMap[machine.Name()]; ok {
 				nodePoolMachine.Status = existingStatus
+			} else {
+				nodePoolMachine.Status = &NodePoolMachineStatus{
+					Name: nodePoolMachine.Machine.Name(),
+				}
 			}
 			np.nodePoolMachines = append(np.nodePoolMachines, nodePoolMachine)
 		}
@@ -350,106 +325,6 @@ func (np *NodePool) refresh(ctx context.Context) error {
 	sort.Sort(np.nodePoolMachines)
 
 	return nil
-}
-
-// reconcileMachine will build and provision a docker machine and update the docker machine pool status for that instance.
-func (np *NodePool) reconcileMachine(ctx context.Context, nodePoolMachine *NodePoolMachine, remoteClient client.Client) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	if nodePoolMachine.Status == nil {
-		log.Info("Creating machine record", "machine", nodePoolMachine.Machine.Name())
-		// TODO: work out pointer magic later
-		nodePoolMachine.Status = &NodePoolMachineStatus{
-			Name: nodePoolMachine.Machine.Name(),
-		}
-		// np.nodePoolMachines = append(np.nodePoolMachines, nodePoolMachine)
-		// return to surface the new machine exists.
-		return ctrl.Result{Requeue: true}, nil
-	}
-
-	// machine := nodePoolMachine.Machine
-
-	// externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.labelFilters)
-	// if err != nil {
-	// 	return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
-	// }
-
-	// // if the machine isn't bootstrapped, only then run bootstrap scripts
-	// if !nodePoolMachine.Status.Bootstrapped {
-	// 	timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
-	// 	defer cancel()
-
-	// 	// Check for bootstrap success
-	// 	// We have to check here to make this reentrant for cases where the bootstrap works
-	// 	// but bootstrapped is never set on the object. We only try to bootstrap if the machine
-	// 	// is not already bootstrapped.
-	// 	if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
-	// 		log.Info("Bootstrapping instance", "instance", machine.Name())
-	// 		if err := externalMachine.PreloadLoadImages(timeoutCtx, np.dockerMachinePool.Spec.Template.PreLoadImages); err != nil {
-	// 			return ctrl.Result{}, errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", machine.Name())
-	// 		}
-
-	// 		bootstrapData, format, err := getBootstrapData(timeoutCtx, np.client, np.machinePool)
-	// 		if err != nil {
-	// 			return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap data for instance named %s", machine.Name())
-	// 		}
-
-	// 		// Run the bootstrap script. Simulates cloud-init/Ignition.
-	// 		if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format, np.machinePool.Spec.Template.Spec.Version, np.dockerMachinePool.Spec.Template.CustomImage); err != nil {
-	// 			return ctrl.Result{}, errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
-	// 		}
-	// 		// Check for bootstrap success
-	// 		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, true); err != nil {
-	// 			return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
-	// 		}
-	// 	}
-
-	// 	nodePoolMachine.Status.Bootstrapped = true
-	// 	// return to surface the machine has been bootstrapped.
-	// 	return ctrl.Result{Requeue: true}, nil
-	// }
-
-	// if nodePoolMachine.Status.Addresses == nil {
-	// 	log.Info("Fetching instance addresses", "instance", machine.Name())
-	// 	// set address in machine status
-	// 	machineAddresses, err := externalMachine.Address(ctx)
-	// 	if err != nil {
-	// 		// Requeue if there is an error, as this is likely momentary load balancer
-	// 		// state changes during control plane provisioning.
-	// 		return ctrl.Result{Requeue: true}, nil //nolint:nilerr
-	// 	}
-
-	// 	nodePoolMachine.Status.Addresses = []clusterv1.MachineAddress{
-	// 		{
-	// 			Type:    clusterv1.MachineHostName,
-	// 			Address: externalMachine.ContainerName(),
-	// 		},
-	// 	}
-	// 	for _, addr := range machineAddresses {
-	// 		nodePoolMachine.Status.Addresses = append(nodePoolMachine.Status.Addresses,
-	// 			clusterv1.MachineAddress{
-	// 				Type:    clusterv1.MachineInternalIP,
-	// 				Address: addr,
-	// 			},
-	// 			clusterv1.MachineAddress{
-	// 				Type:    clusterv1.MachineExternalIP,
-	// 				Address: addr,
-	// 			})
-	// 	}
-	// }
-
-	// if nodePoolMachine.Status.ProviderID == nil {
-	// 	log.Info("Fetching instance provider ID", "instance", machine.Name())
-	// 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
-	// 	// Requeue if there is an error, as this is likely momentary load balancer
-	// 	// state changes during control plane provisioning.
-	// 	if err = externalMachine.SetNodeProviderID(ctx, remoteClient); err != nil {
-	// 		log.V(4).Info("transient error setting the provider id")
-	// 		return ctrl.Result{Requeue: true}, nil //nolint:nilerr
-	// 	}
-	// }
-
-	return ctrl.Result{}, nil
 }
 
 // getBootstrapData fetches the bootstrap data for the machine pool.

@@ -227,6 +227,14 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return ctrl.Result{}, err
 	}
 
+	// Derive info from DockerMachines
+	dockerMachinePool.Spec.ProviderIDList = []string{}
+	for _, dockerMachine := range dockerMachineList.Items {
+		if dockerMachine.Spec.ProviderID != nil {
+			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
+		}
+	}
+
 	// Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
 	log.Info("Initializing node pool machine statuses to call NewNodePool()")
 	nodePoolMachineStatuses, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items)
@@ -256,14 +264,6 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	log.Info("Getting result node pool machine statuses")
 	nodePoolInstancesResult := pool.GetNodePoolMachineStatuses()
 	log.Info("Result node pool machine statuses are", "nodePoolInstancesResult", nodePoolInstancesResult)
-
-	// Derive info from Status.Instances
-	dockerMachinePool.Spec.ProviderIDList = []string{}
-	for _, instance := range nodePoolInstancesResult {
-		if instance.ProviderID != nil {
-			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *instance.ProviderID)
-		}
-	}
 
 	// Delete all DockerMachines that are not in the list of instances returned by the node pool.
 	if err := r.DeleteOrphanedDockerMachines(ctx, cluster, machinePool, dockerMachinePool, nodePoolInstancesResult); err != nil {
@@ -428,14 +428,9 @@ func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.
 			_, hasDeleteAnnotation = machine.Annotations[clusterv1.DeleteMachineAnnotation]
 		}
 
-		bootstrapped := conditions.IsTrue(&dockerMachine, infrav1.BootstrapExecSucceededCondition)
-
 		nodePoolInstances[i] = docker.NodePoolMachineStatus{
 			Name:             dockerMachine.Spec.InstanceName,
-			Bootstrapped:     bootstrapped,
-			ProviderID:       dockerMachine.Spec.ProviderID,
 			PrioritizeDelete: hasDeleteAnnotation,
-			Addresses:        dockerMachine.Status.Addresses,
 		}
 	}
 

@@ -550,7 +550,6 @@ func TestCleanupUnhealthyReplicas(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			machineDeployment := &clusterv1.MachineDeployment{
@@ -590,7 +589,7 @@ func TestCleanupUnhealthyReplicas(t *testing.T) {
 
 			_, cleanupCount, err := r.cleanupUnhealthyReplicas(context.TODO(), []*clusterv1.MachineSet{oldMS}, machineDeployment, tc.maxCleanupCount)
 			if tc.wantErr {
-				g.Expect(err).ShouldNot(BeNil())
+				g.Expect(err).Should(HaveOccurred())
 				return
 			}
 

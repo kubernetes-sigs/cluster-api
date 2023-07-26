@@ -387,9 +387,14 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 				Labels:       labels,
 				Annotations:  make(map[string]string),
 				OwnerReferences: []metav1.OwnerReference{
-					*metav1.NewControllerRef(dockerMachinePool, dockerMachineList.GroupVersionKind()),
+					{
+						APIVersion: dockerMachinePool.APIVersion,
+						Kind:       dockerMachinePool.Kind,
+						Name:       dockerMachinePool.Name,
+						UID:        dockerMachinePool.UID,
+					},
+					// Note: Since the MachinePool controller has not created its parent Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
 				},
-				// Note: This DockerMachine will be owned by the DockerMachinePool until the MachinePool controller creates its parent Machine.
 			},
 			Spec: infrav1.DockerMachineSpec{
 				InstanceName:  instance.Name,

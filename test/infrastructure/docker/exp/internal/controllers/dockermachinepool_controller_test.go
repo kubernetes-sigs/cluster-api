@@ -30,6 +30,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/docker"
 )
 
@@ -199,7 +200,7 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 			},
 		},
 		{
-			name: "return error if owner is missing",
+			name: "do not return error if owner is missing",
 			dockerMachines: []infrav1.DockerMachine{
 				dockerMachine1,
 				dockerMachine2,
@@ -209,7 +210,20 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 				machine1,
 				machine2,
 			},
-			expectErr: true,
+			expectedInstances: []docker.NodePoolMachineStatus{
+				{
+					Name:             dockerMachine1.Spec.InstanceName,
+					PrioritizeDelete: false,
+				},
+				{
+					Name:             dockerMachine2.Spec.InstanceName,
+					PrioritizeDelete: true,
+				},
+				{
+					Name:             dockerMachine3.Spec.InstanceName,
+					PrioritizeDelete: false,
+				},
+			},
 		},
 	}
 
@@ -231,7 +245,7 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
-			result, err := r.initNodePoolMachineStatusList(context.Background(), tc.dockerMachines)
+			result, err := r.initNodePoolMachineStatusList(context.Background(), tc.dockerMachines, &infraexpv1.DockerMachinePool{})
 			if tc.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

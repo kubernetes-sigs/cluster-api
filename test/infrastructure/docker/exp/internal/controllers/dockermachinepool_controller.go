@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
@@ -59,6 +61,10 @@ type DockerMachinePoolReconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+
+	controller      controller.Controller
+	recorder        record.EventRecorder
+	externalTracker external.ObjectTracker
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools,verbs=get;list;watch;create;update;patch;delete
@@ -160,7 +166,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		return err
 	}
 
-	err = ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infraexpv1.DockerMachinePool{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
@@ -175,10 +181,18 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			builder.WithPredicates(
 				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 			),
-		).Complete(r)
+		).Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
+
+	r.controller = c
+	r.recorder = mgr.GetEventRecorderFor("dockermachinepool-controller")
+	r.externalTracker = external.ObjectTracker{
+		Controller: c,
+		Cache:      mgr.GetCache(),
+	}
+
 	return nil
 }
 
@@ -191,7 +205,7 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 	}
 
 	// Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
-	nodePoolInstances, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items)
+	nodePoolInstances, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
 	if err != nil {
 		return err
 	}
@@ -237,7 +251,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 
 	// Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
 	log.Info("Initializing node pool machine statuses to call NewNodePool()")
-	nodePoolMachineStatuses, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items)
+	nodePoolMachineStatuses, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -415,7 +429,9 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.Context, dockerMachines []infrav1.DockerMachine) ([]docker.NodePoolMachineStatus, error) {
+func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.Context, dockerMachines []infrav1.DockerMachine, dockerMachinePool *infraexpv1.DockerMachinePool) ([]docker.NodePoolMachineStatus, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	nodePoolInstances := make([]docker.NodePoolMachineStatus, len(dockerMachines))
 	for i := range dockerMachines {
 		// Needed to avoid implicit memory aliasing of the loop variable.
@@ -426,13 +442,20 @@ func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 		}
-		if machine == nil {
-			return nil, errors.Errorf("DockerMachine %s/%s has no parent Machine, will initializing list once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
-		}
 
 		hasDeleteAnnotation := false
-		if machine.Annotations != nil {
-			_, hasDeleteAnnotation = machine.Annotations[clusterv1.DeleteMachineAnnotation]
+		if machine != nil {
+			if machine.Annotations != nil {
+				_, hasDeleteAnnotation = machine.Annotations[clusterv1.DeleteMachineAnnotation]
+			}
+		} else {
+			sampleMachine := &clusterv1.Machine{}
+			sampleMachine.APIVersion = clusterv1.GroupVersion.String()
+			sampleMachine.Kind = "Machine"
+			// If machine == nil, then no Machine was found in the ownerRefs at all. Don't block nodepool reconciliation, but set up a Watch() instead.
+			if err := r.externalTracker.Watch(log, sampleMachine, handler.EnqueueRequestsFromMapFunc(r.machineToDockerMachinePoolMapper(ctx, &dockerMachine, dockerMachinePool))); err != nil {
+				return nil, errors.Wrapf(err, "failed to set watch for Machines %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+			}
 		}
 
 		nodePoolInstances[i] = docker.NodePoolMachineStatus{
@@ -452,6 +475,30 @@ func isMachinePoolDeleted(ctx context.Context, c client.Client, machinePool *exp
 	}
 
 	return false
+}
+
+// machineToDockerMachinePoolMapper is a mapper function that maps an InfraMachine to the MachinePool that owns it.
+// This is used to trigger an update of the MachinePool when a InfraMachine is changed.
+func (r *DockerMachinePoolReconciler) machineToDockerMachinePoolMapper(ctx context.Context, dockerMachine *infrav1.DockerMachine, dockerMachinePool *infraexpv1.DockerMachinePool) func(context.Context, client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
+		machine, ok := o.(*clusterv1.Machine)
+		if !ok {
+			return nil
+		}
+
+		if machine.Spec.InfrastructureRef.Name == dockerMachine.Name {
+			return []ctrl.Request{
+				{
+					NamespacedName: client.ObjectKey{
+						Namespace: dockerMachinePool.Namespace,
+						Name:      dockerMachinePool.Name,
+					},
+				},
+			}
+		}
+
+		return nil
+	}
 }
 
 func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) string {

@@ -87,6 +87,15 @@
             address:
             - address
         type: Info
+    - name: status_certificatesexpirydate
+      help: Information about certificate expiration date of a control plane node.
+      each:
+        gauge:
+          nilIsZero: true
+          path:
+            - status
+            - certificatesExpiryDate
+        type: Gauge
     - name: status_noderef
       help: Information about the node reference of a machine.
       each:

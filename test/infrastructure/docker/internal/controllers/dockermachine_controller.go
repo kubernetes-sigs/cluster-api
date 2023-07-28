@@ -152,13 +152,8 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	if dockerMachine.Spec.InstanceName == "" {
-		log.V(2).Info("InstanceName not set for DockerMachine, defaulting to owner machine name", "machine", machine.Name)
-		dockerMachine.Spec.InstanceName = machine.Name
-	}
-
 	// Create a helper for managing the docker container hosting the machine.
-	externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Spec.InstanceName, nil)
+	externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Name, nil)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine")
 	}

@@ -487,6 +487,10 @@ func getNewMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructure
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       mp.Spec.ClusterName,
 			InfrastructureRef: infraRef,
+			// Bootstrap: clusterv1.Bootstrap{
+			// 	DataSecretName: mp.Spec.Template.Spec.Bootstrap.DataSecretName,
+			// },
+			// Version: mp.Spec.Template.Spec.Version,
 		},
 	}
 

@@ -92,8 +92,6 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.InstanceName = restored.Spec.InstanceName
-
 	return nil
 }
 
@@ -134,7 +132,6 @@ func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
-	dst.Spec.Template.Spec.InstanceName = restored.Spec.Template.Spec.InstanceName
 
 	return nil
 }
@@ -175,8 +172,4 @@ func Convert_v1beta1_DockerClusterSpec_To_v1alpha3_DockerClusterSpec(in *infrav1
 func Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha3_DockerMachineTemplateResource(in *infrav1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
 	return autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha3_DockerMachineTemplateResource(in, out, s)
-}
-
-func Convert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in *infrav1.DockerMachineSpec, out *DockerMachineSpec, s apiconversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in, out, s)
 }

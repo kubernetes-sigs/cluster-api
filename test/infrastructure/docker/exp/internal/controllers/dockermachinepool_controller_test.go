@@ -99,8 +99,7 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 			},
 		},
 		Spec: infrav1.DockerMachineSpec{
-			InstanceName: "docker-machine1",
-			ProviderID:   pointer.String("docker:////docker-machine1"),
+			ProviderID: pointer.String("docker:////docker-machine1"),
 		},
 		Status: infrav1.DockerMachineStatus{
 			Addresses: []clusterv1.MachineAddress{
@@ -135,8 +134,7 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 			},
 		},
 		Spec: infrav1.DockerMachineSpec{
-			InstanceName: "docker-machine2",
-			ProviderID:   pointer.String("docker:////docker-machine2"),
+			ProviderID: pointer.String("docker:////docker-machine2"),
 		},
 		Status: infrav1.DockerMachineStatus{
 			Addresses: []clusterv1.MachineAddress{
@@ -158,8 +156,7 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 			},
 		},
 		Spec: infrav1.DockerMachineSpec{
-			InstanceName: "docker-machine3",
-			ProviderID:   pointer.String("docker:////docker-machine3"),
+			ProviderID: pointer.String("docker:////docker-machine3"),
 		},
 		Status: infrav1.DockerMachineStatus{
 			Addresses: []clusterv1.MachineAddress{
@@ -190,11 +187,11 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 			},
 			expectedInstances: []docker.NodePoolMachineStatus{
 				{
-					Name:             dockerMachine1.Spec.InstanceName,
+					Name:             dockerMachine1.Name,
 					PrioritizeDelete: false,
 				},
 				{
-					Name:             dockerMachine2.Spec.InstanceName,
+					Name:             dockerMachine2.Name,
 					PrioritizeDelete: true,
 				},
 			},
@@ -212,15 +209,15 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 			},
 			expectedInstances: []docker.NodePoolMachineStatus{
 				{
-					Name:             dockerMachine1.Spec.InstanceName,
+					Name:             dockerMachine1.Name,
 					PrioritizeDelete: false,
 				},
 				{
-					Name:             dockerMachine2.Spec.InstanceName,
+					Name:             dockerMachine2.Name,
 					PrioritizeDelete: true,
 				},
 				{
-					Name:             dockerMachine3.Spec.InstanceName,
+					Name:             dockerMachine3.Name,
 					PrioritizeDelete: false,
 				},
 			},

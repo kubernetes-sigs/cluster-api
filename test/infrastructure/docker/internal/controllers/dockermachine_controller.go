@@ -233,7 +233,8 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get machine pool for DockerMachine %s/%s", dockerMachine.GetNamespace(), dockerMachine.GetName())
 		}
 		if machinePool == nil {
-			return ctrl.Result{}, errors.Errorf("machine pool for DockerMachine %s/%s not found", dockerMachine.GetNamespace(), dockerMachine.GetName())
+			log.Info("Waiting for MachinePool Controller to set OwnerRef on DockerMachine")
+			return ctrl.Result{}, nil
 		}
 
 		dataSecretName = machinePool.Spec.Template.Spec.Bootstrap.DataSecretName

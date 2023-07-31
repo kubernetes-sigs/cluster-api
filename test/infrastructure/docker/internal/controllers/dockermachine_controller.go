@@ -234,9 +234,11 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 		dataSecretName = machinePool.Spec.Template.Spec.Bootstrap.DataSecretName
 		version = machinePool.Spec.Template.Spec.Version
+		log.Info("Got version from MachinePool", "version", version)
 	} else {
 		dataSecretName = machine.Spec.Bootstrap.DataSecretName
 		version = machine.Spec.Version
+		log.Info("Got version from Machine", "version", version)
 	}
 
 	// if the machine is already provisioned, return

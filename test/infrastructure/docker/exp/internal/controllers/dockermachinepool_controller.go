@@ -450,6 +450,7 @@ func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.
 			sampleMachine := &clusterv1.Machine{}
 			sampleMachine.APIVersion = clusterv1.GroupVersion.String()
 			sampleMachine.Kind = "Machine"
+			log.Info("DockerMachine has no parent Machine, will set up a watch and initNodePoolMachineStatusList", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 			// If machine == nil, then no Machine was found in the ownerRefs at all. Don't block nodepool reconciliation, but set up a Watch() instead.
 			if err := r.externalTracker.Watch(log, sampleMachine, handler.EnqueueRequestsFromMapFunc(r.machineToDockerMachinePoolMapper(ctx, &dockerMachine, dockerMachinePool))); err != nil {
 				return nil, errors.Wrapf(err, "failed to set watch for Machines %s/%s", dockerMachine.Namespace, dockerMachine.Name)

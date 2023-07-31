@@ -241,14 +241,6 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return ctrl.Result{}, err
 	}
 
-	// Derive info from DockerMachines
-	dockerMachinePool.Spec.ProviderIDList = []string{}
-	for _, dockerMachine := range dockerMachineList.Items {
-		if dockerMachine.Spec.ProviderID != nil {
-			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
-		}
-	}
-
 	// Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
 	log.Info("Initializing node pool machine statuses to call NewNodePool()")
 	nodePoolMachineStatuses, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
@@ -283,6 +275,19 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	if err := r.CreateDockerMachinesIfNotExists(ctx, cluster, machinePool, dockerMachinePool, nodePoolInstancesResult); err != nil {
 		conditions.MarkFalse(dockerMachinePool, clusterv1.ReadyCondition, "FailedToCreateNewMachines", clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to create missing machines")
+	}
+
+	dockerMachineList, err = getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Derive info from DockerMachines
+	dockerMachinePool.Spec.ProviderIDList = []string{}
+	for _, dockerMachine := range dockerMachineList.Items {
+		if dockerMachine.Spec.ProviderID != nil {
+			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
+		}
 	}
 
 	dockerMachinePool.Status.Replicas = int32(len(dockerMachineList.Items))

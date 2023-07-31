@@ -117,7 +117,7 @@ for log levels; as a small integration on the above guidelines we would like to 
   the code; a person reading those logs usually has deep knowledge of the codebase. 
 - Don’t use verbosity higher than 5.
 
-Ideally, in a future release of Cluster API we will switch to use 2 as a default verbosity (currently it is 0) for all the Cluster API
+We are using log level 2 as a default verbosity for all core Cluster API
 controllers as recommended by the Kubernetes guidelines.
 
 ## Trade-offs

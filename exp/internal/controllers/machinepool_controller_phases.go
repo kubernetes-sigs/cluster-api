@@ -521,7 +521,7 @@ func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Cont
 
 	machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), o.GetLabels())
 	if err != nil {
-		log.Error(err, "failed to get MachinePool for InfraMachine")
+		log.Error(err, "failed to get MachinePool for InfraMachine", "infraMachine", klog.KObj(o), "labels", o.GetLabels())
 		return nil
 	}
 	if machinePool != nil {

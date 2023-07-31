@@ -258,7 +258,9 @@ spec:
 ## Kubeconfig management
 
 Control Plane providers are expected to create and maintain a Kubeconfig
-secret for operators to gain initial access to the cluster. If a provider uses
+secret for operators to gain initial access to the cluster.
+The given secret must be labelled with the key-pair `cluster.x-k8s.io/cluster-name=${CLUSTER_NAME}`
+to make it stored and retrievable in the cache used by CAPI managers. If a provider uses
 client certificates for authentication in these Kubeconfigs, the client
 certificate should be kept with a reasonably short expiration period and
 periodically regenerated to keep a valid set of credentials available. As an

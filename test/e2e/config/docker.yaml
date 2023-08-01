@@ -44,25 +44,25 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.0/metadata.yaml"
-  - name: v1.3.6 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/core-components.yaml"
+  - name: v1.4.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/core-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1.3/metadata.yaml"
-  - name: v1.4.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/core-components.yaml"
+    - sourcePath: "../data/shared/v1.4/metadata.yaml"
+  - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/core-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1.4/metadata.yaml"
-  - name: v1.5.99 # next; use manifest from source files
+      - sourcePath: "../data/shared/v1.5/metadata.yaml"
+  - name: v1.6.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
@@ -82,17 +82,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.0/metadata.yaml"
-  - name: v1.3.6 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.3/metadata.yaml"
-  - name: v1.4.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/bootstrap-components.yaml"
+  - name: v1.4.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -100,7 +91,16 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.4/metadata.yaml"
-  - name: v1.5.99 # next; use manifest from source files
+  - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1.5/metadata.yaml"
+  - name: v1.6.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
@@ -120,17 +120,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.0/metadata.yaml"
-  - name: v1.3.6 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.3/metadata.yaml"
-  - name: v1.4.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/control-plane-components.yaml"
+  - name: v1.4.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -138,7 +129,16 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.4/metadata.yaml"
-  - name: v1.5.99 # next; use manifest from source files
+  - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1.5/metadata.yaml"
+  - name: v1.6.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
@@ -159,20 +159,8 @@ providers:
     files:
     - sourcePath: "../data/shared/v1.0/metadata.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.0/cluster-template.yaml"
-  - name: v1.3.6 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/infrastructure-components-development.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/v1.3/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.3/cluster-template.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.3/cluster-template-topology.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1.3/clusterclass-quick-start.yaml"
-  - name: v1.4.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/infrastructure-components-development.yaml"
+  - name: v1.4.5 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/infrastructure-components-development.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -183,7 +171,19 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1.4/cluster-template.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.4/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.4/clusterclass-quick-start.yaml"
-  - name: v1.5.99 # next; use manifest from source files
+  - name: v1.5.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/infrastructure-components-development.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1.5/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1.5/cluster-template.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1.5/cluster-template-topology.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1.5/clusterclass-quick-start.yaml"
+  - name: v1.6.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
@@ -213,21 +213,21 @@ providers:
 - name: in-memory
   type: InfrastructureProvider
   versions:
-    - name: v1.5.99 # next; use manifest from source files
+    - name: v1.6.99 # next; use manifest from source files
       value: ../../../test/infrastructure/inmemory/config/default
       replacements:
         - old: --metrics-bind-addr=localhost:8080
           new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
       files:
-        # Add cluster templates
-        - sourcePath: "../data/infrastructure-inmemory/main/clusterclass-in-memory.yaml"
-        - sourcePath: "../data/infrastructure-inmemory/main/cluster-template.yaml"
-        - sourcePath: "../data/shared/main/metadata.yaml"
+      # Add cluster templates
+      - sourcePath: "../data/infrastructure-inmemory/main/clusterclass-in-memory.yaml"
+      - sourcePath: "../data/infrastructure-inmemory/main/cluster-template.yaml"
+      - sourcePath: "../data/shared/main/metadata.yaml"
 
 - name: test-extension
   type: RuntimeExtensionProvider
   versions:
-    - name: v1.5.99 # next; use manifest from source files
+    - name: v1.6.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
       files:
       - sourcePath: "../data/shared/main/metadata.yaml"

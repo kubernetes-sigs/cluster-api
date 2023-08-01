@@ -108,7 +108,8 @@ This comes down to changing occurrences of the old version to the new version, e
       1. Create a new `v1.4` `metadata.yaml` (`test/e2e/data/shared/v1.4/metadata.yaml`) by copying
    `test/e2e/data/shared/main/metadata.yaml`
       2. Add the new release to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
-      3. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
+      3. Add the new release to the root level `metadata.yaml`
+      4. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
       1. Create a new `v1.4` folder. It should be created based on the `main` folder and only contain the templates
          we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
@@ -119,8 +120,8 @@ This comes down to changing occurrences of the old version to the new version, e
 3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-23-latest-main`).
 
 Prior art: 
-- 1.3 - https://github.com/kubernetes-sigs/cluster-api/pull/6834/files
 - 1.4 - https://github.com/kubernetes-sigs/cluster-api/pull/7692/files
+- 1.5 - https://github.com/kubernetes-sigs/cluster-api/pull/8430/files
 
 #### Create a new GitHub milestone for the next release
 

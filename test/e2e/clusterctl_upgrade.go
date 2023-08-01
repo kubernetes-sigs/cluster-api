@@ -29,9 +29,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog/v2"
@@ -334,6 +336,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		By("THE MANAGEMENT CLUSTER WITH THE OLDER VERSION OF PROVIDERS IS UP&RUNNING!")
 
+		machineCRD := &apiextensionsv1.CustomResourceDefinition{}
+		if err := managementClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "machines.cluster.x-k8s.io"}, machineCRD); err != nil {
+			Expect(err).ToNot(HaveOccurred(), "failed to retrieve a machine CRD")
+		}
+
 		Byf("Creating a namespace for hosting the %s test workload cluster", specName)
 		testNamespace, testCancelWatches = framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
 			Creator:   managementClusterProxy.GetClient(),
@@ -387,13 +394,34 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.PreWaitForCluster(managementClusterProxy, testNamespace.Name, workLoadClusterName)
 		}
 
+		// Build GroupVersionKind for Machine resources
+		machineListGVK := schema.GroupVersionKind{
+			Group: machineCRD.Spec.Group,
+			Kind:  machineCRD.Spec.Names.ListKind,
+		}
+
+		// Pick the storage version
+		for _, version := range machineCRD.Spec.Versions {
+			if version.Storage {
+				machineListGVK.Version = version.Name
+				break
+			}
+		}
+
 		By("Waiting for the machines to exist")
 		Eventually(func() (int64, error) {
 			var n int64
-			machineList := &clusterv1alpha3.MachineList{}
-			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName}); err == nil {
-				for _, machine := range machineList.Items {
-					if machine.Status.NodeRef != nil {
+			machineList := &unstructured.UnstructuredList{}
+			machineList.SetGroupVersionKind(machineListGVK)
+			if err := managementClusterProxy.GetClient().List(
+				ctx,
+				machineList,
+				client.InNamespace(testNamespace.Name),
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
+			); err == nil {
+				for _, m := range machineList.Items {
+					_, found, err := unstructured.NestedMap(m.Object, "status", "nodeRef")
+					if err == nil && found {
 						n++
 					}
 				}
@@ -411,7 +439,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// Get the workloadCluster before the management cluster is upgraded to make sure that the upgrade did not trigger
 		// any unexpected rollouts.
 		preUpgradeMachineList := &unstructured.UnstructuredList{}
-		preUpgradeMachineList.SetGroupVersionKind(clusterv1alpha3.GroupVersion.WithKind("MachineList"))
+		preUpgradeMachineList.SetGroupVersionKind(machineListGVK)
 		err = managementClusterProxy.GetClient().List(
 			ctx,
 			preUpgradeMachineList,

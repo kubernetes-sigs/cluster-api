@@ -35,6 +35,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
@@ -93,7 +94,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 				Status: internal.ClusterStatus{Nodes: 1},
 			},
 		},
-		disableInPlacePropagation: true,
+		ssaCache: ssa.NewCache(),
 	}
 	controlPlane := &internal.ControlPlane{
 		KCP:      kcp,

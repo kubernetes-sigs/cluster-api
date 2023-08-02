@@ -457,7 +457,9 @@ We should inform at least the following providers via a new issue on their respe
 * Packet: https://github.com/kubernetes-sigs/cluster-api-provider-packet/issues/new
 * vSphere: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
 
-TODO: Right now we don't have a template for this message but the Comms Team will provide one later. 
+To create GitHub issues at the Cluster API providers repositories and inform about a new minor beta release, use ["provider_issues.go"](../../hack/tools/release/internal/update_providers/provider_issues.go) go utility.
+- Ensure that the [provider repos pre-requisites](../../hack/tools/release/internal/update_providers/README.md#pre-requisites) are completed.
+- From the root of this repository, run `make release-provider-issues-tool` to create git issues at the provider repositories.
 
 ## CI Signal/Bug Triage/Automation Manager
 

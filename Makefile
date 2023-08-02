@@ -1104,6 +1104,10 @@ release-notes-tool:
 test-release-notes-tool:
 	go test -v -tags tools,integration sigs.k8s.io/cluster-api/hack/tools/release/notes
 
+.PHONY: release-provider-issues-tool
+release-provider-issues-tool: # Creates GitHub issues in a pre-defined list of CAPI provider repositories
+	@go run ./hack/tools/release/internal/update_providers/provider_issues.go
+
 .PHONY: release-weekly-update-tool
 release-weekly-update-tool:
 	go build -o bin/weekly -tags tools sigs.k8s.io/cluster-api/hack/tools/release/weekly

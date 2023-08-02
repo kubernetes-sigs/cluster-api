@@ -349,20 +349,22 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 	for i := range dockerMachineList.Items {
 		dockerMachine := &dockerMachineList.Items[i]
 		if _, ok := nodePoolMachineNames[dockerMachine.Name]; !ok {
-			if mpDeleted := isMachinePoolDeleted(ctx, r.Client, machinePool); mpDeleted {
-				// If MachinePool is deleted, the DockerMachine will never have an owner Machine, so we can just delete it.
-				if err := r.Client.Delete(ctx, dockerMachine); err != nil {
-					return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-				}
-			} else {
-				machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
-				if err != nil {
-					return errors.Wrapf(err, "failed to get owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-				}
-				if machine == nil {
+			machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
+			// Not found doesn't return an error, so we need to check for nil.
+			if err != nil {
+				return errors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+			}
+			if machine == nil {
+				// If MachinePool is deleted, the DockerMachine and owner Machine doesn't already exist, then it will never come online.
+				if mpDeleted := isMachinePoolDeleted(ctx, r.Client, machinePool); mpDeleted {
+					log.Info("DockerMachine is orphaned and MachinePool is deleted, deleting DockerMachine", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+					if err := r.Client.Delete(ctx, dockerMachine); err != nil {
+						return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+					}
+				} else { // If the MachinePool still exists, then the Machine will be created, so we need to wait for that to happen.
 					return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
 				}
-
+			} else {
 				if err := r.Client.Delete(ctx, machine); err != nil {
 					return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
 				}

@@ -362,12 +362,14 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 			if machine == nil {
 				// If MachinePool is deleted, the DockerMachine and owner Machine doesn't already exist, then it will never come online.
 				if mpDeleted := isMachinePoolDeleted(ctx, r.Client, machinePool); mpDeleted {
+					log.Info("DockerMachine is has no parent Machine and MachinePool is deleted", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 					return errors.Errorf("DockerMachine %s/%s has no parent Machine and MachinePool is already deleted", dockerMachine.Namespace, dockerMachine.Name)
 					// log.Info("DockerMachine is orphaned and MachinePool is deleted, deleting DockerMachine", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 					// if err := r.Client.Delete(ctx, dockerMachine); err != nil {
 					// 	return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 					// }
 				} else { // If the MachinePool still exists, then the Machine will be created, so we need to wait for that to happen.
+					log.Info("DockerMachine has no parent Machine, will reattempt deletion once parent Machine is present", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 					return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
 				}
 			}
@@ -461,14 +463,16 @@ func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.
 				_, hasDeleteAnnotation = machine.Annotations[clusterv1.DeleteMachineAnnotation]
 			}
 		} else {
-			sampleMachine := &clusterv1.Machine{}
-			sampleMachine.APIVersion = clusterv1.GroupVersion.String()
-			sampleMachine.Kind = "Machine"
-			log.Info("DockerMachine has no parent Machine, will set up a watch and initNodePoolMachineStatusList", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-			// If machine == nil, then no Machine was found in the ownerRefs at all. Don't block nodepool reconciliation, but set up a Watch() instead.
-			if err := r.externalTracker.Watch(log, sampleMachine, handler.EnqueueRequestsFromMapFunc(r.machineToDockerMachinePoolMapper(ctx, &dockerMachine, dockerMachinePool))); err != nil {
-				return nil, errors.Wrapf(err, "failed to set watch for Machines %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-			}
+			log.Info("DockerMachine has no parent Machine, return error and requeue", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+			return nil, errors.Errorf("DockerMachine %s/%s has no parent Machine, return error and requeue", dockerMachine.Namespace, dockerMachine.Name)
+			// sampleMachine := &clusterv1.Machine{}
+			// sampleMachine.APIVersion = clusterv1.GroupVersion.String()
+			// sampleMachine.Kind = "Machine"
+			// log.Info("DockerMachine has no parent Machine, will set up a watch and initNodePoolMachineStatusList", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+			// // If machine == nil, then no Machine was found in the ownerRefs at all. Don't block nodepool reconciliation, but set up a Watch() instead.
+			// if err := r.externalTracker.Watch(log, sampleMachine, handler.EnqueueRequestsFromMapFunc(r.machineToDockerMachinePoolMapper(ctx, &dockerMachine, dockerMachinePool))); err != nil {
+			// 	return nil, errors.Wrapf(err, "failed to set watch for Machines %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+			// }
 		}
 
 		nodePoolInstances[i] = docker.NodePoolMachineStatus{

@@ -362,18 +362,19 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 			if machine == nil {
 				// If MachinePool is deleted, the DockerMachine and owner Machine doesn't already exist, then it will never come online.
 				if mpDeleted := isMachinePoolDeleted(ctx, r.Client, machinePool); mpDeleted {
-					log.Info("DockerMachine is orphaned and MachinePool is deleted, deleting DockerMachine", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-					if err := r.Client.Delete(ctx, dockerMachine); err != nil {
-						return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-					}
+					return errors.Errorf("DockerMachine %s/%s has no parent Machine and MachinePool is already deleted", dockerMachine.Namespace, dockerMachine.Name)
+					// log.Info("DockerMachine is orphaned and MachinePool is deleted, deleting DockerMachine", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+					// if err := r.Client.Delete(ctx, dockerMachine); err != nil {
+					// 	return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+					// }
 				} else { // If the MachinePool still exists, then the Machine will be created, so we need to wait for that to happen.
 					return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
 				}
-			} else {
-				log.Info("Deleting Machine for DockerMachine", "machine", machine.Name, "dockerMachine", dockerMachine.Name)
-				if err := r.Client.Delete(ctx, machine); err != nil {
-					return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
-				}
+			}
+
+			log.Info("Deleting Machine for DockerMachine", "machine", machine.Name, "dockerMachine", dockerMachine.Name)
+			if err := r.Client.Delete(ctx, machine); err != nil {
+				return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
 			}
 		} else {
 			log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)

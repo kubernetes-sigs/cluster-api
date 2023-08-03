@@ -22,42 +22,41 @@ superseded-by:
 
 ## Table of Contents
 
-A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting
-any additional information provided beyond the standard proposal template.
-[Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-   * [Title](#title)
-      * [Table of Contents](#table-of-contents)
-      * [Glossary](#glossary)
-      * [Summary](#summary)
-      * [Motivation](#motivation)
-         * [Goals](#goals)
-         * [Non-Goals/Future Work](#non-goalsfuture-work)
-      * [Proposal](#proposal)
-         * [Unhealthy criteria:](#unhealthy-criteria)
-         * [Remediation:](#remediation)
-            * [Conditions VS External Remediation](#conditions-vs-external-remediation)
-         * [User Stories](#user-stories)
-            * [Story 1](#story-1)
-            * [Story 2](#story-2)
-            * [Story 3 (external remediation)](#story-3-external-remediation)
-            * [Story 4 (external remediation)](#story-4-external-remediation)
-            * [Story 5 (external remediation)](#story-5-external-remediation)
-         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-            * [MachineHealthCheck CRD:](#machinehealthcheck-crd)
-            * [Machine conditions:](#machine-conditions)
-            * [External Remediation](#external-remediation)
-               * [Example CRs](#example-crs)
-            * [MachineHealthCheck controller:](#machinehealthcheck-controller)
-         * [Risks and Mitigations](#risks-and-mitigations)
-      * [Contradictory signal](#contradictory-signal)
-      * [Alternatives](#alternatives)
-      * [Upgrade Strategy](#upgrade-strategy)
-      * [Additional Details](#additional-details)
-         * [Test Plan [optional]](#test-plan-optional)
-         * [Graduation Criteria [optional]](#graduation-criteria-optional)
-         * [Version Skew Strategy [optional]](#version-skew-strategy-optional)
-      * [Implementation History](#implementation-history)
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals/Future Work](#non-goalsfuture-work)
+- [Proposal](#proposal)
+  - [Unhealthy criteria:](#unhealthy-criteria)
+  - [Remediation:](#remediation)
+    - [Conditions VS External Remediation](#conditions-vs-external-remediation)
+  - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
+    - [Story 3 (external remediation)](#story-3-external-remediation)
+    - [Story 4 (external remediation)](#story-4-external-remediation)
+    - [Story 5 (external remediation)](#story-5-external-remediation)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [MachineHealthCheck CRD:](#machinehealthcheck-crd)
+    - [Machine conditions:](#machine-conditions)
+    - [External Remediation](#external-remediation)
+      - [Example CRs](#example-crs)
+    - [MachineHealthCheck controller:](#machinehealthcheck-controller)
+  - [Risks and Mitigations](#risks-and-mitigations)
+- [Contradictory signal](#contradictory-signal)
+- [Alternatives](#alternatives)
+- [Upgrade Strategy](#upgrade-strategy)
+- [Additional Details](#additional-details)
+  - [Test Plan [optional]](#test-plan-optional)
+  - [Graduation Criteria [optional]](#graduation-criteria-optional)
+  - [Version Skew Strategy [optional]](#version-skew-strategy-optional)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).

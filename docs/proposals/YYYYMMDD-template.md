@@ -39,38 +39,37 @@ See the proposal process for details on each of these items.
 
 ## Table of Contents
 
-A table of contents is helpful for quickly jumping to sections of a proposal and for highlighting
-any additional information provided beyond the standard proposal template.
-[Tools for generating](https://github.com/ekalinin/github-markdown-toc) a table of contents from markdown are available.
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Title](#title)
-  - [Table of Contents](#table-of-contents)
-  - [Glossary](#glossary)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals/Future Work](#non-goalsfuture-work)
-  - [Proposal](#proposal)
-    - [User Stories](#user-stories)
-      - [Story 1](#story-1)
-      - [Story 2](#story-2)
-    - [Requirements (Optional)](#requirements-optional)
-      - [Functional Requirements](#functional-requirements)
-        - [FR1](#fr1)
-        - [FR2](#fr2)
-      - [Non-Functional Requirements](#non-functional-requirements)
-        - [NFR1](#nfr1)
-        - [NFR2](#nfr2)
-    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-    - [Security Model](#security-model)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Alternatives](#alternatives)
-  - [Upgrade Strategy](#upgrade-strategy)
-  - [Additional Details](#additional-details)
-    - [Test Plan [optional]](#test-plan-optional)
-    - [Graduation Criteria [optional]](#graduation-criteria-optional)
-    - [Version Skew Strategy [optional]](#version-skew-strategy-optional)
-  - [Implementation History](#implementation-history)
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals/Future Work](#non-goalsfuture-work)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
+  - [Requirements (Optional)](#requirements-optional)
+    - [Functional Requirements](#functional-requirements)
+      - [FR1](#fr1)
+      - [FR2](#fr2)
+    - [Non-Functional Requirements](#non-functional-requirements)
+      - [NFR1](#nfr1)
+      - [NFR2](#nfr2)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+  - [Security Model](#security-model)
+  - [Risks and Mitigations](#risks-and-mitigations)
+- [Alternatives](#alternatives)
+- [Upgrade Strategy](#upgrade-strategy)
+- [Additional Details](#additional-details)
+  - [Test Plan [optional]](#test-plan-optional)
+  - [Graduation Criteria [optional]](#graduation-criteria-optional)
+  - [Version Skew Strategy [optional]](#version-skew-strategy-optional)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 

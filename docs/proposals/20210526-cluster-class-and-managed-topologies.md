@@ -22,47 +22,50 @@ status: provisional
 
 ## Table of Contents
 
-- [ClusterClass and Managed Topologies](#clusterclass-and-managed-topologies)
-  - [Table of Contents](#table-of-contents)
-  - [Glossary](#glossary)
-    - [ClusterClass](#clusterclass)
-    - [Topology](#topology)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Prospective future Work](#prospective-future-work)
-  - [Proposal](#proposal)
-    - [User Stories](#user-stories)
-      - [Story 1 - Use ClusterClass to easily stamp Clusters](#story-1---use-clusterclass-to-easily-stamp-clusters)
-      - [Story 2 - Easier UX for Kubernetes version upgrades](#story-2---easier-ux-for-kubernetes-version-upgrades)
-      - [Story 3 - Easier UX for scaling workers nodes](#story-3---easier-ux-for-scaling-workers-nodes)
-      - [Story 4 - Use ClusterClass to easily modify Clusters in bulk](#story-4---use-clusterclass-to-easily-modify-clusters-in-bulk)
-      - [Story 5 - Ability to define ClusterClass customizations](#story-5---ability-to-define-clusterclass-customizations)
-      - [Story 6 - Ability to customize individual Clusters via variables](#story-6---ability-to-customize-individual-clusters-via-variables)
-      - [Story 7 - Ability to mutate variables](#story-7---ability-to-mutate-variables)
-      - [Story 8 - Easy UX for MachineHealthChecks](#story-8---easy-ux-for-machinehealthchecks)
-    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-      - [New API types](#new-api-types)
-        - [ClusterClass](#clusterclass-1)
-      - [Modification to existing API Types](#modification-to-existing-api-types)
-        - [Cluster](#cluster)
-      - [Validation and Defailting](#validation-and-defailting)
-      - [Basic behaviors](#basic-behaviors)
-        - [Create a new Cluster using ClusterClass object](#create-a-new-cluster-using-clusterclass-object)
-        - [Update an existing Cluster using ClusterClass](#update-an-existing-cluster-using-clusterclass)
-      - [Behavior with patches](#behavior-with-patches)
-        - [Create a new ClusterClass with patches](#create-a-new-clusterclass-with-patches)
-        - [Create a new Cluster with patches](#create-a-new-cluster-with-patches)
-      - [Provider implementation](#provider-implementation)
-      - [Conventions for template types implementation](#conventions-for-template-types-implementation)
-      - [Notes on template \<-\> object reconciliation](#notes-on-template---object-reconciliation)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Alternatives](#alternatives)
-  - [Upgrade Strategy](#upgrade-strategy)
-  - [Additional Details](#additional-details)
-    - [Test Plan \[optional\]](#test-plan-optional)
-    - [Graduation Criteria \[optional\]](#graduation-criteria-optional)
-  - [Implementation History](#implementation-history)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+  - [ClusterClass](#clusterclass)
+  - [Topology](#topology)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Prospective future Work](#prospective-future-work)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1 - Use ClusterClass to easily stamp Clusters](#story-1---use-clusterclass-to-easily-stamp-clusters)
+    - [Story 2 - Easier UX for Kubernetes version upgrades](#story-2---easier-ux-for-kubernetes-version-upgrades)
+    - [Story 3 - Easier UX for scaling workers nodes](#story-3---easier-ux-for-scaling-workers-nodes)
+    - [Story 4 - Use ClusterClass to easily modify Clusters in bulk](#story-4---use-clusterclass-to-easily-modify-clusters-in-bulk)
+    - [Story 5 - Ability to define ClusterClass customizations](#story-5---ability-to-define-clusterclass-customizations)
+    - [Story 6 - Ability to customize individual Clusters via variables](#story-6---ability-to-customize-individual-clusters-via-variables)
+    - [Story 7 - Ability to mutate variables](#story-7---ability-to-mutate-variables)
+    - [Story 8 - Easy UX for MachineHealthChecks](#story-8---easy-ux-for-machinehealthchecks)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [New API types](#new-api-types)
+      - [ClusterClass](#clusterclass-1)
+    - [Modification to existing API Types](#modification-to-existing-api-types)
+      - [Cluster](#cluster)
+    - [Validation and Defaulting](#validation-and-defaulting)
+    - [Basic behaviors](#basic-behaviors)
+      - [Create a new Cluster using ClusterClass object](#create-a-new-cluster-using-clusterclass-object)
+      - [Update an existing Cluster using ClusterClass](#update-an-existing-cluster-using-clusterclass)
+    - [Behavior with patches](#behavior-with-patches)
+      - [Create a new ClusterClass with patches](#create-a-new-clusterclass-with-patches)
+      - [Create a new Cluster with patches](#create-a-new-cluster-with-patches)
+    - [Provider implementation](#provider-implementation)
+    - [Conventions for template types implementation](#conventions-for-template-types-implementation)
+    - [Notes on template <-> object reconciliation](#notes-on-template---object-reconciliation)
+  - [Risks and Mitigations](#risks-and-mitigations)
+- [Alternatives](#alternatives)
+- [Upgrade Strategy](#upgrade-strategy)
+- [Additional Details](#additional-details)
+  - [Test Plan [optional]](#test-plan-optional)
+  - [Graduation Criteria [optional]](#graduation-criteria-optional)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 
@@ -573,7 +576,7 @@ In this cases for ServerSideApply to work properly it is required to ensure the 
 type definitions, like +MapType or +MapTypeKey, see [merge strategy](https://kubernetes.io/docs/reference/using-api/server-side-apply/#merge-strategy) for more details.
 
 Note: in order to allow the topology controller to execute templates rotation only when strictly necessary, it is necessary
-to implement specific handling of dry run operations in the templates webhooks as described in [Required Changes on providers from 1.1 to 1.2](https://cluster-api.sigs.k8s.io/developer/providers/v1.1-to-v1.2.html#required-api-changes-for-providers).
+to implement specific handling of dry run operations in the templates webhooks as described in [Required Changes on providers from 1.1 to 1.2](https://cluster-api.sigs.k8s.io/developer/providers/migrations/v1.1-to-v1.2#required-api-changes-for-providers).
 
 ### Risks and Mitigations
 

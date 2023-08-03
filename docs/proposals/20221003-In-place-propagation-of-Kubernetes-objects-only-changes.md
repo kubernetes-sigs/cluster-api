@@ -15,6 +15,44 @@ superseded-by:
 
 # In place propagation of changes affecting Kubernetes objects only
 
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
+  - [Future-Goals](#future-goals)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
+    - [Story 3](#story-3)
+    - [Story 4](#story-4)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+  - [Metadata propagation](#metadata-propagation)
+    - [1. Label Sync Between Machine and underlying Kubernetes Nodes](#1-label-sync-between-machine-and-underlying-kubernetes-nodes)
+    - [2. Labels/Annotations always reconciled](#2-labelsannotations-always-reconciled)
+    - [3. and 4. Set top level labels/annotations for ControlPlane and MachineDeployment created from a ClusterClass](#3-and-4-set-top-level-labelsannotations-for-controlplane-and-machinedeployment-created-from-a-clusterclass)
+  - [Propagation of fields impacting only Kubernetes objects or controller behaviour](#propagation-of-fields-impacting-only-kubernetes-objects-or-controller-behaviour)
+  - [In-place propagation](#in-place-propagation)
+    - [MachineDeployment rollouts](#machinedeployment-rollouts)
+      - [What about the hash label](#what-about-the-hash-label)
+    - [KCP rollouts](#kcp-rollouts)
+    - [Avoiding conflicts with other components](#avoiding-conflicts-with-other-components)
+- [Alternatives](#alternatives)
+  - [To not use SSA for in-place propagation and be authoritative on labels and annotations](#to-not-use-ssa-for-in-place-propagation-and-be-authoritative-on-labels-and-annotations)
+  - [To not use SSA for in-place propagation and do not delete labels/annotations](#to-not-use-ssa-for-in-place-propagation-and-do-not-delete-labelsannotations)
+  - [To not use SSA for in-place propagation and use status fields to track labels previously applied by CAPI](#to-not-use-ssa-for-in-place-propagation-and-use-status-fields-to-track-labels-previously-applied-by-capi)
+  - [Change more propagation rules](#change-more-propagation-rules)
+  - [Change more propagation rules](#change-more-propagation-rules-1)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Glossary
 
 Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).

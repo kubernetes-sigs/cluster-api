@@ -503,6 +503,10 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
 
+.PHONY: generate-doctoc
+generate-doctoc:
+	TRACE=$(TRACE) ./hack/generate-doctoc.sh
+
 .PHONY: generate-e2e-templates
 generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1.0 v1.3 v1.4 main) ## Generate cluster templates for all versions
 
@@ -596,7 +600,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions capi-book-summary
+ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
@@ -623,9 +627,11 @@ verify-gen: generate  ## Verify go generated files are up to date
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 
-.PHONY: verify-doctoc
-verify-doctoc:
-	TRACE=$(TRACE) ./hack/verify-doctoc.sh
+verify-doctoc: generate-doctoc
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "doctoc is out of date, run make generate-doctoc"; exit 1; \
+	fi
 
 .PHONY: verify-capi-book-summary
 verify-capi-book-summary:

@@ -26,26 +26,29 @@ superseded-by:
 
 ## Table of Contents
 
-   * [Extensible Template Processing for clusterctl](#extensible-template-processing-for-clusterctl)
-      * [Table of Contents](#table-of-contents)
-      * [Glossary](#glossary)
-      * [Summary](#summary)
-      * [Motivation](#motivation)
-         * [Goals](#goals)
-         * [Non-Goals](#non-goals)
-         * [Future Work](#future-work)
-      * [Proposal](#proposal)
-         * [User Stories](#user-stories)
-         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-            * [UX for using Extensible Templating Tools](#ux-for-using-extensible-templating-tools)
-            * [Interface and Library Changes](#interface-and-library-changes)
-            * [Notes](#notes)
-         * [Risks and Mitigations](#risks-and-mitigations)
-         * [Constraints](#constraints)
-      * [Alternatives](#alternatives)
-      * [Upgrade Strategy](#upgrade-strategy)
-      * [Additional Details](#additional-details)
-      * [Implementation History](#implementation-history)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
+  - [Future Work](#future-work)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [UX for using Extensible Templating Tools](#ux-for-using-extensible-templating-tools)
+    - [Interface and Library Changes](#interface-and-library-changes)
+    - [Notes](#notes)
+  - [Risks and Mitigations](#risks-and-mitigations)
+  - [Constraints](#constraints)
+- [Alternatives](#alternatives)
+- [Upgrade Strategy](#upgrade-strategy)
+- [Additional Details](#additional-details)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 

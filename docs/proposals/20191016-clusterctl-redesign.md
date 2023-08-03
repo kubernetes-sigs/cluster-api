@@ -21,29 +21,33 @@ status: implementable
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 - [Glossary](#glossary)
 - [Summary](#summary)
 - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals/Future Work](#non-goalsfuture-work)
+  - [Goals](#goals)
+  - [Non-Goals/Future Work](#non-goalsfuture-work)
 - [Proposal](#proposal)
-    - [Preconditions](#preconditions)
-    - [User Stories](#user-stories)
-        - [Initial Deployment](#initial-deployment)
-        - [Day Two Operations “Lifecycle Management”](#day-two-operations-lifecycle-management)
-        - [Target Cluster Pivot Management](#target-cluster-pivot-management)
-        - [Provider Enablement](#provider-enablement)
-    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-        - [Init sequence](#init-sequence)
-        - [Day 2 operations](#day-2-operations)
-    - [Risks and Mitigations](#risks-and-mitigations)
+  - [Preconditions](#preconditions)
+  - [User Stories](#user-stories)
+    - [Initial Deployment](#initial-deployment)
+    - [Day Two Operations “Lifecycle Management”](#day-two-operations-lifecycle-management)
+    - [Target Cluster Pivot Management](#target-cluster-pivot-management)
+    - [Provider Enablement](#provider-enablement)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [Init sequence](#init-sequence)
+    - [Day 2 operations](#day-2-operations)
+  - [Risks and Mitigations](#risks-and-mitigations)
 - [Upgrade Strategy](#upgrade-strategy)
 - [Additional Details](#additional-details)
-    - [Test Plan [optional]](#test-plan-optional)
-    - [Graduation Criteria [optional]](#graduation-criteria-optional)
-    - [Version Skew Strategy](#version-skew-strategy)
+  - [Test Plan [optional]](#test-plan-optional)
+  - [Graduation Criteria [optional]](#graduation-criteria-optional)
+  - [Version Skew Strategy](#version-skew-strategy)
 - [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 

@@ -525,19 +525,24 @@ func getNewMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructure
 func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Context, o client.Object) []ctrl.Request {
 	log := ctrl.LoggerFrom(ctx)
 
-	machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), o.GetLabels())
-	if err != nil {
-		log.Error(err, "failed to get MachinePool for InfraMachine", "infraMachine", klog.KObj(o), "labels", o.GetLabels())
-		return nil
-	}
-	if machinePool != nil {
-		return []ctrl.Request{
-			{
-				NamespacedName: client.ObjectKey{
-					Namespace: machinePool.Namespace,
-					Name:      machinePool.Name,
+	// TODO: check if its a machinepool machine first to avoid picking up MD machines.
+	labels := o.GetLabels()
+	_, machinePoolOwned := labels[clusterv1.MachinePoolNameLabel]
+	if machinePoolOwned {
+		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), labels)
+		if err != nil {
+			log.Error(err, "failed to get MachinePool for InfraMachine", "infraMachine", klog.KObj(o), "labels", labels)
+			return nil
+		}
+		if machinePool != nil {
+			return []ctrl.Request{
+				{
+					NamespacedName: client.ObjectKey{
+						Namespace: machinePool.Namespace,
+						Name:      machinePool.Name,
+					},
 				},
-			},
+			}
 		}
 	}
 

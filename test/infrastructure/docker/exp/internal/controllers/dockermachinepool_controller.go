@@ -241,6 +241,11 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return ctrl.Result{}, err
 	}
 
+	log.Info("DockerMachineList at beginning of reconcileNormal")
+	for _, dockerMachine := range dockerMachineList.Items {
+		log.Info("DockerMachine", "dockerMachine", dockerMachine.Name)
+	}
+
 	// Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
 	log.Info("Initializing node pool machine statuses to call NewNodePool()")
 	nodePoolMachineStatuses, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
@@ -365,6 +370,7 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 					return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
 				}
 			} else {
+				log.Info("Deleting Machine for DockerMachine", "machine", machine.Name, "dockerMachine", dockerMachine.Name)
 				if err := r.Client.Delete(ctx, machine); err != nil {
 					return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
 				}
@@ -419,7 +425,7 @@ func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx contex
 				},
 			},
 			Spec: infrav1.DockerMachineSpec{
-				CustomImage:   dockerMachinePool.Spec.Template.CustomImage,
+				CustomImage:   dockerMachinePool.Spec.Template.CustomImage, // TODO: drop?
 				PreLoadImages: dockerMachinePool.Spec.Template.PreLoadImages,
 			},
 		}

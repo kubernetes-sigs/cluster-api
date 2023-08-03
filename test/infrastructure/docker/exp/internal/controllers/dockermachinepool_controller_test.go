@@ -189,10 +189,12 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 				{
 					Name:             dockerMachine1.Name,
 					PrioritizeDelete: false,
+					ProviderID:       dockerMachine1.Spec.ProviderID,
 				},
 				{
 					Name:             dockerMachine2.Name,
 					PrioritizeDelete: true,
+					ProviderID:       dockerMachine2.Spec.ProviderID,
 				},
 			},
 		},
@@ -211,14 +213,17 @@ func TestInitNodePoolMachineStatuses(t *testing.T) {
 				{
 					Name:             dockerMachine1.Name,
 					PrioritizeDelete: false,
+					ProviderID:       dockerMachine1.Spec.ProviderID,
 				},
 				{
 					Name:             dockerMachine2.Name,
 					PrioritizeDelete: true,
+					ProviderID:       dockerMachine2.Spec.ProviderID,
 				},
 				{
 					Name:             dockerMachine3.Name,
 					PrioritizeDelete: false,
+					ProviderID:       dockerMachine3.Spec.ProviderID,
 				},
 			},
 		},

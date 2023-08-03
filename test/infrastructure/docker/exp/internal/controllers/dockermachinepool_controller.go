@@ -267,32 +267,29 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	log.Info("Getting result node pool machine statuses")
-	nodePoolInstancesResult := pool.GetNodePoolMachineStatuses()
-	log.Info("Result node pool machine statuses are", "nodePoolInstancesResult", nodePoolInstancesResult)
+	nodePoolMachineStatusesResult := pool.GetNodePoolMachineStatuses()
+	log.Info("Result node pool machine statuses are", "nodePoolInstancesResult", nodePoolMachineStatusesResult)
+
+	// We want to get this from the node pool result instead of the DockerMachine list as it's more up to date.
+	// This is because if the node pool deleted an instance but the Machine or DockerMachine failed to delete, we
+	// don't want to include the providerID.
+	dockerMachinePool.Spec.ProviderIDList = []string{}
+	for _, status := range nodePoolMachineStatusesResult {
+		if status.ProviderID != nil {
+			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *status.ProviderID)
+		}
+	}
 
 	// Delete all DockerMachines that are not in the list of instances returned by the node pool.
-	if err := r.DeleteOrphanedDockerMachines(ctx, cluster, machinePool, dockerMachinePool, nodePoolInstancesResult); err != nil {
+	if err := r.DeleteOrphanedDockerMachines(ctx, cluster, machinePool, dockerMachinePool, nodePoolMachineStatusesResult); err != nil {
 		conditions.MarkFalse(dockerMachinePool, clusterv1.ReadyCondition, "FailedToDeleteOrphanedMachines", clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete orphaned machines")
 	}
 
 	// Create a DockerMachine for each instance returned by the node pool if it doesn't exist.
-	if err := r.CreateDockerMachinesIfNotExists(ctx, cluster, machinePool, dockerMachinePool, nodePoolInstancesResult); err != nil {
+	if err := r.CreateDockerMachinesIfNotExists(ctx, cluster, machinePool, dockerMachinePool, nodePoolMachineStatusesResult); err != nil {
 		conditions.MarkFalse(dockerMachinePool, clusterv1.ReadyCondition, "FailedToCreateNewMachines", clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, errors.Wrap(err, "failed to create missing machines")
-	}
-
-	dockerMachineList, err = getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Derive info from DockerMachines
-	dockerMachinePool.Spec.ProviderIDList = []string{}
-	for _, dockerMachine := range dockerMachineList.Items {
-		if dockerMachine.Spec.ProviderID != nil {
-			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
-		}
 	}
 
 	dockerMachinePool.Status.Replicas = int32(len(dockerMachineList.Items))
@@ -478,6 +475,7 @@ func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.
 		nodePoolInstances[i] = docker.NodePoolMachineStatus{
 			Name:             dockerMachine.Name,
 			PrioritizeDelete: hasDeleteAnnotation,
+			ProviderID:       dockerMachine.Spec.ProviderID,
 		}
 	}
 

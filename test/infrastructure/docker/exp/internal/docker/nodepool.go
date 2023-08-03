@@ -67,6 +67,7 @@ type NodePoolMachine struct {
 type NodePoolMachineStatus struct {
 	Name             string
 	PrioritizeDelete bool
+	ProviderID       *string
 }
 
 // NodePoolMachines is a sortable slice of NodePoolMachine based on the deletion priority.

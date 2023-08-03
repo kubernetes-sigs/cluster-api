@@ -343,7 +343,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		}
 	}
 
-	if isDeleteNodeAllowed {
+	// TODO: MachinePools without Machines weren't draining their nodes to begin with, so maybe we don't need this extra functionality.
+	_, machinePoolOwned := m.Labels[clusterv1.MachinePoolNameLabel]
+	if isDeleteNodeAllowed && !machinePoolOwned {
 		// pre-drain.delete lifecycle hook
 		// Return early without error, will requeue if/when the hook owner removes the annotation.
 		if annotations.HasWithPrefix(clusterv1.PreDrainDeleteHookAnnotationPrefix, m.ObjectMeta.Annotations) {

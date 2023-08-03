@@ -17,31 +17,34 @@ superseded-by:
 
 ## Table of Contents
 
-* [Insulate users from kubeadm API version changes](#insulate-users-from-kubeadm-api-version-changes)
-  * [Table of Contents](#table-of-contents)
-  * [Glossary](#glossary)
-  * [Summary](#summary)
-  * [Motivation](#motivation)
-    * [Goals](#goals)
-    * [Non-Goals](#non-goals)
-    * [Future work](#future-work)
-  * [Proposal](#proposal)
-    * [User Stories](#user-stories)
-      * [Story 1](#story-1)
-      * [Story 2](#story-2)
-    * [Requirements](#requirements)
-    * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-      * [Background info about kubeadm API version](#background-info-about-kubeadm-api-version)
-      * [Background info about kubeadm types into the KubeadmConfig/KubeadmControlPlane specs](#background-info-about-kubeadm-types-into-the-kubeadmconfigkubeadmcontrolplane-specs)
-      * [Cluster API v1alpha3 changes](#cluster-api-v1alpha3-changes)
-      * [Cluster API v1alpha4 changes](#cluster-api-v1alpha4-changes)
-    * [Security Model](#security-model)
-    * [Risks and Mitigations](#risks-and-mitigations)
-  * [Alternatives](#alternatives)
-  * [Upgrade Strategy](#upgrade-strategy)
-  * [Additional Details](#additional-details)
-    * [Test Plan](#test-plan)
-  * [Implementation History](#implementation-history)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
+  - [Future work](#future-work)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
+  - [Requirements](#requirements)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [Background info about kubeadm API version](#background-info-about-kubeadm-api-version)
+    - [Background info about kubeadm types into the KubeadmConfig/KubeadmControlPlane specs](#background-info-about-kubeadm-types-into-the-kubeadmconfigkubeadmcontrolplane-specs)
+    - [Cluster API v1alpha3 changes](#cluster-api-v1alpha3-changes)
+    - [Cluster API v1alpha4 changes](#cluster-api-v1alpha4-changes)
+  - [Security Model](#security-model)
+  - [Risks and Mitigations](#risks-and-mitigations)
+- [Alternatives](#alternatives)
+- [Upgrade Strategy](#upgrade-strategy)
+- [Additional Details](#additional-details)
+  - [Test Plan](#test-plan)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 

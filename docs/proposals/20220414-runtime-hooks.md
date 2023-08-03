@@ -20,32 +20,37 @@ superseded-by:
 # Runtime hooks for Add-on Management
 
 ## Table of Contents
-* [Table of Contents](#table-of-contents)
-* [Glossary](#glossary)
-* [Summary](#summary)
-* [Motivation](#motivation)
-	* [Goals](#goals)
-	* [Non-goals](#non-goals)
-* [Proposal](#proposal)
-    * [User Stories](#user-stories)
-    * [Runtime hook definitions](#runtime-hook-definitions)
-    * [Runtime Extensions developer guide](#runtime-extensions-developer-guide)
-    * [Security Model](#security-model)
-    * [Risks and Mitigations](#risks-and-mitigations)
-      * [Runtime Extension blocks Cluster lifecycle indefinitely](#runtime-extension-blocks-cluster-lifecycle-indefinitely)
-* [Alternatives](#alternatives)
-  * [External components watching CAPI resources without hooks](#external-components-watching-capi-resources-without-hooks)
-  * [OpenAPI spec implementation alternatives](#openapi-spec-implementation-alternatives)
-    * [Adding Cluster info to request vs providing only the Cluster name](#adding-cluster-info-to-request-vs-providing-only-the-cluster-name)
-    * [Embedding CAPI types in request vs using runtime.RawExtension](#embedding-capi-types-in-request-vs-using-runtimerawextension)
-* [Upgrade Strategy](#upgrade-strategy)
-    * [Cluster API version upgrade](#cluster-api-version-upgrade)
-    * [Kubernetes version upgrade](#kubernetes-version-upgrade)
-* [Additional Details](#additional-details)
-    * [Test Plan](#test-plan)
-    * [Graduation Criteria](#graduation-criteria)
-    * [Version Skew Strategy](#version-skew-strategy)
-* [Implementation History](#implementation-history)
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+  - [Runtime hook definitions](#runtime-hook-definitions)
+  - [Runtime Extensions developer guide](#runtime-extensions-developer-guide)
+  - [Security Model](#security-model)
+  - [Risks and Mitigations](#risks-and-mitigations)
+    - [Runtime Extension blocks Cluster lifecycle indefinitely](#runtime-extension-blocks-cluster-lifecycle-indefinitely)
+- [Alternatives](#alternatives)
+  - [External components watching CAPI resources without hooks](#external-components-watching-capi-resources-without-hooks)
+  - [OpenAPI spec implementation alternatives](#openapi-spec-implementation-alternatives)
+    - [Adding Cluster info to request vs providing only the Cluster name](#adding-cluster-info-to-request-vs-providing-only-the-cluster-name)
+    - [Embedding CAPI types in request vs using runtime.RawExtension](#embedding-capi-types-in-request-vs-using-runtimerawextension)
+- [Upgrade strategy](#upgrade-strategy)
+    - [Cluster API version upgrade](#cluster-api-version-upgrade)
+    - [Kubernetes version upgrade](#kubernetes-version-upgrade)
+- [Additional Details](#additional-details)
+  - [Test Plan](#test-plan)
+  - [Graduation Criteria](#graduation-criteria)
+  - [Version Skew Strategy](#version-skew-strategy)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 

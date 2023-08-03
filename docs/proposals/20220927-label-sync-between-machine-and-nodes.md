@@ -17,6 +17,33 @@ superseded-by:
 
 # Label Sync Between Machines and underlying Kubernetes Nodes
 
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
+    - [Story 3](#story-3)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+  - [Label domains & prefixes](#label-domains--prefixes)
+    - [Synchronization of CAPI Labels](#synchronization-of-capi-labels)
+    - [Delay between Node Create and Label Sync](#delay-between-node-create-and-label-sync)
+- [Alternatives](#alternatives)
+  - [Use KubeadmConfigTemplate capabilities](#use-kubeadmconfigtemplate-capabilities)
+  - [Apply labels using kubectl](#apply-labels-using-kubectl)
+  - [Apply label using external label synchronizer tools](#apply-label-using-external-label-synchronizer-tools)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Glossary
 
 Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/reference/glossary.html).

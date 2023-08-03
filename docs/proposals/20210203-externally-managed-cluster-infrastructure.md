@@ -21,33 +21,37 @@ superseded-by:
 # Externally Managed cluster infrastructure
 
 ## Table of Contents
-   * [Externally Managed cluster infrastructure](#externally-managed-cluster-infrastructure)
-      * [Table of Contents](#table-of-contents)
-      * [Glossary](#glossary)
-         * [Managed cluster infrastructure](#managed-cluster-infrastructure)
-         * [Externally managed cluster infrastructure](#externally-managed-cluster-infrastructure-1)
-      * [Summary](#summary)
-      * [Motivation](#motivation)
-         * [Goals](#goals)
-         * [Non-Goals/Future Work](#non-goalsfuture-work)
-      * [Proposal](#proposal)
-         * [User Stories](#user-stories)
-            * [Story 1 - Alternate control plane provisioning with user managed infrastructure](#story-1---alternate-control-plane-provisioning-with-user-managed-infrastructure)
-            * [Story 2 - Restricted access to cloud provider APIs](#story-2---restricted-access-to-cloud-provider-apis)
-            * [Story 3 - Consuming existing cloud infrastructure](#story-3---consuming-existing-cloud-infrastructure)
-         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-            * [Provider implementation changes](#provider-implementation-changes)
-         * [Security Model](#security-model)
-         * [Risks and Mitigations](#risks-and-mitigations)
-            * [What happens when a user converts an externally managed InfraCluster to a managed InfraCluster?](#what-happens-when-a-user-converts-an-externally-managed-infracluster-to-a-managed-infracluster)
-         * [Future Work](#future-work)
-            * [Marking InfraCluster ready manually](#marking-infracluster-ready-manually)
-      * [Alternatives](#alternatives)
-         * [ExternalInfra CRD](#externalinfra-crd)
-         * [ManagementPolicy field](#managementpolicy-field)
-      * [Upgrade Strategy](#upgrade-strategy)
-      * [Additional Details](#additional-details)
-      * [Implementation History](#implementation-history)
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+  - [Managed cluster infrastructure](#managed-cluster-infrastructure)
+  - [Externally managed cluster infrastructure](#externally-managed-cluster-infrastructure)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals/Future Work](#non-goalsfuture-work)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1 - Alternate control plane provisioning with user managed infrastructure](#story-1---alternate-control-plane-provisioning-with-user-managed-infrastructure)
+    - [Story 2 - Restricted access to cloud provider APIs](#story-2---restricted-access-to-cloud-provider-apis)
+    - [Story 3 - Consuming existing cloud infrastructure](#story-3---consuming-existing-cloud-infrastructure)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [Provider implementation changes](#provider-implementation-changes)
+  - [Security Model](#security-model)
+  - [Risks and Mitigations](#risks-and-mitigations)
+    - [What happens when a user converts an externally managed InfraCluster to a managed InfraCluster?](#what-happens-when-a-user-converts-an-externally-managed-infracluster-to-a-managed-infracluster)
+  - [Future Work](#future-work)
+    - [Marking InfraCluster ready manually](#marking-infracluster-ready-manually)
+- [Alternatives](#alternatives)
+  - [ExternalInfra CRD](#externalinfra-crd)
+  - [ManagementPolicy field](#managementpolicy-field)
+- [Upgrade Strategy](#upgrade-strategy)
+- [Additional Details](#additional-details)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 

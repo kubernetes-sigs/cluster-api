@@ -7,7 +7,6 @@ last-updated: 2019-04-16
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Cluster API Reference Use Cases](#cluster-api-reference-use-cases)
   - [Role Glossary](#role-glossary)
   - [Icon Glossary](#icon-glossary)

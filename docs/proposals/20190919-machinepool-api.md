@@ -1,8 +1,22 @@
 ---
 title: MachinePool API
+authors:
+- "@juan-lee"
+- "@CecileRobertMichon"
+  reviewers:
+- "@detiber"
+- "@justaugustus"
+- "@ncdc"
+- "@vincepri"
+  creation-date: 2019-09-19
+  last-updated: 2019-11-24
+  replaces:
+- [cluster-api-provider-azure Proposal](https://docs.google.com/document/d/1nbOqCIC0-ezdMXubZIV6EQrzD0QYPrpcdCBB4oSjWeQ/edit)
+  status: provisional
+---
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
 
 - [MachinePool API](#machinepool-api)
   - [Glossary](#glossary)
@@ -51,20 +65,6 @@ title: MachinePool API
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-authors:
-  - "@juan-lee"
-  - "@CecileRobertMichon"
-reviewers:
-  - "@detiber"
-  - "@justaugustus"
-  - "@ncdc"
-  - "@vincepri"
-creation-date: 2019-09-19
-last-updated: 2019-11-24
-replaces:
-  - [cluster-api-provider-azure Proposal](https://docs.google.com/document/d/1nbOqCIC0-ezdMXubZIV6EQrzD0QYPrpcdCBB4oSjWeQ/edit)
-status: provisional
----
 
 # MachinePool API
 

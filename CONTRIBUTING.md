@@ -11,6 +11,7 @@
   - [CLIs](#clis)
 - [Branches](#branches)
   - [Support and guarantees](#support-and-guarantees)
+  - [Removal of v1alpha3 & v1alpha4 apiVersions](#removal-of-v1alpha3--v1alpha4-apiversions)
 - [Contributing a Patch](#contributing-a-patch)
 - [Documentation changes](#documentation-changes)
 - [Releases](#releases)

@@ -14,7 +14,6 @@ last-updated: 2019-04-08
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Cluster API Scope and Objectives](#cluster-api-scope-and-objectives)
   - [Table of Contents](#table-of-contents)
   - [Summary](#summary)
@@ -29,7 +28,6 @@ last-updated: 2019-04-08
       - [Organization](#organization)
       - [Validation](#validation)
       - [Extension](#extension)
-      
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

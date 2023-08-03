@@ -1,5 +1,6 @@
-name: dependabot
+name: PR dependabot code generation and go modules fix
 
+# This action runs on other PRs opened by dependabot. It updates modules and generated code on PRs opened by dependabot.
 on:
   pull_request:
     branches:

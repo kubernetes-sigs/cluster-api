@@ -1,4 +1,4 @@
-name: Check PR Markdown links
+name: PR check Markdown links
 
 on:
   pull_request:

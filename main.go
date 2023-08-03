@@ -82,34 +82,35 @@ var (
 	controllerName = "cluster-api-controller-manager"
 
 	// flags.
-	metricsBindAddr               string
-	enableLeaderElection          bool
-	leaderElectionLeaseDuration   time.Duration
-	leaderElectionRenewDeadline   time.Duration
-	leaderElectionRetryPeriod     time.Duration
-	watchNamespace                string
-	watchFilterValue              string
-	profilerAddress               string
-	enableContentionProfiling     bool
-	clusterTopologyConcurrency    int
-	clusterClassConcurrency       int
-	clusterConcurrency            int
-	extensionConfigConcurrency    int
-	machineConcurrency            int
-	machineSetConcurrency         int
-	machineDeploymentConcurrency  int
-	machinePoolConcurrency        int
-	clusterResourceSetConcurrency int
-	machineHealthCheckConcurrency int
-	syncPeriod                    time.Duration
-	restConfigQPS                 float32
-	restConfigBurst               int
-	nodeDrainClientTimeout        time.Duration
-	webhookPort                   int
-	webhookCertDir                string
-	healthAddr                    string
-	tlsOptions                    = flags.TLSOptions{}
-	logOptions                    = logs.NewOptions()
+	metricsBindAddr                string
+	enableLeaderElection           bool
+	leaderElectionLeaseDuration    time.Duration
+	leaderElectionRenewDeadline    time.Duration
+	leaderElectionRetryPeriod      time.Duration
+	watchNamespace                 string
+	watchFilterValue               string
+	profilerAddress                string
+	enableContentionProfiling      bool
+	clusterTopologyConcurrency     int
+	clusterCacheTrackerConcurrency int
+	clusterClassConcurrency        int
+	clusterConcurrency             int
+	extensionConfigConcurrency     int
+	machineConcurrency             int
+	machineSetConcurrency          int
+	machineDeploymentConcurrency   int
+	machinePoolConcurrency         int
+	clusterResourceSetConcurrency  int
+	machineHealthCheckConcurrency  int
+	syncPeriod                     time.Duration
+	restConfigQPS                  float32
+	restConfigBurst                int
+	nodeDrainClientTimeout         time.Duration
+	webhookPort                    int
+	webhookCertDir                 string
+	healthAddr                     string
+	tlsOptions                     = flags.TLSOptions{}
+	logOptions                     = logs.NewOptions()
 )
 
 func init() {
@@ -175,6 +176,9 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Number of ClusterClasses to process simultaneously")
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
+		"Number of clusters to process simultaneously")
+
+	fs.IntVar(&clusterCacheTrackerConcurrency, "clustercachetracker-concurrency", 10,
 		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&extensionConfigConcurrency, "extensionconfig-concurrency", 10,
@@ -394,7 +398,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}

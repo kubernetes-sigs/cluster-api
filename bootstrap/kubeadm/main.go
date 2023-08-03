@@ -76,26 +76,27 @@ func init() {
 }
 
 var (
-	metricsBindAddr             string
-	enableLeaderElection        bool
-	leaderElectionLeaseDuration time.Duration
-	leaderElectionRenewDeadline time.Duration
-	leaderElectionRetryPeriod   time.Duration
-	watchFilterValue            string
-	watchNamespace              string
-	profilerAddress             string
-	enableContentionProfiling   bool
-	clusterConcurrency          int
-	kubeadmConfigConcurrency    int
-	syncPeriod                  time.Duration
-	restConfigQPS               float32
-	restConfigBurst             int
-	webhookPort                 int
-	webhookCertDir              string
-	healthAddr                  string
-	tokenTTL                    time.Duration
-	tlsOptions                  = flags.TLSOptions{}
-	logOptions                  = logs.NewOptions()
+	metricsBindAddr                string
+	enableLeaderElection           bool
+	leaderElectionLeaseDuration    time.Duration
+	leaderElectionRenewDeadline    time.Duration
+	leaderElectionRetryPeriod      time.Duration
+	watchFilterValue               string
+	watchNamespace                 string
+	profilerAddress                string
+	enableContentionProfiling      bool
+	clusterConcurrency             int
+	clusterCacheTrackerConcurrency int
+	kubeadmConfigConcurrency       int
+	syncPeriod                     time.Duration
+	restConfigQPS                  float32
+	restConfigBurst                int
+	webhookPort                    int
+	webhookCertDir                 string
+	healthAddr                     string
+	tokenTTL                       time.Duration
+	tlsOptions                     = flags.TLSOptions{}
+	logOptions                     = logs.NewOptions()
 )
 
 // InitFlags initializes this manager's flags.
@@ -127,6 +128,10 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Enable block profiling, if profiler-address is set.")
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
+		"Number of clusters to process simultaneously")
+	_ = fs.MarkDeprecated("cluster-concurrency", "This flag has no function anymore and is going to be removed in a next release. Use \"--clustercachetracker-concurrency\" instead.")
+
+	fs.IntVar(&clusterCacheTrackerConcurrency, "clustercachetracker-concurrency", 10,
 		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&kubeadmConfigConcurrency, "kubeadmconfig-concurrency", 10,
@@ -307,7 +312,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}

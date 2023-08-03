@@ -573,7 +573,7 @@ In this cases for ServerSideApply to work properly it is required to ensure the 
 type definitions, like +MapType or +MapTypeKey, see [merge strategy](https://kubernetes.io/docs/reference/using-api/server-side-apply/#merge-strategy) for more details.
 
 Note: in order to allow the topology controller to execute templates rotation only when strictly necessary, it is necessary
-to implement specific handling of dry run operations in the templates webhooks as described in [Required Changes on providers from 1.1 to 1.2](https://cluster-api.sigs.k8s.io/developer/providers/v1.1-to-v1.2.html#required-api-changes-for-providers).
+to implement specific handling of dry run operations in the templates webhooks as described in [Required Changes on providers from 1.1 to 1.2](https://cluster-api.sigs.k8s.io/developer/providers/migrations/v1.1-to-v1.2#required-api-changes-for-providers).
 
 ### Risks and Mitigations
 

@@ -505,7 +505,13 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 
 	// Actually start the container
 	if err := d.dockerClient.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return errors.Wrapf(err, "error starting container %q", runConfig.Name)
+		err := errors.Wrapf(err, "error starting container %q", runConfig.Name)
+		// Delete the container and retry later on. This helps getting around the race
+		// condition where of hitting "port is already allocated" issues.
+		if innerErr := d.dockerClient.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true}); innerErr != nil {
+			return errors.Wrapf(innerErr, "error removing container after failed start: %s", err)
+		}
+		return err
 	}
 
 	if output != nil {

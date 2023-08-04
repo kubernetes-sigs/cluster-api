@@ -434,6 +434,15 @@ type releaseNoteEntry struct {
 	prNumber string
 }
 
+func modifyEntryTitle(title string, prefixes []string) string {
+	entryWithoutTag := title
+	for _, prefix := range prefixes {
+		entryWithoutTag = strings.TrimLeft(strings.TrimPrefix(entryWithoutTag, prefix), " ")
+	}
+
+	return strings.ToUpper(string(entryWithoutTag[0])) + entryWithoutTag[1:]
+}
+
 // generateReleaseNoteEntry processes a commit into a PR line item for the release notes.
 func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	entry := &releaseNoteEntry{}
@@ -452,27 +461,22 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	switch {
 	case strings.HasPrefix(entry.title, ":sparkles:"), strings.HasPrefix(entry.title, "✨"):
 		entry.section = features
-		entry.title = strings.TrimPrefix(entry.title, ":sparkles:")
-		entry.title = strings.TrimPrefix(entry.title, "✨")
+		entry.title = modifyEntryTitle(entry.title, []string{":sparkles:", "✨"})
 	case strings.HasPrefix(entry.title, ":bug:"), strings.HasPrefix(entry.title, "🐛"):
 		entry.section = bugs
-		entry.title = strings.TrimPrefix(entry.title, ":bug:")
-		entry.title = strings.TrimPrefix(entry.title, "🐛")
+		entry.title = modifyEntryTitle(entry.title, []string{":bug:", "🐛"})
 	case strings.HasPrefix(entry.title, ":book:"), strings.HasPrefix(entry.title, "📖"):
 		entry.section = documentation
-		entry.title = strings.TrimPrefix(entry.title, ":book:")
-		entry.title = strings.TrimPrefix(entry.title, "📖")
+		entry.title = modifyEntryTitle(entry.title, []string{":book:", "📖"})
 		if strings.Contains(entry.title, "CAEP") || strings.Contains(entry.title, "proposal") {
 			entry.section = proposals
 		}
 	case strings.HasPrefix(entry.title, ":seedling:"), strings.HasPrefix(entry.title, "🌱"):
 		entry.section = other
-		entry.title = strings.TrimPrefix(entry.title, ":seedling:")
-		entry.title = strings.TrimPrefix(entry.title, "🌱")
+		entry.title = modifyEntryTitle(entry.title, []string{":seedling:", "🌱"})
 	case strings.HasPrefix(entry.title, ":warning:"), strings.HasPrefix(entry.title, "⚠️"):
 		entry.section = warning
-		entry.title = strings.TrimPrefix(entry.title, ":warning:")
-		entry.title = strings.TrimPrefix(entry.title, "⚠️")
+		entry.title = modifyEntryTitle(entry.title, []string{":warning:", "⚠️"})
 	default:
 		entry.section = unknown
 	}

@@ -68,24 +68,25 @@ var (
 	controllerName = "cluster-api-docker-controller-manager"
 
 	// flags.
-	metricsBindAddr             string
-	enableLeaderElection        bool
-	leaderElectionLeaseDuration time.Duration
-	leaderElectionRenewDeadline time.Duration
-	leaderElectionRetryPeriod   time.Duration
-	watchNamespace              string
-	watchFilterValue            string
-	profilerAddress             string
-	enableContentionProfiling   bool
-	concurrency                 int
-	syncPeriod                  time.Duration
-	restConfigQPS               float32
-	restConfigBurst             int
-	webhookPort                 int
-	webhookCertDir              string
-	healthAddr                  string
-	tlsOptions                  = flags.TLSOptions{}
-	logOptions                  = logs.NewOptions()
+	metricsBindAddr                string
+	enableLeaderElection           bool
+	leaderElectionLeaseDuration    time.Duration
+	leaderElectionRenewDeadline    time.Duration
+	leaderElectionRetryPeriod      time.Duration
+	watchNamespace                 string
+	watchFilterValue               string
+	profilerAddress                string
+	enableContentionProfiling      bool
+	concurrency                    int
+	clusterCacheTrackerConcurrency int
+	syncPeriod                     time.Duration
+	restConfigQPS                  float32
+	restConfigBurst                int
+	webhookPort                    int
+	webhookCertDir                 string
+	healthAddr                     string
+	tlsOptions                     = flags.TLSOptions{}
+	logOptions                     = logs.NewOptions()
 )
 
 func init() {
@@ -134,6 +135,9 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&concurrency, "concurrency", 10,
 		"The number of docker machines to process simultaneously")
+
+	fs.IntVar(&clusterCacheTrackerConcurrency, "clustercachetracker-concurrency", 10,
+		"Number of clusters to process simultaneously")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
@@ -316,7 +320,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{
-		MaxConcurrentReconciles: concurrency,
+		MaxConcurrentReconciles: clusterCacheTrackerConcurrency,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)

@@ -274,7 +274,6 @@ for provider authors on how to adopt to the new Cluster API version.
 
 1. Add a new migration doc for provider implementers.
    <br>Prior art: [Add v1.2 -> v1.3 migration doc](https://github.com/kubernetes-sigs/cluster-api/pull/6698)
-2. Add a doc to collect initial release notes for users.
 
 #### Update supported versions
 

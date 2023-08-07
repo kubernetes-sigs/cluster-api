@@ -1,1 +1,7 @@
-# TODO: create alias for release team and decide who is approver and reviewer for release notes
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - cluster-api-release-lead
+
+reviewers:
+  - cluster-api-release-team

@@ -706,5 +706,5 @@ type ClusterClassList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ClusterClass{}, &ClusterClassList{})
+	objectTypes = append(objectTypes, &ClusterClass{}, &ClusterClassList{})
 }

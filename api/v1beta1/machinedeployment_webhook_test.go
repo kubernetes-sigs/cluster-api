@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -45,8 +46,8 @@ func TestMachineDeploymentDefault(t *testing.T) {
 		},
 	}
 
-	scheme, err := SchemeBuilder.Build()
-	g.Expect(err).ToNot(HaveOccurred())
+	scheme := runtime.NewScheme()
+	g.Expect(AddToScheme(scheme)).To(Succeed())
 	defaulter := MachineDeploymentDefaulter(scheme)
 
 	t.Run("for MachineDeployment", defaultValidateTestCustomDefaulter(md, defaulter))

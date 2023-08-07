@@ -337,7 +337,7 @@ type MachineDeploymentList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&MachineDeployment{}, &MachineDeploymentList{})
+	objectTypes = append(objectTypes, &MachineDeployment{}, &MachineDeploymentList{})
 }
 
 // GetConditions returns the set of conditions for the machinedeployment.

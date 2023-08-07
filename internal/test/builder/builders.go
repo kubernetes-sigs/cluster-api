@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -1268,8 +1269,8 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 		}
 	}
 	if m.defaulter {
-		scheme, err := clusterv1.SchemeBuilder.Build()
-		if err != nil {
+		scheme := runtime.NewScheme()
+		if err := clusterv1.AddToScheme(scheme); err != nil {
 			panic(err)
 		}
 		ctx := admission.NewContextWithRequest(context.Background(), admission.Request{

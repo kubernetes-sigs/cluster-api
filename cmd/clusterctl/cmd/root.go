@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	kubectlcmd "k8s.io/kubectl/pkg/cmd"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -163,7 +164,9 @@ func initConfig() {
 		}
 	}
 
-	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
+	log := logf.NewLogger(logf.WithThreshold(verbosity))
+	logf.SetLogger(log)
+	ctrl.SetLogger(log)
 }
 
 func registerCompletionFuncForCommonFlags() {

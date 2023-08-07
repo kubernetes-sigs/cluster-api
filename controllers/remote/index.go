@@ -36,9 +36,3 @@ var NodeProviderIDIndex = Index{
 	Field:        index.NodeProviderIDField,
 	ExtractValue: index.NodeByProviderID,
 }
-
-// DefaultIndexes is the default list of indexes on a ClusterCacheTracker.
-//
-// Deprecated: This variable is deprecated and will be removed in a future release of Cluster API.
-// Instead please use `[]Index{NodeProviderIDIndex}`.
-var DefaultIndexes = []Index{NodeProviderIDIndex}

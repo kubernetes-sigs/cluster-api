@@ -410,7 +410,7 @@ func (r *Reconciler) extensionConfigToClusterClass(o client.Object) []reconcile.
 		}
 		for _, patch := range clusterClass.Spec.Patches {
 			if patch.External != nil && patch.External.DiscoverVariablesExtension != nil {
-				res = append(res, ctrl.Request{NamespacedName: client.ObjectKey{Name: ext.Name}})
+				res = append(res, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: clusterClass.Namespace, Name: clusterClass.Name}})
 				break
 			}
 		}

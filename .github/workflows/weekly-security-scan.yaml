@@ -1,4 +1,4 @@
-name: scan-images
+name: Weekly security scan
 
 on:
   schedule:
@@ -28,5 +28,5 @@ jobs:
       uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # tag=v3.5.0
       with:
         go-version: ${{ steps.vars.outputs.go_version }}
-    - name: Run verify container script
-      run: make verify-container-images
+    - name: Run verify security target
+      run: make verify-security

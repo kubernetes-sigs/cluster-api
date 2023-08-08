@@ -118,6 +118,8 @@ var (
 
 // CoreOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
 // OwnerReferences aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var CoreOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error{
 	extensionConfigKind: func(owners []metav1.OwnerReference) error {
 		// ExtensionConfig should have no owners.
@@ -161,6 +163,8 @@ var (
 
 // ExpOwnerReferenceAssertions maps experimental types to functions which return an error if the passed OwnerReferences
 // aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var ExpOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	clusterResourceSetKind: func(owners []metav1.OwnerReference) error {
 		// ClusterResourcesSet doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
@@ -184,6 +188,8 @@ var (
 
 // KubernetesReferenceAssertions maps Kubernetes types to functions which return an error if the passed OwnerReferences
 // aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var KubernetesReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	secretKind: func(owners []metav1.OwnerReference) error {
 		// Secrets for cluster certificates must be owned by the KubeadmControlPlane. The bootstrap secret should be owned by a KubeadmControlPlane.
@@ -205,6 +211,8 @@ var (
 
 // KubeadmControlPlaneOwnerReferenceAssertions maps Kubeadm control plane types to functions which return an error if the passed
 // OwnerReferences aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var KubeadmControlPlaneOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmControlPlaneKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmControlPlane must be owned by a Cluster.
@@ -226,6 +234,8 @@ var (
 
 // KubeadmBootstrapOwnerReferenceAssertions maps KubeadmBootstrap types to functions which return an error if the passed OwnerReferences
 // aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmConfigKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmConfig must be owned by a Cluster or by a MachinePool.
@@ -248,6 +258,8 @@ var (
 
 // DockerInfraOwnerReferenceAssertions maps Docker Infrastructure types to functions which return an error if the passed
 // OwnerReferences aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	dockerMachineKind: func(owners []metav1.OwnerReference) error {
 		// The DockerMachine must be owned by a Machine.

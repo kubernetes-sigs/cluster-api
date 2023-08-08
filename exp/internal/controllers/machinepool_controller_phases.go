@@ -445,6 +445,7 @@ func (r *MachinePoolReconciler) ensureInfraMachineOnwerRefs(ctx context.Context,
 		if !ok {
 			return errors.Errorf("failed to patch ownerRef for infraMachine %q because no Machine has an infraRef pointing to it", infraMachine.GetName())
 		}
+		log.Info("Machine GVK is", "gvk", machine.GroupVersionKind())
 		machineRef := metav1.NewControllerRef(&machine, machine.GroupVersionKind())
 		if !util.HasOwnerRef(ownerRefs, *machineRef) {
 			log.V(2).Info("Setting ownerRef on infraMachine", "infraMachine", infraMachine.GetName(), "namespace", infraMachine.GetNamespace(), "machine", machine.GetName())
@@ -460,6 +461,8 @@ func (r *MachinePoolReconciler) ensureInfraMachineOnwerRefs(ctx context.Context,
 			if err := patchHelper.Patch(ctx, infraMachine); err != nil {
 				return errors.Wrapf(err, "failed to patch %s", klog.KObj(infraMachine))
 			}
+
+			log.V(4).Info("Successfully set ownerRef on infraMachine", "infraMachine", infraMachine.GetName(), "namespace", infraMachine.GetNamespace(), "machine", machine.GetName())
 		}
 	}
 

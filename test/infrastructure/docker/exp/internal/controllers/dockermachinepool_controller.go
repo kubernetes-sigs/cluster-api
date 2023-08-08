@@ -20,8 +20,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
+	"math/rand"
+	"strings"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -44,12 +47,17 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/docker"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+)
+
+const (
+	dockerMachinePoolLabel = "docker.cluster.x-k8s.io/machine-pool"
 )
 
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.
@@ -199,25 +207,25 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	_ = ctrl.LoggerFrom(ctx)
 
-	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
-	if err != nil {
-		return err
-	}
+	// dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
+	// if err != nil {
+	// 	return err
+	// }
 
-	// Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
-	nodePoolInstances, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
-	if err != nil {
-		return err
-	}
+	// // Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
+	// nodePoolInstances, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
+	// if err != nil {
+	// 	return err
+	// }
 
-	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool, nodePoolInstances)
-	if err != nil {
-		return errors.Wrap(err, "failed to build new node pool")
-	}
+	// pool, err := dockerexp.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool, nodePoolInstances)
+	// if err != nil {
+	// 	return errors.Wrap(err, "failed to build new node pool")
+	// }
 
-	if err := pool.Delete(ctx); err != nil {
-		return errors.Wrap(err, "failed to delete all machines in the node pool")
-	}
+	// if err := pool.Delete(ctx); err != nil {
+	// 	return errors.Wrap(err, "failed to delete all machines in the node pool")
+	// }
 
 	controllerutil.RemoveFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
 	return nil
@@ -236,60 +244,29 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		machinePool.Spec.Replicas = pointer.Int32(1)
 	}
 
+	if err := r.CreateNewReplicas(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.DeleteExtraDockerMachines(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.CreateNewDockerMachines(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	log.Info("DockerMachineList at beginning of reconcileNormal")
-	for _, dockerMachine := range dockerMachineList.Items {
-		log.Info("DockerMachine", "dockerMachine", dockerMachine.Name)
-	}
-
-	// Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
-	log.Info("Initializing node pool machine statuses to call NewNodePool()")
-	nodePoolMachineStatuses, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	log.Info("Node pool machine statuses are", "nodePoolMachineStatuses", nodePoolMachineStatuses)
-
-	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool, nodePoolMachineStatuses)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
-	}
-	log.Info("Initialized node pool")
-
-	log.Info("Reconciling node pool machines")
-	res, err := pool.ReconcileMachines(ctx)
-	if err != nil {
-		return res, err
-	}
-
-	log.Info("Getting result node pool machine statuses")
-	nodePoolMachineStatusesResult := pool.GetNodePoolMachineStatuses()
-	log.Info("Result node pool machine statuses are", "nodePoolInstancesResult", nodePoolMachineStatusesResult)
-
-	// We want to get this from the node pool result instead of the DockerMachine list as it's more up to date.
-	// This is because if the node pool deleted an instance but the Machine or DockerMachine failed to delete, we
-	// don't want to include the providerID.
+	// Derive info from DockerMachines
 	dockerMachinePool.Spec.ProviderIDList = []string{}
-	for _, status := range nodePoolMachineStatusesResult {
-		if status.ProviderID != nil {
-			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *status.ProviderID)
+	for _, dockerMachine := range dockerMachineList.Items {
+		if dockerMachine.Spec.ProviderID != nil {
+			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
 		}
-	}
-
-	// Delete all DockerMachines that are not in the list of instances returned by the node pool.
-	if err := r.DeleteOrphanedDockerMachines(ctx, cluster, machinePool, dockerMachinePool, nodePoolMachineStatusesResult); err != nil {
-		conditions.MarkFalse(dockerMachinePool, clusterv1.ReadyCondition, "FailedToDeleteOrphanedMachines", clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete orphaned machines")
-	}
-
-	// Create a DockerMachine for each instance returned by the node pool if it doesn't exist.
-	if err := r.CreateDockerMachinesIfNotExists(ctx, cluster, machinePool, dockerMachinePool, nodePoolMachineStatusesResult); err != nil {
-		conditions.MarkFalse(dockerMachinePool, clusterv1.ReadyCondition, "FailedToCreateNewMachines", clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, errors.Wrap(err, "failed to create missing machines")
 	}
 
 	dockerMachinePool.Status.Replicas = int32(len(dockerMachineList.Items))
@@ -310,13 +287,14 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 
 	dockerMachinePool.Status.Ready = false
 	conditions.MarkFalse(dockerMachinePool, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
+	return ctrl.Result{}, nil
 
-	// if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
-	if res.IsZero() {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	}
+	// // if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
+	// if res.IsZero() {
+	// 	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	// }
 
-	return res, nil
+	// return res, nil
 }
 
 func getDockerMachines(ctx context.Context, c client.Client, cluster clusterv1.Cluster, machinePool expv1.MachinePool, dockerMachinePool infraexpv1.DockerMachinePool) (*infrav1.DockerMachineList, error) {
@@ -332,10 +310,10 @@ func getDockerMachines(ctx context.Context, c client.Client, cluster clusterv1.C
 	return dockerMachineList, nil
 }
 
-// DeleteOrphanedDockerMachines deletes any DockerMachines owned by the DockerMachinePool that reference an invalid providerID, i.e. not in the latest copy of the node pool instances.
-func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, nodePoolMachineStatuses []docker.NodePoolMachineStatus) error {
+// DeleteExtraDockerMachines deletes any DockerMachines owned by the DockerMachinePool that reference an invalid providerID, i.e. not in the latest copy of the node pool instances.
+func (r *DockerMachinePoolReconciler) DeleteExtraDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(2).Info("Deleting orphaned machines", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace, "nodePoolMachineStatuses", nodePoolMachineStatuses)
+	// log.V(2).Info("Deleting orphaned machines", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace, "nodePoolMachineStatuses", nodePoolMachineStatuses)
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
 	if err != nil {
 		return err
@@ -343,144 +321,263 @@ func (r *DockerMachinePoolReconciler) DeleteOrphanedDockerMachines(ctx context.C
 
 	log.V(2).Info("DockerMachineList kind is", "kind", dockerMachineList.GetObjectKind())
 
-	nodePoolMachineNames := map[string]struct{}{}
-	for _, nodePoolMachineStatus := range nodePoolMachineStatuses {
-		nodePoolMachineNames[nodePoolMachineStatus.Name] = struct{}{}
-	}
-
-	for i := range dockerMachineList.Items {
-		dockerMachine := &dockerMachineList.Items[i]
-		if _, ok := nodePoolMachineNames[dockerMachine.Name]; !ok {
-			machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
-			// Not found doesn't return an error, so we need to check for nil.
-			if err != nil {
-				return errors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-			}
-			if machine == nil {
-				// If MachinePool is deleted, the DockerMachine and owner Machine doesn't already exist, then it will never come online.
-				if mpDeleted := isMachinePoolDeleted(ctx, r.Client, machinePool); mpDeleted {
-					// log.Info("DockerMachine is has no parent Machine and MachinePool is deleted", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-					// return errors.Errorf("DockerMachine %s/%s has no parent Machine and MachinePool is already deleted", dockerMachine.Namespace, dockerMachine.Name)
-					log.Info("DockerMachine is orphaned and MachinePool is deleted, deleting DockerMachine", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-					if err := r.Client.Delete(ctx, dockerMachine); err != nil {
-						return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-					}
-				} else { // If the MachinePool still exists, then the Machine will be created, so we need to wait for that to happen.
-					log.Info("DockerMachine has no parent Machine, will reattempt deletion once parent Machine is present", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-					return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
-				}
-			}
-
-			log.Info("Deleting Machine for DockerMachine", "machine", machine.Name, "dockerMachine", dockerMachine.Name)
-			if err := r.Client.Delete(ctx, machine); err != nil {
-				return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
-			}
-		} else {
-			log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-		}
-	}
-
-	return nil
-}
-
-// CreateDockerMachinesIfNotExists creates a DockerMachine for each instance returned by the node pool if it doesn't exist.
-func (r *DockerMachinePoolReconciler) CreateDockerMachinesIfNotExists(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, nodePoolMachineStatuses []docker.NodePoolMachineStatus) error {
-	log := ctrl.LoggerFrom(ctx)
-
-	log.V(2).Info("Creating missing machines", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace, "nodePoolMachineStatuses", nodePoolMachineStatuses)
-
-	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
+	dockerMachinesToDelete, err := getDockerMachinesToDelete(ctx, dockerMachineList.Items, cluster, machinePool, dockerMachinePool)
 	if err != nil {
 		return err
 	}
 
-	dockerMachineMap := make(map[string]infrav1.DockerMachine)
-	for _, dockerMachine := range dockerMachineList.Items {
-		dockerMachineMap[dockerMachine.Name] = dockerMachine
-	}
-
-	for _, nodePoolMachineStatus := range nodePoolMachineStatuses {
-		if _, exists := dockerMachineMap[nodePoolMachineStatus.Name]; exists {
-			continue
-		}
-
-		labels := map[string]string{
-			clusterv1.ClusterNameLabel:     cluster.Name,
-			clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePool.Name),
-		}
-		dockerMachine := &infrav1.DockerMachine{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace:   dockerMachinePool.Namespace,
-				Name:        nodePoolMachineStatus.Name,
-				Labels:      labels,
-				Annotations: make(map[string]string),
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: dockerMachinePool.APIVersion,
-						Kind:       dockerMachinePool.Kind,
-						Name:       dockerMachinePool.Name,
-						UID:        dockerMachinePool.UID,
-					},
-					// Note: Since the MachinePool controller has not created its parent Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
-				},
-			},
-			Spec: infrav1.DockerMachineSpec{
-				CustomImage:   dockerMachinePool.Spec.Template.CustomImage, // TODO: drop?
-				PreLoadImages: dockerMachinePool.Spec.Template.PreLoadImages,
-			},
-		}
-
-		log.V(2).Info("Instance name for dockerMachine is", "instanceName", nodePoolMachineStatus.Name, "dockerMachine", dockerMachine.GetName())
-
-		if err := r.Client.Create(ctx, dockerMachine); err != nil {
-			return errors.Wrap(err, "failed to create dockerMachine")
+	for _, dockerMachine := range dockerMachinesToDelete {
+		log.V(2).Info("Deleting DockerMachine", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+		if err := r.deleteMachinePoolMachine(ctx, dockerMachine, *machinePool); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.Context, dockerMachines []infrav1.DockerMachine, dockerMachinePool *infraexpv1.DockerMachinePool) ([]docker.NodePoolMachineStatus, error) {
+func getDockerMachinesToDelete(ctx context.Context, dockerMachines []infrav1.DockerMachine, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) ([]infrav1.DockerMachine, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	nodePoolInstances := make([]docker.NodePoolMachineStatus, len(dockerMachines))
-	for i := range dockerMachines {
-		// Needed to avoid implicit memory aliasing of the loop variable.
-		dockerMachine := dockerMachines[i]
+	// TODO: sort these by delete priority
+	dockerMachinesToDelete := []infrav1.DockerMachine{}
+	numToDelete := len(dockerMachines) - int(*machinePool.Spec.Replicas)
+	// TODO: sort list of dockerMachines
+	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 
-		// Try to get the owner machine to see if it has a delete annotation. If it doesn't exist, we'll requeue until it does.
-		machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
-		}
-
-		hasDeleteAnnotation := false
-		if machine != nil {
-			if machine.Annotations != nil {
-				_, hasDeleteAnnotation = machine.Annotations[clusterv1.DeleteMachineAnnotation]
-			}
+	for _, dockerMachine := range dockerMachines {
+		// externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Name, labelFilters)
+		if numToDelete > 0 {
+			dockerMachinesToDelete = append(dockerMachinesToDelete, dockerMachine)
+			numToDelete--
 		} else {
-			// log.Info("DockerMachine has no parent Machine, return error and requeue", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-			// return nil, errors.Errorf("DockerMachine %s/%s has no parent Machine, return error and requeue", dockerMachine.Namespace, dockerMachine.Name)
-			sampleMachine := &clusterv1.Machine{}
-			sampleMachine.APIVersion = clusterv1.GroupVersion.String()
-			sampleMachine.Kind = "Machine"
-			log.Info("DockerMachine has no parent Machine, will set up a watch and initNodePoolMachineStatusList", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
-			// If machine == nil, then no Machine was found in the ownerRefs at all. Don't block nodepool reconciliation, but set up a Watch() instead.
-			if err := r.externalTracker.Watch(log, sampleMachine, handler.EnqueueRequestsFromMapFunc(r.machineToDockerMachinePoolMapper(ctx, &dockerMachine, dockerMachinePool))); err != nil {
-				return nil, errors.Wrapf(err, "failed to set watch for Machines %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+			externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Name, labelFilters)
+			if err != nil {
+				// TODO: should we delete anyways
+				return nil, err
+			}
+			if !isMachineMatchingInfrastructureSpec(ctx, externalMachine, machinePool, dockerMachinePool) {
+				dockerMachinesToDelete = append(dockerMachinesToDelete, dockerMachine)
 			}
 		}
 
-		nodePoolInstances[i] = docker.NodePoolMachineStatus{
-			Name:             dockerMachine.Name,
-			PrioritizeDelete: hasDeleteAnnotation,
-			ProviderID:       dockerMachine.Spec.ProviderID,
+		log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+	}
+
+	return dockerMachinesToDelete, nil
+}
+
+func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Context, dockerMachine infrav1.DockerMachine, machinePool expv1.MachinePool) error {
+	log := ctrl.LoggerFrom(ctx)
+	machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
+	// Not found doesn't return an error, so we need to check for nil.
+	if err != nil {
+		return errors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+	}
+	if machine == nil {
+		// If MachinePool is deleted, the DockerMachine and owner Machine doesn't already exist, then it will never come online.
+		if mpDeleted := isMachinePoolDeleted(ctx, r.Client, &machinePool); mpDeleted {
+			log.Info("DockerMachine is orphaned and MachinePool is deleted, deleting DockerMachine", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+			if err := r.Client.Delete(ctx, &dockerMachine); err != nil {
+				return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+			}
+		} else { // If the MachinePool still exists, then the Machine will be created, so we need to wait for that to happen.
+			return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
+		}
+	} else {
+		if err := r.Client.Delete(ctx, machine); err != nil {
+			return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)
 		}
 	}
 
-	return nodePoolInstances, nil
+	return nil
 }
+
+// CreateNewReplicas creates a DockerMachine for each instance returned by the node pool if it doesn't exist.
+func (r *DockerMachinePoolReconciler) CreateNewReplicas(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
+
+	machines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
+	if err != nil {
+		return errors.Wrapf(err, "failed to list all machines in the cluster")
+	}
+
+	matchingMachineCount := len(machinesMatchingInfrastructureSpec(ctx, machines, machinePool, dockerMachinePool))
+	log.Info("MatchingMachineCount", "count", matchingMachineCount)
+	numToCreate := int(*machinePool.Spec.Replicas) - matchingMachineCount
+	for i := 0; i < numToCreate; i++ {
+		createdMachine, err := createReplica(ctx, cluster, machinePool, dockerMachinePool)
+		if err != nil {
+			return errors.Wrap(err, "failed to create a new docker machine")
+		}
+
+		if err := r.createDockerMachine(ctx, createdMachine.Name(), cluster, machinePool, dockerMachinePool); err != nil {
+			return errors.Wrap(err, "failed to create a new docker machine")
+		}
+	}
+
+	return nil
+}
+
+// CreateNewDockerMachines creates a DockerMachine for each instance returned by the node pool if it doesn't exist.
+func (r *DockerMachinePoolReconciler) CreateNewDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+	_ = ctrl.LoggerFrom(ctx)
+
+	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
+
+	machines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
+	if err != nil {
+		return errors.Wrapf(err, "failed to list all machines in the cluster")
+	}
+
+	matchingMachines := machinesMatchingInfrastructureSpec(ctx, machines, machinePool, dockerMachinePool)
+	for _, machine := range matchingMachines {
+		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: machinePool.Namespace, Name: machine.Name()}, &infrav1.DockerMachine{}); err != nil {
+			if apierrors.IsNotFound(err) {
+				if err := r.createDockerMachine(ctx, machine.Name(), cluster, machinePool, dockerMachinePool); err != nil {
+					return errors.Wrap(err, "failed to create a new docker machine")
+				}
+			} else {
+				return errors.Wrap(err, "failed to get docker machine")
+			}
+		}
+	}
+
+	return nil
+}
+
+func createReplica(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (*docker.Machine, error) {
+	name := fmt.Sprintf("worker-%s", util.RandomString(6))
+	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
+	externalMachine, err := docker.NewMachine(ctx, cluster, name, labelFilters)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", name)
+	}
+
+	// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
+	// each container, so we can check placement.
+	labels := map[string]string{}
+	for k, v := range labelFilters {
+		labels[k] = v
+	}
+
+	if len(machinePool.Spec.FailureDomains) > 0 {
+		// For MachinePools placement is expected to be managed by the underlying infrastructure primitive, but
+		// given that there is no such an thing in CAPD, we are picking a random failure domain.
+		randomIndex := rand.Intn(len(machinePool.Spec.FailureDomains)) //nolint:gosec
+		for k, v := range docker.FailureDomainLabel(&machinePool.Spec.FailureDomains[randomIndex]) {
+			labels[k] = v
+		}
+	}
+
+	if err := externalMachine.Create(ctx, dockerMachinePool.Spec.Template.CustomImage, constants.WorkerNodeRoleValue, machinePool.Spec.Template.Spec.Version, labels, dockerMachinePool.Spec.Template.ExtraMounts); err != nil {
+		return nil, errors.Wrapf(err, "failed to create docker machine with name %s", name)
+	}
+	return externalMachine, nil
+}
+
+func (r *DockerMachinePoolReconciler) createDockerMachine(ctx context.Context, name string, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+	labels := map[string]string{
+		clusterv1.ClusterNameLabel:     cluster.Name,
+		clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePool.Name),
+	}
+	dockerMachine := &infrav1.DockerMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   dockerMachinePool.Namespace,
+			Name:        name,
+			Labels:      labels,
+			Annotations: make(map[string]string),
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: dockerMachinePool.APIVersion,
+					Kind:       dockerMachinePool.Kind,
+					Name:       dockerMachinePool.Name,
+					UID:        dockerMachinePool.UID,
+				},
+				// Note: Since the MachinePool controller has not created its parent Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
+			},
+		},
+		Spec: infrav1.DockerMachineSpec{
+			CustomImage:   dockerMachinePool.Spec.Template.CustomImage,
+			PreLoadImages: dockerMachinePool.Spec.Template.PreLoadImages,
+		},
+	}
+
+	// log.V(2).Info("Instance name for dockerMachine is", "instanceName", nodePoolMachineStatus.Name, "dockerMachine", dockerMachine.GetName())
+
+	if err := r.Client.Create(ctx, dockerMachine); err != nil {
+		return errors.Wrap(err, "failed to create dockerMachine")
+	}
+
+	return nil
+}
+
+func isMachineMatchingInfrastructureSpec(ctx context.Context, machine *docker.Machine, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) bool {
+	// NOTE: With the current implementation we are checking if the machine is using a kindest/node image for the expected version,
+	// but not checking if the machine has the expected extra.mounts or pre.loaded images.
+
+	semVer, err := semver.Parse(strings.TrimPrefix(*machinePool.Spec.Template.Spec.Version, "v"))
+	if err != nil {
+		// TODO: consider if to return an error
+		panic(errors.Wrap(err, "failed to parse DockerMachine version").Error())
+	}
+
+	kindMapping := kind.GetMapping(semVer, dockerMachinePool.Spec.Template.CustomImage)
+
+	return machine.ContainerImage() == kindMapping.Image
+}
+
+func machinesMatchingInfrastructureSpec(ctx context.Context, machines []*docker.Machine, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) []*docker.Machine {
+	var matchingMachines []*docker.Machine
+	for _, machine := range machines {
+		if isMachineMatchingInfrastructureSpec(ctx, machine, machinePool, dockerMachinePool) {
+			matchingMachines = append(matchingMachines, machine)
+		}
+	}
+
+	return matchingMachines
+}
+
+// func (r *DockerMachinePoolReconciler) initNodePoolMachineStatusList(ctx context.Context, dockerMachines []infrav1.DockerMachine, dockerMachinePool *infraexpv1.DockerMachinePool) ([]dockerexp.NodePoolMachineStatus, error) {
+// 	log := ctrl.LoggerFrom(ctx)
+
+// 	nodePoolInstances := make([]dockerexp.NodePoolMachineStatus, len(dockerMachines))
+// 	for i := range dockerMachines {
+// 		// Needed to avoid implicit memory aliasing of the loop variable.
+// 		dockerMachine := dockerMachines[i]
+
+// 		// Try to get the owner machine to see if it has a delete annotation. If it doesn't exist, we'll requeue until it does.
+// 		machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
+// 		if err != nil {
+// 			return nil, errors.Wrapf(err, "failed to get owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+// 		}
+
+// 		hasDeleteAnnotation := false
+// 		if machine != nil {
+// 			if machine.Annotations != nil {
+// 				_, hasDeleteAnnotation = machine.Annotations[clusterv1.DeleteMachineAnnotation]
+// 			}
+// 		} else {
+// 			sampleMachine := &clusterv1.Machine{}
+// 			sampleMachine.APIVersion = clusterv1.GroupVersion.String()
+// 			sampleMachine.Kind = "Machine"
+// 			log.Info("DockerMachine has no parent Machine, will set up a watch and initNodePoolMachineStatusList", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+// 			// If machine == nil, then no Machine was found in the ownerRefs at all. Don't block nodepool reconciliation, but set up a Watch() instead.
+// 			if err := r.externalTracker.Watch(log, sampleMachine, handler.EnqueueRequestsFromMapFunc(r.machineToDockerMachinePoolMapper(ctx, &dockerMachine, dockerMachinePool))); err != nil {
+// 				return nil, errors.Wrapf(err, "failed to set watch for Machines %s/%s", dockerMachine.Namespace, dockerMachine.Name)
+// 			}
+// 		}
+
+// 		nodePoolInstances[i] = dockerexp.NodePoolMachineStatus{
+// 			Name:             dockerMachine.Name,
+// 			PrioritizeDelete: hasDeleteAnnotation,
+// 		}
+// 	}
+
+// 	return nodePoolInstances, nil
+// }
 
 func isMachinePoolDeleted(ctx context.Context, c client.Client, machinePool *expv1.MachinePool) bool {
 	mp := &expv1.MachinePool{}

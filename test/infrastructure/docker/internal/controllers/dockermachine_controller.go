@@ -152,6 +152,10 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
+	if _, hasDeleteAnnotation := machine.Annotations[clusterv1.DeleteMachineAnnotation]; hasDeleteAnnotation {
+		dockerMachine.Annotations[clusterv1.DeleteMachineAnnotation] = machine.Annotations[clusterv1.DeleteMachineAnnotation]
+	}
+
 	// Create a helper for managing the docker container hosting the machine.
 	externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Name, nil)
 	if err != nil {

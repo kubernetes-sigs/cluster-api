@@ -21,7 +21,9 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -207,25 +209,28 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	_ = ctrl.LoggerFrom(ctx)
 
-	// dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
-	// if err != nil {
-	// 	return err
-	// }
+	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
+	machines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
+	if err != nil {
+		return errors.Wrapf(err, "failed to list all machines in the cluster")
+	}
 
-	// // Since nodepools don't persist the instances list, we need to construct it from the list of DockerMachines.
-	// nodePoolInstances, err := r.initNodePoolMachineStatusList(ctx, dockerMachineList.Items, dockerMachinePool)
-	// if err != nil {
-	// 	return err
-	// }
+	for _, machine := range machines {
+		key := client.ObjectKey{
+			Namespace: dockerMachinePool.Namespace,
+			Name:      machine.Name(),
+		}
+		dockerMachine := &infrav1.DockerMachine{}
+		if err := r.Client.Get(ctx, key, dockerMachine); err != nil {
+			if err := machine.Delete(ctx); err != nil {
+				return errors.Wrapf(err, "failed to delete machine %s", machine.Name())
+			}
+		}
 
-	// pool, err := dockerexp.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool, nodePoolInstances)
-	// if err != nil {
-	// 	return errors.Wrap(err, "failed to build new node pool")
-	// }
-
-	// if err := pool.Delete(ctx); err != nil {
-	// 	return errors.Wrap(err, "failed to delete all machines in the node pool")
-	// }
+		if err := r.deleteMachinePoolMachine(ctx, *dockerMachine, *machinePool); err != nil {
+			return errors.Wrapf(err, "failed to delete machine %s", dockerMachine.Name)
+		}
+	}
 
 	controllerutil.RemoveFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
 	return nil
@@ -287,13 +292,8 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 
 	dockerMachinePool.Status.Ready = false
 	conditions.MarkFalse(dockerMachinePool, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
-	return ctrl.Result{}, nil
 
-	// // if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
-	// if res.IsZero() {
-	// 	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
-	// }
-
+	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	// return res, nil
 }
 
@@ -344,6 +344,18 @@ func getDockerMachinesToDelete(ctx context.Context, dockerMachines []infrav1.Doc
 	numToDelete := len(dockerMachines) - int(*machinePool.Spec.Replicas)
 	// TODO: sort list of dockerMachines
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
+
+	// Sort priority delete to the front of the list
+	sort.Slice(dockerMachines, func(i, j int) bool {
+		_, iHasAnnotation := dockerMachines[i].Annotations[clusterv1.DeleteMachineAnnotation]
+		_, jHasAnnotation := dockerMachines[j].Annotations[clusterv1.DeleteMachineAnnotation]
+
+		if iHasAnnotation && jHasAnnotation {
+			return dockerMachines[i].Name < dockerMachines[j].Name
+		}
+
+		return iHasAnnotation
+	})
 
 	for _, dockerMachine := range dockerMachines {
 		// externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Name, labelFilters)

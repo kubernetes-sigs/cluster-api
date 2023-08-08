@@ -627,6 +627,7 @@ verify-gen: generate  ## Verify go generated files are up to date
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 
+.PHONY: verify-doctoc
 verify-doctoc: generate-doctoc
 	@if !(git diff --quiet HEAD); then \
 		git diff; \

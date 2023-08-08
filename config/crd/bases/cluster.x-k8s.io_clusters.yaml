@@ -665,6 +665,11 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: ClusterClass of this Cluster, empty if the Cluster is not using
+        a ClusterClass
+      jsonPath: .spec.topology.class
+      name: ClusterClass
+      type: string
     - description: Cluster status such as Pending/Provisioning/Provisioned/Deleting/Failed
       jsonPath: .status.phase
       name: Phase

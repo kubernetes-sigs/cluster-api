@@ -230,6 +230,7 @@ func getDockerMachinesToDelete(ctx context.Context, dockerMachines []infrav1.Doc
 			if !isMachineMatchingInfrastructureSpec(ctx, externalMachine, machinePool, dockerMachinePool) {
 				log.Info("Marking DockerMachine for deletion because it does not match infrastructure spec", "dockerMachine", dockerMachine.Name)
 				dockerMachinesToDelete = append(dockerMachinesToDelete, dockerMachine)
+				totalNumMachines--
 			} else {
 				log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 			}

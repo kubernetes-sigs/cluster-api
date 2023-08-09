@@ -241,7 +241,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		machinePool.Spec.Replicas = pointer.Int32(1)
 	}
 
-	if err := r.CreateNewReplicas(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+	if err := r.CreateNewInstances(ctx, cluster, machinePool, dockerMachinePool); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -249,7 +249,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return ctrl.Result{}, err
 	}
 
-	if err := r.CreateNewDockerMachines(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+	if err := r.createMissingDockerMachines(ctx, cluster, machinePool, dockerMachinePool); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -285,6 +285,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	dockerMachinePool.Status.Ready = false
 	conditions.MarkFalse(dockerMachinePool, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 
+	// TODO: replace with a watch on DockerMachines matching the label.
 	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 

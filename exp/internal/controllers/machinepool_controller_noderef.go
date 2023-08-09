@@ -76,9 +76,9 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
-	// if err = r.deleteRetiredNodes(ctx, clusterClient, mp.Status.NodeRefs, mp.Spec.ProviderIDList); err != nil {
-	// 	return ctrl.Result{}, err
-	// }
+	if err = r.deleteRetiredNodes(ctx, clusterClient, mp.Status.NodeRefs, mp.Spec.ProviderIDList); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	// Get the Node references.
 	nodeRefsResult, err := r.getNodeReferences(ctx, clusterClient, mp.Spec.ProviderIDList)
@@ -101,10 +101,10 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	r.recorder.Event(mp, corev1.EventTypeNormal, "SuccessfulSetNodeRefs", fmt.Sprintf("%+v", mp.Status.NodeRefs))
 
 	// Reconcile node annotations and taints.
-	// err = r.patchNodes(ctx, clusterClient, nodeRefsResult.references, mp)
-	// if err != nil {
-	// 	return ctrl.Result{}, err
-	// }
+	err = r.patchNodes(ctx, clusterClient, nodeRefsResult.references, mp)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
 		log.Info("NodeRefs != ReadyReplicas", "NodeRefs", len(nodeRefsResult.references), "ReadyReplicas", mp.Status.ReadyReplicas)

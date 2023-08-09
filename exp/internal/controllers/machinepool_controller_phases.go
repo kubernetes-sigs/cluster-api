@@ -479,12 +479,6 @@ func getNewMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructure
 	}
 
 	machine := &clusterv1.Machine{
-		// This object is passed into ensureInfraMachineOnwerRefs, so we need to set the TypeMeta in this case.
-		// If we pulled the Machine from a List() or Get(), the TypeMeta would already be set.
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Machine",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", mp.Name)),
 			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
@@ -502,6 +496,10 @@ func getNewMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructure
 			// Version: mp.Spec.Template.Spec.Version,
 		},
 	}
+
+	// This object is passed into ensureInfraMachineOnwerRefs, so we need to set the TypeMeta in this case.
+	// If we pulled the Machine from a List() or Get(), the TypeMeta would already be set.
+	machine.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Machine"))
 
 	for k, v := range mp.Spec.Template.Annotations {
 		machine.Annotations[k] = v

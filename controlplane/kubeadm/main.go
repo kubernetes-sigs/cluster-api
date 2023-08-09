@@ -21,7 +21,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	_ "net/http/pprof"
 	"os"
 	goruntime "runtime"
 	"time"

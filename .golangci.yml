@@ -88,10 +88,6 @@ linters-settings:
       - wrapperFunc
       - rangeValCopy
       - hugeParam
-  gosec:
-    excludes:
-    - G307 # Deferring unsafe method "Close" on type "\*os.File"
-    - G108 # Profiling endpoint is automatically exposed on /debug/pprof
   importas:
     no-unaliased: true
     alias:
@@ -264,14 +260,21 @@ issues:
     text: always receives
   # Dot imports for gomega and ginkgo are allowed
   # within test files and test utils.
-  - path: _test\.go
+  - linters:
+    - revive
+    - stylecheck
+    path: _test\.go
     text: should not use dot imports
-  - path: (framework|e2e)/.*.go
+  - linters:
+    - revive
+    - stylecheck
+    path: (framework|e2e)/.*.go
     text: should not use dot imports
-  - path: util/defaulting/defaulting.go
+  - linters:
+    - revive
+    - stylecheck
+    path: util/defaulting/defaulting.go
     text: should not use dot imports
-  - path: _test\.go
-    text: cyclomatic complexity
   # Append should be able to assign to a different var/slice.
   - linters:
     - gocritic
@@ -313,11 +316,6 @@ issues:
     - stylecheck
     text: "ST1016: methods on the same type should have the same receiver name"
     path: .*(api|types)\/.*\/conversion.*\.go$
-  # hack/tools
-  - linters:
-    - typecheck
-    text: import (".+") is a program, not an importable package
-    path: ^tools\.go$
   # We don't care about defer in for loops in test files.
   - linters:
     - gocritic

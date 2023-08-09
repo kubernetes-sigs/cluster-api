@@ -173,13 +173,11 @@ func (r *DockerMachinePoolReconciler) createDockerMachine(ctx context.Context, n
 // DeleteExtraDockerMachines deletes any DockerMachines owned by the DockerMachinePool that reference an invalid providerID, i.e. not in the latest copy of the node pool instances.
 func (r *DockerMachinePoolReconciler) DeleteExtraDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(2).Info("Deleting extra machines", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace)
+	log.V(2).Info("Deleting extra machines if needed", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace)
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
 	if err != nil {
 		return err
 	}
-
-	log.V(2).Info("DockerMachineList kind is", "kind", dockerMachineList.GetObjectKind())
 
 	dockerMachinesToDelete, err := getDockerMachinesToDelete(ctx, dockerMachineList.Items, cluster, machinePool, dockerMachinePool)
 	if err != nil {
@@ -200,10 +198,9 @@ func getDockerMachinesToDelete(ctx context.Context, dockerMachines []infrav1.Doc
 	log := ctrl.LoggerFrom(ctx)
 
 	dockerMachinesToDelete := []infrav1.DockerMachine{}
-	numToDelete := len(dockerMachines) - int(*machinePool.Spec.Replicas)
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 
-	// Sort priority delete to the front of the list
+	// Sort priority delete to end of list
 	sort.Slice(dockerMachines, func(i, j int) bool {
 		_, iHasAnnotation := dockerMachines[i].Annotations[clusterv1.DeleteMachineAnnotation]
 		_, jHasAnnotation := dockerMachines[j].Annotations[clusterv1.DeleteMachineAnnotation]
@@ -212,14 +209,18 @@ func getDockerMachinesToDelete(ctx context.Context, dockerMachines []infrav1.Doc
 			return dockerMachines[i].Name < dockerMachines[j].Name
 		}
 
-		return iHasAnnotation
+		return jHasAnnotation
 	})
 
+	desiredReplicas := int(*machinePool.Spec.Replicas)
+	totalNumMachines := 0
 	for _, dockerMachine := range dockerMachines {
 		// externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Name, labelFilters)
-		if numToDelete > 0 {
+		totalNumMachines++
+		if totalNumMachines > desiredReplicas {
 			dockerMachinesToDelete = append(dockerMachinesToDelete, dockerMachine)
-			numToDelete--
+			log.Info("Marking DockerMachine for deletion", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+			totalNumMachines--
 		} else {
 			externalMachine, err := docker.NewMachine(ctx, cluster, dockerMachine.Name, labelFilters)
 			if err != nil {
@@ -227,11 +228,13 @@ func getDockerMachinesToDelete(ctx context.Context, dockerMachines []infrav1.Doc
 				return nil, err
 			}
 			if !isMachineMatchingInfrastructureSpec(ctx, externalMachine, machinePool, dockerMachinePool) {
+				log.Info("Marking DockerMachine for deletion because it does not match infrastructure spec", "dockerMachine", dockerMachine.Name)
 				dockerMachinesToDelete = append(dockerMachinesToDelete, dockerMachine)
+			} else {
+				log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 			}
 		}
 
-		log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 	}
 
 	return dockerMachinesToDelete, nil

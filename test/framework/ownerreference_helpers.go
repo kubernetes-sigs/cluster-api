@@ -115,8 +115,10 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }
 
-// Kind and GVK for types in the core API package.
+// Kinds and Owners for types in the core API package.
 var (
+	coreGroupVersion = clusterv1.GroupVersion.String()
+
 	extensionConfigKind    = "ExtensionConfig"
 	clusterClassKind       = "ClusterClass"
 	clusterKind            = "Cluster"
@@ -125,11 +127,12 @@ var (
 	machineDeploymentKind  = "MachineDeployment"
 	machineHealthCheckKind = "MachineHealthCheck"
 
-	clusterClassGVK      = clusterv1.GroupVersion.WithKind(clusterClassKind)
-	clusterGVK           = clusterv1.GroupVersion.WithKind(clusterKind)
-	machineDeploymentGVK = clusterv1.GroupVersion.WithKind(machineDeploymentKind)
-	machineSetGVK        = clusterv1.GroupVersion.WithKind(machineSetKind)
-	machineGVK           = clusterv1.GroupVersion.WithKind(machineKind)
+	clusterOwner                = simpleOwnerRef{kind: clusterKind, apiVersion: coreGroupVersion}
+	clusterController           = simpleOwnerRef{kind: clusterKind, apiVersion: coreGroupVersion, controller: true}
+	clusterClassOwner           = simpleOwnerRef{kind: clusterClassKind, apiVersion: coreGroupVersion}
+	machineDeploymentController = simpleOwnerRef{kind: machineDeploymentKind, apiVersion: coreGroupVersion, controller: true}
+	machineSetController        = simpleOwnerRef{kind: machineSetKind, apiVersion: coreGroupVersion, controller: true}
+	machineController           = simpleOwnerRef{kind: machineKind, apiVersion: coreGroupVersion, controller: true}
 )
 
 // CoreOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
@@ -139,42 +142,44 @@ var (
 var CoreOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error{
 	extensionConfigKind: func(owners []metav1.OwnerReference) error {
 		// ExtensionConfig should have no owners.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+		return HasExactOwners(owners)
 	},
 	clusterClassKind: func(owners []metav1.OwnerReference) error {
 		// ClusterClass doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+		return HasExactOwners(owners)
 	},
 	clusterKind: func(owners []metav1.OwnerReference) error {
 		// Cluster doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+		return HasExactOwners(owners)
 	},
 	machineDeploymentKind: func(owners []metav1.OwnerReference) error {
 		// MachineDeployments must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		return HasExactOwners(owners, clusterOwner)
 	},
 	machineSetKind: func(owners []metav1.OwnerReference) error {
-		// MachineSets must be owned by a MachineDeployments.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machineDeploymentGVK})
+		// MachineSets must be owned and controlled by a MachineDeployment.
+		return HasExactOwners(owners, machineDeploymentController)
 	},
 	machineKind: func(owners []metav1.OwnerReference) error {
-		// Machines must be owned by a MachineSet or a KubeadmControlPlane, depending on if this Machine is part of a ControlPlane or not.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineSetGVK}, []schema.GroupVersionKind{kubeadmControlPlaneGVK})
+		// Machines must be owned and controlled by a MachineSet or a KubeadmControlPlane, depending on if this Machine is part of a ControlPlane or not.
+		return HasOneOfExactOwners(owners, []simpleOwnerRef{machineSetController}, []simpleOwnerRef{kubeadmControlPlaneController})
 	},
 	machineHealthCheckKind: func(owners []metav1.OwnerReference) error {
 		// MachineHealthChecks must be owned by the Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		return HasExactOwners(owners, clusterOwner)
 	},
 }
 
-// Kind and GVK for types in the exp package.
+// Kinds and Owners for types in the exp package.
 var (
 	clusterResourceSetKind        = "ClusterResourceSet"
 	clusterResourceSetBindingKind = "ClusterResourceSetBinding"
 	machinePoolKind               = "MachinePool"
 
-	machinePoolGVK        = expv1.GroupVersion.WithKind(machinePoolKind)
-	clusterResourceSetGVK = addonsv1.GroupVersion.WithKind(clusterResourceSetKind)
+	machinePoolOwner      = simpleOwnerRef{kind: machinePoolKind, apiVersion: expv1.GroupVersion.String()}
+	machinePoolController = simpleOwnerRef{kind: machinePoolKind, apiVersion: expv1.GroupVersion.String(), controller: true}
+
+	clusterResourceSetOwner = simpleOwnerRef{kind: clusterResourceSetKind, apiVersion: addonsv1.GroupVersion.String()}
 )
 
 // ExpOwnerReferenceAssertions maps experimental types to functions which return an error if the passed OwnerReferences
@@ -184,16 +189,16 @@ var (
 var ExpOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	clusterResourceSetKind: func(owners []metav1.OwnerReference) error {
 		// ClusterResourcesSet doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+		return HasExactOwners(owners)
 	},
 	// ClusterResourcesSetBinding has ClusterResourceSet set as owners on creation.
 	clusterResourceSetBindingKind: func(owners []metav1.OwnerReference) error {
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterResourceSetGVK})
+		return HasOneOfExactOwners(owners, []simpleOwnerRef{clusterResourceSetOwner}, []simpleOwnerRef{clusterResourceSetOwner, clusterResourceSetOwner})
 	},
 	// MachinePool must be owned by a Cluster.
 	machinePoolKind: func(owners []metav1.OwnerReference) error {
 		// MachinePools must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		return HasExactOwners(owners, clusterOwner)
 	},
 }
 
@@ -208,21 +213,23 @@ var (
 // That document should be updated if these references change.
 var KubernetesReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	secretKind: func(owners []metav1.OwnerReference) error {
-		// Secrets for cluster certificates must be owned by the KubeadmControlPlane. The bootstrap secret should be owned by a KubeadmControlPlane.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{kubeadmControlPlaneGVK}, []schema.GroupVersionKind{kubeadmConfigGVK})
+		// Secrets for cluster certificates must be owned and controlled by the KubeadmControlPlane. The bootstrap secret should be owned and controlled by a KubeadmControlPlane.
+		return HasOneOfExactOwners(owners, []simpleOwnerRef{kubeadmControlPlaneController}, []simpleOwnerRef{kubeadmConfigController})
 	},
 	configMapKind: func(owners []metav1.OwnerReference) error {
 		// The only configMaps considered here are those owned by a ClusterResourceSet.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterResourceSetGVK})
+		return HasExactOwners(owners, clusterResourceSetOwner)
 	},
 }
 
-// Kind and GVK for types in the Kubeadm ControlPlane package.
+// Kind and Owners for types in the Kubeadm ControlPlane package.
 var (
 	kubeadmControlPlaneKind         = "KubeadmControlPlane"
 	kubeadmControlPlaneTemplateKind = "KubeadmControlPlaneTemplate"
 
-	kubeadmControlPlaneGVK = controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind)
+	kubeadmControlPlaneGroupVersion = controlplanev1.GroupVersion.String()
+
+	kubeadmControlPlaneController = simpleOwnerRef{kind: kubeadmControlPlaneKind, apiVersion: kubeadmControlPlaneGroupVersion, controller: true}
 )
 
 // KubeadmControlPlaneOwnerReferenceAssertions maps Kubeadm control plane types to functions which return an error if the passed
@@ -231,21 +238,22 @@ var (
 // That document should be updated if these references change.
 var KubeadmControlPlaneOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmControlPlaneKind: func(owners []metav1.OwnerReference) error {
-		// The KubeadmControlPlane must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		// The KubeadmControlPlane must be owned and controlled by a Cluster.
+		return HasExactOwners(owners, clusterController)
 	},
 	kubeadmControlPlaneTemplateKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmControlPlaneTemplate must be owned by a ClusterClass.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterClassGVK})
+		return HasExactOwners(owners, clusterClassOwner)
 	},
 }
 
-// Kind and GVK for types in the Kubeadm Bootstrap package.
+// Owners and kinds for types in the Kubeadm Bootstrap package.
 var (
 	kubeadmConfigKind         = "KubeadmConfig"
 	kubeadmConfigTemplateKind = "KubeadmConfigTemplate"
 
-	kubeadmConfigGVK = bootstrapv1.GroupVersion.WithKind(kubeadmConfigKind)
+	kubeadmConfigGroupVersion = bootstrapv1.GroupVersion.String()
+	kubeadmConfigController   = simpleOwnerRef{kind: kubeadmConfigKind, apiVersion: kubeadmConfigGroupVersion, controller: true}
 )
 
 // KubeadmBootstrapOwnerReferenceAssertions maps KubeadmBootstrap types to functions which return an error if the passed OwnerReferences
@@ -254,16 +262,16 @@ var (
 // That document should be updated if these references change.
 var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmConfigKind: func(owners []metav1.OwnerReference) error {
-		// The KubeadmConfig must be owned by a Cluster or by a MachinePool.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK}, []schema.GroupVersionKind{machinePoolGVK})
+		// The KubeadmConfig must be owned and controlled by a Machine or MachinePool.
+		return HasOneOfExactOwners(owners, []simpleOwnerRef{machineController}, []simpleOwnerRef{machinePoolController})
 	},
 	kubeadmConfigTemplateKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmConfigTemplate must be owned by a ClusterClass.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK}, []schema.GroupVersionKind{clusterClassGVK})
+		return HasOneOfExactOwners(owners, []simpleOwnerRef{clusterOwner}, []simpleOwnerRef{clusterClassOwner})
 	},
 }
 
-// Kind and GVK for types in the Docker infrastructure package.
+// Kinds for types in the Docker infrastructure package.
 var (
 	dockerMachineKind         = "DockerMachine"
 	dockerMachineTemplateKind = "DockerMachineTemplate"
@@ -278,56 +286,73 @@ var (
 // That document should be updated if these references change.
 var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	dockerMachineKind: func(owners []metav1.OwnerReference) error {
-		// The DockerMachine must be owned by a Machine.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK})
+		// The DockerMachine must be owned and controlled by a Machine.
+		return HasExactOwners(owners, machineController)
 	},
 	dockerMachineTemplateKind: func(owners []metav1.OwnerReference) error {
 		// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.
 		// DockerMachineTemplates created for specific Clusters in the Topology controller must be owned by a Cluster.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK}, []schema.GroupVersionKind{clusterClassGVK})
+		return HasOneOfExactOwners(owners, []simpleOwnerRef{clusterOwner}, []simpleOwnerRef{clusterClassOwner})
 	},
 	dockerClusterKind: func(owners []metav1.OwnerReference) error {
-		// DockerCluster must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		// DockerCluster must be owned and controlled by a Cluster.
+		return HasExactOwners(owners, clusterController)
 	},
 	dockerClusterTemplateKind: func(owners []metav1.OwnerReference) error {
 		// DockerClusterTemplate must be owned by a ClusterClass.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterClassGVK})
+		return HasExactOwners(owners, clusterClassOwner)
 	},
 	dockerMachinePoolKind: func(owners []metav1.OwnerReference) error {
 		// DockerMachinePool must be owned by a MachinePool.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machinePoolGVK})
+		return HasExactOwners(owners, machinePoolOwner)
 	},
 }
 
-func hasExactOwnersByGVK(refList []metav1.OwnerReference, wantGVKs []schema.GroupVersionKind) error {
-	refGVKs := []schema.GroupVersionKind{}
-	for _, ref := range refList {
-		refGVK, err := ownerRefGVK(ref)
-		if err != nil {
-			return err
-		}
-		refGVKs = append(refGVKs, refGVK)
+// simpleOwnerRef is a simple representation of an ownerReference.
+type simpleOwnerRef struct {
+	kind       string
+	apiVersion string
+	controller bool
+}
+
+func (s simpleOwnerRef) String() string {
+	return fmt.Sprintf("%s/%s/%v", s.apiVersion, s.kind, s.controller)
+}
+
+func HasExactOwners(refList []metav1.OwnerReference, wantOwners ...simpleOwnerRef) error {
+	gotOwners := []simpleOwnerRef{}
+	if wantOwners == nil {
+		wantOwners = []simpleOwnerRef{}
 	}
-	sort.SliceStable(refGVKs, func(i int, j int) bool {
-		return refGVKs[i].String() > refGVKs[j].String()
+	for _, ref := range refList {
+		simpleRef := simpleOwnerRef{
+			kind:       ref.Kind,
+			apiVersion: ref.APIVersion,
+		}
+		simpleRef.controller = true
+		if ref.Controller == nil || !*ref.Controller {
+			simpleRef.controller = false
+		}
+		gotOwners = append(gotOwners, simpleRef)
+	}
+	sort.SliceStable(gotOwners, func(i int, j int) bool {
+		return gotOwners[i].String() > gotOwners[j].String()
 	})
-	sort.SliceStable(wantGVKs, func(i int, j int) bool {
-		return wantGVKs[i].String() > wantGVKs[j].String()
+	sort.SliceStable(wantOwners, func(i int, j int) bool {
+		return wantOwners[i].String() > wantOwners[j].String()
 	})
-	if !reflect.DeepEqual(wantGVKs, refGVKs) {
-		return fmt.Errorf("wanted %v, actual %v", wantGVKs, refGVKs)
+	if !reflect.DeepEqual(wantOwners, gotOwners) {
+		return fmt.Errorf("wanted %v, actual %v", wantOwners, gotOwners)
 	}
 	return nil
 }
 
-// NOTE: we are using hasOneOfExactOwnersByGVK as a convenience approach for checking owner references on objects that
-// can have different owner references depending on the cluster topology.
+// HasOneOfExactOwners is a convenience approach for checking owner references on objects that can have different owner references depending on the cluster.
 // In a follow-up iteration we can make improvements to check owner references according to the specific use cases vs checking generically "oneOf".
-func hasOneOfExactOwnersByGVK(refList []metav1.OwnerReference, possibleGVKS ...[]schema.GroupVersionKind) error {
+func HasOneOfExactOwners(refList []metav1.OwnerReference, possibleOwners ...[]simpleOwnerRef) error {
 	var allErrs []error
-	for _, wantGVK := range possibleGVKS {
-		err := hasExactOwnersByGVK(refList, wantGVK)
+	for _, wantOwner := range possibleOwners {
+		err := HasExactOwners(refList, wantOwner...)
 		if err != nil {
 			allErrs = append(allErrs, err)
 			continue
@@ -335,14 +360,6 @@ func hasOneOfExactOwnersByGVK(refList []metav1.OwnerReference, possibleGVKS ...[
 		return nil
 	}
 	return kerrors.NewAggregate(allErrs)
-}
-
-func ownerRefGVK(ref metav1.OwnerReference) (schema.GroupVersionKind, error) {
-	refGV, err := schema.ParseGroupVersion(ref.APIVersion)
-	if err != nil {
-		return schema.GroupVersionKind{}, err
-	}
-	return schema.GroupVersionKind{Version: refGV.Version, Group: refGV.Group, Kind: ref.Kind}, nil
 }
 
 func setClusterPause(ctx context.Context, cli client.Client, clusterKey types.NamespacedName, value bool) {

@@ -56,8 +56,6 @@ metadata:
 spec:
   template:
     spec:
-      # NOTE: If the Kubernetes version is changed in `clusterctl_upgrade_test.go` the image and SHA must be updated here.
-      customImage: "kindest/node:v1.26.4@sha256:f4c0d87be03d6bea69f5e5dc0adb678bb498a190ee5c38422bf751541cebe92e"
       extraMounts:
         - containerPath: "/var/run/docker.sock"
           hostPath: "/var/run/docker.sock"
@@ -87,15 +85,7 @@ spec:
         # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
         certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
     initConfiguration:
-      nodeRegistration:
-        criSocket: unix:///var/run/containerd/containerd.sock
-        kubeletExtraArgs:
-          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-          fail-swap-on: "false"
+      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
     joinConfiguration:
-      nodeRegistration:
-        criSocket: unix:///var/run/containerd/containerd.sock
-        kubeletExtraArgs:
-          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-          fail-swap-on: "false"
+      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
   version: "${KUBERNETES_VERSION}"

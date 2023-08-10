@@ -10,3 +10,4 @@ maintainers of other providers and consumers of the Go API in upgrading from one
 - [v1.2 to v1.3](migrations/v1.2-to-v1.3.md)
 - [v1.3 to v1.4](migrations/v1.3-to-v1.4.md)
 - [v1.4 to v1.5](migrations/v1.4-to-v1.5.md)
+- [v1.5 to v1.6](migrations/v1.5-to-v1.6.md)

@@ -248,9 +248,15 @@ def build_go_binary(context, reload_deps, debug, go_main, binary_name, label):
     live_reload_deps = []
     for d in reload_deps:
         live_reload_deps.append(context + "/" + d)
+
+    # Ensure the {context}/.tiltbuild/bin directory before any other resources
+    # `local` is evaluated immediately, other resources are executed later in the startup/when triggered
+    local("mkdir -p {context}/.tiltbuild/bin".format(context = shlex.quote(context)), quiet = True)
+
+    # Build the go binary
     local_resource(
         label.lower() + "_binary",
-        cmd = "cd {context};mkdir -p .tiltbuild/bin;{build_cmd}".format(
+        cmd = "cd {context};{build_cmd}".format(
             context = context,
             build_cmd = build_cmd,
         ),

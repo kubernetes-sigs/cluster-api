@@ -316,7 +316,7 @@ analyzing them via Grafana.
    Just click on the downwards arrow, enter either a ProwJob URL, a GCS path or a local folder and click on `Import Logs`.
    This will retrieve the logs and push them to Loki. Alternatively, the logs can be imported via:
    ```bash
-   go run ./hack/tools/log-push --log-path=<log-path>
+   go run ./hack/tools/internal/log-push --log-path=<log-path>
    ```
    Examples for log paths:
     * ProwJob URL: `https://prow.k8s.io/view/gs/kubernetes-jenkins/pr-logs/pull/kubernetes-sigs_cluster-api/6189/pull-cluster-api-e2e-main/1496954690603061248`

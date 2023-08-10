@@ -431,7 +431,7 @@ def deploy_observability():
 
         cmd_button(
             "loki:import logs",
-            argv = ["sh", "-c", "cd ./hack/tools/log-push && go run ./main.go --log-path=$LOG_PATH"],
+            argv = ["sh", "-c", "cd ./hack/tools/internal/log-push && go run ./main.go --log-path=$LOG_PATH"],
             resource = "loki",
             icon_name = "import_export",
             text = "Import logs",

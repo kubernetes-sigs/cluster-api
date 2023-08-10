@@ -63,7 +63,7 @@ var (
 		unknown,
 	}
 
-	repo = flag.String("repository", "kubernetes-sigs/cluster-api", "The tag or commit to start from.")
+	repo = flag.String("repository", "kubernetes-sigs/cluster-api", "The repo to run the tool from.")
 
 	fromTag = flag.String("from", "", "The tag or commit to start from.")
 
@@ -447,6 +447,9 @@ func modifyEntryTitle(title string, prefixes []string) string {
 // generateReleaseNoteEntry processes a commit into a PR line item for the release notes.
 func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	entry := &releaseNoteEntry{}
+	if c.body == "" {
+		c.body = "ERROR: BODY MISSING. FIX MANUALLY"
+	}
 	entry.title = trimTitle(c.body)
 	var fork string
 

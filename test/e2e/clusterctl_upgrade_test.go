@@ -152,8 +152,8 @@ var _ = Describe("When testing clusterctl upgrades (v1.5=>current)", func() {
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/e2e/data/infrastructure-docker/v1.5/bases.
-			InitWithKubernetesVersion: "v1.27.3",
-			WorkloadKubernetesVersion: "v1.27.3",
+			InitWithKubernetesVersion: "v1.28.0",
+			WorkloadKubernetesVersion: "v1.28.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
@@ -183,8 +183,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.5=>cur
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/e2e/data/infrastructure-docker/v1.5/bases.
-			InitWithKubernetesVersion: "v1.27.3",
-			WorkloadKubernetesVersion: "v1.27.3",
+			InitWithKubernetesVersion: "v1.28.0",
+			WorkloadKubernetesVersion: "v1.28.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "topology",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.

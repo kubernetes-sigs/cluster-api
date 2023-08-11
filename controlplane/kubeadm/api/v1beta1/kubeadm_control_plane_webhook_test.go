@@ -671,6 +671,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		{"/var/lib/testdir", "/var/lib/etcd/data"},
 	}
 
+	beforeUseExperimentalRetryJoin := before.DeepCopy()
+	beforeUseExperimentalRetryJoin.Spec.KubeadmConfigSpec.UseExperimentalRetryJoin = true //nolint:staticcheck
+	updateUseExperimentalRetryJoin := before.DeepCopy()
+	updateUseExperimentalRetryJoin.Spec.KubeadmConfigSpec.UseExperimentalRetryJoin = false //nolint:staticcheck
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -1015,6 +1020,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr:             false,
 			before:                before,
 			kcp:                   switchFromCloudInitToIgnition,
+		},
+		{
+			name:      "should allow changes to useExperimentalRetryJoin",
+			expectErr: false,
+			before:    beforeUseExperimentalRetryJoin,
+			kcp:       updateUseExperimentalRetryJoin,
 		},
 	}
 

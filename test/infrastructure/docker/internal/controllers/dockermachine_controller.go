@@ -425,24 +425,12 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to generate workload cluster client")
 	}
-	// TODO: figure out if this breaks MPMs
-	if !machinePoolOwned {
-		if err := externalMachine.CloudProviderNodePatch(ctx, remoteClient, dockerMachine); err != nil {
-			if errors.As(err, &docker.ContainerNotRunningError{}) {
-				return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
-			}
-			log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	if err := externalMachine.CloudProviderNodePatch(ctx, remoteClient, dockerMachine); err != nil {
+		if errors.As(err, &docker.ContainerNotRunningError{}) {
+			return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
 		}
-	} else if dockerMachine.Spec.ProviderID == nil {
-		log.Info("Fetching instance provider ID for MachinePool Machine", "dockerMachine", dockerMachine.Name)
-		// Usually a cloud provider will do this, but there is no docker-cloud provider.
-		// Requeue if there is an error, as this is likely momentary load balancer
-		// state changes during control plane provisioning.
-		if err = externalMachine.SetNodeProviderID(ctx, remoteClient); err != nil {
-			log.V(4).Info("transient error setting the provider id")
-			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
-		}
+		log.Error(err, "failed to patch the Kubernetes node with the machine providerID")
+		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 	// Set ProviderID so the Cluster API Machine Controller can pull it
 	providerID := externalMachine.ProviderID()

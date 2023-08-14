@@ -51,7 +51,7 @@ k8s::prepareKindestImages
 kind:prepullAdditionalImages
 
 # Configure e2e tests
-export GINKGO_NODES=3
+export GINKGO_NODES=10
 export GINKGO_NOCOLOR=true
 export GINKGO_ARGS="${GINKGO_ARGS:-""}"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"

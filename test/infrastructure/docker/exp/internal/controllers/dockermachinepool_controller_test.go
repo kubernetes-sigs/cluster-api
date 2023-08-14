@@ -123,7 +123,7 @@ func TestDeleteMachinePoolMachine(t *testing.T) {
 			dockerMachine: dockerMachine.DeepCopy(),
 			machine:       nil,
 			machinePool:   defaultMachinePool.DeepCopy(),
-			expectedError: fmt.Sprintf("DockerMachine %s/%s has no owner Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name),
+			expectedError: fmt.Sprintf("DockerMachine %s/%s has no owner Machine, will reattempt deletion once owner Machine is present", dockerMachine.Namespace, dockerMachine.Name),
 		},
 	}
 

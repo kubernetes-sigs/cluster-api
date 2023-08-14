@@ -157,7 +157,7 @@ func (r *DockerMachinePoolReconciler) createDockerMachine(ctx context.Context, n
 					Name:       dockerMachinePool.Name,
 					UID:        dockerMachinePool.UID,
 				},
-				// Note: Since the MachinePool controller has not created its parent Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
+				// Note: Since the MachinePool controller has not created its owner Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
 			},
 		},
 		Spec: infrav1.DockerMachineSpec{
@@ -199,7 +199,7 @@ func (r *DockerMachinePoolReconciler) DeleteExtraDockerMachines(ctx context.Cont
 	return nil
 }
 
-// deleteMachinePoolMachine attempts to delete a DockerMachine and its associated parent Machine if it exists.
+// deleteMachinePoolMachine attempts to delete a DockerMachine and its associated owner Machine if it exists.
 func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Context, dockerMachine infrav1.DockerMachine, machinePool expv1.MachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 	machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
@@ -215,7 +215,7 @@ func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Conte
 				return errors.Wrapf(err, "failed to delete orphaned DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 			}
 		} else { // If the MachinePool still exists, then the Machine will be created, so we need to wait for that to happen.
-			return errors.Errorf("DockerMachine %s/%s has no parent Machine, will reattempt deletion once parent Machine is present", dockerMachine.Namespace, dockerMachine.Name)
+			return errors.Errorf("DockerMachine %s/%s has no owner Machine, will reattempt deletion once owner Machine is present", dockerMachine.Namespace, dockerMachine.Name)
 		}
 	} else {
 		if err := r.Client.Delete(ctx, machine); err != nil {

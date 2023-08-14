@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -198,12 +199,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 // reconcile handles cluster reconciliation.
 func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
 	var err error
 
 	// Get ClusterClass.
 	clusterClass := &clusterv1.ClusterClass{}
 	key := client.ObjectKey{Name: s.Current.Cluster.Spec.Topology.Class, Namespace: s.Current.Cluster.Namespace}
 	if err := r.Client.Get(ctx, key, clusterClass); err != nil {
+		if apierrors.IsNotFound(err) {
+			log.V(6).Info("could not find ClusterClass", "ClusterClass", klog.KRef(key.Namespace, key.Name))
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", s.Current.Cluster.Spec.Topology.Class)
 	}
 

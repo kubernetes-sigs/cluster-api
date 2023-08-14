@@ -267,14 +267,13 @@ func getDockerMachinesToDelete(ctx context.Context, dockerMachines []infrav1.Doc
 				log.V(2).Info("Keeping DockerMachine, nothing to do", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
 			}
 		}
-
 	}
 
 	return dockerMachinesToDelete, nil
 }
 
 // isMachineMatchingInfrastructureSpec returns true if the Docker container image matches the custom image in the DockerMachinePool spec.
-func isMachineMatchingInfrastructureSpec(ctx context.Context, machine *docker.Machine, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) bool {
+func isMachineMatchingInfrastructureSpec(_ context.Context, machine *docker.Machine, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) bool {
 	// NOTE: With the current implementation we are checking if the machine is using a kindest/node image for the expected version,
 	// but not checking if the machine has the expected extra.mounts or pre.loaded images.
 

@@ -238,11 +238,9 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 		dataSecretName = machinePool.Spec.Template.Spec.Bootstrap.DataSecretName
 		version = machinePool.Spec.Template.Spec.Version
-		log.Info("Got version from MachinePool", "version", version)
 	} else {
 		dataSecretName = machine.Spec.Bootstrap.DataSecretName
 		version = machine.Spec.Version
-		log.Info("Got version from Machine", "version", version)
 	}
 
 	// if the machine is already provisioned, return
@@ -251,12 +249,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		// This is required after move, because status is not moved to the target cluster.
 		dockerMachine.Status.Ready = true
 
-		// Bootstrap is handled by the DockerMachinePool controller, we just need to set the condition to true.
-		// if machinePoolOwned && dockerMachine.Spec.Bootstrapped {
-		// 	conditions.MarkTrue(dockerMachine, infrav1.BootstrapExecSucceededCondition)
-		// }
-
-		// TODO: figure out if breaks MPMs
 		if externalMachine.Exists() {
 			conditions.MarkTrue(dockerMachine, infrav1.ContainerProvisionedCondition)
 			// Setting machine address is required after move, because status.Address field is not retained during move.
@@ -297,7 +289,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		}
 	}
 
-	// TODO: block this in MPMs if needed
 	// Preload images into the container
 	if len(dockerMachine.Spec.PreLoadImages) > 0 {
 		if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
@@ -349,11 +340,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		// but bootstrapped is never set on the object. We only try to bootstrap if the machine
 		// is not already bootstrapped.
 		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
-			// if machinePoolOwned {
-			// 	if err := externalMachine.PreloadLoadImages(timeoutCtx, dockerMachine.Spec.PreLoadImages); err != nil {
-			// 		return ctrl.Result{}, errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", dockerMachine.Name)
-			// 	}
-			// }
 			if dataSecretName == nil {
 				return ctrl.Result{}, errors.Errorf("error retrieving bootstrap data: linked bootstrap.dataSecretName is nil")
 			}

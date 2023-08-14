@@ -285,7 +285,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	dockerMachinePool.Status.Ready = false
 	conditions.MarkFalse(dockerMachinePool, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 
-	// TODO: replace with a watch on DockerMachines matching the label.
+	// if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
 	return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 }
 
@@ -310,30 +310,6 @@ func isMachinePoolDeleted(ctx context.Context, c client.Client, machinePool *exp
 	}
 
 	return false
-}
-
-// machineToDockerMachinePoolMapper is a mapper function that maps an InfraMachine to the MachinePool that owns it.
-// This is used to trigger an update of the MachinePool when a InfraMachine is changed.
-func (r *DockerMachinePoolReconciler) machineToDockerMachinePoolMapper(_ context.Context, dockerMachine *infrav1.DockerMachine, dockerMachinePool *infraexpv1.DockerMachinePool) func(context.Context, client.Object) []ctrl.Request {
-	return func(ctx context.Context, o client.Object) []ctrl.Request {
-		machine, ok := o.(*clusterv1.Machine)
-		if !ok {
-			return nil
-		}
-
-		if machine.Spec.InfrastructureRef.Name == dockerMachine.Name {
-			return []ctrl.Request{
-				{
-					NamespacedName: client.ObjectKey{
-						Namespace: dockerMachinePool.Namespace,
-						Name:      dockerMachinePool.Name,
-					},
-				},
-			}
-		}
-
-		return nil
-	}
 }
 
 func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) string {

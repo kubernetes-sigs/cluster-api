@@ -76,5 +76,5 @@ type IPAddressClaimList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IPAddressClaim{}, &IPAddressClaimList{})
+	objectTypes = append(objectTypes, &IPAddressClaim{}, &IPAddressClaimList{})
 }

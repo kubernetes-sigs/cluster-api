@@ -21,12 +21,14 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
 
 func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(expv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(infrav1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(infraexpv1.AddToScheme(scheme.Scheme))
 }

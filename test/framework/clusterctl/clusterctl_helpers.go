@@ -315,6 +315,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		ClusterName:                  input.ConfigCluster.ClusterName,
 		Namespace:                    input.ConfigCluster.Namespace,
 		CNIManifestPath:              input.CNIManifestPath,
+		Flavor:                       input.ConfigCluster.Flavor,
 		WaitForClusterIntervals:      input.WaitForClusterIntervals,
 		WaitForControlPlaneIntervals: input.WaitForControlPlaneIntervals,
 		WaitForMachineDeployments:    input.WaitForMachineDeployments,
@@ -333,6 +334,7 @@ type ApplyCustomClusterTemplateAndWaitInput struct {
 	ClusterName                  string
 	Namespace                    string
 	CNIManifestPath              string
+	Flavor                       string
 	WaitForClusterIntervals      []interface{}
 	WaitForControlPlaneIntervals []interface{}
 	WaitForMachineDeployments    []interface{}

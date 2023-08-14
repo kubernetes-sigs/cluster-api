@@ -56,7 +56,9 @@ For more details on setting up a development environment with `tilt`, see [Devel
 
 ## Enabling Experimental Features on Existing Management Clusters
 
-To enable/disable features on existing management clusters, users can modify CAPI controller manager deployment which will restart all controllers with requested features.
+To enable/disable features on existing management clusters, users can edit the corresponding controller manager
+deployments, which will then trigger a restart with the requested features. E.g. for the CAPI controller manager
+deployment:
 
 ```
 kubectl edit -n capi-system deployment.apps/capi-controller-manager
@@ -68,11 +70,33 @@ kubectl edit -n capi-system deployment.apps/capi-controller-manager
       --feature-gates=MachinePool=true,ClusterResourceSet=true
 ```
 
-Similarly, to **validate** if a particular feature is enabled, see cluster-api-provider deployment arguments by:
+Similarly, to **validate** if a particular feature is enabled, see the arguments by issuing:
 
 ```bash
 kubectl describe -n capi-system deployment.apps/capi-controller-manager
 ```
+
+Following controller manager deployments have to be edited in order to enable/disable their respective experimental features:
+
+* [MachinePools](./machine-pools.md):
+  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
+  * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
+  * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
+    might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
+    regarding this.
+* [ClusterResourceSet](./cluster-resource-set.md):
+  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
+* [ClusterClass](./cluster-class/index.md):
+  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
+  * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
+  * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
+    might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
+    regarding this.
+* [Ignition Bootstrap configuration](./ignition.md):
+  * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
+  * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
+* [Runtime SDK](runtime-sdk/index.md):
+  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 
 ## Active Experimental Features
 

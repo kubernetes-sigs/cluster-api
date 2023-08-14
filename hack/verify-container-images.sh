@@ -72,7 +72,7 @@ NC='\033[0m' # No
 
 if [ "$R1" -ne "0" ] || [ "$R2"  -ne "0" ] || [ "$R3" -ne "0" ] || [ "$R4" -ne "0"  ] || [ "$R5" -ne "0"  ] || [ "$R6" -ne "0" ]
 then
-  echo -e "${BRed}Check container images failed! There are vulnerability to be fixed${NC}"
+  echo -e "${BRed}Check container images failed! There are vulnerabilities to be fixed${NC}"
   exit 1
 fi
 

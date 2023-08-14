@@ -31,7 +31,8 @@ if [[ "${TRACE-0}" == "1" ]]; then
 fi
 
 KIND_CLUSTER_NAME=${CAPI_KIND_CLUSTER_NAME:-"capi-test"}
-
+# See: https://kind.sigs.k8s.io/docs/user/configuration/#ip-family
+KIND_NETWORK_IPFAMILY=${KIND_NETWORK_IPFAMILY:-"dual"}
 
 # 1. If kind cluster already exists exit.
 if [[ "$(kind get clusters)" =~ .*"${KIND_CLUSTER_NAME}".* ]]; then
@@ -59,7 +60,7 @@ cat <<EOF | kind create cluster --name="$KIND_CLUSTER_NAME"  --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  ipFamily: dual
+  ipFamily: ${KIND_NETWORK_IPFAMILY}
 nodes:
 - role: control-plane
   extraMounts:

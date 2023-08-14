@@ -127,7 +127,7 @@ require (
 	golang.org/x/term v0.11.0 // indirect
 	golang.org/x/text v0.12.0
 	golang.org/x/time v0.3.0 // indirect
-	gomodules.xyz/jsonpatch/v2 v2.3.0
+	gomodules.xyz/jsonpatch/v2 v2.4.0
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect

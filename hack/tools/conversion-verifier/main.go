@@ -17,11 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"go/types"
 	"path"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 	crdmarkers "sigs.k8s.io/controller-tools/pkg/crd/markers"
@@ -70,7 +70,7 @@ func (s *storageVersionType) IsHub() bool {
 }
 
 func main() {
-	var result error
+	var errs []error
 
 	// Define the marker collector.
 	col := &markers.Collector{
@@ -118,7 +118,7 @@ func main() {
 				return
 			}
 			if _, ok := storageVersionTypes[info.Name]; ok {
-				result = multierror.Append(result,
+				errs = append(errs,
 					errors.Errorf("type %q has a redeclared storage version in package %q", info.Name, pkg.PkgPath),
 				)
 				return
@@ -197,21 +197,24 @@ func main() {
 		}
 
 		if !storageType.IsHub() {
-			result = multierror.Append(result,
+			errs = append(errs,
 				errors.Errorf("type %q in package %q marked as storage version but it's not convertible, missing Hub() method", name, storageType.pkg.PkgPath),
 			)
 		}
 		for _, decl := range storageType.otherDecls {
 			if !decl.IsConvertible() {
-				result = multierror.Append(result,
+				errs = append(errs,
 					errors.Errorf("type %q in package %q it's not convertible, missing ConvertFrom() and ConvertTo() methods", name, decl.pkg.PkgPath),
 				)
 			}
 		}
 	}
 
-	if result != nil {
-		klog.Exit(result.Error())
+	if len(errs) > 0 {
+		fmt.Printf("%d errors occurred:\n", len(errs))
+		for _, err := range errs {
+			fmt.Printf("\t* %s\n", err)
+		}
 	}
 }
 

@@ -435,6 +435,7 @@ type releaseNoteEntry struct {
 	prNumber string
 }
 
+// modifyEntryTitle removes the specified prefixes from the title.
 func modifyEntryTitle(title string, prefixes []string) string {
 	entryWithoutTag := title
 	for _, prefix := range prefixes {
@@ -442,6 +443,16 @@ func modifyEntryTitle(title string, prefixes []string) string {
 	}
 
 	return strings.ToUpper(string(entryWithoutTag[0])) + entryWithoutTag[1:]
+}
+
+// trimAreaFromTitle removes the prefixed area from title to avoid duplication.
+func trimAreaFromTitle(title, area string) string {
+	titleWithoutArea := title
+	pattern := `(?i)^` + regexp.QuoteMeta(area+":")
+	re := regexp.MustCompile(pattern)
+	titleWithoutArea = re.ReplaceAllString(titleWithoutArea, "")
+	titleWithoutArea = strings.TrimSpace(titleWithoutArea)
+	return titleWithoutArea
 }
 
 // generateReleaseNoteEntry processes a commit into a PR line item for the release notes.
@@ -501,6 +512,7 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	}
 
 	if *prefixAreaLabel {
+		entry.title = trimAreaFromTitle(entry.title, area)
 		entry.title = fmt.Sprintf("- %s: %s", area, entry.title)
 	} else {
 		entry.title = fmt.Sprintf("- %s", entry.title)

@@ -152,5 +152,5 @@ type ClusterResourceSetBindingList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ClusterResourceSetBinding{}, &ClusterResourceSetBindingList{})
+	objectTypes = append(objectTypes, &ClusterResourceSetBinding{}, &ClusterResourceSetBindingList{})
 }

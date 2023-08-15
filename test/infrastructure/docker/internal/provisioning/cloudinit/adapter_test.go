@@ -19,7 +19,7 @@ package cloudinit
 import (
 	"testing"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"

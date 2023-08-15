@@ -19,7 +19,7 @@ package collections
 import (
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"

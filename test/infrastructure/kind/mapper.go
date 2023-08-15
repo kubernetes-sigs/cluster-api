@@ -37,7 +37,7 @@ package kind
 import (
 	"fmt"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 
 	clusterapicontainer "sigs.k8s.io/cluster-api/util/container"
 )

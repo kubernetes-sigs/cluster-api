@@ -140,6 +140,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.War
 	// For example, {"spec", "*"} will allow any path under "spec" to change.
 	allowedPaths := [][]string{
 		{"metadata", "*"},
+		{spec, kubeadmConfigSpec, "useExperimentalRetryJoin"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "extraArgs"},

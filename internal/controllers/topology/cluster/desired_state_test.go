@@ -2289,7 +2289,10 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			Name:      "md1",
 			Namespace: "ns1",
 			// Label is added by defaulting values using MachineHealthCheck.Default()
-			Labels: map[string]string{"cluster.x-k8s.io/cluster-name": "cluster1"},
+			Labels: map[string]string{
+				"cluster.x-k8s.io/cluster-name":     "cluster1",
+				clusterv1.ClusterTopologyOwnedLabel: "",
+			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: "cluster1",

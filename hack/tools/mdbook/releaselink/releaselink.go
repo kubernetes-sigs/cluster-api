@@ -28,7 +28,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"golang.org/x/tools/go/vcs"
 	"sigs.k8s.io/kubebuilder/docs/book/utils/plugin"
 

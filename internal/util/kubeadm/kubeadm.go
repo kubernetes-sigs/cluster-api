@@ -17,7 +17,7 @@ limitations under the License.
 // Package kubeadm contains utils related to kubeadm.
 package kubeadm
 
-import "github.com/blang/semver"
+import "github.com/blang/semver/v4"
 
 const (
 	// DefaultImageRepository is the new default Kubernetes image registry.

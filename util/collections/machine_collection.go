@@ -30,7 +30,7 @@ package collections
 import (
 	"sort"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"

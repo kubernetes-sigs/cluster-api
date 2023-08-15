@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/coredns/corefile-migration/migration"
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"

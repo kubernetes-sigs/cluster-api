@@ -7,7 +7,7 @@ helmCharts:
     releaseName: visualizer
     namespace: observability
     valuesFile: values.yaml
-    version: 1.1.0
+    version: 1.2.0
 
 helmGlobals:
     # Store chart in ".charts" folder instead of "charts".

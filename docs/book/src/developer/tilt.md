@@ -485,8 +485,70 @@ syntax highlighting and auto-formatting. To enable it for Tiltfile a file associ
 
 [Podman](https://podman.io) can be used instead of Docker by following these actions:
 
-1. Enable the podman unix socket (eg. `systemctl --user enable --now podman.socket` on Fedora)
+1. Enable the podman unix socket:
+   - on Linux/systemd: `systemctl --user enable --now podman.socket`
+   - on macOS: create a podman machine with `podman machine init`
 1. Set `build_engine` to `podman` in `tilt-settings.yaml` (optional, only if both Docker & podman are installed)
-1. Define the env variable `DOCKER_HOST` to the right socket while running tilt (eg. `DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock tilt up`)
+1. Define the env variable `DOCKER_HOST` to the right socket:
+   - on Linux/systemd: `export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock`
+   - on macOS: `export DOCKER_HOST=$(podman machine inspect <machine> | jq -r '.[0].ConnectionInfo.PodmanSocket.Path')` where `<machine>` is the podman machine name
+1. Run `tilt up`
 
 NB: The socket defined by `DOCKER_HOST` is used only for the `hack/tools/internal/tilt-prepare` command, the image build is running the `podman build`/`podman push` commands.
+
+## Troubleshooting Tilt
+
+### Tilt is stuck
+
+Sometimes tilt looks stuck when it's waiting on connections.
+
+Ensure that docker/podman is up and running and your kubernetes cluster is reachable.
+
+### Errors running tilt-prepare
+
+#### `failed to get current context from the KubeConfig file`
+
+- Ensure the cluster in the default context is reachable by running `kubectl cluster-info`
+- Switch to the right context with `kubectl config use-context`
+- Ensure the context is allowed, see [**allowed_contexts** field](#tilt-settings-fields)
+
+#### `Cannot connect to the Docker daemon`
+
+- Ensure the docker daemon is running ;) or for podman see [Using Podman](#using-podman)
+- If a DOCKER_HOST is specified:
+  - check that the DOCKER_HOST has the correct prefix (usually `unix://`)
+  - ensure docker/podman is listening on $DOCKER_HOST using `fuser` / `lsof` / `netstat -u`
+
+### Errors pulling/pushing to the registry
+
+#### `connection refused` / `denied` / `not found`
+
+Ensure the [**default_registry** field](#tilt-settings-fields) is a valid registry where you can pull and push images.
+
+#### `server gave HTTP response to HTTPS client`
+
+By default all registries except localhost:5000 are accessed via HTTPS.
+
+If you run a HTTP registry you may have to configure the registry in docker/podman.
+
+For example, in podman a `localhost:5001` registry configuration should be declared in `/etc/containers/registries.conf.d` with this content:
+````
+[[registry]]
+location = "localhost:5001"
+insecure = true
+````
+
+NB: on macOS this configuration should be done **in the podman machine** by running `podman machine ssh <machine>`.
+
+### Errors loading images in kind
+
+You may try manually to load images in kind by running:
+````
+kind load docker-image --name=<kind_cluster> <image>
+````
+
+#### `image: "..." not present locally`
+
+If you are running podman, you may have hit this bug: https://github.com/kubernetes-sigs/kind/issues/2760
+
+The workaround is to create a `docker` symlink to your `podman` executable and try to load the images again.

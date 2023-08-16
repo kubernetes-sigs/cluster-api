@@ -460,10 +460,7 @@ The Cluster API tests are pretty stable, but there are still some flaky tests fr
 
 To reduce the amount of flakes please periodically:
 1. Take a look at recent CI failures via `k8s-triage`:
-    * [periodic-cluster-api-e2e-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-e2e-main)
-    * [periodic-cluster-api-e2e-mink8s-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-e2e-mink8s-main)
-    * [periodic-cluster-api-test-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-test-main)
-    * [periodic-cluster-api-test-mink8s-main](https://storage.googleapis.com/k8s-triage/index.html?pr=1&job=periodic-cluster-api-test-mink8s-main)
+    * [main: e2e, e2e-mink8s, test, test-mink8s](https://storage.googleapis.com/k8s-triage/index.html?job=.*cluster-api.*(test%7Ce2e)-(mink8s-)*main&xjob=.*-provider-.*)
 2. Open issues using an appropriate template (flaking-test) for occurring flakes and ideally fix them or find someone who can.
    **Note**: Given resource limitations in the Prow cluster it might not be possible to fix all flakes.
    Let's just try to pragmatically keep the amount of flakes pretty low.

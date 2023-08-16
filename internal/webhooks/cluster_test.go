@@ -1482,6 +1482,34 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         true,
 		},
 		{
+			name: "Warning for a cluster that has MHC disabled for machine deployment but has MHC definition in cluster topology and ClusterClass",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							Enable: pointer.Bool(false),
+							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+								UnhealthyConditions: []clusterv1.UnhealthyCondition{
+									{
+										Type:   corev1.NodeReady,
+										Status: corev1.ConditionFalse,
+									},
+								},
+							},
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+				Build(),
+			classReconciled: true,
+			wantWarnings:    true,
+			wantErr:         false,
+		},
+		{
 			name: "Reject a cluster that has MHC override defined for machine deployment but is missing unhealthy conditions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(

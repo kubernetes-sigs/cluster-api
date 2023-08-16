@@ -1042,6 +1042,9 @@ func computeMachineHealthCheck(healthCheckTarget client.Object, selector *metav1
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      healthCheckTarget.GetName(),
 			Namespace: healthCheckTarget.GetNamespace(),
+			Labels: map[string]string{
+				clusterv1.ClusterTopologyOwnedLabel: "",
+			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName:         clusterName,

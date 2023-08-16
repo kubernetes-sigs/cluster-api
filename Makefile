@@ -228,7 +228,7 @@ CAPI_KIND_CLUSTER_NAME ?= capi-test
 
 TAG ?= dev
 ARCH ?= $(shell go env GOARCH)
-ALL_ARCH = amd64 arm arm64 ppc64le s390x
+ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
@@ -724,7 +724,8 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images 
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension clusterctl
+# Choice of images to build/push
+ALL_DOCKER_BUILD ?= core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension clusterctl
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all the images
@@ -1071,26 +1072,17 @@ promote-images: $(KPROMO)
 
 .PHONY: docker-push-all
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
-	$(MAKE) docker-push-manifest-core
-	$(MAKE) docker-push-manifest-kubeadm-bootstrap
-	$(MAKE) docker-push-manifest-kubeadm-control-plane
-	$(MAKE) docker-push-manifest-docker-infrastructure
-	$(MAKE) docker-push-manifest-in-memory-infrastructure
-	$(MAKE) docker-push-manifest-test-extension
-	$(MAKE) docker-push-clusterctl
+	$(MAKE) ALL_ARCH="$(ALL_ARCH)" $(addprefix docker-push-manifest-,$(ALL_DOCKER_BUILD))
 
 docker-push-%:
 	$(MAKE) ARCH=$* docker-push
 
 .PHONY: docker-push
-docker-push: ## Push the docker images to be included in the release
+docker-push: $(addprefix docker-push-,$(ALL_DOCKER_BUILD)) ## Push the docker images to be included in the release
+
+.PHONY: docker-push-core
+docker-push-core: ## Push the core docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
-	docker push $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(CAPIM_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-manifest-core
 docker-push-manifest-core: ## Push the multiarch manifest for the core docker images
@@ -1100,6 +1092,10 @@ docker-push-manifest-core: ## Push the multiarch manifest for the core docker im
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
+.PHONY: docker-push-kubeadm-bootstrap
+docker-push-kubeadm-bootstrap: ## Push the kubeadm bootstrap docker image
+	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
 .PHONY: docker-push-manifest-kubeadm-bootstrap
 docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the kubeadm bootstrap docker images
 	docker manifest create --amend $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)\-&:$(TAG)~g")
@@ -1107,6 +1103,10 @@ docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the k
 	docker manifest push --purge $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-push-kubeadm-control-plane
+docker-push-kubeadm-control-plane: ## Push the kubeadm control plane docker image
+	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-manifest-kubeadm-control-plane
 docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for the kubeadm control plane docker images
@@ -1116,6 +1116,10 @@ docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for t
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
+.PHONY: docker-push-docker-infrastructure
+docker-push-docker-infrastructure: ## Push the docker infrastructure provider image
+	docker push $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
 .PHONY: docker-push-manifest-docker-infrastructure
 docker-push-manifest-docker-infrastructure: ## Push the multiarch manifest for the docker infrastructure provider images
 	docker manifest create --amend $(CAPD_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPD_CONTROLLER_IMG)\-&:$(TAG)~g")
@@ -1124,6 +1128,10 @@ docker-push-manifest-docker-infrastructure: ## Push the multiarch manifest for t
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
+.PHONY: docker-push-in-memory-infrastructure
+docker-push-in-memory-infrastructure: ## Push the in-memory infrastructure provider image
+	docker push $(CAPIM_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
 .PHONY: docker-push-manifest-in-memory-infrastructure
 docker-push-manifest-in-memory-infrastructure: ## Push the multiarch manifest for the in-memory infrastructure provider images
 	docker manifest create --amend $(CAPIM_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPIM_CONTROLLER_IMG)\-&:$(TAG)~g")
@@ -1131,6 +1139,10 @@ docker-push-manifest-in-memory-infrastructure: ## Push the multiarch manifest fo
 	docker manifest push --purge $(CAPIM_CONTROLLER_IMG):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPIM_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-push-test-extension
+docker-push-test-extension: ## Push the test extension provider image
+	docker push $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-manifest-test-extension
 docker-push-manifest-test-extension: ## Push the multiarch manifest for the test extension provider images
@@ -1141,7 +1153,11 @@ docker-push-manifest-test-extension: ## Push the multiarch manifest for the test
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push-clusterctl
-docker-push-clusterctl: ## Push the clusterctl images
+docker-push-clusterctl: ## Push the clusterctl image
+	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
+
+.PHONY: docker-push-manifest-clusterctl
+docker-push-manifest-clusterctl: ## Push the multiarch manifest for the clusterctl images
 	docker manifest create --amend $(CLUSTERCTL_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CLUSTERCTL_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CLUSTERCTL_IMG}:${TAG} ${CLUSTERCTL_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(CLUSTERCTL_IMG):$(TAG)

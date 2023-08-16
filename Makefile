@@ -605,7 +605,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary
+ALL_VERIFY_CHECKS = boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets

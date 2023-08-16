@@ -1332,7 +1332,7 @@ kubernetesVersion: metav1.16.1`,
 				Status: internal.ClusterStatus{},
 			},
 		},
-		disableInPlacePropagation: true,
+		ssaCache: ssa.NewCache(),
 	}
 
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})

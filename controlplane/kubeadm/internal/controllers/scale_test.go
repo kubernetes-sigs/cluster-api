@@ -213,14 +213,13 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 			recorder:                  record.NewFakeRecorder(32),
-			disableInPlacePropagation: true,
 		}
 
 		controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(adoptableMachineFound).To(BeFalse())
 
-		result, err := r.reconcile(context.Background(), controlPlane)
+		result, err := r.scaleUpControlPlane(context.Background(), controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 

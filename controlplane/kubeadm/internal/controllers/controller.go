@@ -85,12 +85,6 @@ type KubeadmControlPlaneReconciler struct {
 
 	managementCluster         internal.ManagementCluster
 	managementClusterUncached internal.ManagementCluster
-
-	// disableInPlacePropagation should only be used for tests. This is used to skip
-	// some parts of the controller that need SSA as the current test setup does not
-	// support SSA. This flag should be dropped after all affected tests are migrated
-	// to envtest.
-	disableInPlacePropagation bool
 	ssaCache                  ssa.Cache
 }
 
@@ -375,10 +369,8 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return result, err
 	}
 
-	if !r.disableInPlacePropagation {
-		if err := r.syncMachines(ctx, controlPlane); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to sync Machines")
-		}
+	if err := r.syncMachines(ctx, controlPlane); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to sync Machines")
 	}
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the

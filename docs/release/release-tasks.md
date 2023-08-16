@@ -158,6 +158,8 @@ From this point forward changes which should land in the release have to be cher
   
 2. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/0b17ef5ffd6c7aa7d8ca1372d837acfb85f7bec6/config/prow/plugins.yaml#L371) accordingly (e.g. `release-1.4: v1.4` and `main: v1.5`)
    <br>Prior art: [cluster-api: update milestone applier config for v1.3](https://github.com/kubernetes/test-infra/pull/26631)
+3. Update the [PR markdown link checker](https://github.com/killianmuldoon/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.4`).
+   <br>Prior art: [Update branch for link checker](https://github.com/kubernetes-sigs/cluster-api/pull/9206)
 
 #### [Continuously] Maintain the GitHub release milestone
 
@@ -212,7 +214,7 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
          ```
 4. Publish the release in GitHub:
    1. Ask the [Maintainer](#maintainer) to publish the release in GitHub.
-5. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/clusterctl.rb).
+5. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/c/clusterctl.rb).
    <br>**Notes**:
     * This is only done for new latest stable releases, not for beta / RC releases and not for previous release branches.
     * Check if homebrew already has a PR to update the version (homebrew introduced automation that picks it up). Open one if no PR exists.

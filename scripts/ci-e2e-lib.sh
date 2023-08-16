@@ -204,9 +204,9 @@ EOL
 # the actual test run less sensible to the network speed.
 kind:prepullAdditionalImages () {
   # Pulling cert manager images so we can pre-load in kind nodes
-  kind::prepullImage "quay.io/jetstack/cert-manager-cainjector:v1.12.2"
-  kind::prepullImage "quay.io/jetstack/cert-manager-webhook:v1.12.2"
-  kind::prepullImage "quay.io/jetstack/cert-manager-controller:v1.12.2"
+  kind::prepullImage "quay.io/jetstack/cert-manager-cainjector:v1.12.3"
+  kind::prepullImage "quay.io/jetstack/cert-manager-webhook:v1.12.3"
+  kind::prepullImage "quay.io/jetstack/cert-manager-controller:v1.12.3"
 }
 
 # kind:prepullImage pre-pull a docker image if no already present locally.

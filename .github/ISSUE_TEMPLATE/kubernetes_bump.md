@@ -26,24 +26,33 @@ changes should be cherry-picked to all release series that will support the new 
     * `test/*`: search for occurrences of the previous Kubernetes version
     * `Tiltfile`
   * Ensure the latest available kind version is used (including the latest images for this kind release)
+    * Add new images in the [kind mapper.go](https://github.com/kubernetes-sigs/cluster-api/blob/48ae58e51f9723ab7b9635d0e05ee54c4843707a/test/infrastructure/kind/mapper.go#L79).
+      * See the [kind releases page](https://github.com/kubernetes-sigs/kind/releases) for the list of released images.
+    * Set new default image for the [test framework](https://github.com/kubernetes-sigs/cluster-api/blob/48ae58e51f9723ab7b9635d0e05ee54c4843707a/test/framework/bootstrap/kind_provider.go#L40)
   * Verify the quickstart manually
-  * Prior art: #7156
-  * bump `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` in `clusterctl_upgrade_test.go`
+  * Bump `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` in `clusterctl_upgrade_test.go`
+    * Note: Only bump for Cluster API versions that will support the new Kubernetes release.
+  * Prior art: #9160
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
-  * For the main branch and the release branch of the latest supported Cluster API minor release:
-    * Add new periodic upgrade job.
-    * Adjust presubmit jobs so that we have the latest upgrade jobs available on PRs.
   * For the main branch:
-    * periodics & presubmits: 
-      * Bump `KUBEBUILDER_ENVTEST_KUBERNETES_VERSION` of the `test-mink8s` jobs to the new minimum supported management cluster version.
     * periodics:
-      * Bump `KUBERNETES_VERSION_MANAGEMENT` of the `e2e-mink8s` job to the new minimum supported management cluster version.
       * Drop the oldest upgrade job as the oldest Kubernetes minor version is now out of support.
-  * Prior art: https://github.com/kubernetes/test-infra/pull/27421
+      * Add new upgrade job which upgrades from the previous to the new Kubernetes version.
+    * periodics & presubmits:
+      * Bump `KUBERNETES_VERSION_MANAGEMENT` of the `e2e-mink8s` job to the new minimum supported management cluster version.
+      * Bump `KUBEBUILDER_ENVTEST_KUBERNETES_VERSION` of the `test-mink8s` jobs to the new minimum supported management cluster version.
+      * Adjust the `-latest` upgrade job to upgrade from the new Kubernetes to the next Kubernetes version.
+  * For the release branch of the latest supported Cluster API minor release:
+    * periodics & presubmits:
+      * Adust the `-latest` upgrade jobs to upgrade to the new Kubernetes version instead of latest.
+  * Note: Also check if `ETCD_VERSION_UPGRADE_TO` or `COREDNS_VERSION_UPGRADE_TO` needs to change for the upgrades jobs to the new or next Kubernetes version.
+    * For etcd, see the `DefaultEtcdVersion` kubeadm constant: [e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L308)
+    * For coredns, see the `CoreDNSVersion` kubeadm constant:[e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L344)
+  * Prior art: https://github.com/kubernetes/test-infra/pull/30347 https://github.com/kubernetes/test-infra/pull/30406 https://github.com/kubernetes/test-infra/pull/30407
 * [ ] Update book:
   * Update supported versions in `versions.md`
   * Update job documentation in `jobs.md`
-  * Prior art: #7194 #7196
+  * Prior art: #9161
 * [ ] Issues specific to the Kubernetes minor release:
   * Sometimes there are adjustments that we have to make in Cluster API to be able to support
     a new Kubernetes minor version. Please add these issues here when they are identified.

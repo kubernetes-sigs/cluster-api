@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"context"
@@ -36,40 +36,37 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
-func (m *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	// This registers MachineDeployment as a validating webhook and
-	// machineDeploymentDefaulter as a defaulting webhook.
+func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	if webhook.Decoder == nil {
+		webhook.Decoder = admission.NewDecoder(mgr.GetScheme())
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(m).
-		WithDefaulter(MachineDeploymentDefaulter(mgr.GetScheme())).
+		For(&clusterv1.MachineDeployment{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-machinedeployment,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1beta1,name=validation.machinedeployment.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machinedeployment,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1beta1,name=default.machinedeployment.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &machineDeploymentDefaulter{}
-var _ webhook.Validator = &MachineDeployment{}
-
-// MachineDeploymentDefaulter creates a new CustomDefaulter for MachineDeployments.
-func MachineDeploymentDefaulter(scheme *runtime.Scheme) webhook.CustomDefaulter {
-	return &machineDeploymentDefaulter{
-		decoder: admission.NewDecoder(scheme),
-	}
+// MachineDeployment implements a validation and defaulting webhook for MachineDeployment.
+type MachineDeployment struct {
+	Decoder *admission.Decoder
 }
 
-// machineDeploymentDefaulter implements a defaulting webhook for MachineDeployment.
-type machineDeploymentDefaulter struct {
-	decoder *admission.Decoder
-}
+var _ webhook.CustomDefaulter = &MachineDeployment{}
+var _ webhook.CustomValidator = &MachineDeployment{}
 
 // Default implements webhook.CustomDefaulter.
-func (webhook *machineDeploymentDefaulter) Default(ctx context.Context, obj runtime.Object) error {
-	m, ok := obj.(*MachineDeployment)
+func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Object) error {
+	m, ok := obj.(*clusterv1.MachineDeployment)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", obj))
 	}
@@ -83,10 +80,10 @@ func (webhook *machineDeploymentDefaulter) Default(ctx context.Context, obj runt
 		dryRun = *req.DryRun
 	}
 
-	var oldMD *MachineDeployment
+	var oldMD *clusterv1.MachineDeployment
 	if req.Operation == v1.Update {
-		oldMD = &MachineDeployment{}
-		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMD); err != nil {
+		oldMD = &clusterv1.MachineDeployment{}
+		if err := webhook.Decoder.DecodeRaw(req.OldObject, oldMD); err != nil {
 			return errors.Wrapf(err, "failed to decode oldObject to MachineDeployment")
 		}
 	}
@@ -94,7 +91,7 @@ func (webhook *machineDeploymentDefaulter) Default(ctx context.Context, obj runt
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[ClusterNameLabel] = m.Spec.ClusterName
+	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
 	replicas, err := calculateMachineDeploymentReplicas(ctx, oldMD, m, dryRun)
 	if err != nil {
@@ -119,11 +116,11 @@ func (webhook *machineDeploymentDefaulter) Default(ctx context.Context, obj runt
 	}
 
 	if m.Spec.Strategy == nil {
-		m.Spec.Strategy = &MachineDeploymentStrategy{}
+		m.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{}
 	}
 
 	if m.Spec.Strategy.Type == "" {
-		m.Spec.Strategy.Type = RollingUpdateMachineDeploymentStrategyType
+		m.Spec.Strategy.Type = clusterv1.RollingUpdateMachineDeploymentStrategyType
 	}
 
 	if m.Spec.Template.Labels == nil {
@@ -131,9 +128,9 @@ func (webhook *machineDeploymentDefaulter) Default(ctx context.Context, obj runt
 	}
 
 	// Default RollingUpdate strategy only if strategy type is RollingUpdate.
-	if m.Spec.Strategy.Type == RollingUpdateMachineDeploymentStrategyType {
+	if m.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
 		if m.Spec.Strategy.RollingUpdate == nil {
-			m.Spec.Strategy.RollingUpdate = &MachineRollingUpdateDeployment{}
+			m.Spec.Strategy.RollingUpdate = &clusterv1.MachineRollingUpdateDeployment{}
 		}
 		if m.Spec.Strategy.RollingUpdate.MaxSurge == nil {
 			ios1 := intstr.FromInt(1)
@@ -148,12 +145,12 @@ func (webhook *machineDeploymentDefaulter) Default(ctx context.Context, obj runt
 	// If no selector has been provided, add label and selector for the
 	// MachineDeployment's name as a default way of providing uniqueness.
 	if len(m.Spec.Selector.MatchLabels) == 0 && len(m.Spec.Selector.MatchExpressions) == 0 {
-		m.Spec.Selector.MatchLabels[MachineDeploymentNameLabel] = m.Name
-		m.Spec.Template.Labels[MachineDeploymentNameLabel] = m.Name
+		m.Spec.Selector.MatchLabels[clusterv1.MachineDeploymentNameLabel] = m.Name
+		m.Spec.Template.Labels[clusterv1.MachineDeploymentNameLabel] = m.Name
 	}
 	// Make sure selector and template to be in the same cluster.
-	m.Spec.Selector.MatchLabels[ClusterNameLabel] = m.Spec.ClusterName
-	m.Spec.Template.Labels[ClusterNameLabel] = m.Spec.ClusterName
+	m.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
+	m.Spec.Template.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
 	// tolerate version strings without a "v" prefix: prepend it if it's not there
 	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {
@@ -164,48 +161,59 @@ func (webhook *machineDeploymentDefaulter) Default(ctx context.Context, obj runt
 	return nil
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachineDeployment) ValidateCreate() (admission.Warnings, error) {
-	return nil, m.validate(nil)
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
+func (webhook *MachineDeployment) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	m, ok := obj.(*clusterv1.MachineDeployment)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", obj))
+	}
+
+	return nil, webhook.validate(nil, m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachineDeployment) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	oldMD, ok := old.(*MachineDeployment)
+func (webhook *MachineDeployment) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	oldMD, ok := oldObj.(*clusterv1.MachineDeployment)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", oldObj))
 	}
-	return nil, m.validate(oldMD)
+
+	newMD, ok := newObj.(*clusterv1.MachineDeployment)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineDeployment but got a %T", newObj))
+	}
+
+	return nil, webhook.validate(oldMD, newMD)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachineDeployment) ValidateDelete() (admission.Warnings, error) {
+func (webhook *MachineDeployment) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (m *MachineDeployment) validate(old *MachineDeployment) error {
+func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeployment) error {
 	var allErrs field.ErrorList
 	// The MachineDeployment name is used as a label value. This check ensures names which are not be valid label values are rejected.
-	if errs := validation.IsValidLabelValue(m.Name); len(errs) != 0 {
+	if errs := validation.IsValidLabelValue(newMD.Name); len(errs) != 0 {
 		for _, err := range errs {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					field.NewPath("metadata", "name"),
-					m.Name,
+					newMD.Name,
 					fmt.Sprintf("must be a valid label value: %s", err),
 				),
 			)
 		}
 	}
 	specPath := field.NewPath("spec")
-	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
+	selector, err := metav1.LabelSelectorAsSelector(&newMD.Spec.Selector)
 	if err != nil {
 		allErrs = append(
 			allErrs,
-			field.Invalid(specPath.Child("selector"), m.Spec.Selector, err.Error()),
+			field.Invalid(specPath.Child("selector"), newMD.Spec.Selector, err.Error()),
 		)
-	} else if !selector.Matches(labels.Set(m.Spec.Template.Labels)) {
+	} else if !selector.Matches(labels.Set(newMD.Spec.Template.Labels)) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -218,12 +226,12 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 	// MachineSet preflight checks that should be skipped could also be set as annotation on the MachineDeployment
 	// since MachineDeployment annotations are synced to the MachineSet.
 	if feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
-		if err := validateSkippedMachineSetPreflightChecks(m); err != nil {
+		if err := validateSkippedMachineSetPreflightChecks(newMD); err != nil {
 			allErrs = append(allErrs, err)
 		}
 	}
 
-	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
+	if oldMD != nil && oldMD.Spec.ClusterName != newMD.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -233,47 +241,47 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 		)
 	}
 
-	if m.Spec.Strategy != nil && m.Spec.Strategy.RollingUpdate != nil {
+	if newMD.Spec.Strategy != nil && newMD.Spec.Strategy.RollingUpdate != nil {
 		total := 1
-		if m.Spec.Replicas != nil {
-			total = int(*m.Spec.Replicas)
+		if newMD.Spec.Replicas != nil {
+			total = int(*newMD.Spec.Replicas)
 		}
 
-		if m.Spec.Strategy.RollingUpdate.MaxSurge != nil {
-			if _, err := intstr.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
+		if newMD.Spec.Strategy.RollingUpdate.MaxSurge != nil {
+			if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxSurge, total, true); err != nil {
 				allErrs = append(
 					allErrs,
 					field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxSurge"),
-						m.Spec.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+						newMD.Spec.Strategy.RollingUpdate.MaxSurge, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 				)
 			}
 		}
 
-		if m.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
-			if _, err := intstr.GetScaledValueFromIntOrPercent(m.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
+		if newMD.Spec.Strategy.RollingUpdate.MaxUnavailable != nil {
+			if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, total, true); err != nil {
 				allErrs = append(
 					allErrs,
 					field.Invalid(specPath.Child("strategy", "rollingUpdate", "maxUnavailable"),
-						m.Spec.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+						newMD.Spec.Strategy.RollingUpdate.MaxUnavailable, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 				)
 			}
 		}
 	}
 
-	if m.Spec.Template.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
+	if newMD.Spec.Template.Spec.Version != nil {
+		if !version.KubeSemver.MatchString(*newMD.Spec.Template.Spec.Version) {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *newMD.Spec.Template.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, m.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
+	allErrs = append(allErrs, newMD.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil
 	}
 
-	return apierrors.NewInvalid(GroupVersion.WithKind("MachineDeployment").GroupKind(), m.Name, allErrs)
+	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineDeployment").GroupKind(), newMD.Name, allErrs)
 }
 
 // calculateMachineDeploymentReplicas calculates the default value of the replicas field.
@@ -305,7 +313,7 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 // Notes:
 //   - While the min size and max size annotations of the autoscaler provide the best UX, other autoscalers can use the
 //     DefaultReplicasAnnotation if they have similar use cases.
-func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *MachineDeployment, newMD *MachineDeployment, dryRun bool) (int32, error) {
+func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *clusterv1.MachineDeployment, newMD *clusterv1.MachineDeployment, dryRun bool) (int32, error) {
 	// If replicas is already set => Keep the current value.
 	if newMD.Spec.Replicas != nil {
 		return *newMD.Spec.Replicas, nil
@@ -314,23 +322,23 @@ func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *MachineDeplo
 	log := ctrl.LoggerFrom(ctx)
 
 	// If both autoscaler annotations are set, use them to calculate the default value.
-	minSizeString, hasMinSizeAnnotation := newMD.Annotations[AutoscalerMinSizeAnnotation]
-	maxSizeString, hasMaxSizeAnnotation := newMD.Annotations[AutoscalerMaxSizeAnnotation]
+	minSizeString, hasMinSizeAnnotation := newMD.Annotations[clusterv1.AutoscalerMinSizeAnnotation]
+	maxSizeString, hasMaxSizeAnnotation := newMD.Annotations[clusterv1.AutoscalerMaxSizeAnnotation]
 	if hasMinSizeAnnotation && hasMaxSizeAnnotation {
 		minSize, err := strconv.ParseInt(minSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", AutoscalerMinSizeAnnotation)
+			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMinSizeAnnotation)
 		}
 		maxSize, err := strconv.ParseInt(maxSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", AutoscalerMaxSizeAnnotation)
+			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMaxSizeAnnotation)
 		}
 
 		// If it's a new MachineDeployment => Use the min size.
 		// Note: This will result in a scale up to get into the range where autoscaler takes over.
 		if oldMD == nil {
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (MD is a new MD)", minSize, AutoscalerMinSizeAnnotation))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (MD is a new MD)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
 			}
 			return int32(minSize), nil
 		}
@@ -344,21 +352,21 @@ func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *MachineDeplo
 		// We only have this handling to be 100% safe against panics.
 		case oldMD.Spec.Replicas == nil:
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD didn't have replicas set)", minSize, AutoscalerMinSizeAnnotation))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD didn't have replicas set)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
 			}
 			return int32(minSize), nil
 		// If the old MachineDeployment replicas are lower than min size => Use the min size.
 		// Note: This will result in a scale up to get into the range where autoscaler takes over.
 		case *oldMD.Spec.Replicas < int32(minSize):
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas below min size)", minSize, AutoscalerMinSizeAnnotation))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas below min size)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
 			}
 			return int32(minSize), nil
 		// If the old MachineDeployment replicas are higher than max size => Use the max size.
 		// Note: This will result in a scale down to get into the range where autoscaler takes over.
 		case *oldMD.Spec.Replicas > int32(maxSize):
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas above max size)", maxSize, AutoscalerMaxSizeAnnotation))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas above max size)", maxSize, clusterv1.AutoscalerMaxSizeAnnotation))
 			}
 			return int32(maxSize), nil
 		// If the old MachineDeployment replicas are between min and max size => Keep the current value.

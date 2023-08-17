@@ -19,6 +19,7 @@ package webhooks
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 )
@@ -45,4 +46,40 @@ func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.ClusterClass{
 		Client: webhook.Client,
 	}).SetupWebhookWithManager(mgr)
+}
+
+// Machine implements a validating and defaulting webhook for Machine.
+type Machine struct{}
+
+// SetupWebhookWithManager sets up Machine webhooks.
+func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.Machine{}).SetupWebhookWithManager(mgr)
+}
+
+// MachineDeployment implements a validating and defaulting webhook for MachineDeployment.
+type MachineDeployment struct {
+	Decoder *admission.Decoder
+}
+
+// SetupWebhookWithManager sets up MachineDeployment webhooks.
+func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachineDeployment{
+		Decoder: webhook.Decoder,
+	}).SetupWebhookWithManager(mgr)
+}
+
+// MachineSet implements a validating and defaulting webhook for MachineSet.
+type MachineSet struct{}
+
+// SetupWebhookWithManager sets up MachineSet webhooks.
+func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachineSet{}).SetupWebhookWithManager(mgr)
+}
+
+// MachineHealthCheck implements a validating and defaulting webhook for MachineHealthCheck.
+type MachineHealthCheck struct{}
+
+// SetupWebhookWithManager sets up MachineHealthCheck webhooks.
+func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr)
 }

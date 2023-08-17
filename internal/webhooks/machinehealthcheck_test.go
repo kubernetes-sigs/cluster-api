@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"testing"
@@ -25,21 +25,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 func TestMachineHealthCheckDefault(t *testing.T) {
 	g := NewWithT(t)
-	mhc := &MachineHealthCheck{
+	mhc := &clusterv1.MachineHealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: MachineHealthCheckSpec{
+		Spec: clusterv1.MachineHealthCheckSpec{
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"foo": "bar"},
 			},
 			RemediationTemplate: &corev1.ObjectReference{},
-			UnhealthyConditions: []UnhealthyCondition{
+			UnhealthyConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -47,10 +48,12 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 			},
 		},
 	}
-	t.Run("for MachineHealthCheck", utildefaulting.DefaultValidateTest(mhc))
-	mhc.Default()
+	webhook := &MachineHealthCheck{}
 
-	g.Expect(mhc.Labels[ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))
+	t.Run("for MachineHealthCheck", util.CustomDefaultValidateTest(ctx, mhc, webhook))
+	g.Expect(webhook.Default(ctx, mhc)).To(Succeed())
+
+	g.Expect(mhc.Labels[clusterv1.ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))
 	g.Expect(mhc.Spec.MaxUnhealthy.String()).To(Equal("100%"))
 	g.Expect(mhc.Spec.NodeStartupTimeout).ToNot(BeNil())
 	g.Expect(*mhc.Spec.NodeStartupTimeout).To(Equal(metav1.Duration{Duration: 10 * time.Minute}))
@@ -78,12 +81,12 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			mhc := &MachineHealthCheck{
-				Spec: MachineHealthCheckSpec{
+			mhc := &clusterv1.MachineHealthCheck{
+				Spec: clusterv1.MachineHealthCheckSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
-					UnhealthyConditions: []UnhealthyCondition{
+					UnhealthyConditions: []clusterv1.UnhealthyCondition{
 						{
 							Type:   corev1.NodeReady,
 							Status: corev1.ConditionFalse,
@@ -91,18 +94,20 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 					},
 				},
 			}
+			webhook := &MachineHealthCheck{}
+
 			if tt.expectErr {
-				warnings, err := mhc.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mhc)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = mhc.ValidateUpdate(mhc)
+				warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := mhc.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mhc)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = mhc.ValidateUpdate(mhc)
+				warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
@@ -135,15 +140,15 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			newMHC := &MachineHealthCheck{
-				Spec: MachineHealthCheckSpec{
+			newMHC := &clusterv1.MachineHealthCheck{
+				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: tt.newClusterName,
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"test": "test",
 						},
 					},
-					UnhealthyConditions: []UnhealthyCondition{
+					UnhealthyConditions: []clusterv1.UnhealthyCondition{
 						{
 							Type:   corev1.NodeReady,
 							Status: corev1.ConditionFalse,
@@ -151,15 +156,15 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 					},
 				},
 			}
-			oldMHC := &MachineHealthCheck{
-				Spec: MachineHealthCheckSpec{
+			oldMHC := &clusterv1.MachineHealthCheck{
+				Spec: clusterv1.MachineHealthCheckSpec{
 					ClusterName: tt.oldClusterName,
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"test": "test",
 						},
 					},
-					UnhealthyConditions: []UnhealthyCondition{
+					UnhealthyConditions: []clusterv1.UnhealthyCondition{
 						{
 							Type:   corev1.NodeReady,
 							Status: corev1.ConditionFalse,
@@ -168,7 +173,7 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			warnings, err := newMHC.ValidateUpdate(oldMHC)
+			warnings, err := (&MachineHealthCheck{}).ValidateUpdate(ctx, oldMHC, newMHC)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -182,12 +187,12 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 	tests := []struct {
 		name               string
-		unhealthConditions []UnhealthyCondition
+		unhealthConditions []clusterv1.UnhealthyCondition
 		expectErr          bool
 	}{
 		{
 			name: "pass with correctly defined unhealthyConditions",
-			unhealthConditions: []UnhealthyCondition{
+			unhealthConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -202,7 +207,7 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 		},
 		{
 			name:               "fail if the UnhealthCondition array is empty",
-			unhealthConditions: []UnhealthyCondition{},
+			unhealthConditions: []clusterv1.UnhealthyCondition{},
 			expectErr:          true,
 		},
 	}
@@ -210,8 +215,8 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			mhc := &MachineHealthCheck{
-				Spec: MachineHealthCheckSpec{
+			mhc := &clusterv1.MachineHealthCheck{
+				Spec: clusterv1.MachineHealthCheckSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"test": "test",
@@ -220,18 +225,20 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 					UnhealthyConditions: tt.unhealthConditions,
 				},
 			}
+			webhook := &MachineHealthCheck{}
+
 			if tt.expectErr {
-				warnings, err := mhc.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mhc)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = mhc.ValidateUpdate(mhc)
+				warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := mhc.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mhc)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = mhc.ValidateUpdate(mhc)
+				warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
@@ -286,15 +293,15 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 	for _, tt := range tests {
 		g := NewWithT(t)
 
-		mhc := &MachineHealthCheck{
-			Spec: MachineHealthCheckSpec{
+		mhc := &clusterv1.MachineHealthCheck{
+			Spec: clusterv1.MachineHealthCheckSpec{
 				NodeStartupTimeout: tt.timeout,
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"test": "test",
 					},
 				},
-				UnhealthyConditions: []UnhealthyCondition{
+				UnhealthyConditions: []clusterv1.UnhealthyCondition{
 					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
@@ -302,19 +309,20 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 				},
 			},
 		}
+		webhook := &MachineHealthCheck{}
 
 		if tt.expectErr {
-			warnings, err := mhc.ValidateCreate()
+			warnings, err := webhook.ValidateCreate(ctx, mhc)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
-			warnings, err = mhc.ValidateUpdate(mhc)
+			warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		} else {
-			warnings, err := mhc.ValidateCreate()
+			warnings, err := webhook.ValidateCreate(ctx, mhc)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
-			warnings, err = mhc.ValidateUpdate(mhc)
+			warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		}
@@ -353,15 +361,15 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 		g := NewWithT(t)
 
 		maxUnhealthy := tt.value
-		mhc := &MachineHealthCheck{
-			Spec: MachineHealthCheckSpec{
+		mhc := &clusterv1.MachineHealthCheck{
+			Spec: clusterv1.MachineHealthCheckSpec{
 				MaxUnhealthy: &maxUnhealthy,
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"test": "test",
 					},
 				},
-				UnhealthyConditions: []UnhealthyCondition{
+				UnhealthyConditions: []clusterv1.UnhealthyCondition{
 					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
@@ -369,19 +377,20 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 				},
 			},
 		}
+		webhook := &MachineHealthCheck{}
 
 		if tt.expectErr {
-			warnings, err := mhc.ValidateCreate()
+			warnings, err := webhook.ValidateCreate(ctx, mhc)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
-			warnings, err = mhc.ValidateUpdate(mhc)
+			warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 			g.Expect(err).To(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		} else {
-			warnings, err := mhc.ValidateCreate()
+			warnings, err := webhook.ValidateCreate(ctx, mhc)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
-			warnings, err = mhc.ValidateUpdate(mhc)
+			warnings, err = webhook.ValidateUpdate(ctx, mhc, mhc)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		}
@@ -390,9 +399,9 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 
 func TestMachineHealthCheckSelectorValidation(t *testing.T) {
 	g := NewWithT(t)
-	mhc := &MachineHealthCheck{
-		Spec: MachineHealthCheckSpec{
-			UnhealthyConditions: []UnhealthyCondition{
+	mhc := &clusterv1.MachineHealthCheck{
+		Spec: clusterv1.MachineHealthCheckSpec{
+			UnhealthyConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -400,23 +409,25 @@ func TestMachineHealthCheckSelectorValidation(t *testing.T) {
 			},
 		},
 	}
-	err := mhc.validate(nil)
+	webhook := &MachineHealthCheck{}
+
+	err := webhook.validate(nil, mhc)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("selector must not be empty"))
 }
 
 func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 	g := NewWithT(t)
-	mhc := &MachineHealthCheck{
-		Spec: MachineHealthCheckSpec{
+	mhc := &clusterv1.MachineHealthCheck{
+		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: "foo",
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					ClusterNameLabel: "bar",
-					"baz":            "qux",
+					clusterv1.ClusterNameLabel: "bar",
+					"baz":                      "qux",
 				},
 			},
-			UnhealthyConditions: []UnhealthyCondition{
+			UnhealthyConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -424,25 +435,27 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 			},
 		},
 	}
-	err := mhc.validate(nil)
+	webhook := &MachineHealthCheck{}
+
+	err := webhook.validate(nil, mhc)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot specify a cluster selector other than the one specified by ClusterName"))
 
-	mhc.Spec.Selector.MatchLabels[ClusterNameLabel] = "foo"
-	g.Expect(mhc.validate(nil)).To(Succeed())
-	delete(mhc.Spec.Selector.MatchLabels, ClusterNameLabel)
-	g.Expect(mhc.validate(nil)).To(Succeed())
+	mhc.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = "foo"
+	g.Expect(webhook.validate(nil, mhc)).To(Succeed())
+	delete(mhc.Spec.Selector.MatchLabels, clusterv1.ClusterNameLabel)
+	g.Expect(webhook.validate(nil, mhc)).To(Succeed())
 }
 
 func TestMachineHealthCheckRemediationTemplateNamespaceValidation(t *testing.T) {
-	valid := &MachineHealthCheck{
+	valid := &clusterv1.MachineHealthCheck{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: MachineHealthCheckSpec{
+		Spec: clusterv1.MachineHealthCheckSpec{
 			Selector:            metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			RemediationTemplate: &corev1.ObjectReference{Namespace: "foo"},
-			UnhealthyConditions: []UnhealthyCondition{
+			UnhealthyConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -456,7 +469,7 @@ func TestMachineHealthCheckRemediationTemplateNamespaceValidation(t *testing.T) 
 	tests := []struct {
 		name      string
 		expectErr bool
-		c         *MachineHealthCheck
+		c         *clusterv1.MachineHealthCheck
 	}{
 		{
 			name:      "should return error when MachineHealthCheck namespace and RemediationTemplate ref namespace mismatch",
@@ -473,11 +486,12 @@ func TestMachineHealthCheckRemediationTemplateNamespaceValidation(t *testing.T) 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			webhook := &MachineHealthCheck{}
 
 			if tt.expectErr {
-				g.Expect(tt.c.validate(nil)).NotTo(Succeed())
+				g.Expect(webhook.validate(nil, tt.c)).NotTo(Succeed())
 			} else {
-				g.Expect(tt.c.validate(nil)).To(Succeed())
+				g.Expect(webhook.validate(nil, tt.c)).To(Succeed())
 			}
 		})
 	}

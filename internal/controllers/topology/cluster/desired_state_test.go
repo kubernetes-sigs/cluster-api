@@ -2278,7 +2278,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	t.Run("set all fields correctly", func(t *testing.T) {
 		g := NewWithT(t)
 
-		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec)
+		got := computeMachineHealthCheck(ctx, healthCheckTarget, selector, clusterName, mhcSpec)
 
 		g.Expect(got).To(Equal(want), cmp.Diff(got, want))
 	})

@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -84,6 +85,7 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	// The MachineHealthCheck will have the same name as the ControlPlane Object and a selector for the ControlPlane InfrastructureMachines.
 	if s.Blueprint.IsControlPlaneMachineHealthCheckEnabled() {
 		desiredState.ControlPlane.MachineHealthCheck = computeMachineHealthCheck(
+			ctx,
 			desiredState.ControlPlane.Object,
 			selectorForControlPlaneMHC(),
 			s.Current.Cluster.Name,
@@ -550,7 +552,7 @@ func (r *Reconciler) computeMachineDeployments(ctx context.Context, s *scope.Sco
 // computeMachineDeployment computes the desired state for a MachineDeploymentTopology.
 // The generated machineDeployment object is calculated using the values from the machineDeploymentTopology and
 // the machineDeployment class.
-func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
+func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
 	desiredMachineDeployment := &scope.MachineDeploymentState{}
 
 	// Gets the blueprint for the MachineDeployment class.
@@ -741,6 +743,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	if s.Blueprint.IsMachineDeploymentMachineHealthCheckEnabled(&machineDeploymentTopology) {
 		// Note: The MHC is going to use a selector that provides a minimal set of labels which are common to all MachineSets belonging to the MachineDeployment.
 		desiredMachineDeployment.MachineHealthCheck = computeMachineHealthCheck(
+			ctx,
 			desiredMachineDeploymentObj,
 			selectorForMachineDeploymentMHC(desiredMachineDeploymentObj),
 			s.Current.Cluster.Name,
@@ -991,7 +994,7 @@ func ownerReferenceTo(obj client.Object) *metav1.OwnerReference {
 	}
 }
 
-func computeMachineHealthCheck(healthCheckTarget client.Object, selector *metav1.LabelSelector, clusterName string, check *clusterv1.MachineHealthCheckClass) *clusterv1.MachineHealthCheck {
+func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, clusterName string, check *clusterv1.MachineHealthCheckClass) *clusterv1.MachineHealthCheck {
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
 	mhc := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
@@ -1018,7 +1021,9 @@ func computeMachineHealthCheck(healthCheckTarget client.Object, selector *metav1
 
 	// Default all fields in the MachineHealthCheck using the same function called in the webhook. This ensures the desired
 	// state of the object won't be different from the current state due to webhook Defaulting.
-	mhc.Default()
+	if err := (&webhooks.MachineHealthCheck{}).Default(ctx, mhc); err != nil {
+		panic(err)
+	}
 
 	return mhc
 }

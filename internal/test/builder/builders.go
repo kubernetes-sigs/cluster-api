@@ -17,18 +17,14 @@ limitations under the License.
 package builder
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -1151,7 +1147,6 @@ type MachineDeploymentBuilder struct {
 	selector               *metav1.LabelSelector
 	version                *string
 	replicas               *int32
-	defaulter              bool
 	generation             *int64
 	labels                 map[string]string
 	status                 *clusterv1.MachineDeploymentStatus
@@ -1204,12 +1199,6 @@ func (m *MachineDeploymentBuilder) WithVersion(version string) *MachineDeploymen
 // WithReplicas sets the number of replicas for the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentBuilder) WithReplicas(replicas int32) *MachineDeploymentBuilder {
 	m.replicas = &replicas
-	return m
-}
-
-// WithDefaulter runs the Default function on the MachineDeploymentClassBuilder object.
-func (m *MachineDeploymentBuilder) WithDefaulter(defaulter bool) *MachineDeploymentBuilder {
-	m.defaulter = defaulter
 	return m
 }
 
@@ -1268,20 +1257,7 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 			clusterv1.ClusterNameLabel: m.clusterName,
 		}
 	}
-	if m.defaulter {
-		scheme := runtime.NewScheme()
-		if err := clusterv1.AddToScheme(scheme); err != nil {
-			panic(err)
-		}
-		ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
-			AdmissionRequest: admissionv1.AdmissionRequest{
-				Operation: admissionv1.Create,
-			},
-		})
-		if err := clusterv1.MachineDeploymentDefaulter(scheme).Default(ctx, obj); err != nil {
-			panic(err)
-		}
-	}
+
 	return obj
 }
 
@@ -1500,7 +1476,6 @@ type MachineHealthCheckBuilder struct {
 	clusterName  string
 	conditions   []clusterv1.UnhealthyCondition
 	maxUnhealthy *intstr.IntOrString
-	defaulter    bool
 }
 
 // MachineHealthCheck returns a MachineHealthCheckBuilder with the given name and namespace.
@@ -1541,12 +1516,6 @@ func (m *MachineHealthCheckBuilder) WithMaxUnhealthy(maxUnhealthy *intstr.IntOrS
 	return m
 }
 
-// WithDefaulter runs the Default function on the MachineHealthCheck object.
-func (m *MachineHealthCheckBuilder) WithDefaulter(defaulter bool) *MachineHealthCheckBuilder {
-	m.defaulter = defaulter
-	return m
-}
-
 // Build returns a MachineHealthCheck with the supplied details.
 func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 	// create a MachineHealthCheck with the spec given in the ClusterClass
@@ -1570,8 +1539,6 @@ func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 	if m.clusterName != "" {
 		mhc.Labels = map[string]string{clusterv1.ClusterNameLabel: m.clusterName}
 	}
-	if m.defaulter {
-		mhc.Default()
-	}
+
 	return mhc
 }

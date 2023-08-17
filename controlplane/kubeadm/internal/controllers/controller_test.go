@@ -55,6 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -2418,7 +2419,10 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 			},
 		},
 	}
-	machine.Default()
+	webhook := webhooks.Machine{}
+	if err := webhook.Default(ctx, machine); err != nil {
+		panic(err)
+	}
 
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{

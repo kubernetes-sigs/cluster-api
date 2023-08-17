@@ -366,7 +366,7 @@ func validateMachineHealthCheckClass(fldPath *field.Path, namepace string, m *cl
 			RemediationTemplate: m.RemediationTemplate,
 		}}
 
-	return mhc.ValidateCommonFields(fldPath)
+	return (&MachineHealthCheck{}).validateCommonFields(&mhc, fldPath)
 }
 
 func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.ErrorList {

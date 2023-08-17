@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"context"
@@ -28,18 +28,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 func TestMachineDeploymentDefault(t *testing.T) {
 	g := NewWithT(t)
-	md := &MachineDeployment{
+	md := &clusterv1.MachineDeployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-md",
 		},
-		Spec: MachineDeploymentSpec{
+		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName: "test-cluster",
-			Template: MachineTemplateSpec{
-				Spec: MachineSpec{
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
 					Version: pointer.String("1.19.10"),
 				},
 			},
@@ -47,19 +50,21 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	g.Expect(AddToScheme(scheme)).To(Succeed())
-	defaulter := MachineDeploymentDefaulter(scheme)
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	webhook := &MachineDeployment{
+		Decoder: admission.NewDecoder(scheme),
+	}
 
-	t.Run("for MachineDeployment", defaultValidateTestCustomDefaulter(md, defaulter))
-
-	ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
+	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{
 		AdmissionRequest: admissionv1.AdmissionRequest{
 			Operation: admissionv1.Create,
 		},
 	})
-	g.Expect(defaulter.Default(ctx, md)).To(Succeed())
+	t.Run("for MachineDeployment", util.CustomDefaultValidateTest(reqCtx, md, webhook))
 
-	g.Expect(md.Labels[ClusterNameLabel]).To(Equal(md.Spec.ClusterName))
+	g.Expect(webhook.Default(reqCtx, md)).To(Succeed())
+
+	g.Expect(md.Labels[clusterv1.ClusterNameLabel]).To(Equal(md.Spec.ClusterName))
 
 	g.Expect(md.Spec.MinReadySeconds).To(Equal(pointer.Int32(0)))
 	g.Expect(md.Spec.Replicas).To(Equal(pointer.Int32(1)))
@@ -67,12 +72,12 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	g.Expect(md.Spec.ProgressDeadlineSeconds).To(Equal(pointer.Int32(600)))
 	g.Expect(md.Spec.Strategy).ToNot(BeNil())
 
-	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineDeploymentNameLabel, "test-md"))
-	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(MachineDeploymentNameLabel, "test-md"))
-	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(ClusterNameLabel, "test-cluster"))
-	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(ClusterNameLabel, "test-cluster"))
+	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, "test-md"))
+	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, "test-md"))
+	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, "test-cluster"))
+	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, "test-cluster"))
 
-	g.Expect(md.Spec.Strategy.Type).To(Equal(RollingUpdateMachineDeploymentStrategyType))
+	g.Expect(md.Spec.Strategy.Type).To(Equal(clusterv1.RollingUpdateMachineDeploymentStrategyType))
 	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(BeNil())
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntValue()).To(Equal(0))
@@ -83,15 +88,15 @@ func TestMachineDeploymentDefault(t *testing.T) {
 func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 	tests := []struct {
 		name             string
-		newMD            *MachineDeployment
-		oldMD            *MachineDeployment
+		newMD            *clusterv1.MachineDeployment
+		oldMD            *clusterv1.MachineDeployment
 		expectedReplicas int32
 		expectErr        bool
 	}{
 		{
 			name: "if new MD has replicas set, keep that value",
-			newMD: &MachineDeployment{
-				Spec: MachineDeploymentSpec{
+			newMD: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: pointer.Int32(5),
 				},
 			},
@@ -99,15 +104,15 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name:             "if new MD does not have replicas set and no annotations, use 1",
-			newMD:            &MachineDeployment{},
+			newMD:            &clusterv1.MachineDeployment{},
 			expectedReplicas: 1,
 		},
 		{
 			name: "if new MD only has min size annotation, fallback to 1",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
 					},
 				},
 			},
@@ -115,10 +120,10 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MD only has max size annotation, fallback to 1",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMaxSizeAnnotation: "7",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -126,11 +131,11 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MD has min and max size annotation and min size is invalid, fail",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "abc",
-						AutoscalerMaxSizeAnnotation: "7",
+						clusterv1.AutoscalerMinSizeAnnotation: "abc",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -138,11 +143,11 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MD has min and max size annotation and max size is invalid, fail",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "3",
-						AutoscalerMaxSizeAnnotation: "abc",
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "abc",
 					},
 				},
 			},
@@ -150,11 +155,11 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MD has min and max size annotation and new MD is a new MD, use min size",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "3",
-						AutoscalerMaxSizeAnnotation: "7",
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -162,29 +167,29 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MD has min and max size annotation and old MD doesn't have replicas set, use min size",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "3",
-						AutoscalerMaxSizeAnnotation: "7",
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
-			oldMD:            &MachineDeployment{},
+			oldMD:            &clusterv1.MachineDeployment{},
 			expectedReplicas: 3,
 		},
 		{
 			name: "if new MD has min and max size annotation and old MD replicas is below min size, use min size",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "3",
-						AutoscalerMaxSizeAnnotation: "7",
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
-			oldMD: &MachineDeployment{
-				Spec: MachineDeploymentSpec{
+			oldMD: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: pointer.Int32(1),
 				},
 			},
@@ -192,16 +197,16 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MD has min and max size annotation and old MD replicas is above max size, use max size",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "3",
-						AutoscalerMaxSizeAnnotation: "7",
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
-			oldMD: &MachineDeployment{
-				Spec: MachineDeploymentSpec{
+			oldMD: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: pointer.Int32(15),
 				},
 			},
@@ -209,16 +214,16 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MD has min and max size annotation and old MD replicas is between min and max size, use old MD replicas",
-			newMD: &MachineDeployment{
+			newMD: &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						AutoscalerMinSizeAnnotation: "3",
-						AutoscalerMaxSizeAnnotation: "7",
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
-			oldMD: &MachineDeployment{
-				Spec: MachineDeploymentSpec{
+			oldMD: &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: pointer.Int32(4),
 				},
 			},
@@ -254,11 +259,11 @@ func TestMachineDeploymentValidation(t *testing.T) {
 	goodMaxUnavailableInt := intstr.FromInt(0)
 	tests := []struct {
 		name      string
-		md        MachineDeployment
+		md        *clusterv1.MachineDeployment
 		mdName    string
 		selectors map[string]string
 		labels    map[string]string
-		strategy  MachineDeploymentStrategy
+		strategy  clusterv1.MachineDeploymentStrategy
 		expectErr bool
 	}{
 		{
@@ -325,9 +330,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should return error for invalid maxSurge",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: MachineDeploymentStrategy{
-				Type: RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &MachineRollingUpdateDeployment{
+			strategy: clusterv1.MachineDeploymentStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: &goodMaxUnavailableInt,
 					MaxSurge:       &badMaxSurge,
 				},
@@ -338,9 +343,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should return error for invalid maxUnavailable",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: MachineDeploymentStrategy{
-				Type: RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &MachineRollingUpdateDeployment{
+			strategy: clusterv1.MachineDeploymentStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: &badMaxUnavailable,
 					MaxSurge:       &goodMaxSurgeInt,
 				},
@@ -351,9 +356,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid int maxSurge and maxUnavailable",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: MachineDeploymentStrategy{
-				Type: RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &MachineRollingUpdateDeployment{
+			strategy: clusterv1.MachineDeploymentStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: &goodMaxUnavailableInt,
 					MaxSurge:       &goodMaxSurgeInt,
 				},
@@ -364,9 +369,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			name:      "should not return error for valid percentage string maxSurge and maxUnavailable",
 			selectors: map[string]string{"foo": "bar"},
 			labels:    map[string]string{"foo": "bar"},
-			strategy: MachineDeploymentStrategy{
-				Type: RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &MachineRollingUpdateDeployment{
+			strategy: clusterv1.MachineDeploymentStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: &goodMaxUnavailablePercentage,
 					MaxSurge:       &goodMaxSurgePercentage,
 				},
@@ -378,34 +383,41 @@ func TestMachineDeploymentValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			md := &MachineDeployment{
+			md := &clusterv1.MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: tt.mdName,
 				},
-				Spec: MachineDeploymentSpec{
+				Spec: clusterv1.MachineDeploymentSpec{
 					Strategy: &tt.strategy,
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
-					Template: MachineTemplateSpec{
-						ObjectMeta: ObjectMeta{
+					Template: clusterv1.MachineTemplateSpec{
+						ObjectMeta: clusterv1.ObjectMeta{
 							Labels: tt.labels,
 						},
 					},
 				},
 			}
+
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			webhook := MachineDeployment{
+				Decoder: admission.NewDecoder(scheme),
+			}
+
 			if tt.expectErr {
-				warnings, err := md.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, md)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = md.ValidateUpdate(md)
+				warnings, err = webhook.ValidateUpdate(ctx, md, md)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := md.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, md)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = md.ValidateUpdate(md)
+				warnings, err = webhook.ValidateUpdate(ctx, md, md)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
@@ -450,29 +462,34 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			md := &MachineDeployment{
-				Spec: MachineDeploymentSpec{
-
-					Template: MachineTemplateSpec{
-						Spec: MachineSpec{
+			md := &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
 							Version: pointer.String(tt.version),
 						},
 					},
 				},
 			}
 
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			webhook := MachineDeployment{
+				Decoder: admission.NewDecoder(scheme),
+			}
+
 			if tt.expectErr {
-				warnings, err := md.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, md)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = md.ValidateUpdate(md)
+				warnings, err = webhook.ValidateUpdate(ctx, md, md)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := md.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, md)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = md.ValidateUpdate(md)
+				warnings, err = webhook.ValidateUpdate(ctx, md, md)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
@@ -505,68 +522,30 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			newMD := &MachineDeployment{
-				Spec: MachineDeploymentSpec{
+			newMD := &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: tt.newClusterName,
 				},
 			}
 
-			oldMD := &MachineDeployment{
-				Spec: MachineDeploymentSpec{
+			oldMD := &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: tt.oldClusterName,
 				},
 			}
 
-			warnings, err := newMD.ValidateUpdate(oldMD)
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			webhook := MachineDeployment{
+				Decoder: admission.NewDecoder(scheme),
+			}
+
+			warnings, err := webhook.ValidateUpdate(ctx, oldMD, newMD)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(warnings).To(BeEmpty())
-		})
-	}
-}
-
-// defaultValidateTestCustomDefaulter returns a new testing function to be used in tests to
-// make sure defaulting webhooks also pass validation tests on create, update and delete.
-// Note: The difference to util/defaulting.DefaultValidateTest is that this function takes an additional
-// CustomDefaulter as the defaulting is not implemented on the object directly.
-func defaultValidateTestCustomDefaulter(object admission.Validator, customDefaulter admission.CustomDefaulter) func(*testing.T) {
-	return func(t *testing.T) {
-		t.Helper()
-
-		createCopy := object.DeepCopyObject().(admission.Validator)
-		updateCopy := object.DeepCopyObject().(admission.Validator)
-		deleteCopy := object.DeepCopyObject().(admission.Validator)
-		defaultingUpdateCopy := updateCopy.DeepCopyObject().(admission.Validator)
-
-		ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
-			AdmissionRequest: admissionv1.AdmissionRequest{
-				Operation: admissionv1.Create,
-			},
-		})
-
-		t.Run("validate-on-create", func(t *testing.T) {
-			g := NewWithT(t)
-			g.Expect(customDefaulter.Default(ctx, createCopy)).To(Succeed())
-			warnings, err := createCopy.ValidateCreate()
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(warnings).To(BeEmpty())
-		})
-		t.Run("validate-on-update", func(t *testing.T) {
-			g := NewWithT(t)
-			g.Expect(customDefaulter.Default(ctx, defaultingUpdateCopy)).To(Succeed())
-			g.Expect(customDefaulter.Default(ctx, updateCopy)).To(Succeed())
-			warnings, err := defaultingUpdateCopy.ValidateUpdate(updateCopy)
-			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(warnings).To(BeEmpty())
-		})
-		t.Run("validate-on-delete", func(t *testing.T) {
-			g := NewWithT(t)
-			g.Expect(customDefaulter.Default(ctx, deleteCopy)).To(Succeed())
-			warnings, err := deleteCopy.ValidateDelete()
-			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		})
 	}
@@ -596,28 +575,35 @@ func TestMachineDeploymentTemplateMetadataValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			md := &MachineDeployment{
-				Spec: MachineDeploymentSpec{
-					Template: MachineTemplateSpec{
-						ObjectMeta: ObjectMeta{
+			md := &clusterv1.MachineDeployment{
+				Spec: clusterv1.MachineDeploymentSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						ObjectMeta: clusterv1.ObjectMeta{
 							Labels:      tt.labels,
 							Annotations: tt.annotations,
 						},
 					},
 				},
 			}
+
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			webhook := MachineDeployment{
+				Decoder: admission.NewDecoder(scheme),
+			}
+
 			if tt.expectErr {
-				warnings, err := md.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, md)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = md.ValidateUpdate(md)
+				warnings, err = webhook.ValidateUpdate(ctx, md, md)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := md.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, md)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = md.ValidateUpdate(md)
+				warnings, err = webhook.ValidateUpdate(ctx, md, md)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}

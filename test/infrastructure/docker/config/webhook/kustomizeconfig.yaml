@@ -13,6 +13,3 @@ namespace:
   group: admissionregistration.k8s.io
   path: webhooks/clientConfig/service/namespace
   create: true
-
-varReference:
-- path: metadata/annotations

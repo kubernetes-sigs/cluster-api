@@ -7,6 +7,7 @@ commonLabels:
   cluster.x-k8s.io/provider: "runtime-extension-test"
 
 resources:
+- ../certmanager
 - namespace.yaml
 - manager.yaml
 - service.yaml
@@ -15,29 +16,45 @@ resources:
 - role.yaml
 - rolebinding.yaml
 
-bases:
-- ../certmanager
-
-patchesStrategicMerge:
+patches:
 # Enable webhook with corresponding certificate mount.
-- manager_webhook_patch.yaml
+- path: manager_webhook_patch.yaml
 # Provide customizable hook for make targets.
-- manager_image_patch.yaml
-- manager_pull_policy.yaml
+- path: manager_image_patch.yaml
+- path: manager_pull_policy.yaml
 
-vars:
-  - name: SERVICE_NAMESPACE
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
-    fieldref:
-      fieldpath: metadata.namespace
-  - name: SERVICE_NAME
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
-
-configurations:
-  - kustomizeconfig.yaml
+replacements:
+- source: # Add cert-manager annotation to the webhook Service
+    kind: Service
+    version: v1
+    name: webhook-service
+    fieldPath: .metadata.name # namespace of the service
+  targets:
+    - select:
+        kind: Certificate
+        group: cert-manager.io
+        version: v1
+      fieldPaths:
+        - .spec.dnsNames.0
+        - .spec.dnsNames.1
+      options:
+        delimiter: '.'
+        index: 0
+        create: true
+- source:
+    kind: Service
+    version: v1
+    name: webhook-service
+    fieldPath: .metadata.namespace # namespace of the service
+  targets:
+    - select:
+        kind: Certificate
+        group: cert-manager.io
+        version: v1
+      fieldPaths:
+        - .spec.dnsNames.0
+        - .spec.dnsNames.1
+      options:
+        delimiter: '.'
+        index: 1
+        create: true

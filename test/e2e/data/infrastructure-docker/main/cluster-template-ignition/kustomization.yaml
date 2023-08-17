@@ -1,7 +1,7 @@
-bases:
+resources:
   - ../bases/cluster-with-kcp.yaml
   - ../bases/md.yaml
   - ../bases/crs.yaml
 
-patchesStrategicMerge:
-  - ignition.yaml
+patches:
+  - path: ignition.yaml

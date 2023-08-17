@@ -12,16 +12,16 @@ kind: Certificate
 metadata:
   name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
 spec:
-  # $(SERVICE_NAMESPACE) will be substituted by kustomize
+  # SERVICE_NAMESPACE and SERVICE_NAME will be substituted by kustomize
   dnsNames:
-  - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc
-  - $(SERVICE_NAME).$(SERVICE_NAMESPACE).svc.cluster.local
+  - SERVICE_NAME.SERVICE_NAMESPACE.svc
+  - SERVICE_NAME.SERVICE_NAMESPACE.svc.cluster.local
   # for local testing.
   - localhost
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer
-  secretName: $(SERVICE_NAME)-cert # this secret will not be prefixed, since it's not managed by kustomize
+  secretName: webhook-service-cert # this secret will not be prefixed, since it's not managed by kustomize
   subject:
     organizations:
     - k8s-sig-cluster-lifecycle

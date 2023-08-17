@@ -3,7 +3,7 @@
 envsubst_cmd = "./hack/tools/bin/envsubst"
 clusterctl_cmd = "./bin/clusterctl"
 kubectl_cmd = "kubectl"
-kubernetes_version = "v1.27.3"
+kubernetes_version = "v1.28.0"
 
 load("ext://uibutton", "cmd_button", "location", "text_input")
 

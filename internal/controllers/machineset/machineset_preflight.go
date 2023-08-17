@@ -45,6 +45,8 @@ type preflightCheckErrorMessage *string
 // the preflight checks fail.
 const preflightFailedRequeueAfter = 15 * time.Second
 
+var minVerKubernetesKubeletVersionSkewThree = semver.MustParse("1.28.0")
+
 func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, action string) (_ ctrl.Result, message string, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 	// If the MachineSetPreflightChecks feature gate is disabled return early.
@@ -168,13 +170,18 @@ func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured
 func (r *Reconciler) kubernetesVersionPreflightCheck(cpSemver, msSemver semver.Version) preflightCheckErrorMessage {
 	// Check the Kubernetes version skew policy.
 	// => MS minor version cannot be greater than the Control Plane minor version.
-	// => MS minor version cannot be older than 2 minor versions of Control Plane.
+	// => MS minor version cannot be outside of the supported skew.
 	// Kubernetes skew policy: https://kubernetes.io/releases/version-skew-policy/#kubelet
 	if msSemver.Minor > cpSemver.Minor {
 		return pointer.String(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is higher than ControlPlane version (%q preflight failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
 	}
-	if msSemver.Minor < cpSemver.Minor-2 {
-		return pointer.String(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is more than 2 minor versions older than the ControlPlane version (%q preflight failed)", msSemver.String(), cpSemver.String(), clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
+	minorSkew := uint64(3)
+	// For Control Planes running Kubernetes < v1.28, the version skew policy for kubelets is two.
+	if cpSemver.LT(minVerKubernetesKubeletVersionSkewThree) {
+		minorSkew = 2
+	}
+	if msSemver.Minor < cpSemver.Minor-minorSkew {
+		return pointer.String(fmt.Sprintf("MachineSet version (%s) and ControlPlane version (%s) do not conform to the kubernetes version skew policy as MachineSet version is more than %d minor versions older than the ControlPlane version (%q preflight failed)", msSemver.String(), cpSemver.String(), minorSkew, clusterv1.MachineSetPreflightCheckKubernetesVersionSkew))
 	}
 
 	return nil

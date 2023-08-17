@@ -84,6 +84,7 @@ These diagrams show the relationships between components in a Cluster API releas
 | Kubernetes v1.25  | ✓                    | ✓                 | ✓                 | ✓                 |
 | Kubernetes v1.26  | ✓                    | ✓                 | ✓                 | ✓                 |
 | Kubernetes v1.27  |                      |                   | ✓                 | ✓                 |
+| Kubernetes v1.28  |                      |                   |                   | ✓                 |
 
 
 \* There is an issue with CRDs in Kubernetes v1.23.{0-2}. ClusterClass with patches is affected by that (for more details please see [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/5990)). Therefore we recommend to use Kubernetes v1.23.3+ with ClusterClass.
@@ -107,6 +108,7 @@ The Core Provider also talks to API server of every Workload Cluster. Therefore,
 | Kubernetes v1.25 + kubeadm/v1beta3 | ✓                    | ✓                 | ✓                  | ✓                  |
 | Kubernetes v1.26 + kubeadm/v1beta3 | ✓                    | ✓                 | ✓                  | ✓                  |
 | Kubernetes v1.27 + kubeadm/v1beta3 |                      |                   | ✓                  | ✓                  |
+| Kubernetes v1.28 + kubeadm/v1beta3 |                      |                   |                    | ✓                  |
 
 The Kubeadm Bootstrap Provider generates kubeadm configuration using the API version recommended for the target Kubernetes version.
 
@@ -124,6 +126,7 @@ The Kubeadm Bootstrap Provider generates kubeadm configuration using the API ver
 | Kubernetes v1.25 + etcd/v3 | ✓                    | ✓                 | ✓                 | ✓                 |
 | Kubernetes v1.26 + etcd/v3 | ✓                    | ✓                 | ✓                 | ✓                 |
 | Kubernetes v1.27 + etcd/v3 |                      |                   | ✓                 | ✓                 |
+| Kubernetes v1.28 + etcd/v3 |                      |                   |                   | ✓                 |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 
@@ -143,6 +146,9 @@ The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 | v1.4 (v1beta1)       | v1.10.1                         |
 
 #### Kubernetes version specific notes
+
+**1.28**:
+* No specific notes
 
 **1.27**:
 * No specific notes

@@ -149,7 +149,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Lookup the kubeadm config
+	// Look up the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}
 	if err := r.Client.Get(ctx, req.NamespacedName, config); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -233,10 +233,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
 		if err := patchHelper.Patch(ctx, config, patchOpts...); err != nil {
-			log.Error(rerr, "Failed to patch config")
-			if rerr == nil {
-				rerr = err
-			}
+			rerr = kerrors.NewAggregate([]error{rerr, errors.Wrapf(err, "failed to patch %s", klog.KObj(config))})
 		}
 	}()
 	// Ensure the bootstrap secret associated with this KubeadmConfig has the correct ownerReference.

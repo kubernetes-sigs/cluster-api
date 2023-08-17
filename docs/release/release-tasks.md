@@ -158,8 +158,6 @@ From this point forward changes which should land in the release have to be cher
   
 2. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/0b17ef5ffd6c7aa7d8ca1372d837acfb85f7bec6/config/prow/plugins.yaml#L371) accordingly (e.g. `release-1.4: v1.4` and `main: v1.5`)
    <br>Prior art: [cluster-api: update milestone applier config for v1.3](https://github.com/kubernetes/test-infra/pull/26631)
-3. Update the [PR markdown link checker](https://github.com/killianmuldoon/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.4`).
-   <br>Prior art: [Update branch for link checker](https://github.com/kubernetes-sigs/cluster-api/pull/9206)
 
 #### [Continuously] Maintain the GitHub release milestone
 
@@ -429,6 +427,8 @@ While we add test coverage for the new release branch we will also drop the test
    For example, let's assume we just created tests for v1.4, then we can now drop test coverage for the release-1.1 branch.
 4. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.4`
 5. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
+6. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.4`).
+   <br>Prior art: [Update branch for link checker](https://github.com/kubernetes-sigs/cluster-api/pull/9206)
 
 
 Prior art:

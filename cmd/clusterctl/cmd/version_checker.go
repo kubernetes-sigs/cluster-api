@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -34,6 +35,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/internal/goproxy"
 	"sigs.k8s.io/cluster-api/version"
 )
 
@@ -47,21 +49,27 @@ type versionChecker struct {
 	versionFilePath string
 	cliVersion      func() version.Info
 	githubClient    *github.Client
+	goproxyClient   *goproxy.Client
 }
 
 // newVersionChecker returns a versionChecker. Its behavior has been inspired
 // by https://github.com/cli/cli.
 func newVersionChecker(ctx context.Context, vc config.VariablesClient) (*versionChecker, error) {
-	var client *github.Client
+	var githubClient *github.Client
 	token, err := vc.Get("GITHUB_TOKEN")
 	if err == nil {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
 		)
 		tc := oauth2.NewClient(ctx, ts)
-		client = github.NewClient(tc)
+		githubClient = github.NewClient(tc)
 	} else {
-		client = github.NewClient(nil)
+		githubClient = github.NewClient(nil)
+	}
+
+	var goproxyClient *goproxy.Client
+	if scheme, host, err := goproxy.GetSchemeAndHost(os.Getenv("GOPROXY")); err == nil && scheme != "" && host != "" {
+		goproxyClient = goproxy.NewClient(scheme, host)
 	}
 
 	configDirectory, err := xdg.ConfigFile(config.ConfigFolderXDG)
@@ -72,7 +80,8 @@ func newVersionChecker(ctx context.Context, vc config.VariablesClient) (*version
 	return &versionChecker{
 		versionFilePath: filepath.Join(configDirectory, "version.yaml"),
 		cliVersion:      version.Get,
-		githubClient:    client,
+		githubClient:    githubClient,
+		goproxyClient:   goproxyClient,
 	}, nil
 }
 
@@ -139,28 +148,46 @@ New clusterctl version available: v%s -> v%s
 
 func (v *versionChecker) getLatestRelease(ctx context.Context) (*ReleaseInfo, error) {
 	log := logf.Log
+
+	// Try to get latest clusterctl version number from the local state file.
+	// NOTE: local state file is ignored if older than 1d.
 	vs, err := readStateFile(v.versionFilePath)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to read version state file")
 	}
+	if vs != nil {
+		return &vs.LatestRelease, nil
+	}
 
-	// if there is no release info in the state file, pull latest release from github
-	if vs == nil {
-		release, _, err := v.githubClient.Repositories.GetLatestRelease(ctx, "kubernetes-sigs", "cluster-api")
-		if err != nil {
-			log.V(1).Info("⚠️ Unable to get latest github release for clusterctl")
-			// failing silently here so we don't error out in air-gapped
-			// environments.
-			return nil, nil //nolint:nilerr
-		}
-
+	// Try to get latest clusterctl version number from go modules.
+	latest, err := v.goproxyGetLatest(ctx)
+	if err != nil {
+		log.V(5).Info("error using Goproxy client to get latest versions for clusterctl, falling back to github client")
+	}
+	if latest != nil {
 		vs = &VersionState{
-			LastCheck: time.Now(),
-			LatestRelease: ReleaseInfo{
-				Version: release.GetTagName(),
-				URL:     release.GetHTMLURL(),
-			},
+			LastCheck:     time.Now(),
+			LatestRelease: *latest,
 		}
+
+		if err := writeStateFile(v.versionFilePath, vs); err != nil {
+			return nil, errors.Wrap(err, "unable to write version state file")
+		}
+		return &vs.LatestRelease, nil
+	}
+
+	// Otherwise fall back to get latest clusterctl version number from GitHub.
+	latest, err = v.gitHubGetLatest(ctx)
+	if err != nil {
+		log.V(1).Info("⚠️ Unable to get latest github release for clusterctl")
+		// failing silently here so we don't error out in air-gapped
+		// environments.
+		return nil, nil //nolint:nilerr
+	}
+
+	vs = &VersionState{
+		LastCheck:     time.Now(),
+		LatestRelease: *latest,
 	}
 
 	if err := writeStateFile(v.versionFilePath, vs); err != nil {
@@ -168,6 +195,40 @@ func (v *versionChecker) getLatestRelease(ctx context.Context) (*ReleaseInfo, er
 	}
 
 	return &vs.LatestRelease, nil
+}
+
+func (v *versionChecker) goproxyGetLatest(ctx context.Context) (*ReleaseInfo, error) {
+	if v.goproxyClient == nil {
+		return nil, nil
+	}
+
+	gomodulePath := path.Join("sigs.k8s.io", "cluster-api")
+	versions, err := v.goproxyClient.GetVersions(ctx, gomodulePath)
+	if err != nil {
+		return nil, err
+	}
+
+	latest := semver.Version{}
+	for _, v := range versions {
+		if v.GT(latest) {
+			latest = v
+		}
+	}
+	return &ReleaseInfo{
+		Version: latest.String(),
+		URL:     gomodulePath,
+	}, nil
+}
+
+func (v *versionChecker) gitHubGetLatest(ctx context.Context) (*ReleaseInfo, error) {
+	release, _, err := v.githubClient.Repositories.GetLatestRelease(ctx, "kubernetes-sigs", "cluster-api")
+	if err != nil {
+		return nil, err
+	}
+	return &ReleaseInfo{
+		Version: release.GetTagName(),
+		URL:     release.GetHTMLURL(),
+	}, nil
 }
 
 func writeStateFile(path string, vs *VersionState) error {

@@ -257,6 +257,7 @@ https://github.com/foo/bar/releases/v0.3.8-alpha.1
 
 			versionChecker.cliVersion = tt.cliVersion
 			versionChecker.githubClient = fakeGithubClient
+			versionChecker.goproxyClient = nil
 			versionChecker.versionFilePath = tmpVersionFile
 
 			output, err := versionChecker.Check(ctx)
@@ -327,6 +328,7 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient1
+	versionChecker.goproxyClient = nil
 
 	// this call to getLatestRelease will pull from our fakeGithubClient1 and
 	// store the information including timestamp into the state file.
@@ -386,6 +388,7 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient1
+	versionChecker.goproxyClient = nil
 
 	_, err = versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())

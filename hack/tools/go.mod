@@ -7,7 +7,7 @@ replace sigs.k8s.io/cluster-api => ../../
 replace sigs.k8s.io/cluster-api/test => ../../test
 
 require (
-	cloud.google.com/go/storage v1.31.0
+	cloud.google.com/go/storage v1.32.0
 	github.com/blang/semver/v4 v4.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5

@@ -229,6 +229,12 @@ Additional information:
     * Create a release tag on the GitHub repository.
     * Create/update/publish GitHub releases.
 
+[Optional] Public release session
+   1. Host a release session over a public zoom meeting.
+   2. Record the session for future reference and transparency.
+   3. Use release process-related waiting periods as a forum for discussing issues/questions.
+   4. Publish the recording on YouTube channel.
+
 #### [Optional] [Track] Bump the Cluster API apiVersion
 
 **Note** This should only be done when we have to bump the apiVersion of our APIs.

@@ -1,18 +1,18 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
-- [Cluster API Release Team](#cluster-api-release-team)
-  - [Overview](#overview)
-    - [Goals](#goals)
-    - [Non-Goals/Future work](#non-goalsfuture-work)
-  - [Duration of Term](#duration-of-term)
-  - [Specific Responsibilities](#specific-responsibilities)
-  - [Team Roles](#team-roles)
-  - [Team Selection](#team-selection)
-    - [Selection Criteria](#selection-criteria)
-  - [Time Commitment](#time-commitment)
-  - [Why should I volunteer?](#why-should-i-volunteer)
+* [Cluster API Release Team](#cluster-api-release-team)
+  * [Overview](#overview)
+    * [Goals](#goals)
+    * [Non-Goals/Future work](#non-goalsfuture-work)
+  * [Duration of Term](#duration-of-term)
+  * [Specific Responsibilities](#specific-responsibilities)
+  * [Team Roles](#team-roles)
+  * [Team Selection](#team-selection)
+    * [Selection Criteria](#selection-criteria)
+  * [Time Commitment](#time-commitment)
+  * [Why should I volunteer?](#why-should-i-volunteer)
+  * [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -81,9 +81,11 @@ When assembling a release team, the release team lead should look for volunteers
 
 - Can commit to the amount of time required across the release cycle
 - Are enthusiastic about being on the release team
-- Are members of the Cluster Lifecycle SIG
+- Preferably are [members of the kubernetes or the kubernetes-SIG org](https://github.com/kubernetes/community/blob/master/community-membership.md) (see [notes](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)).
 - Have some prior experience with contributing to CAPI releases (such having been in the release team for a prior release)
 - Have diverse company affiliations (i.e. not all from the same company)
+- Are members of the Kubernetes slack community (register if you are not!)
+- Are members of the Cluster Lifecycle SIG mailing list (subscribe to the [SIG Cluster Lifecycle Google Group](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) if you are not!)
 
 ## Time Commitment
 
@@ -98,3 +100,12 @@ Volunteering to be part of a CAPI release team is a great way to contribute to t
 - Get more familiar with the CAPI release process
 - Create lasting relationships with other members of the community
 - Contribute to the CAPI project health
+
+## Cluster API release team vs kubernetes/kubernetes-SIG membership
+
+Candidates for the Cluster API release team should preferably be [members of the kubernetes or the kubernetes-SIG org](https://github.com/kubernetes/community/blob/master/community-membership.md), but this is not a hard requirement.
+
+Non-org members can perform all the tasks of the release team, but they can't be added to the [cluster-api-release-team](https://github.com/kubernetes/org/blob/99343225f3ce39c2d3da594b7aca40ca8043bd54/config/kubernetes-sigs/sig-cluster-lifecycle/teams.yaml#L341) GitHub group.
+
+Being part of the Cluster API release team could be a great start for people willing to become a members of the kubernetes-SIG org, see
+the official list of [requirements](https://github.com/kubernetes/community/blob/master/community-membership.md#requirements).

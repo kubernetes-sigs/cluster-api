@@ -99,7 +99,7 @@ func TestFirstAvailableNode(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).Should(Equal(tt.expectedErr))
 			} else {
-				g.Expect(*client).Should(Equal(tt.expectedClient))
+				g.Expect(*client).Should(BeComparableTo(tt.expectedClient))
 			}
 		})
 	}
@@ -221,7 +221,7 @@ func TestForLeader(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).Should(Equal(tt.expectedErr))
 			} else {
-				g.Expect(*client).Should(Equal(tt.expectedClient))
+				g.Expect(*client).Should(BeComparableTo(tt.expectedClient))
 			}
 		})
 	}

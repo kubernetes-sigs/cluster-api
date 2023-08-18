@@ -364,7 +364,7 @@ func TestCopySpec(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(tt.input.dest).To(Equal(tt.want))
+			g.Expect(tt.input.dest).To(BeComparableTo(tt.want))
 		})
 	}
 }

@@ -395,7 +395,7 @@ func TestGlobal(t *testing.T) {
 
 			got, err := Global(tt.clusterTopology, tt.cluster, tt.forPatch, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -481,7 +481,7 @@ func TestControlPlane(t *testing.T) {
 
 			got, err := ControlPlane(tt.controlPlaneTopology, tt.controlPlane, tt.controlPlaneInfrastructureMachineTemplate)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -848,7 +848,7 @@ func TestMachineDeployment(t *testing.T) {
 
 			got, err := MachineDeployment(tt.mdTopology, tt.md, tt.mdBootstrapTemplate, tt.mdInfrastructureMachineTemplate, tt.forPatch, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

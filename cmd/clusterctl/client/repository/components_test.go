@@ -682,7 +682,7 @@ func Test_addCommonLabels(t *testing.T) {
 			g := NewWithT(t)
 
 			got := addCommonLabels(tt.args.objs, config.NewProvider(tt.args.name, "", tt.args.providerType))
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -721,5 +721,5 @@ func TestAlterComponents(t *testing.T) {
 	if err := AlterComponents(c, alterFn); err != nil {
 		t.Errorf("AlterComponents() error = %v", err)
 	}
-	g.Expect(c.objs).To(Equal(want))
+	g.Expect(c.objs).To(BeComparableTo(want))
 }

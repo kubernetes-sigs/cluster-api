@@ -325,7 +325,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 			g.Expect(*newMachineSet.Spec.Replicas).To(Equal(newMachineSet.Status.AvailableReplicas))
 
 			// MachineSet should have the same infrastructureRef as the MachineDeployment.
-			g.Expect(newMachineSet.Spec.Template.Spec.InfrastructureRef).To(Equal(deployment.Spec.Template.Spec.InfrastructureRef))
+			g.Expect(newMachineSet.Spec.Template.Spec.InfrastructureRef).To(BeComparableTo(deployment.Spec.Template.Spec.InfrastructureRef))
 		}, input.WaitForMachinesToBeUpgraded...).Should(Succeed())
 	}
 }

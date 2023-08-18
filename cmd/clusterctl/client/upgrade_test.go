@@ -81,11 +81,11 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 			actualPlan, err := tt.client.PlanCertManagerUpgrade(options)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(actualPlan).To(Equal(CertManagerUpgradePlan{}))
+				g.Expect(actualPlan).To(BeComparableTo(CertManagerUpgradePlan{}))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(actualPlan).To(Equal(certManagerPlan))
+			g.Expect(actualPlan).To(BeComparableTo(certManagerPlan))
 		})
 	}
 }
@@ -300,7 +300,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			for i := range gotProviders.Items {
 				tt.wantProviders.Items[i].ResourceVersion = gotProviders.Items[i].ResourceVersion
 			}
-			g.Expect(gotProviders).To(Equal(tt.wantProviders), cmp.Diff(gotProviders, tt.wantProviders))
+			g.Expect(gotProviders).To(BeComparableTo(tt.wantProviders), cmp.Diff(gotProviders, tt.wantProviders))
 		})
 	}
 }
@@ -476,7 +476,7 @@ func Test_parseUpgradeItem(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

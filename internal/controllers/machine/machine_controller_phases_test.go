@@ -913,7 +913,7 @@ func TestReconcileBootstrap(t *testing.T) {
 
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			res, err := r.reconcileBootstrap(ctx, s)
-			g.Expect(res).To(Equal(tc.expectResult))
+			g.Expect(res).To(BeComparableTo(tc.expectResult))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -1126,7 +1126,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileInfrastructure(ctx, s)
 			r.reconcilePhase(ctx, tc.machine)
-			g.Expect(result).To(Equal(tc.expectResult))
+			g.Expect(result).To(BeComparableTo(tc.expectResult))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

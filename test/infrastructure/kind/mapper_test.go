@@ -115,7 +115,7 @@ func TestGetMapping(t *testing.T) {
 			got := GetMapping(tc.k8sVersion, tc.customImage)
 
 			tc.expectedMapping.KubernetesVersion = tc.k8sVersion
-			g.Expect(got).To(Equal(tc.expectedMapping))
+			g.Expect(got).To(BeComparableTo(tc.expectedMapping))
 		})
 	}
 }

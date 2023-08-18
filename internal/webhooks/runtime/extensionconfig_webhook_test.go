@@ -129,8 +129,8 @@ func TestExtensionConfigDefault(t *testing.T) {
 	t.Run("for Extension", util.CustomDefaultValidateTest(ctx, extensionConfig, extensionConfigWebhook))
 
 	g.Expect(extensionConfigWebhook.Default(ctx, extensionConfig)).To(Succeed())
-	g.Expect(extensionConfig.Spec.NamespaceSelector).To(Equal(&metav1.LabelSelector{}))
-	g.Expect(extensionConfig.Spec.ClientConfig.Service.Port).To(Equal(pointer.Int32(443)))
+	g.Expect(extensionConfig.Spec.NamespaceSelector).To(BeComparableTo(&metav1.LabelSelector{}))
+	g.Expect(extensionConfig.Spec.ClientConfig.Service.Port).To(BeComparableTo(pointer.Int32(443)))
 }
 
 func TestExtensionConfigValidate(t *testing.T) {

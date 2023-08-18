@@ -187,7 +187,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 				gotProvidersSet.Insert(gotProvider.Name)
 			}
 
-			g.Expect(gotProvidersSet).To(Equal(tt.wantProviders))
+			g.Expect(gotProvidersSet).To(BeComparableTo(tt.wantProviders))
 		})
 	}
 }

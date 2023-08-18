@@ -128,7 +128,7 @@ func Test_metadataClient_Get(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

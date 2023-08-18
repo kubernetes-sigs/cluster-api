@@ -425,7 +425,7 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 				err := fakeClient.Get(ctx, client.ObjectKey{Name: expected.Name}, node)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(node.Annotations).To(Equal(expected.Annotations))
-				g.Expect(node.Spec.Taints).To(Equal(expected.Spec.Taints))
+				g.Expect(node.Spec.Taints).To(BeComparableTo(expected.Spec.Taints))
 			}
 		})
 	}

@@ -72,7 +72,7 @@ func TestRemoveNodeTaint(t *testing.T) {
 			g := NewWithT(t)
 			got := RemoveNodeTaint(tt.node, tt.dropTaint)
 			g.Expect(got).To(Equal(tt.wantModified))
-			g.Expect(tt.node.Spec.Taints).To(Equal(tt.wantTaints))
+			g.Expect(tt.node.Spec.Taints).To(BeComparableTo(tt.wantTaints))
 		})
 	}
 }

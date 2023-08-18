@@ -92,7 +92,7 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }
@@ -189,7 +189,7 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }
@@ -283,7 +283,7 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }
@@ -334,7 +334,7 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }

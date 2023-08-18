@@ -84,5 +84,5 @@ func TestUnstructuredSetConditions(t *testing.T) {
 
 	s := UnstructuredSetter(u)
 	s.SetConditions(conditions)
-	g.Expect(s.GetConditions()).To(Equal(conditions))
+	g.Expect(s.GetConditions()).To(BeComparableTo(conditions))
 }

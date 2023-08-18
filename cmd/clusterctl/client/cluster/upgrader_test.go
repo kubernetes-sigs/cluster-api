@@ -400,7 +400,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			}
 
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want), cmp.Diff(got, tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(got, tt.want))
 		})
 	}
 }
@@ -869,7 +869,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 			}
 
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

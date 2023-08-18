@@ -188,7 +188,7 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 
 	node := &corev1.Node{}
 	g.Expect(c.Get(ctx, client.ObjectKeyFromObject(n3), node)).To(Succeed())
-	g.Expect(node.Spec.Taints).To(Equal(taints))
+	g.Expect(node.Spec.Taints).To(BeComparableTo(taints))
 
 	// delete
 

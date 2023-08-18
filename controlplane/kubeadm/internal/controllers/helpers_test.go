@@ -141,7 +141,7 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 
 	result, err := r.reconcileKubeconfig(ctx, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: dependentCertRequeueAfter}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: dependentCertRequeueAfter}))
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
@@ -279,7 +279,7 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 
 	result, err := r.reconcileKubeconfig(ctx, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result).To(Equal(ctrl.Result{}))
+	g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 
 	kubeconfigSecret := &corev1.Secret{}
 	secretName := client.ObjectKey{
@@ -548,7 +548,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 		g.Expect(createdMachine.Namespace).To(Equal(kcp.Namespace))
 		g.Expect(createdMachine.OwnerReferences).To(HaveLen(1))
 		g.Expect(createdMachine.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
-		g.Expect(createdMachine.Spec).To(Equal(expectedMachineSpec))
+		g.Expect(createdMachine.Spec).To(BeComparableTo(expectedMachineSpec))
 
 		// Verify that the machineTemplate.ObjectMeta has been propagated to the Machine.
 		// Verify labels.
@@ -624,7 +624,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 		g.Expect(updatedMachine.Namespace).To(Equal(kcp.Namespace))
 		g.Expect(updatedMachine.OwnerReferences).To(HaveLen(1))
 		g.Expect(updatedMachine.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
-		g.Expect(updatedMachine.Spec).To(Equal(expectedMachineSpec))
+		g.Expect(updatedMachine.Spec).To(BeComparableTo(expectedMachineSpec))
 
 		// Verify the Name and UID of the Machine remain unchanged
 		g.Expect(updatedMachine.Name).To(Equal(machineName))
@@ -701,7 +701,7 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	g.Expect(fakeClient.Get(ctx, key, bootstrapConfig)).To(Succeed())
 	g.Expect(bootstrapConfig.OwnerReferences).To(HaveLen(1))
 	g.Expect(bootstrapConfig.OwnerReferences).To(ContainElement(expectedOwner))
-	g.Expect(bootstrapConfig.Spec).To(Equal(spec))
+	g.Expect(bootstrapConfig.Spec).To(BeComparableTo(spec))
 }
 
 func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {

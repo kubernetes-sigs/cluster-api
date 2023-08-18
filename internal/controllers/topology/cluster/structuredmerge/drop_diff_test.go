@@ -161,7 +161,7 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 
 			dropDiff(tt.ctx)
 
-			g.Expect(tt.ctx.modified).To(Equal(tt.wantModified))
+			g.Expect(tt.ctx.modified).To(BeComparableTo(tt.wantModified))
 		})
 	}
 }
@@ -268,7 +268,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 
 			dropDiff(tt.ctx)
 
-			g.Expect(tt.ctx.modified).To(Equal(tt.wantModified))
+			g.Expect(tt.ctx.modified).To(BeComparableTo(tt.wantModified))
 		})
 	}
 }

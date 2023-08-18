@@ -338,7 +338,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 
 	expectedResult := reconcile.Result{}
 	actualResult, actualError := k.Reconcile(ctx, request)
-	g.Expect(actualResult).To(Equal(expectedResult))
+	g.Expect(actualResult).To(BeComparableTo(expectedResult))
 	g.Expect(actualError).ToNot(HaveOccurred())
 	assertHasFalseCondition(g, myclient, request, bootstrapv1.DataSecretAvailableCondition, clusterv1.ConditionSeverityInfo, bootstrapv1.WaitingForClusterInfrastructureReason)
 }
@@ -1566,7 +1566,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 			g := NewWithT(t)
 
 			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{})
-			g.Expect(res).To(Equal(tc.result))
+			g.Expect(res).To(BeComparableTo(tc.result))
 			if tc.err == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {
@@ -2084,7 +2084,7 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 
 			files, err := k.resolveFiles(ctx, tc.cfg)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(files).To(Equal(tc.expect))
+			g.Expect(files).To(BeComparableTo(tc.expect))
 			for _, file := range tc.cfg.Spec.Files {
 				if contentFrom[file.Path] {
 					g.Expect(file.ContentFrom).NotTo(BeNil())
@@ -2211,7 +2211,7 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 
 			users, err := k.resolveUsers(ctx, tc.cfg)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(users).To(Equal(tc.expect))
+			g.Expect(users).To(BeComparableTo(tc.expect))
 			for _, user := range tc.cfg.Spec.Users {
 				if passwdFrom[user.Name] {
 					g.Expect(user.PasswdFrom).NotTo(BeNil())

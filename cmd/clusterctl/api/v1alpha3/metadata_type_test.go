@@ -65,7 +65,7 @@ func TestGetReleaseSeriesForContract(t *testing.T) {
 			g := NewWithT(t)
 
 			m := &Metadata{ReleaseSeries: test.releaseSeries}
-			g.Expect(m.GetReleaseSeriesForContract(test.contract)).To(Equal(test.expectedReleaseSeries))
+			g.Expect(m.GetReleaseSeriesForContract(test.contract)).To(BeComparableTo(test.expectedReleaseSeries))
 		})
 	}
 }

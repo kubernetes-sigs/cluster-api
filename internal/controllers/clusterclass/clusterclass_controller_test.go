@@ -541,7 +541,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(tt.clusterClass.Status.Variables).To(Equal(tt.want), cmp.Diff(tt.clusterClass.Status.Variables, tt.want))
+			g.Expect(tt.clusterClass.Status.Variables).To(BeComparableTo(tt.want), cmp.Diff(tt.clusterClass.Status.Variables, tt.want))
 		})
 	}
 }

@@ -102,7 +102,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).To(HaveKey(key), "Object bar must exists in object tracker for foo")
 
 			r := c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)][key]
-			g.Expect(r.GetObjectKind().GroupVersionKind()).To(Equal(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
+			g.Expect(r.GetObjectKind().GroupVersionKind()).To(BeComparableTo(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
 			g.Expect(r.GetName()).To(Equal("bar"), "name must be equal to object tracker key")
 			g.Expect(r.GetResourceVersion()).To(Equal("v1"), "resourceVersion must be set")
 			g.Expect(r.GetCreationTimestamp()).ToNot(BeZero(), "creation timestamp must be set")
@@ -269,7 +269,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check all the computed fields are as expected.
-			g.Expect(obj.GetObjectKind().GroupVersionKind()).To(Equal(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
+			g.Expect(obj.GetObjectKind().GroupVersionKind()).To(BeComparableTo(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must be set")
 			g.Expect(obj.GetName()).To(Equal("bar"), "name must be equal to object tracker key")
 			g.Expect(obj.GetResourceVersion()).To(Equal("v1"), "resourceVersion must be set")
 			g.Expect(obj.GetCreationTimestamp()).ToNot(BeZero(), "creation timestamp must be set")
@@ -412,7 +412,7 @@ func Test_cache_client(t *testing.T) {
 			err = c.Update("foo", objUpdate)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(objBefore).To(Equal(objUpdate), "obj before and after must be the same")
+			g.Expect(objBefore).To(BeComparableTo(objUpdate), "obj before and after must be the same")
 
 			g.Expect(h.Events()).ToNot(ContainElement("foo, CloudMachine=bar, Updated"))
 		})
@@ -435,7 +435,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(objBefore.GetResourceVersion()).ToNot(Equal(objUpdate.GetResourceVersion()), "Object version must be changed")
 			objBefore.SetResourceVersion(objUpdate.GetResourceVersion())
 			objBefore.Labels = objUpdate.Labels
-			g.Expect(objBefore).To(Equal(objUpdate), "everything else must be the same")
+			g.Expect(objBefore).To(BeComparableTo(objUpdate), "everything else must be the same")
 
 			g.Expect(h.Events()).To(ContainElement("foo, CloudMachine=baz, Updated"))
 		})
@@ -670,7 +670,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(objBefore.GetResourceVersion()).ToNot(Equal(objAfterUpdate.GetResourceVersion()), "Object version must be changed")
 			objBefore.SetResourceVersion(objAfterUpdate.GetResourceVersion())
 			objBefore.Labels = objAfterUpdate.Labels
-			g.Expect(objBefore).To(Equal(objAfterUpdate), "everything else must be the same")
+			g.Expect(objBefore).To(BeComparableTo(objAfterUpdate), "everything else must be the same")
 
 			g.Expect(h.Events()).To(ContainElement("foo, CloudMachine=baz, Deleted"))
 

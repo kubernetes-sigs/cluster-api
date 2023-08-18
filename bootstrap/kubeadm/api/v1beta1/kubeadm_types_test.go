@@ -129,7 +129,7 @@ func TestBootstrapTokenStringUnmarshalJSON(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(newbts).To(Equal(rt.bts))
+			g.Expect(newbts).To(BeComparableTo(rt.bts))
 		})
 	}
 }
@@ -240,7 +240,7 @@ func TestNewBootstrapTokenString(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(actual).To(Equal(rt.bts))
+			g.Expect(actual).To(BeComparableTo(rt.bts))
 		})
 	}
 }

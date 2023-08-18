@@ -139,7 +139,7 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -496,7 +496,7 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
+			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
 		})
 	}
 }
@@ -551,7 +551,7 @@ func TestUnmarshalClusterStatus(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
+			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
 		})
 	}
 }
@@ -610,7 +610,7 @@ func TestUnmarshalInitConfiguration(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
+			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
 		})
 	}
 }
@@ -669,7 +669,7 @@ func TestUnmarshalJoinConfiguration(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
+			g.Expect(got).To(BeComparableTo(tt.want), cmp.Diff(tt.want, got))
 		})
 	}
 }

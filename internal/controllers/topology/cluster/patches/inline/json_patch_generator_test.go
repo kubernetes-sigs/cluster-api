@@ -342,7 +342,7 @@ func TestGenerate(t *testing.T) {
 
 			got, err := NewGenerator(tt.patch).Generate(context.Background(), &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}}, tt.req)
 
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
@@ -1516,7 +1516,7 @@ func TestCalculateValue(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -1920,7 +1920,7 @@ func TestCalculateTemplateData(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

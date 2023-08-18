@@ -162,7 +162,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 			// sort the machine sets and verify the sorted list
 			g := NewWithT(t)
 			sort.Sort(MachineSetsByDecreasingReplicas(tt.machineSets))
-			g.Expect(tt.machineSets).To(Equal(tt.want))
+			g.Expect(tt.machineSets).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -389,7 +389,7 @@ func TestFindNewMachineSet(t *testing.T) {
 			g := NewWithT(t)
 
 			ms := FindNewMachineSet(&test.deployment, test.msList, test.reconciliationTime)
-			g.Expect(ms).To(Equal(test.expected))
+			g.Expect(ms).To(BeComparableTo(test.expected))
 		})
 	}
 }

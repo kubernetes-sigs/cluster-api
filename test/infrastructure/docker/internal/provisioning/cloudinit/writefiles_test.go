@@ -96,7 +96,7 @@ func TestWriteFiles(t *testing.T) {
 
 			cmds, err := rt.w.Commands()
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(rt.expectedCmds).To(Equal(cmds))
+			g.Expect(rt.expectedCmds).To(BeComparableTo(cmds))
 		})
 	}
 }

@@ -2077,7 +2077,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 					}
 					return m.Status
 				}
-				gs.Eventually(checkStatus).Should(Equal(o.Status))
+				gs.Eventually(checkStatus).Should(BeComparableTo(o.Status))
 			}
 
 			got := r.nodeToMachineHealthCheck(ctx, tc.object)

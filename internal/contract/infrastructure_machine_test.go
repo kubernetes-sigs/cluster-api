@@ -101,7 +101,7 @@ func TestInfrastructureMachine(t *testing.T) {
 		got, err := InfrastructureMachine().Addresses().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(addresses))
+		g.Expect(*got).To(BeComparableTo(addresses))
 	})
 	t.Run("Manages optional spec.failureDomain", func(t *testing.T) {
 		g := NewWithT(t)

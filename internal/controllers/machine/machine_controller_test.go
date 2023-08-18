@@ -569,7 +569,7 @@ func TestMachineOwnerReference(t *testing.T) {
 			// this first requeue is to add finalizer
 			result, err := mr.Reconcile(ctx, tc.request)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(result).To(Equal(ctrl.Result{}))
+			g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 			g.Expect(actual.Finalizers).To(ContainElement(clusterv1.MachineFinalizer))
 
@@ -577,7 +577,7 @@ func TestMachineOwnerReference(t *testing.T) {
 
 			if len(tc.expectedOR) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
-				g.Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
+				g.Expect(actual.OwnerReferences).To(BeComparableTo(tc.expectedOR))
 			} else {
 				g.Expect(actual.OwnerReferences).To(BeEmpty())
 			}
@@ -743,7 +743,7 @@ func TestReconcileRequest(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 
-			g.Expect(result).To(Equal(tc.expected.result))
+			g.Expect(result).To(BeComparableTo(tc.expected.result))
 		})
 	}
 }
@@ -1076,7 +1076,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 			}
 
 			obj, err := r.reconcileDeleteExternal(ctx, machine, machine.Spec.Bootstrap.ConfigRef)
-			g.Expect(obj).To(Equal(tc.expected))
+			g.Expect(obj).To(BeComparableTo(tc.expected))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

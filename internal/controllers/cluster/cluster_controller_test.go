@@ -531,7 +531,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 					UnstructuredCachingClient: c,
 				}
 				requests := r.controlPlaneMachineToCluster(ctx, tt.o)
-				g.Expect(requests).To(Equal(tt.want))
+				g.Expect(requests).To(BeComparableTo(tt.want))
 			})
 		}
 	})
@@ -739,7 +739,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 		&m6ControlPlaneOwnedByCluster,
 	}
 
-	g.Expect(actual).To(Equal(expected))
+	g.Expect(actual).To(BeComparableTo(expected))
 }
 
 func TestDescendantsLength(t *testing.T) {

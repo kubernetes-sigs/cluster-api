@@ -176,9 +176,9 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			gs.Expect(targets).To(HaveLen(len(tc.expectedTargets)))
 			for i, target := range targets {
 				expectedTarget := tc.expectedTargets[i]
-				gs.Expect(target.Machine).To(Equal(expectedTarget.Machine))
-				gs.Expect(target.MHC).To(Equal(expectedTarget.MHC))
-				gs.Expect(target.Node).To(Equal(expectedTarget.Node))
+				gs.Expect(target.Machine).To(BeComparableTo(expectedTarget.Machine))
+				gs.Expect(target.MHC).To(BeComparableTo(expectedTarget.MHC))
+				gs.Expect(target.Node).To(BeComparableTo(expectedTarget.Node))
 			}
 		})
 	}

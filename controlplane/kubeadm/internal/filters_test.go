@@ -191,8 +191,8 @@ func TestCleanupConfigFields(t *testing.T) {
 			},
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
-		g.Expect(kcpConfig.JoinConfiguration.Discovery).To(Equal(bootstrapv1.Discovery{}))
-		g.Expect(machineConfig.Spec.JoinConfiguration.Discovery).To(Equal(bootstrapv1.Discovery{}))
+		g.Expect(kcpConfig.JoinConfiguration.Discovery).To(BeComparableTo(bootstrapv1.Discovery{}))
+		g.Expect(machineConfig.Spec.JoinConfiguration.Discovery).To(BeComparableTo(bootstrapv1.Discovery{}))
 	})
 	t.Run("JoinConfiguration.ControlPlane gets removed from MachineConfig if it was not derived by KCPConfig", func(t *testing.T) {
 		g := NewWithT(t)
@@ -228,7 +228,7 @@ func TestCleanupConfigFields(t *testing.T) {
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
 		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration.NodeRegistration).To(Equal(bootstrapv1.NodeRegistrationOptions{}))
+		g.Expect(machineConfig.Spec.JoinConfiguration.NodeRegistration).To(BeComparableTo(bootstrapv1.NodeRegistrationOptions{}))
 	})
 	t.Run("InitConfiguration.TypeMeta gets removed from MachineConfig", func(t *testing.T) {
 		g := NewWithT(t)
@@ -247,7 +247,7 @@ func TestCleanupConfigFields(t *testing.T) {
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
 		g.Expect(kcpConfig.InitConfiguration).ToNot(BeNil())
-		g.Expect(machineConfig.Spec.InitConfiguration.TypeMeta).To(Equal(metav1.TypeMeta{}))
+		g.Expect(machineConfig.Spec.InitConfiguration.TypeMeta).To(BeComparableTo(metav1.TypeMeta{}))
 	})
 	t.Run("JoinConfiguration.TypeMeta gets removed from MachineConfig", func(t *testing.T) {
 		g := NewWithT(t)
@@ -266,7 +266,7 @@ func TestCleanupConfigFields(t *testing.T) {
 		}
 		cleanupConfigFields(kcpConfig, machineConfig)
 		g.Expect(kcpConfig.JoinConfiguration).ToNot(BeNil())
-		g.Expect(machineConfig.Spec.JoinConfiguration.TypeMeta).To(Equal(metav1.TypeMeta{}))
+		g.Expect(machineConfig.Spec.JoinConfiguration.TypeMeta).To(BeComparableTo(metav1.TypeMeta{}))
 	})
 }
 

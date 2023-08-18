@@ -497,7 +497,8 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "pass on variable with required set true with a default defined",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name: "var",
+				Name:     "var",
+				Required: true,
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "string",
@@ -622,6 +623,68 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 								Properties: map[string]clusterv1.JSONSchemaProps{
 									"replicas": {
 										Type:    "integer",
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail if field is required below properties and sets a default that misses the field",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type:     "object",
+								Required: []string{"replicas"},
+								Default: &apiextensionsv1.JSON{
+									// replicas missing results in failure
+									Raw: []byte(`{"value": 100}`),
+								},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`100`)},
+										Minimum: pointer.Int64(1),
+									},
+									"value": {
+										Type:    "integer",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`100`)},
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if field is required below properties and sets a default",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type:     "object",
+								Required: []string{"replicas"},
+								Default: &apiextensionsv1.JSON{
+									// replicas is set here so the `required` property is met.
+									Raw: []byte(`{"replicas": 100}`),
+								},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`100`)},
 										Minimum: pointer.Int64(1),
 									},
 								},

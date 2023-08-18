@@ -2390,16 +2390,20 @@ func TestWaitReadyForMove(t *testing.T) {
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
-			backoff := wait.Backoff{
+			timeout := 100 * time.Millisecond
+			getResourceBackoff := wait.Backoff{
+				Steps: 1,
+			}
+			waitForResourceMoveUnblockedBackoff := wait.Backoff{
 				Steps: 1,
 			}
 			if tt.doUnblock {
-				backoff = wait.Backoff{
+				waitForResourceMoveUnblockedBackoff = wait.Backoff{
 					Duration: 20 * time.Millisecond,
-					Steps:    10,
+					Steps:    1000,
 				}
 			}
-			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, backoff)
+			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, timeout, getResourceBackoff, waitForResourceMoveUnblockedBackoff)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

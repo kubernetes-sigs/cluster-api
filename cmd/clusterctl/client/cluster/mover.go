@@ -336,15 +336,21 @@ func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Prox
 	}
 
 	log.Info("Waiting for all resources to be ready to move")
-	// exponential backoff configuration which returns durations for a total time of ~2m.
-	// Example: 0, 5s, 8s, 11s, 17s, 26s, 38s, 57s, 86s, 128s
-	waitForMoveUnblockedBackoff := wait.Backoff{
-		Duration: 5 * time.Second,
-		Factor:   1.5,
-		Steps:    10,
+	// timeout for the entire wait to finish
+	unblockTimeout := 5 * time.Minute
+	// backoff to wait for a successful GET to check for the annotation
+	getResourceBackoff := newReadBackoff()
+	// backoff to re-check if an individual resource is blocking move.
+	// In total, this is excessively long (>2 days) to try to make sure it's always larger than the global
+	// timeout. The global timeout will supersede this if it is reached first.
+	waitForResourceMoveUnblockedBackoff := wait.Backoff{
+		Duration: 3 * time.Second,
+		Steps:    100,
+		Factor:   1.1,
 		Jitter:   0.1,
+		Cap:      1 * time.Hour,
 	}
-	if err := waitReadyForMove(ctx, o.fromProxy, graph.getMoveNodes(), o.dryRun, waitForMoveUnblockedBackoff); err != nil {
+	if err := waitReadyForMove(ctx, o.fromProxy, graph.getMoveNodes(), o.dryRun, unblockTimeout, getResourceBackoff, waitForResourceMoveUnblockedBackoff); err != nil {
 		return errors.Wrap(err, "error waiting for resources to be ready to move")
 	}
 
@@ -610,7 +616,7 @@ func setClusterClassPause(ctx context.Context, proxy Proxy, clusterclasses []*no
 	return nil
 }
 
-func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bool, backoff wait.Backoff) error {
+func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bool, globalTimeout time.Duration, getResourceBackoff, waitForResourceMoveUnblockedBackoff wait.Backoff) error {
 	if dryRun {
 		return nil
 	}
@@ -621,6 +627,9 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 	if err != nil {
 		return errors.Wrap(err, "error creating client")
 	}
+
+	ctx, cancel := context.WithTimeout(ctx, globalTimeout)
+	defer cancel()
 
 	for _, n := range nodes {
 		log := log.WithValues(
@@ -647,18 +656,16 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 		}
 		key := client.ObjectKeyFromObject(obj)
 
-		blockLogged := false
-		if err := retryWithExponentialBackoff(ctx, backoff, func(ctx context.Context) error {
-			if err := c.Get(ctx, key, obj); err != nil {
+		log.Info(fmt.Sprintf("Move blocked by %s annotation, waiting for it to be removed", clusterctlv1.BlockMoveAnnotation))
+		if err := retryWithExponentialBackoff(ctx, waitForResourceMoveUnblockedBackoff, func(ctx context.Context) error {
+			if err := retryWithExponentialBackoff(ctx, getResourceBackoff, func(ctx context.Context) error {
+				return c.Get(ctx, key, obj)
+			}); err != nil {
 				return errors.Wrapf(err, "error getting %s/%s", obj.GroupVersionKind(), key)
 			}
 
 			if _, exists := obj.GetAnnotations()[clusterctlv1.BlockMoveAnnotation]; exists {
-				if !blockLogged {
-					log.Info(fmt.Sprintf("Move blocked by %s annotation, waiting for it to be removed", clusterctlv1.BlockMoveAnnotation))
-					blockLogged = true
-				}
-				return errors.Errorf("resource is not ready to move: %s/%s", obj.GroupVersionKind(), key)
+				return errors.New("Resource is blocking move")
 			}
 			log.V(5).Info("Resource is ready to move")
 			return nil

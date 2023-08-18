@@ -37,6 +37,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -508,8 +509,8 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		err := errors.Wrapf(err, "error starting container %q", runConfig.Name)
 		// Delete the container and retry later on. This helps getting around the race
 		// condition where of hitting "port is already allocated" issues.
-		if innerErr := d.dockerClient.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true}); innerErr != nil {
-			return errors.Wrapf(innerErr, "error removing container after failed start: %s", err)
+		if reterr := d.dockerClient.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true}); reterr != nil {
+			return kerrors.NewAggregate([]error{err, errors.Wrapf(reterr, "error deleting container")})
 		}
 		return err
 	}

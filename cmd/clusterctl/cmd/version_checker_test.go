@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -35,7 +36,9 @@ import (
 func TestVersionChecker_newVersionChecker(t *testing.T) {
 	g := NewWithT(t)
 
-	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
+	ctx := context.Background()
+
+	versionChecker, err := newVersionChecker(ctx, test.NewFakeVariableClient())
 
 	g.Expect(err).ToNot(HaveOccurred())
 
@@ -233,6 +236,9 @@ https://github.com/foo/bar/releases/v0.3.8-alpha.1
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 			defer cleanDir()
 
@@ -246,14 +252,14 @@ https://github.com/foo/bar/releases/v0.3.8-alpha.1
 				},
 			)
 			defer cleanup()
-			versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
+			versionChecker, err := newVersionChecker(ctx, test.NewFakeVariableClient())
 			g.Expect(err).ToNot(HaveOccurred())
 
 			versionChecker.cliVersion = tt.cliVersion
 			versionChecker.githubClient = fakeGithubClient
 			versionChecker.versionFilePath = tmpVersionFile
 
-			output, err := versionChecker.Check()
+			output, err := versionChecker.Check(ctx)
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -267,6 +273,9 @@ https://github.com/foo/bar/releases/v0.3.8-alpha.1
 
 func TestVersionChecker_WriteStateFile(t *testing.T) {
 	g := NewWithT(t)
+
+	ctx := context.Background()
+
 	fakeGithubClient, mux, cleanup := test.NewFakeGitHub()
 	mux.HandleFunc(
 		"/repos/kubernetes-sigs/cluster-api/releases/latest",
@@ -280,12 +289,12 @@ func TestVersionChecker_WriteStateFile(t *testing.T) {
 	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 	defer cleanDir()
 
-	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
+	versionChecker, err := newVersionChecker(ctx, test.NewFakeVariableClient())
 	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient
 
-	release, err := versionChecker.getLatestRelease()
+	release, err := versionChecker.getLatestRelease(ctx)
 
 	g.Expect(err).ToNot(HaveOccurred())
 	// ensure that the state file has been created
@@ -300,6 +309,8 @@ func TestVersionChecker_WriteStateFile(t *testing.T) {
 func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	g := NewWithT(t)
 
+	ctx := context.Background()
+
 	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 	defer cleanDir()
 
@@ -312,14 +323,14 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 		},
 	)
 	defer cleanup1()
-	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
+	versionChecker, err := newVersionChecker(ctx, test.NewFakeVariableClient())
 	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient1
 
 	// this call to getLatestRelease will pull from our fakeGithubClient1 and
 	// store the information including timestamp into the state file.
-	_, err = versionChecker.getLatestRelease()
+	_, err = versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// override the github client with response to a new version v0.3.99
@@ -337,7 +348,7 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 
 	// now instead of making another call to github, we want to read from the
 	// file. This will avoid unnecessary calls to github.
-	release, err := versionChecker.getLatestRelease()
+	release, err := versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(release.Version).To(Equal("v0.3.8"))
 	g.Expect(release.URL).To(Equal("https://github.com/foo/bar/releases/v0.3.8"))
@@ -346,6 +357,8 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 
 func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	g := NewWithT(t)
+
+	ctx := context.Background()
 
 	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
 	defer cleanDir()
@@ -369,17 +382,17 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 		},
 	)
 	defer cleanup1()
-	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
+	versionChecker, err := newVersionChecker(ctx, test.NewFakeVariableClient())
 	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient1
 
-	_, err = versionChecker.getLatestRelease()
+	_, err = versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Since the state file is more that 24 hours old we want to retrieve the
 	// latest release from github.
-	release, err := versionChecker.getLatestRelease()
+	release, err := versionChecker.getLatestRelease(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(release.Version).To(Equal("v0.3.10"))
 	g.Expect(release.URL).To(Equal("https://github.com/foo/bar/releases/v0.3.10"))

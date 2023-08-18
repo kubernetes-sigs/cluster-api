@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -51,7 +52,10 @@ func fakeClientForRollout() *fakeClient {
 			Name:      "md-2",
 		},
 	}
-	config1 := newFakeConfig().
+
+	ctx := context.Background()
+
+	config1 := newFakeConfig(ctx).
 		WithProvider(core).
 		WithProvider(infra)
 
@@ -61,7 +65,7 @@ func fakeClientForRollout() *fakeClient {
 		WithObjs(md1).
 		WithObjs(md2)
 
-	client := newFakeClient(config1).
+	client := newFakeClient(ctx, config1).
 		WithCluster(cluster1)
 
 	return client
@@ -169,7 +173,9 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.RolloutRestart(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.RolloutRestart(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -252,7 +258,9 @@ func Test_clusterctlClient_RolloutPause(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.RolloutPause(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.RolloutPause(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -335,7 +343,9 @@ func Test_clusterctlClient_RolloutResume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.RolloutResume(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.RolloutResume(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

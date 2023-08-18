@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -68,13 +69,13 @@ type Proxy interface {
 	// Certificates for cert-manager, Clusters for CAPI, AWSCluster for CAPA and so on).
 	// This is done to avoid errors when listing resources of providers which have already been deleted/scaled down to 0 replicas/with
 	// malfunctioning webhooks.
-	ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error)
+	ListResources(ctx context.Context, labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error)
 
 	// GetContexts returns the list of contexts in kubeconfig which begin with prefix.
 	GetContexts(prefix string) ([]string, error)
 
 	// GetResourceNames returns the list of resource names which begin with prefix.
-	GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error)
+	GetResourceNames(ctx context.Context, groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error)
 }
 
 type proxy struct {
@@ -209,7 +210,7 @@ func (k *proxy) CheckClusterAvailable() error {
 //   - If we now want to delete e.g. the kubeadm bootstrap provider, we cannot list AWSClusterControllerIdentity resources
 //     as the conversion would fail, because the AWS controller hosting the conversion webhook has already been deleted.
 //   - Thus we exclude resources of other providers if we detect that ListResources is called to list resources of a provider.
-func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
+func (k *proxy) ListResources(ctx context.Context, labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
 	cs, err := k.newClientSet()
 	if err != nil {
 		return nil, err
@@ -282,14 +283,14 @@ func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([
 			// List all the object instances of this resourceKind with the given labels
 			if resourceKind.Namespaced {
 				for _, namespace := range namespaces {
-					objList, err := listObjByGVK(c, resourceGroup.GroupVersion, resourceKind.Kind, []client.ListOption{client.MatchingLabels(labels), client.InNamespace(namespace)})
+					objList, err := listObjByGVK(ctx, c, resourceGroup.GroupVersion, resourceKind.Kind, []client.ListOption{client.MatchingLabels(labels), client.InNamespace(namespace)})
 					if err != nil {
 						return nil, err
 					}
 					ret = append(ret, objList.Items...)
 				}
 			} else {
-				objList, err := listObjByGVK(c, resourceGroup.GroupVersion, resourceKind.Kind, []client.ListOption{client.MatchingLabels(labels)})
+				objList, err := listObjByGVK(ctx, c, resourceGroup.GroupVersion, resourceKind.Kind, []client.ListOption{client.MatchingLabels(labels)})
 				if err != nil {
 					return nil, err
 				}
@@ -318,13 +319,13 @@ func (k *proxy) GetContexts(prefix string) ([]string, error) {
 }
 
 // GetResourceNames returns the list of resource names which begin with prefix.
-func (k *proxy) GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error) {
+func (k *proxy) GetResourceNames(ctx context.Context, groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error) {
 	client, err := k.NewClient()
 	if err != nil {
 		return nil, err
 	}
 
-	objList, err := listObjByGVK(client, groupVersion, kind, options)
+	objList, err := listObjByGVK(ctx, client, groupVersion, kind, options)
 	if err != nil {
 		return nil, err
 	}
@@ -341,7 +342,7 @@ func (k *proxy) GetResourceNames(groupVersion, kind string, options []client.Lis
 	return comps, nil
 }
 
-func listObjByGVK(c client.Client, groupVersion, kind string, options []client.ListOption) (*unstructured.UnstructuredList, error) {
+func listObjByGVK(ctx context.Context, c client.Client, groupVersion, kind string, options []client.ListOption) (*unstructured.UnstructuredList, error) {
 	objList := new(unstructured.UnstructuredList)
 	objList.SetAPIVersion(groupVersion)
 	objList.SetKind(kind)

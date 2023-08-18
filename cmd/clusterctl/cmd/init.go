@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -120,7 +121,9 @@ func init() {
 }
 
 func runInit() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -141,7 +144,7 @@ func runInit() error {
 		IgnoreValidationErrors:    !initOpts.validate,
 	}
 
-	if _, err := c.Init(options); err != nil {
+	if _, err := c.Init(ctx, options); err != nil {
 		return err
 	}
 	return nil

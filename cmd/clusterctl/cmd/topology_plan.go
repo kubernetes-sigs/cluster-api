@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -109,7 +110,9 @@ func init() {
 }
 
 func runTopologyPlan() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -127,7 +130,7 @@ func runTopologyPlan() error {
 		objs = append(objs, objects...)
 	}
 
-	out, err := c.TopologyPlan(client.TopologyPlanOptions{
+	out, err := c.TopologyPlan(ctx, client.TopologyPlanOptions{
 		Kubeconfig: client.Kubeconfig{Path: tp.kubeconfig, Context: tp.kubeconfigContext},
 		Objs:       convertToPtrSlice(objs),
 		Cluster:    tp.cluster,

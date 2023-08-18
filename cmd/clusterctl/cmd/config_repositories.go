@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -85,7 +86,9 @@ func runGetRepositories(cfgFile string, out io.Writer) error {
 		return errors.New("unable to print to nil output writer")
 	}
 
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}

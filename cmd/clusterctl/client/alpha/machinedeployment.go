@@ -17,6 +17,7 @@ limitations under the License.
 package alpha
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"time"
@@ -35,7 +36,7 @@ import (
 )
 
 // getMachineDeployment retrieves the MachineDeployment object corresponding to the name and namespace specified.
-func getMachineDeployment(proxy cluster.Proxy, name, namespace string) (*clusterv1.MachineDeployment, error) {
+func getMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, namespace string) (*clusterv1.MachineDeployment, error) {
 	mdObj := &clusterv1.MachineDeployment{}
 	c, err := proxy.NewClient()
 	if err != nil {
@@ -53,13 +54,13 @@ func getMachineDeployment(proxy cluster.Proxy, name, namespace string) (*cluster
 }
 
 // setRolloutAfterOnMachineDeployment sets MachineDeployment.spec.rolloutAfter.
-func setRolloutAfterOnMachineDeployment(proxy cluster.Proxy, name, namespace string) error {
+func setRolloutAfterOnMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, namespace string) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rolloutAfter":"%v"}}`, time.Now().Format(time.RFC3339))))
-	return patchMachineDeployment(proxy, name, namespace, patch)
+	return patchMachineDeployment(ctx, proxy, name, namespace, patch)
 }
 
 // patchMachineDeployment applies a patch to a machinedeployment.
-func patchMachineDeployment(proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
+func patchMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
 	cFrom, err := proxy.NewClient()
 	if err != nil {
 		return err
@@ -118,7 +119,7 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
-func getMachineSetsForDeployment(proxy cluster.Proxy, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
+func getMachineSetsForDeployment(ctx context.Context, proxy cluster.Proxy, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	log := logf.Log
 	c, err := proxy.NewClient()
 	if err != nil {

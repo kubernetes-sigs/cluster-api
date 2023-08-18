@@ -204,7 +204,7 @@ func Test_ObjectRestarter(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectRestarter(proxy, tt.fields.ref)
+			err := r.ObjectRestarter(context.Background(), proxy, tt.fields.ref)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

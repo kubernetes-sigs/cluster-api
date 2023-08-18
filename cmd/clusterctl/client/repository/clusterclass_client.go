@@ -17,6 +17,8 @@ limitations under the License.
 package repository
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -27,7 +29,7 @@ import (
 // ClusterClassClient has methods to work with cluster class templates hosted on a provider repository.
 // Templates are yaml files to be used for creating a guest cluster.
 type ClusterClassClient interface {
-	Get(name, targetNamespace string, skipTemplateProcess bool) (Template, error)
+	Get(ctx context.Context, name, targetNamespace string, skipTemplateProcess bool) (Template, error)
 }
 
 type clusterClassClient struct {
@@ -57,7 +59,7 @@ func newClusterClassClient(input ClusterClassClientInput) *clusterClassClient {
 	}
 }
 
-func (cc *clusterClassClient) Get(name, targetNamespace string, skipTemplateProcess bool) (Template, error) {
+func (cc *clusterClassClient) Get(ctx context.Context, name, targetNamespace string, skipTemplateProcess bool) (Template, error) {
 	log := logf.Log
 
 	if targetNamespace == "" {
@@ -80,7 +82,7 @@ func (cc *clusterClassClient) Get(name, targetNamespace string, skipTemplateProc
 
 	if rawArtifact == nil {
 		log.V(5).Info("Fetching", "File", filename, "Provider", cc.provider.Name(), "Type", cc.provider.Type(), "Version", version)
-		rawArtifact, err = cc.repository.GetFile(version, filename)
+		rawArtifact, err = cc.repository.GetFile(ctx, version, filename)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", filename, cc.provider.ManifestLabel())
 		}

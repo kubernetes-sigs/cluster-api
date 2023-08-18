@@ -55,7 +55,7 @@ const (
 
 // TopologyClient has methods to work with ClusterClass and ManagedTopologies.
 type TopologyClient interface {
-	Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error)
+	Plan(ctx context.Context, in *TopologyPlanInput) (*TopologyPlanOutput, error)
 }
 
 // topologyClient implements TopologyClient.
@@ -106,8 +106,7 @@ type TopologyPlanOutput struct {
 
 // Plan performs a dry run execution of the topology reconciler using the given inputs.
 // It returns a summary of the changes observed during the execution.
-func (t *topologyClient) Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error) {
-	ctx := context.TODO()
+func (t *topologyClient) Plan(ctx context.Context, in *TopologyPlanInput) (*TopologyPlanOutput, error) {
 	log := logf.Log
 
 	// Make sure the inputs are valid.
@@ -122,7 +121,7 @@ func (t *topologyClient) Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error
 	// only has a Cluster object.
 	var c client.Client
 	if err := t.proxy.CheckClusterAvailable(); err == nil {
-		if initialized, err := t.inventoryClient.CheckCAPIInstalled(); err == nil && initialized {
+		if initialized, err := t.inventoryClient.CheckCAPIInstalled(ctx); err == nil && initialized {
 			c, err = t.proxy.NewClient()
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to create a client to the cluster")
@@ -481,7 +480,7 @@ func (t *topologyClient) reconcileClusterClasses(ctx context.Context, inputObjec
 	// This is required as Clusters are validated based of variable definitions in the ClusterClass `.status.variables`.
 	reconciledClusterClasses := []client.Object{}
 	for _, class := range allClusterClasses {
-		reconciledClusterClass, err := reconcileClusterClass(apiReader, class, reconciliationObjects)
+		reconciledClusterClass, err := reconcileClusterClass(ctx, apiReader, class, reconciliationObjects)
 		if err != nil {
 			return nil, errors.Wrapf(err, "ClusterClass %s could not be reconciled for dry run", class.GetName())
 		}
@@ -507,7 +506,7 @@ func (t *topologyClient) reconcileClusterClasses(ctx context.Context, inputObjec
 	return reconciledClusterClasses, nil
 }
 
-func reconcileClusterClass(apiReader client.Reader, class client.Object, reconciliationObjects []client.Object) (*unstructured.Unstructured, error) {
+func reconcileClusterClass(ctx context.Context, apiReader client.Reader, class client.Object, reconciliationObjects []client.Object) (*unstructured.Unstructured, error) {
 	targetClusterClass := client.ObjectKey{Namespace: class.GetNamespace(), Name: class.GetName()}
 	reconciliationObjects = append(reconciliationObjects, class)
 

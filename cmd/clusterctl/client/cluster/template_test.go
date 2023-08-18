@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -46,7 +47,7 @@ kind: Machine`
 func Test_templateClient_GetFromConfigMap(t *testing.T) {
 	g := NewWithT(t)
 
-	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
+	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	configMap := &corev1.ConfigMap{
@@ -134,9 +135,11 @@ func Test_templateClient_GetFromConfigMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			processor := yaml.NewSimpleProcessor()
 			tc := newTemplateClient(TemplateClientInput{tt.fields.proxy, tt.fields.configClient, processor})
-			got, err := tc.GetFromConfigMap(tt.args.configMapNamespace, tt.args.configMapName, tt.args.configMapDataKey, tt.args.targetNamespace, tt.args.skipTemplateProcess)
+			got, err := tc.GetFromConfigMap(ctx, tt.args.configMapNamespace, tt.args.configMapName, tt.args.configMapDataKey, tt.args.targetNamespace, tt.args.skipTemplateProcess)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -162,7 +165,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
+	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
@@ -207,13 +210,15 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			c := &templateClient{
 				configClient: configClient,
-				gitHubClientFactory: func(configVariablesClient config.VariablesClient) (*github.Client, error) {
+				gitHubClientFactory: func(ctx context.Context, configVariablesClient config.VariablesClient) (*github.Client, error) {
 					return client, nil
 				},
 			}
-			got, err := c.getGitHubFileContent(tt.args.rURL)
+			got, err := c.getGitHubFileContent(ctx, tt.args.rURL)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -255,8 +260,10 @@ func Test_templateClient_getRawUrlFileContent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			c := newTemplateClient(TemplateClientInput{})
-			got, err := c.getRawURLFileContent(tt.args.rURL)
+			got, err := c.getRawURLFileContent(ctx, tt.args.rURL)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -330,7 +337,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	defer os.RemoveAll(tmpDir)
 
-	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
+	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	fakeGithubClient, mux, teardown := test.NewFakeGitHub()
@@ -479,7 +486,9 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			gitHubClientFactory := func(configVariablesClient config.VariablesClient) (*github.Client, error) {
+			ctx := context.Background()
+
+			gitHubClientFactory := func(ctx context.Context, configVariablesClient config.VariablesClient) (*github.Client, error) {
 				return fakeGithubClient, nil
 			}
 			processor := yaml.NewSimpleProcessor()
@@ -487,7 +496,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 			// override the github client factory
 			c.gitHubClientFactory = gitHubClientFactory
 
-			got, err := c.GetFromURL(tt.args.templateURL, tt.args.targetNamespace, tt.args.skipTemplateProcess)
+			got, err := c.GetFromURL(ctx, tt.args.templateURL, tt.args.targetNamespace, tt.args.skipTemplateProcess)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

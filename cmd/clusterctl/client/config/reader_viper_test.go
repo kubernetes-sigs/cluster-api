@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -108,12 +109,15 @@ func Test_viperReader_Init(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gg := NewWithT(t)
+
+			ctx := context.Background()
+
 			v, _ := newViperReader(injectConfigPaths(tt.configDirs))
 			if tt.expectErr {
-				gg.Expect(v.Init(tt.configPath)).ToNot(Succeed())
+				gg.Expect(v.Init(ctx, tt.configPath)).ToNot(Succeed())
 				return
 			}
-			gg.Expect(v.Init(tt.configPath)).To(Succeed())
+			gg.Expect(v.Init(ctx, tt.configPath)).To(Succeed())
 		})
 	}
 }
@@ -168,9 +172,11 @@ func Test_viperReader_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
+			ctx := context.Background()
+
 			v, _ := newViperReader(injectConfigPaths([]string{dir}))
 
-			gs.Expect(v.Init(configFile)).To(Succeed())
+			gs.Expect(v.Init(ctx, configFile)).To(Succeed())
 
 			got, err := v.Get(tt.args.key)
 			if tt.wantErr {
@@ -186,6 +192,9 @@ func Test_viperReader_Get(t *testing.T) {
 
 func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
 	g := NewWithT(t)
+
+	ctx := context.Background()
+
 	dir, err := os.MkdirTemp("", "clusterctl")
 	g.Expect(err).ToNot(HaveOccurred())
 	defer os.RemoveAll(dir)
@@ -194,7 +203,7 @@ func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
 
 	v, err := newViperReader(injectConfigPaths([]string{dir}))
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(v.Init("")).To(Succeed())
+	g.Expect(v.Init(ctx, "")).To(Succeed())
 
 	got, err := v.Get("FOO_FOO")
 	g.Expect(err).ToNot(HaveOccurred())
@@ -236,9 +245,11 @@ func Test_viperReader_Set(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
+			ctx := context.Background()
+
 			v := &viperReader{}
 
-			gs.Expect(v.Init(configFile)).To(Succeed())
+			gs.Expect(v.Init(ctx, configFile)).To(Succeed())
 
 			v.Set(tt.args.key, tt.args.value)
 

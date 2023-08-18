@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -38,7 +39,7 @@ type PlanUpgradeOptions struct {
 	Kubeconfig Kubeconfig
 }
 
-func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
+func (c *clusterctlClient) PlanCertManagerUpgrade(ctx context.Context, options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
 	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
@@ -46,11 +47,11 @@ func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (C
 	}
 
 	certManager := cluster.CertManager()
-	plan, err := certManager.PlanUpgrade()
+	plan, err := certManager.PlanUpgrade(ctx)
 	return CertManagerUpgradePlan(plan), err
 }
 
-func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
+func (c *clusterctlClient) PlanUpgrade(ctx context.Context, options PlanUpgradeOptions) ([]UpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
@@ -61,6 +62,7 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 	// NOTE: given that v1beta1 (current) and v1alpha4 (previous) does not have breaking changes, we support also upgrades from v1alpha3 to v1beta1;
 	// this is an exception and support for skipping releases should be removed in future releases.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(
+		ctx,
 		cluster.AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version},
 		cluster.AllowCAPIContract{Contract: clusterv1alpha4.GroupVersion.Version},
 	); err != nil {
@@ -68,11 +70,11 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 	}
 
 	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(ctx); err != nil {
 		return nil, err
 	}
 
-	upgradePlans, err := clusterClient.ProviderUpgrader().Plan()
+	upgradePlans, err := clusterClient.ProviderUpgrader().Plan(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +133,7 @@ type ApplyUpgradeOptions struct {
 	WaitProviderTimeout time.Duration
 }
 
-func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
+func (c *clusterctlClient) ApplyUpgrade(ctx context.Context, options ApplyUpgradeOptions) error {
 	if options.Contract != "" && options.Contract != clusterv1.GroupVersion.Version {
 		return errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterv1.GroupVersion.Version, options.Contract)
 	}
@@ -152,6 +154,7 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	// NOTE: given that v1beta1 (current) and v1alpha4 (previous) does not have breaking changes, we support also upgrades from v1alpha3 to v1beta1;
 	// this is an exception and support for skipping releases should be removed in future releases.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(
+		ctx,
 		cluster.AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version},
 		cluster.AllowCAPIContract{Contract: clusterv1alpha4.GroupVersion.Version},
 	); err != nil {
@@ -159,7 +162,7 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	}
 
 	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(ctx); err != nil {
 		return err
 	}
 
@@ -168,7 +171,7 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	// conversion web-hooks around Issuer/Certificate kinds, so installing an older versions of providers
 	// should continue to work with the latest cert-manager.
 	certManager := clusterClient.CertManager()
-	if err := certManager.EnsureLatestVersion(); err != nil {
+	if err := certManager.EnsureLatestVersion(ctx); err != nil {
 		return err
 	}
 
@@ -192,47 +195,47 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 		upgradeItems := []cluster.UpgradeItem{}
 
 		if options.CoreProvider != "" {
-			upgradeItems, err = addUpgradeItems(clusterClient, upgradeItems, clusterctlv1.CoreProviderType, options.CoreProvider)
+			upgradeItems, err = addUpgradeItems(ctx, clusterClient, upgradeItems, clusterctlv1.CoreProviderType, options.CoreProvider)
 			if err != nil {
 				return err
 			}
 		}
-		upgradeItems, err = addUpgradeItems(clusterClient, upgradeItems, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...)
+		upgradeItems, err = addUpgradeItems(ctx, clusterClient, upgradeItems, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...)
 		if err != nil {
 			return err
 		}
-		upgradeItems, err = addUpgradeItems(clusterClient, upgradeItems, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...)
+		upgradeItems, err = addUpgradeItems(ctx, clusterClient, upgradeItems, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...)
 		if err != nil {
 			return err
 		}
-		upgradeItems, err = addUpgradeItems(clusterClient, upgradeItems, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...)
+		upgradeItems, err = addUpgradeItems(ctx, clusterClient, upgradeItems, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...)
 		if err != nil {
 			return err
 		}
-		upgradeItems, err = addUpgradeItems(clusterClient, upgradeItems, clusterctlv1.IPAMProviderType, options.IPAMProviders...)
+		upgradeItems, err = addUpgradeItems(ctx, clusterClient, upgradeItems, clusterctlv1.IPAMProviderType, options.IPAMProviders...)
 		if err != nil {
 			return err
 		}
-		upgradeItems, err = addUpgradeItems(clusterClient, upgradeItems, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...)
+		upgradeItems, err = addUpgradeItems(ctx, clusterClient, upgradeItems, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...)
 		if err != nil {
 			return err
 		}
-		upgradeItems, err = addUpgradeItems(clusterClient, upgradeItems, clusterctlv1.AddonProviderType, options.AddonProviders...)
+		upgradeItems, err = addUpgradeItems(ctx, clusterClient, upgradeItems, clusterctlv1.AddonProviderType, options.AddonProviders...)
 		if err != nil {
 			return err
 		}
 
 		// Execute the upgrade using the custom upgrade items
-		return clusterClient.ProviderUpgrader().ApplyCustomPlan(opts, upgradeItems...)
+		return clusterClient.ProviderUpgrader().ApplyCustomPlan(ctx, opts, upgradeItems...)
 	}
 
 	// Otherwise we are upgrading a whole management cluster according to a clusterctl generated upgrade plan.
-	return clusterClient.ProviderUpgrader().ApplyPlan(opts, options.Contract)
+	return clusterClient.ProviderUpgrader().ApplyPlan(ctx, opts, options.Contract)
 }
 
-func addUpgradeItems(clusterClient cluster.Client, upgradeItems []cluster.UpgradeItem, providerType clusterctlv1.ProviderType, providers ...string) ([]cluster.UpgradeItem, error) {
+func addUpgradeItems(ctx context.Context, clusterClient cluster.Client, upgradeItems []cluster.UpgradeItem, providerType clusterctlv1.ProviderType, providers ...string) ([]cluster.UpgradeItem, error) {
 	for _, upgradeReference := range providers {
-		providerUpgradeItem, err := parseUpgradeItem(clusterClient, upgradeReference, providerType)
+		providerUpgradeItem, err := parseUpgradeItem(ctx, clusterClient, upgradeReference, providerType)
 		if err != nil {
 			return nil, err
 		}
@@ -244,7 +247,7 @@ func addUpgradeItems(clusterClient cluster.Client, upgradeItems []cluster.Upgrad
 	return upgradeItems, nil
 }
 
-func parseUpgradeItem(clusterClient cluster.Client, ref string, providerType clusterctlv1.ProviderType) (*cluster.UpgradeItem, error) {
+func parseUpgradeItem(ctx context.Context, clusterClient cluster.Client, ref string, providerType clusterctlv1.ProviderType) (*cluster.UpgradeItem, error) {
 	// TODO(oscr) Remove when explicit namespaces for providers is removed
 	// ref format is old format: namespace/provider:version
 	if strings.Contains(ref, "/") {
@@ -252,7 +255,7 @@ func parseUpgradeItem(clusterClient cluster.Client, ref string, providerType clu
 	}
 
 	// ref format is: provider:version
-	return parseUpgradeItemWithoutNamespace(clusterClient, ref, providerType)
+	return parseUpgradeItemWithoutNamespace(ctx, clusterClient, ref, providerType)
 }
 
 func parseUpgradeItemWithNamespace(ref string, providerType clusterctlv1.ProviderType) (*cluster.UpgradeItem, error) {
@@ -288,7 +291,7 @@ func parseUpgradeItemWithNamespace(ref string, providerType clusterctlv1.Provide
 	}, nil
 }
 
-func parseUpgradeItemWithoutNamespace(clusterClient cluster.Client, ref string, providerType clusterctlv1.ProviderType) (*cluster.UpgradeItem, error) {
+func parseUpgradeItemWithoutNamespace(ctx context.Context, clusterClient cluster.Client, ref string, providerType clusterctlv1.ProviderType) (*cluster.UpgradeItem, error) {
 	if !strings.Contains(ref, ":") {
 		return nil, errors.Errorf(upgradeItemProviderNameError, ref)
 	}
@@ -298,7 +301,7 @@ func parseUpgradeItemWithoutNamespace(clusterClient cluster.Client, ref string, 
 		return nil, errors.Wrapf(err, upgradeItemProviderNameError, ref)
 	}
 
-	namespace, err := clusterClient.ProviderInventory().GetProviderNamespace(name, providerType)
+	namespace, err := clusterClient.ProviderInventory().GetProviderNamespace(ctx, name, providerType)
 	if err != nil {
 		return nil, errors.Errorf("unable to find default namespace for provider %q", ref)
 	}

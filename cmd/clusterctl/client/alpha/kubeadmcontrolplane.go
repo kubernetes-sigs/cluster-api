@@ -17,6 +17,7 @@ limitations under the License.
 package alpha
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ import (
 )
 
 // getKubeadmControlPlane retrieves the KubeadmControlPlane object corresponding to the name and namespace specified.
-func getKubeadmControlPlane(proxy cluster.Proxy, name, namespace string) (*controlplanev1.KubeadmControlPlane, error) {
+func getKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, namespace string) (*controlplanev1.KubeadmControlPlane, error) {
 	kcpObj := &controlplanev1.KubeadmControlPlane{}
 	c, err := proxy.NewClient()
 	if err != nil {
@@ -47,13 +48,13 @@ func getKubeadmControlPlane(proxy cluster.Proxy, name, namespace string) (*contr
 }
 
 // setRolloutAfterOnKCP sets KubeadmControlPlane.spec.rolloutAfter.
-func setRolloutAfterOnKCP(proxy cluster.Proxy, name, namespace string) error {
+func setRolloutAfterOnKCP(ctx context.Context, proxy cluster.Proxy, name, namespace string) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rolloutAfter":"%v"}}`, time.Now().Format(time.RFC3339))))
-	return patchKubeadmControlPlane(proxy, name, namespace, patch)
+	return patchKubeadmControlPlane(ctx, proxy, name, namespace, patch)
 }
 
 // patchKubeadmControlPlane applies a patch to a KubeadmControlPlane.
-func patchKubeadmControlPlane(proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
+func patchKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
 	cFrom, err := proxy.NewClient()
 	if err != nil {
 		return err

@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -193,7 +194,7 @@ func Test_templates_Get(t *testing.T) {
 					processor:             tt.fields.processor,
 				},
 			)
-			got, err := f.Get(tt.args.flavor, tt.args.targetNamespace, tt.args.listVariablesOnly)
+			got, err := f.Get(context.Background(), tt.args.flavor, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

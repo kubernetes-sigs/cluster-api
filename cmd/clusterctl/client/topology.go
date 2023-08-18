@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -46,13 +48,13 @@ type TopologyPlanOutput = cluster.TopologyPlanOutput
 
 // TopologyPlan performs a dry run execution of the topology reconciler using the given inputs.
 // It returns a summary of the changes observed during the execution.
-func (c *clusterctlClient) TopologyPlan(options TopologyPlanOptions) (*TopologyPlanOutput, error) {
+func (c *clusterctlClient) TopologyPlan(ctx context.Context, options TopologyPlanOptions) (*TopologyPlanOutput, error) {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}
 
-	out, err := clusterClient.Topology().Plan(&cluster.TopologyPlanInput{
+	out, err := clusterClient.Topology().Plan(ctx, &cluster.TopologyPlanInput{
 		Objs:              options.Objs,
 		TargetClusterName: options.Cluster,
 		TargetNamespace:   options.Namespace,

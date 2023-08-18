@@ -61,7 +61,7 @@ var certManagerNamespaceYaml = []byte("apiVersion: v1\n" +
 func Test_getManifestObjs(t *testing.T) {
 	g := NewWithT(t)
 
-	defaultConfigClient, err := config.New("", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
+	defaultConfigClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
 	g.Expect(err).ToNot(HaveOccurred())
 
 	type fields struct {
@@ -109,7 +109,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "successfully gets the cert-manager components for a custom release",
 			fields: fields{
 				configClient: func() config.Client {
-					configClient, err := config.New("", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "").WithCertManager("", "v1.0.0", "")))
+					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "").WithCertManager("", "v1.0.0", "")))
 					g.Expect(err).ToNot(HaveOccurred())
 					return configClient
 				}(),
@@ -125,17 +125,19 @@ func Test_getManifestObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			cm := &certManagerClient{
 				configClient: defaultConfigClient,
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository))
 				},
 			}
 
 			certManagerConfig, err := cm.configClient.CertManager().Get()
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := cm.getManifestObjs(certManagerConfig)
+			got, err := cm.getManifestObjs(ctx, certManagerConfig)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -194,6 +196,7 @@ func Test_GetTimeout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
 			cm := newCertManagerClient(tt.config, nil, nil, pollImmediateWaiter)
 
 			tm := cm.getWaitTimeout()
@@ -420,6 +423,7 @@ func Test_shouldUpgrade(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
 			proxy := test.NewFakeProxy()
 			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "")
 			pollImmediateWaiter := func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
@@ -561,16 +565,18 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
 			cm := &certManagerClient{
 				pollImmediateWaiter: fakePollImmediateWaiter,
 				proxy:               proxy,
 			}
 
-			objBefore, err := proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue})
+			objBefore, err := proxy.ListResources(ctx, map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue})
 			g.Expect(err).ToNot(HaveOccurred())
 
-			err = cm.deleteObjs(objBefore)
+			err = cm.deleteObjs(ctx, objBefore)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -591,7 +597,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 				cl, err := proxy.NewClient()
 				g.Expect(err).ToNot(HaveOccurred())
 
-				err = cl.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+				err = cl.Get(context.Background(), client.ObjectKeyFromObject(obj), obj)
 				switch objShouldStillExist {
 				case true:
 					g.Expect(err).ToNot(HaveOccurred())
@@ -705,6 +711,8 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			proxy := test.NewFakeProxy().WithObjs(tt.objs...)
 			fakeConfigClient := newFakeConfig()
 			pollImmediateWaiter := func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
@@ -712,7 +720,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			}
 			cm := newCertManagerClient(fakeConfigClient, nil, proxy, pollImmediateWaiter)
 
-			actualPlan, err := cm.PlanUpgrade()
+			actualPlan, err := cm.PlanUpgrade(ctx)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(actualPlan).To(BeComparableTo(CertManagerUpgradePlan{}))
@@ -755,7 +763,7 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 				proxy: tt.fields.proxy,
 			}
 
-			err := cm.EnsureLatestVersion()
+			err := cm.EnsureLatestVersion(context.Background())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -768,7 +776,7 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 func newFakeConfig() *fakeConfigClient {
 	fakeReader := test.NewFakeReader()
 
-	client, _ := config.New("fake-config", config.InjectReader(fakeReader))
+	client, _ := config.New(context.Background(), "fake-config", config.InjectReader(fakeReader))
 	return &fakeConfigClient{
 		fakeReader:     fakeReader,
 		internalclient: client,

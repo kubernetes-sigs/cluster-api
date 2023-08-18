@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -161,6 +162,8 @@ func Test_ClusterClassClient_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			f := newClusterClassClient(
 				ClusterClassClientInput{
 					version:               tt.fields.version,
@@ -170,7 +173,7 @@ func Test_ClusterClassClient_Get(t *testing.T) {
 					processor:             tt.fields.processor,
 				},
 			)
-			got, err := f.Get(tt.args.name, tt.args.targetNamespace, tt.args.listVariablesOnly)
+			got, err := f.Get(ctx, tt.args.name, tt.args.targetNamespace, tt.args.listVariablesOnly)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

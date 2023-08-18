@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -120,7 +122,9 @@ func init() {
 }
 
 func runDelete() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -141,7 +145,7 @@ func runDelete() error {
 		return errors.New("At least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be specified or the --all flag should be set")
 	}
 
-	return c.Delete(client.DeleteOptions{
+	return c.Delete(ctx, client.DeleteOptions{
 		Kubeconfig:                client.Kubeconfig{Path: dd.kubeconfig, Context: dd.kubeconfigContext},
 		IncludeNamespace:          dd.includeNamespace,
 		IncludeCRDs:               dd.includeCRDs,

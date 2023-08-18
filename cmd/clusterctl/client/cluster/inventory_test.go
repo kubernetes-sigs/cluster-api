@@ -67,14 +67,16 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			proxy := test.NewFakeProxy()
 			p := newInventoryClient(proxy, fakePollImmediateWaiter)
 			if tt.fields.alreadyHasCRD {
 				// forcing creation of metadata before test
-				g.Expect(p.EnsureCustomResourceDefinitions()).To(Succeed())
+				g.Expect(p.EnsureCustomResourceDefinitions(ctx)).To(Succeed())
 			}
 
-			res, err := checkInventoryCRDs(proxy)
+			res, err := checkInventoryCRDs(ctx, proxy)
 			g.Expect(res).To(Equal(tt.want))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -115,7 +117,7 @@ func Test_inventoryClient_List(t *testing.T) {
 			g := NewWithT(t)
 
 			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
-			got, err := p.List()
+			got, err := p.List(context.Background())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -177,10 +179,12 @@ func Test_inventoryClient_Create(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			p := &inventoryClient{
 				proxy: tt.fields.proxy,
 			}
-			err := p.Create(tt.args.m)
+			err := p.Create(ctx, tt.args.m)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -188,7 +192,7 @@ func Test_inventoryClient_Create(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := p.List()
+			got, err := p.List(ctx)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -351,7 +355,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 			p := &inventoryClient{
 				proxy: tt.fields.proxy,
 			}
-			err := p.CheckCAPIContract(tt.args.options...)
+			err := p.CheckCAPIContract(context.Background(), tt.args.options...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -398,7 +402,7 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 			g := NewWithT(t)
 
 			p := newInventoryClient(test.NewFakeProxy().WithObjs(tt.fields.initObjs...), fakePollImmediateWaiter)
-			err := p.CheckSingleProviderInstance()
+			err := p.CheckSingleProviderInstance(context.Background())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

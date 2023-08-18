@@ -241,7 +241,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectRollbacker(proxy, tt.fields.ref, tt.fields.toRevision)
+			err := r.ObjectRollbacker(context.Background(), proxy, tt.fields.ref, tt.fields.toRevision)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

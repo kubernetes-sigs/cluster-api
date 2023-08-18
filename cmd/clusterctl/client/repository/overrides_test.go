@@ -99,6 +99,7 @@ func TestOverrides(t *testing.T) {
 func TestGetLocalOverrides(t *testing.T) {
 	t.Run("returns contents of file successfully", func(t *testing.T) {
 		g := NewWithT(t)
+
 		tmpDir := createTempDir(t)
 		defer os.RemoveAll(tmpDir)
 

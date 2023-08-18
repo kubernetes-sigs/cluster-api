@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"sort"
 	"time"
 
@@ -89,7 +90,7 @@ type InitOptions struct {
 }
 
 // Init initializes a management cluster by adding the requested list of providers.
-func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
+func (c *clusterctlClient) Init(ctx context.Context, options InitOptions) ([]Components, error) {
 	log := logf.Log
 
 	// Default WaitProviderTimeout as we cannot rely on defaulting in the CLI
@@ -105,12 +106,12 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	}
 
 	// ensure the custom resource definitions required by clusterctl are in place
-	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(ctx); err != nil {
 		return nil, err
 	}
 
 	// Ensure this command only runs against v1beta1 management clusters
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}
 
@@ -118,11 +119,11 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	// if not we consider this the first time init is executed, and thus we enforce the installation of a core provider,
 	// a bootstrap provider and a control-plane provider (if not already explicitly requested by the user)
 	log.Info("Fetching providers")
-	firstRun := c.addDefaultProviders(clusterClient, &options)
+	firstRun := c.addDefaultProviders(ctx, clusterClient, &options)
 
 	// create an installer service, add the requested providers to the install queue and then perform validation
 	// of the target state of the management cluster before starting the installation.
-	installer, err := c.setupInstaller(clusterClient, options)
+	installer, err := c.setupInstaller(ctx, clusterClient, options)
 	if err != nil {
 		return nil, err
 	}
@@ -132,7 +133,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	// - All the providers must support the same API Version of Cluster API (contract)
 	// - All provider CRDs that are referenced in core Cluster API CRDs must comply with the CRD naming scheme,
 	//   otherwise a warning is logged.
-	if err := installer.Validate(); err != nil {
+	if err := installer.Validate(ctx); err != nil {
 		if !options.IgnoreValidationErrors {
 			return nil, err
 		}
@@ -141,7 +142,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.
 	certManager := clusterClient.CertManager()
-	if err := certManager.EnsureInstalled(); err != nil {
+	if err := certManager.EnsureInstalled(ctx); err != nil {
 		return nil, err
 	}
 
@@ -149,7 +150,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 		WaitProviders:       options.WaitProviders,
 		WaitProviderTimeout: options.WaitProviderTimeout,
 	}
-	components, err := installer.Install(installOpts)
+	components, err := installer.Install(ctx, installOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +175,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 }
 
 // InitImages returns the list of images required for init.
-func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
+func (c *clusterctlClient) InitImages(ctx context.Context, options InitOptions) ([]string, error) {
 	// gets access to the management cluster
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
@@ -182,14 +183,14 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	}
 
 	// Ensure this command only runs against empty management clusters or v1beta1 management clusters.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx, cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}
 
 	// checks if the cluster already contains a Core provider.
 	// if not we consider this the first time init is executed, and thus we enforce the installation of a core provider,
 	// a bootstrap provider and a control-plane provider (if not already explicitly requested by the user)
-	c.addDefaultProviders(clusterClient, &options)
+	c.addDefaultProviders(ctx, clusterClient, &options)
 
 	// skip variable parsing when listing images
 	options.skipTemplateProcess = true
@@ -198,14 +199,14 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 
 	// create an installer service, add the requested providers to the install queue and then perform validation
 	// of the target state of the management cluster before starting the installation.
-	installer, err := c.setupInstaller(clusterClient, options)
+	installer, err := c.setupInstaller(ctx, clusterClient, options)
 	if err != nil {
 		return nil, err
 	}
 
 	// Gets the list of container images required for the cert-manager (if not already installed).
 	certManager := clusterClient.CertManager()
-	images, err := certManager.Images()
+	images, err := certManager.Images(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +218,7 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	return images, nil
 }
 
-func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
+func (c *clusterctlClient) setupInstaller(ctx context.Context, cluster cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
 	installer := cluster.ProviderInstaller()
 
 	providerList := &clusterctlv1.ProviderList{}
@@ -230,7 +231,7 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	}
 
 	if !options.allowMissingProviderCRD {
-		providerList, err := cluster.ProviderInventory().List()
+		providerList, err := cluster.ProviderInventory().List(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -239,44 +240,44 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	}
 
 	if options.CoreProvider != "" {
-		if err := c.addToInstaller(addOptions, clusterctlv1.CoreProviderType, options.CoreProvider); err != nil {
+		if err := c.addToInstaller(ctx, addOptions, clusterctlv1.CoreProviderType, options.CoreProvider); err != nil {
 			return nil, err
 		}
 	}
 
-	if err := c.addToInstaller(addOptions, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...); err != nil {
+	if err := c.addToInstaller(ctx, addOptions, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...); err != nil {
 		return nil, err
 	}
 
-	if err := c.addToInstaller(addOptions, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...); err != nil {
+	if err := c.addToInstaller(ctx, addOptions, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...); err != nil {
 		return nil, err
 	}
 
-	if err := c.addToInstaller(addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
+	if err := c.addToInstaller(ctx, addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
 		return nil, err
 	}
 
-	if err := c.addToInstaller(addOptions, clusterctlv1.IPAMProviderType, options.IPAMProviders...); err != nil {
+	if err := c.addToInstaller(ctx, addOptions, clusterctlv1.IPAMProviderType, options.IPAMProviders...); err != nil {
 		return nil, err
 	}
 
-	if err := c.addToInstaller(addOptions, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...); err != nil {
+	if err := c.addToInstaller(ctx, addOptions, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...); err != nil {
 		return nil, err
 	}
 
-	if err := c.addToInstaller(addOptions, clusterctlv1.AddonProviderType, options.AddonProviders...); err != nil {
+	if err := c.addToInstaller(ctx, addOptions, clusterctlv1.AddonProviderType, options.AddonProviders...); err != nil {
 		return nil, err
 	}
 
 	return installer, nil
 }
 
-func (c *clusterctlClient) addDefaultProviders(cluster cluster.Client, options *InitOptions) bool {
+func (c *clusterctlClient) addDefaultProviders(ctx context.Context, cluster cluster.Client, options *InitOptions) bool {
 	firstRun := false
 	// Check if there is already a core provider installed in the cluster
 	// Nb. we are ignoring the error so this operation can support listing images even if there is no an existing management cluster;
 	// in case there is no an existing management cluster, we assume there are no core providers installed in the cluster.
-	currentCoreProvider, _ := cluster.ProviderInventory().GetDefaultProviderName(clusterctlv1.CoreProviderType)
+	currentCoreProvider, _ := cluster.ProviderInventory().GetDefaultProviderName(ctx, clusterctlv1.CoreProviderType)
 
 	// If there are no core providers installed in the cluster, consider this a first run and add default providers to the list
 	// of providers to be installed.
@@ -303,7 +304,7 @@ type addToInstallerOptions struct {
 }
 
 // addToInstaller adds the components to the install queue and checks that the actual provider type match the target group.
-func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, providerType clusterctlv1.ProviderType, providers ...string) error {
+func (c *clusterctlClient) addToInstaller(ctx context.Context, options addToInstallerOptions, providerType clusterctlv1.ProviderType, providers ...string) error {
 	for _, provider := range providers {
 		// It is possible to opt-out from automatic installation of bootstrap/control-plane providers using '-' as a provider name (NoopProvider).
 		if provider == NoopProvider {
@@ -316,7 +317,7 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, provide
 			TargetNamespace:     options.targetNamespace,
 			SkipTemplateProcess: options.skipTemplateProcess,
 		}
-		components, err := c.getComponentsByName(provider, providerType, componentsOptions)
+		components, err := c.getComponentsByName(ctx, provider, providerType, componentsOptions)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get provider components for the %q provider", provider)
 		}

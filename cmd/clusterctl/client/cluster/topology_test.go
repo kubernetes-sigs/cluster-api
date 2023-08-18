@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"strings"
@@ -264,6 +265,8 @@ func Test_topologyClient_Plan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			existingObjects := []client.Object{}
 			for _, o := range tt.existingObjects {
 				existingObjects = append(existingObjects, o)
@@ -275,7 +278,7 @@ func Test_topologyClient_Plan(t *testing.T) {
 				inventoryClient,
 			)
 
-			res, err := tc.Plan(tt.args.in)
+			res, err := tc.Plan(ctx, tt.args.in)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

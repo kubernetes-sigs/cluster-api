@@ -17,6 +17,8 @@ limitations under the License.
 package repository
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -27,7 +29,7 @@ import (
 // TemplateClient has methods to work with cluster templates hosted on a provider repository.
 // Templates are yaml files to be used for creating a guest cluster.
 type TemplateClient interface {
-	Get(flavor, targetNamespace string, listVariablesOnly bool) (Template, error)
+	Get(ctx context.Context, flavor, targetNamespace string, listVariablesOnly bool) (Template, error)
 }
 
 // templateClient implements TemplateClient.
@@ -66,7 +68,7 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 // Get return the template for the flavor specified.
 // In case the template does not exists, an error is returned.
 // Get assumes the following naming convention for templates: cluster-template[-<flavor_name>].yaml.
-func (c *templateClient) Get(flavor, targetNamespace string, skipTemplateProcess bool) (Template, error) {
+func (c *templateClient) Get(ctx context.Context, flavor, targetNamespace string, skipTemplateProcess bool) (Template, error) {
 	log := logf.Log
 
 	if targetNamespace == "" {
@@ -89,7 +91,7 @@ func (c *templateClient) Get(flavor, targetNamespace string, skipTemplateProcess
 
 	if rawArtifact == nil {
 		log.V(5).Info("Fetching", "File", name, "Provider", c.provider.Name(), "Type", c.provider.Type(), "Version", version)
-		rawArtifact, err = c.repository.GetFile(version, name)
+		rawArtifact, err = c.repository.GetFile(ctx, version, name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", name, c.provider.ManifestLabel())
 		}

@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -28,7 +29,7 @@ import (
 
 // getComponentsByName is a utility method that returns components
 // for a given provider with options including targetNamespace.
-func (c *clusterctlClient) getComponentsByName(provider string, providerType clusterctlv1.ProviderType, options repository.ComponentsOptions) (repository.Components, error) {
+func (c *clusterctlClient) getComponentsByName(ctx context.Context, provider string, providerType clusterctlv1.ProviderType, options repository.ComponentsOptions) (repository.Components, error) {
 	// Parse the abbreviated syntax for name[:version]
 	name, version, err := parseProviderName(provider)
 	if err != nil {
@@ -47,12 +48,12 @@ func (c *clusterctlClient) getComponentsByName(provider string, providerType clu
 	// namespace etc.
 	// Currently we are not supporting custom yaml processors for the provider
 	// components. So we revert to using the default SimpleYamlProcessor.
-	repositoryClientFactory, err := c.repositoryClientFactory(RepositoryClientFactoryInput{Provider: providerConfig})
+	repositoryClientFactory, err := c.repositoryClientFactory(ctx, RepositoryClientFactoryInput{Provider: providerConfig})
 	if err != nil {
 		return nil, err
 	}
 
-	components, err := repositoryClientFactory.Components().Get(options)
+	components, err := repositoryClientFactory.Components().Get(ctx, options)
 	if err != nil {
 		return nil, err
 	}

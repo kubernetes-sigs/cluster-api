@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -65,12 +66,14 @@ func init() {
 }
 
 func runUpgradePlan() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	certManUpgradePlan, err := c.PlanCertManagerUpgrade(client.PlanUpgradeOptions{
+	certManUpgradePlan, err := c.PlanCertManagerUpgrade(ctx, client.PlanUpgradeOptions{
 		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
 	})
 	if err != nil {
@@ -84,7 +87,7 @@ func runUpgradePlan() error {
 		}
 	}
 
-	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{
+	upgradePlans, err := c.PlanUpgrade(ctx, client.PlanUpgradeOptions{
 		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
 	})
 

@@ -729,14 +729,16 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			// Run backupTargetObject on nodes in graph
 			mover := objectMover{
@@ -750,7 +752,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 			defer os.RemoveAll(dir)
 
 			for _, node := range graph.uidToNode {
-				err = mover.backupTargetObject(node, dir)
+				err = mover.backupTargetObject(ctx, node, dir)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -785,7 +787,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 				time.Sleep(time.Millisecond * 50)
 
 				// Running backupTargetObject should override any existing files since it represents a new toDirectory
-				err = mover.backupTargetObject(node, dir)
+				err = mover.backupTargetObject(ctx, node, dir)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -811,6 +813,8 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// temporary directory
 			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
@@ -822,10 +826,10 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 			graph := getObjectGraph()
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -853,7 +857,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 			}
 
 			for _, node := range graph.uidToNode {
-				err = mover.restoreTargetObject(node, toProxy)
+				err = mover.restoreTargetObject(ctx, node, toProxy)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -881,7 +885,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 				}
 
 				// Re-running restoreTargetObjects won't override existing objects
-				err = mover.restoreTargetObject(node, toProxy)
+				err = mover.restoreTargetObject(ctx, node, toProxy)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 					return
@@ -924,14 +928,16 @@ func Test_objectMover_toDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			// Run toDirectory
 			mover := objectMover{
@@ -944,7 +950,7 @@ func Test_objectMover_toDirectory(t *testing.T) {
 			}
 			defer os.RemoveAll(dir)
 
-			err = mover.toDirectory(graph, dir)
+			err = mover.toDirectory(ctx, graph, dir)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1058,6 +1064,8 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// temporary directory
 			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
@@ -1069,7 +1077,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 			graph := getObjectGraph()
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -1103,7 +1111,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 			graph.setTenants()
 			graph.checkVirtualNode()
 
-			err = mover.fromDirectory(graph, toProxy)
+			err = mover.fromDirectory(ctx, graph, toProxy)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1141,14 +1149,16 @@ func Test_getMoveSequence(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			moveSequence := getMoveSequence(graph)
 			g.Expect(moveSequence.groups).To(HaveLen(len(tt.wantMoveGroups)))
@@ -1172,14 +1182,16 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -1190,7 +1202,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(graph, toProxy, nil)
+			err := mover.move(ctx, graph, toProxy, nil)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1245,14 +1257,16 @@ func Test_objectMover_move(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -1261,7 +1275,7 @@ func Test_objectMover_move(t *testing.T) {
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
-			err := mover.move(graph, toProxy)
+			err := mover.move(ctx, graph, toProxy)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -1319,6 +1333,9 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 	for _, tt := range moveTests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			toNamespace := "foobar"
 			updateKnownKinds := map[string][][]string{
 				"Cluster": {
@@ -1358,10 +1375,10 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -1371,7 +1388,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			err := mover.move(graph, toProxy, namespaceMutator)
+			err := mover.move(ctx, graph, toProxy, namespaceMutator)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1637,19 +1654,21 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			o := &objectMover{
 				fromProxy: graph.proxy,
 			}
-			err := o.checkProvisioningCompleted(graph)
+			err := o.checkProvisioningCompleted(ctx, graph)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -1728,10 +1747,12 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			o := &objectMover{
 				fromProviderInventory: newInventoryClient(tt.fields.fromProxy, nil),
 			}
-			err := o.checkTargetProviders(newInventoryClient(tt.args.toProxy, nil))
+			err := o.checkTargetProviders(ctx, newInventoryClient(tt.args.toProxy, nil))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -1781,11 +1802,13 @@ func Test_objectMoverService_ensureNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			mover := objectMover{
 				fromProxy: test.NewFakeProxy(),
 			}
 
-			err := mover.ensureNamespace(tt.args.toProxy, tt.args.namespace)
+			err := mover.ensureNamespace(ctx, tt.args.toProxy, tt.args.namespace)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check that the namespaces either existed or were created in the
@@ -1878,19 +1901,21 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// Trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
 
-			err := mover.ensureNamespaces(graph, tt.args.toProxy)
+			err := mover.ensureNamespaces(ctx, graph, tt.args.toProxy)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check that the namespaces either existed or were created in the
@@ -2000,13 +2025,13 @@ func Test_createTargetObject(t *testing.T) {
 				nsKey := client.ObjectKey{
 					Name: "ns1",
 				}
-				g.Expect(toClient.Get(ctx, nsKey, ns)).To(Succeed())
+				g.Expect(toClient.Get(context.Background(), nsKey, ns)).To(Succeed())
 				c := &clusterv1.Cluster{}
 				key := client.ObjectKey{
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(ctx, key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.OwnerReferences).To(HaveLen(1))
 				g.Expect(c.OwnerReferences[0].Controller).To(Equal(pointer.Bool(true)))
 			},
@@ -2046,7 +2071,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(ctx, key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.Annotations).To(BeEmpty())
 			},
 		},
@@ -2082,7 +2107,7 @@ func Test_createTargetObject(t *testing.T) {
 				key := client.ObjectKey{
 					Name: "foo",
 				}
-				g.Expect(toClient.Get(ctx, key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.Annotations).ToNot(BeEmpty())
 			},
 		},
@@ -2122,7 +2147,7 @@ func Test_createTargetObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(toClient.Get(ctx, key, c)).ToNot(HaveOccurred())
+				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.Annotations).ToNot(BeEmpty())
 			},
 		},
@@ -2132,11 +2157,13 @@ func Test_createTargetObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			mover := objectMover{
 				fromProxy: tt.args.fromProxy,
 			}
 
-			err := mover.createTargetObject(tt.args.node, tt.args.toProxy, nil, sets.New[string]())
+			err := mover.createTargetObject(ctx, tt.args.node, tt.args.toProxy, nil, sets.New[string]())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -2181,7 +2208,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(ctx, key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
 			},
 		},
 		{
@@ -2210,7 +2237,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(ctx, key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
 			},
 		},
 		{
@@ -2238,7 +2265,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(ctx, key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
 			},
 		},
 		{
@@ -2268,7 +2295,7 @@ func Test_deleteSourceObject(t *testing.T) {
 					Namespace: "ns1",
 					Name:      "foo",
 				}
-				g.Expect(apierrors.IsNotFound(toClient.Get(ctx, key, c))).To(BeTrue())
+				g.Expect(apierrors.IsNotFound(toClient.Get(context.Background(), key, c))).To(BeTrue())
 			},
 		},
 	}
@@ -2277,11 +2304,13 @@ func Test_deleteSourceObject(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			mover := objectMover{
 				fromProxy: tt.args.fromProxy,
 			}
 
-			err := mover.deleteSourceObject(tt.args.node)
+			err := mover.deleteSourceObject(ctx, tt.args.node)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			fromClient, err := tt.args.fromProxy.NewClient()
@@ -2318,6 +2347,8 @@ func TestWaitReadyForMove(t *testing.T) {
 			clusterNamespace := "ns1"
 			objs := test.NewFakeCluster(clusterNamespace, clusterName).Objs()
 
+			ctx := context.Background()
+
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(objs)
 
@@ -2325,7 +2356,6 @@ func TestWaitReadyForMove(t *testing.T) {
 				c, err := graph.proxy.NewClient()
 				g.Expect(err).NotTo(HaveOccurred())
 
-				ctx := context.Background()
 				cluster := &clusterv1.Cluster{}
 				err = c.Get(ctx, types.NamespacedName{Namespace: clusterNamespace, Name: clusterName}, cluster)
 				g.Expect(err).NotTo(HaveOccurred())
@@ -2340,15 +2370,15 @@ func TestWaitReadyForMove(t *testing.T) {
 			}
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
-			g.Expect(graph.Discovery("")).To(Succeed())
+			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
 			backoff := wait.Backoff{
 				Steps: 1,
 			}
-			err := waitReadyForMove(graph.proxy, graph.getMoveNodes(), false, backoff)
+			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, backoff)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

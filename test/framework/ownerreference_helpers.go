@@ -84,7 +84,9 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 	}
 	Eventually(func() error {
 		allErrs := []error{}
-		graph, err := clusterctlcluster.GetOwnerGraph(namespace, kubeconfigPath)
+		ctx := context.Background()
+
+		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, kubeconfigPath)
 		Expect(err).ToNot(HaveOccurred())
 		for _, v := range graph {
 			if _, ok := allAssertFuncs[v.Object.Kind]; !ok {
@@ -352,7 +354,7 @@ func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterK
 }
 
 func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace string) {
-	graph, err := clusterctlcluster.GetOwnerGraph(namespace, proxy.GetKubeconfigPath())
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath())
 	Expect(err).ToNot(HaveOccurred())
 	for _, object := range graph {
 		ref := object.Object

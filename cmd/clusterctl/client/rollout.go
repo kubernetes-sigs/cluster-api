@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -85,7 +86,7 @@ type RolloutUndoOptions struct {
 	ToRevision int64
 }
 
-func (c *clusterctlClient) RolloutRestart(options RolloutRestartOptions) error {
+func (c *clusterctlClient) RolloutRestart(ctx context.Context, options RolloutRestartOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
@@ -95,14 +96,14 @@ func (c *clusterctlClient) RolloutRestart(options RolloutRestartOptions) error {
 		return err
 	}
 	for _, ref := range objRefs {
-		if err := c.alphaClient.Rollout().ObjectRestarter(clusterClient.Proxy(), ref); err != nil {
+		if err := c.alphaClient.Rollout().ObjectRestarter(ctx, clusterClient.Proxy(), ref); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *clusterctlClient) RolloutPause(options RolloutPauseOptions) error {
+func (c *clusterctlClient) RolloutPause(ctx context.Context, options RolloutPauseOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
@@ -112,14 +113,14 @@ func (c *clusterctlClient) RolloutPause(options RolloutPauseOptions) error {
 		return err
 	}
 	for _, ref := range objRefs {
-		if err := c.alphaClient.Rollout().ObjectPauser(clusterClient.Proxy(), ref); err != nil {
+		if err := c.alphaClient.Rollout().ObjectPauser(ctx, clusterClient.Proxy(), ref); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *clusterctlClient) RolloutResume(options RolloutResumeOptions) error {
+func (c *clusterctlClient) RolloutResume(ctx context.Context, options RolloutResumeOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
@@ -129,14 +130,14 @@ func (c *clusterctlClient) RolloutResume(options RolloutResumeOptions) error {
 		return err
 	}
 	for _, ref := range objRefs {
-		if err := c.alphaClient.Rollout().ObjectResumer(clusterClient.Proxy(), ref); err != nil {
+		if err := c.alphaClient.Rollout().ObjectResumer(ctx, clusterClient.Proxy(), ref); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *clusterctlClient) RolloutUndo(options RolloutUndoOptions) error {
+func (c *clusterctlClient) RolloutUndo(ctx context.Context, options RolloutUndoOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
@@ -146,7 +147,7 @@ func (c *clusterctlClient) RolloutUndo(options RolloutUndoOptions) error {
 		return err
 	}
 	for _, ref := range objRefs {
-		if err := c.alphaClient.Rollout().ObjectRollbacker(clusterClient.Proxy(), ref, options.ToRevision); err != nil {
+		if err := c.alphaClient.Rollout().ObjectRollbacker(ctx, clusterClient.Proxy(), ref, options.ToRevision); err != nil {
 			return err
 		}
 	}

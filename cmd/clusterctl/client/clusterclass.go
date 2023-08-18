@@ -34,7 +34,7 @@ import (
 // addClusterClassIfMissing returns a Template that includes the base template and adds any cluster class definitions that
 // are references in the template. If the cluster class referenced already exists in the cluster it is not added to the
 // template.
-func addClusterClassIfMissing(template Template, clusterClassClient repository.ClusterClassClient, clusterClient cluster.Client, targetNamespace string, listVariablesOnly bool) (Template, error) {
+func addClusterClassIfMissing(ctx context.Context, template Template, clusterClassClient repository.ClusterClassClient, clusterClient cluster.Client, targetNamespace string, listVariablesOnly bool) (Template, error) {
 	classes, err := clusterClassNamesFromTemplate(template)
 	if err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func addClusterClassIfMissing(template Template, clusterClassClient repository.C
 		return template, nil
 	}
 
-	clusterClassesTemplate, err := fetchMissingClusterClassTemplates(clusterClassClient, clusterClient, classes, targetNamespace, listVariablesOnly)
+	clusterClassesTemplate, err := fetchMissingClusterClassTemplates(ctx, clusterClassClient, clusterClient, classes, targetNamespace, listVariablesOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func clusterClassNamesFromTemplate(template Template) ([]string, error) {
 
 // fetchMissingClusterClassTemplates returns a list of templates for ClusterClasses that do not yet exist
 // in the cluster. If the cluster is not initialized, all the ClusterClasses are added.
-func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClassClient, clusterClient cluster.Client, classes []string, targetNamespace string, listVariablesOnly bool) (Template, error) {
+func fetchMissingClusterClassTemplates(ctx context.Context, clusterClassClient repository.ClusterClassClient, clusterClient cluster.Client, classes []string, targetNamespace string, listVariablesOnly bool) (Template, error) {
 	// first check if the cluster is initialized.
 	// If it is initialized:
 	//    For every ClusterClass check if it already exists in the cluster.
@@ -100,7 +100,7 @@ func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClas
 	clusterInitialized := false
 	var err error
 	if err := clusterClient.Proxy().CheckClusterAvailable(); err == nil {
-		clusterInitialized, err = clusterClient.ProviderInventory().CheckCAPIInstalled()
+		clusterInitialized, err = clusterClient.ProviderInventory().CheckCAPIInstalled(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to check if the cluster is initialized")
 		}
@@ -118,7 +118,7 @@ func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClas
 	templates := []repository.Template{}
 	for _, class := range classes {
 		if clusterInitialized {
-			exists, err := clusterClassExists(c, class, targetNamespace)
+			exists, err := clusterClassExists(ctx, c, class, targetNamespace)
 			if err != nil {
 				return nil, err
 			}
@@ -128,7 +128,7 @@ func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClas
 		}
 		// The cluster is either not initialized or the ClusterClass does not yet exist in the cluster.
 		// Fetch the cluster class to install.
-		clusterClassTemplate, err := clusterClassClient.Get(class, targetNamespace, listVariablesOnly)
+		clusterClassTemplate, err := clusterClassClient.Get(ctx, class, targetNamespace, listVariablesOnly)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get the cluster class template for %q", class)
 		}
@@ -139,7 +139,7 @@ func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClas
 		// that we do not add a ClusterClass (and associated objects) who definition is unknown.
 		if clusterInitialized {
 			for _, obj := range clusterClassTemplate.Objs() {
-				if exists, err := objExists(c, obj); err != nil {
+				if exists, err := objExists(ctx, c, obj); err != nil {
 					return nil, err
 				} else if exists {
 					return nil, fmt.Errorf("%s(%s) already exists in the cluster", obj.GetName(), obj.GetObjectKind().GroupVersionKind())
@@ -157,9 +157,9 @@ func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClas
 	return merged, nil
 }
 
-func clusterClassExists(c client.Client, class, targetNamespace string) (bool, error) {
+func clusterClassExists(ctx context.Context, c client.Client, class, targetNamespace string) (bool, error) {
 	clusterClass := &clusterv1.ClusterClass{}
-	if err := c.Get(context.TODO(), client.ObjectKey{Name: class, Namespace: targetNamespace}, clusterClass); err != nil {
+	if err := c.Get(ctx, client.ObjectKey{Name: class, Namespace: targetNamespace}, clusterClass); err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}
@@ -168,9 +168,9 @@ func clusterClassExists(c client.Client, class, targetNamespace string) (bool, e
 	return true, nil
 }
 
-func objExists(c client.Client, obj unstructured.Unstructured) (bool, error) {
+func objExists(ctx context.Context, c client.Client, obj unstructured.Unstructured) (bool, error) {
 	o := obj.DeepCopy()
-	if err := c.Get(context.TODO(), client.ObjectKeyFromObject(o), o); err != nil {
+	if err := c.Get(ctx, client.ObjectKeyFromObject(o), o); err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
 		}

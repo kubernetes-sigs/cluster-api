@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -79,7 +80,9 @@ func init() {
 }
 
 func generateYAML(r io.Reader, w io.Writer) error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -97,7 +100,7 @@ func generateYAML(r io.Reader, w io.Writer) error {
 			}
 		}
 	}
-	printer, err := c.ProcessYAML(options)
+	printer, err := c.ProcessYAML(ctx, options)
 	if err != nil {
 		return err
 	}

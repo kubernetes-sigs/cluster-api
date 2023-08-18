@@ -51,7 +51,7 @@ type ResourceMutatorFunc func(u *unstructured.Unstructured) error
 // ObjectMover defines methods for moving Cluster API objects to another management cluster.
 type ObjectMover interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-	Move(ctx context.Context, namespace string, toCluster Client, dryRun bool, mutators ...ResourceMutatorFunc) error
+	Move(ctx context.Context, namespace string, toCluster Client, dryRun bool, waitForUnblockTimeout time.Duration, mutators ...ResourceMutatorFunc) error
 
 	// ToDirectory writes all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target directory.
 	ToDirectory(ctx context.Context, namespace string, directory string) error
@@ -70,7 +70,7 @@ type objectMover struct {
 // ensure objectMover implements the ObjectMover interface.
 var _ ObjectMover = &objectMover{}
 
-func (o *objectMover) Move(ctx context.Context, namespace string, toCluster Client, dryRun bool, mutators ...ResourceMutatorFunc) error {
+func (o *objectMover) Move(ctx context.Context, namespace string, toCluster Client, dryRun bool, waitForUnblockTimeout time.Duration, mutators ...ResourceMutatorFunc) error {
 	log := logf.Log
 	log.Info("Performing move...")
 	o.dryRun = dryRun
@@ -98,7 +98,7 @@ func (o *objectMover) Move(ctx context.Context, namespace string, toCluster Clie
 		proxy = toCluster.Proxy()
 	}
 
-	return o.move(ctx, objectGraph, proxy, mutators...)
+	return o.move(ctx, objectGraph, proxy, waitForUnblockTimeout, mutators...)
 }
 
 func (o *objectMover) ToDirectory(ctx context.Context, namespace string, directory string) error {
@@ -315,7 +315,7 @@ func getMachineObj(ctx context.Context, proxy Proxy, machine *node, machineObj *
 }
 
 // Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Proxy, mutators ...ResourceMutatorFunc) error {
+func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Proxy, waitForUnblockTimeout time.Duration, mutators ...ResourceMutatorFunc) error {
 	log := logf.Log
 
 	clusters := graph.getClusters()
@@ -336,8 +336,6 @@ func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Prox
 	}
 
 	log.Info("Waiting for all resources to be ready to move")
-	// timeout for the entire wait to finish
-	unblockTimeout := 5 * time.Minute
 	// backoff to wait for a successful GET to check for the annotation
 	getResourceBackoff := newReadBackoff()
 	// backoff to re-check if an individual resource is blocking move.
@@ -350,7 +348,7 @@ func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Prox
 		Jitter:   0.1,
 		Cap:      1 * time.Hour,
 	}
-	if err := waitReadyForMove(ctx, o.fromProxy, graph.getMoveNodes(), o.dryRun, unblockTimeout, getResourceBackoff, waitForResourceMoveUnblockedBackoff); err != nil {
+	if err := waitReadyForMove(ctx, o.fromProxy, graph.getMoveNodes(), o.dryRun, waitForUnblockTimeout, getResourceBackoff, waitForResourceMoveUnblockedBackoff); err != nil {
 		return errors.Wrap(err, "error waiting for resources to be ready to move")
 	}
 

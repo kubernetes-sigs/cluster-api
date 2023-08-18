@@ -1202,7 +1202,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(ctx, graph, toProxy, nil)
+			err := mover.move(ctx, graph, toProxy, 0, nil)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1275,7 +1275,7 @@ func Test_objectMover_move(t *testing.T) {
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
-			err := mover.move(ctx, graph, toProxy)
+			err := mover.move(ctx, graph, toProxy, 0)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -1388,7 +1388,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			err := mover.move(ctx, graph, toProxy, namespaceMutator)
+			err := mover.move(ctx, graph, toProxy, 0, namespaceMutator)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

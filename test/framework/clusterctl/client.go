@@ -24,6 +24,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -344,11 +345,12 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 
 // MoveInput is the input for ClusterctlMove.
 type MoveInput struct {
-	LogFolder            string
-	ClusterctlConfigPath string
-	FromKubeconfigPath   string
-	ToKubeconfigPath     string
-	Namespace            string
+	LogFolder             string
+	ClusterctlConfigPath  string
+	FromKubeconfigPath    string
+	ToKubeconfigPath      string
+	Namespace             string
+	WaitForUnblockTimeout time.Duration
 }
 
 // Move moves workload clusters.
@@ -361,18 +363,20 @@ func Move(ctx context.Context, input MoveInput) {
 	Expect(os.MkdirAll(logDir, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for Move")
 
 	By("Moving workload clusters")
-	log.Logf("clusterctl move --from-kubeconfig %s --to-kubeconfig %s --namespace %s",
+	log.Logf("clusterctl move --from-kubeconfig %s --to-kubeconfig %s --namespace %s --wait-for-unblock-timeout %s",
 		input.FromKubeconfigPath,
 		input.ToKubeconfigPath,
 		input.Namespace,
+		input.WaitForUnblockTimeout,
 	)
 
 	clusterctlClient, log := getClusterctlClientWithLogger(ctx, input.ClusterctlConfigPath, "clusterctl-move.log", logDir)
 	defer log.Close()
 	options := clusterctlclient.MoveOptions{
-		FromKubeconfig: clusterctlclient.Kubeconfig{Path: input.FromKubeconfigPath, Context: ""},
-		ToKubeconfig:   clusterctlclient.Kubeconfig{Path: input.ToKubeconfigPath, Context: ""},
-		Namespace:      input.Namespace,
+		FromKubeconfig:        clusterctlclient.Kubeconfig{Path: input.FromKubeconfigPath, Context: ""},
+		ToKubeconfig:          clusterctlclient.Kubeconfig{Path: input.ToKubeconfigPath, Context: ""},
+		Namespace:             input.Namespace,
+		WaitForUnblockTimeout: input.WaitForUnblockTimeout,
 	}
 
 	Expect(clusterctlClient.Move(ctx, options)).To(Succeed(), "Failed to run clusterctl move")

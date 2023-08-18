@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -307,7 +308,7 @@ type fakeObjectMover struct {
 	fromDirectoryErr error
 }
 
-func (f *fakeObjectMover) Move(_ context.Context, _ string, _ cluster.Client, _ bool, _ ...cluster.ResourceMutatorFunc) error {
+func (f *fakeObjectMover) Move(_ context.Context, _ string, _ cluster.Client, _ bool, _ time.Duration, _ ...cluster.ResourceMutatorFunc) error {
 	return f.moveErr
 }
 

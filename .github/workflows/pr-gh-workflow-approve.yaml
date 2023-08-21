@@ -3,7 +3,9 @@ name: PR approve GH Workflows
 on:
   pull_request_target:
     types:
+      - edited
       - labeled
+      - reopened
       - synchronize
 
 jobs:

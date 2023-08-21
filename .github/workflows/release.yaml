@@ -80,6 +80,9 @@ jobs:
   release:
     name: create draft release
     runs-on: ubuntu-latest
+    # This workflow is only of value to the kubernetes-sigs/cluster-api repository and
+    # should not run in forks
+    if: github.repository == 'kubernetes-sigs/cluster-api'
     needs: push_release_tags
     steps:
       - name: Set env

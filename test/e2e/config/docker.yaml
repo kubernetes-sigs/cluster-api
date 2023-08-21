@@ -275,6 +275,8 @@ variables:
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
   KUBERNETES_VERSION_MANAGEMENT: "v1.28.0"
+  # TODO when bumping this version: also remove the pinning of the conformanceImage at the [ipv6] tests in
+  # `test/e2e/quick_start_test.go`.
   KUBERNETES_VERSION: "v1.28.0"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.27.3"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.28.0"

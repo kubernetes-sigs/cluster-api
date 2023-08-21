@@ -46,6 +46,8 @@ GitHub Presubmit Workflows:
   * Checks markdown modified in PR for broken links.
 * PR dependabot (run on dependabot PRs)
   * Regenerates Go modules and code.
+* PR approve GH Workflows
+  * Approves other GH workflows if the `ok-to-test` label is set.
 
 GitHub Weekly Workflows:
 * Weekly check all Markdown links

@@ -29,17 +29,17 @@ import (
 
 // bootstrapTemplateNamePrefix calculates the name prefix for a BootstrapTemplate.
 func bootstrapTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
-	return fmt.Sprintf("%s-%s-bootstrap-", clusterName, machineDeploymentTopologyName)
+	return fmt.Sprintf("%s-%s-", clusterName, machineDeploymentTopologyName)
 }
 
 // infrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
 func infrastructureMachineTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
-	return fmt.Sprintf("%s-%s-infra-", clusterName, machineDeploymentTopologyName)
+	return fmt.Sprintf("%s-%s-", clusterName, machineDeploymentTopologyName)
 }
 
 // infrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
 func controlPlaneInfrastructureMachineTemplateNamePrefix(clusterName string) string {
-	return fmt.Sprintf("%s-control-plane-", clusterName)
+	return fmt.Sprintf("%s-", clusterName)
 }
 
 // getReference gets the object referenced in ref.

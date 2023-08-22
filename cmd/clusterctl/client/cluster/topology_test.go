@@ -96,9 +96,9 @@ func Test_topologyClient_Plan(t *testing.T) {
 					{kind: "DockerCluster", namespace: "default", namePrefix: "my-cluster-"},
 					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-md-0-"},
 					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-md-1-"},
-					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
-					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-0-bootstrap-"},
-					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-1-bootstrap-"},
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-"},
+					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-0-"},
+					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-1-"},
 					{kind: "KubeadmControlPlane", namespace: "default", namePrefix: "my-cluster-"},
 					{kind: "MachineDeployment", namespace: "default", namePrefix: "my-cluster-md-0-"},
 					{kind: "MachineDeployment", namespace: "default", namePrefix: "my-cluster-md-1-"},
@@ -170,7 +170,7 @@ func Test_topologyClient_Plan(t *testing.T) {
 				created: []item{
 					// Modifying the DockerClusterTemplate will result in template rotation. A new template will be created
 					// and used by KCP.
-					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-"},
 				},
 				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
 			},
@@ -235,7 +235,7 @@ func Test_topologyClient_Plan(t *testing.T) {
 				created: []item{
 					// Modifying the DockerClusterTemplate will result in template rotation. A new template will be created
 					// and used by KCP.
-					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-"},
 				},
 				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
 			},

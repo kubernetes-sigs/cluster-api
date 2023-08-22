@@ -143,7 +143,8 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 
 // ClusterTopologyReconciler reconciles a managed topology for a Cluster object.
 type ClusterTopologyReconciler struct {
-	Client client.Client
+	Client  client.Client
+	Tracker *remote.ClusterCacheTracker
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
 	APIReader client.Reader
@@ -162,6 +163,7 @@ func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ct
 	return (&clustertopologycontroller.Reconciler{
 		Client:                    r.Client,
 		APIReader:                 r.APIReader,
+		Tracker:                   r.Tracker,
 		RuntimeClient:             r.RuntimeClient,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		WatchFilterValue:          r.WatchFilterValue,

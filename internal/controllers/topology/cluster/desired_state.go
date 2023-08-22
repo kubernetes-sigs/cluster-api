@@ -76,8 +76,13 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	}
 	s.UpgradeTracker.MachineDeployments.MarkUpgrading(mdUpgradingNames...)
 
+	client, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
+	if err != nil {
+		return nil, err
+	}
+
 	// Mark all the MachinePools that are currently upgrading.
-	mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, r.Client)
+	mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")
 	}

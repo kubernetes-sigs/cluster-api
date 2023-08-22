@@ -50,7 +50,7 @@ type DockerClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerClusterTemplate{}, &DockerClusterTemplateList{})
+	objectTypes = append(objectTypes, &DockerClusterTemplate{}, &DockerClusterTemplateList{})
 }
 
 // DockerClusterTemplateResource describes the data needed to create a DockerCluster from a template.

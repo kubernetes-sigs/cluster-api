@@ -51,7 +51,7 @@ type KubeadmControlPlaneTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&KubeadmControlPlaneTemplate{}, &KubeadmControlPlaneTemplateList{})
+	objectTypes = append(objectTypes, &KubeadmControlPlaneTemplate{}, &KubeadmControlPlaneTemplateList{})
 }
 
 // KubeadmControlPlaneTemplateResource describes the data needed to create a KubeadmControlPlane from a template.

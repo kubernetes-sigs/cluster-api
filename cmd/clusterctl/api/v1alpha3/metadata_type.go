@@ -54,7 +54,7 @@ func (rs ReleaseSeries) newer(release ReleaseSeries) bool {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metadata{})
+	objectTypes = append(objectTypes, &Metadata{})
 }
 
 // GetReleaseSeriesForVersion returns the release series for a given version.

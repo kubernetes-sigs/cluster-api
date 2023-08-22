@@ -50,7 +50,7 @@ type InMemoryMachineTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&InMemoryMachineTemplate{}, &InMemoryMachineTemplateList{})
+	objectTypes = append(objectTypes, &InMemoryMachineTemplate{}, &InMemoryMachineTemplateList{})
 }
 
 // InMemoryMachineTemplateResource describes the data needed to create a InMemoryMachine from a template.

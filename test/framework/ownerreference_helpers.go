@@ -42,8 +42,22 @@ import (
 )
 
 // ValidateOwnerReferencesOnUpdate checks that expected owner references are updated to the correct apiVersion.
-func ValidateOwnerReferencesOnUpdate(proxy ClusterProxy, namespace string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
-	// Check that the ownerReferences are as expected on the first iteration.
+func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
+
+	// Changes the version of all the owner references to v1alpha1. Expect the apiVersion to be updated after reconciliation.
+	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
+
+	// Change the version of the OwnerReferences on each object in the Graph to "v1alpha1"
+	changeOwnerReferencesAPIVersion(ctx, proxy, namespace)
+
+	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
+
+	// Annotate the clusterClass, if one is in use, to speed up reconciliation. This ensures ClusterClass ownerReferences
+	// are re-reconciled before asserting the owner reference graph.
+	forceClusterClassReconcile(ctx, proxy.GetClient(), clusterKey)
+
+	// Check that the ownerReferences have updated their apiVersions to current versions after reconciliation.
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
 }
 
@@ -348,6 +362,34 @@ func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterK
 		Expect(cli.Get(ctx, client.ObjectKey{Namespace: clusterKey.Namespace, Name: cluster.Spec.Topology.Class}, class)).To(Succeed())
 		annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
 		Expect(cli.Patch(ctx, class, annotationPatch)).To(Succeed())
+	}
+}
+
+func changeOwnerReferencesAPIVersion(ctx context.Context, proxy ClusterProxy, namespace string) {
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath())
+	Expect(err).ToNot(HaveOccurred())
+	for _, object := range graph {
+		ref := object.Object
+		obj := new(unstructured.Unstructured)
+		obj.SetAPIVersion(ref.APIVersion)
+		obj.SetKind(ref.Kind)
+		obj.SetName(ref.Name)
+
+		Expect(proxy.GetClient().Get(ctx, client.ObjectKey{Namespace: namespace, Name: object.Object.Name}, obj)).To(Succeed())
+		helper, err := patch.NewHelper(obj, proxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
+
+		newOwners := []metav1.OwnerReference{}
+		for _, owner := range obj.GetOwnerReferences() {
+			gv, err := schema.ParseGroupVersion(owner.APIVersion)
+			Expect(err).To(Succeed())
+			gv.Version = "v1alpha1"
+			owner.APIVersion = gv.String()
+			newOwners = append(newOwners, owner)
+		}
+
+		obj.SetOwnerReferences(newOwners)
+		Expect(helper.Patch(ctx, obj)).To(Succeed())
 	}
 }
 

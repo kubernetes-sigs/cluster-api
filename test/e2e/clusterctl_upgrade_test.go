@@ -22,8 +22,6 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/pointer"
-
-	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
@@ -82,17 +80,6 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 			WorkloadKubernetesVersion: "v1.23.17",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
 		}
 	})
 })
@@ -123,17 +110,6 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			WorkloadKubernetesVersion: "v1.26.4",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
 		}
 	})
 })
@@ -164,17 +140,6 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			WorkloadKubernetesVersion: "v1.26.4",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "topology",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
 		}
 	})
 })
@@ -195,17 +160,6 @@ var _ = Describe("When testing clusterctl upgrades (v1.4=>current)", func() {
 			WorkloadKubernetesVersion: "v1.27.3",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
 		}
 	})
 })
@@ -226,17 +180,6 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.4=>cur
 			WorkloadKubernetesVersion: "v1.27.3",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "topology",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
 		}
 	})
 })

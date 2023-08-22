@@ -19,17 +19,24 @@ updates:
   schedule:
     interval: "weekly"
     day: "monday"
+  ## group all dependencies with a k8s.io prefix into a single PR.
+  groups:
+    kubernetes:
+      patterns: [ "k8s.io/*" ]
   ignore:
   # Ignore controller-runtime as its upgraded manually.
   - dependency-name: "sigs.k8s.io/controller-runtime"
-  # Ignore k8s and its transitives modules as they are upgraded manually
-  # together with controller-runtime.
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
   - dependency-name: "k8s.io/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "go.etcd.io/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "google.golang.org/grpc"
-  # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi
-  # as a dependency.
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
   - dependency-name: "sigs.k8s.io/kustomize/api"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   commit-message:
     prefix: ":seedling:"
   labels:
@@ -42,17 +49,24 @@ updates:
   schedule:
     interval: "weekly"
     day: "tuesday"
+  ## group all dependencies with a k8s.io prefix into a single PR.
+  groups:
+    kubernetes:
+      patterns: [ "k8s.io/*" ]
   ignore:
     # Ignore controller-runtime as its upgraded manually.
     - dependency-name: "sigs.k8s.io/controller-runtime"
-    # Ignore k8s and its transitives modules as they are upgraded manually
-    # together with controller-runtime.
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
     - dependency-name: "k8s.io/*"
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
     - dependency-name: "go.etcd.io/*"
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
     - dependency-name: "google.golang.org/grpc"
-    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi
-    # as a dependency.
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
     - dependency-name: "sigs.k8s.io/kustomize/api"
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   commit-message:
     prefix: ":seedling:"
   labels:
@@ -68,14 +82,17 @@ updates:
   ignore:
     # Ignore controller-runtime as its upgraded manually.
     - dependency-name: "sigs.k8s.io/controller-runtime"
-    # Ignore k8s and its transitives modules as they are upgraded manually
-    # together with controller-runtime.
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
     - dependency-name: "k8s.io/*"
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
     - dependency-name: "go.etcd.io/*"
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
     - dependency-name: "google.golang.org/grpc"
-    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi
-    # as a dependency.
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+    # Bumping the kustomize API independently can break compatibility with client-go as they share k8s.io/kube-openapi as a dependency.
     - dependency-name: "sigs.k8s.io/kustomize/api"
+      update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   commit-message:
     prefix: ":seedling:"
   labels:

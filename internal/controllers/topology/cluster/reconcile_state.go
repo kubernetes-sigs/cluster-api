@@ -761,7 +761,7 @@ func (r *Reconciler) reconcileMachinePools(ctx context.Context, s *scope.Scope) 
 	for _, mpTopologyName := range diff.toUpdate {
 		currentMP := s.Current.MachinePools[mpTopologyName]
 		desiredMP := s.Desired.MachinePools[mpTopologyName]
-		if err := r.updateMachinePool(ctx, s.Current.Cluster, currentMP, desiredMP); err != nil {
+		if err := r.updateMachinePool(ctx, s, currentMP, desiredMP); err != nil {
 			return err
 		}
 	}
@@ -869,9 +869,17 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 }
 
 // updateMachinePool updates a MachinePool. Also rotates the corresponding Templates if necessary.
-func (r *Reconciler) updateMachinePool(ctx context.Context, cluster *clusterv1.Cluster, currentMP, desiredMP *scope.MachinePoolState) error {
+func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, currentMP, desiredMP *scope.MachinePoolState) error {
 	log := tlog.LoggerFrom(ctx).WithMachinePool(desiredMP.Object)
 
+	// Return early if the MachinePool is pending an upgrade.
+	// Do not reconcile the MachinePool yet to avoid updating the MachinePool while it is still pending a
+	// version upgrade. This will prevent the MachinePool from performing a double rollout.
+	if s.UpgradeTracker.MachinePools.IsPendingUpgrade(currentMP.Object.Name) {
+		return nil
+	}
+
+	cluster := s.Current.Cluster
 	infraCtx, _ := log.WithObject(desiredMP.InfrastructureMachinePoolObject).Into(ctx)
 	if err := r.reconcileReferencedObject(infraCtx, reconcileReferencedObjectInput{
 		cluster:       cluster,
@@ -908,6 +916,24 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, cluster *clusterv1.C
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: currentMP.Object})
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", tlog.KObj{Obj: currentMP.Object}, logMachinePoolVersionChange(currentMP.Object, desiredMP.Object))
+
+	// Wait until MachinePool is updated in the cache.
+	// Note: We have to do this because otherwise using a cached client in current state could
+	// return a stale state of a MachinePool we just patched (because the cache might be stale).
+	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
+	// MachinePool as well, but the combination of the patch call above without a conflict and a changed resource
+	// version here guarantees that we see the changes of our own update.
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		key := client.ObjectKey{Namespace: currentMP.Object.GetNamespace(), Name: currentMP.Object.GetName()}
+		cachedMP := &expv1.MachinePool{}
+		if err := r.Client.Get(ctx, key, cachedMP); err != nil {
+			return false, err
+		}
+		return currentMP.Object.GetResourceVersion() != cachedMP.GetResourceVersion(), nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed waiting for MachinePool %s to be updated in the cache after patch", tlog.KObj{Obj: currentMP.Object})
+	}
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
 	return nil

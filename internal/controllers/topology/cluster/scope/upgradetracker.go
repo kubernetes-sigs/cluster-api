@@ -100,6 +100,42 @@ type MachineDeploymentUpgradeTracker struct {
 	maxMachineDeploymentUpgradeConcurrency int
 }
 
+// MachinePoolUpgradeTracker holds the current upgrade status and makes upgrade
+// decisions for MachinePools.
+type MachinePoolUpgradeTracker struct {
+	// pendingCreateTopologyNames is the set of MachinePool topology names that are newly added to the
+	// Cluster Topology but will not be created in the current reconcile loop.
+	// By marking a MachinePool topology as pendingCreate we skip creating the MachinePool.
+	// Nb. We use MachinePool topology names instead of MachinePool names because the new MachinePool
+	// names can keep changing for each reconcile loop leading to continuous updates to the TopologyReconciled condition.
+	pendingCreateTopologyNames sets.Set[string]
+
+	// pendingUpgradeNames is the set of MachinePool names that are not going to pick up the new version
+	// in the current reconcile loop.
+	// By marking a MachinePool as pendingUpgrade we skip reconciling the MachinePool.
+	pendingUpgradeNames sets.Set[string]
+
+	// deferredNames is the set of MachinePool names that are not going to pick up the new version
+	// in the current reconcile loop because they are deferred by the user.
+	// Note: If a MachinePool is marked as deferred it should also be marked as pendingUpgrade.
+	deferredNames sets.Set[string]
+
+	// upgradingNames is the set of MachinePool names that are upgrading. This set contains the names of
+	// MachinePools that are currently upgrading and the names of MachinePools that will pick up the upgrade
+	// in the current reconcile loop.
+	// Note: This information is used to:
+	// - decide if ControlPlane can be upgraded.
+	// - calculate MachinePool upgrade concurrency.
+	// - update TopologyReconciled Condition.
+	// - decide if the AfterClusterUpgrade hook can be called.
+	upgradingNames sets.Set[string]
+
+	// maxMachinePoolUpgradeConcurrency defines the maximum number of MachinePools that should be in an
+	// upgrading state. This includes the MachinePools that are currently upgrading and the MachinePools that
+	// will start the upgrade after the current reconcile loop.
+	maxMachinePoolUpgradeConcurrency int
+}
+
 // UpgradeTrackerOptions contains the options for NewUpgradeTracker.
 type UpgradeTrackerOptions struct {
 	maxMDUpgradeConcurrency int
@@ -243,42 +279,6 @@ func (m *MachineDeploymentUpgradeTracker) DeferredUpgradeNames() []string {
 // MachineDeployments. Returns false, otherwise.
 func (m *MachineDeploymentUpgradeTracker) DeferredUpgrade() bool {
 	return len(m.deferredNames) != 0
-}
-
-// MachinePoolUpgradeTracker holds the current upgrade status and makes upgrade
-// decisions for MachinePools.
-type MachinePoolUpgradeTracker struct {
-	// pendingCreateTopologyNames is the set of MachinePool topology names that are newly added to the
-	// Cluster Topology but will not be created in the current reconcile loop.
-	// By marking a MachinePool topology as pendingCreate we skip creating the MachinePool.
-	// Nb. We use MachinePool topology names instead of MachinePool names because the new MachinePool
-	// names can keep changing for each reconcile loop leading to continuous updates to the TopologyReconciled condition.
-	pendingCreateTopologyNames sets.Set[string]
-
-	// pendingUpgradeNames is the set of MachinePool names that are not going to pick up the new version
-	// in the current reconcile loop.
-	// By marking a MachinePool as pendingUpgrade we skip reconciling the MachinePool.
-	pendingUpgradeNames sets.Set[string]
-
-	// deferredNames is the set of MachinePool names that are not going to pick up the new version
-	// in the current reconcile loop because they are deferred by the user.
-	// Note: If a MachinePool is marked as deferred it should also be marked as pendingUpgrade.
-	deferredNames sets.Set[string]
-
-	// upgradingNames is the set of MachinePool names that are upgrading. This set contains the names of
-	// MachinePools that are currently upgrading and the names of MachinePools that will pick up the upgrade
-	// in the current reconcile loop.
-	// Note: This information is used to:
-	// - decide if ControlPlane can be upgraded.
-	// - calculate MachinePool upgrade concurrency.
-	// - update TopologyReconciled Condition.
-	// - decide if the AfterClusterUpgrade hook can be called.
-	upgradingNames sets.Set[string]
-
-	// maxMachinePoolUpgradeConcurrency defines the maximum number of MachinePools that should be in an
-	// upgrading state. This includes the MachinePools that are currently upgrading and the MachinePools that
-	// will start the upgrade after the current reconcile loop.
-	maxMachinePoolUpgradeConcurrency int
 }
 
 // MarkUpgrading marks a MachinePool as currently upgrading or about to upgrade.

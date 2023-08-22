@@ -21,14 +21,13 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.
@@ -170,33 +169,15 @@ func (mp *MachinePoolState) IsUpgrading(ctx context.Context, c client.Client) (b
 	if mp.Object.Spec.Template.Spec.Version == nil {
 		return false, nil
 	}
-	machinePoolSelector := metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			clusterv1.MachinePoolNameLabel: format.MustFormatValue(mp.Object.Name),
-			clusterv1.ClusterNameLabel:     mp.Object.Spec.ClusterName,
-		},
-	}
-	selectorMap, err := metav1.LabelSelectorAsMap(&machinePoolSelector)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to convert label selector to map", mp.Object.Name)
-	}
-	machinePools := &expv1.MachinePoolList{}
-	if err := c.List(ctx, machinePools, client.InNamespace(mp.Object.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-		return false, errors.Wrapf(err, "failed to check if MachinePool %s is upgrading: failed to list MachinePools", mp.Object.Name)
-	}
 	mpVersion := *mp.Object.Spec.Template.Spec.Version
-	// Check if the kubelet versions of the all the MachinePool Nodes match the MachinePool version.
-	for i := range machinePools.Items {
-		machinePool := machinePools.Items[i]
-		nodeRefs := machinePool.Status.NodeRefs
-		for _, nodeRef := range nodeRefs {
-			node := &corev1.Node{}
-			if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-				return false, errors.Wrapf(err, "failed to get Node, skipping setting annotations")
-			}
-			if mpVersion != node.Status.NodeInfo.KubeletVersion {
-				return true, nil
-			}
+	// Check if the kubelet versions of the MachinePool noderefs match the MachinePool version.
+	for _, nodeRef := range mp.Object.Status.NodeRefs {
+		node := &corev1.Node{}
+		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
+			return false, fmt.Errorf("failed to check if MachinePool %s is upgrading: failed to get Node %s", mp.Object.Name, nodeRef.Name)
+		}
+		if mpVersion != node.Status.NodeInfo.KubeletVersion {
+			return true, nil
 		}
 	}
 	return false, nil

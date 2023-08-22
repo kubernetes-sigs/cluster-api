@@ -946,13 +946,13 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 		return nil, errors.Wrapf(err, "failed to compute bootstrap object for topology %q", machinePoolTopology.Name)
 	}
 
-	bootstrapTemplateLabels := desiredMachinePool.BootstrapObject.GetLabels()
-	if bootstrapTemplateLabels == nil {
-		bootstrapTemplateLabels = map[string]string{}
+	bootstrapObjectLabels := desiredMachinePool.BootstrapObject.GetLabels()
+	if bootstrapObjectLabels == nil {
+		bootstrapObjectLabels = map[string]string{}
 	}
 	// Add ClusterTopologyMachinePoolLabel to the generated Bootstrap template
-	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
-	desiredMachinePool.BootstrapObject.SetLabels(bootstrapTemplateLabels)
+	bootstrapObjectLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
+	desiredMachinePool.BootstrapObject.SetLabels(bootstrapObjectLabels)
 
 	// Compute the Infrastructure ref.
 	var currentInfraMachinePoolRef *corev1.ObjectReference

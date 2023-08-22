@@ -26,6 +26,7 @@ This document details the responsibilities and tasks for each role in the releas
     - [[Continuously] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
     - [[Continuously] Bump the Go version](#continuously-bump-the-go-version)
     - [[Repeatedly] Cut a release](#repeatedly-cut-a-release)
+    - [[Optional] Public release session](#optional-public-release-session)
     - [[Optional] [Track] Bump the Cluster API apiVersion](#optional-track-bump-the-cluster-api-apiversion)
     - [[Optional] [Track] Bump the Kubernetes version](#optional-track-bump-the-kubernetes-version)
 - [Communications/Docs/Release Notes Manager](#communicationsdocsrelease-notes-manager)
@@ -238,7 +239,7 @@ Additional information:
   * Create a release tag on the GitHub repository.
   * Create/update/publish GitHub releases.
 
-[Optional] Public release session
+#### [Optional] Public release session
    1. Host a release session over a public zoom meeting.
    2. Record the session for future reference and transparency.
    3. Use release process-related waiting periods as a forum for discussing issues/questions.

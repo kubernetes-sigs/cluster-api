@@ -1,18 +1,19 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-* [Cluster API Release Team](#cluster-api-release-team)
-  * [Overview](#overview)
-    * [Goals](#goals)
-    * [Non-Goals/Future work](#non-goalsfuture-work)
-  * [Duration of Term](#duration-of-term)
-  * [Specific Responsibilities](#specific-responsibilities)
-  * [Team Roles](#team-roles)
-  * [Team Selection](#team-selection)
-    * [Selection Criteria](#selection-criteria)
-  * [Time Commitment](#time-commitment)
-  * [Why should I volunteer?](#why-should-i-volunteer)
-  * [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
+- [Cluster API Release Team](#cluster-api-release-team)
+  - [Overview](#overview)
+    - [Goals](#goals)
+    - [Non-Goals/Future work](#non-goalsfuture-work)
+  - [Duration of Term](#duration-of-term)
+  - [Specific Responsibilities](#specific-responsibilities)
+  - [Team Roles](#team-roles)
+  - [Team Selection](#team-selection)
+    - [Selection Criteria](#selection-criteria)
+  - [Time Commitment](#time-commitment)
+  - [Suggestions for Team Leads](#suggestions-for-team-leads)
+  - [Why should I volunteer?](#why-should-i-volunteer)
+  - [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -89,9 +90,28 @@ When assembling a release team, the release team lead should look for volunteers
 
 ## Time Commitment
 
-As a member of the release team, you should expect to spend approximately 4-8 hours a week on release related activities for the duration of the term. 
+As a member of the release team, you should expect to spend approximately 4-8 hours a week on release related activities for the duration of the term.
+
+Specific time commitments include:
+   * Release Team meetings once a week throughout the entire release cycle.
+   * Release Day meetings ideally occurring once during the actual release weeks. Refer to release cycle timeline for more specific details.
+   * Any other release-related critical meetings with prior notice.
+
+While we don't anticipate individuals to be available every week during the release cycle, please feel free to inform the team of any unavailability so we can plan accordingly.
 
 Before you volunteer to be part of a CAPI release team, please make certain that your employer is aware and supportive of your commitment to the release team.
+
+## Suggestions for Team Leads
+
+  * Clearly communicate with the team shadows you are responsible for, that the majority of the work during the release cycle will be a collaborative effort.
+  * Establish an ownership rotation policy in consultation with respective team members.
+  * Provide opportunities for team members to take the lead in cutting a release within the cycle, based on feasibility.
+  * Define backup ownership and tasks for team members, such as:
+      * Hosting release team meetings.
+      * Communicating key updates during office hours meetings when necessary.
+      * Sharing release-related updates with the CAPI community.
+      * Monitoring and reporting CI status regularly to the release team.
+      * Scheduling additional meetings as required to facilitate a smooth release cycle.
 
 ## Why should I volunteer?
 

@@ -50,7 +50,7 @@ type DockerMachinePoolTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerMachinePoolTemplate{}, &DockerMachinePoolTemplateList{})
+	objectTypes = append(objectTypes, &DockerMachinePool{}, &DockerMachinePoolList{})
 }
 
 // DockerMachinePoolTemplateResource describes the data needed to create a DockerMachine from a template.

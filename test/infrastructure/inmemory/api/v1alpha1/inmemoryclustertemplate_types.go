@@ -50,7 +50,7 @@ type InMemoryClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&InMemoryClusterTemplate{}, &InMemoryClusterTemplateList{})
+	objectTypes = append(objectTypes, &InMemoryClusterTemplate{}, &InMemoryClusterTemplateList{})
 }
 
 // InMemoryClusterTemplateResource describes the data needed to create a InMemoryCluster from a template.

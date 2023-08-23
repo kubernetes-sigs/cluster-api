@@ -222,5 +222,5 @@ func (l *ProviderList) filterBy(predicate func(p Provider) bool) []Provider {
 }
 
 func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
+	objectTypes = append(objectTypes, &Provider{}, &ProviderList{})
 }

@@ -149,5 +149,5 @@ type DockerMachinePoolList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerMachinePool{}, &DockerMachinePoolList{})
+	objectTypes = append(objectTypes, &DockerMachinePool{}, &DockerMachinePoolList{})
 }

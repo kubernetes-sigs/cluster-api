@@ -187,5 +187,5 @@ type InMemoryMachineList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&InMemoryMachine{}, &InMemoryMachineList{})
+	objectTypes = append(objectTypes, &InMemoryMachine{}, &InMemoryMachineList{})
 }

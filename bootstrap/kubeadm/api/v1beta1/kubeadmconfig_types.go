@@ -193,7 +193,7 @@ type KubeadmConfigList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&KubeadmConfig{}, &KubeadmConfigList{})
+	objectTypes = append(objectTypes, &KubeadmConfig{}, &KubeadmConfigList{})
 }
 
 // Encoding specifies the cloud-init file encoding.

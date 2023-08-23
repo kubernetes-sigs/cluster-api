@@ -95,5 +95,5 @@ type InMemoryClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&InMemoryCluster{}, &InMemoryClusterList{})
+	objectTypes = append(objectTypes, &InMemoryCluster{}, &InMemoryClusterList{})
 }

@@ -161,17 +161,17 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.5.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.5.x"}} -o clusterctl
 ```
 
 Download for ARM64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.5.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.5.x"}} -o clusterctl
 ```
 
 Download for PPC64LE:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.5.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.5.x"}} -o clusterctl
 ```
 
 Install clusterctl:
@@ -191,12 +191,12 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.5.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.5.x"}} -o clusterctl
 ```
 
 Download for M1 CPU ("Apple Silicon") / ARM64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.5.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.5.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.
@@ -235,7 +235,7 @@ Go to the working directory where you want clusterctl downloaded.
 
 Download the latest release; on Windows, type:
 ```powershell
-curl.exe -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.5.x"}} -o clusterctl.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.5.x"}} -o clusterctl.exe
 ```
 Append or prepend the path of that directory to the `PATH` environment variable.
 
@@ -281,7 +281,7 @@ Download the latest binary of `clusterawsadm` from the [AWS provider releases]. 
 
 Download the latest release; on Linux, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:">=2.0.0"}} -o clusterawsadm
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
 Make it executable
@@ -325,12 +325,12 @@ clusterctl init --infrastructure aws
 
 Download the latest release; on macOs, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=2.0.0"}} -o clusterawsadm
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
 Or if your Mac has an M1 CPU (”Apple Silicon”):
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=2.0.0"}} -o clusterawsadm
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
 Make it executable
@@ -407,7 +407,7 @@ clusterctl init --infrastructure aws
 
 Download the latest release; on Windows, type:
 ```
-curl.exe -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-windows-amd64" version:">=2.0.0"}} -o clusterawsadm.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-windows-amd64" version:">=2.0.0"}} -o clusterawsadm.exe
 ```
 
 Append or prepend the path of that directory to the `PATH` environment variable.

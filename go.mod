@@ -34,7 +34,7 @@ require (
 	golang.org/x/oauth2 v0.11.0
 	golang.org/x/text v0.12.0
 	gomodules.xyz/jsonpatch/v2 v2.4.0
-	google.golang.org/grpc v1.55.0
+	google.golang.org/grpc v1.55.1
 	k8s.io/api v0.27.2
 	k8s.io/apiextensions-apiserver v0.27.2
 	k8s.io/apimachinery v0.27.2

@@ -28,6 +28,7 @@ aliases:
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
+  - chrischdi
   - jackfrancis
   - JoelSpeed
   - richardcase
@@ -40,7 +41,6 @@ aliases:
 
   cluster-api-topology-maintainers:
   cluster-api-topology-reviewers:
-  - chrischdi
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm
@@ -83,7 +83,6 @@ aliases:
 
   cluster-api-test-maintainers:
   cluster-api-test-reviewers:
-  - chrischdi
   - elmiko
 
   # -----------------------------------------------------------
@@ -92,7 +91,6 @@ aliases:
 
   cluster-api-test-framework-maintainers:
   cluster-api-test-framework-reviewers:
-  - chrischdi
   - elmiko
 
   # -----------------------------------------------------------
@@ -101,7 +99,6 @@ aliases:
 
   cluster-api-provider-docker-maintainers:
   cluster-api-provider-docker-reviewers:
-  - chrischdi
   - elmiko
 
   # -----------------------------------------------------------

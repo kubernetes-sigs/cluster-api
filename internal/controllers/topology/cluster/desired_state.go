@@ -76,13 +76,18 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	}
 	s.UpgradeTracker.MachineDeployments.MarkUpgrading(mdUpgradingNames...)
 
+	// Mark all the MachinePools that are currently upgrading.
+	// This captured information is used for:
+	// - Building the TopologyReconciled condition.
+	// - Make upgrade decisions on the control plane.
+	// - Making upgrade decisions on machine deployments.
+	// - Making upgrade decisions on machine pools.
 	if len(s.Current.MachinePools) > 0 {
 		client, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
 		if err != nil {
 			return nil, err
 		}
 
-		// Mark all the MachinePools that are currently upgrading.
 		mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")

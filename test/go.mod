@@ -22,7 +22,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 v3.5.9
 	golang.org/x/net v0.14.0
-	google.golang.org/grpc v1.55.0
+	google.golang.org/grpc v1.55.1
 	k8s.io/api v0.27.2
 	k8s.io/apiextensions-apiserver v0.27.2
 	k8s.io/apimachinery v0.27.2

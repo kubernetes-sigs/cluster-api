@@ -146,9 +146,7 @@ func validateRootSchema(ctx context.Context, clusterClassVariable *clusterv1.Clu
 	}
 
 	// If the structural schema is valid, ensure a schema validator can be constructed.
-	if _, _, err := validation.NewSchemaValidator(&apiextensions.CustomResourceValidation{
-		OpenAPIV3Schema: apiExtensionsSchema,
-	}); err != nil {
+	if _, _, err := validation.NewSchemaValidator(apiExtensionsSchema); err != nil {
 		return append(allErrs, field.Invalid(fldPath, "", fmt.Sprintf("failed to build validator: %v", err)))
 	}
 
@@ -168,9 +166,7 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 	}
 
 	// If the structural schema is valid, ensure a schema validator can be constructed.
-	validator, _, err := validation.NewSchemaValidator(&apiextensions.CustomResourceValidation{
-		OpenAPIV3Schema: schema,
-	})
+	validator, _, err := validation.NewSchemaValidator(schema)
 	if err != nil {
 		return append(allErrs, field.Invalid(fldPath, "", fmt.Sprintf("failed to build validator: %v", err)))
 	}

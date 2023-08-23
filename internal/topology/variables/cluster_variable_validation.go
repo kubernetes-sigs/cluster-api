@@ -135,9 +135,7 @@ func ValidateClusterVariable(value *clusterv1.ClusterVariable, definition *clust
 	}
 
 	// Create validator for schema.
-	validator, _, err := validation.NewSchemaValidator(&apiextensions.CustomResourceValidation{
-		OpenAPIV3Schema: apiExtensionsSchema,
-	})
+	validator, _, err := validation.NewSchemaValidator(apiExtensionsSchema)
 	if err != nil {
 		return field.ErrorList{field.InternalError(fldPath,
 			fmt.Errorf("failed to create schema validator for variable %q; ClusterClass should be checked: %v", value.Name, err))} // TODO: consider if to add ClusterClass name

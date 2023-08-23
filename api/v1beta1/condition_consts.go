@@ -228,6 +228,14 @@ const (
 	// machines required (i.e. Spec.Replicas-MaxUnavailable when MachineDeploymentStrategyType = RollingUpdate) are up and running for at least minReadySeconds.
 	MachineDeploymentAvailableCondition ConditionType = "Available"
 
+	// MachineSetReadyCondition reports a summary of current status of the MachineSet owned by the MachineDeployment.
+	MachineSetReadyCondition ConditionType = "MachineSetReady"
+
+	// WaitingForMachineSetFallbackReason (Severity=Info) documents a MachineDeployment waiting for the underlying MachineSet
+	// to be available.
+	// NOTE: This reason is used only as a fallback when the MachineSet object is not reporting its own ready condition.
+	WaitingForMachineSetFallbackReason = "WaitingForMachineSet"
+
 	// WaitingForAvailableMachinesReason (Severity=Warning) reflects the fact that the required minimum number of machines for a machinedeployment are not available.
 	WaitingForAvailableMachinesReason = "WaitingForAvailableMachines"
 )

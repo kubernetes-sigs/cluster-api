@@ -430,7 +430,7 @@ func newTestMachineDeployment(pds *int32, replicas, statusReplicas, updatedRepli
 }
 
 // helper to create MS with given availableReplicas.
-func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, availableReplicas int32) *clusterv1.MachineSet {
+func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, availableReplicas int32, conditions clusterv1.Conditions) *clusterv1.MachineSet {
 	return &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              name,
@@ -443,6 +443,7 @@ func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, av
 		Status: clusterv1.MachineSetStatus{
 			AvailableReplicas: availableReplicas,
 			Replicas:          statusReplicas,
+			Conditions:        conditions,
 		},
 	}
 }
@@ -460,7 +461,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			name:           "Deployment not available: MachineDeploymentAvailableCondition should exist and be false",
 			d:              newTestMachineDeployment(&pds, 3, 2, 2, 2, clusterv1.Conditions{}),
 			oldMachineSets: []*clusterv1.MachineSet{},
-			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2),
+			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2, clusterv1.Conditions{}),
 			expectedConditions: []*clusterv1.Condition{
 				{
 					Type:     clusterv1.MachineDeploymentAvailableCondition,
@@ -474,11 +475,46 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			name:           "Deployment Available: MachineDeploymentAvailableCondition should exist and be true",
 			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
 			oldMachineSets: []*clusterv1.MachineSet{},
-			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3),
+			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3, clusterv1.Conditions{}),
 			expectedConditions: []*clusterv1.Condition{
 				{
 					Type:   clusterv1.MachineDeploymentAvailableCondition,
 					Status: corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "MachineSet exist: MachineSetReadyCondition should exist and mirror MachineSet Ready condition",
+			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
+			oldMachineSets: []*clusterv1.MachineSet{},
+			newMachineSet: newTestMachinesetWithReplicas("foo", 3, 3, 3, clusterv1.Conditions{
+				{
+					Type:    clusterv1.ReadyCondition,
+					Status:  corev1.ConditionFalse,
+					Reason:  "TestErrorResaon",
+					Message: "test error messsage",
+				},
+			}),
+			expectedConditions: []*clusterv1.Condition{
+				{
+					Type:    clusterv1.MachineSetReadyCondition,
+					Status:  corev1.ConditionFalse,
+					Reason:  "TestErrorResaon",
+					Message: "test error messsage",
+				},
+			},
+		},
+		{
+			name:           "MachineSet doesn't exist: MachineSetReadyCondition should exist and be false",
+			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
+			oldMachineSets: []*clusterv1.MachineSet{},
+			newMachineSet:  nil,
+			expectedConditions: []*clusterv1.Condition{
+				{
+					Type:     clusterv1.MachineSetReadyCondition,
+					Status:   corev1.ConditionFalse,
+					Severity: clusterv1.ConditionSeverityInfo,
+					Reason:   clusterv1.WaitingForMachineSetFallbackReason,
 				},
 			},
 		},

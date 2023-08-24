@@ -47,6 +47,15 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 					framework.KubeadmControlPlaneOwnerReferenceAssertions,
 					framework.KubernetesReferenceAssertions,
 				)
+				// This check ensures that owner references are correctly updated to the correct apiVersion.
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName,
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
 			},
 		}
 	})
@@ -65,6 +74,15 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 			// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+				// This check ensures that owner references are correctly updated to the correct apiVersion.
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName,
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
 					framework.DockerInfraOwnerReferenceAssertions,

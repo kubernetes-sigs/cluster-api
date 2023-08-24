@@ -45,17 +45,22 @@ import (
 func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
 
-	// Changes the version of all the owner references to v1alpha1. Expect the apiVersion to be updated after reconciliation.
+	// Pause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
 
 	// Change the version of the OwnerReferences on each object in the Graph to "v1alpha1"
 	changeOwnerReferencesAPIVersion(ctx, proxy, namespace)
 
+	// Unpause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
 
-	// Annotate the clusterClass, if one is in use, to speed up reconciliation. This ensures ClusterClass ownerReferences
-	// are re-reconciled before asserting the owner reference graph.
+	// Force ClusterClass reconciliation. This ensures ClusterClass ownerReferences  are re-reconciled before asserting
+	// the owner reference graph.
 	forceClusterClassReconcile(ctx, proxy.GetClient(), clusterKey)
+
+	// Force ClusterResourceSet reconciliation. This ensures ClusterResourceBinding ownerReferences are re-reconciled before
+	// asserting the owner reference graph.
+	forceClusterResourceSetReconcile(ctx, proxy.GetClient(), namespace)
 
 	// Check that the ownerReferences have updated their apiVersions to current versions after reconciliation.
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
@@ -79,6 +84,7 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	// Once all Clusters are paused remove the OwnerReference from all objects in the graph.
 	removeOwnerReferences(ctx, proxy, namespace)
 
+	// Unpause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
 
 	// Annotate the clusterClass, if one is in use, to speed up reconciliation. This ensures ClusterClass ownerReferences
@@ -362,6 +368,16 @@ func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterK
 		Expect(cli.Get(ctx, client.ObjectKey{Namespace: clusterKey.Namespace, Name: cluster.Spec.Topology.Class}, class)).To(Succeed())
 		annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
 		Expect(cli.Patch(ctx, class, annotationPatch)).To(Succeed())
+	}
+}
+
+// forceClusterResourceSetReconcile forces reconciliation of all ClusterResourceSets.
+func forceClusterResourceSetReconcile(ctx context.Context, cli client.Client, namespace string) {
+	crsList := &addonsv1.ClusterResourceSetList{}
+	Expect(cli.List(ctx, crsList, client.InNamespace(namespace))).To(Succeed())
+	for _, crs := range crsList.Items {
+		annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
+		Expect(cli.Patch(ctx, crs.DeepCopy(), annotationPatch)).To(Succeed())
 	}
 }
 

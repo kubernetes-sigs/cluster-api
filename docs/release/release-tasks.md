@@ -231,6 +231,7 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
       * Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually
         the commit message for us should look like: `clusterctl 1.1.5`.
 6. **For minor releases** Set EOL date for previous release (prior art: https://github.com/kubernetes-sigs/cluster-api/issues/7146) and update Cluster API support and guarantees in CONTRIBUTING.md (prior art: https://github.com/kubernetes-sigs/cluster-api/pull/8308).
+7. **For latest stable releases** Index the most recent CRDs in the release by navigating to `https://doc.crds.dev/github.com/kubernetes-sigs/cluster-api@<CURRENT_RELEASE>` 
 
 Additional information:
 

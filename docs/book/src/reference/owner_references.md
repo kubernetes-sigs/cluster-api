@@ -16,65 +16,67 @@ CAPI uses owner references in an opinionated way. The following guidelines shoul
 
 ## Owner reference relationships in Cluster API
 
-The below tables map out the a reference for ownership relationships for the objects in a Cluster API cluster.
+The below tables map out the a reference for ownership relationships for the objects in a Cluster API cluster. The tables are identical for classy and non-classy clusters.
+
+
 Providers may implement their own ownership relationships which may or may not map directly to the below tables. 
 These owner references are almost all tested in an [end-to-end test](https://github.com/kubernetes-sigs/cluster-api/blob/caaa74482b51fae777334cd7a29595da1c06481e/test/e2e/quick_start_test.go#L31). Lack of testing is noted where this is not the case. CAPI Providers can take advantage of the e2e test framework to ensure their owner references are predictable, documented and stable.
 
  Kubernetes core types
 
-| type      | Owner               | Note                                     |
-|-----------|---------------------|------------------------------------------|
-| Secret    | KubeadmControlPlane | For cluster certificates                 |
-| Secret    | KubeadmConfig       | For bootstrap secrets                    |
-| Secret    | ClusterResourceSet  | When created by CRS. Not covered in e2e. |
-| ConfigMap | ClusterResourceSet  | When created by CRS                      |
+| type      | Owner               | Controller | Note                                       |
+|-----------|---------------------|------------|--------------------------------------------|
+| Secret    | KubeadmControlPlane | yes        | For cluster certificates                   |
+| Secret    | KubeadmConfig       | yes        | For bootstrap secrets                      |
+| Secret    | ClusterResourceSet  | no         | When referenced by CRS. Not tested in e2e. |
+| ConfigMap | ClusterResourceSet  | no         | When referenced by CRS                     |
 
 ## Core types
 
-| type                | Owner               | Note                       |
-|---------------------|---------------------|----------------------------|
-| ExtensionConfig     | None                |                            |
-| ClusterClass        | None                |                            |
-| Cluster             | None                |                            |
-| MachineDeployments  | Cluster             |                            |
-| MachineSet          | MachineDeployment   |                            |
-| Machine             | MachineSet          | When created by MachineSet |
-| Machine             | KubeadmControlPlane | When created by KCP        |
-| MachineHealthChecks | Cluster             |                            |
+| type                | Owner               | Controller | Note                       |
+|---------------------|---------------------|------------|----------------------------|
+| ExtensionConfig     | None                |            |                            |
+| ClusterClass        | None                |            |                            |
+| Cluster             | None                |            |                            |
+| MachineDeployments  | Cluster             | no         |                            |
+| MachineSet          | MachineDeployment   | yes        |                            |
+| Machine             | MachineSet          | yes        | When created by MachineSet |
+| Machine             | KubeadmControlPlane | yes        | When created by KCP        |
+| MachineHealthChecks | Cluster             | no         |                            |
 
 
 
 ## Experimental types
-| type                       | Owner              | Note |
-|----------------------------|--------------------|------|
-| ClusterResourcesSet        | None               |      |
-| ClusterResourcesSetBinding | ClusterResourceSet |      |
-| MachinePool                | Cluster            |      |
+| type                       | Owner              | Controller | Note                     |
+|----------------------------|--------------------|------------|--------------------------|
+| ClusterResourcesSet        | None               |            |                          |
+| ClusterResourcesSetBinding | ClusterResourceSet | no         | May have many CRS owners |
+| MachinePool                | Cluster            | unknown    | Not tested in e2e        |
 
 
 ## KubeadmControlPlane types
-| type                        | Owner        | Note |
-|-----------------------------|--------------|------|
-| KubeadmControlPlane         | Cluster      |      |
-| KubeadmControlPlaneTemplate | ClusterClass |      |
+| type                        | Owner        | Controller | Note |
+|-----------------------------|--------------|------------|------|
+| KubeadmControlPlane         | Cluster      | yes        |      |
+| KubeadmControlPlaneTemplate | ClusterClass | no         |      |
     
 
 ## Kubeadm bootstrap types
-| type                  | Owner        | Note                                      |
-|-----------------------|--------------|-------------------------------------------|
-| KubeadmConfig         | Machine      | When created for Machine                  |
-| KubeadmConfig         | MachinePool  | When created for MachinePool              |
-| KubeadmConfigTemplate | Cluster      | When referenced in MachineDeployment spec |
-| KubeadmConfigTemplate | ClusterClass | When referenced in ClusterClass           |
+| type                  | Owner        | Controller | Note                                            |
+|-----------------------|--------------|------------|-------------------------------------------------|
+| KubeadmConfig         | Machine      | yes        | When created for Machine                        |
+| KubeadmConfig         | MachinePool  | unknown    | When created for MachinePool. Not tested in e2e |
+| KubeadmConfigTemplate | Cluster      | no         | When referenced in MachineDeployment spec       |
+| KubeadmConfigTemplate | ClusterClass | no         | When referenced in ClusterClass                 |
 
 ## Infrastructure provider types
-| type                          | Owner        | Note                                        |
-|-------------------------------|--------------|---------------------------------------------|
-| InfrastructureMachine         | Machine      |                                             |
-| InfrastructureMachineTemplate | Cluster      | When created by cluster topology controller |
-| InfrastructureMachineTemplate | ClusterClass | When referenced in a ClusterClass           |
-| InfrastructureCluster         | Cluster      |                                             |
-| InfrastructureClusterTemplate | ClusterClass |                                             |
-| InfrastructureMachinePool     | MachinePool  |                                             |
+| type                          | Owner        | Controller | Note                                        |
+|-------------------------------|--------------|------------|---------------------------------------------|
+| InfrastructureMachine         | Machine      | yes        |                                             |
+| InfrastructureMachineTemplate | Cluster      | no         | When created by cluster topology controller |
+| InfrastructureMachineTemplate | ClusterClass | no         | When referenced in a ClusterClass           |
+| InfrastructureCluster         | Cluster      | yes        |                                             |
+| InfrastructureClusterTemplate | ClusterClass | no         |                                             | 
+| InfrastructureMachinePool     | MachinePool  | unknown    | Not tested in e2e                           |
 
 

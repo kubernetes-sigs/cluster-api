@@ -834,18 +834,31 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 				}
 				finalArgs = append(finalArgs, a)
 			}
-
-			container.Ports = append(container.Ports, corev1.ContainerPort{
-				Name:          "metrics",
-				ContainerPort: 8080,
-				Protocol:      "TCP",
-			})
+			// tilt-prepare should add the metrics port if and only if it's missing:
+			// as best practices with controller-runtime, it's named metrics and listening on port 8080.
+			if !containerHasMetricsPort(container.Ports) {
+				container.Ports = append(container.Ports, corev1.ContainerPort{
+					Name:          "metrics",
+					ContainerPort: 8080,
+					Protocol:      corev1.ProtocolTCP,
+				})
+			}
 
 			container.Command = cmd
 			container.Args = finalArgs
 			deployment.Spec.Template.Spec.Containers[j] = container
 		}
 	})
+}
+
+func containerHasMetricsPort(ports []corev1.ContainerPort) bool {
+	for _, port := range ports {
+		if port.ContainerPort == 8080 {
+			return true
+		}
+	}
+
+	return false
 }
 
 type updateDeploymentFunction func(deployment *appsv1.Deployment)

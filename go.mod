@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3
 	github.com/adrg/xdg v0.4.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/coredns/corefile-migration v1.0.20
+	github.com/coredns/corefile-migration v1.0.21
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.8.2+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46

@@ -87,7 +87,7 @@ type MachinePoolBlueprint struct {
 	// BootstrapTemplate holds the bootstrap template for a MachinePool referenced from ClusterClass.
 	BootstrapTemplate *unstructured.Unstructured
 
-	// InfrastructureMachinePoolTemplate holds the infrastructure machine template for a MachinePool referenced from ClusterClass.
+	// InfrastructureMachinePoolTemplate holds the infrastructure machine pool template for a MachinePool referenced from ClusterClass.
 	InfrastructureMachinePoolTemplate *unstructured.Unstructured
 }
 

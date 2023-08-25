@@ -250,9 +250,9 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 		// Call the registered extensions for the hook after the cluster is fully upgraded.
 		// A clusters is considered fully upgraded if:
 		// - Control plane is stable (not upgrading, not scaling, not about to upgrade)
-		// - MachineDeployments are not currently upgrading
-		// - MachineDeployments are not pending an upgrade
-		// - MachineDeployments are not pending create
+		// - MachineDeployments/MachinePools are not currently upgrading
+		// - MachineDeployments/MachinePools are not pending an upgrade
+		// - MachineDeployments/MachinePools are not pending create
 		if isControlPlaneStable(s) && // Control Plane stable checks
 			len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) == 0 && // Machine deployments are not upgrading or not about to upgrade
 			!s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() && // No MachineDeployments are pending create
@@ -737,6 +737,10 @@ func (r *Reconciler) reconcileMachinePools(ctx context.Context, s *scope.Scope) 
 
 	// Create MachinePools.
 	if len(diff.toCreate) > 0 {
+		// In current state we only got the MP list via a cached call.
+		// As a consequence, in order to prevent the creation of duplicate MP due to stale reads,
+		// we are now using a live client to double-check here that the MachinePool
+		// to be created doesn't exist yet.
 		currentMPTopologyNames, err := r.getCurrentMachinePools(ctx, s)
 		if err != nil {
 			return err
@@ -806,8 +810,6 @@ func (r *Reconciler) getCurrentMachinePools(ctx context.Context, s *scope.Scope)
 // createMachinePool creates a MachinePool and the corresponding templates.
 func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *scope.MachinePoolState) error {
 	// Do not create the MachinePool if it is marked as pending create.
-	// This will also block MHC creation because creating the MHC without the corresponding
-	// MachinePool is unnecessary.
 	mpTopologyName, ok := mp.Object.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
 	if !ok || mpTopologyName == "" {
 		// Note: This is only an additional safety check and should not happen. The label will always be added when computing
@@ -868,7 +870,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	return nil
 }
 
-// updateMachinePool updates a MachinePool. Also rotates the corresponding Templates if necessary.
+// updateMachinePool updates a MachinePool. Also updates the corresponding objects if necessary.
 func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, currentMP, desiredMP *scope.MachinePoolState) error {
 	log := tlog.LoggerFrom(ctx).WithMachinePool(desiredMP.Object)
 
@@ -882,20 +884,18 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, curr
 	cluster := s.Current.Cluster
 	infraCtx, _ := log.WithObject(desiredMP.InfrastructureMachinePoolObject).Into(ctx)
 	if err := r.reconcileReferencedObject(infraCtx, reconcileReferencedObjectInput{
-		cluster:       cluster,
-		current:       currentMP.InfrastructureMachinePoolObject,
-		desired:       desiredMP.InfrastructureMachinePoolObject,
-		versionGetter: contract.ControlPlane().Version().Get,
+		cluster: cluster,
+		current: currentMP.InfrastructureMachinePoolObject,
+		desired: desiredMP.InfrastructureMachinePoolObject,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMP.Object})
 	}
 
 	bootstrapCtx, _ := log.WithObject(desiredMP.BootstrapObject).Into(ctx)
 	if err := r.reconcileReferencedObject(bootstrapCtx, reconcileReferencedObjectInput{
-		cluster:       cluster,
-		current:       currentMP.BootstrapObject,
-		desired:       desiredMP.BootstrapObject,
-		versionGetter: contract.ControlPlane().Version().Get,
+		cluster: cluster,
+		current: currentMP.BootstrapObject,
+		desired: desiredMP.BootstrapObject,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMP.Object})
 	}

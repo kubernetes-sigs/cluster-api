@@ -289,6 +289,9 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 	state := make(scope.MachinePoolsStateMap)
 
 	// List all the machine pools in the current cluster and in a managed topology.
+	// Note: This is a cached list call. We ensure in reconcile_state that the cache is up-to-date
+	// after we create/update a MachinePool and we double-check if an MP already exists before
+	// we create it.
 	mp := &expv1.MachinePoolList{}
 	err := r.Client.List(ctx, mp,
 		client.MatchingLabels{
@@ -328,7 +331,7 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 		// Gets the infraRef.
 		infraRef := &m.Spec.Template.Spec.InfrastructureRef
 		if infraRef.Name == "" {
-			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachinePool", tlog.KObj{Obj: m})
 		}
 
 		// If the mpTopology exists in the Cluster, lookup the corresponding mpBluePrint and align

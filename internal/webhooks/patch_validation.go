@@ -211,6 +211,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 			err := validateSelectorName(name, path, "machineDeploymentClass", i)
 			if err != nil {
 				allErrs = append(allErrs, err)
+				break
 			}
 			for _, md := range class.Spec.Workers.MachineDeployments {
 				var matches bool
@@ -246,6 +247,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 			err := validateSelectorName(name, path, "machinePoolClass", i)
 			if err != nil {
 				allErrs = append(allErrs, err)
+				break
 			}
 			for _, mp := range class.Spec.Workers.MachinePools {
 				var matches bool

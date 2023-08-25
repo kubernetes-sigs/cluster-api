@@ -490,7 +490,7 @@ func validateCIDRBlocks(fldPath *field.Path, cidrs []string) field.ErrorList {
 	return allErrs
 }
 
-// DefaultAndValidateVariables defaults and validates variables in the Cluster and MachineDeployment topologies based
+// DefaultAndValidateVariables defaults and validates variables in the Cluster and MachineDeployment/MachinePool topologies based
 // on the definitions in the ClusterClass.
 func DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
@@ -579,6 +579,8 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
 	}
 	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(cluster, clusterClass)...)
+
+	allErrs = append(allErrs, check.MachinePoolTopologiesAreValidAndDefinedInClusterClass(cluster, clusterClass)...)
 
 	// Validate the MachineHealthChecks defined in the cluster topology.
 	allErrs = append(allErrs, validateMachineHealthChecks(cluster, clusterClass)...)

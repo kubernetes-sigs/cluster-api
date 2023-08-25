@@ -217,7 +217,7 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 	log := ctrl.LoggerFrom(ctx)
 
 	// Only patch the customImage if this DockerMachineTemplate belongs to a MachineDeployment or MachinePool with class "default-class"
-	// NOTE: This works by checking the existence of a builtin variable that exists only for templates liked to MachineDeployments.
+	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachineDeployments.
 	mdClass, mdFound, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.class")
 	if err != nil {
 		return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
@@ -231,7 +231,7 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 	// This is a required variable. Return an error if it's not found.
 	// NOTE: this should never happen because it is enforced by the patch engine.
 	if !mdFound && !mpFound {
-		return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machineDeployment.class\" not found")
+		return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: could find neither \"builtin.machineDeployment.class\" nor \"builtin.machinePool.class\" variable")
 	}
 
 	if mdClass == "default-worker" {
@@ -272,7 +272,7 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 		// If the Kubernetes version from builtin.machinePool.version is below 1.24.0 set "cgroup-driver": "cgroupDriverCgroupfs" to
 		//    - InitConfiguration.KubeletExtraArgs
 		//    - JoinConfiguration.KubeletExtraArgs
-		// NOTE: machinePool version might be different than Cluster.version or other machinePool's versions;
+		// NOTE: MachinePool version might be different than Cluster.version or other MachinePool's versions;
 		// the builtin variables provides the right version to use.
 		mpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
 		if err != nil {
@@ -316,7 +316,7 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 	// If the DockerMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
 	// NOTE: ControlPlane version might be different than Cluster.version or MachineDeployment's versions;
 	// the builtin variables provides the right version to use.
-	// NOTE: This works by checking the existence of a builtin variable that exists only for templates liked to the ControlPlane.
+	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to the ControlPlane.
 	cpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
 	if err != nil {
 		return errors.Wrap(err, "could not set customImage to control plane dockerMachineTemplate")
@@ -335,9 +335,9 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 	}
 
 	// If the DockerMachineTemplate belongs to a MachineDeployment, set the images the MachineDeployment version.
-	// NOTE: MachineDeployment version might be different than Cluster.version or other MachineDeployment's versions;
+	// NOTE: MachineDeployment version might be different from Cluster.version or other MachineDeployment's versions;
 	// the builtin variables provides the right version to use.
-	// NOTE: This works by checking the existence of a built in variable that exists only for templates liked to MachineDeployments.
+	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachineDeployments.
 	mdVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.version")
 	if err != nil {
 		return errors.Wrap(err, "could not set customImage to MachineDeployment DockerMachineTemplate")
@@ -354,7 +354,7 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 		return nil
 	}
 
-	// If the Docker Machine didn't have variables for either a control plane or a machineDeployment return an error.
+	// If the DockerMachineTemplate didn't have variables for either a control plane or a machineDeployment return an error.
 	// NOTE: this should never happen because it is enforced by the patch engine.
 	return errors.New("no version variables found for DockerMachineTemplate patch")
 }
@@ -366,31 +366,10 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTemplate *infraexpv1.DockerMachinePoolTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	// If the DockerMachinePoolTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
-	// NOTE: ControlPlane version might be different than Cluster.version or MachinePool's versions;
-	// the builtin variables provides the right version to use.
-	// NOTE: This works by checking the existence of a builtin variable that exists only for templates liked to the ControlPlane.
-	cpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
-	if err != nil {
-		return errors.Wrap(err, "could not set customImage to control plane dockerMachinePoolTemplate")
-	}
-	if found {
-		semVer, err := version.ParseMajorMinorPatchTolerant(cpVersion)
-		if err != nil {
-			return errors.Wrap(err, "could not parse control plane version")
-		}
-		kindMapping := kind.GetMapping(semVer, "")
-
-		log.Info(fmt.Sprintf("Setting MachinePool custom image to %q", kindMapping.Image))
-		dockerMachinePoolTemplate.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
-		// return early if we have successfully patched a control plane dockerMachineTemplate
-		return nil
-	}
-
 	// If the DockerMachinePoolTemplate belongs to a MachinePool, set the images the MachinePool version.
-	// NOTE: MachinePool version might be different than Cluster.version or other MachinePool's versions;
+	// NOTE: MachinePool version might be different from Cluster.version or other MachinePool's versions;
 	// the builtin variables provides the right version to use.
-	// NOTE: This works by checking the existence of a built in variable that exists only for templates liked to MachinePools.
+	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachinePools.
 	mpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
 	if err != nil {
 		return errors.Wrap(err, "could not set customImage to MachinePool DockerMachinePoolTemplate")
@@ -407,7 +386,7 @@ func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTempla
 		return nil
 	}
 
-	// If the Docker Machine didn't have variables for either a control plane or a machinePool return an error.
+	// If the DockerMachinePoolTemplate didn't have variables for a machinePool return an error.
 	// NOTE: this should never happen because it is enforced by the patch engine.
 	return errors.New("no version variables found for DockerMachinePoolTemplate patch")
 }

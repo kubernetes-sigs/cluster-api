@@ -57,7 +57,7 @@ func (i PreserveFields) ApplyToHelper(opts *PatchOptions) {
 	opts.preserveFields = i
 }
 
-// patchObject overwrites spec in object with spec.template.spec of patchedTemplate,
+// patchObject overwrites spec in object with spec.template.spec of modifiedObject,
 // while preserving the configured fields.
 // For example, ControlPlane.spec will be overwritten with the patched
 // ControlPlaneTemplate.spec.template.spec but preserving spec.version and spec.replicas
@@ -66,7 +66,7 @@ func patchObject(ctx context.Context, object, modifiedObject *unstructured.Unstr
 	return patchUnstructured(ctx, object, modifiedObject, "spec.template.spec", "spec", opts...)
 }
 
-// patchTemplate overwrites spec.template.spec in template with spec.template.spec of patchedTemplate,
+// patchTemplate overwrites spec.template.spec in template with spec.template.spec of modifiedTemplate,
 // while preserving the configured fields.
 // For example, it's possible to patch BootstrapTemplate.spec.template.spec with a patched
 // BootstrapTemplate.spec.template.spec while preserving fields configured via opts.fieldsToPreserve.

@@ -134,7 +134,7 @@ type MachineSetStatus struct {
 
 	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	// +optional
-	// +Metrics:gauge:name="status_fully_labeled_replicas",help="The number of fully labeled replicas per machineset.",nilIsZero=true
+	// +Metrics:gauge:name="status_replicas_fully_labeled",help="The number of fully labeled replicas per machineset.",nilIsZero=true
 	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
 
 	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
@@ -144,7 +144,7 @@ type MachineSetStatus struct {
 
 	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
 	// +optional
-	// +Metrics:gauge:name="status_available_replicas",help="The number of available replicas per machineset.",nilIsZero=true
+	// +Metrics:gauge:name="status_replicas_available",help="The number of available replicas per machineset.",nilIsZero=true
 	AvailableReplicas int32 `json:"availableReplicas"`
 
 	// ObservedGeneration reflects the generation of the most recently observed MachineSet.
@@ -176,6 +176,7 @@ type MachineSetStatus struct {
 	// Conditions defines current service state of the MachineSet.
 	// +optional
 	// +Metrics:stateset:name="status_condition",help="The condition of a machineset.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a machineset.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -223,6 +224,7 @@ func (m *MachineSet) Validate() field.ErrorList {
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
 // +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machineset.",labelsFromPath={bootstrap_reference_kind:.spec.template.spec.bootstrap.configRef.kind,bootstrap_reference_name:.spec.template.spec.bootstrap.configRef.name,infrastructure_reference_kind:.spec.template.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.template.spec.infrastructureRef.name,version:.spec.template.spec.version}
 type MachineSet struct {
 	metav1.TypeMeta `json:",inline"`
 	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."

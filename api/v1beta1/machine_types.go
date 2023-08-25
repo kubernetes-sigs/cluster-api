@@ -207,6 +207,7 @@ type MachineStatus struct {
 	// CertificatesExpiryDate is the expiry date of the machine certificates.
 	// This value is only set for control plane machines.
 	// +optional
+	// +Metrics:gauge:name="status_certificatesexpirydate",help="Information about certificate expiration date of a control plane node.",nilIsZero=true
 	CertificatesExpiryDate *metav1.Time `json:"certificatesExpiryDate,omitempty"`
 
 	// BootstrapReady is the state of the bootstrap provider.
@@ -224,6 +225,7 @@ type MachineStatus struct {
 	// Conditions defines current service state of the Machine.
 	// +optional
 	// +Metrics:stateset:name="status_condition",help="The condition of a machine.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a machine.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -288,7 +290,7 @@ type Bootstrap struct {
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
 // +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
-// +Metrics:info:name="info",help="Information about a machine.",labelsFromPath={container_runtime_version:.status.nodeInfo.containerRuntimeVersion,failure_domain:.spec.failureDomain,kernel_version:.status.nodeInfo.kernelVersion,kube_proxy_version:.status.nodeInfo.kubeProxyVersion,kubelet_version:.status.nodeInfo.kubeletVersion,os_image:.status.nodeInfo.osImage,provider_id:.spec.providerID,version:.spec.version}
+// +Metrics:info:name="info",help="Information about a machine.",labelsFromPath={bootstrap_reference_kind:.spec.bootstrap.configRef.kind,bootstrap_reference_name:.spec.bootstrap.configRef.name,container_runtime_version:.status.nodeInfo.containerRuntimeVersion,control_plane_name:.metadata.labels.cluster\.x-k8s\.io/control-plane-name,failure_domain:.spec.failureDomain,infrastructure_reference_kind:.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.infrastructureRef.name,kernel_version:.status.nodeInfo.kernelVersion,kube_proxy_version:.status.nodeInfo.kubeProxyVersion,kubelet_version:.status.nodeInfo.kubeletVersion,os_image:.status.nodeInfo.osImage,provider_id:.spec.providerID,version:.spec.version}
 type Machine struct {
 	metav1.TypeMeta `json:",inline"`
 	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."

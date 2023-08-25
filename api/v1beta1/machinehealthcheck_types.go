@@ -136,6 +136,7 @@ type MachineHealthCheckStatus struct {
 	// Conditions defines current service state of the MachineHealthCheck.
 	// +optional
 	// +Metrics:stateset:name="status_condition",help="The condition of a machinehealthcheck.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a machinehealthcheck.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -157,6 +158,7 @@ type MachineHealthCheckStatus struct {
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
 // +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machinehealthcheck.",labelsFromPath={maxUnhealthy:.spec.maxUnhealthy}
 type MachineHealthCheck struct {
 	metav1.TypeMeta `json:",inline"`
 	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."

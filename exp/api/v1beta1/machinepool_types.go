@@ -129,6 +129,7 @@ type MachinePoolStatus struct {
 	// Conditions define the current service state of the MachinePool.
 	// +optional
 	// +Metrics:stateset:name="status_condition",help="The condition of a machinepool.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a machinepool.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 

@@ -421,6 +421,7 @@ type ClusterStatus struct {
 	// Conditions defines current service state of the cluster.
 	// +optional
 	// +Metrics:stateset:name="status_condition",help="The condition of a cluster.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a cluster.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions Conditions `json:"conditions,omitempty"`
 
 	// ObservedGeneration is the latest generation observed by the controller.

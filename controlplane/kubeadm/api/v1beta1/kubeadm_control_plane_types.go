@@ -299,6 +299,7 @@ type KubeadmControlPlaneStatus struct {
 	// Conditions defines current service state of the KubeadmControlPlane.
 	// +optional
 	// +Metrics:stateset:name="status_condition",help="The condition of a kubeadmcontrolplane.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a kubeadmcontrolplane.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// LastRemediation stores info about last remediation performed.

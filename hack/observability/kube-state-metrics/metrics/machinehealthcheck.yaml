@@ -23,22 +23,24 @@
         info:
           # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
           labelsFromPath:
-            name:
-            - metadata
-            - name
+            maxUnhealthy:
+            - spec
+            - maxUnhealthy
         type: Info
     - name: status_current_healthy
       help: Current number of healthy machines.
       each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - currentHealthy
         type: Gauge
     - name: status_expected_machines
-      help: Total number of pods counted by this machinehealthcheck.
+      help: Total number of machines counted by this machinehealthcheck.
       each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - expectedMachines
@@ -47,6 +49,7 @@
       help: Number of machine remediations that are currently allowed.
       each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - remediationsAllowed

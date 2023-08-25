@@ -102,13 +102,12 @@
         info:
           labelsFromPath:
             node_name:
-            - status
-            - nodeRef
-            - name
+              - name
             node_uid:
+              - uid
+          path:
             - status
             - nodeRef
-            - uid
         type: Info
     - name: status_phase
       help: The machines current phase.

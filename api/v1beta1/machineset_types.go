@@ -219,7 +219,7 @@ func (m *MachineSet) Validate() field.ErrorList {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachineSet"
 
 // MachineSet is the Schema for the machinesets API.
-// +Metrics:namePrefix="capi_machineset"
+// +Metrics:gvk:namePrefix="capi_machineset"
 // +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"

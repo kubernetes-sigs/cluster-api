@@ -167,7 +167,7 @@ type KubeadmConfigStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfig"
 
 // KubeadmConfig is the Schema for the kubeadmconfigs API.
-// +Metrics:namePrefix="capi_kubeadmconfig"
+// +Metrics:gvk:namePrefix="capi_kubeadmconfig"
 // +Metrics:labelFromPath:name="name",JSONPath=.metadata.name
 // +Metrics:labelFromPath:name="namespace",JSONPath=.metadata.namespace
 // +Metrics:labelFromPath:name="uid",JSONPath=.metadata.uid

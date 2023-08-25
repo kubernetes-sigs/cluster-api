@@ -331,7 +331,7 @@ func (md *MachineDeploymentStatus) GetTypedPhase() MachineDeploymentPhase {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachineDeployment"
 
 // MachineDeployment is the Schema for the machinedeployments API.
-// +Metrics:namePrefix="capi_machinedeployment"
+// +Metrics:gvk:namePrefix="capi_machinedeployment"
 // +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"

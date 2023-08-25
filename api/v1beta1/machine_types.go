@@ -285,7 +285,7 @@ type Bootstrap struct {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.version",description="Kubernetes version associated with this Machine"
 
 // Machine is the Schema for the machines API.
-// +Metrics:namePrefix="capi_machine"
+// +Metrics:gvk:namePrefix="capi_machine"
 // +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"

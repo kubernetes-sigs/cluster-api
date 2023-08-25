@@ -35,7 +35,7 @@ const ClusterClassKind = "ClusterClass"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterClass"
 
 // ClusterClass is a template which can be used to create managed topologies.
-// +Metrics:namePrefix="capi_clusterclass"
+// +Metrics:gvk:namePrefix="capi_clusterclass"
 // +Metrics:labelFromPath:name="name",JSONPath=.metadata.name
 // +Metrics:labelFromPath:name="namespace",JSONPath=.metadata.namespace
 // +Metrics:labelFromPath:name="uid",JSONPath=.metadata.uid

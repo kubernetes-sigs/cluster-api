@@ -339,7 +339,7 @@ type LastRemediationStatus struct {
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=".spec.version",description="Kubernetes version associated with this control plane"
 
 // KubeadmControlPlane is the Schema for the KubeadmControlPlane API.
-// +Metrics:namePrefix="capi_kubeadmcontrolplane"
+// +Metrics:gvk:namePrefix="capi_kubeadmcontrolplane"
 // +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.ownerReferences.\[kind=Cluster\].name
 // +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"

@@ -490,7 +490,7 @@ func (v APIEndpoint) String() string {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.topology.version",description="Kubernetes version associated with this Cluster"
 
 // Cluster is the Schema for the clusters API.
-// +Metrics:namePrefix="capi_cluster"
+// +Metrics:gvk:namePrefix="capi_cluster"
 // +Metrics:labelFromPath:name="name",JSONPath=.metadata.name
 // +Metrics:labelFromPath:name="namespace",JSONPath=.metadata.namespace
 // +Metrics:labelFromPath:name="uid",JSONPath=.metadata.uid

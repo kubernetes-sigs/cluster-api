@@ -62,6 +62,7 @@
           nilIsZero: true
         type: Gauge
     - name: info
+      help: Information about a machinepool.
       each:
         type: Info
         info:

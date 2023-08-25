@@ -229,7 +229,7 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 // +k8s:conversion-gen=false
 
 // MachinePool is the Schema for the machinepools API.
-// +Metrics:namePrefix="capi_machinepool"
+// +Metrics:gvk:namePrefix="capi_machinepool"
 // +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"

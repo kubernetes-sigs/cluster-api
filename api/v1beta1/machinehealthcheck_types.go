@@ -153,7 +153,7 @@ type MachineHealthCheckStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of MachineHealthCheck"
 
 // MachineHealthCheck is the Schema for the machinehealthchecks API.
-// +Metrics:namePrefix="capi_machinehealthcheck"
+// +Metrics:gvk:namePrefix="capi_machinehealthcheck"
 // +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
 // +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
 // +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"

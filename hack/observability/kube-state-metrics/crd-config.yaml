@@ -584,13 +584,12 @@ spec:
         info:
           labelsFromPath:
             node_name:
-            - status
-            - nodeRef
-            - name
+              - name
             node_uid:
+              - uid
+          path:
             - status
             - nodeRef
-            - uid
         type: Info
     - name: status_phase
       help: The machines current phase.
@@ -926,22 +925,24 @@ spec:
         info:
           # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
           labelsFromPath:
-            name:
-            - metadata
-            - name
+            maxUnhealthy:
+            - spec
+            - maxUnhealthy
         type: Info
     - name: status_current_healthy
       help: Current number of healthy machines.
       each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - currentHealthy
         type: Gauge
     - name: status_expected_machines
-      help: Total number of pods counted by this machinehealthcheck.
+      help: Total number of machines counted by this machinehealthcheck.
       each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - expectedMachines
@@ -950,6 +951,7 @@ spec:
       help: Number of machine remediations that are currently allowed.
       each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - remediationsAllowed
@@ -1104,6 +1106,7 @@ spec:
           path:
           - status
           - fullyLabeledReplicas
+          nilIsZero: true
         type: Gauge
     - name: status_replicas_ready
       help: The number of ready replicas per machineset.
@@ -1256,6 +1259,7 @@ spec:
           nilIsZero: true
         type: Gauge
     - name: info
+      help: Information about a machinepool.
       each:
         type: Info
         info:

@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -131,12 +132,12 @@ var (
 	machineDeploymentKind  = "MachineDeployment"
 	machineHealthCheckKind = "MachineHealthCheck"
 
-	clusterOwner                = simpleOwnerRef{kind: clusterKind, apiVersion: coreGroupVersion}
-	clusterController           = simpleOwnerRef{kind: clusterKind, apiVersion: coreGroupVersion, controller: true}
-	clusterClassOwner           = simpleOwnerRef{kind: clusterClassKind, apiVersion: coreGroupVersion}
-	machineDeploymentController = simpleOwnerRef{kind: machineDeploymentKind, apiVersion: coreGroupVersion, controller: true}
-	machineSetController        = simpleOwnerRef{kind: machineSetKind, apiVersion: coreGroupVersion, controller: true}
-	machineController           = simpleOwnerRef{kind: machineKind, apiVersion: coreGroupVersion, controller: true}
+	clusterOwner                = metav1.OwnerReference{Kind: clusterKind, APIVersion: coreGroupVersion}
+	clusterController           = metav1.OwnerReference{Kind: clusterKind, APIVersion: coreGroupVersion, Controller: pointer.Bool(true)}
+	clusterClassOwner           = metav1.OwnerReference{Kind: clusterClassKind, APIVersion: coreGroupVersion}
+	machineDeploymentController = metav1.OwnerReference{Kind: machineDeploymentKind, APIVersion: coreGroupVersion, Controller: pointer.Bool(true)}
+	machineSetController        = metav1.OwnerReference{Kind: machineSetKind, APIVersion: coreGroupVersion, Controller: pointer.Bool(true)}
+	machineController           = metav1.OwnerReference{Kind: machineKind, APIVersion: coreGroupVersion, Controller: pointer.Bool(true)}
 )
 
 // CoreOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
@@ -166,7 +167,7 @@ var CoreOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error
 	},
 	machineKind: func(owners []metav1.OwnerReference) error {
 		// Machines must be owned and controlled by a MachineSet or a KubeadmControlPlane, depending on if this Machine is part of a ControlPlane or not.
-		return HasOneOfExactOwners(owners, []simpleOwnerRef{machineSetController}, []simpleOwnerRef{kubeadmControlPlaneController})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineSetController}, []metav1.OwnerReference{kubeadmControlPlaneController})
 	},
 	machineHealthCheckKind: func(owners []metav1.OwnerReference) error {
 		// MachineHealthChecks must be owned by the Cluster.
@@ -180,10 +181,10 @@ var (
 	clusterResourceSetBindingKind = "ClusterResourceSetBinding"
 	machinePoolKind               = "MachinePool"
 
-	machinePoolOwner      = simpleOwnerRef{kind: machinePoolKind, apiVersion: expv1.GroupVersion.String()}
-	machinePoolController = simpleOwnerRef{kind: machinePoolKind, apiVersion: expv1.GroupVersion.String(), controller: true}
+	machinePoolOwner      = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: expv1.GroupVersion.String()}
+	machinePoolController = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: expv1.GroupVersion.String(), Controller: pointer.Bool(true)}
 
-	clusterResourceSetOwner = simpleOwnerRef{kind: clusterResourceSetKind, apiVersion: addonsv1.GroupVersion.String()}
+	clusterResourceSetOwner = metav1.OwnerReference{Kind: clusterResourceSetKind, APIVersion: addonsv1.GroupVersion.String()}
 )
 
 // ExpOwnerReferenceAssertions maps experimental types to functions which return an error if the passed OwnerReferences
@@ -197,7 +198,7 @@ var ExpOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error
 	},
 	// ClusterResourcesSetBinding has ClusterResourceSet set as owners on creation.
 	clusterResourceSetBindingKind: func(owners []metav1.OwnerReference) error {
-		return HasOneOfExactOwners(owners, []simpleOwnerRef{clusterResourceSetOwner}, []simpleOwnerRef{clusterResourceSetOwner, clusterResourceSetOwner})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterResourceSetOwner}, []metav1.OwnerReference{clusterResourceSetOwner, clusterResourceSetOwner})
 	},
 	// MachinePool must be owned by a Cluster.
 	machinePoolKind: func(owners []metav1.OwnerReference) error {
@@ -218,7 +219,7 @@ var (
 var KubernetesReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	secretKind: func(owners []metav1.OwnerReference) error {
 		// Secrets for cluster certificates must be owned and controlled by the KubeadmControlPlane. The bootstrap secret should be owned and controlled by a KubeadmControlPlane.
-		return HasOneOfExactOwners(owners, []simpleOwnerRef{kubeadmControlPlaneController}, []simpleOwnerRef{kubeadmConfigController})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{kubeadmControlPlaneController}, []metav1.OwnerReference{kubeadmConfigController})
 	},
 	configMapKind: func(owners []metav1.OwnerReference) error {
 		// The only configMaps considered here are those owned by a ClusterResourceSet.
@@ -233,7 +234,7 @@ var (
 
 	kubeadmControlPlaneGroupVersion = controlplanev1.GroupVersion.String()
 
-	kubeadmControlPlaneController = simpleOwnerRef{kind: kubeadmControlPlaneKind, apiVersion: kubeadmControlPlaneGroupVersion, controller: true}
+	kubeadmControlPlaneController = metav1.OwnerReference{Kind: kubeadmControlPlaneKind, APIVersion: kubeadmControlPlaneGroupVersion, Controller: pointer.Bool(true)}
 )
 
 // KubeadmControlPlaneOwnerReferenceAssertions maps Kubeadm control plane types to functions which return an error if the passed
@@ -257,7 +258,7 @@ var (
 	kubeadmConfigTemplateKind = "KubeadmConfigTemplate"
 
 	kubeadmConfigGroupVersion = bootstrapv1.GroupVersion.String()
-	kubeadmConfigController   = simpleOwnerRef{kind: kubeadmConfigKind, apiVersion: kubeadmConfigGroupVersion, controller: true}
+	kubeadmConfigController   = metav1.OwnerReference{Kind: kubeadmConfigKind, APIVersion: kubeadmConfigGroupVersion, Controller: pointer.Bool(true)}
 )
 
 // KubeadmBootstrapOwnerReferenceAssertions maps KubeadmBootstrap types to functions which return an error if the passed OwnerReferences
@@ -267,11 +268,11 @@ var (
 var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmConfigKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmConfig must be owned and controlled by a Machine or MachinePool.
-		return HasOneOfExactOwners(owners, []simpleOwnerRef{machineController}, []simpleOwnerRef{machinePoolController})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machinePoolController})
 	},
 	kubeadmConfigTemplateKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmConfigTemplate must be owned by a ClusterClass.
-		return HasOneOfExactOwners(owners, []simpleOwnerRef{clusterOwner}, []simpleOwnerRef{clusterClassOwner})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
 	},
 }
 
@@ -296,7 +297,7 @@ var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReferenc
 	dockerMachineTemplateKind: func(owners []metav1.OwnerReference) error {
 		// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.
 		// DockerMachineTemplates created for specific Clusters in the Topology controller must be owned by a Cluster.
-		return HasOneOfExactOwners(owners, []simpleOwnerRef{clusterOwner}, []simpleOwnerRef{clusterClassOwner})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
 	},
 	dockerClusterKind: func(owners []metav1.OwnerReference) error {
 		// DockerCluster must be owned and controlled by a Cluster.
@@ -312,48 +313,35 @@ var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReferenc
 	},
 }
 
-// simpleOwnerRef is a simple representation of an ownerReference.
-type simpleOwnerRef struct {
-	kind       string
-	apiVersion string
-	controller bool
-}
-
-func (s simpleOwnerRef) String() string {
-	return fmt.Sprintf("%s/%s/%v", s.apiVersion, s.kind, s.controller)
-}
-
-func HasExactOwners(refList []metav1.OwnerReference, wantOwners ...simpleOwnerRef) error {
-	gotOwners := []simpleOwnerRef{}
-	if wantOwners == nil {
-		wantOwners = []simpleOwnerRef{}
+func HasExactOwners(gotOwners []metav1.OwnerReference, wantOwners ...metav1.OwnerReference) error {
+	wantComparable := []string{}
+	gotComparable := []string{}
+	for _, ref := range gotOwners {
+		gotComparable = append(gotComparable, ownerReferenceString(ref))
 	}
-	for _, ref := range refList {
-		simpleRef := simpleOwnerRef{
-			kind:       ref.Kind,
-			apiVersion: ref.APIVersion,
-		}
-		simpleRef.controller = true
-		if ref.Controller == nil || !*ref.Controller {
-			simpleRef.controller = false
-		}
-		gotOwners = append(gotOwners, simpleRef)
+	for _, ref := range wantOwners {
+		wantComparable = append(wantComparable, ownerReferenceString(ref))
 	}
-	sort.SliceStable(gotOwners, func(i int, j int) bool {
-		return gotOwners[i].String() > gotOwners[j].String()
-	})
-	sort.SliceStable(wantOwners, func(i int, j int) bool {
-		return wantOwners[i].String() > wantOwners[j].String()
-	})
-	if !reflect.DeepEqual(wantOwners, gotOwners) {
+	sort.Strings(gotComparable)
+	sort.Strings(wantComparable)
+
+	if !reflect.DeepEqual(gotComparable, wantComparable) {
 		return fmt.Errorf("wanted %v, actual %v", wantOwners, gotOwners)
 	}
 	return nil
 }
 
+func ownerReferenceString(ref metav1.OwnerReference) string {
+	controller := false
+	if ref.Controller != nil && *ref.Controller {
+		controller = true
+	}
+	return fmt.Sprintf("%s/%s/%v", ref.APIVersion, ref.Kind, controller)
+}
+
 // HasOneOfExactOwners is a convenience approach for checking owner references on objects that can have different owner references depending on the cluster.
 // In a follow-up iteration we can make improvements to check owner references according to the specific use cases vs checking generically "oneOf".
-func HasOneOfExactOwners(refList []metav1.OwnerReference, possibleOwners ...[]simpleOwnerRef) error {
+func HasOneOfExactOwners(refList []metav1.OwnerReference, possibleOwners ...[]metav1.OwnerReference) error {
 	var allErrs []error
 	for _, wantOwner := range possibleOwners {
 		err := HasExactOwners(refList, wantOwner...)

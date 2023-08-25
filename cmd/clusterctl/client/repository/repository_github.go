@@ -109,7 +109,7 @@ func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 		return versions, nil
 	}
 
-	goProxyClient, err := g.getGoproxyClient()
+	goProxyClient, err := g.getGoproxyClient(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "get versions client")
 	}
@@ -156,6 +156,27 @@ func (g *gitHubRepository) ComponentsPath() string {
 
 // GetFile returns a file for a given provider version.
 func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([]byte, error) {
+	log := logf.Log
+
+	cacheID := fmt.Sprintf("%s/%s:%s:%s", g.owner, g.repository, version, path)
+	if content, ok := cacheFiles[cacheID]; ok {
+		return content, nil
+	}
+
+	// Try to get the file using http get.
+	// NOTE: this can be disabled by setting GORPOXY to `direct` or `off` (same knobs used for skipping goproxy requests).
+	if goProxyClient, _ := g.getGoproxyClient(ctx); goProxyClient != nil {
+		files, err := g.httpGetFilesFromRelease(ctx, version, path)
+		if err != nil {
+			log.V(5).Info("error using httpGet to get file from GitHub releases, falling back to github client", "owner", g.owner, "repository", g.repository, "version", version, "path", path, "error", err)
+		} else {
+			cacheFiles[cacheID] = files
+			return files, nil
+		}
+	}
+
+	// If the http get request failed (or it is disabled) falls back on using the GITHUB api to download the file
+
 	release, err := g.getReleaseByTag(ctx, version)
 	if err != nil {
 		if errors.Is(err, errNotFound) {
@@ -172,6 +193,7 @@ func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([
 		return nil, errors.Wrapf(err, "failed to download files from GitHub release %s", version)
 	}
 
+	cacheFiles[cacheID] = files
 	return files, nil
 }
 
@@ -259,7 +281,7 @@ func (g *gitHubRepository) getClient() *github.Client {
 // getGoproxyClient returns a go proxy client.
 // It returns nil, nil if the environment variable is set to `direct` or `off`
 // to skip goproxy requests.
-func (g *gitHubRepository) getGoproxyClient() (*goproxy.Client, error) {
+func (g *gitHubRepository) getGoproxyClient(_ context.Context) (*goproxy.Client, error) {
 	if g.injectGoproxyClient != nil {
 		return g.injectGoproxyClient, nil
 	}
@@ -379,13 +401,41 @@ func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*gi
 	return release, nil
 }
 
+// httpGetFilesFromRelease gets a file from github using http get.
+func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version, fileName string) ([]byte, error) {
+	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", g.owner, g.repository, version, fileName)
+	var retryError error
+	var content []byte
+	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
+		resp, err := http.Get(downloadURL) //nolint:gosec,noctx
+		if err != nil {
+			retryError = errors.Wrap(err, "error sending request")
+			return false, nil
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			retryError = errors.Errorf("error getting file, status code: %d", resp.StatusCode)
+			return false, nil
+		}
+
+		content, err = io.ReadAll(resp.Body)
+		if err != nil {
+			retryError = errors.Wrap(err, "error reading response body")
+			return false, nil
+		}
+
+		retryError = nil
+		return true, nil
+	})
+	if retryError != nil {
+		return nil, retryError
+	}
+	return content, nil
+}
+
 // downloadFilesFromRelease download a file from release.
 func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release *github.RepositoryRelease, fileName string) ([]byte, error) {
-	cacheID := fmt.Sprintf("%s/%s:%s:%s", g.owner, g.repository, *release.TagName, fileName)
-	if content, ok := cacheFiles[cacheID]; ok {
-		return content, nil
-	}
-
 	client := g.getClient()
 	absoluteFileName := filepath.Join(g.rootPath, fileName)
 
@@ -439,7 +489,6 @@ func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release
 		return nil, retryError
 	}
 
-	cacheFiles[cacheID] = content
 	return content, nil
 }
 

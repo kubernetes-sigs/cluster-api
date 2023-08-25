@@ -26,6 +26,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 )
@@ -42,6 +43,7 @@ type Builtins struct {
 	Cluster           *ClusterBuiltins           `json:"cluster,omitempty"`
 	ControlPlane      *ControlPlaneBuiltins      `json:"controlPlane,omitempty"`
 	MachineDeployment *MachineDeploymentBuiltins `json:"machineDeployment,omitempty"`
+	MachinePool       *MachinePoolBuiltins       `json:"machinePool,omitempty"`
 }
 
 // ClusterBuiltins represents builtin cluster variables.
@@ -144,29 +146,62 @@ type MachineDeploymentBuiltins struct {
 	Replicas *int64 `json:"replicas,omitempty"`
 
 	// Bootstrap is the value of the .spec.template.spec.bootstrap field of the MachineDeployment.
-	Bootstrap *MachineDeploymentBootstrapBuiltins `json:"bootstrap,omitempty"`
+	Bootstrap *MachineBootstrapBuiltins `json:"bootstrap,omitempty"`
 
-	// InfrastructureRef is the value of the .spec.template.spec.bootstrap field of the MachineDeployment.
-	InfrastructureRef *MachineDeploymentInfrastructureRefBuiltins `json:"infrastructureRef,omitempty"`
+	// InfrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachineDeployment.
+	InfrastructureRef *MachineInfrastructureRefBuiltins `json:"infrastructureRef,omitempty"`
 }
 
-// MachineDeploymentBootstrapBuiltins is the value of the .spec.template.spec.bootstrap field
-// of the MachineDeployment.
-type MachineDeploymentBootstrapBuiltins struct {
+// MachinePoolBuiltins represents builtin MachinePool variables.
+// NOTE: These variables are only set for templates belonging to a MachinePool.
+type MachinePoolBuiltins struct {
+	// Version is the Kubernetes version of the MachinePool,
+	// to which the current template belongs to.
+	// NOTE: Please note that this version is the version we are currently reconciling towards.
+	// It can differ from the current version of the MachinePool machines while an upgrade process is
+	// being orchestrated.
+	Version string `json:"version,omitempty"`
+
+	// Class is the class name of the MachinePool,
+	// to which the current template belongs to.
+	Class string `json:"class,omitempty"`
+
+	// Name is the name of the MachinePool,
+	// to which the current template belongs to.
+	Name string `json:"name,omitempty"`
+
+	// TopologyName is the topology name of the MachinePool,
+	// to which the current template belongs to.
+	TopologyName string `json:"topologyName,omitempty"`
+
+	// Replicas is the value of the replicas field of the MachinePool,
+	// to which the current template belongs to.
+	Replicas *int64 `json:"replicas,omitempty"`
+
+	// Bootstrap is the value of the .spec.template.spec.bootstrap field of the MachinePool.
+	Bootstrap *MachineBootstrapBuiltins `json:"bootstrap,omitempty"`
+
+	// InfrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachinePool.
+	InfrastructureRef *MachineInfrastructureRefBuiltins `json:"infrastructureRef,omitempty"`
+}
+
+// MachineBootstrapBuiltins is the value of the .spec.template.spec.bootstrap field
+// of the MachineDeployment or MachinePool.
+type MachineBootstrapBuiltins struct {
 	// ConfigRef is the value of the .spec.template.spec.bootstrap.configRef field of the MachineDeployment.
-	ConfigRef *MachineDeploymentBootstrapConfigRefBuiltins `json:"configRef,omitempty"`
+	ConfigRef *MachineBootstrapConfigRefBuiltins `json:"configRef,omitempty"`
 }
 
-// MachineDeploymentBootstrapConfigRefBuiltins is the value of the .spec.template.spec.bootstrap.configRef
-// field of the MachineDeployment.
-type MachineDeploymentBootstrapConfigRefBuiltins struct {
+// MachineBootstrapConfigRefBuiltins is the value of the .spec.template.spec.bootstrap.configRef
+// field of the MachineDeployment or MachinePool.
+type MachineBootstrapConfigRefBuiltins struct {
 	// Name of the bootstrap.configRef.
 	Name string `json:"name,omitempty"`
 }
 
-// MachineDeploymentInfrastructureRefBuiltins is the value of the .spec.template.spec.infrastructureRef field
-// of the MachineDeployment.
-type MachineDeploymentInfrastructureRefBuiltins struct {
+// MachineInfrastructureRefBuiltins is the value of the .spec.template.spec.infrastructureRef field
+// of the MachineDeployment or MachinePool.
+type MachineInfrastructureRefBuiltins struct {
 	// Name of the infrastructureRef.
 	Name string `json:"name,omitempty"`
 }
@@ -305,16 +340,69 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 	}
 
 	if mdBootstrapTemplate != nil {
-		builtin.MachineDeployment.Bootstrap = &MachineDeploymentBootstrapBuiltins{
-			ConfigRef: &MachineDeploymentBootstrapConfigRefBuiltins{
+		builtin.MachineDeployment.Bootstrap = &MachineBootstrapBuiltins{
+			ConfigRef: &MachineBootstrapConfigRefBuiltins{
 				Name: mdBootstrapTemplate.GetName(),
 			},
 		}
 	}
 
 	if mdInfrastructureMachineTemplate != nil {
-		builtin.MachineDeployment.InfrastructureRef = &MachineDeploymentInfrastructureRefBuiltins{
+		builtin.MachineDeployment.InfrastructureRef = &MachineInfrastructureRefBuiltins{
 			Name: mdInfrastructureMachineTemplate.GetName(),
+		}
+	}
+
+	variable, err := toVariable(BuiltinsName, builtin)
+	if err != nil {
+		return nil, err
+	}
+	variables = append(variables, *variable)
+
+	return variables, nil
+}
+
+// MachinePool returns variables that apply to templates belonging to a MachinePool.
+func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *expv1.MachinePool, mpBootstrapObject, mpInfrastructureMachinePool *unstructured.Unstructured, definitionFrom string, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
+	variables := []runtimehooksv1.Variable{}
+
+	// Add variables overrides for the MachinePool.
+	if mpTopology.Variables != nil {
+		for _, variable := range mpTopology.Variables.Overrides {
+			// Add the variable if it is defined for the current patch or it is defined for all the patches.
+			if variable.DefinitionFrom == emptyDefinitionFrom || variable.DefinitionFrom == definitionFrom {
+				// Add the variable if it has a definition from this patch in the ClusterClass.
+				if _, ok := patchVariableDefinitions[variable.Name]; ok {
+					variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
+				}
+			}
+		}
+	}
+
+	// Construct builtin variable.
+	builtin := Builtins{
+		MachinePool: &MachinePoolBuiltins{
+			Version:      *mp.Spec.Template.Spec.Version,
+			Class:        mpTopology.Class,
+			Name:         mp.Name,
+			TopologyName: mpTopology.Name,
+		},
+	}
+	if mp.Spec.Replicas != nil {
+		builtin.MachinePool.Replicas = pointer.Int64(int64(*mp.Spec.Replicas))
+	}
+
+	if mpBootstrapObject != nil {
+		builtin.MachinePool.Bootstrap = &MachineBootstrapBuiltins{
+			ConfigRef: &MachineBootstrapConfigRefBuiltins{
+				Name: mpBootstrapObject.GetName(),
+			},
+		}
+	}
+
+	if mpInfrastructureMachinePool != nil {
+		builtin.MachinePool.InfrastructureRef = &MachineInfrastructureRefBuiltins{
+			Name: mpInfrastructureMachinePool.GetName(),
 		}
 	}
 

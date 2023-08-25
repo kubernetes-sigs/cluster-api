@@ -191,6 +191,18 @@ rules:
   - cluster.x-k8s.io
   resources:
   - machinepools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machinepools
   - machinepools/finalizers
   - machinepools/status
   verbs:

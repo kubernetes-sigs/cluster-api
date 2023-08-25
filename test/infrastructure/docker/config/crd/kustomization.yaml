@@ -14,6 +14,7 @@ resources:
   - bases/infrastructure.cluster.x-k8s.io_dockermachinetemplates.yaml
   - bases/infrastructure.cluster.x-k8s.io_dockermachinepools.yaml
   - bases/infrastructure.cluster.x-k8s.io_dockerclustertemplates.yaml
+  - bases/infrastructure.cluster.x-k8s.io_dockermachinepooltemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

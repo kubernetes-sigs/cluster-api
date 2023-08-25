@@ -50,9 +50,11 @@ func New(cluster *clusterv1.Cluster) *Scope {
 
 	// Determine the maximum upgrade concurrency from the annotation on the cluster.
 	maxMDUpgradeConcurrency := 1
+	maxMPUpgradeConcurrency := 1
 	if concurrency, ok := cluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
 		// The error can be ignored because the webhook ensures that the value is a positive integer.
 		maxMDUpgradeConcurrency, _ = strconv.Atoi(concurrency)
+		maxMPUpgradeConcurrency, _ = strconv.Atoi(concurrency)
 	}
 	return &Scope{
 		Blueprint: &ClusterBlueprint{},
@@ -61,6 +63,7 @@ func New(cluster *clusterv1.Cluster) *Scope {
 		},
 		UpgradeTracker: NewUpgradeTracker(
 			MaxMDUpgradeConcurrency(maxMDUpgradeConcurrency),
+			MaxMPUpgradeConcurrency(maxMPUpgradeConcurrency),
 		),
 		HookResponseTracker: NewHookResponseTracker(),
 	}

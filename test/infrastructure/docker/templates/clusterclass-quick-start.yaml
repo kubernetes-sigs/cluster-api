@@ -32,6 +32,19 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
+    machinePools:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: quick-start-default-worker-machinepooltemplate
   variables:
   - name: imageRepository
     required: true
@@ -141,6 +154,19 @@ spec:
             kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachinePoolTemplate
+        matchResources:
+          machinePoolClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/template/customImage"
+        valueFrom:
+          template: |
+            kindest/node:{{ .builtin.machinePool.version | replace "+" "_" }}
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: DockerMachineTemplate
         matchResources:
           controlPlane: true
@@ -245,6 +271,15 @@ spec:
       extraMounts:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: quick-start-default-worker-machinepooltemplate
+spec:
+  template:
+    spec:
+      template: {}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

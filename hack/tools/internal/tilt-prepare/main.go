@@ -806,7 +806,7 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 				debugArgs := make([]string, 0, len(args))
 				for _, a := range args {
 					if a == "--leader-elect" || a == "--leader-elect=true" {
-						continue
+						a = "--leader-elect=false"
 					}
 					debugArgs = append(debugArgs, a)
 				}

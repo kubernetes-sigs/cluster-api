@@ -23,7 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-var priorityMap = map[string]int{
+// orderMapping maps resource kinds to their creation order,
+// the lower the number, the earlier the resource should be created.
+var orderMapping = map[string]int{
 	// Namespaces go first because all namespaced resources depend on them.
 	"Namespace": -100,
 	// Custom Resource Definitions come before Custom Resource so that they can be
@@ -53,8 +55,8 @@ var priorityMap = map[string]int{
 // priorityLess returns true if o1 should be created before o2.
 // To be used in sort.{Slice,SliceStable} to sort manifests in place.
 func priorityLess(o1, o2 unstructured.Unstructured) bool {
-	p1 := priorityMap[o1.GetKind()]
-	p2 := priorityMap[o2.GetKind()]
+	p1 := orderMapping[o1.GetKind()]
+	p2 := orderMapping[o2.GetKind()]
 	return p1 < p2
 }
 

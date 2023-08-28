@@ -61,3 +61,45 @@ func Test_trimTitle(t *testing.T) {
 		})
 	}
 }
+
+func Test_trimAreaFromTitle(t *testing.T) {
+	tests := []struct {
+		name  string
+		title string
+		area  string
+		want  string
+	}{
+		{
+			name:  "PR title with area",
+			title: "e2e: improve logging for a detected rollout",
+			area:  "e2e",
+			want:  "improve logging for a detected rollout",
+		},
+		{
+			name:  "PR title without area",
+			title: "improve logging for a detected rollout",
+			area:  "e2e",
+			want:  "improve logging for a detected rollout",
+		},
+		{
+			name:  "PR title without area being prefixed",
+			title: "test/e2e: improve logging for a detected rollout",
+			area:  "e2e",
+			want:  "test/e2e: improve logging for a detected rollout",
+		},
+		{
+			name:  "PR title without space between area and title",
+			title: "e2e:improve logging for a detected rollout",
+			area:  "e2e",
+			want:  "improve logging for a detected rollout",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := trimAreaFromTitle(tt.title, tt.area); got != tt.want {
+				t.Errorf("trimAreaFromTitle() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

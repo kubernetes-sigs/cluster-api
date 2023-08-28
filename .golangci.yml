@@ -59,6 +59,8 @@ linters:
 linters-settings:
   gci:
     local-prefixes: "sigs.k8s.io/cluster-api"
+  ginkgolinter:
+    forbid-focus-container: true
   godot:
     #   declarations - for top level declaration comments (default);
     #   toplevel     - for top level comments;

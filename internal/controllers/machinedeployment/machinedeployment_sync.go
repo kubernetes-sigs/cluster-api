@@ -240,9 +240,9 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 		// Append a random string at the end of template hash. This is required to distinguish MachineSets that
 		// could be created with the same spec as a result of rolloutAfter. If not, computeDesiredMachineSet
 		// will end up updating the existing MachineSet instead of creating a new one.
-		uniqueIdentifierLabelValue = fmt.Sprintf("%d-%s", templateHash, apirand.String(5))
-
-		name = computeNewMachineSetName(deployment.Name+"-", apirand.SafeEncodeString(uniqueIdentifierLabelValue))
+		var randomSuffix string
+		name, randomSuffix = computeNewMachineSetName(deployment.Name + "-")
+		uniqueIdentifierLabelValue = fmt.Sprintf("%d-%s", templateHash, randomSuffix)
 
 		// Add foregroundDeletion finalizer to MachineSet if the MachineDeployment has it.
 		if sets.New[string](deployment.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
@@ -366,11 +366,12 @@ const (
 // the upstream SimpleNameGenerator.
 // Note: We had to extract the logic as we want to use the MachineSet name suffix as
 // unique identifier for the MachineSet.
-func computeNewMachineSetName(base, suffix string) string {
+func computeNewMachineSetName(base string) (string, string) {
 	if len(base) > maxGeneratedNameLength {
 		base = base[:maxGeneratedNameLength]
 	}
-	return fmt.Sprintf("%s%s", base, suffix)
+	r := apirand.String(randomLength)
+	return fmt.Sprintf("%s%s", base, r), r
 }
 
 // scale scales proportionally in order to mitigate risk. Otherwise, scaling up can increase the size

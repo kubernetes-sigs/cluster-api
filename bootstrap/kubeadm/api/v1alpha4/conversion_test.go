@@ -48,7 +48,6 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		dnsFuzzer,
 		clusterConfigurationFuzzer,
 		// This custom functions are needed when ConvertTo/ConvertFrom functions
 		// uses the json package to unmarshal the bootstrap token string.
@@ -64,13 +63,6 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		kubeadmBootstrapTokenStringFuzzerV1Beta1,
 		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
 	}
-}
-
-func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
-	obj.Type = ""
 }
 
 func clusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration, c fuzz.Continue) {

@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -566,12 +565,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 						Client:    managementClusterProxy.GetClient(),
 						Namespace: testNamespace.Name,
 					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
-				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1alpha3.GroupVersion) == nil:
-					Byf("Deleting all %s clusters in namespace %s in management cluster %s", clusterv1alpha3.GroupVersion, testNamespace.Name, managementClusterName)
-					deleteAllClustersAndWaitV1alpha3(ctx, framework.DeleteAllClustersAndWaitInput{
-						Client:    managementClusterProxy.GetClient(),
-						Namespace: testNamespace.Name,
-					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 				default:
 					log.Logf("Management Cluster does not appear to support CAPI resources.")
 				}
@@ -625,76 +618,6 @@ func downloadToTmpFile(ctx context.Context, url string) string {
 	Expect(err).ToNot(HaveOccurred(), "failed to write temporary file")
 
 	return tmpFile.Name()
-}
-
-// deleteAllClustersAndWaitV1alpha3 deletes all cluster resources in the given namespace and waits for them to be gone using the older API.
-func deleteAllClustersAndWaitV1alpha3(ctx context.Context, input framework.DeleteAllClustersAndWaitInput, intervals ...interface{}) {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for deleteAllClustersAndWaitOldAPI")
-	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling deleteAllClustersAndWaitOldAPI")
-	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling deleteAllClustersAndWaitOldAPI")
-
-	clusters := getAllClustersByNamespaceV1alpha3(ctx, framework.GetAllClustersByNamespaceInput{
-		Lister:    input.Client,
-		Namespace: input.Namespace,
-	})
-
-	for _, c := range clusters {
-		deleteClusterV1alpha3(ctx, deleteClusterV1alpha3Input{
-			Deleter: input.Client,
-			Cluster: c,
-		})
-	}
-
-	for _, c := range clusters {
-		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
-		waitForClusterDeletedV1alpha3(ctx, waitForClusterDeletedV1alpha3Input{
-			Getter:  input.Client,
-			Cluster: c,
-		}, intervals...)
-	}
-}
-
-// getAllClustersByNamespaceV1alpha3 returns the list of Cluster objects in a namespace using the older API.
-func getAllClustersByNamespaceV1alpha3(ctx context.Context, input framework.GetAllClustersByNamespaceInput) []*clusterv1alpha3.Cluster {
-	clusterList := &clusterv1alpha3.ClusterList{}
-	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
-
-	clusters := make([]*clusterv1alpha3.Cluster, len(clusterList.Items))
-	for i := range clusterList.Items {
-		clusters[i] = &clusterList.Items[i]
-	}
-	return clusters
-}
-
-// deleteClusterV1alpha3Input is the input for deleteClusterV1alpha3.
-type deleteClusterV1alpha3Input struct {
-	Deleter framework.Deleter
-	Cluster *clusterv1alpha3.Cluster
-}
-
-// deleteClusterV1alpha3 deletes the cluster and waits for everything the cluster owned to actually be gone using the older API.
-func deleteClusterV1alpha3(ctx context.Context, input deleteClusterV1alpha3Input) {
-	Byf("Deleting cluster %s", input.Cluster.GetName())
-	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
-}
-
-// waitForClusterDeletedV1alpha3Input is the input for waitForClusterDeletedV1alpha3.
-type waitForClusterDeletedV1alpha3Input struct {
-	Getter  framework.Getter
-	Cluster *clusterv1alpha3.Cluster
-}
-
-// waitForClusterDeletedV1alpha3 waits until the cluster object has been deleted using the older API.
-func waitForClusterDeletedV1alpha3(ctx context.Context, input waitForClusterDeletedV1alpha3Input, intervals ...interface{}) {
-	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
-	Eventually(func() bool {
-		cluster := &clusterv1alpha3.Cluster{}
-		key := client.ObjectKey{
-			Namespace: input.Cluster.GetNamespace(),
-			Name:      input.Cluster.GetName(),
-		}
-		return apierrors.IsNotFound(input.Getter.Get(ctx, key, cluster))
-	}, intervals...).Should(BeTrue())
 }
 
 // deleteAllClustersAndWaitV1alpha4 deletes all cluster resources in the given namespace and waits for them to be gone using the older API.

@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
@@ -284,26 +284,6 @@ func Test_CheckCAPIContract(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Pass when Cluster API with v1alpha3 contract is installed, but this is explicitly tolerated",
-			fields: fields{
-				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
-					ObjectMeta: metav1.ObjectMeta{Name: "clusters.cluster.x-k8s.io"},
-					Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-						Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-							{
-								Name:    clusterv1alpha3.GroupVersion.Version,
-								Storage: true,
-							},
-						},
-					},
-				}),
-			},
-			args: args{
-				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
-			},
-			wantErr: false,
-		},
-		{
 			name: "Pass when Cluster API with previous contract is installed, but this is explicitly tolerated",
 			fields: fields{
 				proxy: test.NewFakeProxy().WithObjs(&apiextensionsv1.CustomResourceDefinition{
@@ -322,7 +302,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 				}),
 			},
 			args: args{
-				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
+				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1alpha4.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
 			},
 			wantErr: false,
 		},

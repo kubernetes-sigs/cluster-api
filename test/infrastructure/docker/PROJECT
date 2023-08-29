@@ -3,18 +3,6 @@ domain: cluster.x-k8s.io
 repo: sigs.k8s.io/cluster-api/test/infrastructure/docker
 resources:
 - group: infrastructure
-  version: v1alpha3
-  kind: DockerCluster
-- group: infrastructure
-  version: v1alpha3
-  kind: DockerMachine
-- group: infrastructure
-  version: v1alpha3
-  kind: DockerMachineTemplate
-- group: infrastructure
-  version: v1alpha3
-  kind: DockerMachinePool
-- group: infrastructure
   version: v1alpha4
   kind: DockerCluster
 - group: infrastructure

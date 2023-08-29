@@ -84,6 +84,7 @@ func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, _ fuz
 func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
+	// TODO:(killianmuldoon) Assess whether we can remove this with the removal of v1alpha3.
 	// DNS.Type does not exist in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
 }

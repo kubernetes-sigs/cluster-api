@@ -1334,3 +1334,71 @@ func newUnstartedTLSServer(handler http.Handler) *httptest.Server {
 	}
 	return srv
 }
+
+func TestNameForHandler(t *testing.T) {
+	tests := []struct {
+		name            string
+		handler         runtimehooksv1.ExtensionHandler
+		extensionConfig *runtimev1.ExtensionConfig
+		want            string
+		wantErr         bool
+	}{
+		{
+			name:            "return well formatted name",
+			handler:         runtimehooksv1.ExtensionHandler{Name: "discover-variables"},
+			extensionConfig: &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: "runtime1"}},
+			want:            "discover-variables.runtime1",
+		},
+		{
+			name:            "return well formatted name",
+			handler:         runtimehooksv1.ExtensionHandler{Name: "discover-variables"},
+			extensionConfig: nil,
+			wantErr:         true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NameForHandler(tt.handler, tt.extensionConfig)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NameForHandler() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("NameForHandler() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtensionNameFromHandlerName(t *testing.T) {
+	tests := []struct {
+		name                  string
+		registeredHandlerName string
+		want                  string
+		wantErr               bool
+	}{
+		{
+			name:                  "Get name from correctly formatted handler name",
+			registeredHandlerName: "discover-variables.runtime1",
+			want:                  "runtime1",
+		},
+		{
+			name: "error from incorrectly formatted handler name",
+			// Two periods make this name badly formed.
+			registeredHandlerName: "discover-variables.runtime.1",
+			wantErr:               true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ExtensionNameFromHandlerName(tt.registeredHandlerName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ExtensionNameFromHandlerName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ExtensionNameFromHandlerName() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

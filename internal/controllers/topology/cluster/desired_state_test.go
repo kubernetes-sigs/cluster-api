@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -677,6 +678,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			topologyVersion             string
 			controlPlaneObj             *unstructured.Unstructured
 			upgradingMachineDeployments []string
+			upgradingMachinePools       []string
 			expectedVersion             string
 			wantErr                     bool
 		}{
@@ -743,7 +745,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				expectedVersion: "v1.2.2",
 			},
 			{
-				name:            "should return controlplane.spec.version if control plane is not upgrading and not scaling and one of the machine deployments is upgrading",
+				name:            "should return controlplane.spec.version if control plane is not upgrading and not scaling and one of the MachineDeployments and one of the MachinePools is upgrading",
 				topologyVersion: "v1.2.3",
 				controlPlaneObj: builder.ControlPlane("test1", "cp1").
 					WithSpecFields(map[string]interface{}{
@@ -759,10 +761,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					}).
 					Build(),
 				upgradingMachineDeployments: []string{"md1"},
+				upgradingMachinePools:       []string{"mp1"},
 				expectedVersion:             "v1.2.2",
 			},
 			{
-				name:            "should return cluster.spec.topology.version if control plane is not upgrading and not scaling and none of the machine deployments are upgrading - hook returns non blocking response",
+				name:            "should return cluster.spec.topology.version if control plane is not upgrading and not scaling and none of the MachineDeployments and MachinePools are upgrading - hook returns non blocking response",
 				hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
 				topologyVersion: "v1.2.3",
 				controlPlaneObj: builder.ControlPlane("test1", "cp1").
@@ -779,6 +782,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					}).
 					Build(),
 				upgradingMachineDeployments: []string{},
+				upgradingMachinePools:       []string{},
 				expectedVersion:             "v1.2.3",
 			},
 			{
@@ -846,6 +850,9 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				}
 				if len(tt.upgradingMachineDeployments) > 0 {
 					s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
+				}
+				if len(tt.upgradingMachinePools) > 0 {
+					s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
 				}
 
 				runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
@@ -1508,7 +1515,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: pointer.String("v1.21.2"),
+						Version: pointer.String(version),
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToRef(workerBootstrapTemplate),
 						},
@@ -1718,6 +1725,365 @@ func TestComputeMachineDeployment(t *testing.T) {
 	})
 }
 
+func TestComputeMachinePool(t *testing.T) {
+	workerInfrastructureMachinePool := builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "linux-worker-inframachinepool").
+		Build()
+	workerInfrastructureMachinePoolTemplate := builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "linux-worker-inframachinepooltemplate").
+		Build()
+	workerBootstrapConfig := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstrap").
+		Build()
+	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstraptemplate").
+		Build()
+	labels := map[string]string{"fizzLabel": "buzz", "fooLabel": "bar"}
+	annotations := map[string]string{"fizzAnnotation": "buzz", "fooAnnotation": "bar"}
+
+	clusterClassDuration := metav1.Duration{Duration: 20 * time.Second}
+	clusterClassFailureDomains := []string{"A", "B"}
+	var clusterClassMinReadySeconds int32 = 20
+	mp1 := builder.MachinePoolClass("linux-worker").
+		WithLabels(labels).
+		WithAnnotations(annotations).
+		WithInfrastructureTemplate(workerInfrastructureMachinePoolTemplate).
+		WithBootstrapTemplate(workerBootstrapTemplate).
+		WithFailureDomains("A", "B").
+		WithNodeDrainTimeout(&clusterClassDuration).
+		WithNodeVolumeDetachTimeout(&clusterClassDuration).
+		WithNodeDeletionTimeout(&clusterClassDuration).
+		WithMinReadySeconds(&clusterClassMinReadySeconds).
+		Build()
+	mcps := []clusterv1.MachinePoolClass{*mp1}
+	fakeClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+		WithWorkerMachinePoolClasses(mcps...).
+		Build()
+
+	version := "v1.21.3"
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster1",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.ClusterSpec{
+			Topology: &clusterv1.Topology{
+				Version: version,
+			},
+		},
+	}
+
+	blueprint := &scope.ClusterBlueprint{
+		Topology:     cluster.Spec.Topology,
+		ClusterClass: fakeClass,
+		MachinePools: map[string]*scope.MachinePoolBlueprint{
+			"linux-worker": {
+				Metadata: clusterv1.ObjectMeta{
+					Labels:      labels,
+					Annotations: annotations,
+				},
+				BootstrapTemplate:                 workerBootstrapTemplate,
+				InfrastructureMachinePoolTemplate: workerInfrastructureMachinePoolTemplate,
+			},
+		},
+	}
+
+	replicas := int32(5)
+	topologyFailureDomains := []string{"A", "B"}
+	topologyDuration := metav1.Duration{Duration: 10 * time.Second}
+	var topologyMinReadySeconds int32 = 10
+	mpTopology := clusterv1.MachinePoolTopology{
+		Metadata: clusterv1.ObjectMeta{
+			Labels: map[string]string{
+				// Should overwrite the label from the MachinePool class.
+				"fooLabel": "baz",
+			},
+			Annotations: map[string]string{
+				// Should overwrite the annotation from the MachinePool class.
+				"fooAnnotation": "baz",
+				// These annotations should not be propagated to the MachinePool.
+				clusterv1.ClusterTopologyDeferUpgradeAnnotation:        "",
+				clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
+			},
+		},
+		Class:                   "linux-worker",
+		Name:                    "big-pool-of-machines",
+		Replicas:                &replicas,
+		FailureDomains:          topologyFailureDomains,
+		NodeDrainTimeout:        &topologyDuration,
+		NodeVolumeDetachTimeout: &topologyDuration,
+		NodeDeletionTimeout:     &topologyDuration,
+		MinReadySeconds:         &topologyMinReadySeconds,
+	}
+
+	t.Run("Generates the machine pool and the referenced templates", func(t *testing.T) {
+		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		actual, err := computeMachinePool(ctx, scope, mpTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(actual.BootstrapObject.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachinePoolNameLabel, "big-pool-of-machines"))
+
+		// Ensure Cluster ownership is added to generated BootstrapObject.
+		g.Expect(actual.BootstrapObject.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(actual.BootstrapObject.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
+		g.Expect(actual.BootstrapObject.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
+
+		g.Expect(actual.InfrastructureMachinePoolObject.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachinePoolNameLabel, "big-pool-of-machines"))
+
+		// Ensure Cluster ownership is added to generated InfrastructureMachinePool.
+		g.Expect(actual.InfrastructureMachinePoolObject.GetOwnerReferences()).To(HaveLen(1))
+		g.Expect(actual.InfrastructureMachinePoolObject.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
+		g.Expect(actual.InfrastructureMachinePoolObject.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
+
+		actualMp := actual.Object
+		g.Expect(*actualMp.Spec.Replicas).To(Equal(replicas))
+		g.Expect(*actualMp.Spec.MinReadySeconds).To(Equal(topologyMinReadySeconds))
+		g.Expect(actualMp.Spec.FailureDomains).To(Equal(topologyFailureDomains))
+		g.Expect(*actualMp.Spec.Template.Spec.NodeDrainTimeout).To(Equal(topologyDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(topologyDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(topologyDuration))
+		g.Expect(actualMp.Spec.ClusterName).To(Equal("cluster1"))
+		g.Expect(actualMp.Name).To(ContainSubstring("cluster1"))
+		g.Expect(actualMp.Name).To(ContainSubstring("big-pool-of-machines"))
+
+		expectedAnnotations := util.MergeMap(mpTopology.Metadata.Annotations, mp1.Template.Metadata.Annotations)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
+		g.Expect(actualMp.Annotations).To(Equal(expectedAnnotations))
+		g.Expect(actualMp.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
+
+		g.Expect(actualMp.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                    cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:           "",
+			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
+		})))
+		g.Expect(actualMp.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                    cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:           "",
+			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
+		})))
+
+		g.Expect(actualMp.Spec.Template.Spec.InfrastructureRef.Name).ToNot(Equal("linux-worker-inframachinetemplate"))
+		g.Expect(actualMp.Spec.Template.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
+	})
+	t.Run("Generates the machine pool and the referenced templates using ClusterClass defaults", func(t *testing.T) {
+		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		mpTopology := clusterv1.MachinePoolTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
+		}
+
+		actual, err := computeMachinePool(ctx, scope, mpTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// checking only values from CC defaults
+		actualMp := actual.Object
+		g.Expect(*actualMp.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
+		g.Expect(actualMp.Spec.FailureDomains).To(Equal(clusterClassFailureDomains))
+		g.Expect(*actualMp.Spec.Template.Spec.NodeDrainTimeout).To(Equal(clusterClassDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(clusterClassDuration))
+		g.Expect(*actualMp.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(clusterClassDuration))
+	})
+
+	t.Run("If there is already a machine pool, it preserves the object name and the reference names", func(t *testing.T) {
+		g := NewWithT(t)
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
+
+		currentReplicas := int32(3)
+		currentMp := &expv1.MachinePool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "existing-pool-1",
+			},
+			Spec: expv1.MachinePoolSpec{
+				Replicas: &currentReplicas,
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						Version: pointer.String(version),
+						Bootstrap: clusterv1.Bootstrap{
+							ConfigRef: contract.ObjToRef(workerBootstrapConfig),
+						},
+						InfrastructureRef: *contract.ObjToRef(workerInfrastructureMachinePool),
+					},
+				},
+			},
+		}
+		s.Current.MachinePools = map[string]*scope.MachinePoolState{
+			"big-pool-of-machines": {
+				Object:                          currentMp,
+				BootstrapObject:                 workerBootstrapConfig,
+				InfrastructureMachinePoolObject: workerInfrastructureMachinePool,
+			},
+		}
+
+		actual, err := computeMachinePool(ctx, s, mpTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		actualMp := actual.Object
+
+		g.Expect(*actualMp.Spec.Replicas).NotTo(Equal(currentReplicas))
+		g.Expect(actualMp.Spec.FailureDomains).To(Equal(topologyFailureDomains))
+		g.Expect(actualMp.Name).To(Equal("existing-pool-1"))
+
+		expectedAnnotations := util.MergeMap(mpTopology.Metadata.Annotations, mp1.Template.Metadata.Annotations)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
+		g.Expect(actualMp.Annotations).To(Equal(expectedAnnotations))
+		g.Expect(actualMp.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
+
+		g.Expect(actualMp.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                    cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:           "",
+			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
+		})))
+		g.Expect(actualMp.Spec.Template.ObjectMeta.Labels).To(BeComparableTo(util.MergeMap(mpTopology.Metadata.Labels, mp1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                    cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:           "",
+			clusterv1.ClusterTopologyMachinePoolNameLabel: "big-pool-of-machines",
+		})))
+
+		g.Expect(actualMp.Spec.Template.Spec.InfrastructureRef.Name).To(Equal("linux-worker-inframachinepool"))
+		g.Expect(actualMp.Spec.Template.Spec.Bootstrap.ConfigRef.Name).To(Equal("linux-worker-bootstrap"))
+	})
+
+	t.Run("If a machine pool references a topology class that does not exist, machine pool generation fails", func(t *testing.T) {
+		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		mpTopology = clusterv1.MachinePoolTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class: "windows-worker",
+			Name:  "big-pool-of-machines",
+		}
+
+		_, err := computeMachinePool(ctx, scope, mpTopology)
+		g.Expect(err).To(HaveOccurred())
+	})
+
+	t.Run("Should choose the correct version for machine pool", func(t *testing.T) {
+		controlPlaneStable123 := builder.ControlPlane("test1", "cp1").
+			WithSpecFields(map[string]interface{}{
+				"spec.version":  "v1.2.3",
+				"spec.replicas": int64(2),
+			}).
+			WithStatusFields(map[string]interface{}{
+				"status.version":         "v1.2.3",
+				"status.replicas":        int64(2),
+				"status.updatedReplicas": int64(2),
+				"status.readyReplicas":   int64(2),
+			}).
+			Build()
+
+		// Note: in all the following tests we are setting it up so that the control plane is already
+		// stable at the topology version.
+		// A more extensive list of scenarios is tested in TestComputeMachinePoolVersion.
+		tests := []struct {
+			name                  string
+			upgradingMachinePools []string
+			currentMPVersion      *string
+			upgradeConcurrency    string
+			topologyVersion       string
+			expectedVersion       string
+		}{
+			{
+				name:                  "use cluster.spec.topology.version if creating a new machine pool",
+				upgradingMachinePools: []string{},
+				upgradeConcurrency:    "1",
+				currentMPVersion:      nil,
+				topologyVersion:       "v1.2.3",
+				expectedVersion:       "v1.2.3",
+			},
+			{
+				name:                  "use cluster.spec.topology.version if creating a new machine pool while another machine pool is upgrading",
+				upgradingMachinePools: []string{"upgrading-mp1"},
+				upgradeConcurrency:    "1",
+				currentMPVersion:      nil,
+				topologyVersion:       "v1.2.3",
+				expectedVersion:       "v1.2.3",
+			},
+			{
+				name:                  "use machine pool's spec.template.spec.version if one of the machine pools is upgrading, concurrency limit reached",
+				upgradingMachinePools: []string{"upgrading-mp1"},
+				upgradeConcurrency:    "1",
+				currentMPVersion:      pointer.String("v1.2.2"),
+				topologyVersion:       "v1.2.3",
+				expectedVersion:       "v1.2.2",
+			},
+			{
+				name:                  "use cluster.spec.topology.version if one of the machine pools is upgrading, concurrency limit not reached",
+				upgradingMachinePools: []string{"upgrading-mp1"},
+				upgradeConcurrency:    "2",
+				currentMPVersion:      pointer.String("v1.2.2"),
+				topologyVersion:       "v1.2.3",
+				expectedVersion:       "v1.2.3",
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+
+				testCluster := cluster.DeepCopy()
+				if testCluster.Annotations == nil {
+					testCluster.Annotations = map[string]string{}
+				}
+				testCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation] = tt.upgradeConcurrency
+
+				s := scope.New(testCluster)
+				s.Blueprint = blueprint
+				s.Blueprint.Topology.Version = tt.topologyVersion
+				s.Blueprint.Topology.ControlPlane = clusterv1.ControlPlaneTopology{
+					Replicas: pointer.Int32(2),
+				}
+				s.Blueprint.Topology.Workers = &clusterv1.WorkersTopology{}
+
+				mpsState := scope.MachinePoolsStateMap{}
+				if tt.currentMPVersion != nil {
+					// testing a case with an existing machine pool
+					// add the stable machine pool to the current machine pools state
+					mp := builder.MachinePool("test-namespace", "big-pool-of-machines").
+						WithReplicas(2).
+						WithVersion(*tt.currentMPVersion).
+						WithStatus(expv1.MachinePoolStatus{
+							ObservedGeneration: 2,
+							Replicas:           2,
+							ReadyReplicas:      2,
+							AvailableReplicas:  2,
+						}).
+						Build()
+					mpsState = duplicateMachinePoolsState(mpsState)
+					mpsState["big-pool-of-machines"] = &scope.MachinePoolState{
+						Object: mp,
+					}
+				}
+				s.Current.MachinePools = mpsState
+				s.Current.ControlPlane = &scope.ControlPlaneState{
+					Object: controlPlaneStable123,
+				}
+
+				mpTopology := clusterv1.MachinePoolTopology{
+					Class:    "linux-worker",
+					Name:     "big-pool-of-machines",
+					Replicas: pointer.Int32(2),
+				}
+				s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
+				obj, err := computeMachinePool(ctx, s, mpTopology)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
+			})
+		}
+	})
+}
+
 func TestComputeMachineDeploymentVersion(t *testing.T) {
 	controlPlaneObj := builder.ControlPlane("test1", "cp1").
 		Build()
@@ -1896,6 +2262,184 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 	}
 }
 
+func TestComputeMachinePoolVersion(t *testing.T) {
+	controlPlaneObj := builder.ControlPlane("test1", "cp1").
+		Build()
+
+	mpName := "mp-1"
+	currentMachinePoolState := &scope.MachinePoolState{Object: builder.MachinePool("test1", mpName).WithVersion("v1.2.2").Build()}
+
+	tests := []struct {
+		name                                 string
+		machinePoolTopology                  clusterv1.MachinePoolTopology
+		currentMachinePoolState              *scope.MachinePoolState
+		upgradingMachinePools                []string
+		upgradeConcurrency                   int
+		controlPlaneStartingUpgrade          bool
+		controlPlaneUpgrading                bool
+		controlPlaneScaling                  bool
+		controlPlaneProvisioning             bool
+		afterControlPlaneUpgradeHookBlocking bool
+		topologyVersion                      string
+		expectedVersion                      string
+		expectPendingCreate                  bool
+		expectPendingUpgrade                 bool
+	}{
+		{
+			name:                    "should return cluster.spec.topology.version if creating a new MachinePool and if control plane is stable - not marked as pending create",
+			currentMachinePoolState: nil,
+			machinePoolTopology: clusterv1.MachinePoolTopology{
+				Name: "mp-topology-1",
+			},
+			topologyVersion:     "v1.2.3",
+			expectedVersion:     "v1.2.3",
+			expectPendingCreate: false,
+		},
+		{
+			name:                "should return cluster.spec.topology.version if creating a new MachinePool and if control plane is not stable - marked as pending create",
+			controlPlaneScaling: true,
+			machinePoolTopology: clusterv1.MachinePoolTopology{
+				Name: "mp-topology-1",
+			},
+			topologyVersion:     "v1.2.3",
+			expectedVersion:     "v1.2.3",
+			expectPendingCreate: true,
+		},
+		{
+			name: "should return MachinePool's spec.template.spec.version if upgrade is deferred",
+			machinePoolTopology: clusterv1.MachinePoolTopology{
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyDeferUpgradeAnnotation: "",
+					},
+				},
+			},
+			currentMachinePoolState: currentMachinePoolState,
+			upgradingMachinePools:   []string{},
+			topologyVersion:         "v1.2.3",
+			expectedVersion:         "v1.2.2",
+			expectPendingUpgrade:    true,
+		},
+		{
+			// Control plane is considered upgrading if the control plane's spec.version and status.version is not equal.
+			name:                    "should return MachinePool's spec.template.spec.version if control plane is upgrading",
+			currentMachinePoolState: currentMachinePoolState,
+			upgradingMachinePools:   []string{},
+			controlPlaneUpgrading:   true,
+			topologyVersion:         "v1.2.3",
+			expectedVersion:         "v1.2.2",
+			expectPendingUpgrade:    true,
+		},
+		{
+			// Control plane is considered ready to upgrade if spec.version of current and desired control planes are not equal.
+			name:                        "should return MachinePool's spec.template.spec.version if control plane is starting upgrade",
+			currentMachinePoolState:     currentMachinePoolState,
+			upgradingMachinePools:       []string{},
+			controlPlaneStartingUpgrade: true,
+			topologyVersion:             "v1.2.3",
+			expectedVersion:             "v1.2.2",
+			expectPendingUpgrade:        true,
+		},
+		{
+			// Control plane is considered scaling if its spec.replicas is not equal to any of status.replicas, status.readyReplicas or status.updatedReplicas.
+			name:                    "should return MachinePool's spec.template.spec.version if control plane is scaling",
+			currentMachinePoolState: currentMachinePoolState,
+			upgradingMachinePools:   []string{},
+			controlPlaneScaling:     true,
+			topologyVersion:         "v1.2.3",
+			expectedVersion:         "v1.2.2",
+			expectPendingUpgrade:    true,
+		},
+		{
+			name:                    "should return cluster.spec.topology.version if the control plane is not upgrading, not scaling, not ready to upgrade and none of the MachinePools are upgrading",
+			currentMachinePoolState: currentMachinePoolState,
+			upgradingMachinePools:   []string{},
+			topologyVersion:         "v1.2.3",
+			expectedVersion:         "v1.2.3",
+			expectPendingUpgrade:    false,
+		},
+		{
+			name:                                 "should return MachinePool's spec.template.spec.version if control plane is stable, other MachinePools are upgrading, concurrency limit not reached but AfterControlPlaneUpgrade hook is blocking",
+			currentMachinePoolState:              currentMachinePoolState,
+			upgradingMachinePools:                []string{"upgrading-mp1"},
+			upgradeConcurrency:                   2,
+			afterControlPlaneUpgradeHookBlocking: true,
+			topologyVersion:                      "v1.2.3",
+			expectedVersion:                      "v1.2.2",
+			expectPendingUpgrade:                 true,
+		},
+		{
+			name:                    "should return cluster.spec.topology.version if control plane is stable, other MachinePools are upgrading, concurrency limit not reached",
+			currentMachinePoolState: currentMachinePoolState,
+			upgradingMachinePools:   []string{"upgrading-mp1"},
+			upgradeConcurrency:      2,
+			topologyVersion:         "v1.2.3",
+			expectedVersion:         "v1.2.3",
+			expectPendingUpgrade:    false,
+		},
+		{
+			name:                    "should return MachinePool's spec.template.spec.version if control plane is stable, other MachinePools are upgrading, concurrency limit reached",
+			currentMachinePoolState: currentMachinePoolState,
+			upgradingMachinePools:   []string{"upgrading-mp1", "upgrading-mp2"},
+			upgradeConcurrency:      2,
+			topologyVersion:         "v1.2.3",
+			expectedVersion:         "v1.2.2",
+			expectPendingUpgrade:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			s := &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
+					Version: tt.topologyVersion,
+					ControlPlane: clusterv1.ControlPlaneTopology{
+						Replicas: pointer.Int32(2),
+					},
+					Workers: &clusterv1.WorkersTopology{},
+				}},
+				Current: &scope.ClusterState{
+					ControlPlane: &scope.ControlPlaneState{Object: controlPlaneObj},
+				},
+				UpgradeTracker:      scope.NewUpgradeTracker(scope.MaxMPUpgradeConcurrency(tt.upgradeConcurrency)),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			}
+			if tt.afterControlPlaneUpgradeHookBlocking {
+				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, &runtimehooksv1.AfterControlPlaneUpgradeResponse{
+					CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+						RetryAfterSeconds: 10,
+					},
+				})
+			}
+			s.UpgradeTracker.ControlPlane.IsStartingUpgrade = tt.controlPlaneStartingUpgrade
+			s.UpgradeTracker.ControlPlane.IsUpgrading = tt.controlPlaneUpgrading
+			s.UpgradeTracker.ControlPlane.IsScaling = tt.controlPlaneScaling
+			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
+			s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
+			version := computeMachinePoolVersion(s, tt.machinePoolTopology, tt.currentMachinePoolState)
+			g.Expect(version).To(Equal(tt.expectedVersion))
+
+			if tt.currentMachinePoolState != nil {
+				// Verify that if the upgrade is pending it is captured in the upgrade tracker.
+				if tt.expectPendingUpgrade {
+					g.Expect(s.UpgradeTracker.MachinePools.IsPendingUpgrade(mpName)).To(BeTrue(), "MachinePool should be marked as pending upgrade")
+				} else {
+					g.Expect(s.UpgradeTracker.MachinePools.IsPendingUpgrade(mpName)).To(BeFalse(), "MachinePool should not be marked as pending upgrade")
+				}
+			} else {
+				// Verify that if create the pending it is capture in the tracker.
+				if tt.expectPendingCreate {
+					g.Expect(s.UpgradeTracker.MachinePools.IsPendingCreate(tt.machinePoolTopology.Name)).To(BeTrue(), "MachinePool topology should be marked as pending create")
+				} else {
+					g.Expect(s.UpgradeTracker.MachinePools.IsPendingCreate(tt.machinePoolTopology.Name)).To(BeFalse(), "MachinePool topology should not be marked as pending create")
+				}
+			}
+		})
+	}
+}
+
 func TestIsMachineDeploymentDeferred(t *testing.T) {
 	clusterTopology := &clusterv1.Topology{
 		Workers: &clusterv1.WorkersTopology{
@@ -1975,6 +2519,89 @@ func TestIsMachineDeploymentDeferred(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(isMachineDeploymentDeferred(clusterTopology, tt.mdTopology)).To(Equal(tt.deferred))
+		})
+	}
+}
+
+func TestIsMachinePoolDeferred(t *testing.T) {
+	clusterTopology := &clusterv1.Topology{
+		Workers: &clusterv1.WorkersTopology{
+			MachinePools: []clusterv1.MachinePoolTopology{
+				{
+					Name: "mp-with-defer-upgrade",
+					Metadata: clusterv1.ObjectMeta{
+						Annotations: map[string]string{
+							clusterv1.ClusterTopologyDeferUpgradeAnnotation: "",
+						},
+					},
+				},
+				{
+					Name: "mp-without-annotations",
+				},
+				{
+					Name: "mp-with-hold-upgrade-sequence",
+					Metadata: clusterv1.ObjectMeta{
+						Annotations: map[string]string{
+							clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
+						},
+					},
+				},
+				{
+					Name: "mp-after-mp-with-hold-upgrade-sequence",
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		mpTopology clusterv1.MachinePoolTopology
+		deferred   bool
+	}{
+		{
+			name: "MP with defer-upgrade annotation is deferred",
+			mpTopology: clusterv1.MachinePoolTopology{
+				Name: "mp-with-defer-upgrade",
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyDeferUpgradeAnnotation: "",
+					},
+				},
+			},
+			deferred: true,
+		},
+		{
+			name: "MP without annotations is not deferred",
+			mpTopology: clusterv1.MachinePoolTopology{
+				Name: "mp-without-annotations",
+			},
+			deferred: false,
+		},
+		{
+			name: "MP with hold-upgrade-sequence annotation is deferred",
+			mpTopology: clusterv1.MachinePoolTopology{
+				Name: "mp-with-hold-upgrade-sequence",
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
+					},
+				},
+			},
+			deferred: true,
+		},
+		{
+			name: "MP after mp with hold-upgrade-sequence is deferred",
+			mpTopology: clusterv1.MachinePoolTopology{
+				Name: "mp-after-mp-with-hold-upgrade-sequence",
+			},
+			deferred: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(isMachinePoolDeferred(clusterTopology, tt.mpTopology)).To(Equal(tt.deferred))
 		})
 	}
 }
@@ -2186,6 +2813,14 @@ func assertNestedFieldUnset(g *WithT, obj *unstructured.Unstructured, fields ...
 
 func duplicateMachineDeploymentsState(s scope.MachineDeploymentsStateMap) scope.MachineDeploymentsStateMap {
 	n := make(scope.MachineDeploymentsStateMap)
+	for k, v := range s {
+		n[k] = v
+	}
+	return n
+}
+
+func duplicateMachinePoolsState(s scope.MachinePoolsStateMap) scope.MachinePoolsStateMap {
+	n := make(scope.MachinePoolsStateMap)
 	for k, v := range s {
 		n[k] = v
 	}

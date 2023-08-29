@@ -43,6 +43,8 @@ func TestGetCurrentState(t *testing.T) {
 		builder.GenericBootstrapConfigTemplateCRD,
 		builder.GenericInfrastructureMachineTemplateCRD,
 		builder.GenericInfrastructureMachineCRD,
+		builder.GenericInfrastructureMachinePoolTemplateCRD,
+		builder.GenericInfrastructureMachinePoolCRD,
 	}
 
 	// The following is a block creating a number of objects for use in the test cases.
@@ -157,6 +159,39 @@ func TestGetCurrentState(t *testing.T) {
 		WithClusterName("cluster1").
 		Build()
 
+	// MachinePool and related objects.
+	emptyMachinePools := make(map[string]*scope.MachinePoolState)
+
+	machinePoolInfrastructureTemplate := builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra2").
+		Build()
+	machinePoolInfrastructure := builder.InfrastructureMachinePool(metav1.NamespaceDefault, "infra2").
+		Build()
+	machinePoolInfrastructure.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
+	machinePoolBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap2").
+		Build()
+	machinePoolBootstrap := builder.BootstrapConfig(metav1.NamespaceDefault, "bootstrap2").
+		Build()
+	machinePoolBootstrap.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
+
+	machinePool := builder.MachinePool(metav1.NamespaceDefault, "mp1").
+		WithLabels(map[string]string{
+			clusterv1.ClusterNameLabel:                    "cluster1",
+			clusterv1.ClusterTopologyOwnedLabel:           "",
+			clusterv1.ClusterTopologyMachinePoolNameLabel: "mp1",
+		}).
+		WithBootstrap(machinePoolBootstrap).
+		WithInfrastructure(machinePoolInfrastructure).
+		Build()
+	machinePool2 := builder.MachinePool(metav1.NamespaceDefault, "mp2").
+		WithLabels(map[string]string{
+			clusterv1.ClusterNameLabel:                    "cluster1",
+			clusterv1.ClusterTopologyOwnedLabel:           "",
+			clusterv1.ClusterTopologyMachinePoolNameLabel: "mp2",
+		}).
+		WithBootstrap(machinePoolBootstrap).
+		WithInfrastructure(machinePoolInfrastructure).
+		Build()
+
 	tests := []struct {
 		name      string
 		cluster   *clusterv1.Cluster
@@ -177,6 +212,7 @@ func TestGetCurrentState(t *testing.T) {
 				ControlPlane:          &scope.ControlPlaneState{},
 				InfrastructureCluster: nil,
 				MachineDeployments:    emptyMachineDeployments,
+				MachinePools:          emptyMachinePools,
 			},
 		},
 		{
@@ -233,7 +269,7 @@ func TestGetCurrentState(t *testing.T) {
 			objects: []client.Object{
 				infraCluster,
 			},
-			// Expecting valid return with no ControlPlane or MachineDeployment state defined but with a valid Infrastructure state.
+			// Expecting valid return with no ControlPlane, MachineDeployment, or MachinePool state defined but with a valid Infrastructure state.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					WithInfrastructureCluster(infraCluster).
@@ -241,6 +277,7 @@ func TestGetCurrentState(t *testing.T) {
 				ControlPlane:          &scope.ControlPlaneState{},
 				InfrastructureCluster: infraCluster,
 				MachineDeployments:    emptyMachineDeployments,
+				MachinePools:          emptyMachinePools,
 			},
 		},
 		{
@@ -262,7 +299,7 @@ func TestGetCurrentState(t *testing.T) {
 				clusterClassWithNoControlPlaneInfra,
 				// Workers are missing!
 			},
-			// Expecting valid return with ControlPlane, no ControlPlane Infrastructure state, InfrastructureCluster state and no defined MachineDeployment state.
+			// Expecting valid return with ControlPlane, no ControlPlane Infrastructure state, InfrastructureCluster state, and no defined MachineDeployment or MachinePool state.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					WithControlPlane(controlPlane).
@@ -271,6 +308,7 @@ func TestGetCurrentState(t *testing.T) {
 				ControlPlane:          &scope.ControlPlaneState{Object: controlPlane, InfrastructureMachineTemplate: nil},
 				InfrastructureCluster: infraCluster,
 				MachineDeployments:    emptyMachineDeployments,
+				MachinePools:          emptyMachinePools,
 			},
 		},
 		{
@@ -312,7 +350,7 @@ func TestGetCurrentState(t *testing.T) {
 				controlPlaneInfrastructureMachineTemplate,
 				// Workers are missing!
 			},
-			// Expecting valid return with valid ControlPlane state, but no ControlPlane Infrastructure, InfrastructureCluster or MachineDeployment state defined.
+			// Expecting valid return with valid ControlPlane state, but no ControlPlane Infrastructure, InfrastructureCluster, MachineDeployment, or MachinePool state defined.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					WithControlPlane(controlPlaneWithInfra).
@@ -320,6 +358,7 @@ func TestGetCurrentState(t *testing.T) {
 				ControlPlane:          &scope.ControlPlaneState{Object: controlPlaneWithInfra, InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
 				InfrastructureCluster: nil,
 				MachineDeployments:    emptyMachineDeployments,
+				MachinePools:          emptyMachinePools,
 			},
 		},
 		{
@@ -343,7 +382,7 @@ func TestGetCurrentState(t *testing.T) {
 				controlPlaneWithInfra,
 				// Workers are missing!
 			},
-			// Expecting valid return with valid ControlPlane state, ControlPlane Infrastructure state and InfrastructureCluster state, but no defined MachineDeployment state.
+			// Expecting valid return with valid ControlPlane state, ControlPlane Infrastructure state and InfrastructureCluster state, but no defined MachineDeployment or MachinePool state.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					WithInfrastructureCluster(infraCluster).
@@ -352,6 +391,7 @@ func TestGetCurrentState(t *testing.T) {
 				ControlPlane:          &scope.ControlPlaneState{Object: controlPlaneWithInfra, InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
 				InfrastructureCluster: infraCluster,
 				MachineDeployments:    emptyMachineDeployments,
+				MachinePools:          emptyMachinePools,
 			},
 		},
 		{
@@ -361,6 +401,10 @@ func TestGetCurrentState(t *testing.T) {
 					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
 						Class: "mdClass",
 						Name:  "md1",
+					}).
+					WithMachinePool(clusterv1.MachinePoolTopology{
+						Class: "mpClass",
+						Name:  "mp1",
 					}).
 					Build()).
 				Build(),
@@ -377,6 +421,12 @@ func TestGetCurrentState(t *testing.T) {
 						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
 					},
 				},
+				MachinePools: map[string]*scope.MachinePoolBlueprint{
+					"mpClass": {
+						BootstrapTemplate:                 machinePoolBootstrap,
+						InfrastructureMachinePoolTemplate: machinePoolInfrastructure,
+					},
+				},
 			},
 			objects: []client.Object{
 				infraCluster,
@@ -386,8 +436,11 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentInfrastructure,
 				machineDeploymentBootstrap,
 				machineDeployment,
+				machinePoolInfrastructure,
+				machinePoolBootstrap,
+				machinePool,
 			},
-			// Expecting valid return with valid ControlPlane, ControlPlane Infrastructure and InfrastructureCluster state, but no defined MachineDeployment state.
+			// Expecting valid return with valid ControlPlane, ControlPlane Infrastructure, InfrastructureCluster, MachineDeployment and MachinePool state.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					WithTopology(builder.ClusterTopology().
@@ -395,12 +448,18 @@ func TestGetCurrentState(t *testing.T) {
 							Class: "mdClass",
 							Name:  "md1",
 						}).
+						WithMachinePool(clusterv1.MachinePoolTopology{
+							Class: "mpClass",
+							Name:  "mp1",
+						}).
 						Build()).
 					Build(),
 				ControlPlane:          &scope.ControlPlaneState{},
 				InfrastructureCluster: nil,
 				MachineDeployments: map[string]*scope.MachineDeploymentState{
 					"md1": {Object: machineDeployment, BootstrapTemplate: machineDeploymentBootstrap, InfrastructureMachineTemplate: machineDeploymentInfrastructure}},
+				MachinePools: map[string]*scope.MachinePoolState{
+					"mp1": {Object: machinePool, BootstrapObject: machinePoolBootstrap, InfrastructureMachinePoolObject: machinePoolInfrastructure}},
 			},
 		},
 		{
@@ -443,7 +502,7 @@ func TestGetCurrentState(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Should ignore unmanaged MachineDeployments and MachineDeployments belonging to other clusters",
+			name: "Should ignore unmanaged MachineDeployments/MachinePools and MachineDeployments/MachinePools belonging to other clusters",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				Build(),
 			blueprint: &scope.ClusterBlueprint{ClusterClass: clusterClassWithControlPlaneInfra},
@@ -466,14 +525,32 @@ func TestGetCurrentState(t *testing.T) {
 					WithBootstrapTemplate(machineDeploymentBootstrap).
 					WithInfrastructureTemplate(machineDeploymentInfrastructure).
 					Build(),
+				builder.MachinePool(metav1.NamespaceDefault, "no-managed-label").
+					WithLabels(map[string]string{
+						clusterv1.ClusterNameLabel: "cluster1",
+						// topology.cluster.x-k8s.io/owned label is missing (unmanaged)!
+					}).
+					WithBootstrap(machinePoolBootstrap).
+					WithInfrastructure(machinePoolInfrastructure).
+					Build(),
+				builder.MachinePool(metav1.NamespaceDefault, "wrong-cluster-label").
+					WithLabels(map[string]string{
+						clusterv1.ClusterNameLabel:                    "another-cluster",
+						clusterv1.ClusterTopologyOwnedLabel:           "",
+						clusterv1.ClusterTopologyMachinePoolNameLabel: "mp1",
+					}).
+					WithBootstrap(machinePoolBootstrap).
+					WithInfrastructure(machinePoolInfrastructure).
+					Build(),
 			},
-			// Expect valid return with empty MachineDeployments properly filtered by label.
+			// Expect valid return with empty MachineDeployments and MachinePools properly filtered by label.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					Build(),
 				ControlPlane:          &scope.ControlPlaneState{},
 				InfrastructureCluster: nil,
 				MachineDeployments:    emptyMachineDeployments,
+				MachinePools:          emptyMachinePools,
 			},
 		},
 		{
@@ -528,7 +605,58 @@ func TestGetCurrentState(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Should read a full Cluster (With InfrastructureCluster, ControlPlane and ControlPlane Infrastructure, MachineDeployments)",
+			name: "Fails if there are MachinePools without the topology.cluster.x-k8s.io/pool-name",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				Build(),
+			blueprint: &scope.ClusterBlueprint{ClusterClass: clusterClassWithControlPlaneInfra},
+			objects: []client.Object{
+				clusterClassWithControlPlaneInfra,
+				builder.MachinePool(metav1.NamespaceDefault, "missing-topology-mp-labelName").
+					WithLabels(map[string]string{
+						clusterv1.ClusterNameLabel:          "cluster1",
+						clusterv1.ClusterTopologyOwnedLabel: "",
+						// topology.cluster.x-k8s.io/pool-name label is missing!
+					}).
+					WithBootstrap(machinePoolBootstrap).
+					WithInfrastructure(machinePoolInfrastructure).
+					Build(),
+			},
+			// Expect error to be thrown as no managed MachinePool is reconcilable unless it has a ClusterTopologyMachinePoolNameLabel.
+			wantErr: true,
+		},
+		{
+			name: "Fails if there are MachinePools with the same topology.cluster.x-k8s.io/pool-name",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithMachinePool(clusterv1.MachinePoolTopology{
+						Class: "mpClass",
+						Name:  "mp1",
+					}).
+					Build()).
+				Build(),
+			blueprint: &scope.ClusterBlueprint{
+				ClusterClass: clusterClassWithControlPlaneInfra,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template:                      controlPlaneTemplateWithInfrastructureMachine,
+					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+				},
+			},
+			objects: []client.Object{
+				clusterClassWithControlPlaneInfra,
+				machinePoolInfrastructure,
+				machinePoolBootstrap,
+				machinePool,
+				builder.MachinePool(metav1.NamespaceDefault, "duplicate-labels").
+					WithLabels(machinePool.Labels). // Another machine pool with the same labels.
+					WithBootstrap(machinePoolBootstrap).
+					WithInfrastructure(machinePoolInfrastructure).
+					Build(),
+			},
+			// Expect error as two MachinePools with the same ClusterTopologyOwnedLabel should not exist for one cluster
+			wantErr: true,
+		},
+		{
+			name: "Should read a full Cluster (With InfrastructureCluster, ControlPlane and ControlPlane Infrastructure, MachineDeployments, MachinePools)",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithInfrastructureCluster(infraCluster).
 				WithControlPlane(controlPlaneWithInfra).
@@ -536,6 +664,10 @@ func TestGetCurrentState(t *testing.T) {
 					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
 						Class: "mdClass",
 						Name:  "md1",
+					}).
+					WithMachinePool(clusterv1.MachinePoolTopology{
+						Class: "mpClass",
+						Name:  "mp1",
 					}).
 					Build()).
 				Build(),
@@ -552,6 +684,12 @@ func TestGetCurrentState(t *testing.T) {
 						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
 					},
 				},
+				MachinePools: map[string]*scope.MachinePoolBlueprint{
+					"mpClass": {
+						BootstrapTemplate:                 machinePoolBootstrapTemplate,
+						InfrastructureMachinePoolTemplate: machinePoolInfrastructureTemplate,
+					},
+				},
 			},
 			objects: []client.Object{
 				infraCluster,
@@ -561,8 +699,11 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentInfrastructure,
 				machineDeploymentBootstrap,
 				machineDeployment,
+				machinePoolInfrastructure,
+				machinePoolBootstrap,
+				machinePool,
 			},
-			// Expect valid return of full ClusterState with MachineDeployments properly filtered by label.
+			// Expect valid return of full ClusterState with MachineDeployments and MachinePools properly filtered by label.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					WithInfrastructureCluster(infraCluster).
@@ -571,6 +712,10 @@ func TestGetCurrentState(t *testing.T) {
 						WithMachineDeployment(clusterv1.MachineDeploymentTopology{
 							Class: "mdClass",
 							Name:  "md1",
+						}).
+						WithMachinePool(clusterv1.MachinePoolTopology{
+							Class: "mpClass",
+							Name:  "mp1",
 						}).
 						Build()).
 					Build(),
@@ -583,10 +728,17 @@ func TestGetCurrentState(t *testing.T) {
 						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
 					},
 				},
+				MachinePools: map[string]*scope.MachinePoolState{
+					"mp1": {
+						Object:                          machinePool,
+						BootstrapObject:                 machinePoolBootstrap,
+						InfrastructureMachinePoolObject: machinePoolInfrastructure,
+					},
+				},
 			},
 		},
 		{
-			name: "Should read a full Cluster, even if a MachineDeployment topology has been deleted and the MachineDeployment still exists",
+			name: "Should read a full Cluster, even if a MachineDeployment & MachinePool topology has been deleted and the MachineDeployment & MachinePool still exists",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithInfrastructureCluster(infraCluster).
 				WithControlPlane(controlPlaneWithInfra).
@@ -594,6 +746,10 @@ func TestGetCurrentState(t *testing.T) {
 					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
 						Class: "mdClass",
 						Name:  "md1",
+					}).
+					WithMachinePool(clusterv1.MachinePoolTopology{
+						Class: "mpClass",
+						Name:  "mp1",
 					}).
 					Build()).
 				Build(),
@@ -610,6 +766,12 @@ func TestGetCurrentState(t *testing.T) {
 						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
 					},
 				},
+				MachinePools: map[string]*scope.MachinePoolBlueprint{
+					"mpClass": {
+						BootstrapTemplate:                 machinePoolBootstrapTemplate,
+						InfrastructureMachinePoolTemplate: machinePoolInfrastructureTemplate,
+					},
+				},
 			},
 			objects: []client.Object{
 				infraCluster,
@@ -620,8 +782,12 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentBootstrap,
 				machineDeployment,
 				machineDeployment2,
+				machinePoolInfrastructure,
+				machinePoolBootstrap,
+				machinePool,
+				machinePool2,
 			},
-			// Expect valid return of full ClusterState with MachineDeployments properly filtered by label.
+			// Expect valid return of full ClusterState with MachineDeployments and MachinePools properly filtered by label.
 			want: &scope.ClusterState{
 				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 					WithInfrastructureCluster(infraCluster).
@@ -630,6 +796,10 @@ func TestGetCurrentState(t *testing.T) {
 						WithMachineDeployment(clusterv1.MachineDeploymentTopology{
 							Class: "mdClass",
 							Name:  "md1",
+						}).
+						WithMachinePool(clusterv1.MachinePoolTopology{
+							Class: "mpClass",
+							Name:  "mp1",
 						}).
 						Build()).
 					Build(),
@@ -645,6 +815,18 @@ func TestGetCurrentState(t *testing.T) {
 						Object:                        machineDeployment2,
 						BootstrapTemplate:             machineDeploymentBootstrap,
 						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
+					},
+				},
+				MachinePools: map[string]*scope.MachinePoolState{
+					"mp1": {
+						Object:                          machinePool,
+						BootstrapObject:                 machinePoolBootstrap,
+						InfrastructureMachinePoolObject: machinePoolInfrastructure,
+					},
+					"mp2": {
+						Object:                          machinePool2,
+						BootstrapObject:                 machinePoolBootstrap,
+						InfrastructureMachinePoolObject: machinePoolInfrastructure,
 					},
 				},
 			},
@@ -681,11 +863,50 @@ func TestGetCurrentState(t *testing.T) {
 				machineDeploymentInfrastructure,
 				builder.MachineDeployment(metav1.NamespaceDefault, "no-bootstrap").
 					WithLabels(machineDeployment.Labels).
-					// No BootstrapTemplate reference!
+					// No BootstrapConfigTemplate reference!
 					WithInfrastructureTemplate(machineDeploymentInfrastructure).
 					Build(),
 			},
 			// Expect error as Bootstrap Template not defined for MachineDeployments relevant to the Cluster.
+			wantErr: true,
+		},
+		{
+			name: "Fails if a Cluster has a MachinePool without the Bootstrap Template ref",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithMachinePool(clusterv1.MachinePoolTopology{
+						Class: "mpClass",
+						Name:  "mp1",
+					}).
+					Build()).
+				Build(),
+			blueprint: &scope.ClusterBlueprint{
+				ClusterClass:                  clusterClassWithControlPlaneInfra,
+				InfrastructureClusterTemplate: infraClusterTemplate,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template:                      controlPlaneTemplateWithInfrastructureMachine,
+					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+				},
+				MachinePools: map[string]*scope.MachinePoolBlueprint{
+					"mpClass": {
+						BootstrapTemplate:                 machinePoolBootstrapTemplate,
+						InfrastructureMachinePoolTemplate: machinePoolInfrastructureTemplate,
+					},
+				},
+			},
+			objects: []client.Object{
+				infraCluster,
+				clusterClassWithControlPlaneInfra,
+				controlPlaneInfrastructureMachineTemplate,
+				controlPlaneWithInfra,
+				machinePoolInfrastructure,
+				builder.MachinePool(metav1.NamespaceDefault, "no-bootstrap").
+					WithLabels(machinePool.Labels).
+					// No BootstrapConfig reference!
+					WithInfrastructure(machinePoolInfrastructure).
+					Build(),
+			},
+			// Expect error as BootstrapConfig not defined for MachinePools relevant to the Cluster.
 			wantErr: true,
 		},
 		{
@@ -725,6 +946,45 @@ func TestGetCurrentState(t *testing.T) {
 					Build(),
 			},
 			// Expect error as Infrastructure Template not defined for MachineDeployment relevant to the Cluster.
+			wantErr: true,
+		},
+		{
+			name: "Fails if a Cluster has a MachinePools without the InfrastructureMachinePool ref",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithMachinePool(clusterv1.MachinePoolTopology{
+						Class: "mpClass",
+						Name:  "mp1",
+					}).
+					Build()).
+				Build(),
+			blueprint: &scope.ClusterBlueprint{
+				ClusterClass:                  clusterClassWithControlPlaneInfra,
+				InfrastructureClusterTemplate: infraClusterTemplate,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template:                      controlPlaneTemplateWithInfrastructureMachine,
+					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+				},
+				MachinePools: map[string]*scope.MachinePoolBlueprint{
+					"mpClass": {
+						BootstrapTemplate:                 machinePoolBootstrapTemplate,
+						InfrastructureMachinePoolTemplate: machinePoolInfrastructureTemplate,
+					},
+				},
+			},
+			objects: []client.Object{
+				infraCluster,
+				clusterClassWithControlPlaneInfra,
+				controlPlaneInfrastructureMachineTemplate,
+				controlPlaneWithInfra,
+				machinePoolBootstrap,
+				builder.MachinePool(metav1.NamespaceDefault, "no-infra").
+					WithLabels(machinePool.Labels).
+					WithBootstrap(machinePoolBootstrap).
+					// No InfrastructureMachinePool reference!
+					Build(),
+			},
+			// Expect error as InfrastructureMachinePool not defined for MachinePool relevant to the Cluster.
 			wantErr: true,
 		},
 		{
@@ -790,6 +1050,7 @@ func TestGetCurrentState(t *testing.T) {
 						MachineHealthCheck:            machineHealthCheckForMachineDeployment,
 					},
 				},
+				MachinePools: emptyMachinePools,
 			},
 		},
 	}
@@ -838,7 +1099,8 @@ func TestGetCurrentState(t *testing.T) {
 			g.Expect(got.Cluster).To(EqualObject(tt.want.Cluster, IgnoreAutogeneratedMetadata))
 			g.Expect(got.InfrastructureCluster).To(EqualObject(tt.want.InfrastructureCluster))
 			g.Expect(got.ControlPlane).To(BeComparableTo(tt.want.ControlPlane), cmp.Diff(got.ControlPlane, tt.want.ControlPlane))
-			g.Expect(got.MachineDeployments).To(BeComparableTo(tt.want.MachineDeployments))
+			g.Expect(got.MachineDeployments).To(BeComparableTo(tt.want.MachineDeployments), cmp.Diff(got.MachineDeployments, tt.want.MachineDeployments))
+			g.Expect(got.MachinePools).To(BeComparableTo(tt.want.MachinePools), cmp.Diff(got.MachinePools, tt.want.MachinePools))
 		})
 	}
 }

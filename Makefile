@@ -59,6 +59,7 @@ BIN_DIR := bin
 TEST_DIR := test
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
+DOCS_DIR := docs
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 CAPIM_DIR := $(TEST_DIR)/infrastructure/inmemory
@@ -153,6 +154,8 @@ YQ_VER := v4.25.2
 YQ_BIN := yq
 YQ :=  $(abspath $(TOOLS_BIN_DIR)/$(YQ_BIN)-$(YQ_VER))
 YQ_PKG := github.com/mikefarah/yq/v4
+
+PLANTUML_VER := 1.2023
 
 GINKGO_BIN := ginkgo
 GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
@@ -571,7 +574,16 @@ generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-s
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files
-	$(MAKE) -C docs diagrams
+	$(MAKE) generate-diagrams-book
+	$(MAKE) generate-diagrams-proposals
+
+.PHONY: generate-diagrams-book
+generate-diagrams-book: ## Generate diagrams for *.plantuml files in book
+	docker run -v $(ROOT_DIR)/$(DOCS_DIR):/$(DOCS_DIR)$(DOCKER_VOL_OPTS)  plantuml/plantuml:$(PLANTUML_VER) /$(DOCS_DIR)/book/**/*.plantuml
+
+.PHONY: generate-diagrams-proposals
+generate-diagrams-proposals: ## Generate diagrams for *.plantuml files in proposals
+	docker run -v $(ROOT_DIR)/$(DOCS_DIR):/$(DOCS_DIR)$(DOCKER_VOL_OPTS)  plantuml/plantuml:$(PLANTUML_VER) /$(DOCS_DIR)/proposals/**/*.plantuml
 
 
 ## --------------------------------------

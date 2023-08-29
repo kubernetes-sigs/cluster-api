@@ -148,7 +148,8 @@ SHELLCHECK_VER := v0.9.0
 KPROMO_VER := v4.0.4
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
-KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
+# KPROMO_PKG may have to be changed if KPROMO_VER increases its major version.
+KPROMO_PKG := sigs.k8s.io/promo-tools/v4/cmd/kpromo
 
 YQ_VER := v4.25.2
 YQ_BIN := yq

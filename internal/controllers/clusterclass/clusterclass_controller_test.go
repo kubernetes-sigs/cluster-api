@@ -28,11 +28,15 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -544,4 +548,72 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			g.Expect(tt.clusterClass.Status.Variables).To(Equal(tt.want), cmp.Diff(tt.clusterClass.Status.Variables, tt.want))
 		})
 	}
+}
+
+func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
+	firstExtConfig := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "runtime1",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ExtensionConfig",
+			APIVersion: runtimev1.GroupVersion.String(),
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			NamespaceSelector: &metav1.LabelSelector{},
+		},
+	}
+	secondExtConfig := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "runtime2",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ExtensionConfig",
+			APIVersion: runtimev1.GroupVersion.String(),
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			NamespaceSelector: &metav1.LabelSelector{},
+		},
+	}
+
+	// These ClusterClasses will be reconciled as they both reference the passed ExtensionConfig `runtime1`.
+	onePatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc1").
+		WithPatches([]clusterv1.ClusterClassPatch{
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: pointer.String("discover-variables.runtime1")}}}).
+		Build()
+	twoPatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc2").
+		WithPatches([]clusterv1.ClusterClassPatch{
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: pointer.String("discover-variables.runtime1")}},
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: pointer.String("discover-variables.runtime2")}}}).
+		Build()
+
+	// This ClusterClasses will not be reconciled as it does not reference the passed ExtensionConfig `runtime1`.
+	notReconciledClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc3").
+		WithPatches([]clusterv1.ClusterClassPatch{
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: pointer.String("discover-variables.other-runtime-class")}}}).
+		Build()
+
+	t.Run("test", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().WithObjects(onePatchClusterClass, notReconciledClusterClass, twoPatchClusterClass).Build()
+		r := &Reconciler{
+			Client: fakeClient,
+		}
+
+		// Expect both onePatchClusterClass and twoPatchClusterClass to trigger a reconcile as both reference ExtensionCopnfig `runtime1`.
+		firstExtConfigExpected := []reconcile.Request{
+			{NamespacedName: types.NamespacedName{Namespace: onePatchClusterClass.Namespace, Name: onePatchClusterClass.Name}},
+			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
+		}
+		if got := r.extensionConfigToClusterClass(context.Background(), firstExtConfig); !reflect.DeepEqual(got, firstExtConfigExpected) {
+			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, firstExtConfigExpected)
+		}
+
+		// Expect only twoPatchClusterClass to trigger a reconcile as it's the only class with a reference to ExtensionCopnfig `runtime2`.
+		secondExtConfigExpected := []reconcile.Request{
+			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
+		}
+		if got := r.extensionConfigToClusterClass(context.Background(), secondExtConfig); !reflect.DeepEqual(got, secondExtConfigExpected) {
+			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, secondExtConfigExpected)
+		}
+	})
 }

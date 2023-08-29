@@ -91,7 +91,7 @@ func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem
 }
 
 // getTemplateAsUnstructured is a utility func that returns a template matching the holderKind, holderFieldPath
-// and mdTopologyName from a GeneratePatchesRequest.
+// and topologyNames from a GeneratePatchesRequest.
 func getTemplateAsUnstructured(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath string, topologyNames requestTopologyName) (*unstructured.Unstructured, error) {
 	// Find the requestItem.
 	requestItem := getRequestItem(req, holderKind, holderFieldPath, topologyNames)
@@ -119,7 +119,7 @@ func getRequestItemByUID(req *runtimehooksv1.GeneratePatchesRequest, uid types.U
 	return nil
 }
 
-// getRequestItem is a utility func that returns a template matching the holderKind, holderFiledPath and mdTopologyName from a GeneratePatchesRequest.
+// getRequestItem is a utility func that returns a template matching the holderKind, holderFiledPath and topologyNames from a GeneratePatchesRequest.
 func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath string, topologyNames requestTopologyName) *runtimehooksv1.GeneratePatchesRequestItem {
 	for _, template := range req.Items {
 		if holderKind != "" && template.HolderReference.Kind != holderKind {

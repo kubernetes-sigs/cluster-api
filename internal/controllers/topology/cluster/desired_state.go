@@ -84,7 +84,7 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	if len(s.Current.MachinePools) > 0 {
 		client, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")
 		}
 		// Mark all the MachinePools that are currently upgrading.
 		mpUpgradingNames, err := s.Current.MachinePools.Upgrading(ctx, client)
@@ -438,7 +438,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 				// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
 				// can remove this hook from the list of pending-hooks.
 				if hookResponse.RetryAfterSeconds != 0 {
-					log.Infof("MachineDeployments upgrade to version %q are blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
+					log.Infof("MachineDeployments/MachinePools upgrade to version %q are blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
 				} else {
 					if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
 						return "", err
@@ -464,10 +464,11 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 	}
 
 	// If the control plane is not upgrading or scaling, we can assume the control plane is stable.
-	// However, we should also check for the MachineDeployments upgrading.
-	// If the MachineDeployments are upgrading, then do not pick up the desiredVersion yet.
-	// We will pick up the new version after the MachineDeployments finish upgrading.
-	if len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) > 0 {
+	// However, we should also check for the MachineDeployments/MachinePools upgrading.
+	// If the MachineDeployments/MachinePools are upgrading, then do not pick up the desiredVersion yet.
+	// We will pick up the new version after the MachineDeployments/MachinePools finish upgrading.
+	if len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) > 0 ||
+		len(s.UpgradeTracker.MachinePools.UpgradingNames()) > 0 {
 		return *currentVersion, nil
 	}
 
@@ -950,7 +951,7 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 		template:              machinePoolBlueprint.BootstrapTemplate,
 		templateClonedFromRef: contract.ObjToRef(machinePoolBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
-		namePrefix:            bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name),
+		namePrefix:            bootstrapConfigNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name),
 		currentObjectRef:      currentBootstrapConfigRef,
 	})
 	if err != nil {
@@ -961,11 +962,11 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 	if bootstrapObjectLabels == nil {
 		bootstrapObjectLabels = map[string]string{}
 	}
-	// Add ClusterTopologyMachinePoolLabel to the generated Bootstrap template
+	// Add ClusterTopologyMachinePoolLabel to the generated Bootstrap config
 	bootstrapObjectLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
 	desiredMachinePool.BootstrapObject.SetLabels(bootstrapObjectLabels)
 
-	// Compute the Infrastructure ref.
+	// Compute the InfrastructureMachinePool.
 	var currentInfraMachinePoolRef *corev1.ObjectReference
 	if currentMachinePool != nil && currentMachinePool.InfrastructureMachinePoolObject != nil {
 		currentInfraMachinePoolRef = &currentMachinePool.Object.Spec.Template.Spec.InfrastructureRef
@@ -991,6 +992,11 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 	version := computeMachinePoolVersion(s, machinePoolTopology, currentMachinePool)
 
 	// Compute values that can be set both in the MachinePoolClass and in the MachinePoolTopology
+	minReadySeconds := machinePoolClass.MinReadySeconds
+	if machinePoolTopology.MinReadySeconds != nil {
+		minReadySeconds = machinePoolTopology.MinReadySeconds
+	}
+
 	failureDomains := machinePoolClass.FailureDomains
 	if machinePoolTopology.FailureDomains != nil {
 		failureDomains = machinePoolTopology.FailureDomains
@@ -1031,8 +1037,9 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: expv1.MachinePoolSpec{
-			ClusterName:    s.Current.Cluster.Name,
-			FailureDomains: failureDomains,
+			ClusterName:     s.Current.Cluster.Name,
+			MinReadySeconds: minReadySeconds,
+			FailureDomains:  failureDomains,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             s.Current.Cluster.Name,

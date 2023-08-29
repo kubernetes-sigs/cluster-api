@@ -26,7 +26,7 @@ import (
 )
 
 func TestNew(t *testing.T) {
-	t.Run("should set the right maxMachineDeploymentUpgradeConcurrency in UpgradeTracker from the cluster annotation", func(t *testing.T) {
+	t.Run("should set the right maxUpgradeConcurrency in UpgradeTracker from the cluster annotation", func(t *testing.T) {
 		tests := []struct {
 			name    string
 			cluster *clusterv1.Cluster
@@ -53,7 +53,8 @@ func TestNew(t *testing.T) {
 		for _, tt := range tests {
 			g := NewWithT(t)
 			s := New(tt.cluster)
-			g.Expect(s.UpgradeTracker.MachineDeployments.maxMachineDeploymentUpgradeConcurrency).To(Equal(tt.want))
+			g.Expect(s.UpgradeTracker.MachineDeployments.maxUpgradeConcurrency).To(Equal(tt.want))
+			g.Expect(s.UpgradeTracker.MachinePools.maxUpgradeConcurrency).To(Equal(tt.want))
 		}
 	})
 }

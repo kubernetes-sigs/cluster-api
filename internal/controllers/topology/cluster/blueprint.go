@@ -80,7 +80,7 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 			return nil, errors.Wrapf(err, "failed to get infrastructure machine template for %s, MachineDeployment class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machineDeploymentClass.Class)
 		}
 
-		// Get the bootstrap machine template.
+		// Get the bootstrap config template.
 		machineDeploymentBlueprint.BootstrapTemplate, err = r.getReference(ctx, machineDeploymentClass.Template.Bootstrap.Ref)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get bootstrap config template for %s, MachineDeployment class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machineDeploymentClass.Class)
@@ -109,7 +109,7 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 			return nil, errors.Wrapf(err, "failed to get InfrastructureMachinePoolTemplate for %s, MachinePool class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machinePoolClass.Class)
 		}
 
-		// Get the bootstrap config.
+		// Get the bootstrap config template.
 		machinePoolBlueprint.BootstrapTemplate, err = r.getReference(ctx, machinePoolClass.Template.Bootstrap.Ref)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get bootstrap config for %s, MachinePool class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machinePoolClass.Class)

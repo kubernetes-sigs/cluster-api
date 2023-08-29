@@ -23,7 +23,7 @@ import (
 )
 
 func TestNewUpgradeTracker(t *testing.T) {
-	t.Run("should set the correct value for maxMachineDeploymentUpgradeConcurrency", func(t *testing.T) {
+	t.Run("should set the correct value for maxUpgradeConcurrency", func(t *testing.T) {
 		tests := []struct {
 			name    string
 			options []UpgradeTrackerOption
@@ -49,7 +49,7 @@ func TestNewUpgradeTracker(t *testing.T) {
 		for _, tt := range tests {
 			g := NewWithT(t)
 			got := NewUpgradeTracker(tt.options...)
-			g.Expect(got.MachineDeployments.maxMachineDeploymentUpgradeConcurrency).To(Equal(tt.want))
+			g.Expect(got.MachineDeployments.maxUpgradeConcurrency).To(Equal(tt.want))
 		}
 	})
 }

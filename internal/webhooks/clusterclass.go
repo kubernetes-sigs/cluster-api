@@ -302,7 +302,8 @@ func (webhook *ClusterClass) validateRemovedMachinePoolClassesAreNotUsed(cluster
 	for _, c := range clusters {
 		for _, machinePoolTopology := range c.Spec.Topology.Workers.MachinePools {
 			if removedClasses.Has(machinePoolTopology.Class) {
-				// TODO(killianmuldoon): Same as above for MachineDeployments
+				// TODO(killianmuldoon): Improve error printing here so large scale changes don't flood the error log e.g. deduplication, only example usages given.
+				// TODO: consider if we get the index of the MachinePoolClass being deleted
 				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "workers", "machinePools"),
 					fmt.Sprintf("MachinePoolClass %q cannot be deleted because it is used by Cluster %q",
 						machinePoolTopology.Class, c.Name),
@@ -429,13 +430,11 @@ func validateMachineHealthCheckClass(fldPath *field.Path, namepace string, m *cl
 func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, clusterClass.Spec.ControlPlane.Metadata.Validate(field.NewPath("spec", "controlPlane", "metadata"))...)
-	workerPath := field.NewPath("spec", "workers", "machineDeployments")
 	for idx, m := range clusterClass.Spec.Workers.MachineDeployments {
-		allErrs = append(allErrs, validateMachineDeploymentMetadata(m, workerPath.Index(idx))...)
+		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machineDeployments").Index(idx).Child("template", "metadata"))...)
+	}
+	for idx, m := range clusterClass.Spec.Workers.MachinePools {
+		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machinePools").Index(idx).Child("template", "metadata"))...)
 	}
 	return allErrs
-}
-
-func validateMachineDeploymentMetadata(m clusterv1.MachineDeploymentClass, fldPath *field.Path) field.ErrorList {
-	return m.Template.Metadata.Validate(fldPath.Child("template", "metadata"))
 }

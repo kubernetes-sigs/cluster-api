@@ -161,7 +161,7 @@ type MachinePoolState struct {
 }
 
 // IsUpgrading determines if the MachinePool is upgrading.
-// A machine deployment is considered upgrading if at least one of the Machines of this
+// A machine pool is considered upgrading if at least one of the Machines of this
 // MachinePool has a different version.
 func (mp *MachinePoolState) IsUpgrading(ctx context.Context, c client.Client) (bool, error) {
 	// If the MachinePool has no version there is no definitive way to check if it is upgrading. Therefore, return false.

@@ -37,6 +37,11 @@ func infrastructureMachineTemplateNamePrefix(clusterName, machineDeploymentTopol
 	return fmt.Sprintf("%s-%s-", clusterName, machineDeploymentTopologyName)
 }
 
+// bootstrapConfigNamePrefix calculates the name prefix for a BootstrapConfig.
+func bootstrapConfigNamePrefix(clusterName, machinePoolTopologyName string) string {
+	return fmt.Sprintf("%s-%s-", clusterName, machinePoolTopologyName)
+}
+
 // infrastructureMachinePoolNamePrefix calculates the name prefix for a InfrastructureMachinePool.
 func infrastructureMachinePoolNamePrefix(clusterName, machinePoolTopologyName string) string {
 	return fmt.Sprintf("%s-%s-", clusterName, machinePoolTopologyName)

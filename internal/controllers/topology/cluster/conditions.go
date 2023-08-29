@@ -106,15 +106,18 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	}
 
 	// The topology is not considered as fully reconciled if one of the following is true:
-	// * either the Control Plane or any of the MachineDeployments are still pending to pick up the new version
+	// * either the Control Plane or any of the MachineDeployments/MachinePools are still pending to pick up the new version
 	//  (generally happens when upgrading the cluster)
-	// * when there are MachineDeployments for which the upgrade has been deferred
-	// * when new MachineDeployments are pending to be created
+	// * when there are MachineDeployments/MachinePools for which the upgrade has been deferred
+	// * when new MachineDeployments/MachinePools are pending to be created
 	//  (generally happens when upgrading the cluster)
 	if s.UpgradeTracker.ControlPlane.IsPendingUpgrade ||
 		s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() ||
 		s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade() ||
-		s.UpgradeTracker.MachineDeployments.DeferredUpgrade() {
+		s.UpgradeTracker.MachineDeployments.DeferredUpgrade() ||
+		s.UpgradeTracker.MachinePools.IsAnyPendingCreate() ||
+		s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade() ||
+		s.UpgradeTracker.MachinePools.DeferredUpgrade() {
 		msgBuilder := &strings.Builder{}
 		var reason string
 
@@ -179,6 +182,11 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		case len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) > 0:
 			fmt.Fprintf(msgBuilder, " MachineDeployment(s) %s are upgrading",
 				computeNameList(s.UpgradeTracker.MachineDeployments.UpgradingNames()),
+			)
+
+		case len(s.UpgradeTracker.MachinePools.UpgradingNames()) > 0:
+			fmt.Fprintf(msgBuilder, " MachinePool(s) %s are upgrading",
+				computeNameList(s.UpgradeTracker.MachinePools.UpgradingNames()),
 			)
 		}
 

@@ -50,7 +50,7 @@ type DockerMachinePoolTemplateList struct {
 }
 
 func init() {
-	objectTypes = append(objectTypes, &DockerMachinePool{}, &DockerMachinePoolList{})
+	objectTypes = append(objectTypes, &DockerMachinePoolTemplate{}, &DockerMachinePoolTemplateList{})
 }
 
 // DockerMachinePoolTemplateResource describes the data needed to create a DockerMachine from a template.

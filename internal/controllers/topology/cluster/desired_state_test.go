@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -1995,7 +1996,7 @@ func TestTemplateToObject(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			namePrefix:            cluster.Name,
+			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      nil,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2015,7 +2016,7 @@ func TestTemplateToObject(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			namePrefix:            cluster.Name,
+			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      fakeRef2,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2052,13 +2053,14 @@ func TestTemplateToTemplate(t *testing.T) {
 
 	t.Run("Generates a template from a template", func(t *testing.T) {
 		g := NewWithT(t)
-		obj := templateToTemplate(templateToInput{
+		obj, err := templateToTemplate(templateToInput{
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			namePrefix:            cluster.Name,
+			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      nil,
 		})
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:     cluster,
@@ -2070,13 +2072,14 @@ func TestTemplateToTemplate(t *testing.T) {
 	})
 	t.Run("Overrides the generated name if there is already a reference", func(t *testing.T) {
 		g := NewWithT(t)
-		obj := templateToTemplate(templateToInput{
+		obj, err := templateToTemplate(templateToInput{
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			namePrefix:            cluster.Name,
+			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      fakeRef2,
 		})
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 		assertTemplateToTemplate(g, assertTemplateInput{
 			cluster:     cluster,

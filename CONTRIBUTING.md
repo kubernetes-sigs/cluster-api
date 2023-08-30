@@ -23,6 +23,7 @@
 - [Features and bugs](#features-and-bugs)
 - [Experiments](#experiments)
 - [Breaking Changes](#breaking-changes)
+- [Dependency Licence Management](#dependency-licence-management)
 - [API conventions](#api-conventions)
   - [Optional vs. Required](#optional-vs-required)
     - [Example](#example)
@@ -415,6 +416,10 @@ There may, at times, need to be exceptions where breaking changes are allowed in
 discretion of the project's maintainers, and must be carefully considered before merging. An example of an allowed
 breaking change might be a fix for a behavioral bug that was released in an initial minor version (such as `v0.3.0`).
 
+## Dependency Licence Management
+
+Cluster API follows the [license policy of the CNCF](https://github.com/cncf/foundation/blob/main/allowed-third-party-license-policy.md). This sets limits on which
+licenses dependencies and other artifacts use. For go dependencies only dependencies listed in the `go.mod` are considered dependencies. This is in line with [how dependencies are reviewed in Kubernetes](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/vendor.md#reviewing-and-approving-dependency-changes).
 
 ## API conventions
 

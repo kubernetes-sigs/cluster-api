@@ -253,6 +253,7 @@ type ClusterClassBuilder struct {
 	controlPlaneNodeDrainTimeout              *metav1.Duration
 	controlPlaneNodeVolumeDetachTimeout       *metav1.Duration
 	controlPlaneNodeDeletionTimeout           *metav1.Duration
+	controlPlaneNamingStrategy                *clusterv1.ControlPlaneClassNamingStrategy
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	variables                                 []clusterv1.ClusterClassVariable
 	statusVariables                           []clusterv1.ClusterClassStatusVariable
@@ -315,6 +316,12 @@ func (c *ClusterClassBuilder) WithControlPlaneNodeVolumeDetachTimeout(t *metav1.
 // WithControlPlaneNodeDeletionTimeout adds a NodeDeletionTimeout for the ControlPlane to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneNodeDeletionTimeout(t *metav1.Duration) *ClusterClassBuilder {
 	c.controlPlaneNodeDeletionTimeout = t
+	return c
+}
+
+// WithControlPlaneNamingStrategy sets the NamingStrategy for the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneNamingStrategy(n *clusterv1.ControlPlaneClassNamingStrategy) *ClusterClassBuilder {
+	c.controlPlaneNamingStrategy = n
 	return c
 }
 
@@ -394,6 +401,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Ref: objToRef(c.controlPlaneInfrastructureMachineTemplate),
 		}
 	}
+	if c.controlPlaneNamingStrategy != nil {
+		obj.Spec.ControlPlane.NamingStrategy = c.controlPlaneNamingStrategy
+	}
 
 	obj.Spec.Workers.MachineDeployments = c.machineDeploymentClasses
 	return obj
@@ -413,6 +423,7 @@ type MachineDeploymentClassBuilder struct {
 	nodeDeletionTimeout           *metav1.Duration
 	minReadySeconds               *int32
 	strategy                      *clusterv1.MachineDeploymentStrategy
+	namingStrategy                *clusterv1.MachineDeploymentClassNamingStrategy
 }
 
 // MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
@@ -488,6 +499,12 @@ func (m *MachineDeploymentClassBuilder) WithStrategy(s *clusterv1.MachineDeploym
 	return m
 }
 
+// WithNamingStrategy sets the NamingStrategy for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithNamingStrategy(n *clusterv1.MachineDeploymentClassNamingStrategy) *MachineDeploymentClassBuilder {
+	m.namingStrategy = n
+	return m
+}
+
 // Build creates a full MachineDeploymentClass object with the variables passed to the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClass {
 	obj := &clusterv1.MachineDeploymentClass{
@@ -525,6 +542,9 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	if m.strategy != nil {
 		obj.Strategy = m.strategy
+	}
+	if m.namingStrategy != nil {
+		obj.NamingStrategy = m.namingStrategy
 	}
 	return obj
 }

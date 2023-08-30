@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
+	"sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 )
 
@@ -147,6 +149,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 
 	// Ensure MachineHealthChecks are valid.
 	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
+
+	// Ensure NamingStrategies are valid.
+	allErrs = append(allErrs, validateNamingStrategies(newClusterClass)...)
 
 	// Validate variables.
 	allErrs = append(allErrs,
@@ -346,6 +351,49 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 
 		allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, clusterClass.Namespace, md.MachineHealthCheck)...)
 	}
+	return allErrs
+}
+
+func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if clusterClass.Spec.ControlPlane.NamingStrategy != nil && clusterClass.Spec.ControlPlane.NamingStrategy.Template != nil {
+		name, err := names.ControlPlaneNameGenerator(*clusterClass.Spec.ControlPlane.NamingStrategy.Template, "cluster").GenerateName()
+		templateFldPath := field.NewPath("spec", "controlPlane", "namingStrategy", "template")
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					templateFldPath,
+					*clusterClass.Spec.ControlPlane.NamingStrategy.Template,
+					fmt.Sprintf("invalid ControlPlane name template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs, field.Invalid(templateFldPath, *clusterClass.Spec.ControlPlane.NamingStrategy.Template, err))
+			}
+		}
+	}
+
+	for i, md := range clusterClass.Spec.Workers.MachineDeployments {
+		if md.NamingStrategy == nil || md.NamingStrategy.Template == nil {
+			continue
+		}
+		name, err := names.MachineDeploymentNameGenerator(*md.NamingStrategy.Template, "cluster", "mdtopology").GenerateName()
+		templateFldPath := field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("namingStrategy", "template")
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					templateFldPath,
+					*md.NamingStrategy.Template,
+					fmt.Sprintf("invalid MachineDeployment name template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs, field.Invalid(templateFldPath, *md.NamingStrategy.Template, err))
+			}
+		}
+	}
+
 	return allErrs
 }
 

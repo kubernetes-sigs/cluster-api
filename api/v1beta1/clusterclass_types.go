@@ -106,6 +106,10 @@ type ControlPlaneClass struct {
 	// +optional
 	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 
+	// NamingStrategy allows changing the naming pattern used when creating the control plane provider object.
+	// +optional
+	NamingStrategy *ControlPlaneClassNamingStrategy `json:"namingStrategy,omitempty"`
+
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
@@ -125,6 +129,19 @@ type ControlPlaneClass struct {
 	// NOTE: This value can be overridden while defining a Cluster.Topology.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+}
+
+// ControlPlaneClassNamingStrategy defines the naming strategy for control plane objects.
+type ControlPlaneClassNamingStrategy struct {
+	// Template defines the template to use for generating the name of the ControlPlane object.
+	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .random }}`.
+	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
+	// get concatenated with a random suffix of length 5.
+	// The templating mechanism provides the following arguments:
+	// * `.cluster.name`: The name of the cluster object.
+	// * `.random`: A random alphanumeric string, without vowels, of length 5.
+	// +optional
+	Template *string `json:"template,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -156,6 +173,10 @@ type MachineDeploymentClass struct {
 	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
 	// +optional
 	FailureDomain *string `json:"failureDomain,omitempty"`
+
+	// NamingStrategy allows changing the naming pattern used when creating the MachineDeployment.
+	// +optional
+	NamingStrategy *MachineDeploymentClassNamingStrategy `json:"namingStrategy,omitempty"`
 
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
@@ -205,6 +226,20 @@ type MachineDeploymentClassTemplate struct {
 	// Infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
 	Infrastructure LocalObjectTemplate `json:"infrastructure"`
+}
+
+// MachineDeploymentClassNamingStrategy defines the naming strategy for machine deployment objects.
+type MachineDeploymentClassNamingStrategy struct {
+	// Template defines the template to use for generating the name of the MachineDeployment object.
+	// If not defined, it will fallback to `{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}`.
+	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
+	// get concatenated with a random suffix of length 5.
+	// The templating mechanism provides the following arguments:
+	// * `.cluster.name`: The name of the cluster object.
+	// * `.random`: A random alphanumeric string, without vowels, of length 5.
+	// * `.machineDeployment.topologyName`: The name of the MachineDeployment topology (Cluster.spec.topology.workers.machineDeployments[].name).
+	// +optional
+	Template *string `json:"template,omitempty"`
 }
 
 // MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.

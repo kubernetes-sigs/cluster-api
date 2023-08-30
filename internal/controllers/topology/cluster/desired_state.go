@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -38,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -131,7 +131,7 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
-		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
+		nameGenerator:         names.SimpleNameGenerator(fmt.Sprintf("%s-", cluster.Name)),
 		currentObjectRef:      currentRef,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
 		// of the infrastructure cluster starts no matter of the object being actually referenced by the Cluster itself.
@@ -169,18 +169,17 @@ func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scop
 		}
 	}
 
-	controlPlaneInfrastructureMachineTemplate := templateToTemplate(templateToInput{
+	return templateToTemplate(templateToInput{
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
-		namePrefix:            controlPlaneInfrastructureMachineTemplateNamePrefix(cluster.Name),
+		nameGenerator:         names.SimpleNameGenerator(controlPlaneInfrastructureMachineTemplateNamePrefix(cluster.Name)),
 		currentObjectRef:      currentRef,
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and updating the Cluster object
 		// with the reference to the ControlPlane object using this template.
 		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
-	return controlPlaneInfrastructureMachineTemplate, nil
 }
 
 // computeControlPlane computes the desired state for the ControlPlane object starting from the
@@ -206,11 +205,16 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 
 	controlPlaneAnnotations := util.MergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
 
+	nameTemplate := "{{ .cluster.name }}-{{ .random }}"
+	if s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy != nil && s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template != nil {
+		nameTemplate = *s.Blueprint.ClusterClass.Spec.ControlPlane.NamingStrategy.Template
+	}
+
 	controlPlane, err := templateToObject(templateToInput{
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
-		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
+		nameGenerator:         names.ControlPlaneNameGenerator(nameTemplate, cluster.Name),
 		currentObjectRef:      currentRef,
 		labels:                controlPlaneLabels,
 		annotations:           controlPlaneAnnotations,
@@ -578,17 +582,21 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	if currentMachineDeployment != nil && currentMachineDeployment.BootstrapTemplate != nil {
 		currentBootstrapTemplateRef = currentMachineDeployment.Object.Spec.Template.Spec.Bootstrap.ConfigRef
 	}
-	desiredMachineDeployment.BootstrapTemplate = templateToTemplate(templateToInput{
+	var err error
+	desiredMachineDeployment.BootstrapTemplate, err = templateToTemplate(templateToInput{
 		template:              machineDeploymentBlueprint.BootstrapTemplate,
 		templateClonedFromRef: contract.ObjToRef(machineDeploymentBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
-		namePrefix:            bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
+		nameGenerator:         names.SimpleNameGenerator(bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name)),
 		currentObjectRef:      currentBootstrapTemplateRef,
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachineDeployment object
 		// with the reference to the ControlPlane object using this template.
 		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	bootstrapTemplateLabels := desiredMachineDeployment.BootstrapTemplate.GetLabels()
 	if bootstrapTemplateLabels == nil {
@@ -603,17 +611,20 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 	if currentMachineDeployment != nil && currentMachineDeployment.InfrastructureMachineTemplate != nil {
 		currentInfraMachineTemplateRef = &currentMachineDeployment.Object.Spec.Template.Spec.InfrastructureRef
 	}
-	desiredMachineDeployment.InfrastructureMachineTemplate = templateToTemplate(templateToInput{
+	desiredMachineDeployment.InfrastructureMachineTemplate, err = templateToTemplate(templateToInput{
 		template:              machineDeploymentBlueprint.InfrastructureMachineTemplate,
 		templateClonedFromRef: contract.ObjToRef(machineDeploymentBlueprint.InfrastructureMachineTemplate),
 		cluster:               s.Current.Cluster,
-		namePrefix:            infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name),
+		nameGenerator:         names.SimpleNameGenerator(infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machineDeploymentTopology.Name)),
 		currentObjectRef:      currentInfraMachineTemplateRef,
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachineDeployment object
 		// with the reference to the ControlPlane object using this template.
 		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	infraMachineTemplateLabels := desiredMachineDeployment.InfrastructureMachineTemplate.GetLabels()
 	if infraMachineTemplateLabels == nil {
@@ -665,13 +676,23 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, machineDeployme
 		return nil, errors.Wrap(err, "failed to calculate desired infrastructure machine template ref")
 	}
 
+	nameTemplate := "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
+	if machineDeploymentClass.NamingStrategy != nil && machineDeploymentClass.NamingStrategy.Template != nil {
+		nameTemplate = *machineDeploymentClass.NamingStrategy.Template
+	}
+
+	name, err := names.MachineDeploymentNameGenerator(nameTemplate, s.Current.Cluster.Name, machineDeploymentTopology.Name).GenerateName()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to generate name for MachineDeployment")
+	}
+
 	desiredMachineDeploymentObj := &clusterv1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       clusterv1.GroupVersion.WithKind("MachineDeployment").Kind,
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-%s-", s.Current.Cluster.Name, machineDeploymentTopology.Name)),
+			Name:      name,
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
@@ -874,7 +895,7 @@ type templateToInput struct {
 	template              *unstructured.Unstructured
 	templateClonedFromRef *corev1.ObjectReference
 	cluster               *clusterv1.Cluster
-	namePrefix            string
+	nameGenerator         names.NameGenerator
 	currentObjectRef      *corev1.ObjectReference
 	labels                map[string]string
 	annotations           map[string]string
@@ -913,8 +934,12 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 
 	// Ensure the generated objects have a meaningful name.
 	// NOTE: In case there is already a ref to this object in the Cluster, re-use the same name
-	// in order to simplify compare at later stages of the reconcile process.
-	object.SetName(names.SimpleNameGenerator.GenerateName(in.namePrefix))
+	// in order to simplify comparison at later stages of the reconcile process.
+	name, err := in.nameGenerator.GenerateName()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to generate name for %s", object.GetKind())
+	}
+	object.SetName(name)
 	if in.currentObjectRef != nil && len(in.currentObjectRef.Name) > 0 {
 		object.SetName(in.currentObjectRef.Name)
 	}
@@ -927,7 +952,7 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 // and assigning a meaningful name (or reusing current reference name).
 // NOTE: We are creating a copy of the ClusterClass template for each cluster so
 // it is possible to add cluster specific information without affecting the original object.
-func templateToTemplate(in templateToInput) *unstructured.Unstructured {
+func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) {
 	template := &unstructured.Unstructured{}
 	in.template.DeepCopyInto(template)
 
@@ -973,13 +998,17 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 
 	// Ensure the generated template gets a meaningful name.
 	// NOTE: In case there is already an object ref to this template, it is required to re-use the same name
-	// in order to simplify compare at later stages of the reconcile process.
-	template.SetName(names.SimpleNameGenerator.GenerateName(in.namePrefix))
+	// in order to simplify comparison at later stages of the reconcile process.
+	name, err := in.nameGenerator.GenerateName()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to generate name for %s", template.GetKind())
+	}
+	template.SetName(name)
 	if in.currentObjectRef != nil && len(in.currentObjectRef.Name) > 0 {
 		template.SetName(in.currentObjectRef.Name)
 	}
 
-	return template
+	return template, nil
 }
 
 func ownerReferenceTo(obj client.Object) *metav1.OwnerReference {

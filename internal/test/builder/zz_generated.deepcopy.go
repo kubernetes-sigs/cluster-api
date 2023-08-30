@@ -134,6 +134,11 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		*out = new(v1.Duration)
 		**out = **in
 	}
+	if in.controlPlaneNamingStrategy != nil {
+		in, out := &in.controlPlaneNamingStrategy, &out.controlPlaneNamingStrategy
+		*out = new(v1beta1.ControlPlaneClassNamingStrategy)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.machineDeploymentClasses != nil {
 		in, out := &in.machineDeploymentClasses, &out.machineDeploymentClasses
 		*out = make([]v1beta1.MachineDeploymentClass, len(*in))
@@ -445,6 +450,11 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 	if in.strategy != nil {
 		in, out := &in.strategy, &out.strategy
 		*out = new(v1beta1.MachineDeploymentStrategy)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.namingStrategy != nil {
+		in, out := &in.namingStrategy, &out.namingStrategy
+		*out = new(v1beta1.MachineDeploymentClassNamingStrategy)
 		(*in).DeepCopyInto(*out)
 	}
 }

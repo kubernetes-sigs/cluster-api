@@ -318,6 +318,19 @@ The goal of this task to make the book for the current release available under e
 3. Update references in introduction.md only on the main branch (drop unsupported versions, add the new release version).
    <br>Prior art: [Add release 1.2 book link](https://github.com/kubernetes-sigs/cluster-api/pull/6697)
 
+#### Generate weekly PR updates to post in Slack
+The goal of this task is to keep the CAPI community updated on recent PRs that have been merged. This is done by using the weekly update tool in `hack/tools/release/weekly/main.go`. Here is how to use it:
+1. Checkout the latest commit on the release branch, e.g. `release-1.4`, or the main branch if the release branch doesn't yet exist (e.g. beta release).
+2. Build the release weekly update tools binary.
+   ```bash
+   make release-weekly-update-tool
+   ```
+3. Generate the weekly update with the following command:
+   ```bash
+   ./bin/weekly --from YYYY-MM-DD --to YYYY-MM-DD --milestone v1.x
+   ```
+4. Paste the output into a new Slack message in the [`#cluster-api`](https://kubernetes.slack.com/archives/C8TSNPY4T) channel. Currently, we post separate messages in a thread for `main` and the two most recent release branches (e.g. `release-1.5` and `release-1.4`).
+
 #### Create PR for release notes
 1. Checkout the `main` branch.
 1. Build the release note tools binary.

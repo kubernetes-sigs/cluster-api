@@ -33,6 +33,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"
 )
 
 /*
@@ -42,25 +44,15 @@ This needs to be run *before* a tag is created.
 Use these as the base of your release notes.
 */
 
-const (
-	features      = ":sparkles: New Features"
-	bugs          = ":bug: Bug Fixes"
-	documentation = ":book: Documentation"
-	proposals     = ":memo: Proposals"
-	warning       = ":warning: Breaking Changes"
-	other         = ":seedling: Others"
-	unknown       = ":question: Sort these by hand"
-)
-
 var (
 	outputOrder = []string{
-		proposals,
-		warning,
-		features,
-		bugs,
-		other,
-		documentation,
-		unknown,
+		release.Proposals,
+		release.Warning,
+		release.Features,
+		release.Bugs,
+		release.Other,
+		release.Documentation,
+		release.Unknown,
 	}
 
 	repo = flag.String("repository", "kubernetes-sigs/cluster-api", "The repo to run the tool from.")
@@ -239,12 +231,12 @@ func run() int {
 	}
 
 	merges := map[string][]string{
-		features:      {},
-		bugs:          {},
-		documentation: {},
-		warning:       {},
-		other:         {},
-		unknown:       {},
+		release.Features:      {},
+		release.Bugs:          {},
+		release.Documentation: {},
+		release.Warning:       {},
+		release.Other:         {},
+		release.Unknown:       {},
 	}
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -308,7 +300,7 @@ func run() int {
 			continue
 		}
 
-		if result.prEntry.section == documentation {
+		if result.prEntry.section == release.Documentation {
 			merges[result.prEntry.section] = append(merges[result.prEntry.section], result.prEntry.prNumber)
 		} else {
 			merges[result.prEntry.section] = append(merges[result.prEntry.section], result.prEntry.title)
@@ -354,17 +346,17 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 	} else if count > 1 {
 		fmt.Printf("- %d new commits merged\n", count)
 	}
-	if count := len(merges[warning]); count == 1 {
+	if count := len(merges[release.Warning]); count == 1 {
 		fmt.Println("- 1 breaking change :warning:")
 	} else if count > 1 {
 		fmt.Printf("- %d breaking changes :warning:\n", count)
 	}
-	if count := len(merges[features]); count == 1 {
+	if count := len(merges[release.Features]); count == 1 {
 		fmt.Println("- 1 feature addition ✨")
 	} else if count > 1 {
 		fmt.Printf("- %d feature additions ✨\n", count)
 	}
-	if count := len(merges[bugs]); count == 1 {
+	if count := len(merges[release.Bugs]); count == 1 {
 		fmt.Println("- 1 bug fixed 🐛")
 	} else if count > 1 {
 		fmt.Printf("- %d bugs fixed 🐛\n", count)
@@ -378,7 +370,7 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 		}
 
 		switch key {
-		case documentation:
+		case release.Documentation:
 			sort.Strings(mergeslice)
 			if len(mergeslice) == 1 {
 				fmt.Printf(
@@ -507,29 +499,29 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 
 	switch {
 	case strings.HasPrefix(entry.title, ":sparkles:"), strings.HasPrefix(entry.title, "✨"):
-		entry.section = features
+		entry.section = release.Features
 		entry.title = removePrefixes(entry.title, []string{":sparkles:", "✨"})
 	case strings.HasPrefix(entry.title, ":bug:"), strings.HasPrefix(entry.title, "🐛"):
-		entry.section = bugs
+		entry.section = release.Bugs
 		entry.title = removePrefixes(entry.title, []string{":bug:", "🐛"})
 	case strings.HasPrefix(entry.title, ":book:"), strings.HasPrefix(entry.title, "📖"):
-		entry.section = documentation
+		entry.section = release.Documentation
 		entry.title = removePrefixes(entry.title, []string{":book:", "📖"})
 		if strings.Contains(entry.title, "CAEP") || strings.Contains(entry.title, "proposal") {
-			entry.section = proposals
+			entry.section = release.Proposals
 		}
 	case strings.HasPrefix(entry.title, ":warning:"), strings.HasPrefix(entry.title, "⚠️"):
-		entry.section = warning
+		entry.section = release.Warning
 		entry.title = removePrefixes(entry.title, []string{":warning:", "⚠️"})
 	case strings.HasPrefix(entry.title, "🚀"), strings.HasPrefix(entry.title, "🌱 Release v1."):
 		// TODO(g-gaston): remove the second condition using 🌱 prefix once 1.6 is released
 		// Release trigger PRs from previous releases are not included in the release notes
 		return nil, nil
 	case strings.HasPrefix(entry.title, ":seedling:"), strings.HasPrefix(entry.title, "🌱"):
-		entry.section = other
+		entry.section = release.Other
 		entry.title = removePrefixes(entry.title, []string{":seedling:", "🌱"})
 	default:
-		entry.section = unknown
+		entry.section = release.Unknown
 	}
 
 	// If the area label indicates documentation, use documentation as the section
@@ -537,7 +529,7 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	// tends to be more accurate than the emoji (data point observed by the release team).
 	// We handle this after the switch statement to make sure we remove all emoji prefixes.
 	if area == documentationAreaLabel {
-		entry.section = documentation
+		entry.section = release.Documentation
 	}
 
 	entry.title = strings.TrimSpace(entry.title)

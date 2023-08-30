@@ -352,6 +352,7 @@ func run() int {
 
 		switch key {
 		case documentation:
+			sort.Strings(mergeslice)
 			if len(mergeslice) == 1 {
 				fmt.Printf(
 					":book: Additionally, there has been 1 contribution to our documentation and book. (%s) \n\n",
@@ -435,14 +436,14 @@ type releaseNoteEntry struct {
 	prNumber string
 }
 
-// modifyEntryTitle removes the specified prefixes from the title.
-func modifyEntryTitle(title string, prefixes []string) string {
+// removePrefixes removes the specified prefixes from the title.
+func removePrefixes(title string, prefixes []string) string {
 	entryWithoutTag := title
 	for _, prefix := range prefixes {
 		entryWithoutTag = strings.TrimLeft(strings.TrimPrefix(entryWithoutTag, prefix), " ")
 	}
 
-	return strings.ToUpper(string(entryWithoutTag[0])) + entryWithoutTag[1:]
+	return entryWithoutTag
 }
 
 // trimAreaFromTitle removes the prefixed area from title to avoid duplication.
@@ -453,6 +454,10 @@ func trimAreaFromTitle(title, area string) string {
 	titleWithoutArea = re.ReplaceAllString(titleWithoutArea, "")
 	titleWithoutArea = strings.TrimSpace(titleWithoutArea)
 	return titleWithoutArea
+}
+
+func capitalize(str string) string {
+	return strings.ToUpper(string(str[0])) + str[1:]
 }
 
 // generateReleaseNoteEntry processes a commit into a PR line item for the release notes.
@@ -476,22 +481,22 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	switch {
 	case strings.HasPrefix(entry.title, ":sparkles:"), strings.HasPrefix(entry.title, "✨"):
 		entry.section = features
-		entry.title = modifyEntryTitle(entry.title, []string{":sparkles:", "✨"})
+		entry.title = removePrefixes(entry.title, []string{":sparkles:", "✨"})
 	case strings.HasPrefix(entry.title, ":bug:"), strings.HasPrefix(entry.title, "🐛"):
 		entry.section = bugs
-		entry.title = modifyEntryTitle(entry.title, []string{":bug:", "🐛"})
+		entry.title = removePrefixes(entry.title, []string{":bug:", "🐛"})
 	case strings.HasPrefix(entry.title, ":book:"), strings.HasPrefix(entry.title, "📖"):
 		entry.section = documentation
-		entry.title = modifyEntryTitle(entry.title, []string{":book:", "📖"})
+		entry.title = removePrefixes(entry.title, []string{":book:", "📖"})
 		if strings.Contains(entry.title, "CAEP") || strings.Contains(entry.title, "proposal") {
 			entry.section = proposals
 		}
 	case strings.HasPrefix(entry.title, ":seedling:"), strings.HasPrefix(entry.title, "🌱"):
 		entry.section = other
-		entry.title = modifyEntryTitle(entry.title, []string{":seedling:", "🌱"})
+		entry.title = removePrefixes(entry.title, []string{":seedling:", "🌱"})
 	case strings.HasPrefix(entry.title, ":warning:"), strings.HasPrefix(entry.title, "⚠️"):
 		entry.section = warning
-		entry.title = modifyEntryTitle(entry.title, []string{":warning:", "⚠️"})
+		entry.title = removePrefixes(entry.title, []string{":warning:", "⚠️"})
 	default:
 		entry.section = unknown
 	}
@@ -513,8 +518,10 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 
 	if *prefixAreaLabel {
 		entry.title = trimAreaFromTitle(entry.title, area)
+		entry.title = capitalize(entry.title)
 		entry.title = fmt.Sprintf("- %s: %s", area, entry.title)
 	} else {
+		entry.title = capitalize(entry.title)
 		entry.title = fmt.Sprintf("- %s", entry.title)
 	}
 

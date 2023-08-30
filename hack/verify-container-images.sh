@@ -23,6 +23,7 @@ if [[ "${TRACE-0}" == "1" ]]; then
 fi
 
 VERSION=${1}
+GO_ARCH="$(go env GOARCH)"
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 "${REPO_ROOT}/hack/ensure-trivy.sh" "${VERSION}"

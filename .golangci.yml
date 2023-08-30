@@ -58,7 +58,11 @@ linters:
 
 linters-settings:
   gci:
-    local-prefixes: "sigs.k8s.io/cluster-api"
+    sections:
+      - standard
+      - default
+      - prefix(sigs.k8s.io/cluster-api)
+    custom-order: true
   ginkgolinter:
     forbid-focus-container: true
   godot:

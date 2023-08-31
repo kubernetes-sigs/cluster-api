@@ -17,8 +17,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-set -x
-
 if [ -z "${1}" ]; then
   echo "must provide module as first parameter"
   exit 1

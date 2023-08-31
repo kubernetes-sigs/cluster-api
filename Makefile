@@ -170,11 +170,11 @@ GOVULNCHECK_VER := v1.0.0
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
 GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 
-METRIC_GEN_VER := v2.9.2
-METRIC_GEN_BIN := metric-gen
-METRIC_GEN := $(abspath $(TOOLS_BIN_DIR)/$(METRIC_GEN_BIN)-$(METRIC_GEN_VER))
-METRIC_GEN_PKG := k8s.io/kube-state-metrics/exp/metric-gen/v2
-METRIC_GEN_MOD_REPLACE := $(METRIC_GEN_PKG)=github.com/chrischdi/kube-state-metrics/exp/metric-gen/v2@$(METRIC_GEN_VER) k8s.io/kube-state-metrics/v2=k8s.io/kube-state-metrics/v2@$(METRIC_GEN_VER)
+KUBE_STATE_METRICS_VER := e31ed9ab
+KUBE_STATE_METRICS_BIN := kube-state-metrics
+KUBE_STATE_METRICS := $(abspath $(TOOLS_BIN_DIR)/$(KUBE_STATE_METRICS_BIN)-$(KUBE_STATE_METRICS_VER))
+KUBE_STATE_METRICS_PKG := k8s.io/kube-state-metrics/v2
+KUBE_STATE_METRICS_MOD_REPLACE := $(KUBE_STATE_METRICS_PKG)=github.com/chrischdi/kube-state-metrics/v2@$(KUBE_STATE_METRICS_VER)
 
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
@@ -563,8 +563,8 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(INMEMORY_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(INMEMORY_TEMPLATES)/main/cluster-template.yaml
 
 .PHONY: generate-metrics-config
-generate-metrics-config: $(METRIC_GEN) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml
-	$(METRIC_GEN) ./apis/... > "${OBSERVABILITY_DIR}/kube-state-metrics/crd-config.yaml"
+generate-metrics-config: $(KUBE_STATE_METRICS) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml
+	$(KUBE_STATE_METRICS) generate ./apis/... > "${OBSERVABILITY_DIR}/kube-state-metrics/crd-config.yaml"
 
 	METRICS_DIR="${OBSERVABILITY_DIR}/kube-state-metrics/metrics"; \
 	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
@@ -1300,8 +1300,8 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 .PHONY: $(GOVULNCHECK_BIN)
 $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 
-.PHONY: $(METRIC_GEN_BIN)
-$(METRIC_GEN_BIN): $(METRIC_GEN) ## Build a local copy of metric-gen.
+.PHONY: $(KUBE_STATE_METRICS_BIN)
+$(KUBE_STATE_METRICS_BIN): $(KUBE_STATE_METRICS) ## Build a local copy of metric-gen.
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
@@ -1357,8 +1357,8 @@ $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
 
-$(METRIC_GEN): # Build metric-gen.
-	GOBIN=$(TOOLS_BIN_DIR) GOMOD_REPLACE="$(METRIC_GEN_MOD_REPLACE)" $(GO_TOOLS_BUILD) $(METRIC_GEN_PKG) $(METRIC_GEN_BIN) $(METRIC_GEN_VER)
+$(KUBE_STATE_METRICS): # Build kube-state-metrics.
+	GOBIN=$(TOOLS_BIN_DIR) GOMOD_REPLACE="$(KUBE_STATE_METRICS_MOD_REPLACE)" $(GO_TOOLS_BUILD) $(KUBE_STATE_METRICS_PKG) $(KUBE_STATE_METRICS_BIN) $(KUBE_STATE_METRICS_VER)
 
 ## --------------------------------------
 ## Helpers

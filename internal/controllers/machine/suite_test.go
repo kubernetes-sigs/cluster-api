@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	// +kubebuilder:scaffold:imports
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"

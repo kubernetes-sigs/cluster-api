@@ -23,7 +23,6 @@ import (
 	"testing"
 	"time"
 
-	// +kubebuilder:scaffold:imports
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"

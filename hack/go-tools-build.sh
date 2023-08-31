@@ -37,6 +37,8 @@ if [ -z "${GOBIN}" ]; then
   exit 1
 fi
 
+export GOWORK="off"
+
 GOMOD_REPLACE=${GOMOD_REPLACE:=}
 GOMOD_REQUIRE=${GOMOD_REQUIRE:=}
 
@@ -55,10 +57,10 @@ cd "${TMP_MODULE_DIR}"
 go mod init "tools"
 
 for PARAM in ${GOMOD_REPLACE}; do
-  eval go mod edit -replace ${PARAM}
+  eval go mod edit -replace "${PARAM}"
 done
 for PARAM in ${GOMOD_REQUIRE}; do
-  eval go mod edit -require ${PARAM}
+  eval go mod edit -require "${PARAM}"
 done
 
 # Create go file which imports the required package and resolve dependencies.

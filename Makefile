@@ -564,18 +564,12 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 
 .PHONY: generate-metrics-config
 generate-metrics-config: $(KUBE_STATE_METRICS) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml
-	$(KUBE_STATE_METRICS) generate ./apis/... > "${OBSERVABILITY_DIR}/kube-state-metrics/crd-config.yaml"
-
-	METRICS_DIR="${OBSERVABILITY_DIR}/kube-state-metrics/metrics"; \
-	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
-	cat "$${METRICS_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
-	for resource in clusterclass cluster kubeadmcontrolplane kubeadmconfig machine machinedeployment machinehealthcheck machineset machinepool; do \
-		cat "$${METRICS_DIR}/$${resource}.yaml"; \
-		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRICS_DIR}/common_metrics.yaml"; \
-		if [[ "$${resource}" != "cluster" ]]; then \
-			cat "$${METRICS_DIR}/owner_metric.yaml"; \
-		fi \
-	done >> "$${OUTPUT_FILE}"; \
+	$(KUBE_STATE_METRICS) generate \
+		./api/... \
+		./controlplane/kubeadm/api/... \
+		./bootstrap/kubeadm/api/... \
+		./exp/api/... \
+		> "${OBSERVABILITY_DIR}/kube-state-metrics/crd-config.yaml"
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files

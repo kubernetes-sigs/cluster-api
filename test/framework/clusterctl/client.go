@@ -308,64 +308,28 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 }
 
 // ConfigClusterWithBinary uses clusterctl binary to run config cluster or generate cluster.
-// NOTE: This func detects the clusterctl version and uses config cluster or generate cluster
-// accordingly. We can drop the detection when we don't have to support clusterctl v0.3.x anymore.
-// TODO: (killianmuldoon) remove this detection.
 func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, input ConfigClusterInput) []byte {
-	log.Logf("Detect clusterctl version via: clusterctl version")
+	log.Logf("clusterctl generate cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s",
+		input.ClusterName,
+		valueOrDefault(input.InfrastructureProvider),
+		input.KubernetesVersion,
+		*input.ControlPlaneMachineCount,
+		*input.WorkerMachineCount,
+		valueOrDefault(input.Flavor),
+	)
+	cmd := exec.Command(clusterctlBinaryPath, "generate", "cluster", //nolint:gosec // We don't care about command injection here.
+		input.ClusterName,
+		"--infrastructure", input.InfrastructureProvider,
+		"--kubernetes-version", input.KubernetesVersion,
+		"--control-plane-machine-count", fmt.Sprint(*input.ControlPlaneMachineCount),
+		"--worker-machine-count", fmt.Sprint(*input.WorkerMachineCount),
+		"--flavor", input.Flavor,
+		"--target-namespace", input.Namespace,
+		"--config", input.ClusterctlConfigPath,
+		"--kubeconfig", input.KubeconfigPath,
+	)
 
-	out, err := exec.Command(clusterctlBinaryPath, "version").Output()
-	Expect(err).ToNot(HaveOccurred(), "error running clusterctl version")
-	var clusterctlSupportsGenerateCluster bool
-	if strings.Contains(string(out), "Major:\"1\"") {
-		log.Logf("Detected clusterctl v1.x")
-		clusterctlSupportsGenerateCluster = true
-	}
-
-	var cmd *exec.Cmd
-	if clusterctlSupportsGenerateCluster {
-		log.Logf("clusterctl generate cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s",
-			input.ClusterName,
-			valueOrDefault(input.InfrastructureProvider),
-			input.KubernetesVersion,
-			*input.ControlPlaneMachineCount,
-			*input.WorkerMachineCount,
-			valueOrDefault(input.Flavor),
-		)
-		cmd = exec.Command(clusterctlBinaryPath, "generate", "cluster", //nolint:gosec // We don't care about command injection here.
-			input.ClusterName,
-			"--infrastructure", input.InfrastructureProvider,
-			"--kubernetes-version", input.KubernetesVersion,
-			"--control-plane-machine-count", fmt.Sprint(*input.ControlPlaneMachineCount),
-			"--worker-machine-count", fmt.Sprint(*input.WorkerMachineCount),
-			"--flavor", input.Flavor,
-			"--target-namespace", input.Namespace,
-			"--config", input.ClusterctlConfigPath,
-			"--kubeconfig", input.KubeconfigPath,
-		)
-	} else {
-		log.Logf("clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s",
-			input.ClusterName,
-			valueOrDefault(input.InfrastructureProvider),
-			input.KubernetesVersion,
-			*input.ControlPlaneMachineCount,
-			*input.WorkerMachineCount,
-			valueOrDefault(input.Flavor),
-		)
-		cmd = exec.Command(clusterctlBinaryPath, "config", "cluster", //nolint:gosec // We don't care about command injection here.
-			input.ClusterName,
-			"--infrastructure", input.InfrastructureProvider,
-			"--kubernetes-version", input.KubernetesVersion,
-			"--control-plane-machine-count", fmt.Sprint(*input.ControlPlaneMachineCount),
-			"--worker-machine-count", fmt.Sprint(*input.WorkerMachineCount),
-			"--flavor", input.Flavor,
-			"--target-namespace", input.Namespace,
-			"--config", input.ClusterctlConfigPath,
-			"--kubeconfig", input.KubeconfigPath,
-		)
-	}
-
-	out, err = cmd.Output()
+	out, err := cmd.Output()
 	_ = os.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {

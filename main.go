@@ -47,17 +47,14 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
-	expv1alpha3 "sigs.k8s.io/cluster-api/exp/api/v1alpha3"
 	expv1alpha4 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
@@ -118,15 +115,12 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 
-	_ = clusterv1alpha3.AddToScheme(scheme)
 	_ = clusterv1alpha4.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 
-	_ = expv1alpha3.AddToScheme(scheme)
 	_ = expv1alpha4.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
 
-	_ = addonsv1alpha3.AddToScheme(scheme)
 	_ = addonsv1alpha4.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
 

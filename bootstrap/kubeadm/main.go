@@ -25,7 +25,6 @@ import (
 	goruntime "runtime"
 	"time"
 
-	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -70,7 +69,6 @@ func init() {
 	_ = expv1.AddToScheme(scheme)
 	_ = bootstrapv1alpha4.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
 }
 
 var (
@@ -263,7 +261,6 @@ func main() {
 	setupWebhooks(mgr)
 	setupReconcilers(ctx, mgr)
 
-	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")

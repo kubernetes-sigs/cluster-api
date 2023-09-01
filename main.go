@@ -26,7 +26,6 @@ import (
 	goruntime "runtime"
 	"time"
 
-	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -127,7 +126,6 @@ func init() {
 	_ = runtimev1.AddToScheme(scheme)
 
 	_ = ipamv1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
 
 	// Register the RuntimeHook types into the catalog.
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -338,7 +336,6 @@ func main() {
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
-	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")

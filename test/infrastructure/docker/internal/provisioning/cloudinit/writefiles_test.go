@@ -116,7 +116,7 @@ write_files:
     ---
     ClusterConfiguration...
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: InitConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
@@ -127,7 +127,7 @@ write_files:
   permissions: '0640'
 - content: |
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: JoinConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
@@ -174,7 +174,7 @@ write_files:
     ---
     ClusterConfiguration...
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: InitConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
@@ -185,7 +185,7 @@ write_files:
   permissions: '0640'
 - content: |
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: JoinConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
@@ -236,7 +236,7 @@ write_files:
     ---
     ClusterConfiguration...
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: InitConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
@@ -247,7 +247,7 @@ write_files:
   permissions: '0640'
 - content: |
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: JoinConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
@@ -296,7 +296,7 @@ write_files:
     ---
     ClusterConfiguration...
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: InitConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock
@@ -307,7 +307,7 @@ write_files:
   permissions: '0640'
 - content: |
     ---
-    apiVersion: kubeadm.k8s.io/v1beta1
+    apiVersion: kubeadm.k8s.io/v1beta3
     kind: JoinConfiguration
     nodeRegistration:
       criSocket: unix:///var/run/containerd/containerd.sock

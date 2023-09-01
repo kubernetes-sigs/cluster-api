@@ -27,7 +27,6 @@ import (
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -63,30 +62,15 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	// This function effectively disables any fuzzing for the token by setting
 	// the values for ID and Secret to working alphanumeric values.
 	return []interface{}{
-		kubeadmBootstrapTokenStringFuzzer,
 		cabpkBootstrapTokenStringFuzzer,
-		dnsFuzzer,
 		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
 		kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4,
 	}
 }
 
-func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
-	in.ID = fakeID
-	in.Secret = fakeSecret
-}
-
 func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
-}
-
-func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// TODO:(killianmuldoon) Assess whether we can remove this with the removal of v1alpha3.
-	// DNS.Type does not exist in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
-	obj.Type = ""
 }
 
 func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *bootstrapv1alpha4.BootstrapTokenString, _ fuzz.Continue) {

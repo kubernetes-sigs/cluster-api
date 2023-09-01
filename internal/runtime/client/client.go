@@ -154,10 +154,14 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 	modifiedExtensionConfig.Status.Handlers = []runtimev1.ExtensionHandler{}
 
 	for _, handler := range response.Handlers {
+		handlerName, err := NameForHandler(handler, extensionConfig)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
+		}
 		modifiedExtensionConfig.Status.Handlers = append(
 			modifiedExtensionConfig.Status.Handlers,
 			runtimev1.ExtensionHandler{
-				Name: handler.Name + "." + extensionConfig.Name, // Uniquely identifies a handler of an Extension.
+				Name: handlerName, // Uniquely identifies a handler of an Extension.
 				RequestHook: runtimev1.GroupVersionHook{
 					APIVersion: handler.RequestHook.APIVersion,
 					Hook:       handler.RequestHook.Hook,
@@ -654,4 +658,21 @@ func (c *client) matchNamespace(ctx context.Context, selector labels.Selector, n
 	}
 
 	return selector.Matches(labels.Set(ns.GetLabels())), nil
+}
+
+// NameForHandler constructs a canonical name for a registered runtime extension handler.
+func NameForHandler(handler runtimehooksv1.ExtensionHandler, extensionConfig *runtimev1.ExtensionConfig) (string, error) {
+	if extensionConfig == nil {
+		return "", errors.New("extensionConfig was nil")
+	}
+	return handler.Name + "." + extensionConfig.Name, nil
+}
+
+// ExtensionNameFromHandlerName extracts the extension name from the canonical name of a registered runtime extension handler.
+func ExtensionNameFromHandlerName(registeredHandlerName string) (string, error) {
+	parts := strings.Split(registeredHandlerName, ".")
+	if len(parts) != 2 {
+		return "", errors.Errorf("registered handler name %s was not in the expected format (`HANDLER_NAME.EXTENSION_NAME)", registeredHandlerName)
+	}
+	return parts[1], nil
 }

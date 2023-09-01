@@ -389,7 +389,7 @@ func uniqueObjectRefKey(ref *corev1.ObjectReference) string {
 // of the ExtensionConfig.
 func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client.Object) []reconcile.Request {
 	res := []ctrl.Request{}
-
+	log := ctrl.LoggerFrom(ctx)
 	ext, ok := o.(*runtimev1.ExtensionConfig)
 	if !ok {
 		panic(fmt.Sprintf("Expected an ExtensionConfig but got a %T", o))
@@ -409,8 +409,16 @@ func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client
 		}
 		for _, patch := range clusterClass.Spec.Patches {
 			if patch.External != nil && patch.External.DiscoverVariablesExtension != nil {
-				res = append(res, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: clusterClass.Namespace, Name: clusterClass.Name}})
-				break
+				extName, err := runtimeclient.ExtensionNameFromHandlerName(*patch.External.DiscoverVariablesExtension)
+				if err != nil {
+					log.Error(err, "failed to reconcile ClusterClass for ExtensionConfig")
+					continue
+				}
+				if extName == ext.Name {
+					res = append(res, ctrl.Request{NamespacedName: client.ObjectKey{Namespace: clusterClass.Namespace, Name: clusterClass.Name}})
+					// Once we've added the ClusterClass once we can break here.
+					break
+				}
 			}
 		}
 	}

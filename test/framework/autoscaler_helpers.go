@@ -372,7 +372,7 @@ func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterP
 			{
 				Verbs:     []string{"get", "list", "update", "watch"},
 				APIGroups: []string{"cluster.x-k8s.io"},
-				Resources: []string{"machinedeployments", "machinedeployments/scale", "machines", "machinesets"},
+				Resources: []string{"machinedeployments", "machinedeployments/scale", "machinepools", "machinepools/scale", "machines", "machinesets"},
 			},
 			{
 				Verbs:     []string{"get", "list"},

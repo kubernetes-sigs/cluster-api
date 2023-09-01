@@ -242,6 +242,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			// MHC reported condition should take precedence over the remediation progress
 			clusterv1.MachineHealthCheckSucceededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
+			clusterv1.DrainingSucceededCondition,
 		),
 		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
 		conditions.WithStepCounterIfOnly(

@@ -89,3 +89,6 @@ tmp
 
 # Development container configurations (https://containers.dev/)
 .devcontainer
+
+# .envrc for setting env vars. https://direnv.net/
+.envrc

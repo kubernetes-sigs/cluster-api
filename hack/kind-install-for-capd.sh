@@ -30,6 +30,8 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace
 fi
 
+"$(dirname "$0")/check-kind-version.sh"
+
 KIND_CLUSTER_NAME=${CAPI_KIND_CLUSTER_NAME:-"capi-test"}
 # See: https://kind.sigs.k8s.io/docs/user/configuration/#ip-family
 KIND_NETWORK_IPFAMILY=${KIND_NETWORK_IPFAMILY:-"dual"}

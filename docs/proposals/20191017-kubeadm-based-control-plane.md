@@ -168,7 +168,7 @@ Non-Goals listed in this document are intended to scope bound the current v1alph
 
 #### New API Types
 
-See [kubeadm_control_plane_types.go](https://github.com/kubernetes-sigs/cluster-api/blob/main/controlplane/kubeadm/api/v1alpha3/kubeadm_control_plane_types.go)
+See [kubeadm_control_plane_types.go](https://github.com/kubernetes-sigs/cluster-api/blob/release-0.3/controlplane/kubeadm/api/v1alpha3/kubeadm_control_plane_types.go)
 
 With the following validations:
 

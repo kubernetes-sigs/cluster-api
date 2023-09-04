@@ -17,16 +17,6 @@ jobs:
       SPECTRO_VERSION: ${{ github.event.inputs.release_version }}
     steps:
       -
-        uses: mukunku/tag-exists-action@v1.2.0
-        id: checkTag
-        with:
-          tag: v${{ github.event.inputs.release_version }}-spectro
-      -
-        if: ${{ steps.checkTag.outputs.exists == 'true' }}
-        run: |
-          echo "Tag already exists for v${{ github.event.inputs.release_version }}-spectro..."
-          exit 1
-      -
         uses: actions/checkout@v3
       -
         name: Set up Docker Buildx
@@ -45,16 +35,3 @@ jobs:
         run: |
           make docker-build-all
           make docker-push-all
-      -
-        name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.event.inputs.release_version }}-spectro
-          release_name: Release v${{ github.event.inputs.release_version }}-spectro
-          body: |
-            Release version v${{ github.event.inputs.release_version }}-spectro
-          draft: false
-          prerelease: false

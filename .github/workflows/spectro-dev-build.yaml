@@ -1,5 +1,5 @@
-name: Spectro Release
-run-name: Release for Cluster API  ${{ github.event.inputs.release_version }}
+name: Spectro Dev Build
+run-name: Dev build for ${{ github.event.inputs.release_version }}
 on:
   workflow_dispatch:
     inputs:

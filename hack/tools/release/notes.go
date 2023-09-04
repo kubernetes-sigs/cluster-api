@@ -73,6 +73,8 @@ var (
 
 	prefixAreaLabel = flag.Bool("prefix-area-label", true, "If enabled, will prefix the area label.")
 
+	preReleaseVersion           = flag.Bool("pre-release-version", false, "If enabled, will add a pre-release warning header. (default false)")
+	deprecation                 = flag.Bool("deprecation", true, "If enabled, will add a templated deprecation warning header.")
 	addKubernetesVersionSupport = flag.Bool("add-kubernetes-version-support", true, "If enabled, will add the Kubernetes version support header.")
 
 	tagRegex = regexp.MustCompile(`^\[release-[\w-\.]*\]`)
@@ -307,14 +309,33 @@ func run() int {
 		}
 	}
 
+	if *preReleaseVersion {
+		fmt.Printf("🚨 This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/%s/issues/new).\n", *repo)
+	}
+
 	if *addKubernetesVersionSupport {
-		// TODO Turn this into a link (requires knowing the project name + organization)
 		fmt.Print(`## 👌 Kubernetes version support
 
 - Management Cluster: v1.**X**.x -> v1.**X**.x
 - Workload Cluster: v1.**X**.x -> v1.**X**.x
 
 [More information about version support can be found here](https://cluster-api.sigs.k8s.io/reference/versions.html)
+
+`)
+	}
+
+	fmt.Print(`## Highlights
+
+* REPLACE ME
+
+`)
+
+	if *deprecation {
+		fmt.Print(`## Deprecation Warning
+
+REPLACE ME: A couple sentences describing the deprecation, including links to docs.
+
+* [GitHub issue #REPLACE ME](REPLACE ME)
 
 `)
 	}

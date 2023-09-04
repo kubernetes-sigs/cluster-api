@@ -19,8 +19,6 @@ Prow Presubmits:
     * GINKGO_FOCUS: `[PR-Blocking]`
 * optional for merge, run if go code changes:
   * [pull-cluster-api-apidiff-main] `./scripts/ci-apidiff.sh`
-  * [pull-cluster-api-e2e-informing-main] `./scripts/ci-e2e.sh`
-    * GINKGO_FOCUS: `[PR-Informing]`
 * optional for merge, run if manually triggered:
   * [pull-cluster-api-test-mink8s-main] `./scripts/ci-test.sh`
     * KUBEBUILDER_ENVTEST_KUBERNETES_VERSION: `1.24.2`

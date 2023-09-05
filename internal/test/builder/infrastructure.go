@@ -35,6 +35,12 @@ var (
 	// GenericInfrastructureMachineTemplateCRD is a generic infrastructure machine template CRD.
 	GenericInfrastructureMachineTemplateCRD = untypedCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachineTemplateKind))
 
+	// GenericInfrastructureMachinePoolTemplateKind is the Kind for the GenericInfrastructureMachinePoolTemplate.
+	GenericInfrastructureMachinePoolTemplateKind = "GenericInfrastructureMachinePoolTemplate"
+
+	// GenericInfrastructureMachinePoolKind is the Kind for the GenericInfrastructureMachinePool.
+	GenericInfrastructureMachinePoolKind = "GenericInfrastructureMachinePool"
+
 	// GenericInfrastructureClusterKind is the kind for the GenericInfrastructureCluster type.
 	GenericInfrastructureClusterKind = "GenericInfrastructureCluster"
 	// GenericInfrastructureClusterCRD is a generic infrastructure machine CRD.
@@ -61,6 +67,12 @@ var (
 	TestInfrastructureMachineTemplateKind = "TestInfrastructureMachineTemplate"
 	// TestInfrastructureMachineTemplateCRD is a test infrastructure machine template CRD.
 	TestInfrastructureMachineTemplateCRD = testInfrastructureMachineTemplateCRD(InfrastructureGroupVersion.WithKind(TestInfrastructureMachineTemplateKind))
+
+	// TestInfrastructureMachinePoolTemplateKind is the kind for the TestInfrastructureMachinePoolTemplate type.
+	TestInfrastructureMachinePoolTemplateKind = "TestInfrastructureMachinePoolTemplate"
+
+	// TestInfrastructureMachinePoolKind is the kind for the TestInfrastructureMachinePool type.
+	TestInfrastructureMachinePoolKind = "TestInfrastructureMachinePool"
 
 	// TestInfrastructureMachineKind is the kind for the TestInfrastructureMachine type.
 	TestInfrastructureMachineKind = "TestInfrastructureMachine"

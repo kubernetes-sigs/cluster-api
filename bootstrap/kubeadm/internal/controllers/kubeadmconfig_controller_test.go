@@ -2249,7 +2249,7 @@ func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool 
 	m := builder.MachinePool(cluster.Namespace, name).
 		WithClusterName(cluster.Name).
 		WithLabels(map[string]string{clusterv1.ClusterNameLabel: cluster.Name}).
-		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(cluster.Namespace, "conf1").Unstructured()).
+		WithBootstrap(bootstrapbuilder.KubeadmConfig(cluster.Namespace, "conf1").Unstructured()).
 		WithVersion("1.19.1").
 		Build()
 	return m

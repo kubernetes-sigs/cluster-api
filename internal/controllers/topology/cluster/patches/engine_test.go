@@ -167,9 +167,6 @@ func TestApply(t *testing.T) {
 									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 										Names: []string{"default-worker"},
 									},
-									MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
-										Names: []string{"default-mp-worker"},
-									},
 								},
 							},
 							JSONPatches: []clusterv1.JSONPatch{
@@ -194,7 +191,7 @@ func TestApply(t *testing.T) {
 								{
 									Op:    "add",
 									Path:  "/spec/template/spec/resource",
-									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-worker-infra"`)},
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-infra"`)},
 								},
 							},
 						},
@@ -212,7 +209,7 @@ func TestApply(t *testing.T) {
 								{
 									Op:    "add",
 									Path:  "/spec/template/spec/resource",
-									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-worker-bootstrap"`)},
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-bootstrap"`)},
 								},
 							},
 						},
@@ -229,12 +226,12 @@ func TestApply(t *testing.T) {
 					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-infra"},
 				},
 				machinePoolBootstrapConfig: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "default-worker-bootstrap"},
-					"default-mp-worker-topo2": {"spec.resource": "default-worker-bootstrap"},
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-bootstrap"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-bootstrap"},
 				},
 				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "default-worker-infra"},
-					"default-mp-worker-topo2": {"spec.resource": "default-worker-infra"},
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-infra"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-infra"},
 				},
 			},
 		},
@@ -850,11 +847,11 @@ func TestApply(t *testing.T) {
 					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
 				},
 				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "value1"},
+					"default-mp-worker-topo1": {"spec.resource": "value2"},
 					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
 				},
 				machinePoolBootstrapConfig: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "value1"},
+					"default-mp-worker-topo1": {"spec.resource": "value2"},
 					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
 				},
 			},
@@ -1105,7 +1102,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 									{
 										Name:           "default-mp-worker-infra",
 										DefinitionFrom: "inline",
-										Value:          apiextensionsv1.JSON{Raw: []byte(`"value1"`)},
+										Value:          apiextensionsv1.JSON{Raw: []byte(`"value2"`)},
 									},
 								},
 							},

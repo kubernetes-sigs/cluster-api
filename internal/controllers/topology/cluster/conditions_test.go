@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
@@ -38,6 +39,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
 
 	deletionTime := metav1.Unix(0, 0)
 	tests := []struct {
@@ -241,6 +243,50 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
 		},
 		{
+			name:         "should set the condition to false if new version is not picked up because at least one of the machine pool is upgrading",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						Version: "v1.22.0",
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").
+							WithVersion("v1.21.2").
+							WithReplicas(3).
+							Build(),
+					},
+					MachinePools: scope.MachinePoolsStateMap{
+						"mp0": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp0-abc123").
+								WithReplicas(2).
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(1),
+									ReadyReplicas:       int32(1),
+									AvailableReplicas:   int32(1),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsPendingUpgrade = true
+					ut.MachinePools.MarkUpgrading("mp0-abc123")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantConditionStatus:  corev1.ConditionFalse,
+			wantConditionReason:  clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
+			wantConditionMessage: "Control plane rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
+		},
+		{
 			name:         "should set the condition to false if control plane picked the new version but machine deployments did not because control plane is upgrading",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
@@ -285,6 +331,51 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionStatus:  corev1.ConditionFalse,
 			wantConditionReason:  clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
 			wantConditionMessage: "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
+		},
+		{
+			name:         "should set the condition to false if control plane picked the new version but machine pools did not because control plane is upgrading",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						Version: "v1.22.0",
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").
+							WithVersion("v1.22.0").
+							WithReplicas(3).
+							Build(),
+					},
+					MachinePools: scope.MachinePoolsStateMap{
+						"mp0": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp0-abc123").
+								WithReplicas(2).
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsPendingUpgrade = false
+					ut.ControlPlane.IsUpgrading = true
+					ut.MachinePools.MarkPendingUpgrade("mp0-abc123")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantConditionStatus:  corev1.ConditionFalse,
+			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
+			wantConditionMessage: "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is upgrading to version v1.22.0",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but machine deployments did not because control plane is scaling",
@@ -333,6 +424,51 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "MachineDeployment(s) md0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
 		},
 		{
+			name:         "should set the condition to false if control plane picked the new version but machine pools did not because control plane is scaling",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						Version: "v1.22.0",
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").
+							WithVersion("v1.22.0").
+							WithReplicas(3).
+							Build(),
+					},
+					MachinePools: scope.MachinePoolsStateMap{
+						"mp0": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp0-abc123").
+								WithReplicas(2).
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsPendingUpgrade = false
+					ut.ControlPlane.IsScaling = true
+					ut.MachinePools.MarkPendingUpgrade("mp0-abc123")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantConditionStatus:  corev1.ConditionFalse,
+			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
+			wantConditionMessage: "MachinePool(s) mp0-abc123 rollout and upgrade to version v1.22.0 on hold. Control plane is reconciling desired replicas",
+		},
+		{
 			name:         "should set the condition to false if control plane picked the new version but there are machine deployments pending create because control plane is scaling",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
@@ -365,7 +501,39 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "MachineDeployment(s) for Topologies md0 creation on hold. Control plane is reconciling desired replicas",
 		},
 		{
-			name:         "should set the condition to true if control plane picked the new version and is upgrading but there are no machine deployments",
+			name:         "should set the condition to false if control plane picked the new version but there are machine pools pending create because control plane is scaling",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						Version: "v1.22.0",
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").
+							WithVersion("v1.22.0").
+							WithReplicas(3).
+							Build(),
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsPendingUpgrade = false
+					ut.ControlPlane.IsScaling = true
+					ut.MachinePools.MarkPendingCreate("mp0")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantConditionStatus:  corev1.ConditionFalse,
+			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsCreatePendingReason,
+			wantConditionMessage: "MachinePool(s) for Topologies mp0 creation on hold. Control plane is reconciling desired replicas",
+		},
+		{
+			name:         "should set the condition to true if control plane picked the new version and is upgrading but there are no machine deployments or machine pools",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
@@ -394,7 +562,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionStatus: corev1.ConditionTrue,
 		},
 		{
-			name:         "should set the condition to true if control plane picked the new version and is scaling but there are no machine deployments",
+			name:         "should set the condition to true if control plane picked the new version and is scaling but there are no machine deployments or machine pools",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
@@ -504,6 +672,75 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
 		},
 		{
+			name:         "should set the condition to false is some machine pools have not picked the new version because other machine pools are upgrading",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						Version: "v1.22.0",
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").
+							WithVersion("v1.22.0").
+							WithReplicas(3).
+							Build(),
+					},
+					MachinePools: scope.MachinePoolsStateMap{
+						"mp0": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp0-abc123").
+								WithReplicas(2).
+								WithVersion("v1.22.0").
+								WithStatus(expv1.MachinePoolStatus{
+									// mp is not ready because we don't have 2 updated, ready and available replicas.
+									Replicas:            int32(2),
+									ReadyReplicas:       int32(1),
+									AvailableReplicas:   int32(1),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+						"mp1": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp1-abc123").
+								WithReplicas(2).
+								WithVersion("v1.21.2").
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsPendingUpgrade = false
+					ut.MachinePools.MarkUpgrading("mp0-abc123")
+					ut.MachinePools.MarkPendingUpgrade("mp1-abc123")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			machines: []*clusterv1.Machine{
+				builder.Machine("ns1", "mp0-machine0").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyMachinePoolNameLabel: "mp0"}).
+					WithVersion("v1.21.2"). // Machine's version does not match MachinePool's version
+					Build(),
+				builder.Machine("ns1", "mp1-machine0").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyMachinePoolNameLabel: "mp1"}).
+					WithVersion("v1.21.2").
+					Build(),
+			},
+			wantConditionStatus:  corev1.ConditionFalse,
+			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason,
+			wantConditionMessage: "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 on hold. MachinePool(s) mp0-abc123 are upgrading",
+		},
+		{
 			name:         "should set the condition to false if some machine deployments have not picked the new version because their upgrade has been deferred",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
@@ -563,7 +800,64 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "MachineDeployment(s) md1-abc123 rollout and upgrade to version v1.22.0 deferred.",
 		},
 		{
-			name:         "should set the condition to true if there are no reconcile errors and control plane and all machine deployments picked up the new version",
+			name:         "should set the condition to false if some machine pools have not picked the new version because their upgrade has been deferred",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						Version: "v1.22.0",
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").
+							WithVersion("v1.22.0").
+							WithReplicas(3).
+							Build(),
+					},
+					MachinePools: scope.MachinePoolsStateMap{
+						"mp0": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp0-abc123").
+								WithReplicas(2).
+								WithVersion("v1.22.0").
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+						"mp1": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp1-abc123").
+								WithReplicas(2).
+								WithVersion("v1.21.2").
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.IsPendingUpgrade = false
+					ut.MachinePools.MarkDeferredUpgrade("mp1-abc123")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantConditionStatus:  corev1.ConditionFalse,
+			wantConditionReason:  clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredReason,
+			wantConditionMessage: "MachinePool(s) mp1-abc123 rollout and upgrade to version v1.22.0 deferred.",
+		},
+		{
+			name:         "should set the condition to true if there are no reconcile errors and control plane and all machine deployments and machine pools picked up the new version",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
@@ -608,6 +902,32 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								Build(),
 						},
 					},
+					MachinePools: scope.MachinePoolsStateMap{
+						"mp0": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp0-abc123").
+								WithReplicas(2).
+								WithVersion("v1.22.0").
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(1),
+									ReadyReplicas:       int32(1),
+									AvailableReplicas:   int32(1),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+						"mp1": &scope.MachinePoolState{
+							Object: builder.MachinePool("ns1", "mp1-abc123").
+								WithReplicas(2).
+								WithVersion("v1.22.0").
+								WithStatus(expv1.MachinePoolStatus{
+									Replicas:            int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+					},
 				},
 				UpgradeTracker: func() *scope.UpgradeTracker {
 					ut := scope.NewUpgradeTracker()
@@ -637,8 +957,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 
 			objs := []client.Object{}
 			if tt.s != nil && tt.s.Current != nil {
-				for _, mds := range tt.s.Current.MachineDeployments {
-					objs = append(objs, mds.Object)
+				for _, md := range tt.s.Current.MachineDeployments {
+					objs = append(objs, md.Object)
+				}
+				for _, mp := range tt.s.Current.MachinePools {
+					objs = append(objs, mp.Object)
 				}
 			}
 			for _, m := range tt.machines {
@@ -662,7 +985,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 	}
 }
 
-func TestComputeMachineDeploymentNameList(t *testing.T) {
+func TestComputeNameList(t *testing.T) {
 	tests := []struct {
 		name     string
 		mdList   []string

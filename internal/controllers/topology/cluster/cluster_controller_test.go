@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -46,20 +47,24 @@ import (
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var (
-	clusterName1                       = "cluster1"
-	clusterName2                       = "cluster2"
-	clusterClassName1                  = "class1"
-	clusterClassName2                  = "class2"
-	infrastructureMachineTemplateName1 = "inframachinetemplate1"
-	infrastructureMachineTemplateName2 = "inframachinetemplate2"
+	clusterName1                           = "cluster1"
+	clusterName2                           = "cluster2"
+	clusterClassName1                      = "class1"
+	clusterClassName2                      = "class2"
+	infrastructureMachineTemplateName1     = "inframachinetemplate1"
+	infrastructureMachineTemplateName2     = "inframachinetemplate2"
+	infrastructureMachinePoolTemplateName1 = "inframachinepooltemplate1"
+	infrastructureMachinePoolTemplateName2 = "inframachinepooltemplate2"
 )
 
 func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -96,6 +101,9 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
 
+		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+
 		// Check if the Cluster has the relevant TopologyReconciledCondition.
 		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 
@@ -105,6 +113,8 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 
 func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
+
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -144,6 +154,9 @@ func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
 
+			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+
 			// Check if the Cluster has the relevant TopologyReconciledCondition.
 			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		}
@@ -153,6 +166,7 @@ func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
 
 func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	g := NewWithT(t)
 	timeout := 300 * time.Second
 
@@ -190,6 +204,9 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
 
+		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+
 		// Check if the Cluster has the relevant TopologyReconciledCondition.
 		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		return nil
@@ -201,9 +218,10 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	clusterWithTopologyChange := actualCluster.DeepCopy()
 	clusterWithTopologyChange.Spec.Topology.Workers.MachineDeployments[0].Replicas = &replicas
+	clusterWithTopologyChange.Spec.Topology.Workers.MachinePools[0].Replicas = &replicas
 	g.Expect(patchHelper.Patch(ctx, clusterWithTopologyChange)).Should(Succeed())
 
-	// Check to ensure all objects are correctly reconciled with the new MachineDeployment replica count in Topology.
+	// Check to ensure all objects are correctly reconciled with the new MachineDeployment and MachinePool replica count in Topology.
 	g.Eventually(func(g Gomega) error {
 		// Get the cluster object.
 		updatedCluster := &clusterv1.Cluster{}
@@ -213,6 +231,9 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 
 		// Check to ensure the replica count has been successfully updated in the API server and cache.
 		g.Expect(updatedCluster.Spec.Topology.Workers.MachineDeployments[0].Replicas).To(Equal(&replicas))
+
+		// Check to ensure the replica count has been successfully updated in the API server and cache.
+		g.Expect(updatedCluster.Spec.Topology.Workers.MachinePools[0].Replicas).To(Equal(&replicas))
 
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
 		g.Expect(assertClusterReconcile(updatedCluster)).Should(Succeed())
@@ -226,6 +247,9 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).Should(Succeed())
 
+		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachinePoolsReconcile(updatedCluster)).Should(Succeed())
+
 		// Check if the Cluster has the relevant TopologyReconciledCondition.
 		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		return nil
@@ -234,6 +258,7 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 
 func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -273,6 +298,9 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
 
+			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+
 			// Check if the Cluster has the relevant TopologyReconciledCondition.
 			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		}
@@ -285,8 +313,10 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 
 	patchHelper, err := patch.NewHelper(clusterClass, env.Client)
 	g.Expect(err).ToNot(HaveOccurred())
-	// Change the infrastructureMachineTemplateName for the first of our machineDeployment and update in the API.
+	// Change the infrastructureMachineTemplateName for the first of our MachineDeployments and update in the API.
 	clusterClass.Spec.Workers.MachineDeployments[0].Template.Infrastructure.Ref.Name = infrastructureMachineTemplateName2
+	// Change the infrastructureMachinePoolTemplateName for the first of our MachinePools and update in the API.
+	clusterClass.Spec.Workers.MachinePools[0].Template.Infrastructure.Ref.Name = infrastructureMachinePoolTemplateName2
 	g.Expect(patchHelper.Patch(ctx, clusterClass)).To(Succeed())
 
 	g.Eventually(func(g Gomega) error {
@@ -295,6 +325,7 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 		class := &clusterv1.ClusterClass{}
 		g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, class)).To(Succeed())
 		g.Expect(class.Spec.Workers.MachineDeployments[0].Template.Infrastructure.Ref.Name).To(Equal(infrastructureMachineTemplateName2))
+		g.Expect(class.Spec.Workers.MachinePools[0].Template.Infrastructure.Ref.Name).To(Equal(infrastructureMachinePoolTemplateName2))
 
 		// For each cluster check that the clusterClass changes have been correctly reconciled.
 		for _, name := range []string{clusterName1, clusterName2} {
@@ -316,6 +347,9 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
 
+			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+
 			// Check if the Cluster has the relevant TopologyReconciledCondition.
 			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		}
@@ -325,6 +359,7 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 
 func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	g := NewWithT(t)
 	timeout := 30 * time.Second
 
@@ -362,6 +397,10 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+
+		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+
 		return nil
 	}, timeout).Should(Succeed())
 
@@ -392,12 +431,17 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).Should(Succeed())
+
+		// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+		g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
+
 		return nil
 	}, timeout).Should(Succeed())
 }
 
 func TestClusterReconciler_reconcileDelete(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -551,6 +595,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 // In this case deletion of the ClusterClass should be blocked by the webhook.
 func TestClusterReconciler_deleteClusterClass(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -588,6 +633,9 @@ func TestClusterReconciler_deleteClusterClass(t *testing.T) {
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+
+			// Check if MachinePools are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachinePoolsReconcile(actualCluster)).Should(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -709,6 +757,10 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).
 		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
+	infrastructureMachinePoolTemplate1 := builder.TestInfrastructureMachinePoolTemplate(ns.Name, infrastructureMachinePoolTemplateName1).Build()
+	infrastructureMachinePoolTemplate2 := builder.TestInfrastructureMachinePoolTemplate(ns.Name, infrastructureMachinePoolTemplateName2).
+		WithSpecFields(map[string]interface{}{"spec.template.fakeSetting": true}).
+		Build()
 	infrastructureClusterTemplate1 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate1").
 		Build()
 	infrastructureClusterTemplate2 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate2").
@@ -719,19 +771,33 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 		Build()
 	bootstrapTemplate := builder.TestBootstrapTemplate(ns.Name, "bootstraptemplate").Build()
 
-	// 2) ClusterClass definitions including definitions of MachineDeploymentClasses used inside the ClusterClass.
-	machineDeploymentClass1 := builder.MachineDeploymentClass(workerClassName1).
+	// 2) ClusterClass definitions including definitions of MachineDeploymentClasses and MachinePoolClasses used inside the ClusterClass.
+	machineDeploymentClass1 := builder.MachineDeploymentClass(workerClassName1 + "-md").
 		WithInfrastructureTemplate(infrastructureMachineTemplate1).
 		WithBootstrapTemplate(bootstrapTemplate).
 		WithLabels(map[string]string{"foo": "bar"}).
 		WithAnnotations(map[string]string{"foo": "bar"}).
 		Build()
-	machineDeploymentClass2 := builder.MachineDeploymentClass(workerClassName2).
+	machineDeploymentClass2 := builder.MachineDeploymentClass(workerClassName2 + "-md").
 		WithInfrastructureTemplate(infrastructureMachineTemplate1).
 		WithBootstrapTemplate(bootstrapTemplate).
 		Build()
-	machineDeploymentClass3 := builder.MachineDeploymentClass(workerClassName3).
+	machineDeploymentClass3 := builder.MachineDeploymentClass(workerClassName3 + "-md").
 		WithInfrastructureTemplate(infrastructureMachineTemplate2).
+		WithBootstrapTemplate(bootstrapTemplate).
+		Build()
+	machinePoolClass1 := builder.MachinePoolClass(workerClassName1 + "-mp").
+		WithInfrastructureTemplate(infrastructureMachinePoolTemplate1).
+		WithBootstrapTemplate(bootstrapTemplate).
+		WithLabels(map[string]string{"foo": "bar"}).
+		WithAnnotations(map[string]string{"foo": "bar"}).
+		Build()
+	machinePoolClass2 := builder.MachinePoolClass(workerClassName2 + "-mp").
+		WithInfrastructureTemplate(infrastructureMachinePoolTemplate1).
+		WithBootstrapTemplate(bootstrapTemplate).
+		Build()
+	machinePoolClass3 := builder.MachinePoolClass(workerClassName3 + "-mp").
+		WithInfrastructureTemplate(infrastructureMachinePoolTemplate2).
 		WithBootstrapTemplate(bootstrapTemplate).
 		Build()
 	clusterClass := builder.ClusterClass(ns.Name, clusterClassName1).
@@ -739,27 +805,37 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate1).
 		WithWorkerMachineDeploymentClasses(*machineDeploymentClass1, *machineDeploymentClass2).
+		WithWorkerMachinePoolClasses(*machinePoolClass1, *machinePoolClass2).
 		Build()
 
 	// This ClusterClass changes a number of things in a ClusterClass in a way that is compatible for a ClusterClass rebase operation.
 	// 1) It changes the controlPlaneMachineInfrastructureTemplate to a new template.
-	// 2) It adds a new machineDeploymentClass
+	// 2) It adds a new machineDeploymentClass and machinePoolClass
 	// 3) It changes the infrastructureClusterTemplate.
 	clusterClassForRebase := builder.ClusterClass(ns.Name, clusterClassName2).
 		WithInfrastructureClusterTemplate(infrastructureClusterTemplate2).
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate2).
 		WithWorkerMachineDeploymentClasses(*machineDeploymentClass1, *machineDeploymentClass2, *machineDeploymentClass3).
+		WithWorkerMachinePoolClasses(*machinePoolClass1, *machinePoolClass2, *machinePoolClass3).
 		Build()
 
-	// 3) Two Clusters including a Cluster Topology objects and the MachineDeploymentTopology objects used in the
-	// Cluster Topology. The second cluster differs from the first both in version and in its MachineDeployment definition.
+	// 3) Two Clusters including a Cluster Topology objects and the MachineDeploymentTopology and MachinePoolTopology objects used in the
+	// Cluster Topology. The second cluster differs from the first both in version and in its MachineDeployment and MachinePool definitions.
 	machineDeploymentTopology1 := builder.MachineDeploymentTopology("mdm1").
-		WithClass(workerClassName1).
+		WithClass(workerClassName1 + "-md").
 		WithReplicas(3).
 		Build()
 	machineDeploymentTopology2 := builder.MachineDeploymentTopology("mdm2").
-		WithClass(workerClassName2).
+		WithClass(workerClassName2 + "-md").
+		WithReplicas(1).
+		Build()
+	machinePoolTopology1 := builder.MachinePoolTopology("mp1").
+		WithClass(workerClassName1 + "-mp").
+		WithReplicas(3).
+		Build()
+	machinePoolTopology2 := builder.MachinePoolTopology("mp2").
+		WithClass(workerClassName2 + "-mp").
 		WithReplicas(1).
 		Build()
 
@@ -769,6 +845,8 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 				WithClass(clusterClass.Name).
 				WithMachineDeployment(machineDeploymentTopology1).
 				WithMachineDeployment(machineDeploymentTopology2).
+				WithMachinePool(machinePoolTopology1).
+				WithMachinePool(machinePoolTopology2).
 				WithVersion("1.22.2").
 				WithControlPlaneReplicas(3).
 				Build()).
@@ -779,10 +857,18 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 			builder.ClusterTopology().
 				WithClass(clusterClass.Name).
 				WithMachineDeployment(machineDeploymentTopology2).
+				WithMachinePool(machinePoolTopology2).
 				WithVersion("1.21.0").
 				WithControlPlaneReplicas(1).
 				Build()).
 		Build()
+
+	// Setup kubeconfig secrets for the clusters, so the ClusterCacheTracker works.
+	cluster1Secret := kubeconfig.GenerateSecret(cluster1, kubeconfig.FromEnvTestConfig(env.Config, cluster1))
+	cluster2Secret := kubeconfig.GenerateSecret(cluster2, kubeconfig.FromEnvTestConfig(env.Config, cluster2))
+	// Unset the ownerrefs otherwise they are invalid because they contain an empty uid.
+	cluster1Secret.ObjectMeta.OwnerReferences = nil
+	cluster2Secret.ObjectMeta.OwnerReferences = nil
 
 	// Create a set of setupTestEnvForIntegrationTests from the objects above to add to the API server when the test environment starts.
 	// The objects are created for every test, though some e.g. infrastructureMachineTemplate2 may not be used in every test.
@@ -791,12 +877,16 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 		infrastructureClusterTemplate2,
 		infrastructureMachineTemplate1,
 		infrastructureMachineTemplate2,
+		infrastructureMachinePoolTemplate1,
+		infrastructureMachinePoolTemplate2,
 		bootstrapTemplate,
 		controlPlaneTemplate,
 		clusterClass,
 		clusterClassForRebase,
 		cluster1,
 		cluster2,
+		cluster1Secret,
+		cluster2Secret,
 	}
 	cleanup := func() error {
 		// Delete Objects in reverse, because we cannot delete a ClusterCLass if it is still used by a Cluster.
@@ -994,6 +1084,92 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 	return nil
 }
 
+// assertMachinePoolsReconcile checks if the MachinePools:
+// 1) Are created in the correct number.
+// 2) Have the correct labels (TopologyOwned, ClusterName, MachinePoolName).
+// 3) Have the correct replicas and version.
+// 4) Have the correct Kind/APIVersion and Labels/Annotations for BoostrapRef and InfrastructureRef templates.
+func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
+	// List all created machine pools to assert the expected numbers are created.
+	machinePools := &expv1.MachinePoolList{}
+	if err := env.List(ctx, machinePools, client.InNamespace(cluster.Namespace)); err != nil {
+		return err
+	}
+
+	// clusterMPs will hold the MachinePools that have labels associating them with the cluster.
+	clusterMPs := []expv1.MachinePool{}
+
+	// Run through all machine pools and add only those with the TopologyOwnedLabel and the correct
+	// ClusterNameLabel to the items for further testing.
+	for _, m := range machinePools.Items {
+		// If the machinePool doesn't have the ClusterTopologyOwnedLabel and the ClusterNameLabel ignore.
+		mp := m
+		if err := assertClusterTopologyOwnedLabel(&mp); err != nil {
+			continue
+		}
+		if err := assertClusterNameLabel(&mp, cluster.Name); err != nil {
+			continue
+		}
+		clusterMPs = append(clusterMPs, mp)
+	}
+
+	// If the total number of machine pools is not as expected return false.
+	if len(clusterMPs) != len(cluster.Spec.Topology.Workers.MachinePools) {
+		return fmt.Errorf("number of MachinePools %v does not match number expected %v", len(clusterMPs), len(cluster.Spec.Topology.Workers.MachinePools))
+	}
+	for _, m := range clusterMPs {
+		for _, topologyMP := range cluster.Spec.Topology.Workers.MachinePools {
+			mp := m
+			// use the ClusterTopologyMachinePoolLabel to get the specific machinePool to compare to.
+			if topologyMP.Name != mp.GetLabels()[clusterv1.ClusterTopologyMachinePoolNameLabel] {
+				continue
+			}
+
+			// Check if the ClusterTopologyLabelName and ClusterTopologyOwnedLabel are set correctly.
+			if err := assertClusterTopologyOwnedLabel(&mp); err != nil {
+				return err
+			}
+
+			if err := assertClusterNameLabel(&mp, cluster.Name); err != nil {
+				return err
+			}
+
+			// Check replicas and version for the MachinePool.
+			if *mp.Spec.Replicas != *topologyMP.Replicas {
+				return fmt.Errorf("replicas %v does not match expected %v", mp.Spec.Replicas, topologyMP.Replicas)
+			}
+			if *mp.Spec.Template.Spec.Version != cluster.Spec.Topology.Version {
+				return fmt.Errorf("version %v does not match expected %v", *mp.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)
+			}
+
+			// Check if the InfrastructureReference exists.
+			if err := referenceExistsWithCorrectKindAndAPIVersion(&mp.Spec.Template.Spec.InfrastructureRef,
+				builder.TestInfrastructureMachinePoolKind,
+				builder.InfrastructureGroupVersion); err != nil {
+				return err
+			}
+
+			// Check if the InfrastructureReference has the expected labels and annotations.
+			if _, err := getAndAssertLabelsAndAnnotations(mp.Spec.Template.Spec.InfrastructureRef, cluster.Name); err != nil {
+				return err
+			}
+
+			// Check if the Bootstrap reference has the expected Kind and APIVersion.
+			if err := referenceExistsWithCorrectKindAndAPIVersion(mp.Spec.Template.Spec.Bootstrap.ConfigRef,
+				builder.TestBootstrapConfigKind,
+				builder.BootstrapGroupVersion); err != nil {
+				return err
+			}
+
+			// Check if the Bootstrap reference has the expected labels and annotations.
+			if _, err := getAndAssertLabelsAndAnnotations(*mp.Spec.Template.Spec.Bootstrap.ConfigRef, cluster.Name); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // getAndAssertLabelsAndAnnotations pulls the template referenced in the ObjectReference from the API server, checks for:
 // 1) The ClusterTopologyOwnedLabel.
 // 2) The correct ClusterNameLabel.
@@ -1083,6 +1259,11 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 	mdTopologyBase := builder.MachineDeploymentTopology("md1").
 		WithClass("worker1").
 		WithReplicas(3)
+	mpClass1 := builder.MachinePoolClass("worker1").
+		Build()
+	mpTopologyBase := builder.MachinePoolTopology("mp1").
+		WithClass("worker1").
+		WithReplicas(3)
 	clusterBuilder := builder.Cluster(metav1.NamespaceDefault, clusterName1).
 		WithTopology(topologyBase.DeepCopy().Build())
 
@@ -1151,6 +1332,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 			name: "Default nested values of Cluster variables with values from ClusterClass",
 			clusterClass: classBuilder.DeepCopy().
 				WithWorkerMachineDeploymentClasses(*mdClass1).
+				WithWorkerMachinePoolClasses(*mpClass1).
 				WithStatusVariables([]clusterv1.ClusterClassStatusVariable{
 					{
 						Name: "location",
@@ -1201,6 +1383,11 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 							Name:  "httpProxy",
 							Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)},
 						}).Build()).
+					WithMachinePool(mpTopologyBase.DeepCopy().
+						WithVariables(clusterv1.ClusterVariable{
+							Name:  "httpProxy",
+							Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)},
+						}).Build()).
 					Build()).
 				Build(),
 			wantCluster: clusterBuilder.DeepCopy().WithTopology(
@@ -1210,6 +1397,16 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`)}}).
 					WithMachineDeployment(
 						mdTopologyBase.DeepCopy().WithVariables(
+							clusterv1.ClusterVariable{
+								Name: "httpProxy",
+								Value: apiextensionsv1.JSON{
+									// url has been added by defaulting.
+									Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`),
+								},
+							}).
+							Build()).
+					WithMachinePool(
+						mpTopologyBase.DeepCopy().WithVariables(
 							clusterv1.ClusterVariable{
 								Name: "httpProxy",
 								Value: apiextensionsv1.JSON{
@@ -1243,6 +1440,9 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 func TestReconciler_ValidateCluster(t *testing.T) {
 	g := NewWithT(t)
 	mdTopologyBase := builder.MachineDeploymentTopology("md1").
+		WithClass("worker1").
+		WithReplicas(3)
+	mpTopologyBase := builder.MachinePoolTopology("mp1").
 		WithClass("worker1").
 		WithReplicas(3)
 	classBuilder := builder.ClusterClass(metav1.NamespaceDefault, clusterClassName1)
@@ -1305,7 +1505,8 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 					WithClass(clusterClassName1).
 					WithVersion("1.22.2").
 					WithControlPlaneReplicas(3).
-					WithMachineDeployment(mdTopologyBase.Build()).Build(),
+					WithMachineDeployment(mdTopologyBase.Build()).
+					WithMachinePool(mpTopologyBase.Build()).Build(),
 			).
 				Build(),
 			wantValidationErr: true,

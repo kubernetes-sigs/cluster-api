@@ -11,3 +11,12 @@ helmGlobals:
     # Otherwise "go mod tidy" picks up dependencies of go files contained in the Helm Chart.
     # "go mod tidy" ignores folders that begin with ".": https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
     chartHome: .charts
+
+resources:
+- rbac-crd-aggregation.yaml
+- cm-crd-sidecar.yaml
+
+patches:
+- path: patch-crd-sidecar.yaml
+  target:
+    kind: Deployment

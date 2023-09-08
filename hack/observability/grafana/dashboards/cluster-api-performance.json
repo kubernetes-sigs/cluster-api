@@ -156,7 +156,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(capi_cluster_info)",
+          "expr": "sum(capi_cluster_info{name=~\"${Cluster:pipe}\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -221,7 +221,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(capi_kubeadmcontrolplane_info)",
+          "expr": "sum(capi_kubeadmcontrolplane_info{cluster_name=~\"${Cluster:pipe}\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -286,7 +286,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(capi_machinedeployment_info)",
+          "expr": "sum(capi_machinedeployment_info{cluster_name=~\"${Cluster:pipe}\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -351,7 +351,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(capi_machineset_info)",
+          "expr": "sum(capi_machineset_info{cluster_name=~\"${Cluster:pipe}\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -416,7 +416,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(capi_machinepool_info)",
+          "expr": "sum(capi_machinepool_info{cluster_name=~\"${Cluster:pipe}\"})",
           "hide": false,
           "legendFormat": "__auto",
           "range": true,
@@ -482,7 +482,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(capi_machine_info)",
+          "expr": "sum(capi_machine_info{cluster_name=~\"${Cluster:pipe}\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -547,7 +547,7 @@
             "uid": "prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(capi_machinehealthcheck_info)",
+          "expr": "sum(capi_machinehealthcheck_info{cluster_name=~\"${Cluster:pipe}\"})",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
@@ -656,7 +656,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) by (name)",
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -756,7 +756,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created{}) by (name)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -856,7 +856,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{}) by (name)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -923,7 +923,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})",
               "legendFormat": "until InfrastructureReady since creationTimestamp",
               "range": true,
               "refId": "A"
@@ -934,7 +934,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{})",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})",
               "hide": false,
               "legendFormat": "until ControlPlaneReady since creationTimestamp",
               "range": true,
@@ -946,7 +946,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "hide": false,
               "legendFormat": "until last Machine NodeHealthy since creationTimestamp",
               "range": true,
@@ -1035,7 +1035,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created) by (name)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -1049,7 +1049,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created) by (name)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -1064,7 +1064,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) by (name)",
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) by (name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -1079,7 +1079,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "count(capi_cluster_info{} * on(name) group_right () label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"cluster_name\", \".*\")) by(name)",
+              "expr": "count(capi_cluster_info{name=~\"${Cluster:pipe}\"} * on(name) group_right () label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"cluster_name\", \".*\")) by(name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -1094,7 +1094,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "count(capi_cluster_info{} * on(name) group_right () label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"cluster_name\", \".*\")) by(name)",
+              "expr": "count(capi_cluster_info{name=~\"${Cluster:pipe}\"} * on(name) group_right () label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"cluster_name\", \".*\")) by(name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -1109,7 +1109,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(capi_cluster_created) by (name) * 1000",
+              "expr": "avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name) * 1000",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -1258,7 +1258,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created) by (type)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -1356,7 +1356,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg((min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_cluster_created) by (type)",
+              "expr": "avg((min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -1454,7 +1454,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name))",
+              "expr": "avg(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name))",
               "legendFormat": "Average",
               "range": true,
               "refId": "A"
@@ -1567,7 +1567,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created) by (name)",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -1634,7 +1634,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created)",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"})",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
@@ -1721,7 +1721,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created) by (name)",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -1735,7 +1735,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(capi_kubeadmcontrolplane_created) by (name) * 1000",
+              "expr": "avg(capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name) * 1000",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -1773,7 +1773,7 @@
                 },
                 "renameByName": {
                   "Value": "Time until Ready",
-                  "Value #A": "Time until InfrastructureReady",
+                  "Value #A": "Time until Ready",
                   "Value #B": "Creation Timestamp",
                   "Value #C": "Time until last Machine NodeHealthy",
                   "Value #D": "# CP",
@@ -1874,7 +1874,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created) by (type)",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -1972,7 +1972,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg((min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_kubeadmcontrolplane_created) by (type)",
+              "expr": "avg((min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -2084,7 +2084,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -2184,7 +2184,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -2284,7 +2284,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -2351,7 +2351,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
               "legendFormat": "until BootstrapReady since creationTimestamp",
               "range": true,
               "refId": "A"
@@ -2362,7 +2362,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
               "hide": false,
               "legendFormat": "until InfrastructureReady since creationTimestamp",
               "range": true,
@@ -2374,7 +2374,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
               "hide": false,
               "legendFormat": "until NodeHealthy since creationTimestamp",
               "range": true,
@@ -2462,7 +2462,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -2476,7 +2476,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -2491,7 +2491,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -2506,7 +2506,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(capi_machine_created * on (name) group_right capi_machine_info{control_plane_name!=\"\"}) by (name) * 1000",
+              "expr": "avg(capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right capi_machine_info{control_plane_name!=\"\"}) by (name) * 1000",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -2647,7 +2647,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -2745,7 +2745,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
+              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -2857,7 +2857,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -2957,7 +2957,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -3057,7 +3057,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -3124,7 +3124,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
               "legendFormat": "until BootstrapReady since creationTimestamp",
               "range": true,
               "refId": "A"
@@ -3135,7 +3135,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
               "hide": false,
               "legendFormat": "until InfrastructureReady since creationTimestamp",
               "range": true,
@@ -3147,7 +3147,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
               "hide": false,
               "legendFormat": "until NodeHealthy since creationTimestamp",
               "range": true,
@@ -3235,7 +3235,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -3249,7 +3249,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -3264,7 +3264,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -3279,7 +3279,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(capi_machine_created * on (name) group_right capi_machine_info{control_plane_name=\"\"}) by (name) * 1000",
+              "expr": "avg(capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right capi_machine_info{control_plane_name=\"\"}) by (name) * 1000",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -3420,7 +3420,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -3518,7 +3518,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
+              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -3630,7 +3630,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -3697,7 +3697,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))))",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))))",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
@@ -3784,7 +3784,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -3798,7 +3798,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))) by (name) * 1000",
+              "expr": "avg(capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))) by (name) * 1000",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -3835,7 +3835,7 @@
                 },
                 "renameByName": {
                   "Value": "Time until Ready",
-                  "Value #A": "Time until BootstrapReady",
+                  "Value #A": "Time until Ready",
                   "Value #B": "Creation Timestamp",
                   "Value #C": "Time until NodeHealthy",
                   "name": "KubeadmConfig Name"
@@ -3934,7 +3934,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -4032,7 +4032,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -4144,7 +4144,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
               "format": "time_series",
               "instant": true,
               "legendFormat": "__auto",
@@ -4211,7 +4211,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))))",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))))",
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
@@ -4298,7 +4298,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
               "format": "table",
               "instant": true,
               "legendFormat": "__auto",
@@ -4312,7 +4312,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))) by (name) * 1000",
+              "expr": "avg(capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))) by (name) * 1000",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4349,7 +4349,7 @@
                 },
                 "renameByName": {
                   "Value": "Time until Ready",
-                  "Value #A": "Time until BootstrapReady",
+                  "Value #A": "Time until Ready",
                   "Value #B": "Creation Timestamp",
                   "Value #C": "Time until NodeHealthy",
                   "name": "KubeadmConfig Name"
@@ -4448,7 +4448,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -4546,7 +4546,7 @@
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
               "legendFormat": "{{type}}",
               "range": true,
               "refId": "A"
@@ -4647,7 +4647,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "min(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created) by (type)",
+              "expr": "min(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
               "format": "table",
               "instant": true,
               "range": false,
@@ -4660,7 +4660,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "max(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created)  by (type)",
+              "expr": "max(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})  by (type)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4674,7 +4674,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created)  by (type)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})  by (type)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4688,7 +4688,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "quantile(0.5, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created)  by (type)",
+              "expr": "quantile(0.5, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})  by (type)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4702,7 +4702,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "quantile(0.9, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created) by (type)",
+              "expr": "quantile(0.9, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4716,7 +4716,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "quantile(0.99, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created) by (type)",
+              "expr": "quantile(0.99, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4730,7 +4730,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "stddev(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created) by (type)",
+              "expr": "stddev(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4744,7 +4744,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name))) by (type)",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name))) by (type)",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4758,7 +4758,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () topk(10, avg(capi_cluster_created) by (name))) by (type)\n",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name))) by (type)\n",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4772,7 +4772,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "(avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () topk(10, avg(capi_cluster_created) by (name))) by (type) - avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name))) by (type)) / avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name))) by (type)\n",
+              "expr": "(avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name))) by (type) - avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name))) by (type)) / avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name))) by (type)\n",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4904,7 +4904,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "min(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "min(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "instant": true,
               "range": false,
@@ -4917,7 +4917,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "max(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "max(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4931,7 +4931,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4945,7 +4945,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "quantile(0.5, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "quantile(0.5, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4959,7 +4959,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "quantile(0.9, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "quantile(0.9, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4973,7 +4973,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "quantile(0.99, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "quantile(0.99, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -4987,7 +4987,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -5001,7 +5001,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(topk(10, avg(capi_cluster_created) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -5015,7 +5015,7 @@
               },
               "editorMode": "code",
               "exemplar": false,
-              "expr": "(avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(topk(10, avg(capi_cluster_created) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) - avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))) / avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "expr": "(avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) - avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))) / avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
               "format": "table",
               "hide": false,
               "instant": true,
@@ -5063,7 +5063,33 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": ".*",
+          "value": ".*"
+        },
+        "description": "Cluster prefix to filter by",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "Cluster",
+        "options": [
+          {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          }
+        ],
+        "query": "",
+        "queryValue": ".*",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
   },
   "time": {
     "from": "now-30m",

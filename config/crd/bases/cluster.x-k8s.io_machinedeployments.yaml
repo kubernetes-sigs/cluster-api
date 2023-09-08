@@ -698,7 +698,8 @@ spec:
                         x-kubernetes-int-or-string: true
                     type: object
                   type:
-                    description: Type of deployment. Default is RollingUpdate.
+                    description: Type of deployment. Allowed values are RollingUpdate
+                      and OnDelete. The default is RollingUpdate.
                     enum:
                     - RollingUpdate
                     - OnDelete

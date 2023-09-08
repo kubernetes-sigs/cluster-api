@@ -1869,7 +1869,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStrategy(ref comm
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Type of deployment. Default is RollingUpdate.",
+							Description: "Type of deployment. Allowed values are RollingUpdate and OnDelete. The default is RollingUpdate.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

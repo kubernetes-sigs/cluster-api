@@ -143,11 +143,11 @@ func Run(ctx context.Context, input RunInput) int {
 
 	if input.MinK8sVersion != "" {
 		if err := version.CheckKubernetesVersion(env.Config, input.MinK8sVersion); err != nil {
-			fmt.Printf("[IMPORTANT] skipping tests after failing version check: %v\n", err)
+			fmt.Printf("[ERROR] Cannot run tests after failing version check: %v\n", err)
 			if err := env.stop(); err != nil {
 				fmt.Println("[WARNING] Failed to stop the test environment")
 			}
-			return 0
+			return 1
 		}
 	}
 

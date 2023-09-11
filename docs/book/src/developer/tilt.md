@@ -214,6 +214,14 @@ Supported values are:
 
 \*: Note: the UI will be accessible via a link in the tilt console
 
+**deploy_kustomizations** (map[string]string, default={}): If set, installs the additional kustomizations to the cluster.
+
+Example:
+```yaml
+deploy_kustomizations:
+  capv-metrics: ../cluster-api-provider-vsphere/config/metrics
+```
+
 **debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
 
 Supported settings:

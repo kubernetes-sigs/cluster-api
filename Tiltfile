@@ -482,6 +482,19 @@ def deploy_observability():
             objects = ["capi-visualizer:serviceaccount"],
         )
 
+def deploy_kustomizations():
+    for name in settings.get("deploy_kustomizations", []):
+        yaml = read_file("./.tiltbuild/yaml/{}.kustomization.yaml".format(name))
+        k8s_yaml(yaml)
+        objs = decode_yaml_stream(yaml)
+        print("objects")
+        print(find_all_objects_names(objs))
+        k8s_resource(
+            new_name = name,
+            objects = find_all_objects_names(objs),
+            labels = ["kustomization"],
+        )
+
 def prepare_all():
     tools_arg = "--tools kustomize,envsubst,clusterctl "
     tilt_settings_file_arg = "--tilt-settings-file " + tilt_file
@@ -639,6 +652,8 @@ prepare_all()
 deploy_provider_crds()
 
 deploy_observability()
+
+deploy_kustomizations()
 
 enable_providers()
 

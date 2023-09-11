@@ -183,7 +183,6 @@ var (
 	clusterResourceSetBindingKind = "ClusterResourceSetBinding"
 	machinePoolKind               = "MachinePool"
 
-	machinePoolOwner      = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: expv1.GroupVersion.String()}
 	machinePoolController = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: expv1.GroupVersion.String(), Controller: pointer.Bool(true)}
 
 	clusterResourceSetOwner = metav1.OwnerReference{Kind: clusterResourceSetKind, APIVersion: addonsv1.GroupVersion.String()}
@@ -280,11 +279,12 @@ var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerRef
 
 // Kinds for types in the Docker infrastructure package.
 var (
-	dockerMachineKind         = "DockerMachine"
-	dockerMachineTemplateKind = "DockerMachineTemplate"
-	dockerMachinePoolKind     = "DockerMachinePool"
-	dockerClusterKind         = "DockerCluster"
-	dockerClusterTemplateKind = "DockerClusterTemplate"
+	dockerMachineKind             = "DockerMachine"
+	dockerMachineTemplateKind     = "DockerMachineTemplate"
+	dockerMachinePoolKind         = "DockerMachinePool"
+	dockerMachinePoolTemplateKind = "DockerMachinePoolTemplate"
+	dockerClusterKind             = "DockerCluster"
+	dockerClusterTemplateKind     = "DockerClusterTemplate"
 )
 
 // DockerInfraOwnerReferenceAssertions maps Docker Infrastructure types to functions which return an error if the passed
@@ -310,8 +310,12 @@ var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReferenc
 		return HasExactOwners(owners, clusterClassOwner)
 	},
 	dockerMachinePoolKind: func(owners []metav1.OwnerReference) error {
-		// DockerMachinePool must be owned by a MachinePool.
-		return HasExactOwners(owners, machinePoolOwner)
+		// DockerMachinePool must be owned and controlled by a MachinePool.
+		return HasExactOwners(owners, machinePoolController)
+	},
+	dockerMachinePoolTemplateKind: func(owners []metav1.OwnerReference) error {
+		// DockerMachinePoolTemplate must be owned by a ClusterClass.
+		return HasExactOwners(owners, clusterClassOwner)
 	},
 }
 
@@ -328,7 +332,7 @@ func HasExactOwners(gotOwners []metav1.OwnerReference, wantOwners ...metav1.Owne
 	sort.Strings(wantComparable)
 
 	if !reflect.DeepEqual(gotComparable, wantComparable) {
-		return fmt.Errorf("wanted %v, actual %v", wantOwners, gotOwners)
+		return fmt.Errorf("wanted %v, actual %v", wantComparable, gotComparable)
 	}
 	return nil
 }

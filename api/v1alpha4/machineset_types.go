@@ -229,7 +229,7 @@ type MachineSetList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&MachineSet{}, &MachineSetList{})
+	objectTypes = append(objectTypes, &MachineSet{}, &MachineSetList{})
 }
 
 // GetConditions returns the set of conditions for the MachineSet.

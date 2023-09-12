@@ -76,10 +76,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					},
 				},
 			},
-			wantConditionStatus:  corev1.ConditionFalse,
-			wantConditionReason:  clusterv1.TopologyReconciledClusterClassNotReconciledReason,
-			wantConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status.",
-			wantErr:              false,
+			wantConditionStatus: corev1.ConditionFalse,
+			wantConditionReason: clusterv1.TopologyReconciledClusterClassNotReconciledReason,
+			wantConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if" +
+				".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
+			wantErr: false,
 		},
 		{
 			name:         "should set the condition to false if the there is a blocking hook",

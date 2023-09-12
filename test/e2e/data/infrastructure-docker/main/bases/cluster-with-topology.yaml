@@ -63,10 +63,6 @@ spec:
         replicas: ${WORKER_MACHINE_COUNT}
         failureDomains:
         - fd4
-        - fd5
-        - fd6
-        - fd7
-        - fd8
     variables:
       # We set an empty value to use the default tag kubeadm init is using.
     - name: etcdImageTag

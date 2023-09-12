@@ -42,7 +42,7 @@ spec:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
             kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
+            name: quick-start-md-default-worker-bootstraptemplate
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -66,7 +66,7 @@ spec:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
             kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
+            name: quick-start-mp-default-worker-bootstraptemplate
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -488,33 +488,53 @@ kind: DockerMachinePoolTemplate
 metadata:
   name: quick-start-default-worker-machinepooltemplate
   labels:
-    InfraMachineTemplate.machinePool.label: "InfraMachineTemplate.machinePool.labelValue"
+    InfraMachinePoolTemplate.machinePool.label: "InfraMachinePoolTemplate.machinePool.labelValue"
   annotations:
-    InfraMachineTemplate.machinePool.annotation: "InfraMachineTemplate.machinePool.annotationValue"
+    InfraMachinePoolTemplate.machinePool.annotation: "InfraMachinePoolTemplate.machinePool.annotationValue"
 spec:
   template:
     spec:
-      template: {}
+      template:
+        extraMounts:
+        - containerPath: "/var/run/docker.sock"
+          hostPath: "/var/run/docker.sock"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
-  name: quick-start-default-worker-bootstraptemplate
+  name: quick-start-md-default-worker-bootstraptemplate
   labels:
     BootstrapConfigTemplate.machineDeployment.label: "BootstrapConfigTemplate.machineDeployment.labelValue"
-    BootstrapConfigTemplate.machinePool.label: "BootstrapConfigTemplate.machinePool.labelValue"
   annotations:
     BootstrapConfigTemplate.machineDeployment.annotation: "BootstrapConfigTemplate.machineDeployment.annotationValue"
-    BootstrapConfigTemplate.machinePool.annotation: "BootstrapConfigTemplate.machinePool.annotationValue"
 spec:
   template:
     metadata:
       labels:
         BootstrapConfigTemplate.machineDeployment.template.label: "BootstrapConfigTemplate.machineDeployment.template.labelValue"
-        BootstrapConfigTemplate.machinePool.label: "BootstrapConfigTemplate.machinePool.labelValue"
       annotations:
         BootstrapConfigTemplate.machineDeployment.template.annotation: "BootstrapConfigTemplate.machineDeployment.template.annotationValue"
-        BootstrapConfigTemplate.machinePool.annotation: "BootstrapConfigTemplate.machinePool.annotationValue"
+    spec:
+      joinConfiguration:
+        nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+          kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
+            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: quick-start-mp-default-worker-bootstraptemplate
+  labels:
+    BootstrapConfigTemplate.machinePool.template.label: "BootstrapConfigTemplate.machinePool.template.labelValue"
+  annotations:
+    BootstrapConfigTemplate.machinePool.template.annotation: "BootstrapConfigTemplate.machinePool.template.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        BootstrapConfigTemplate.machinePool.template.label: "BootstrapConfigTemplate.machinePool.template.labelValue"
+      annotations:
+        BootstrapConfigTemplate.machinePool.template.annotation: "BootstrapConfigTemplate.machinePool.template.annotationValue"
     spec:
       joinConfiguration:
         nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.

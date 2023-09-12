@@ -83,7 +83,8 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconciledCondition,
 				clusterv1.TopologyReconciledClusterClassNotReconciledReason,
 				clusterv1.ConditionSeverityInfo,
-				"ClusterClass not reconciled. If this condition persists please check ClusterClass status.",
+				"ClusterClass not reconciled. If this condition persists please check ClusterClass status. A ClusterClass is reconciled if"+
+					".status.observedGeneration == .metadata.generation is true. If this is not the case either ClusterClass reconciliation failed or the ClusterClass is paused",
 			),
 		)
 		return nil

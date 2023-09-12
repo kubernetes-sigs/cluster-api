@@ -27,7 +27,7 @@ jobs:
       uses: actions/setup-go@93397bea11091df50f3d7e59dc26a7711a8bcfbe # tag=v4.1.0
       with:
         go-version: ${{ steps.vars.outputs.go_version }}
-    - uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # tag=v3.3.1
+    - uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84 # tag=v3.3.2
       name: Restore go cache
       with:
         path: |

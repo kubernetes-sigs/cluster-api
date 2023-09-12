@@ -18,6 +18,7 @@ updated info about which API version they are supporting.
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [Talos](https://github.com/siderolabs/cluster-api-control-plane-provider-talos)
+- [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)
 
 ## Infrastructure
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)

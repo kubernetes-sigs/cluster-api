@@ -554,16 +554,16 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(INMEMORY_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(INMEMORY_TEMPLATES)/main/cluster-template.yaml
 
 .PHONY: generate-metrics-config
-generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml
-	OUTPUT_FILE="${OBSERVABILITY_DIR}/kube-state-metrics/crd-config.yaml"; \
-	METRICS_DIR="${OBSERVABILITY_DIR}/kube-state-metrics/metrics"; \
+generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./config/metrics/crd-metrics-config.yaml
+	OUTPUT_FILE="./config/metrics/crd-metrics-config.yaml"; \
+	METRIC_TEMPLATES_DIR="./config/metrics/templates"; \
 	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
-	cat "$${METRICS_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
+	cat "$${METRIC_TEMPLATES_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
 	for resource in clusterclass cluster kubeadmcontrolplane kubeadmconfig machine machinedeployment machinehealthcheck machineset machinepool; do \
-		cat "$${METRICS_DIR}/$${resource}.yaml"; \
-		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRICS_DIR}/common_metrics.yaml"; \
+		cat "$${METRIC_TEMPLATES_DIR}/$${resource}.yaml"; \
+		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRIC_TEMPLATES_DIR}/common_metrics.yaml"; \
 		if [[ "$${resource}" != "cluster" ]]; then \
-			cat "$${METRICS_DIR}/owner_metric.yaml"; \
+			cat "$${METRIC_TEMPLATES_DIR}/owner_metric.yaml"; \
 		fi \
 	done >> "$${OUTPUT_FILE}"; \
 

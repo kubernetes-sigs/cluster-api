@@ -10,6 +10,10 @@ flexible enough to be used in as many Clusters as possible by supporting variant
 * [Basic ClusterClass](#basic-clusterclass)
 * [ClusterClass with MachineHealthChecks](#clusterclass-with-machinehealthchecks)
 * [ClusterClass with patches](#clusterclass-with-patches)
+* [ClusterClass with custom naming strategies](#clusterclass-with-custom-naming-strategies)
+    * [Defining a custom naming strategy for ControlPlane objects](#defining-a-custom-naming-strategy-for-controlplane-objects)
+    * [Defining a custom naming strategy for MachineDeployment objects](#defining-a-custom-naming-strategy-for-machinedeployment-objects)
+    * [Defining a custom naming strategy for MachinePool objects](#defining-a-custom-naming-strategy-for-machinepool-objects)
 * [Advanced features of ClusterClass with patches](#advanced-features-of-clusterclass-with-patches)
     * [MachineDeployment variable overrides](#machinedeployment-variable-overrides)
     * [Builtin variables](#builtin-variables)
@@ -18,7 +22,6 @@ flexible enough to be used in as many Clusters as possible by supporting variant
     * [Optional patches](#optional-patches)
     * [Version-aware patches](#version-aware-patches)
 * [JSON patches tips &amp; tricks](#json-patches-tips--tricks)
-    
 
 ## Basic ClusterClass
 
@@ -288,6 +291,103 @@ If the user does not set the value, but the corresponding variable definition in
 a default value, the value is automatically added to the variables list.
 
 </aside>
+
+## ClusterClass with custom naming strategies
+
+The controller needs to generate names for new objects when a Cluster is getting created
+from a ClusterClass. These names have to be unique for each namespace. The naming
+strategy enables this by concatenating the cluster name with a random suffix.
+
+It is possible to provide a custom template for the name generation of ControlPlane, MachineDeployment
+and MachinePool objects.
+
+The generated names must comply with the [RFC 1123](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names) standard.
+
+### Defining a custom naming strategy for ControlPlane objects
+
+The naming strategy for ControlPlane supports the following properties:
+
+- `template`: Custom template which is used when generating the name of the ControlPlane object.
+
+The following variables can be referenced in templates:
+
+- `.cluster.name`: The name of the cluster object.
+- `.random`: A random alphanumeric string, without vowels, of length 5.
+
+Example which would match the default behavior:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  controlPlane:
+    ...
+    namingStrategy:
+      template: "{{ .cluster.name }}-{{ .random }}"
+  ...
+```
+
+### Defining a custom naming strategy for MachineDeployment objects
+
+The naming strategy for MachineDeployments supports the following properties:
+
+- `template`: Custom template which is used when generating the name of the MachineDeployment object.
+
+The following variables can be referenced in templates:
+
+- `.cluster.name`: The name of the cluster object.
+- `.random`: A random alphanumeric string, without vowels, of length 5.
+- `.machineDeployment.topologyName`: The name of the MachineDeployment topology (`Cluster.spec.topology.workers.machineDeployments[].name`)
+
+Example which would match the default behavior:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  controlPlane:
+    ...
+  workers:
+    machineDeployments:
+    - class: default-worker
+      ...
+      namingStrategy:
+        template: "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
+```
+
+### Defining a custom naming strategy for MachinePool objects
+
+The naming strategy for MachinePools supports the following properties:
+
+- `template`: Custom template which is used when generating the name of the MachinePool object.
+
+The following variables can be referenced in templates:
+
+- `.cluster.name`: The name of the cluster object.
+- `.random`: A random alphanumeric string, without vowels, of length 5.
+- `.machinePool.topologyName`: The name of the MachinePool topology (`Cluster.spec.topology.workers.machinePools[].name`).
+
+Example which would match the default behavior:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  controlPlane:
+    ...
+  workers:
+    machinePools:
+    - class: default-worker
+      ...
+      namingStrategy:
+        template: "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
+```
 
 ## Advanced features of ClusterClass with patches
 

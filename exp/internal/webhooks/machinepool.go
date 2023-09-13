@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -29,24 +30,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
-func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(m).
+		For(&expv1.MachinePool{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-machinepool,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinepools,versions=v1beta1,name=validation.machinepool.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinepools,versions=v1beta1,name=default.machinepool.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &MachinePool{}
-var _ webhook.Validator = &MachinePool{}
+// MachinePool implements a validation and defaulting webhook for MachinePool.
+type MachinePool struct{}
+
+var _ webhook.CustomValidator = &MachinePool{}
+var _ webhook.CustomDefaulter = &MachinePool{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (m *MachinePool) Default() {
+func (webhook *MachinePool) Default(_ context.Context, obj runtime.Object) error {
+	m, ok := obj.(*expv1.MachinePool)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", obj))
+	}
+
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
@@ -73,30 +85,45 @@ func (m *MachinePool) Default() {
 		normalizedVersion := "v" + *m.Spec.Template.Spec.Version
 		m.Spec.Template.Spec.Version = &normalizedVersion
 	}
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachinePool) ValidateCreate() (admission.Warnings, error) {
-	return nil, m.validate(nil)
+func (webhook *MachinePool) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	mp, ok := obj.(*expv1.MachinePool)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", obj))
+	}
+
+	return nil, webhook.validate(nil, mp)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachinePool) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	oldMP, ok := old.(*MachinePool)
+func (webhook *MachinePool) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	oldMP, ok := oldObj.(*expv1.MachinePool)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", oldObj))
 	}
-	return nil, m.validate(oldMP)
+	newMP, ok := newObj.(*expv1.MachinePool)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", newObj))
+	}
+	return nil, webhook.validate(oldMP, newMP)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachinePool) ValidateDelete() (admission.Warnings, error) {
-	return nil, m.validate(nil)
+func (webhook *MachinePool) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	mp, ok := obj.(*expv1.MachinePool)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", obj))
+	}
+
+	return nil, webhook.validate(nil, mp)
 }
 
-func (m *MachinePool) validate(old *MachinePool) error {
+func (webhook *MachinePool) validate(oldObj, newObj *expv1.MachinePool) error {
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
-	// must prevent creating new objects when the feature flag is disabled.
+	// must prevent creating newObj objects when the feature flag is disabled.
 	specPath := field.NewPath("spec")
 	if !feature.Gates.Enabled(feature.MachinePool) {
 		return field.Forbidden(
@@ -105,7 +132,7 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		)
 	}
 	var allErrs field.ErrorList
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef == nil && m.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
+	if newObj.Spec.Template.Spec.Bootstrap.ConfigRef == nil && newObj.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -115,29 +142,29 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		)
 	}
 
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace != m.Namespace {
+	if newObj.Spec.Template.Spec.Bootstrap.ConfigRef != nil && newObj.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace != newObj.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				specPath.Child("template", "spec", "bootstrap", "configRef", "namespace"),
-				m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace,
+				newObj.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
-	if m.Spec.Template.Spec.InfrastructureRef.Namespace != m.Namespace {
+	if newObj.Spec.Template.Spec.InfrastructureRef.Namespace != newObj.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				specPath.Child("infrastructureRef", "namespace"),
-				m.Spec.Template.Spec.InfrastructureRef.Namespace,
+				newObj.Spec.Template.Spec.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
-	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
+	if oldObj != nil && oldObj.Spec.ClusterName != newObj.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -146,17 +173,17 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		)
 	}
 
-	if m.Spec.Template.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
+	if newObj.Spec.Template.Spec.Version != nil {
+		if !version.KubeSemver.MatchString(*newObj.Spec.Template.Spec.Version) {
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *newObj.Spec.Template.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 
 	// Validate the metadata of the MachinePool template.
-	allErrs = append(allErrs, m.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
+	allErrs = append(allErrs, newObj.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("MachinePool").GroupKind(), m.Name, allErrs)
+	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachinePool").GroupKind(), newObj.Name, allErrs)
 }

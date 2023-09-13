@@ -171,5 +171,5 @@ type MachineHealthCheckList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&MachineHealthCheck{}, &MachineHealthCheckList{})
+	objectTypes = append(objectTypes, &MachineHealthCheck{}, &MachineHealthCheckList{})
 }

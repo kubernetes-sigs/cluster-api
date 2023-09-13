@@ -175,6 +175,11 @@ GOVULNCHECK_VER := v1.0.0
 GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
 GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
 
+IMPORT_BOSS_BIN := import-boss
+IMPORT_BOSS_VER := v0.28.1
+IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
+IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
+
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
@@ -607,7 +612,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary diagrams
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary diagrams import-restrictions
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
@@ -689,6 +694,10 @@ verify-security: ## Verify code and images for vulnerabilities
 	  echo "Check for vulnerabilities failed! There are vulnerabilities to be fixed"; \
 		exit 1; \
 	fi
+
+.PHONY: verify-import-restrictions
+verify-import-restrictions: $(IMPORT_BOSS) ## Verify import restrictions with import-boss
+	./hack/verify-import-restrictions.sh
 
 ## --------------------------------------
 ## Binaries
@@ -1305,6 +1314,9 @@ $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 .PHONY: $(GOVULNCHECK_BIN)
 $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 
+.PHONY: $(IMPORT_BOSS_BIN)
+$(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
+
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
 
@@ -1358,6 +1370,9 @@ $(GOLANGCI_LINT): # Build golangci-lint from tools folder.
 
 $(GOVULNCHECK): # Build govulncheck.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
+
+$(IMPORT_BOSS): # Build import-boss
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)
 
 ## --------------------------------------
 ## Helpers

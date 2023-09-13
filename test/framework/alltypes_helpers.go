@@ -26,13 +26,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -132,38 +132,44 @@ func DumpAllResources(ctx context.Context, input DumpAllResourcesInput) {
 	}
 }
 
-// DumpKubeSystemPodsForClusterInput is the input for DumpKubeSystemPodsForCluster.
-type DumpKubeSystemPodsForClusterInput struct {
-	Lister  Lister
-	LogPath string
-	Cluster *clusterv1.Cluster
+// DumpNamespaceAndGVK specifies a GVK and namespace to be dumped.
+type DumpNamespaceAndGVK struct {
+	GVK       schema.GroupVersionKind
+	Namespace string
 }
 
-// DumpKubeSystemPodsForCluster dumps kube-system Pods to YAML.
-func DumpKubeSystemPodsForCluster(ctx context.Context, input DumpKubeSystemPodsForClusterInput) {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for DumpAllResources")
-	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpAllResources")
-	Expect(input.Cluster).NotTo(BeNil(), "input.Cluster is required for DumpAllResources")
+// DumpResourcesForClusterInput is the input for DumpResourcesForCluster.
+type DumpResourcesForClusterInput struct {
+	Lister    Lister
+	LogPath   string
+	Cluster   *clusterv1.Cluster
+	Resources []DumpNamespaceAndGVK
+}
 
-	// Note: We intentionally retrieve Pods as Unstructured because we need the Pods as Unstructured for dumpObject.
-	podList := new(unstructured.UnstructuredList)
-	podList.SetAPIVersion(corev1.SchemeGroupVersion.String())
-	podList.SetKind("Pod")
-	var listErr error
-	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
-		if listErr = input.Lister.List(ctx, podList, client.InNamespace(metav1.NamespaceSystem)); listErr != nil {
-			return false, nil //nolint:nilerr
+// DumpResourcesForCluster dumps specified resources to yaml.
+func DumpResourcesForCluster(ctx context.Context, input DumpResourcesForClusterInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DumpResourcesForCluster")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpResourcesForCluster")
+	Expect(input.Cluster).NotTo(BeNil(), "input.Cluster is required for DumpResourcesForCluster")
+
+	for _, resource := range input.Resources {
+		resourceList := new(unstructured.UnstructuredList)
+		resourceList.SetGroupVersionKind(resource.GVK)
+		var listErr error
+		_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
+			if listErr = input.Lister.List(ctx, resourceList, client.InNamespace(resource.Namespace)); listErr != nil {
+				return false, nil //nolint:nilerr
+			}
+			return true, nil
+		})
+		if listErr != nil {
+			// NB. we are treating failures in collecting resources as a non-blocking operation (best effort)
+			fmt.Printf("Failed to list %s for Cluster %s: %v\n", resource.GVK.Kind, klog.KObj(input.Cluster), listErr)
+			continue
 		}
-		return true, nil
-	})
-	if listErr != nil {
-		// NB. we are treating failures in collecting kube-system pods as a non-blocking operation (best effort)
-		fmt.Printf("Failed to list Pods in kube-system for Cluster %s: %v\n", klog.KObj(input.Cluster), listErr)
-		return
-	}
-
-	for i := range podList.Items {
-		dumpObject(&podList.Items[i], input.LogPath)
+		for i := range resourceList.Items {
+			dumpObject(&resourceList.Items[i], input.LogPath)
+		}
 	}
 }
 
@@ -178,7 +184,7 @@ func dumpObject(resource runtime.Object, logPath string) {
 	namespace := metaObj.GetNamespace()
 	name := metaObj.GetName()
 
-	resourceFilePath := filepath.Clean(path.Join(logPath, namespace, kind, name+".yaml"))
+	resourceFilePath := filepath.Clean(path.Join(logPath, kind, namespace, name+".yaml"))
 	Expect(os.MkdirAll(filepath.Dir(resourceFilePath), 0750)).To(Succeed(), "Failed to create folder %s", filepath.Dir(resourceFilePath))
 
 	f, err := os.OpenFile(resourceFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)

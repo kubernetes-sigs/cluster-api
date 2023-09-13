@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"strings"
@@ -27,8 +27,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
@@ -36,14 +37,14 @@ func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
 
 	g := NewWithT(t)
 
-	kcpTemplate := &KubeadmControlPlaneTemplate{
+	kcpTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: KubeadmControlPlaneTemplateSpec{
-			Template: KubeadmControlPlaneTemplateResource{
-				Spec: KubeadmControlPlaneTemplateResourceSpec{
-					MachineTemplate: &KubeadmControlPlaneTemplateMachineTemplate{
+		Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
+			Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+				Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
+					MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 						NodeDrainTimeout: &metav1.Duration{Duration: 10 * time.Second},
 					},
 				},
@@ -52,11 +53,12 @@ func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
 	}
 	updateDefaultingValidationKCPTemplate := kcpTemplate.DeepCopy()
 	updateDefaultingValidationKCPTemplate.Spec.Template.Spec.MachineTemplate.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
-	t.Run("for KubeadmControlPlaneTemplate", utildefaulting.DefaultValidateTest(updateDefaultingValidationKCPTemplate))
-	kcpTemplate.Default()
+	webhook := &KubeadmControlPlaneTemplate{}
+	t.Run("for KubeadmControlPlaneTemplate", util.CustomDefaultValidateTest(ctx, updateDefaultingValidationKCPTemplate, webhook))
+	g.Expect(webhook.Default(ctx, kcpTemplate)).To(Succeed())
 
 	g.Expect(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.Format).To(Equal(bootstrapv1.CloudConfig))
-	g.Expect(kcpTemplate.Spec.Template.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
+	g.Expect(kcpTemplate.Spec.Template.Spec.RolloutStrategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
 	g.Expect(kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
 }
 
@@ -66,22 +68,23 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 	t.Run("create kubeadmcontrolplanetemplate should pass if gate enabled and valid kubeadmcontrolplanetemplate", func(t *testing.T) {
 		testnamespace := "test"
 		g := NewWithT(t)
-		kcpTemplate := &KubeadmControlPlaneTemplate{
+		kcpTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "kubeadmcontrolplanetemplate-test",
 				Namespace: testnamespace,
 			},
-			Spec: KubeadmControlPlaneTemplateSpec{
-				Template: KubeadmControlPlaneTemplateResource{
-					Spec: KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &KubeadmControlPlaneTemplateMachineTemplate{
+			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
+				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
+						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
 						},
 					},
 				},
 			},
 		}
-		warnings, err := kcpTemplate.ValidateCreate()
+		webhook := &KubeadmControlPlaneTemplate{}
+		warnings, err := webhook.ValidateCreate(ctx, kcpTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 	})
@@ -92,22 +95,23 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 	t.Run("create kubeadmcontrolplanetemplate should not pass if gate disabled and valid kubeadmcontrolplanetemplate", func(t *testing.T) {
 		testnamespace := "test"
 		g := NewWithT(t)
-		kcpTemplate := &KubeadmControlPlaneTemplate{
+		kcpTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "kubeadmcontrolplanetemplate-test",
 				Namespace: testnamespace,
 			},
-			Spec: KubeadmControlPlaneTemplateSpec{
-				Template: KubeadmControlPlaneTemplateResource{
-					Spec: KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &KubeadmControlPlaneTemplateMachineTemplate{
+			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
+				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
+					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
+						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
 						},
 					},
 				},
 			},
 		}
-		warnings, err := kcpTemplate.ValidateCreate()
+		webhook := &KubeadmControlPlaneTemplate{}
+		warnings, err := webhook.ValidateCreate(ctx, kcpTemplate)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 	})
@@ -116,9 +120,9 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 func TestKubeadmControlPlaneTemplateValidationMetadata(t *testing.T) {
 	t.Run("create kubeadmcontrolplanetemplate should not pass if metadata is invalid", func(t *testing.T) {
 		g := NewWithT(t)
-		kcpTemplate := &KubeadmControlPlaneTemplate{
-			Spec: KubeadmControlPlaneTemplateSpec{
-				Template: KubeadmControlPlaneTemplateResource{
+		kcpTemplate := &controlplanev1.KubeadmControlPlaneTemplate{
+			Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
+				Template: controlplanev1.KubeadmControlPlaneTemplateResource{
 					ObjectMeta: clusterv1.ObjectMeta{
 						Labels: map[string]string{
 							"foo":          "$invalid-key",
@@ -129,8 +133,8 @@ func TestKubeadmControlPlaneTemplateValidationMetadata(t *testing.T) {
 							"/invalid-key": "foo",
 						},
 					},
-					Spec: KubeadmControlPlaneTemplateResourceSpec{
-						MachineTemplate: &KubeadmControlPlaneTemplateMachineTemplate{
+					Spec: controlplanev1.KubeadmControlPlaneTemplateResourceSpec{
+						MachineTemplate: &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 							ObjectMeta: clusterv1.ObjectMeta{
 								Labels: map[string]string{
 									"foo":          "$invalid-key",
@@ -146,7 +150,8 @@ func TestKubeadmControlPlaneTemplateValidationMetadata(t *testing.T) {
 				},
 			},
 		}
-		warnings, err := kcpTemplate.ValidateCreate()
+		webhook := &KubeadmControlPlaneTemplate{}
+		warnings, err := webhook.ValidateCreate(ctx, kcpTemplate)
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 	})

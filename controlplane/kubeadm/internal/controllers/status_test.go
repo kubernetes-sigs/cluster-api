@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -65,8 +66,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
@@ -128,8 +130,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	machines := map[string]*clusterv1.Machine{}
@@ -201,8 +204,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
@@ -282,8 +286,9 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
@@ -363,8 +368,9 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}

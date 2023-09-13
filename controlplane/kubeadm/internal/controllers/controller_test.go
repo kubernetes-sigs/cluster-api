@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -251,8 +252,9 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy())
@@ -330,8 +332,9 @@ func TestReconcileNoCluster(t *testing.T) {
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy())
@@ -381,8 +384,9 @@ func TestReconcilePaused(t *testing.T) {
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
@@ -436,8 +440,9 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 			},
 		},
 	}
-	kcp.Default()
-	_, err := kcp.ValidateCreate()
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())

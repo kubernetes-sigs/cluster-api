@@ -67,7 +67,7 @@ import (
 // Reconciler reconciles a managed topology for a Cluster object.
 type Reconciler struct {
 	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Tracker remote.ClusterCache
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
 	APIReader client.Reader

@@ -75,7 +75,7 @@ type KubeadmControlPlaneReconciler struct {
 	SecretCachingClient client.Client
 	controller          controller.Controller
 	recorder            record.EventRecorder
-	Tracker             *remote.ClusterCacheTracker
+	Tracker             remote.EtcdClusterCache
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration

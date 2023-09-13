@@ -41,7 +41,7 @@ type KubeadmConfigReconciler struct {
 	Client              client.Client
 	SecretCachingClient client.Client
 
-	Tracker *remote.ClusterCacheTracker
+	Tracker remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

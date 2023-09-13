@@ -64,6 +64,24 @@ const (
 // if the cluster is already locked by another concurrent call.
 var ErrClusterLocked = errors.New("cluster is locked already")
 
+// ClusterCache manages client caches for workload clusters.
+type ClusterCache interface {
+	// GetClient returns a cached client for the given cluster.
+	GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error)
+	// GetRESTConfig returns a cached REST config for the given cluster.
+	GetRESTConfig(ctc context.Context, cluster client.ObjectKey) (*rest.Config, error)
+	// Watch watches a remote cluster for resource events. If the watch already exists based on input.Name, this is a no-op.
+	Watch(ctx context.Context, input WatchInput) error
+}
+
+// EtcdClusterCache manages client caches for workload clusters and their etcd credentials.
+type EtcdClusterCache interface {
+	ClusterCache
+
+	// GetEtcdClientCertificateKey returns a cached certificate key to be used for generating certificates for accessing etcd in the given cluster.
+	GetEtcdClientCertificateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error)
+}
+
 // ClusterCacheTracker manages client caches for workload clusters.
 type ClusterCacheTracker struct {
 	log                   logr.Logger

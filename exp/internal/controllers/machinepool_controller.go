@@ -63,7 +63,7 @@ const (
 type MachinePoolReconciler struct {
 	Client    client.Client
 	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Tracker   remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

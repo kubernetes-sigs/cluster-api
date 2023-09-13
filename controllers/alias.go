@@ -64,7 +64,7 @@ type MachineReconciler struct {
 	Client                    client.Client
 	UnstructuredCachingClient client.Client
 	APIReader                 client.Reader
-	Tracker                   *remote.ClusterCacheTracker
+	Tracker                   remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -89,7 +89,7 @@ type MachineSetReconciler struct {
 	Client                    client.Client
 	UnstructuredCachingClient client.Client
 	APIReader                 client.Reader
-	Tracker                   *remote.ClusterCacheTracker
+	Tracker                   remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -127,7 +127,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object.
 type MachineHealthCheckReconciler struct {
 	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Tracker remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -144,7 +144,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 // ClusterTopologyReconciler reconciles a managed topology for a Cluster object.
 type ClusterTopologyReconciler struct {
 	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Tracker remote.ClusterCache
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
 	APIReader client.Reader

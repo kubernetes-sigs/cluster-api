@@ -75,7 +75,7 @@ const (
 // Reconciler reconciles a MachineHealthCheck object.
 type Reconciler struct {
 	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Tracker remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

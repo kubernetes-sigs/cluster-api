@@ -51,7 +51,7 @@ type DockerMachinePoolReconciler struct {
 	Client           client.Client
 	Scheme           *runtime.Scheme
 	ContainerRuntime container.Runtime
-	Tracker          *remote.ClusterCacheTracker
+	Tracker          remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

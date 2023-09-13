@@ -59,7 +59,7 @@ var ErrSecretTypeNotSupported = errors.New("unsupported secret type")
 // ClusterResourceSetReconciler reconciles a ClusterResourceSet object.
 type ClusterResourceSetReconciler struct {
 	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Tracker remote.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

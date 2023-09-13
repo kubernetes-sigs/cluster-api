@@ -32,7 +32,7 @@ import (
 type KubeadmControlPlaneReconciler struct {
 	Client              client.Client
 	SecretCachingClient client.Client
-	Tracker             *remote.ClusterCacheTracker
+	Tracker             remote.EtcdClusterCache
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration

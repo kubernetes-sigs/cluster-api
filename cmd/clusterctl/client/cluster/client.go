@@ -219,13 +219,13 @@ func newClusterClient(kubeconfig Kubeconfig, configClient config.Client, options
 }
 
 // retryWithExponentialBackoff repeats an operation until it passes or the exponential backoff times out.
-func retryWithExponentialBackoff(opts wait.Backoff, operation func() error) error {
+func retryWithExponentialBackoff(ctx context.Context, opts wait.Backoff, operation func(ctx context.Context) error) error {
 	log := logf.Log
 
 	i := 0
-	err := wait.ExponentialBackoff(opts, func() (bool, error) {
+	err := wait.ExponentialBackoffWithContext(ctx, opts, func(ctx context.Context) (bool, error) {
 		i++
-		if err := operation(); err != nil {
+		if err := operation(ctx); err != nil {
 			if i < opts.Steps {
 				log.V(5).Info("Retrying with backoff", "Cause", err.Error())
 				return false, nil

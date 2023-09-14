@@ -88,7 +88,7 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 
 	// Get the current CRD.
 	currentCRD := &apiextensionsv1.CustomResourceDefinition{}
-	if err := retryWithExponentialBackoff(newReadBackoff(), func() error {
+	if err := retryWithExponentialBackoff(ctx, newReadBackoff(), func(ctx context.Context) error {
 		return m.Client.Get(ctx, client.ObjectKeyFromObject(newCRD), currentCRD)
 	}); err != nil {
 		// Return if the CRD doesn't exist yet. We only have to migrate if the CRD exists already.
@@ -152,7 +152,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 
 	var i int
 	for {
-		if err := retryWithExponentialBackoff(newReadBackoff(), func() error {
+		if err := retryWithExponentialBackoff(ctx, newReadBackoff(), func(ctx context.Context) error {
 			return m.Client.List(ctx, list, client.Continue(list.GetContinue()))
 		}); err != nil {
 			return errors.Wrapf(err, "failed to list %q", list.GetKind())
@@ -162,7 +162,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 			obj := list.Items[i]
 
 			log.V(5).Info("Migrating", logf.UnstructuredToValues(obj)...)
-			if err := retryWithExponentialBackoff(newWriteBackoff(), func() error {
+			if err := retryWithExponentialBackoff(ctx, newWriteBackoff(), func(ctx context.Context) error {
 				return handleMigrateErr(m.Client.Update(ctx, &obj))
 			}); err != nil {
 				return errors.Wrapf(err, "failed to migrate %s/%s", obj.GetNamespace(), obj.GetName())
@@ -187,7 +187,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 
 func (m *crdMigrator) patchCRDStoredVersions(ctx context.Context, crd *apiextensionsv1.CustomResourceDefinition, currentStorageVersion string) error {
 	crd.Status.StoredVersions = []string{currentStorageVersion}
-	if err := retryWithExponentialBackoff(newWriteBackoff(), func() error {
+	if err := retryWithExponentialBackoff(ctx, newWriteBackoff(), func(ctx context.Context) error {
 		return m.Client.Status().Update(ctx, crd)
 	}); err != nil {
 		return errors.Wrapf(err, "failed to update status.storedVersions for CRD %q", crd.Name)

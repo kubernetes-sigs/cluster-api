@@ -165,7 +165,7 @@ func (k *proxy) NewClient() (client.Client, error) {
 	var c client.Client
 	// Nb. The operation is wrapped in a retry loop to make newClientSet more resilient to temporary connection problems.
 	connectBackoff := newConnectBackoff()
-	if err := retryWithExponentialBackoff(connectBackoff, func() error {
+	if err := retryWithExponentialBackoff(context.TODO(), connectBackoff, func(_ context.Context) error {
 		var err error
 		c, err = client.New(config, client.Options{Scheme: localScheme})
 		if err != nil {
@@ -191,7 +191,7 @@ func (k *proxy) CheckClusterAvailable() error {
 	}
 
 	connectBackoff := newShortConnectBackoff()
-	return retryWithExponentialBackoff(connectBackoff, func() error {
+	return retryWithExponentialBackoff(context.TODO(), connectBackoff, func(_ context.Context) error {
 		_, err := client.New(config, client.Options{Scheme: localScheme})
 		return err
 	})
@@ -224,7 +224,7 @@ func (k *proxy) ListResources(ctx context.Context, labels map[string]string, nam
 	// Get all the API resources in the cluster.
 	resourceListBackoff := newReadBackoff()
 	var resourceList []*metav1.APIResourceList
-	if err := retryWithExponentialBackoff(resourceListBackoff, func() error {
+	if err := retryWithExponentialBackoff(ctx, resourceListBackoff, func(ctx context.Context) error {
 		resourceList, err = cs.Discovery().ServerPreferredResources()
 		return err
 	}); err != nil {
@@ -236,7 +236,7 @@ func (k *proxy) ListResources(ctx context.Context, labels map[string]string, nam
 	crdsToExclude := sets.Set[string]{}
 
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
-	if err := retryWithExponentialBackoff(newReadBackoff(), func() error {
+	if err := retryWithExponentialBackoff(ctx, newReadBackoff(), func(ctx context.Context) error {
 		return c.List(ctx, crdList)
 	}); err != nil {
 		return nil, errors.Wrap(err, "failed to list CRDs")
@@ -348,7 +348,7 @@ func listObjByGVK(ctx context.Context, c client.Client, groupVersion, kind strin
 	objList.SetKind(kind)
 
 	resourceListBackoff := newReadBackoff()
-	if err := retryWithExponentialBackoff(resourceListBackoff, func() error {
+	if err := retryWithExponentialBackoff(ctx, resourceListBackoff, func(ctx context.Context) error {
 		return c.List(ctx, objList, options...)
 	}); err != nil {
 		return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
@@ -402,7 +402,7 @@ func (k *proxy) newClientSet() (*kubernetes.Clientset, error) {
 	var cs *kubernetes.Clientset
 	// Nb. The operation is wrapped in a retry loop to make newClientSet more resilient to temporary connection problems.
 	connectBackoff := newConnectBackoff()
-	if err := retryWithExponentialBackoff(connectBackoff, func() error {
+	if err := retryWithExponentialBackoff(context.TODO(), connectBackoff, func(_ context.Context) error {
 		var err error
 		cs, err = kubernetes.NewForConfig(config)
 		if err != nil {

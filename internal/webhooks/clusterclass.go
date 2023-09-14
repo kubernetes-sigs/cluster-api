@@ -439,7 +439,7 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 		if md.NamingStrategy == nil || md.NamingStrategy.Template == nil {
 			continue
 		}
-		name, err := names.MachineDeploymentNameGenerator(*md.NamingStrategy.Template, "cluster", "mdTopology").GenerateName()
+		name, err := names.MachineDeploymentNameGenerator(*md.NamingStrategy.Template, "cluster", "mdtopology").GenerateName()
 		templateFldPath := field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
@@ -459,7 +459,7 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 		if mp.NamingStrategy == nil || mp.NamingStrategy.Template == nil {
 			continue
 		}
-		name, err := names.MachinePoolNameGenerator(*mp.NamingStrategy.Template, "cluster", "mpTopology").GenerateName()
+		name, err := names.MachinePoolNameGenerator(*mp.NamingStrategy.Template, "cluster", "mptopology").GenerateName()
 		templateFldPath := field.NewPath("spec", "workers", "machinePools").Index(i).Child("namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,

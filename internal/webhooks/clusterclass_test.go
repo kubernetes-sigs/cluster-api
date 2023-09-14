@@ -1173,7 +1173,7 @@ func TestClusterClassValidation(t *testing.T) {
 				WithControlPlaneTemplate(
 					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
 						Build()).
-				WithControlPlaneNamingStrategy(&clusterv1.ControlPlaneClassNamingStrategy{Template: pointer.String("template-cp-{{ .cluster.name }}")}).
+				WithControlPlaneNamingStrategy(&clusterv1.ControlPlaneClassNamingStrategy{Template: pointer.String("{{ .cluster.name }}-cp-{{ .random }}")}).
 				WithControlPlaneInfrastructureMachineTemplate(
 					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
 						Build()).
@@ -1183,7 +1183,7 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
-						WithNamingStrategy(&clusterv1.MachineDeploymentClassNamingStrategy{Template: pointer.String("template-md-{{ .cluster.name }}")}).
+						WithNamingStrategy(&clusterv1.MachineDeploymentClassNamingStrategy{Template: pointer.String("{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}")}).
 						Build()).
 				WithWorkerMachinePoolClasses(
 					*builder.MachinePoolClass("bb").
@@ -1191,7 +1191,7 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "infra2").Build()).
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap2").Build()).
-						WithNamingStrategy(&clusterv1.MachinePoolClassNamingStrategy{Template: pointer.String("template-mp-{{ .cluster.name }}")}).
+						WithNamingStrategy(&clusterv1.MachinePoolClassNamingStrategy{Template: pointer.String("{{ .cluster.name }}-md-{{ .machinePool.topologyName }}-{{ .random }}")}).
 						Build()).
 				Build(),
 			expectErr: false,

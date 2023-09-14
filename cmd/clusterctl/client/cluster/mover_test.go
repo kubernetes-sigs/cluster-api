@@ -2325,6 +2325,7 @@ func TestWaitReadyForMove(t *testing.T) {
 	tests := []struct {
 		name        string
 		moveBlocked bool
+		doUnblock   bool
 		wantErr     bool
 	}{
 		{
@@ -2335,6 +2336,12 @@ func TestWaitReadyForMove(t *testing.T) {
 		{
 			name:        "moving unblocked cluster should succeed",
 			moveBlocked: false,
+			wantErr:     false,
+		},
+		{
+			name:        "moving blocked cluster that is eventually unblocked should succeed",
+			moveBlocked: true,
+			doUnblock:   true,
 			wantErr:     false,
 		},
 	}
@@ -2367,6 +2374,14 @@ func TestWaitReadyForMove(t *testing.T) {
 				cluster.SetAnnotations(anns)
 
 				g.Expect(c.Update(ctx, cluster)).To(Succeed())
+
+				if tt.doUnblock {
+					go func() {
+						time.Sleep(50 * time.Millisecond)
+						delete(cluster.Annotations, clusterctlv1.BlockMoveAnnotation)
+						g.Expect(c.Update(ctx, cluster)).To(Succeed())
+					}()
+				}
 			}
 
 			// Get all the types to be considered for discovery
@@ -2377,6 +2392,12 @@ func TestWaitReadyForMove(t *testing.T) {
 
 			backoff := wait.Backoff{
 				Steps: 1,
+			}
+			if tt.doUnblock {
+				backoff = wait.Backoff{
+					Duration: 20 * time.Millisecond,
+					Steps:    10,
+				}
 			}
 			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, backoff)
 			if tt.wantErr {

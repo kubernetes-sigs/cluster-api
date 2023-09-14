@@ -623,6 +623,18 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 	}
 
 	for _, n := range nodes {
+		log := log.WithValues(
+			"apiVersion", n.identity.GroupVersionKind(),
+			"resource", klog.ObjectRef{
+				Name:      n.identity.Name,
+				Namespace: n.identity.Namespace,
+			},
+		)
+		if !n.blockingMove {
+			log.V(5).Info("Resource not blocking move")
+			continue
+		}
+
 		obj := &metav1.PartialObjectMetadata{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      n.identity.Name,
@@ -634,7 +646,6 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 			},
 		}
 		key := client.ObjectKeyFromObject(obj)
-		log := log.WithValues("apiVersion", obj.GroupVersionKind(), "resource", klog.KObj(obj))
 
 		blockLogged := false
 		if err := retryWithExponentialBackoff(backoff, func() error {

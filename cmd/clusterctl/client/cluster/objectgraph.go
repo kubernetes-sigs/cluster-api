@@ -92,6 +92,10 @@ type node struct {
 	// E.g. for the cluster object we capture information to see if the cluster uses a manged topology
 	// and the cluster class used.
 	additionalInfo map[string]interface{}
+
+	// blockingMove is true when the object should prevent a move operation from proceeding as indicated by
+	// the presence of the block-move annotation.
+	blockingMove bool
 }
 
 type discoveryTypeInfo struct {
@@ -320,6 +324,8 @@ func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
 			n.isGlobal = true
 		}
 	}
+
+	_, n.blockingMove = obj.GetAnnotations()[clusterctlv1.BlockMoveAnnotation]
 }
 
 // getDiscoveryTypes returns the list of TypeMeta to be considered for the move discovery phase.

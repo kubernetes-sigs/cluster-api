@@ -208,6 +208,7 @@ func InitFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
+	//nolint:staticcheck
 	rand.Seed(time.Now().UnixNano())
 
 	InitFlags(pflag.CommandLine)

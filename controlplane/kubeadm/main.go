@@ -153,6 +153,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	feature.MutableGates.AddFlag(fs)
 }
 func main() {
+	//nolint:staticcheck
 	rand.Seed(time.Now().UnixNano())
 
 	InitFlags(pflag.CommandLine)

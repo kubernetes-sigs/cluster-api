@@ -158,7 +158,7 @@ YQ_BIN := yq
 YQ :=  $(abspath $(TOOLS_BIN_DIR)/$(YQ_BIN)-$(YQ_VER))
 YQ_PKG := github.com/mikefarah/yq/v4
 
-PLANTUML_VER := 1.2023
+PLANTUML_VER := 1.2023.10
 
 GINKGO_BIN := ginkgo
 GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)

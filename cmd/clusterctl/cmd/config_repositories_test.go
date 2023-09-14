@@ -110,6 +110,7 @@ kubekey-k3s         BootstrapProvider        https://github.com/kubesphere/kubek
 microk8s            BootstrapProvider        https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/       bootstrap-components.yaml
 ocne                BootstrapProvider        https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/                    bootstrap-components.yaml
 talos               BootstrapProvider        https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/         bootstrap-components.yaml
+kamaji              ControlPlaneProvider     https://github.com/clastix/cluster-api-control-plane-provider-kamaji/releases/latest/       control-plane-components.yaml
 kubeadm             ControlPlaneProvider     https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             control-plane-components.yaml
 kubekey-k3s         ControlPlaneProvider     https://github.com/kubesphere/kubekey/releases/latest/                                      control-plane-components.yaml
 microk8s            ControlPlaneProvider     https://github.com/canonical/cluster-api-control-plane-provider-microk8s/releases/latest/   control-plane-components.yaml
@@ -174,6 +175,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: talos
   ProviderType: BootstrapProvider
   URL: https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/
+- File: control-plane-components.yaml
+  Name: kamaji
+  ProviderType: ControlPlaneProvider
+  URL: https://github.com/clastix/cluster-api-control-plane-provider-kamaji/releases/latest/
 - File: control-plane-components.yaml
   Name: kubeadm
   ProviderType: ControlPlaneProvider

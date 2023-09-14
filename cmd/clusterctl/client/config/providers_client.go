@@ -82,6 +82,7 @@ const (
 	NestedControlPlaneProviderName            = "nested"
 	OracleCloudNativeControlPlaneProviderName = "ocne"
 	KubeKeyK3sControlPlaneProviderName        = "kubekey-k3s"
+	KamajiControlPlaneProviderName            = "kamaji"
 )
 
 // Add-on providers.
@@ -324,6 +325,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         OracleCloudNativeControlPlaneProviderName,
 			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         KamajiControlPlaneProviderName,
+			url:          "https://github.com/clastix/cluster-api-control-plane-provider-kamaji/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 

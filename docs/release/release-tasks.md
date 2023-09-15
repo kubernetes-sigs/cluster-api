@@ -310,30 +310,38 @@ The goal of this task to make the book for the current release available under e
    <br>Prior art: [Add release 1.2 book link](https://github.com/kubernetes-sigs/cluster-api/pull/6697)
 
 #### Create PR for release notes
-
+1. Checkout the `main` branch.
+1. Build the release note tools binary.
+   ```bash
+   go build -o bin/notes hack/tools/release/notes.go
+   ```
 1. Checkout the latest commit on the release branch, e.g. `release-1.4`, or the main branch if the release branch doesn't yet exist (e.g. beta release).
-2. Generate release notes with:
+1. Generate release notes with:
 
    ```bash
    # PREVIOUS_TAG should be the last patch release of the previous minor release.
    PREVIOUS_TAG=v1.3.x
    # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
-   RELEASE_TAG=v1.4.x make release-notes
+   RELEASE_TAG=v1.4.x
+   # If this is a beta or RC release, add the --pre-release-version flag
+   ./bin/notes --from=$PREVIOUS_TAG > CHANGELOG/${RELEASE_TAG}.md
    ```
 
-3. This will generate a new release notes file at `CHANGELOG/<RELEASE_TAG>.md`. Finalize the release notes:
-    1. Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
-    2. Ensure consistent formatting of entries (e.g. prefix).
-       <br>**Note**: Check against the release notes of the [previous release](https://github.com/kubernetes-sigs/cluster-api/releases/latest), depending on the release branch you are currently working on (e.g. v1.3.6 when working on v1.3.7 or v1.4.2 when working on v1.4.3).
-    3. Merge dependency bump PR entries for the same dependency into a single entry.
-    4. Move minor changes into a single line at the end of each section.
-    5. Sort entries within a section alphabetically.
-    6. Write highlights section based on the initial release notes doc.
-    7. Add the Kubernetes version support section and pay close attention to set the correct versions here.
+1. This will generate a new release notes file at `CHANGELOG/<RELEASE_TAG>.md`. Finalize the release notes:
+    - [ ] Update the `Kubernetes version support section`. If this is a patch release you can most probably copy the same values from the previous patch release notes. Except if this is the release where a new Kubernetes version support is added.
        <br>**Note**: Check our [Kubernetes support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions) in the CAPI book. In case of doubt, reach out to the current release lead.
-    8. **For minor releases** Modify `Changes since v1.x.y` to `Changes since v1.x`
+    - [ ] If this is a `vX.X.0` release, fill in the content for the `Highlights` section. Otherwise, remove the section altogether.
+    - [ ] If there a deprecations in this release (for example, a CAPI API version drop), add them, to the `Deprecation Warning` section. Otherwise, remove the section altogether.
+    - [ ] Look for any `MISSING_AREA` entries. Add the corresponding label to the PR and regenerate the notes.
+    - [ ] Look for any `MULTIPLE_AREAS` entries. If the PR does indeed guarantee multiple areas, just remove the `MULTIPLE_AREAS` prefix and just leave the areas. Otherwise, fix the labels in the PR and regenerate the notes.
+    - [ ] Review that all areas are correctly assigned to each PR. If not, correct the labels and regenerate the notes.
+    - [ ] Look for area duplications in PR title. Sometimes authors add a prefix in their PR title that matches the area label. When the notes are generated, the area is as a prefix to the PR title, which can create redundant information. Remove the one from the PR title and just leave the area. Make sure you capitalize the title after this.
+    - [ ] Check that all entries are in the right section. Sometimes the wrong emoji prefix is added to the PR title, which drives the section in which the entry is added in the release notes. Manually move any entry as needed. Note that fixing the PR title won't fix this even after regenerating the notes, since the notes tool reads this info from the commit messages and these don't get rewritten.
+    - [ ] Sort manually all entries if you made any manual edits that might have altered the correct order.
+    - [ ] **For minor releases:** Modify `Changes since v1.x.y` to `Changes since v1.x`
        <br>**Note**: The release notes tool includes all merges since the previous release branch was branched of.
-4. Open a pull request **on the main branch** with all manual edits to `CHANGELOG/<RELEASE_TAG>.md` which is used for the new release notes.
+1. Checkout `main`, branch out from it and add `CHANGELOG/<RELEASE_TAG>.md`.
+1. Open a pull request **against the main branch** with all manual edits to `CHANGELOG/<RELEASE_TAG>.md` which is used for the new release notes. The commit and PR title should be `🚀 Release v1.x.y`.
        <br>**Note**: Important! The commit should only contain the release notes file, nothing else, otherwise automation will not work.
 
 

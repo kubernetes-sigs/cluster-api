@@ -232,6 +232,7 @@ spec:
         path: "/spec/template/spec/preLoadImages"
         valueFrom:
           variable: preLoadImages
+
   - name: kubeadmControlPlaneMaxSurge
     description: "Sets the maxSurge value used for rolloutStrategy in the KubeadmControlPlane."
     enabledIf: '{{ ne .kubeadmControlPlaneMaxSurge "" }}'

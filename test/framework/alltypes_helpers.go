@@ -151,7 +151,7 @@ func DumpKubeSystemPodsForCluster(ctx context.Context, input DumpKubeSystemPodsF
 	podList.SetKind("Pod")
 	var listErr error
 	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
-		if listErr = input.Lister.List(ctx, podList, client.InNamespace(metav1.NamespaceSystem)); listErr != nil {
+		if listErr = input.Lister.List(ctx, podList); listErr != nil {
 			return false, nil //nolint:nilerr
 		}
 		return true, nil

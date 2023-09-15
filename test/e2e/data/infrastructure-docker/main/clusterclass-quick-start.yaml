@@ -232,6 +232,24 @@ spec:
         path: "/spec/template/spec/preLoadImages"
         valueFrom:
           variable: preLoadImages
+  - name: preloadImagesMP
+    description: |
+      Sets the container images to preload to the node that is used for running dockerMachines.
+      This is especially required for self-hosted e2e tests to ensure the required controller images to be available
+      and reduce load to public registries.
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachinePoolTemplate
+          matchResources:
+            machinePoolClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/preLoadImages"
+            valueFrom:
+              variable: preLoadImages
 
   - name: kubeadmControlPlaneMaxSurge
     description: "Sets the maxSurge value used for rolloutStrategy in the KubeadmControlPlane."

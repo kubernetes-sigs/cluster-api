@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,39 +27,52 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 )
 
-func (c *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *ClusterResourceSetBinding) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(&addonsv1.ClusterResourceSetBinding{}).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-addons-cluster-x-k8s-io-v1beta1-clusterresourcesetbinding,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=addons.cluster.x-k8s.io,resources=clusterresourcesetbindings,versions=v1beta1,name=validation.clusterresourcesetbinding.addons.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Validator = &ClusterResourceSetBinding{}
+// ClusterResourceSetBinding implements a validation webhook for ClusterResourceSetBinding.
+type ClusterResourceSetBinding struct{}
+
+var _ webhook.CustomValidator = &ClusterResourceSetBinding{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *ClusterResourceSetBinding) ValidateCreate() (admission.Warnings, error) {
-	return nil, c.validate(nil)
+func (webhook *ClusterResourceSetBinding) ValidateCreate(_ context.Context, newObj runtime.Object) (admission.Warnings, error) {
+	newBinding, ok := newObj.(*addonsv1.ClusterResourceSetBinding)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSetBinding but got a %T", newObj))
+	}
+	return nil, webhook.validate(nil, newBinding)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *ClusterResourceSetBinding) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	oldBinding, ok := old.(*ClusterResourceSetBinding)
+func (webhook *ClusterResourceSetBinding) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	oldBinding, ok := oldObj.(*addonsv1.ClusterResourceSetBinding)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSetBinding but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSetBinding but got a %T", oldObj))
 	}
-	return nil, c.validate(oldBinding)
+	newBinding, ok := newObj.(*addonsv1.ClusterResourceSetBinding)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterResourceSetBinding but got a %T", newObj))
+	}
+	return nil, webhook.validate(oldBinding, newBinding)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *ClusterResourceSetBinding) ValidateDelete() (admission.Warnings, error) {
+func (webhook *ClusterResourceSetBinding) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (c *ClusterResourceSetBinding) validate(old *ClusterResourceSetBinding) error {
+func (webhook *ClusterResourceSetBinding) validate(oldCRSB, newCRSB *addonsv1.ClusterResourceSetBinding) error {
 	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterResourceSet) {
@@ -68,12 +82,13 @@ func (c *ClusterResourceSetBinding) validate(old *ClusterResourceSetBinding) err
 		)
 	}
 	var allErrs field.ErrorList
-	if old != nil && old.Spec.ClusterName != "" && old.Spec.ClusterName != c.Spec.ClusterName {
+	if oldCRSB != nil && oldCRSB.Spec.ClusterName != "" && oldCRSB.Spec.ClusterName != newCRSB.Spec.ClusterName {
 		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "clusterName"), c.Spec.ClusterName, "field is immutable"))
+			field.Invalid(field.NewPath("spec", "clusterName"), newCRSB.Spec.ClusterName, "field is immutable"))
 	}
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind(), c.Name, allErrs)
+
+	return apierrors.NewInvalid(addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind(), newCRSB.Name, allErrs)
 }

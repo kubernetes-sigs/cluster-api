@@ -53,6 +53,7 @@ import (
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
+	addonswebhooks "sigs.k8s.io/cluster-api/exp/addons/webhooks"
 	expv1alpha4 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
@@ -599,13 +600,13 @@ func setupWebhooks(mgr ctrl.Manager) {
 
 	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&addonswebhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSet")
 		os.Exit(1)
 	}
 	// NOTE: ClusterResourceSetBinding is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&addonsv1.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&addonswebhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSetBinding")
 		os.Exit(1)
 	}

@@ -287,6 +287,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		paths=./$(EXP_DIR)/internal/webhooks/... \
 		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./$(EXP_DIR)/addons/internal/controllers/... \
+		paths=./$(EXP_DIR)/addons/internal/webhooks/... \
 		paths=./$(EXP_DIR)/ipam/api/... \
 		paths=./$(EXP_DIR)/ipam/internal/webhooks/... \
 		paths=./$(EXP_DIR)/runtime/api/... \

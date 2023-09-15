@@ -25,9 +25,9 @@ Prow Presubmits:
   * GINKGO_FOCUS: `[PR-Informing]`, GINKGO_SKIP: `[IPv6]`
 * ✳️️ [pull-cluster-api-e2e-informing-ipv6-main] `./scripts/ci-e2e.sh`
   * GINKGO_FOCUS: `[IPv6] [PR-Informing]`, IP_FAMILY: `IPv6`
-* ✳️️ ✴️ [pull-cluster-api-e2e-full-main] `./scripts/ci-e2e.sh`
+* ✴️ [pull-cluster-api-e2e-full-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade] [IPv6]` (i.e. "no tags")
-* ✳️️ ✴️ [pull-cluster-api-e2e-workload-upgrade-1-27-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.27` TO: `ci/latest-1.28`
+* ✴️ [pull-cluster-api-e2e-workload-upgrade-1-27-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.27` TO: `ci/latest-1.28`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 
 GitHub Presubmit Workflows:

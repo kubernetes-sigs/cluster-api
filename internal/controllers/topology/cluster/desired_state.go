@@ -622,7 +622,7 @@ func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploy
 		currentObjectRef:      currentBootstrapTemplateRef,
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachineDeployment object
-		// with the reference to the ControlPlane object using this template.
+		// with the reference to this template.
 		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
 	if err != nil {
@@ -650,7 +650,7 @@ func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploy
 		currentObjectRef:      currentInfraMachineTemplateRef,
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachineDeployment object
-		// with the reference to the ControlPlane object using this template.
+		// with the reference to this template.
 		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
 	if err != nil {
@@ -974,6 +974,10 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 		cluster:               s.Current.Cluster,
 		nameGenerator:         names.SimpleNameGenerator(bootstrapConfigNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name)),
 		currentObjectRef:      currentBootstrapConfigRef,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachinePool object
+		// with the reference to this template.
+		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to compute bootstrap object for topology %q", machinePoolTopology.Name)
@@ -998,6 +1002,10 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 		cluster:               s.Current.Cluster,
 		nameGenerator:         names.SimpleNameGenerator(infrastructureMachinePoolNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name)),
 		currentObjectRef:      currentInfraMachinePoolRef,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachinePool object
+		// with the reference to this template.
+		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to compute infrastructure object for topology %q", machinePoolTopology.Name)

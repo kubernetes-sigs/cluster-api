@@ -18,10 +18,9 @@ package alpha
 
 import (
 	"context"
-
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 
@@ -87,14 +86,14 @@ func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clu
 		}
 
 		var cpVersion semver.Version
-		cluster, err := getCluster(proxy, md.Spec.ClusterName, md.Namespace)
+		cluster, err := getCluster(ctx, proxy, md.Spec.ClusterName, md.Namespace)
 		if err != nil {
 			return err
 		}
 		ref := cluster.Spec.ControlPlaneRef
 		switch strings.ToLower(ref.Kind) {
 		case KubeadmControlPlane:
-			kcp, err := getKubeadmControlPlane(proxy, ref.Name, ref.Namespace)
+			kcp, err := getKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace)
 			if err != nil {
 				return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 			}

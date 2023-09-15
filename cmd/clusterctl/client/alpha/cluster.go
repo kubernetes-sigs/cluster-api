@@ -17,6 +17,8 @@ limitations under the License.
 package alpha
 
 import (
+	"context"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -24,7 +26,7 @@ import (
 )
 
 // getCluster retrieves the Cluster object corresponding to the name and namespace specified.
-func getCluster(proxy cluster.Proxy, name, namespace string) (*clusterv1.Cluster, error) {
+func getCluster(ctx context.Context, proxy cluster.Proxy, name, namespace string) (*clusterv1.Cluster, error) {
 	cluster := &clusterv1.Cluster{}
 	c, err := proxy.NewClient()
 	if err != nil {

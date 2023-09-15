@@ -482,8 +482,8 @@ def deploy_observability():
             objects = ["capi-visualizer:serviceaccount"],
         )
 
-def deploy_kustomizations():
-    for name in settings.get("deploy_kustomizations", []):
+def deploy_additional_kustomizations():
+    for name in settings.get("additional_kustomizations", []):
         yaml = read_file("./.tiltbuild/yaml/{}.kustomization.yaml".format(name))
         k8s_yaml(yaml)
         objs = decode_yaml_stream(yaml)
@@ -653,7 +653,7 @@ deploy_provider_crds()
 
 deploy_observability()
 
-deploy_kustomizations()
+deploy_additional_kustomizations()
 
 enable_providers()
 

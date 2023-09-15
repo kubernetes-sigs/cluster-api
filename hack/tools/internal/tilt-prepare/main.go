@@ -104,14 +104,14 @@ var (
 // Types used to de-serialize the tilt-settings.yaml/json file from the Cluster API repository.
 
 type tiltSettings struct {
-	Debug                map[string]tiltSettingsDebugConfig `json:"debug,omitempty"`
-	ExtraArgs            map[string]tiltSettingsExtraArgs   `json:"extra_args,omitempty"`
-	DeployCertManager    *bool                              `json:"deploy_cert_manager,omitempty"`
-	DeployObservability  []string                           `json:"deploy_observability,omitempty"`
-	DeployKustomizations map[string]string                  `json:"deploy_kustomizations,omitempty"`
-	EnableProviders      []string                           `json:"enable_providers,omitempty"`
-	AllowedContexts      []string                           `json:"allowed_contexts,omitempty"`
-	ProviderRepos        []string                           `json:"provider_repos,omitempty"`
+	Debug                    map[string]tiltSettingsDebugConfig `json:"debug,omitempty"`
+	ExtraArgs                map[string]tiltSettingsExtraArgs   `json:"extra_args,omitempty"`
+	DeployCertManager        *bool                              `json:"deploy_cert_manager,omitempty"`
+	DeployObservability      []string                           `json:"deploy_observability,omitempty"`
+	EnableProviders          []string                           `json:"enable_providers,omitempty"`
+	AllowedContexts          []string                           `json:"allowed_contexts,omitempty"`
+	ProviderRepos            []string                           `json:"provider_repos,omitempty"`
+	AdditionalKustomizations map[string]string                  `json:"additional_kustomizations,omitempty"`
 }
 
 type tiltSettingsDebugConfig struct {
@@ -309,7 +309,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		)
 	}
 
-	for name, path := range ts.DeployKustomizations {
+	for name, path := range ts.AdditionalKustomizations {
 		name := fmt.Sprintf("%s.kustomization", name)
 		tasks[name] = sequential(
 			kustomizeTask(path, fmt.Sprintf("%s.yaml", name)),

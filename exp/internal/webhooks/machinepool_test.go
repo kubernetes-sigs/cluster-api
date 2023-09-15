@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"strings"
@@ -25,11 +25,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
+
+var ctx = ctrl.SetupSignalHandler()
 
 func TestMachinePoolDefault(t *testing.T) {
 	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
@@ -38,11 +42,11 @@ func TestMachinePoolDefault(t *testing.T) {
 
 	g := NewWithT(t)
 
-	m := &MachinePool{
+	mp := &expv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foobar",
 		},
-		Spec: MachinePoolSpec{
+		Spec: expv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
@@ -51,15 +55,16 @@ func TestMachinePoolDefault(t *testing.T) {
 			},
 		},
 	}
-	t.Run("for MachinePool", utildefaulting.DefaultValidateTest(m))
-	m.Default()
+	webhook := &MachinePool{}
+	t.Run("for MachinePool", util.CustomDefaultValidateTest(ctx, mp, webhook))
+	g.Expect(webhook.Default(ctx, mp)).To(Succeed())
 
-	g.Expect(m.Labels[clusterv1.ClusterNameLabel]).To(Equal(m.Spec.ClusterName))
-	g.Expect(m.Spec.Replicas).To(Equal(pointer.Int32(1)))
-	g.Expect(m.Spec.MinReadySeconds).To(Equal(pointer.Int32(0)))
-	g.Expect(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
-	g.Expect(m.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
-	g.Expect(m.Spec.Template.Spec.Version).To(Equal(pointer.String("v1.20.0")))
+	g.Expect(mp.Labels[clusterv1.ClusterNameLabel]).To(Equal(mp.Spec.ClusterName))
+	g.Expect(mp.Spec.Replicas).To(Equal(pointer.Int32(1)))
+	g.Expect(mp.Spec.MinReadySeconds).To(Equal(pointer.Int32(0)))
+	g.Expect(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(mp.Namespace))
+	g.Expect(mp.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(mp.Namespace))
+	g.Expect(mp.Spec.Template.Spec.Version).To(Equal(pointer.String("v1.20.0")))
 }
 
 func TestMachinePoolBootstrapValidation(t *testing.T) {
@@ -91,8 +96,9 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			m := &MachinePool{
-				Spec: MachinePoolSpec{
+			webhook := &MachinePool{}
+			mp := &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: tt.bootstrap,
@@ -102,17 +108,17 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				warnings, err := m.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = m.ValidateUpdate(m)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := m.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = m.ValidateUpdate(m)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
@@ -165,9 +171,10 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			m := &MachinePool{
+			webhook := &MachinePool{}
+			mp := &expv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
-				Spec: MachinePoolSpec{
+				Spec: expv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap:         tt.bootstrap,
@@ -178,17 +185,17 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				warnings, err := m.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = m.ValidateUpdate(m)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := m.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = m.ValidateUpdate(m)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
@@ -224,8 +231,8 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			newMP := &MachinePool{
-				Spec: MachinePoolSpec{
+			newMP := &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
 					ClusterName: tt.newClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -235,8 +242,8 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			oldMP := &MachinePool{
-				Spec: MachinePoolSpec{
+			oldMP := &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
 					ClusterName: tt.oldClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -246,7 +253,8 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			warnings, err := newMP.ValidateUpdate(oldMP)
+			webhook := MachinePool{}
+			warnings, err := webhook.ValidateUpdate(ctx, oldMP, newMP)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -292,8 +300,8 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			m := &MachinePool{
-				Spec: MachinePoolSpec{
+			mp := &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
@@ -302,19 +310,20 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 					},
 				},
 			}
+			webhook := &MachinePool{}
 
 			if tt.expectErr {
-				warnings, err := m.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = m.ValidateUpdate(m)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := m.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = m.ValidateUpdate(m)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
@@ -346,8 +355,8 @@ func TestMachinePoolMetadataValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			mp := &MachinePool{
-				Spec: MachinePoolSpec{
+			mp := &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						ObjectMeta: clusterv1.ObjectMeta{
 							Labels:      tt.labels,
@@ -356,18 +365,19 @@ func TestMachinePoolMetadataValidation(t *testing.T) {
 					},
 				},
 			}
+			webhook := &MachinePool{}
 			if tt.expectErr {
-				warnings, err := mp.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = mp.ValidateUpdate(mp)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := mp.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = mp.ValidateUpdate(mp)
+				warnings, err = webhook.ValidateUpdate(ctx, mp, mp)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}

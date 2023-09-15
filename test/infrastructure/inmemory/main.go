@@ -41,7 +41,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -57,22 +56,20 @@ import (
 )
 
 var (
-	scheme      = runtime.NewScheme()
-	cloudScheme = runtime.NewScheme()
-	setupLog    = ctrl.Log.WithName("setup")
+	cloudScheme    = runtime.NewScheme()
+	scheme         = runtime.NewScheme()
+	setupLog       = ctrl.Log.WithName("setup")
+	controllerName = "cluster-api-inmemory-controller-manager"
 
 	// flags.
-	metricsBindAddr             string
 	enableLeaderElection        bool
 	leaderElectionLeaseDuration time.Duration
 	leaderElectionRenewDeadline time.Duration
 	leaderElectionRetryPeriod   time.Duration
-	watchNamespace              string
 	watchFilterValue            string
+	watchNamespace              string
 	profilerAddress             string
 	enableContentionProfiling   bool
-	clusterConcurrency          int
-	machineConcurrency          int
 	syncPeriod                  time.Duration
 	restConfigQPS               float32
 	restConfigBurst             int
@@ -80,7 +77,11 @@ var (
 	webhookCertDir              string
 	healthAddr                  string
 	tlsOptions                  = flags.TLSOptions{}
+	diagnosticsOptions          = flags.DiagnosticsOptions{}
 	logOptions                  = logs.NewOptions()
+	// CAPIM specific flags.
+	clusterConcurrency int
+	machineConcurrency int
 )
 
 func init() {
@@ -99,9 +100,6 @@ func init() {
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
 	logsv1.AddFlags(logOptions, fs)
-
-	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",
-		"The address the metric endpoint binds to.")
 
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
@@ -125,7 +123,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
-		"Enable block profiling, if profiler-address is set.")
+		"Enable block profiling")
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")
@@ -151,10 +149,15 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 	flags.AddTLSOptions(fs, &tlsOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
+
+// Add RBAC for the authorized diagnostics endpoint.
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func main() {
 	InitFlags(pflag.CommandLine)
@@ -178,13 +181,15 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
-	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-inmemory-controller-manager")
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
 		setupLog.Error(err, "unable to add TLS settings to the webhook server")
 		os.Exit(1)
 	}
+
+	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
@@ -193,7 +198,7 @@ func main() {
 		}
 	}
 
-	if profilerAddress != "" && enableContentionProfiling {
+	if enableContentionProfiling {
 		goruntime.SetBlockProfileRate(1)
 	}
 
@@ -207,9 +212,7 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
-		Metrics: metricsserver.Options{
-			BindAddress: metricsBindAddr,
-		},
+		Metrics:                    diagnosticsOpts,
 		Cache: cache.Options{
 			DefaultNamespaces: watchNamespaces,
 			SyncPeriod:        &syncPeriod,

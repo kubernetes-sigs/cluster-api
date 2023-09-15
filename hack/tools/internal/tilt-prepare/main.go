@@ -36,7 +36,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -118,7 +117,6 @@ type tiltSettingsDebugConfig struct {
 	Continue     *bool `json:"continue"`
 	Port         *int  `json:"port"`
 	ProfilerPort *int  `json:"profiler_port"`
-	MetricsPort  *int  `json:"metrics_port"`
 }
 
 type tiltSettingsExtraArgs []string
@@ -227,9 +225,6 @@ func setTiltSettingsDefaults(ts *tiltSettings) {
 		}
 		if p.ProfilerPort == nil {
 			p.ProfilerPort = pointer.Int(0)
-		}
-		if p.MetricsPort == nil {
-			p.MetricsPort = pointer.Int(0)
 		}
 
 		ts.Debug[k] = p
@@ -821,52 +816,20 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 				args = debugArgs
 
 				// Set annotation to point parca to the profiler port.
-				if d.ProfilerPort != nil && *d.ProfilerPort > 0 {
-					if deployment.Spec.Template.Annotations == nil {
-						deployment.Spec.Template.Annotations = map[string]string{}
-					}
-					deployment.Spec.Template.Annotations["parca.dev/port"] = "6060"
+				if deployment.Spec.Template.Annotations == nil {
+					deployment.Spec.Template.Annotations = map[string]string{}
 				}
+				deployment.Spec.Template.Annotations["parca.dev/port"] = "8443"
 
 				container.LivenessProbe = nil
 				container.ReadinessProbe = nil
 			}
-			// alter the controller deployment for working nicely with prometheus metrics scraping. Specifically, the
-			// metrics endpoint is set to listen on all interfaces instead of only localhost, and another port is added
-			// to the container to expose the metrics endpoint.
-			finalArgs := make([]string, 0, len(args))
-			for _, a := range args {
-				if strings.HasPrefix(a, "--metrics-bind-addr=") {
-					finalArgs = append(finalArgs, "--metrics-bind-addr=0.0.0.0:8080")
-					continue
-				}
-				finalArgs = append(finalArgs, a)
-			}
-			// tilt-prepare should add the metrics port if and only if it's missing:
-			// as best practices with controller-runtime, it's named metrics and listening on port 8080.
-			if !containerHasMetricsPort(container.Ports) {
-				container.Ports = append(container.Ports, corev1.ContainerPort{
-					Name:          "metrics",
-					ContainerPort: 8080,
-					Protocol:      corev1.ProtocolTCP,
-				})
-			}
 
 			container.Command = cmd
-			container.Args = finalArgs
+			container.Args = args
 			deployment.Spec.Template.Spec.Containers[j] = container
 		}
 	})
-}
-
-func containerHasMetricsPort(ports []corev1.ContainerPort) bool {
-	for _, port := range ports {
-		if port.ContainerPort == 8080 {
-			return true
-		}
-	}
-
-	return false
 }
 
 type updateDeploymentFunction func(deployment *appsv1.Deployment)

@@ -41,6 +41,7 @@
         - [Ignition Bootstrap configuration](./tasks/experimental-features/ignition.md)
     - [Running multiple providers](./tasks/multiple-providers.md)
     - [Verification of Container Images](./tasks/verify-container-images.md)
+    - [Diagnostics](./tasks/diagnostics.md)
 - [Security Guidelines](./security/index.md)
     - [Pod Security Standards](./security/pod-security-standards.md)
 - [clusterctl CLI](./clusterctl/overview.md)

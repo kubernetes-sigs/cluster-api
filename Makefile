@@ -278,6 +278,7 @@ generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## 
 generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
 	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases"
 	$(CONTROLLER_GEN) \
+		paths=./ \
 		paths=./api/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
@@ -304,6 +305,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm bootstrap
 	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/kubeadm/config/crd/bases"
 	$(CONTROLLER_GEN) \
+		paths=./bootstrap/kubeadm \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
 		crd:crdVersions=v1 \
@@ -317,6 +319,7 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm control plane
 	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/kubeadm/config/crd/bases"
 	$(CONTROLLER_GEN) \
+		paths=./controlplane/kubeadm \
 		paths=./controlplane/kubeadm/api/... \
 		paths=./controlplane/kubeadm/internal/controllers/... \
 		paths=./controlplane/kubeadm/internal/webhooks/... \
@@ -331,6 +334,7 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for docker infrastructure provider
 	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPD_DIR)/config/crd/bases"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
+		paths=./ \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/internal/controllers/... \
@@ -346,6 +350,7 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 generate-manifests-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for in-memory infrastructure provider
 	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPIM_DIR)/config/crd/bases"
 	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
+		paths=./ \
 		paths=./api/... \
 		paths=./internal/controllers/... \
 		crd:crdVersions=v1 \

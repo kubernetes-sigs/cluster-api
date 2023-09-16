@@ -298,7 +298,7 @@ func run() int {
 			os.Exit(0)
 		}
 
-		if result.prEntry.title == "" {
+		if result.prEntry == nil || result.prEntry.title == "" {
 			continue
 		}
 
@@ -512,12 +512,16 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 		if strings.Contains(entry.title, "CAEP") || strings.Contains(entry.title, "proposal") {
 			entry.section = proposals
 		}
-	case strings.HasPrefix(entry.title, ":seedling:"), strings.HasPrefix(entry.title, "🌱"):
-		entry.section = other
-		entry.title = removePrefixes(entry.title, []string{":seedling:", "🌱"})
 	case strings.HasPrefix(entry.title, ":warning:"), strings.HasPrefix(entry.title, "⚠️"):
 		entry.section = warning
 		entry.title = removePrefixes(entry.title, []string{":warning:", "⚠️"})
+	case strings.HasPrefix(entry.title, "🚀"), strings.HasPrefix(entry.title, "🌱 Release v1."):
+		// TODO(g-gaston): remove the second condition using 🌱 prefix once 1.6 is released
+		// Release trigger PRs from previous releases are not included in the release notes
+		return nil, nil
+	case strings.HasPrefix(entry.title, ":seedling:"), strings.HasPrefix(entry.title, "🌱"):
+		entry.section = other
+		entry.title = removePrefixes(entry.title, []string{":seedling:", "🌱"})
 	default:
 		entry.section = unknown
 	}

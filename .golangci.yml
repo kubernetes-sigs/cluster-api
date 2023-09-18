@@ -36,6 +36,7 @@ linters:
   - govet
   - importas
   - ineffassign
+  - loggercheck
   - misspell
   - nakedret
   - nilerr

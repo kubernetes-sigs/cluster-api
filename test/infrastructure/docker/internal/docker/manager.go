@@ -172,7 +172,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		}
 	}
 
-	log.V(6).Info("Container run options: %+v", runOptions)
+	log.V(6).Info(fmt.Sprintf("Container run options: %+v", runOptions))
 
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {

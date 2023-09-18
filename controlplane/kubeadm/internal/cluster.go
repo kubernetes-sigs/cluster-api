@@ -108,25 +108,10 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	}
 	restConfig.Timeout = 30 * time.Second
 
-	if m.Tracker == nil {
-		return nil, errors.New("Cannot get WorkloadCluster: No remote Cluster Cache")
-	}
-
 	c, err := m.Tracker.GetClient(ctx, clusterKey)
 	if err != nil {
 		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
-
-	clientConfig, err := m.Tracker.GetRESTConfig(ctx, clusterKey)
-	if err != nil {
-		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
-	}
-
-	// Make sure we use the same CA and Host as the client.
-	// Note: This has to be done to be able to communicate directly on self-hosted clusters.
-	restConfig.CAData = clientConfig.CAData
-	restConfig.CAFile = clientConfig.CAFile
-	restConfig.Host = clientConfig.Host
 
 	// Retrieves the etcd CA key Pair
 	crtData, keyData, err := m.getEtcdCAKeyPair(ctx, clusterKey)

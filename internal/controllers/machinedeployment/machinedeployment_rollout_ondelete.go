@@ -106,7 +106,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 		}
 		selectorMap, err := metav1.LabelSelectorAsMap(&oldMS.Spec.Selector)
 		if err != nil {
-			log.V(4).Error(err, "failed to convert MachineSet %q label selector to a map", oldMS.Name)
+			log.V(4).Error(err, "failed to convert MachineSet label selector to a map")
 			continue
 		}
 		log.V(4).Info("Fetching Machines associated with MachineSet")

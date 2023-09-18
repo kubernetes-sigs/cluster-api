@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,9 +80,9 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
 	})
 
-	// If the cluster still exists, dump kube-system pods and nodes of the workload cluster before deleting the cluster.
+	// If the cluster still exists, dump pods and nodes of the workload cluster before deleting the cluster.
 	if err := clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), &clusterv1.Cluster{}); err == nil {
-		Byf("Dumping kube-system Pods and Nodes of Cluster %s", klog.KObj(cluster))
+		Byf("Dumping Pods and Nodes of Cluster %s", klog.KObj(cluster))
 		framework.DumpResourcesForCluster(ctx, framework.DumpResourcesForClusterInput{
 			Lister:  clusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient(),
 			Cluster: cluster,
@@ -94,7 +93,6 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 						Version: corev1.SchemeGroupVersion.Version,
 						Kind:    "Pod",
 					},
-					Namespace: metav1.NamespaceSystem,
 				},
 				{
 					GVK: schema.GroupVersionKind{

@@ -107,7 +107,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
 	restConfig, err := m.Tracker.GetRESTConfig(ctx, clusterKey)
 	if err != nil {
-		return nil, err
+		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
 	restConfig = rest.CopyConfig(restConfig)
 	restConfig.Timeout = 30 * time.Second
@@ -118,12 +118,12 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 
 	c, err := m.Tracker.GetClient(ctx, clusterKey)
 	if err != nil {
-		return nil, err
+		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
 
 	clientConfig, err := m.Tracker.GetRESTConfig(ctx, clusterKey)
 	if err != nil {
-		return nil, err
+		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
 
 	// Make sure we use the same CA and Host as the client.

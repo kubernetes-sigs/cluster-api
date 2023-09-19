@@ -85,10 +85,12 @@ export AWS_NODE_MACHINE_TYPE=t3a.small
 
 clusterctl generate cluster ignition-cluster \
     --from https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-flatcar.yaml \
-    --kubernetes-version v1.22.2 \
+    --kubernetes-version v1.28.0 \
     --worker-machine-count 2 \
     > ignition-cluster.yaml
 ```
+
+NOTE: Only certain Kubernetes versions have pre-built Kubernetes AMIs. See [list](https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis) of published pre-built Kubernetes AMIs.
 
 ## Apply the workload cluster
 

@@ -131,5 +131,5 @@ type DockerMachineList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerMachine{}, &DockerMachineList{})
+	objectTypes = append(objectTypes, &DockerMachine{}, &DockerMachineList{})
 }

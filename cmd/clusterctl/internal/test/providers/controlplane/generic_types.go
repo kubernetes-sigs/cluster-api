@@ -50,7 +50,5 @@ type GenericControlPlaneList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(
-		&GenericControlPlane{}, &GenericControlPlaneList{},
-	)
+	objectTypes = append(objectTypes, &GenericControlPlane{}, &GenericControlPlaneList{})
 }

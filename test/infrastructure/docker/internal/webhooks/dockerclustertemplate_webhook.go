@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -28,31 +29,42 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/feature"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
 const dockerClusterTemplateImmutableMsg = "DockerClusterTemplate spec.template.spec field is immutable. Please create a new resource instead."
 
-func (r *DockerClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+// DockerClusterTemplate implements a validating and defaulting webhook for DockerClusterTemplate.
+type DockerClusterTemplate struct{}
+
+func (webhook *DockerClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(&infrav1.DockerClusterTemplate{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-dockerclustertemplate,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockerclustertemplates,versions=v1beta1,name=default.dockerclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &DockerClusterTemplate{}
+var _ webhook.CustomDefaulter = &DockerClusterTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (r *DockerClusterTemplate) Default() {
-	defaultDockerClusterSpec(&r.Spec.Template.Spec)
+func (webhook *DockerClusterTemplate) Default(_ context.Context, obj runtime.Object) error {
+	clusterTemplate, ok := obj.(*infrav1.DockerClusterTemplate)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", obj))
+	}
+	defaultDockerClusterSpec(&clusterTemplate.Spec.Template.Spec)
+	return nil
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-dockerclustertemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockerclustertemplates,versions=v1beta1,name=validation.dockerclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Validator = &DockerClusterTemplate{}
+var _ webhook.CustomValidator = &DockerClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *DockerClusterTemplate) ValidateCreate() (admission.Warnings, error) {
+func (webhook *DockerClusterTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
 	// NOTE: DockerClusterTemplate is behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -62,34 +74,43 @@ func (r *DockerClusterTemplate) ValidateCreate() (admission.Warnings, error) {
 		)
 	}
 
-	allErrs := validateDockerClusterSpec(r.Spec.Template.Spec)
+	clusterTemplate, ok := obj.(*infrav1.DockerClusterTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", obj))
+	}
+
+	allErrs := validateDockerClusterSpec(clusterTemplate.Spec.Template.Spec)
 
 	// Validate the metadata of the template.
-	allErrs = append(allErrs, r.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
+	allErrs = append(allErrs, clusterTemplate.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 
 	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
+		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), clusterTemplate.Name, allErrs)
 	}
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *DockerClusterTemplate) ValidateUpdate(oldRaw runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerClusterTemplate) ValidateUpdate(_ context.Context, oldRaw, newRaw runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
-	old, ok := oldRaw.(*DockerClusterTemplate)
+	oldTemplate, ok := oldRaw.(*infrav1.DockerClusterTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", oldRaw))
 	}
-	if !reflect.DeepEqual(r.Spec.Template.Spec, old.Spec.Template.Spec) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), r, dockerClusterTemplateImmutableMsg))
+	newTemplate, ok := newRaw.(*infrav1.DockerClusterTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", newRaw))
+	}
+	if !reflect.DeepEqual(newTemplate.Spec.Template.Spec, oldTemplate.Spec.Template.Spec) {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newTemplate, dockerClusterTemplateImmutableMsg))
 	}
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
-	return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
+	return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), newTemplate.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *DockerClusterTemplate) ValidateDelete() (admission.Warnings, error) {
+func (webhook *DockerClusterTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

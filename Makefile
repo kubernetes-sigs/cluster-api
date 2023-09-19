@@ -352,11 +352,12 @@ generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifest
 
 .PHONY: generate-manifests-in-memory-infrastructure
 generate-manifests-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for in-memory infrastructure provider
-	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPIM_DIR)/config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPIM_DIR)/config/crd/bases,$(CAPIM_DIR)/config/webhook/manifests.yaml"
 	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
 		paths=./internal/controllers/... \
+		paths=./internal/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \

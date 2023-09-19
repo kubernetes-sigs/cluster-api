@@ -14,45 +14,54 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package webhooks
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
 )
 
-func (c *InMemoryClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+// InMemoryClusterTemplate implements a validating and defaulting webhook for InMemoryClusterTemplate.
+type InMemoryClusterTemplate struct{}
+
+func (webhook *InMemoryClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(&v1alpha1.InMemoryClusterTemplate{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha1-inmemoryclustertemplate,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=inmemoryclustertemplates,versions=v1alpha1,name=default.inmemoryclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &InMemoryClusterTemplate{}
+var _ webhook.CustomDefaulter = &InMemoryClusterTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (c *InMemoryClusterTemplate) Default() {
-
+func (webhook *InMemoryClusterTemplate) Default(_ context.Context, _ runtime.Object) error {
+	return nil
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha1-inmemoryclustertemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=inmemoryclustertemplates,versions=v1alpha1,name=validation.inmemoryclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Validator = &InMemoryClusterTemplate{}
+var _ webhook.CustomValidator = &InMemoryClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *InMemoryClusterTemplate) ValidateCreate() (admission.Warnings, error) {
+func (webhook *InMemoryClusterTemplate) ValidateCreate(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *InMemoryClusterTemplate) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+func (webhook *InMemoryClusterTemplate) ValidateUpdate(_ context.Context, _, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *InMemoryClusterTemplate) ValidateDelete() (admission.Warnings, error) {
+func (webhook *InMemoryClusterTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

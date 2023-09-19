@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud"
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
+	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/webhooks"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -309,22 +310,22 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&infrav1.InMemoryCluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.InMemoryCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryCluster")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1.InMemoryClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.InMemoryClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryClusterTemplate")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1.InMemoryMachine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.InMemoryMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryMachine")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1.InMemoryMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.InMemoryMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryMachineTemplate")
 		os.Exit(1)
 	}

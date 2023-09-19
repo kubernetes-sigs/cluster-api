@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"testing"
@@ -23,56 +23,61 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
+
+var ctx = ctrl.SetupSignalHandler()
 
 func TestKubeadmConfigDefault(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 
 	g := NewWithT(t)
 
-	kubeadmConfig := &KubeadmConfig{
+	kubeadmConfig := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: KubeadmConfigSpec{},
+		Spec: bootstrapv1.KubeadmConfigSpec{},
 	}
 	updateDefaultingKubeadmConfig := kubeadmConfig.DeepCopy()
 	updateDefaultingKubeadmConfig.Spec.Verbosity = pointer.Int32(4)
-	t.Run("for KubeadmConfig", utildefaulting.DefaultValidateTest(updateDefaultingKubeadmConfig))
+	webhook := &KubeadmConfig{}
+	t.Run("for KubeadmConfig", util.CustomDefaultValidateTest(ctx, updateDefaultingKubeadmConfig, webhook))
 
-	kubeadmConfig.Default()
+	g.Expect(webhook.Default(ctx, kubeadmConfig)).To(Succeed())
 
-	g.Expect(kubeadmConfig.Spec.Format).To(Equal(CloudConfig))
+	g.Expect(kubeadmConfig.Spec.Format).To(Equal(bootstrapv1.CloudConfig))
 
-	ignitionKubeadmConfig := &KubeadmConfig{
+	ignitionKubeadmConfig := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: KubeadmConfigSpec{
-			Format: Ignition,
+		Spec: bootstrapv1.KubeadmConfigSpec{
+			Format: bootstrapv1.Ignition,
 		},
 	}
-	ignitionKubeadmConfig.Default()
-	g.Expect(ignitionKubeadmConfig.Spec.Format).To(Equal(Ignition))
+	g.Expect(webhook.Default(ctx, ignitionKubeadmConfig)).To(Succeed())
+	g.Expect(ignitionKubeadmConfig.Spec.Format).To(Equal(bootstrapv1.Ignition))
 }
 
 func TestKubeadmConfigValidate(t *testing.T) {
 	cases := map[string]struct {
-		in                    *KubeadmConfig
+		in                    *bootstrapv1.KubeadmConfig
 		enableIgnitionFeature bool
 		expectErr             bool
 	}{
 		"valid content": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
 						{
 							Content: "foo",
 						},
@@ -81,16 +86,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 		},
 		"valid contentFrom": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &FileSource{
-								Secret: SecretFileSource{
+							ContentFrom: &bootstrapv1.FileSource{
+								Secret: bootstrapv1.SecretFileSource{
 									Name: "foo",
 									Key:  "bar",
 								},
@@ -101,15 +106,15 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 		},
 		"invalid content and contentFrom": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &FileSource{},
+							ContentFrom: &bootstrapv1.FileSource{},
 							Content:     "foo",
 						},
 					},
@@ -118,16 +123,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"invalid contentFrom without name": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &FileSource{
-								Secret: SecretFileSource{
+							ContentFrom: &bootstrapv1.FileSource{
+								Secret: bootstrapv1.SecretFileSource{
 									Key: "bar",
 								},
 							},
@@ -139,16 +144,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"invalid contentFrom without key": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
 						{
-							ContentFrom: &FileSource{
-								Secret: SecretFileSource{
+							ContentFrom: &bootstrapv1.FileSource{
+								Secret: bootstrapv1.SecretFileSource{
 									Name: "foo",
 								},
 							},
@@ -160,13 +165,13 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"invalid with duplicate file path": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Files: []bootstrapv1.File{
 						{
 							Content: "foo",
 						},
@@ -179,13 +184,13 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"valid passwd": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Users: []User{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
 						{
 							Passwd: pointer.String("foo"),
 						},
@@ -194,16 +199,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 		},
 		"valid passwdFrom": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Users: []User{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &PasswdSource{
-								Secret: SecretPasswdSource{
+							PasswdFrom: &bootstrapv1.PasswdSource{
+								Secret: bootstrapv1.SecretPasswdSource{
 									Name: "foo",
 									Key:  "bar",
 								},
@@ -214,15 +219,15 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 		},
 		"invalid passwd and passwdFrom": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Users: []User{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &PasswdSource{},
+							PasswdFrom: &bootstrapv1.PasswdSource{},
 							Passwd:     pointer.String("foo"),
 						},
 					},
@@ -231,16 +236,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"invalid passwdFrom without name": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Users: []User{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &PasswdSource{
-								Secret: SecretPasswdSource{
+							PasswdFrom: &bootstrapv1.PasswdSource{
+								Secret: bootstrapv1.SecretPasswdSource{
 									Key: "bar",
 								},
 							},
@@ -252,16 +257,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			expectErr: true,
 		},
 		"invalid passwdFrom without key": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: metav1.NamespaceDefault,
 				},
-				Spec: KubeadmConfigSpec{
-					Users: []User{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
 						{
-							PasswdFrom: &PasswdSource{
-								Secret: SecretPasswdSource{
+							PasswdFrom: &bootstrapv1.PasswdSource{
+								Secret: bootstrapv1.SecretPasswdSource{
 									Name: "foo",
 								},
 							},
@@ -274,39 +279,39 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"Ignition field is set, format is not Ignition": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Ignition: &IgnitionSpec{},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Ignition: &bootstrapv1.IgnitionSpec{},
 				},
 			},
 			expectErr: true,
 		},
 		"Ignition field is not set, format is Ignition": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
 				},
 			},
 		},
 		"format is Ignition, user is inactive": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
-					Users: []User{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					Users: []bootstrapv1.User{
 						{
 							Inactive: pointer.Bool(true),
 						},
@@ -317,15 +322,15 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"format is Ignition, non-GPT partition configured": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
-					DiskSetup: &DiskSetup{
-						Partitions: []Partition{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					DiskSetup: &bootstrapv1.DiskSetup{
+						Partitions: []bootstrapv1.Partition{
 							{
 								TableType: pointer.String("MS-DOS"),
 							},
@@ -337,40 +342,40 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"format is Ignition, experimental retry join is set": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format:                   Ignition,
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format:                   bootstrapv1.Ignition,
 					UseExperimentalRetryJoin: true,
 				},
 			},
 			expectErr: true,
 		},
 		"feature gate disabled, format is Ignition": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
 				},
 			},
 			expectErr: true,
 		},
 		"feature gate disabled, Ignition field is set": {
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
-					Ignition: &IgnitionSpec{
-						ContainerLinuxConfig: &ContainerLinuxConfig{},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					Ignition: &bootstrapv1.IgnitionSpec{
+						ContainerLinuxConfig: &bootstrapv1.ContainerLinuxConfig{},
 					},
 				},
 			},
@@ -378,15 +383,15 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"replaceFS specified with Ignition": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
-					DiskSetup: &DiskSetup{
-						Filesystems: []Filesystem{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					DiskSetup: &bootstrapv1.DiskSetup{
+						Filesystems: []bootstrapv1.Filesystem{
 							{
 								ReplaceFS: pointer.String("ntfs"),
 							},
@@ -398,15 +403,15 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"filesystem partition specified with Ignition": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
-					DiskSetup: &DiskSetup{
-						Filesystems: []Filesystem{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					DiskSetup: &bootstrapv1.DiskSetup{
+						Filesystems: []bootstrapv1.Filesystem{
 							{
 								Partition: pointer.String("1"),
 							},
@@ -418,16 +423,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"file encoding gzip specified with Ignition": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					Files: []bootstrapv1.File{
 						{
-							Encoding: Gzip,
+							Encoding: bootstrapv1.Gzip,
 						},
 					},
 				},
@@ -436,16 +441,16 @@ func TestKubeadmConfigValidate(t *testing.T) {
 		},
 		"file encoding gzip+base64 specified with Ignition": {
 			enableIgnitionFeature: true,
-			in: &KubeadmConfig{
+			in: &bootstrapv1.KubeadmConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "baz",
 					Namespace: "default",
 				},
-				Spec: KubeadmConfigSpec{
-					Format: Ignition,
-					Files: []File{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.Ignition,
+					Files: []bootstrapv1.File{
 						{
-							Encoding: GzipBase64,
+							Encoding: bootstrapv1.GzipBase64,
 						},
 					},
 				},
@@ -463,18 +468,20 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			}
 			g := NewWithT(t)
 
+			webhook := &KubeadmConfig{}
+
 			if tt.expectErr {
-				warnings, err := tt.in.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, tt.in)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = tt.in.ValidateUpdate(nil)
+				warnings, err = webhook.ValidateUpdate(ctx, nil, tt.in)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err := tt.in.ValidateCreate()
+				warnings, err := webhook.ValidateCreate(ctx, tt.in)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
-				warnings, err = tt.in.ValidateUpdate(nil)
+				warnings, err = webhook.ValidateUpdate(ctx, nil, tt.in)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}

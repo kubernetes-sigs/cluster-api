@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"strings"
@@ -27,29 +27,36 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
+)
+
+var (
+	invalidNamespaceName = "bar"
+	ctx                  = ctrl.SetupSignalHandler()
 )
 
 func TestKubeadmControlPlaneDefault(t *testing.T) {
 	g := NewWithT(t)
 
-	kcp := &KubeadmControlPlane{
+	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: KubeadmControlPlaneSpec{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.18.3",
-			MachineTemplate: KubeadmControlPlaneMachineTemplate{
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
 					Name:       "foo",
 				},
 			},
-			RolloutStrategy: &RolloutStrategy{},
+			RolloutStrategy: &controlplanev1.RolloutStrategy{},
 		},
 	}
 	updateDefaultingValidationKCP := kcp.DeepCopy()
@@ -60,24 +67,25 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 		Name:       "foo",
 		Namespace:  "foo",
 	}
-	t.Run("for KubeadmControlPlane", utildefaulting.DefaultValidateTest(updateDefaultingValidationKCP))
-	kcp.Default()
+	webhook := &KubeadmControlPlane{}
+	t.Run("for KubeadmControlPlane", util.CustomDefaultValidateTest(ctx, updateDefaultingValidationKCP, webhook))
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
 
 	g.Expect(kcp.Spec.KubeadmConfigSpec.Format).To(Equal(bootstrapv1.CloudConfig))
 	g.Expect(kcp.Spec.MachineTemplate.InfrastructureRef.Namespace).To(Equal(kcp.Namespace))
 	g.Expect(kcp.Spec.Version).To(Equal("v1.18.3"))
-	g.Expect(kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
+	g.Expect(kcp.Spec.RolloutStrategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
 	g.Expect(kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
 }
 
 func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
-	valid := &KubeadmControlPlane{
+	valid := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "foo",
 		},
-		Spec: KubeadmControlPlaneSpec{
-			MachineTemplate: KubeadmControlPlaneMachineTemplate{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
@@ -90,9 +98,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			},
 			Replicas: pointer.Int32(1),
 			Version:  "v1.19.0",
-			RolloutStrategy: &RolloutStrategy{
-				Type: RollingUpdateStrategyType,
-				RollingUpdate: &RollingUpdate{
+			RolloutStrategy: &controlplanev1.RolloutStrategy{
+				Type: controlplanev1.RollingUpdateStrategyType,
+				RollingUpdate: &controlplanev1.RollingUpdate{
 					MaxSurge: &intstr.IntOrString{
 						IntVal: 1,
 					},
@@ -109,7 +117,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	stringMaxSurge.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &val
 
 	invalidNamespace := valid.DeepCopy()
-	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = "bar"
+	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = invalidNamespaceName
 
 	missingReplicas := valid.DeepCopy()
 	missingReplicas.Spec.Replicas = nil
@@ -142,7 +150,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "v1.7" // not a valid semantic version
 
 	invalidRolloutBeforeCertificateExpiryDays := valid.DeepCopy()
-	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &RolloutBefore{
+	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
 		CertificatesExpiryDays: pointer.Int32(5), // less than minimum
 	}
 
@@ -167,7 +175,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 		name                  string
 		enableIgnitionFeature bool
 		expectErr             bool
-		kcp                   *KubeadmControlPlane
+		kcp                   *controlplanev1.KubeadmControlPlane
 	}{
 		{
 			name:      "should succeed when given a valid config",
@@ -265,7 +273,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 			g := NewWithT(t)
 
-			warnings, err := tt.kcp.ValidateCreate()
+			webhook := &KubeadmControlPlane{}
+
+			warnings, err := webhook.ValidateCreate(ctx, tt.kcp)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -277,13 +287,13 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 }
 
 func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
-	before := &KubeadmControlPlane{
+	before := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "foo",
 		},
-		Spec: KubeadmControlPlaneSpec{
-			MachineTemplate: KubeadmControlPlaneMachineTemplate{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
@@ -295,9 +305,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				NodeDeletionTimeout:     &metav1.Duration{Duration: time.Second},
 			},
 			Replicas: pointer.Int32(1),
-			RolloutStrategy: &RolloutStrategy{
-				Type: RollingUpdateStrategyType,
-				RollingUpdate: &RollingUpdate{
+			RolloutStrategy: &controlplanev1.RolloutStrategy{
+				Type: controlplanev1.RollingUpdateStrategyType,
+				RollingUpdate: &controlplanev1.RollingUpdate{
 					MaxSurge: &intstr.IntOrString{
 						IntVal: 1,
 					},
@@ -357,7 +367,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				},
 			},
 			Version: "v1.16.6",
-			RolloutBefore: &RolloutBefore{
+			RolloutBefore: &controlplanev1.RolloutBefore{
 				CertificatesExpiryDays: pointer.Int32(7),
 			},
 		},
@@ -426,10 +436,10 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.Replicas = pointer.Int32(5)
 	now := metav1.NewTime(time.Now())
 	validUpdate.Spec.RolloutAfter = &now
-	validUpdate.Spec.RolloutBefore = &RolloutBefore{
+	validUpdate.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
 		CertificatesExpiryDays: pointer.Int32(14),
 	}
-	validUpdate.Spec.RemediationStrategy = &RemediationStrategy{
+	validUpdate.Spec.RemediationStrategy = &controlplanev1.RemediationStrategy{
 		MaxRetry:         pointer.Int32(50),
 		MinHealthyPeriod: &metav1.Duration{Duration: 10 * time.Hour},
 		RetryPeriod:      metav1.Duration{Duration: 10 * time.Minute},
@@ -443,7 +453,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	scaleToEven.Spec.Replicas = pointer.Int32(2)
 
 	invalidNamespace := before.DeepCopy()
-	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = "bar"
+	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = invalidNamespaceName
 
 	missingReplicas := before.DeepCopy()
 	missingReplicas.Spec.Replicas = nil
@@ -637,7 +647,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = pointer.Bool(false)
 
 	invalidRolloutBeforeCertificateExpiryDays := before.DeepCopy()
-	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &RolloutBefore{
+	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &controlplanev1.RolloutBefore{
 		CertificatesExpiryDays: pointer.Int32(5), // less than minimum
 	}
 
@@ -707,8 +717,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		name                  string
 		enableIgnitionFeature bool
 		expectErr             bool
-		before                *KubeadmControlPlane
-		kcp                   *KubeadmControlPlane
+		before                *controlplanev1.KubeadmControlPlane
+		kcp                   *controlplanev1.KubeadmControlPlane
 	}{
 		{
 			name:      "should succeed when given a valid config",
@@ -1073,7 +1083,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 			g := NewWithT(t)
 
-			warnings, err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
+			webhook := &KubeadmControlPlane{}
+
+			warnings, err := webhook.ValidateUpdate(ctx, tt.before.DeepCopy(), tt.kcp)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -1222,8 +1234,8 @@ func TestValidateVersion(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			kcp := KubeadmControlPlane{
-				Spec: KubeadmControlPlaneSpec{
+			kcpNew := controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 						ClusterConfiguration: tt.clusterConfiguration,
 					},
@@ -1231,7 +1243,18 @@ func TestValidateVersion(t *testing.T) {
 				},
 			}
 
-			allErrs := kcp.validateVersion(tt.oldVersion)
+			kcpOld := controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: tt.clusterConfiguration,
+					},
+					Version: tt.oldVersion,
+				},
+			}
+
+			webhook := &KubeadmControlPlane{}
+
+			allErrs := webhook.validateVersion(&kcpOld, &kcpNew)
 			if tt.expectErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 			} else {
@@ -1241,14 +1264,16 @@ func TestValidateVersion(t *testing.T) {
 	}
 }
 func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
-	before := &KubeadmControlPlane{
+	g := NewWithT(t)
+
+	before := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "foo",
 		},
-		Spec: KubeadmControlPlaneSpec{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.19.0",
-			MachineTemplate: KubeadmControlPlaneMachineTemplate{
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
@@ -1260,13 +1285,14 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 	}
 
 	afterDefault := before.DeepCopy()
-	afterDefault.Default()
+	webhook := &KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, afterDefault)).To(Succeed())
 
 	tests := []struct {
 		name      string
 		expectErr bool
-		before    *KubeadmControlPlane
-		kcp       *KubeadmControlPlane
+		before    *controlplanev1.KubeadmControlPlane
+		kcp       *controlplanev1.KubeadmControlPlane
 	}{
 		{
 			name:      "update should succeed after defaulting",
@@ -1279,14 +1305,17 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			warnings, err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
+
+			webhook := &KubeadmControlPlane{}
+
+			warnings, err := webhook.ValidateUpdate(ctx, tt.before.DeepCopy(), tt.kcp)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 				g.Expect(tt.kcp.Spec.MachineTemplate.InfrastructureRef.Namespace).To(Equal(tt.before.Namespace))
 				g.Expect(tt.kcp.Spec.Version).To(Equal("v1.19.0"))
-				g.Expect(tt.kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
+				g.Expect(tt.kcp.Spec.RolloutStrategy.Type).To(Equal(controlplanev1.RollingUpdateStrategyType))
 				g.Expect(tt.kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
 				g.Expect(tt.kcp.Spec.Replicas).To(Equal(pointer.Int32(1)))
 			}

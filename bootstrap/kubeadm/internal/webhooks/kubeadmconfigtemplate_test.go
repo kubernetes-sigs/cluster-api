@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1_test
+package webhooks
 
 import (
 	"strings"
@@ -26,7 +26,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 func TestKubeadmConfigTemplateDefault(t *testing.T) {
@@ -39,9 +39,10 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 	}
 	updateDefaultingKubeadmConfigTemplate := kubeadmConfigTemplate.DeepCopy()
 	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = pointer.Int32(4)
-	t.Run("for KubeadmConfigTemplate", utildefaulting.DefaultValidateTest(updateDefaultingKubeadmConfigTemplate))
+	webhook := &KubeadmConfigTemplate{}
+	t.Run("for KubeadmConfigTemplate", util.CustomDefaultValidateTest(ctx, updateDefaultingKubeadmConfigTemplate, webhook))
 
-	kubeadmConfigTemplate.Default()
+	g.Expect(webhook.Default(ctx, kubeadmConfigTemplate)).To(Succeed())
 
 	g.Expect(kubeadmConfigTemplate.Spec.Template.Spec.Format).To(Equal(bootstrapv1.CloudConfig))
 }
@@ -84,16 +85,18 @@ func TestKubeadmConfigTemplateValidation(t *testing.T) {
 	for name, tt := range cases {
 		tt := tt
 
+		webhook := &KubeadmConfigTemplate{}
+
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
-			warnings, err := tt.in.ValidateCreate()
+			warnings, err := webhook.ValidateCreate(ctx, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
-			warnings, err = tt.in.ValidateUpdate(nil)
+			warnings, err = webhook.ValidateUpdate(ctx, nil, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

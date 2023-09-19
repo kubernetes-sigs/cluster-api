@@ -58,5 +58,5 @@ type KubeadmConfigTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&KubeadmConfigTemplate{}, &KubeadmConfigTemplateList{})
+	objectTypes = append(objectTypes, &KubeadmConfigTemplate{}, &KubeadmConfigTemplateList{})
 }

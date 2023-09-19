@@ -34,3 +34,19 @@ func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Client: v.Client,
 	}).SetupWebhookWithManager(mgr)
 }
+
+// KubeadmControlPlane implements a validating and defaulting webhook for KubeadmControlPlane.
+type KubeadmControlPlane struct{}
+
+// SetupWebhookWithManager sets up KubeadmControlPlane webhooks.
+func (webhook *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr)
+}
+
+// KubeadmControlPlaneTemplate implements a validating and defaulting webhook for KubeadmControlPlaneTemplate.
+type KubeadmControlPlaneTemplate struct{}
+
+// SetupWebhookWithManager sets up KubeadmControlPlaneTemplate webhooks.
+func (webhook *KubeadmControlPlaneTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr)
+}

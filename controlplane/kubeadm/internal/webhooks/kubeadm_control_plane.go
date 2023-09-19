@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -33,30 +34,44 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
-func (in *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(in).
+		For(&controlplanev1.KubeadmControlPlane{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1beta1,name=default.kubeadmcontrolplane.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,versions=v1beta1,name=validation.kubeadmcontrolplane.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &KubeadmControlPlane{}
-var _ webhook.Validator = &KubeadmControlPlane{}
+// KubeadmControlPlane implements a validation and defaulting webhook for KubeadmControlPlane.
+type KubeadmControlPlane struct{}
+
+var _ webhook.CustomValidator = &KubeadmControlPlane{}
+var _ webhook.CustomDefaulter = &KubeadmControlPlane{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (in *KubeadmControlPlane) Default() {
-	defaultKubeadmControlPlaneSpec(&in.Spec, in.Namespace)
+func (webhook *KubeadmControlPlane) Default(_ context.Context, obj runtime.Object) error {
+	k, ok := obj.(*controlplanev1.KubeadmControlPlane)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlane but got a %T", obj))
+	}
+
+	defaultKubeadmControlPlaneSpec(&k.Spec, k.Namespace)
+
+	return nil
 }
 
-func defaultKubeadmControlPlaneSpec(s *KubeadmControlPlaneSpec, namespace string) {
+func defaultKubeadmControlPlaneSpec(s *controlplanev1.KubeadmControlPlaneSpec, namespace string) {
 	if s.Replicas == nil {
 		replicas := int32(1)
 		s.Replicas = &replicas
@@ -70,26 +85,26 @@ func defaultKubeadmControlPlaneSpec(s *KubeadmControlPlaneSpec, namespace string
 		s.Version = "v" + s.Version
 	}
 
-	bootstrapv1.DefaultKubeadmConfigSpec(&s.KubeadmConfigSpec)
+	s.KubeadmConfigSpec.Default()
 
 	s.RolloutStrategy = defaultRolloutStrategy(s.RolloutStrategy)
 }
 
-func defaultRolloutStrategy(rolloutStrategy *RolloutStrategy) *RolloutStrategy {
+func defaultRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy) *controlplanev1.RolloutStrategy {
 	ios1 := intstr.FromInt(1)
 
 	if rolloutStrategy == nil {
-		rolloutStrategy = &RolloutStrategy{}
+		rolloutStrategy = &controlplanev1.RolloutStrategy{}
 	}
 
 	// Enforce RollingUpdate strategy and default MaxSurge if not set.
 	if rolloutStrategy != nil {
 		if len(rolloutStrategy.Type) == 0 {
-			rolloutStrategy.Type = RollingUpdateStrategyType
+			rolloutStrategy.Type = controlplanev1.RollingUpdateStrategyType
 		}
-		if rolloutStrategy.Type == RollingUpdateStrategyType {
+		if rolloutStrategy.Type == controlplanev1.RollingUpdateStrategyType {
 			if rolloutStrategy.RollingUpdate == nil {
-				rolloutStrategy.RollingUpdate = &RollingUpdate{}
+				rolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
 			}
 			rolloutStrategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(rolloutStrategy.RollingUpdate.MaxSurge, ios1)
 		}
@@ -99,13 +114,18 @@ func defaultRolloutStrategy(rolloutStrategy *RolloutStrategy) *RolloutStrategy {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (in *KubeadmControlPlane) ValidateCreate() (admission.Warnings, error) {
-	spec := in.Spec
-	allErrs := validateKubeadmControlPlaneSpec(spec, in.Namespace, field.NewPath("spec"))
-	allErrs = append(allErrs, validateClusterConfiguration(spec.KubeadmConfigSpec.ClusterConfiguration, nil, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
+func (webhook *KubeadmControlPlane) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	k, ok := obj.(*controlplanev1.KubeadmControlPlane)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlane but got a %T", obj))
+	}
+
+	spec := k.Spec
+	allErrs := validateKubeadmControlPlaneSpec(spec, k.Namespace, field.NewPath("spec"))
+	allErrs = append(allErrs, validateClusterConfiguration(nil, spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
+		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), k.Name, allErrs)
 	}
 	return nil, nil
 }
@@ -135,7 +155,7 @@ const (
 const minimumCertificatesExpiryDays = 7
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	// add a * to indicate everything beneath is ok.
 	// For example, {"spec", "*"} will allow any path under "spec" to change.
 	allowedPaths := [][]string{
@@ -194,18 +214,23 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.War
 		{spec, "rolloutStrategy", "*"},
 	}
 
-	allErrs := validateKubeadmControlPlaneSpec(in.Spec, in.Namespace, field.NewPath("spec"))
-
-	prev, ok := old.(*KubeadmControlPlane)
+	oldK, ok := oldObj.(*controlplanev1.KubeadmControlPlane)
 	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expecting KubeadmControlPlane but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlane but got a %T", oldObj))
 	}
 
-	originalJSON, err := json.Marshal(prev)
+	newK, ok := newObj.(*controlplanev1.KubeadmControlPlane)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlane but got a %T", newObj))
+	}
+
+	allErrs := validateKubeadmControlPlaneSpec(newK.Spec, newK.Namespace, field.NewPath("spec"))
+
+	originalJSON, err := json.Marshal(oldK)
 	if err != nil {
 		return nil, apierrors.NewInternalError(err)
 	}
-	modifiedJSON, err := json.Marshal(in)
+	modifiedJSON, err := json.Marshal(newK)
 	if err != nil {
 		return nil, apierrors.NewInternalError(err)
 	}
@@ -235,19 +260,19 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.War
 		}
 	}
 
-	allErrs = append(allErrs, in.validateVersion(prev.Spec.Version)...)
-	allErrs = append(allErrs, validateClusterConfiguration(in.Spec.KubeadmConfigSpec.ClusterConfiguration, prev.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
-	allErrs = append(allErrs, in.validateCoreDNSVersion(prev)...)
-	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
+	allErrs = append(allErrs, webhook.validateVersion(oldK, newK)...)
+	allErrs = append(allErrs, validateClusterConfiguration(oldK.Spec.KubeadmConfigSpec.ClusterConfiguration, newK.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
+	allErrs = append(allErrs, webhook.validateCoreDNSVersion(oldK, newK)...)
+	allErrs = append(allErrs, newK.Spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 
 	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
+		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), newK.Name, allErrs)
 	}
 
 	return nil, nil
 }
 
-func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string, pathPrefix *field.Path) field.ErrorList {
+func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, namespace string, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if s.Replicas == nil {
@@ -344,7 +369,7 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 	return allErrs
 }
 
-func validateRolloutBefore(rolloutBefore *RolloutBefore, pathPrefix *field.Path) field.ErrorList {
+func validateRolloutBefore(rolloutBefore *controlplanev1.RolloutBefore, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if rolloutBefore == nil {
@@ -360,14 +385,14 @@ func validateRolloutBefore(rolloutBefore *RolloutBefore, pathPrefix *field.Path)
 	return allErrs
 }
 
-func validateRolloutStrategy(rolloutStrategy *RolloutStrategy, replicas *int32, pathPrefix *field.Path) field.ErrorList {
+func validateRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy, replicas *int32, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if rolloutStrategy == nil {
 		return allErrs
 	}
 
-	if rolloutStrategy.Type != RollingUpdateStrategyType {
+	if rolloutStrategy.Type != controlplanev1.RollingUpdateStrategyType {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -403,7 +428,7 @@ func validateRolloutStrategy(rolloutStrategy *RolloutStrategy, replicas *int32, 
 	return allErrs
 }
 
-func validateClusterConfiguration(newClusterConfiguration, oldClusterConfiguration *bootstrapv1.ClusterConfiguration, pathPrefix *field.Path) field.ErrorList {
+func validateClusterConfiguration(oldClusterConfiguration, newClusterConfiguration *bootstrapv1.ClusterConfiguration, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if newClusterConfiguration == nil {
@@ -530,22 +555,22 @@ func paths(path []string, diff map[string]interface{}) [][]string {
 	return allPaths
 }
 
-func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane) (allErrs field.ErrorList) {
-	if in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || prev.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
+func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlplanev1.KubeadmControlPlane) (allErrs field.ErrorList) {
+	if newK.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || oldK.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		return allErrs
 	}
 	// return if either current or target versions is empty
-	if prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" || in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" {
+	if newK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" || oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag == "" {
 		return allErrs
 	}
-	targetDNS := &in.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
+	targetDNS := &newK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS
 
-	fromVersion, err := version.ParseMajorMinorPatchTolerant(prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
+	fromVersion, err := version.ParseMajorMinorPatchTolerant(oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
-				prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag,
+				oldK.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag,
 				fmt.Sprintf("failed to parse current CoreDNS version: %v", err),
 			),
 		)
@@ -581,7 +606,8 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 	return allErrs
 }
 
-func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs field.ErrorList) {
+func (webhook *KubeadmControlPlane) validateVersion(oldK, newK *controlplanev1.KubeadmControlPlane) (allErrs field.ErrorList) {
+	previousVersion := oldK.Spec.Version
 	fromVersion, err := version.ParseMajorMinorPatch(previousVersion)
 	if err != nil {
 		allErrs = append(allErrs,
@@ -593,12 +619,12 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 		return allErrs
 	}
 
-	toVersion, err := version.ParseMajorMinorPatch(in.Spec.Version)
+	toVersion, err := version.ParseMajorMinorPatch(newK.Spec.Version)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.InternalError(
 				field.NewPath("spec", "version"),
-				errors.Wrapf(err, "failed to parse updated kubeadmcontrolplane version: %s", in.Spec.Version),
+				errors.Wrapf(err, "failed to parse updated kubeadmcontrolplane version: %s", newK.Spec.Version),
 			),
 		)
 		return allErrs
@@ -630,7 +656,7 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 		allErrs = append(allErrs,
 			field.Forbidden(
 				field.NewPath("spec", "version"),
-				fmt.Sprintf("cannot update Kubernetes version from %s to %s", previousVersion, in.Spec.Version),
+				fmt.Sprintf("cannot update Kubernetes version from %s to %s", previousVersion, newK.Spec.Version),
 			),
 		)
 	}
@@ -643,8 +669,8 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 	// given how the migration has been implemented in kubeadm.
 	//
 	// Block if imageRepository is not set (i.e. the default registry should be used),
-	if (in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil ||
-		in.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository == "") &&
+	if (newK.Spec.KubeadmConfigSpec.ClusterConfiguration == nil ||
+		newK.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository == "") &&
 		// the version changed (i.e. we have an upgrade),
 		toVersion.NE(fromVersion) &&
 		// the version is >= v1.22.0 and < v1.26.0
@@ -664,6 +690,6 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (in *KubeadmControlPlane) ValidateDelete() (admission.Warnings, error) {
+func (webhook *KubeadmControlPlane) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

@@ -14,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 func TestClusterResourceSetBindingClusterNameImmutable(t *testing.T) {
@@ -65,27 +67,28 @@ func TestClusterResourceSetBindingClusterNameImmutable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			newClusterResourceSetBinding := &ClusterResourceSetBinding{
-				Spec: ClusterResourceSetBindingSpec{
+			newClusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{
+				Spec: addonsv1.ClusterResourceSetBindingSpec{
 					ClusterName: tt.newClusterName,
 				},
 			}
 
-			oldClusterResourceSetBinding := &ClusterResourceSetBinding{
-				Spec: ClusterResourceSetBindingSpec{
+			oldClusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{
+				Spec: addonsv1.ClusterResourceSetBindingSpec{
 					ClusterName: tt.oldClusterName,
 				},
 			}
+			webhook := ClusterResourceSetBinding{}
 
-			warnings, err := newClusterResourceSetBinding.ValidateCreate()
+			warnings, err := webhook.ValidateCreate(ctx, newClusterResourceSetBinding)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
-				warnings, err = newClusterResourceSetBinding.ValidateUpdate(oldClusterResourceSetBinding)
+				warnings, err = webhook.ValidateUpdate(ctx, oldClusterResourceSetBinding, newClusterResourceSetBinding)
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				warnings, err = newClusterResourceSetBinding.ValidateUpdate(oldClusterResourceSetBinding)
+				warnings, err = webhook.ValidateUpdate(ctx, oldClusterResourceSetBinding, newClusterResourceSetBinding)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}

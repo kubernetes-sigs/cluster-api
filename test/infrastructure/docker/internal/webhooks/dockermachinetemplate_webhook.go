@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"context"
@@ -28,47 +28,48 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/topology"
 )
 
 const dockerMachineTemplateImmutableMsg = "DockerMachineTemplate spec.template.spec field is immutable. Please create a new resource instead."
 
-func (m *DockerMachineTemplateWebhook) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *DockerMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&DockerMachineTemplate{}).
-		WithValidator(m).
+		For(&infrav1.DockerMachineTemplate{}).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-dockermachinetemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockermachinetemplates,versions=v1beta1,name=validation.dockermachinetemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// DockerMachineTemplateWebhook implements a custom validation webhook for DockerMachineTemplate.
+// DockerMachineTemplate implements a custom validation webhook for DockerMachineTemplate.
 // +kubebuilder:object:generate=false
-type DockerMachineTemplateWebhook struct{}
+type DockerMachineTemplate struct{}
 
-var _ webhook.CustomValidator = &DockerMachineTemplateWebhook{}
+var _ webhook.CustomValidator = &DockerMachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
-	obj, ok := raw.(*DockerMachineTemplate)
+func (webhook *DockerMachineTemplate) ValidateCreate(_ context.Context, raw runtime.Object) (admission.Warnings, error) {
+	obj, ok := raw.(*infrav1.DockerMachineTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", raw))
 	}
 	// Validate the metadata of the template.
 	allErrs := obj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))
 	if len(allErrs) > 0 {
-		return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), obj.Name, allErrs)
+		return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), obj.Name, allErrs)
 	}
 	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
-	newObj, ok := newRaw.(*DockerMachineTemplate)
+func (webhook *DockerMachineTemplate) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
+	newObj, ok := newRaw.(*infrav1.DockerMachineTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", newRaw))
 	}
-	oldObj, ok := oldRaw.(*DockerMachineTemplate)
+	oldObj, ok := oldRaw.(*infrav1.DockerMachineTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", oldRaw))
 	}
@@ -89,10 +90,10 @@ func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw 
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
-	return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerMachineTemplate").GroupKind(), newObj.Name, allErrs)
+	return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("DockerMachineTemplate").GroupKind(), newObj.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerMachineTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

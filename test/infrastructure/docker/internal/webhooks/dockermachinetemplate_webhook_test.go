@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	"context"
@@ -28,18 +28,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
 func TestDockerMachineTemplateInvalid(t *testing.T) {
-	oldTemplate := DockerMachineTemplate{
+	oldTemplate := infrav1.DockerMachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{},
-		Spec: DockerMachineTemplateSpec{
-			Template: DockerMachineTemplateResource{},
+		Spec: infrav1.DockerMachineTemplateSpec{
+			Template: infrav1.DockerMachineTemplateResource{},
 		},
 	}
 
 	newTemplate := oldTemplate.DeepCopy()
-	newTemplate.Spec.Template.Spec.ExtraMounts = append(newTemplate.Spec.Template.Spec.ExtraMounts, []Mount{{ContainerPath: "/var/run/docker.sock", HostPath: "/var/run/docker.sock"}}...)
+	newTemplate.Spec.Template.Spec.ExtraMounts = append(newTemplate.Spec.Template.Spec.ExtraMounts, []infrav1.Mount{{ContainerPath: "/var/run/docker.sock", HostPath: "/var/run/docker.sock"}}...)
 	newTemplateSkipImmutabilityAnnotationSet := newTemplate.DeepCopy()
 	newTemplateSkipImmutabilityAnnotationSet.SetAnnotations(map[string]string{clusterv1.TopologyDryRunAnnotation: ""})
 
@@ -57,8 +58,8 @@ func TestDockerMachineTemplateInvalid(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		newTemplate *DockerMachineTemplate
-		oldTemplate *DockerMachineTemplate
+		newTemplate *infrav1.DockerMachineTemplate
+		oldTemplate *infrav1.DockerMachineTemplate
 		req         *admission.Request
 		wantError   bool
 	}{
@@ -108,7 +109,7 @@ func TestDockerMachineTemplateInvalid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			wh := &DockerMachineTemplateWebhook{}
+			wh := &DockerMachineTemplate{}
 			ctx := context.Background()
 			if tt.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tt.req)

@@ -14,14 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
+
+// DockerMachinePool implements a validating and defaulting webhook for DockerMachinePool.
+type DockerMachinePool struct{}
 
 func (c *DockerMachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(&infraexpv1.DockerMachinePool{}).
 		Complete()
 }

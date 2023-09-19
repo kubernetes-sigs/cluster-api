@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
       - name: Get changed files
         id: changed-files
-        uses: tj-actions/changed-files@246636f5fa148b5ad8e65ca4c57b18af3123e5f6 # tag=v39.0.1
+        uses: tj-actions/changed-files@8e79ba7ab9fee9984275219aeb2c8db47bcb8a2d # tag=v39.1.0
       - name: Get release version
         id: release-version
         run: |

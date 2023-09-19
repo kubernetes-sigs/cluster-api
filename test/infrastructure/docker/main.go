@@ -55,6 +55,7 @@ import (
 	infraexpv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/webhooks"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -377,7 +378,7 @@ func setupWebhooks(mgr ctrl.Manager) {
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&infraexpv1.DockerMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		if err := (&webhooks.DockerMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "DockerMachinePool")
 			os.Exit(1)
 		}

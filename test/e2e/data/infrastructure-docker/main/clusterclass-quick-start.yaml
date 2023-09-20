@@ -513,9 +513,9 @@ spec:
   template:
     metadata:
       labels:
-        InfraMachinePoolTemplate.machinePool.template.label: "InfraMachinePoolTemplate.machinePool.labelValue"
+        InfraMachinePoolTemplate.machinePool.template.label: "InfraMachinePoolTemplate.machinePool.template.labelValue"
       annotations:
-        InfraMachinePoolTemplate.machinePool.template.annotation: "InfraMachinePoolTemplate.machinePool.annotationValue"
+        InfraMachinePoolTemplate.machinePool.template.annotation: "InfraMachinePoolTemplate.machinePool.template.annotationValue"
     spec:
       template:
         extraMounts:
@@ -548,9 +548,9 @@ kind: KubeadmConfigTemplate
 metadata:
   name: quick-start-mp-default-worker-bootstraptemplate
   labels:
-    BootstrapConfigTemplate.machinePool.label: "BootstrapConfigTemplate.machinePool.template.labelValue"
+    BootstrapConfigTemplate.machinePool.label: "BootstrapConfigTemplate.machinePool.labelValue"
   annotations:
-    BootstrapConfigTemplate.machinePool.annotation: "BootstrapConfigTemplate.machinePool.template.annotationValue"
+    BootstrapConfigTemplate.machinePool.annotation: "BootstrapConfigTemplate.machinePool.annotationValue"
 spec:
   template:
     metadata:

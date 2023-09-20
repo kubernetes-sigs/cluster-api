@@ -51,7 +51,7 @@ These owner references are almost all tested in an [end-to-end test](https://git
 |----------------------------|--------------------|------------|--------------------------|
 | ClusterResourcesSet        | None               |            |                          |
 | ClusterResourcesSetBinding | ClusterResourceSet | no         | May have many CRS owners |
-| MachinePool                | Cluster            | unknown    | Not tested in e2e        |
+| MachinePool                | Cluster            | no         |                          |
 
 
 ## KubeadmControlPlane types
@@ -65,7 +65,7 @@ These owner references are almost all tested in an [end-to-end test](https://git
 | type                  | Owner        | Controller | Note                                            |
 |-----------------------|--------------|------------|-------------------------------------------------|
 | KubeadmConfig         | Machine      | yes        | When created for Machine                        |
-| KubeadmConfig         | MachinePool  | unknown    | When created for MachinePool. Not tested in e2e |
+| KubeadmConfig         | MachinePool  | yes        | When created for MachinePool                    |
 | KubeadmConfigTemplate | Cluster      | no         | When referenced in MachineDeployment spec       |
 | KubeadmConfigTemplate | ClusterClass | no         | When referenced in ClusterClass                 |
 
@@ -77,6 +77,6 @@ These owner references are almost all tested in an [end-to-end test](https://git
 | InfrastructureMachineTemplate | ClusterClass | no         | When referenced in a ClusterClass           |
 | InfrastructureCluster         | Cluster      | yes        |                                             |
 | InfrastructureClusterTemplate | ClusterClass | no         |                                             | 
-| InfrastructureMachinePool     | MachinePool  | unknown    | Not tested in e2e                           |
+| InfrastructureMachinePool     | MachinePool  | yes        |                                             |
 
 

@@ -866,7 +866,7 @@ func TestApply(t *testing.T) {
 			//   * A ClusterClass with its corresponding templates:
 			//     * ControlPlaneTemplate with a corresponding ControlPlane InfrastructureMachineTemplate.
 			//     * MachineDeploymentClass "default-worker" with corresponding BootstrapTemplate and InfrastructureMachineTemplate.
-			//     * MachinePoolClass "default-mp-worker" with corresponding BootstrapTemplate and InfrastructureMachineTemplate.
+			//     * MachinePoolClass "default-mp-worker" with corresponding BootstrapTemplate and InfrastructureMachinePoolTemplate.
 			//   * The corresponding Cluster.spec.topology:
 			//     * with 3 ControlPlane replicas
 			//     * with a "default-worker-topo1" MachineDeploymentTopology without replicas (based on "default-worker")
@@ -988,13 +988,13 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 
 	workerInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "linux-worker-inframachinetemplate").
 		Build()
-	workerInfrastructureMachinePoolTemplate := builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "linux-worker-inframachinetemplate").
+	workerInfrastructureMachinePoolTemplate := builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "linux-worker-inframachinepooltemplate").
 		Build()
-	workerInfrastructureMachinePool := builder.InfrastructureMachinePool(metav1.NamespaceDefault, "linux-worker-inframachinetemplate").
+	workerInfrastructureMachinePool := builder.InfrastructureMachinePool(metav1.NamespaceDefault, "linux-worker-inframachinepool").
 		Build()
-	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstraptemplate").
+	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstrapconfigtemplate").
 		Build()
-	workerBootstrapConfig := builder.BootstrapConfig(metav1.NamespaceDefault, "linux-worker-bootstraptemplate").
+	workerBootstrapConfig := builder.BootstrapConfig(metav1.NamespaceDefault, "linux-worker-bootstrapconfig").
 		Build()
 	mdClass1 := builder.MachineDeploymentClass("default-worker").
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
@@ -1064,7 +1064,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					},
 					{
 						Name: "default-mp-worker-infra",
-						// This value should be overwritten for the default-mp-worker-topo1 MachineDeployment.
+						// This value should be overwritten for the default-mp-worker-topo1 MachinePool.
 						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo2"`)},
 						DefinitionFrom: "inline",
 					},

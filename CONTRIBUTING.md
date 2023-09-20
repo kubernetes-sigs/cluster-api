@@ -96,8 +96,9 @@ We generally allow backports of following changes to all supported branches:
 - Dependency bumps for CVE (usually limited to CVE resolution; backports of non-CVE related version bumps are considered exceptions to be evaluated case by case)
 - Cert-manager version bumps (to avoid having releases with cert-manager versions that are out of support, when possible)
 - Changes required to support new Kubernetes versions, when possible. See [supported Kubernetes versions](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions) for more details.
-- Changes to use the latest Go patch release. If the Go minor version of a supported branch goes out of support, we will consider on a case-by-case basis
-  to bump to a newer Go minor version (e.g. to pick up CVE fixes). This could have impact on everyone importing Cluster API.
+- Changes to use the latest Go patch version to build controller images.
+- Changes to bump the Go minor version used to build controller images, if the Go minor version of a supported branch goes out of support (e.g. to pick up bug and CVE fixes). 
+  This has no impact on folks importing Cluster API as we won't modify the version in `go.mod` and the version in the `Makefile` does not affect them.
 
 We generally allow backports of following changes only to the latest supported branch:
 - Improvements to existing docs (the latest supported branch hosts the current version of the book)

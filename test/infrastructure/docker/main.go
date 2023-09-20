@@ -111,6 +111,7 @@ func initFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
+	//nolint:staticcheck
 	rand.Seed(time.Now().UnixNano())
 	if _, err := os.ReadDir("/tmp/"); err != nil {
 		setupLog.Error(err, "unable to start manager")

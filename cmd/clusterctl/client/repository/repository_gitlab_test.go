@@ -148,12 +148,12 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 	defer server.Close()
 	client := server.Client()
 
-	providerURL := fmt.Sprintf("%s/api/v4/projects/group%%2Fproject/packages/generic/my-package/v0.4.1/file.yaml", server.URL)
+	providerURL := fmt.Sprintf("%s/api/v4/projects/group/project/packages/generic/my-package/v0.4.1/file.yaml", server.URL)
 	providerConfig := config.NewProvider("test", providerURL, clusterctlv1.CoreProviderType)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		if r.URL.RawPath == "/api/v4/projects/group%2Fproject/packages/generic/my-package/v0.4.1/file.yaml" {
+		if r.URL.Path == "/api/v4/projects/group/project/packages/generic/my-package/v0.4.1/file.yaml" {
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.Header().Set("Content-Disposition", "attachment; filename=file.yaml")
 			fmt.Fprint(w, "content")

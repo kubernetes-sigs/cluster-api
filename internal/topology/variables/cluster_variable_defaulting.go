@@ -19,6 +19,7 @@ package variables
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -49,8 +50,11 @@ func defaultClusterVariables(values []clusterv1.ClusterVariable, definitions []c
 	// - variables with the same name do not have a mix of empty and non-empty DefinitionFrom.
 	valuesIndex, err := newValuesIndex(values)
 	if err != nil {
-		return nil, append(allErrs, field.Invalid(fldPath, values,
-			fmt.Sprintf("cluster variables not valid: %s", err)))
+		var valueStrings []string
+		for _, v := range values {
+			valueStrings = append(valueStrings, fmt.Sprintf("Name: %s DefinitionFrom: %s", v.Name, v.DefinitionFrom))
+		}
+		return nil, append(allErrs, field.Invalid(fldPath, "["+strings.Join(valueStrings, ",")+"]", fmt.Sprintf("cluster variables not valid: %s", err)))
 	}
 
 	// Get an index for each variable name and definition.

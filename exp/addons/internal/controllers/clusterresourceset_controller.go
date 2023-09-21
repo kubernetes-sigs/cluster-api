@@ -196,7 +196,12 @@ func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clus
 			return err
 		}
 
-		clusterResourceSetBinding.DeleteBinding(crs)
+		clusterResourceSetBinding.RemoveBinding(crs)
+		clusterResourceSetBinding.OwnerReferences = util.RemoveOwnerRef(clusterResourceSetBinding.GetOwnerReferences(), metav1.OwnerReference{
+			APIVersion: crs.APIVersion,
+			Kind:       crs.Kind,
+			Name:       crs.Name,
+		})
 
 		// If CRS list is empty in the binding, delete the binding else
 		// attempt to Patch the ClusterResourceSetBinding object after delete reconciliation if there is at least 1 binding left.

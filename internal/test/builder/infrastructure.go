@@ -37,9 +37,13 @@ var (
 
 	// GenericInfrastructureMachinePoolTemplateKind is the Kind for the GenericInfrastructureMachinePoolTemplate.
 	GenericInfrastructureMachinePoolTemplateKind = "GenericInfrastructureMachinePoolTemplate"
+	// GenericInfrastructureMachinePoolTemplateCRD is a generic infrastructure machine pool template CRD.
+	GenericInfrastructureMachinePoolTemplateCRD = untypedCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachinePoolTemplateKind))
 
 	// GenericInfrastructureMachinePoolKind is the Kind for the GenericInfrastructureMachinePool.
 	GenericInfrastructureMachinePoolKind = "GenericInfrastructureMachinePool"
+	// GenericInfrastructureMachinePoolCRD is a generic infrastructure machine pool CRD.
+	GenericInfrastructureMachinePoolCRD = untypedCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachinePoolKind))
 
 	// GenericInfrastructureClusterKind is the kind for the GenericInfrastructureCluster type.
 	GenericInfrastructureClusterKind = "GenericInfrastructureCluster"

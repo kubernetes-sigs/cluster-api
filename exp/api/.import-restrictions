@@ -3,3 +3,4 @@ rules:
     allowedPrefixes:
       - "sigs.k8s.io/controller-runtime/pkg/conversion"
     forbiddenPrefixes: []
+    transitive: true

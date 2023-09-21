@@ -3,3 +3,4 @@ rules:
     allowedPrefixes: []
     forbiddenPrefixes:
       - "sigs.k8s.io/controller-runtime"
+    transitive: true

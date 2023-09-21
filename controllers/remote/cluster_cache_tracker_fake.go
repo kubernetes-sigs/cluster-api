@@ -30,6 +30,7 @@ func NewTestClusterCacheTracker(log logr.Logger, cl client.Client, scheme *runti
 		client:           cl,
 		scheme:           scheme,
 		clusterAccessors: make(map[client.ObjectKey]*clusterAccessor),
+		clusterLock:      newKeyedMutex(),
 	}
 
 	testCacheTracker.clusterAccessors[objKey] = &clusterAccessor{

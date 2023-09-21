@@ -1470,15 +1470,16 @@ func (c *TestControlPlaneBuilder) Build() *unstructured.Unstructured {
 
 // MachinePoolBuilder holds the variables and objects needed to build a generic MachinePool.
 type MachinePoolBuilder struct {
-	namespace      string
-	name           string
-	bootstrap      *unstructured.Unstructured
-	infrastructure *unstructured.Unstructured
-	version        *string
-	clusterName    string
-	replicas       *int32
-	labels         map[string]string
-	status         *expv1.MachinePoolStatus
+	namespace       string
+	name            string
+	bootstrap       *unstructured.Unstructured
+	infrastructure  *unstructured.Unstructured
+	version         *string
+	clusterName     string
+	replicas        *int32
+	labels          map[string]string
+	status          *expv1.MachinePoolStatus
+	minReadySeconds *int32
 }
 
 // MachinePool creates a MachinePoolBuilder with the given name and namespace.
@@ -1531,6 +1532,12 @@ func (m *MachinePoolBuilder) WithStatus(status expv1.MachinePoolStatus) *Machine
 	return m
 }
 
+// WithMinReadySeconds sets the passed value on the machine pool spec.
+func (m *MachinePoolBuilder) WithMinReadySeconds(minReadySeconds int32) *MachinePoolBuilder {
+	m.minReadySeconds = &minReadySeconds
+	return m
+}
+
 // Build creates a new MachinePool with the variables and objects passed to the MachinePoolBuilder.
 func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 	obj := &expv1.MachinePool{
@@ -1544,8 +1551,15 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 			Labels:    m.labels,
 		},
 		Spec: expv1.MachinePoolSpec{
-			ClusterName: m.clusterName,
-			Replicas:    m.replicas,
+			ClusterName:     m.clusterName,
+			Replicas:        m.replicas,
+			MinReadySeconds: m.minReadySeconds,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Version:     m.version,
+					ClusterName: m.clusterName,
+				},
+			},
 		},
 	}
 	if m.bootstrap != nil {
@@ -1553,9 +1567,6 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 	}
 	if m.infrastructure != nil {
 		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructure)
-	}
-	if m.version != nil {
-		obj.Spec.Template.Spec.Version = m.version
 	}
 	if m.status != nil {
 		obj.Status = *m.status
@@ -1576,6 +1587,7 @@ type MachineDeploymentBuilder struct {
 	generation             *int64
 	labels                 map[string]string
 	status                 *clusterv1.MachineDeploymentStatus
+	minReadySeconds        *int32
 }
 
 // MachineDeployment creates a MachineDeploymentBuilder with the given name and namespace.
@@ -1640,6 +1652,12 @@ func (m *MachineDeploymentBuilder) WithStatus(status clusterv1.MachineDeployment
 	return m
 }
 
+// WithMinReadySeconds sets the passed value on the machine deployment spec.
+func (m *MachineDeploymentBuilder) WithMinReadySeconds(minReadySeconds int32) *MachineDeploymentBuilder {
+	m.minReadySeconds = &minReadySeconds
+	return m
+}
+
 // Build creates a new MachineDeployment with the variables and objects passed to the MachineDeploymentBuilder.
 func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	obj := &clusterv1.MachineDeployment{
@@ -1683,6 +1701,7 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 			clusterv1.ClusterNameLabel: m.clusterName,
 		}
 	}
+	obj.Spec.MinReadySeconds = m.minReadySeconds
 
 	return obj
 }

@@ -1,6 +1,6 @@
 # Table of Contents
 
-[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [W](#w)
+[A](#a) | [B](#b) | [C](#c) | [D](#d) | [E](#e) | [F](#f) | [H](#h) | [I](#i) | [K](#k) | [L](#l)| [M](#m) | [N](#n) | [O](#o) | [P](#p) | [R](#r) | [S](#s) | [T](#t) | [W](#w)
 
 # A
 ---
@@ -19,9 +19,23 @@ Services beyond the fundamental components of Kubernetes.
 
 The process of turning a server into a Kubernetes node. This may involve assembling data to provide when creating the server that backs the Machine, as well as runtime configuration of the software running on that server.
 
+### Bootstrapper
+
+Or __Kubernetes bootstrapper__
+
+A component responsible for [bootstrapping](#bootstrap) a server. Example: kubeadm.
+
+__A bootstrapper shouldn't be confused with a [provisioner](#provisioner)__.
+
 ### Bootstrap cluster
 
-A temporary cluster that is used to provision a Target Management cluster.
+A temporary cluster that is used to create a Target Management cluster.
+
+### Bootstrap configuration
+
+Configuration related to [bootstrapping](#bootstrap) a [server](#server). Bootstrap configuration
+is [bootstrapper](#bootstrapper)-specific and is typically different for control plane nodes and
+worker nodes.
 
 ### Bootstrap provider
 
@@ -180,6 +194,14 @@ A feature implementation offered as part of the Cluster API project and maintain
 
 A [runtime extension](#runtime-extension) that implements a [topology mutation hook](#topology-mutation-hook).
 
+# F
+---
+
+### First boot
+
+The first time a [server](#server) is booted after its infrastructure (whether physical or virtual)
+has been created.
+
 # H
 ---
 
@@ -275,7 +297,7 @@ See [Topology](#topology)
 
 ### Management cluster
 
-The cluster where one or more Infrastructure Providers run, and where resources (e.g. Machines) are stored. Typically referred to when you are provisioning multiple workload clusters.
+The cluster where one or more Infrastructure Providers run, and where resources (e.g. Machines) are stored. Typically referred to when you are managing multiple workload clusters.
 
 ### Multi-tenancy
 
@@ -339,6 +361,38 @@ See [Provider repository](#provider-repository)
 
 Refers to the location where the YAML for [provider components](#provider-components) are hosted; usually a provider repository hosts
 many version of provider components, one for each released version.
+
+### Provisioner
+
+Or __First boot provisioner__
+
+A tool which consumes a [provisioning configuration](#provisioning-configuration) and
+[provisions](#provisioning) a [server](#server) on [first boot](#first-boot). A provisioner is
+typically an executable binary or script that is shipped with an OS. Examples for provisioners are
+[cloud-init](https://cloud-init.io/), [Ignition](https://coreos.github.io/ignition/) and
+[Cloudbase-Init](https://cloudbase.it/cloudbase-init/).
+
+__A provisioner shouldn't be confused with a [bootstrapper](#bootstrapper)__.
+
+### Provisioning
+
+The process of performing arbitrary customizations to a [server](#server), typically on first boot.
+Sample customizations include writing files and directories, modifying file permissions and
+ownership, configuring systemd units, adding OS users, modifying disk partitioning and executing
+arbitrary shell commands.
+
+__Provisioning is distinct from [bootstrap](#bootstrap)__. More precisely, provisioning is a
+_superset_ of bootstrap. While bootstrap is typically performed _using_ provisioning (by conveying bootstrap
+configuration as well as commands for executing a [bootstrapper](#bootstrapper) in the
+[provisioning configuration](#provisioning-configuration)), provisioning may also include customizations unrelated to bootstrap, such as preparing a node for
+running Kubernetes binaries or performing generic OS customizations not directly related to
+Kubernetes at all. For this reason it is critical to distinguish between provisioning and
+bootstrap.
+
+### Provisioning configuration
+
+A text document in a well-known format (e.g. cloud-config) used by a [provisioner](#provisioner) to
+provision a [server](#server).
 
 # R
 ---

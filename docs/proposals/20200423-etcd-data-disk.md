@@ -60,8 +60,7 @@ A "side effect" motivation is to open up the option of putting other directories
 
 References:
 https://docs.microsoft.com/en-us/archive/blogs/xiangwu/azure-vm-storage-performance-and-throttling-demystify
-https://archive-docs.d2iq.com/mesosphere/dcos/1.13/installing/production/system-requirements/azure-recommendations/#disk-configurations
-
+https://github.com/mesosphere/dcos-docs-site/blob/f15c4d9cd8c36c8a406a22b76b825b49d9fe577d/pages/mesosphere/dcos/1.13/installing/production/system-requirements/azure-recommendations/index.md#disk-configurations
 ### Goals
 
 - Allow running etcd on its own disk

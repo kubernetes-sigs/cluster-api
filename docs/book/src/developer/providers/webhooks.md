@@ -23,7 +23,7 @@ validation behavior for all other cases.
 See [the DockerMachineTemplate webhook] as a reference for a compatible implementation.
 
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
-[the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/api/v1beta1/dockermachinetemplate_webhook.go
+[the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate_webhook.go
 
 </aside>
 

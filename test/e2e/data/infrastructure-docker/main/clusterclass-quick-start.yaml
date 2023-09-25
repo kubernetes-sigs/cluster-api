@@ -112,6 +112,18 @@ spec:
       openAPIV3Schema:
         type: boolean
         default: false
+  - name: kubeControlPlaneLogLevel
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: "Log level for kube-apiserver, kube-scheduler and kube-controller-manager"
+        example: "2"
+  - name: kubeletLogLevel
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: "Log level for kubelets on control plane and worker nodes"
+        example: "2"
   patches:
   - name: lbImageRepository
     definitions:
@@ -241,13 +253,11 @@ spec:
             controlPlane: true
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
-            value:
-              cloud-provider: "external"
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
+            value: "external"
           - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs"
-            value:
-              cloud-provider: "external"
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
+            value: "external"
   - name: machineDeploymentExternalCloudProvider
     enabledIf: "{{ .externalCloudProvider }}"
     description: "Configures kubelet to run with an external cloud provider for machineDeployment nodes."
@@ -261,9 +271,8 @@ spec:
                 - '*-worker'
         jsonPatches:
           - op: add
-            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
-            value:
-              cloud-provider: "external"
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
+            value: "external"
   - name: localEndpointIPv6
     enabledIf: "{{ .ipv6Primary }}"
     description: "Configures KCP to use IPv6 for its localAPIEndpoint."
@@ -288,9 +297,8 @@ spec:
           controlPlane: true
       jsonPatches:
       - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"
-        value:
-          admission-control-config-file: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/admission-control-config-file"
+        value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
       - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
         value:
@@ -324,6 +332,62 @@ spec:
                       namespaces: [kube-system]
               path: /etc/kubernetes/kube-apiserver-admission-pss.yaml
     enabledIf: '{{ semverCompare ">= v1.24" .builtin.controlPlane.version }}'
+  - name: controlPlaneLogLevel
+    enabledIf: "{{ if .kubeControlPlaneLogLevel }}true{{end}}"
+    description: "Configures control plane components and kubelet to run at the log level specified in the variable `kubeControlPlaneLogLevel`."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/v"
+            valueFrom:
+              variable: kubeControlPlaneLogLevel
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/v"
+            valueFrom:
+              variable: kubeControlPlaneLogLevel
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/v"
+            valueFrom:
+              variable: kubeControlPlaneLogLevel
+  - name: controlPlaneKubeletLogLevel
+    enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
+    description: "Configures control plane kubelets to log at the level set in the variable `kubeletLogLevel`."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/v"
+            valueFrom:
+              variable: kubeletLogLevel
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/v"
+            valueFrom:
+              variable: kubeletLogLevel
+  - name: workerKubeletLogLevel
+    enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
+    description: "Configures worker kubelets to log at the level set in the variable `kubeletLogLevel`."
+    definitions:
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - '*-worker'
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/v"
+            valueFrom:
+              variable: kubeletLogLevel
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
@@ -386,9 +450,17 @@ spec:
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:
         clusterConfiguration:
+          # extraArgs must be non-empty for control plane components to enable patches from ClusterClass to work.
           controllerManager:
-            extraArgs: { enable-hostpath-provisioner: 'true' }
+            extraArgs:
+              enable-hostpath-provisioner: 'true'
+              v: "0"
+          scheduler:
+            extraArgs:
+              v: "0"
           apiServer:
+            extraArgs:
+              v: "0"
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
             certSANs: [localhost, host.docker.internal, "::", "::1", "127.0.0.1", "0.0.0.0"]
         initConfiguration:

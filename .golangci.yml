@@ -60,9 +60,9 @@ linters:
 linters-settings:
   gci:
     sections:
-      - standard
-      - default
-      - prefix(sigs.k8s.io/cluster-api)
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(sigs.k8s.io/cluster-api) # Custom section: groups all imports with the specified Prefix.
     custom-order: true
   ginkgolinter:
     forbid-focus-container: true
@@ -200,7 +200,6 @@ linters-settings:
       #
       - name: bool-literal-in-expr
       - name: constant-logical-expr
-
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

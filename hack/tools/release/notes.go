@@ -101,6 +101,7 @@ var (
 		"provider/core":                     "Core",
 		"runtime-sdk":                       "Runtime SDK",
 		"ci":                                "CI",
+		"machinehealthcheck":                "MachineHealthCheck",
 	}
 
 	releaseBackportMarker = regexp.MustCompile(`(?m)^\[release-\d\.\d\]\s*`)

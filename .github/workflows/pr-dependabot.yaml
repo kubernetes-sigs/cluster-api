@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out code into the Go module directory
-      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac # tag=v4.0.0
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # tag=v4.1.0
     - name: Calculate go version
       id: vars
       run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT

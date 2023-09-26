@@ -11,6 +11,10 @@ spec:
          value: false
        - name: externalCloudProvider
          value: true
+       - name: kubeControlPlaneLogLevel
+         value: "2"
+       - name: kubeletLogLevel
+         value: "4"
   clusterNetwork:
     services:
       cidrBlocks:

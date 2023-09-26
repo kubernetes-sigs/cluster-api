@@ -313,6 +313,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
 				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
 				MachineDeployments:          clusterResources.MachineDeployments,
+				MachinePools:                clusterResources.MachinePools,
 				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
 				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),

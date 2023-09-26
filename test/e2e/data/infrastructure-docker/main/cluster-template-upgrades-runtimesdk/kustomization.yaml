@@ -1,4 +1,3 @@
 resources:
   - ../bases/crs.yaml
-  - ../bases/mp.yaml
   - cluster-runtimesdk.yaml

@@ -9,6 +9,7 @@
         - [Using Custom Certificates](./tasks/certs/using-custom-certificates.md)
         - [Generating a Kubeconfig](./tasks/certs/generate-kubeconfig.md)
         - [Auto Rotate Certificates in KCP](./tasks/certs/auto-rotate-certificates-in-kcp.md)
+        - [Experimental CA rotation procedure](./tasks/certs/experimental-ca-rotation.md)
     - [Bootstrap](./tasks/bootstrap/index.md)
         - [Kubeadm based bootstrap](./tasks/bootstrap/kubeadm-bootstrap/index.md)
             - [Kubelet configuration](./tasks/bootstrap/kubeadm-bootstrap/kubelet-config.md)

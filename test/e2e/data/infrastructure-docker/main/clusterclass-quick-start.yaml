@@ -113,12 +113,14 @@ spec:
         type: boolean
         default: false
   - name: kubeControlPlaneLogLevel
+    required: false
     schema:
       openAPIV3Schema:
         type: string
         description: "Log level for kube-apiserver, kube-scheduler and kube-controller-manager"
         example: "2"
   - name: kubeletLogLevel
+    required: false
     schema:
       openAPIV3Schema:
         type: string

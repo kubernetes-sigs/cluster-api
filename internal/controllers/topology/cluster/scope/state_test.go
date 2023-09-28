@@ -121,7 +121,7 @@ func TestMPIsUpgrading(t *testing.T) {
 	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name     string
-		mp       *clusterv1.MachinePool
+		mp       *expv1.MachinePool
 		machines []*clusterv1.Machine
 		want     bool
 		wantErr  bool

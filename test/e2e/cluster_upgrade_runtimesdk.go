@@ -221,6 +221,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 			Cluster:                     clusterResources.Cluster,
 			ControlPlane:                clusterResources.ControlPlane,
 			MachineDeployments:          clusterResources.MachineDeployments,
+			MachinePools:                clusterResources.MachinePools,
 			KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
 			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
@@ -233,7 +234,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 					input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
 					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 			},
-			PreWaitForMachineDeploymentToBeUpgraded: func() {
+			PreWaitForWorkersToBeUpgraded: func() {
 				machineSetPreflightChecksTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef)

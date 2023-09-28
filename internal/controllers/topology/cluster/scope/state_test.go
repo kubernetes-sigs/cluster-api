@@ -118,8 +118,7 @@ func TestMDIsUpgrading(t *testing.T) {
 func TestMPIsUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
-
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
 	tests := []struct {
 		name     string
 		mp       *clusterv1.MachinePool
@@ -245,7 +244,7 @@ func TestMDUpgrading(t *testing.T) {
 func TestMPUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
-	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
 
 	ctx := context.Background()
 

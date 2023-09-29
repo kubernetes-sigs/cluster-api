@@ -276,7 +276,7 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 		// the finalizer on the MachineSet if it already exists. Because of SSA we should not build
 		// the finalizer information from the MachineDeployment when updating a MachineSet because that could lead
 		// to dropping the finalizer from the MachineSet if it is dropped from the MachineDeployment.
-		// We should not drop the finalizer on the MachineSet if the finalizer is dropped form the MachineDeployment.
+		// We should not drop the finalizer on the MachineSet if the finalizer is dropped from the MachineDeployment.
 		if sets.New[string](existingMS.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
 			finalizers = []string{metav1.FinalizerDeleteDependents}
 		}

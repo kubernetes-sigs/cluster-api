@@ -362,7 +362,7 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 	Expect(input.Namespace).NotTo(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling ApplyCustomClusterTemplateAndWait")
 	Expect(result).ToNot(BeNil(), "Invalid argument. result can't be nil when calling ApplyClusterTemplateAndWait")
 
-	log.Logf("Creating the workload cluster with name %q form the provided yaml", input.ClusterName)
+	log.Logf("Creating the workload cluster with name %q from the provided yaml", input.ClusterName)
 
 	// Ensure we have a Cluster for dump and cleanup steps in AfterEach even if ApplyClusterTemplateAndWait fails.
 	result.Cluster = &clusterv1.Cluster{

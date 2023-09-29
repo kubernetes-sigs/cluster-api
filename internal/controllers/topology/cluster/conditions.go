@@ -214,7 +214,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	return nil
 }
 
-// computeNameList computes list of names form the given list to be shown in conditions.
+// computeNameList computes list of names from the given list to be shown in conditions.
 // It shortens the list to at most 5 names and adds an ellipsis at the end if the list
 // has more than 5 elements.
 func computeNameList(list []string) any {

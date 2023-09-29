@@ -297,7 +297,7 @@ func TestMachineSetReconciler(t *testing.T) {
 			fakeInfrastructureRefReady(m.Spec.InfrastructureRef, infraResource, g)
 		}
 
-		// Verify that in-place mutable fields propagate form MachineSet to Machines.
+		// Verify that in-place mutable fields propagate from MachineSet to Machines.
 		t.Log("Updating NodeDrainTimeout on MachineSet")
 		patchHelper, err := patch.NewHelper(instance, env)
 		g.Expect(err).ToNot(HaveOccurred())

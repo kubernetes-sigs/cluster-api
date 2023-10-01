@@ -59,6 +59,9 @@ variables in the `clusterctl` config file:
 AWS_B64ENCODED_CREDENTIALS: XXXXXXXX
 ```
 
+The format of keys should always be `UPPERCASE_WITH_UNDERSCORE` for both OS environment variables and in the `clusterctl`
+config file (NOTE: this limitation derives from [Viper](https://github.com/spf13/viper), the library we are using internally to retrieve variables).
+
 In case a variable is defined both in the config file and as an OS environment variable,
 the environment variable takes precedence.
 

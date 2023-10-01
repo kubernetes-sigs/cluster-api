@@ -71,10 +71,7 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 
 	// Filter the modifiedUnstructured object to only contain changes intendet to be done.
 	// The originalUnstructured object will be filtered in dryRunSSAPatch using other options.
-	ssa.FilterObject(modifiedUnstructured, &ssa.FilterObjectInput{
-		AllowedPaths: helperOptions.allowedPaths,
-		IgnorePaths:  helperOptions.ignorePaths,
-	})
+	ssa.FilterObject(modifiedUnstructured, &helperOptions.FilterObjectInput)
 
 	// Carry over uid to match the intent to:
 	// * create (uid==""):

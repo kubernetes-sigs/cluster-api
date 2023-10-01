@@ -67,7 +67,7 @@ type TwoWaysPatchHelper struct {
 func NewTwoWaysPatchHelper(original, modified client.Object, c client.Client, opts ...HelperOption) (*TwoWaysPatchHelper, error) {
 	helperOptions := &HelperOptions{}
 	helperOptions = helperOptions.ApplyOptions(opts)
-	helperOptions.allowedPaths = []contract.Path{
+	helperOptions.AllowedPaths = []contract.Path{
 		{"metadata", "labels"},
 		{"metadata", "annotations"},
 		{"spec"}, // NOTE: The handling of managed path requires/assumes spec to be within allowed path.
@@ -76,7 +76,7 @@ func NewTwoWaysPatchHelper(original, modified client.Object, c client.Client, op
 	// metadata.name, metadata.namespace (who are required by the API server) and metadata.ownerReferences
 	// that gets set to avoid orphaned objects.
 	if util.IsNil(original) {
-		helperOptions.allowedPaths = append(helperOptions.allowedPaths,
+		helperOptions.AllowedPaths = append(helperOptions.AllowedPaths,
 			contract.Path{"apiVersion"},
 			contract.Path{"kind"},
 			contract.Path{"metadata", "name"},
@@ -166,24 +166,24 @@ func applyOptions(in *applyOptionsInput) ([]byte, error) {
 
 	// drop changes for exclude paths (fields to not consider, e.g. status);
 	// Note: for everything not allowed it sets modified equal to original, so the generated patch doesn't include this change
-	if len(in.options.allowedPaths) > 0 {
+	if len(in.options.AllowedPaths) > 0 {
 		dropDiff(&dropDiffInput{
 			path:               contract.Path{},
 			original:           originalMap,
 			modified:           modifiedMap,
-			shouldDropDiffFunc: ssa.IsPathNotAllowed(in.options.allowedPaths),
+			shouldDropDiffFunc: ssa.IsPathNotAllowed(in.options.AllowedPaths),
 		})
 	}
 
 	// drop changes for ignore paths (well known fields owned by something else, e.g.
 	//   spec.controlPlaneEndpoint in the InfrastructureCluster object);
 	// Note: for everything ignored it sets  modified equal to original, so the generated patch doesn't include this change
-	if len(in.options.ignorePaths) > 0 {
+	if len(in.options.IgnorePaths) > 0 {
 		dropDiff(&dropDiffInput{
 			path:               contract.Path{},
 			original:           originalMap,
 			modified:           modifiedMap,
-			shouldDropDiffFunc: ssa.IsPathIgnored(in.options.ignorePaths),
+			shouldDropDiffFunc: ssa.IsPathIgnored(in.options.IgnorePaths),
 		})
 	}
 

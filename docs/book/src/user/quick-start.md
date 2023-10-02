@@ -539,7 +539,7 @@ clusterctl init --infrastructure docker
 In order to initialize the Equinix Metal Provider (formerly Packet) you have to expose the environment
 variable `PACKET_API_KEY`. This variable is used to authorize the infrastructure
 provider manager against the Equinix Metal API. You can retrieve your token directly
-from the [Equinix Metal Console](https://console.equinix.com/).
+from the Equinix Metal Console.
 
 ```bash
 export PACKET_API_KEY="34ts3g4s5g45gd45dhdh"

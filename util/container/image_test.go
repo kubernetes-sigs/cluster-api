@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 	. "github.com/onsi/gomega"
 )
 

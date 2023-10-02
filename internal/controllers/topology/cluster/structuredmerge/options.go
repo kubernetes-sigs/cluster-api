@@ -21,6 +21,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
 var (
@@ -70,29 +71,21 @@ type HelperOption interface {
 
 // HelperOptions contains options for Helper.
 type HelperOptions struct {
-	// internally managed options.
-
-	// allowedPaths instruct the Helper to ignore everything except given paths when computing a patch.
-	allowedPaths []contract.Path
-
-	// user defined options.
-
-	// IgnorePaths instruct the Helper to ignore given paths when computing a patch.
-	// NOTE: ignorePaths are used to filter out fields nested inside allowedPaths, e.g.
-	// spec.ControlPlaneEndpoint.
-	// NOTE: ignore paths which point to an array are not supported by the current implementation.
-	ignorePaths []contract.Path
+	ssa.FilterObjectInput
 }
 
 // newHelperOptions returns initialized HelperOptions.
 func newHelperOptions(target client.Object, opts ...HelperOption) *HelperOptions {
 	helperOptions := &HelperOptions{
-		allowedPaths: defaultAllowedPaths,
+		FilterObjectInput: ssa.FilterObjectInput{
+			AllowedPaths: defaultAllowedPaths,
+			IgnorePaths:  []contract.Path{},
+		},
 	}
 	// Overwrite the allowedPaths for Cluster objects to prevent the topology controller
 	// to take ownership of fields it is not supposed to.
 	if _, ok := target.(*clusterv1.Cluster); ok {
-		helperOptions.allowedPaths = allowedPathsCluster
+		helperOptions.AllowedPaths = allowedPathsCluster
 	}
 	helperOptions = helperOptions.ApplyOptions(opts)
 	return helperOptions
@@ -114,5 +107,5 @@ type IgnorePaths []contract.Path
 
 // ApplyToHelper applies this configuration to the given helper options.
 func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
-	opts.ignorePaths = i
+	opts.IgnorePaths = i
 }

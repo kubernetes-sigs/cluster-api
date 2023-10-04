@@ -181,3 +181,38 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 		}
 	})
 })
+
+var _ = Describe("When following the Cluster API quick-start check finalizers resilience after deletion", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
+				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName)
+			},
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start with ClusterClass check finalizers resilience after deletion [ClusterClass]", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 pointer.String("topology"),
+			InfrastructureProvider: pointer.String("docker"),
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
+				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName)
+			},
+		}
+	})
+})

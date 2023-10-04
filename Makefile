@@ -422,6 +422,7 @@ generate-go-conversions: ## Run all generate-go-conversions-* targets
 generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 	$(MAKE) generate-go-conversions-core-api
 	$(MAKE) generate-go-conversions-core-exp
+	$(MAKE) generate-go-conversions-core-exp-ipam
 	$(MAKE) generate-go-conversions-core-runtime
 
 .PHONY: generate-go-conversions-core-api
@@ -440,6 +441,14 @@ generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go c
 		--input-dirs=./$(EXP_DIR)/api/v1alpha4 \
 		--input-dirs=./$(EXP_DIR)/addons/api/v1alpha4 \
 		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha4 \
+		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+
+.PHONY: generate-go-conversions-core-exp-ipam
+generate-go-conversions-core-exp-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
+	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/ipam/api/v1alpha1"
+	$(CONVERSION_GEN) \
+		--input-dirs=./$(EXP_DIR)/ipam/api/v1alpha1 \
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 

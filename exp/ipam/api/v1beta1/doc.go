@@ -14,6 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains API Schema definitions for the exp v1alpha1 IPAM API.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
-package v1alpha1
+// Package v1beta1 contains API Schema definitions for the v1beta1 IPAM API.
+package v1beta1

@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains API Schema definitions for the exp v1alpha1 IPAM API.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1
-package v1alpha1
+package v1beta1
+
+func (*IPAddress) Hub()          {}
+func (*IPAddressList) Hub()      {}
+func (*IPAddressClaim) Hub()     {}
+func (*IPAddressClaimList) Hub() {}

@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
-func TestIsUpgrading(t *testing.T) {
+func TestMDIsUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
@@ -115,7 +115,92 @@ func TestIsUpgrading(t *testing.T) {
 	}
 }
 
-func TestUpgrading(t *testing.T) {
+func TestMPIsUpgrading(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+	tests := []struct {
+		name     string
+		mp       *expv1.MachinePool
+		machines []*clusterv1.Machine
+		want     bool
+		wantErr  bool
+	}{
+		{
+			name: "should return false if all the machines of MachinePool have the same version as the MachinePool",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			machines: []*clusterv1.Machine{
+				builder.Machine("ns", "machine1").
+					WithClusterName("cluster1").
+					WithVersion("v1.2.3").
+					Build(),
+				builder.Machine("ns", "machine2").
+					WithClusterName("cluster1").
+					WithVersion("v1.2.3").
+					Build(),
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "should return true if at least one of the machines of MachinePool has a different version",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			machines: []*clusterv1.Machine{
+				builder.Machine("ns", "machine1").
+					WithClusterName("cluster1").
+					WithVersion("v1.2.3").
+					Build(),
+				builder.Machine("ns", "machine2").
+					WithClusterName("cluster1").
+					WithVersion("v1.2.2").
+					Build(),
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "should return false if the MachinePool has no machines (creation phase)",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			machines: []*clusterv1.Machine{},
+			want:     false,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			objs := []client.Object{}
+			objs = append(objs, tt.mp)
+			for _, m := range tt.machines {
+				objs = append(objs, m)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+			mpState := &MachinePoolState{
+				Object: tt.mp,
+			}
+			got, err := mpState.IsUpgrading(ctx, fakeClient)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(got).To(Equal(tt.want))
+			}
+		})
+	}
+}
+
+func TestMDUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
@@ -151,6 +236,47 @@ func TestUpgrading(t *testing.T) {
 		want := []string{"upgradingMD"}
 
 		got, err := mdsStateMap.Upgrading(ctx, fakeClient)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).To(BeComparableTo(want))
+	})
+}
+
+func TestMPUpgrading(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+
+	ctx := context.Background()
+
+	t.Run("should return the names of the upgrading MachinePools", func(t *testing.T) {
+		stableMP := builder.MachinePool("ns", "stableMP").
+			WithClusterName("cluster1").
+			WithVersion("v1.2.3").
+			Build()
+		stableMPMachine := builder.Machine("ns", "stableMP-machine1").
+			WithClusterName("cluster1").
+			WithVersion("v1.2.3").
+			Build()
+
+		upgradingMP := builder.MachinePool("ns", "upgradingMP").
+			WithClusterName("cluster2").
+			WithVersion("v1.2.3").
+			Build()
+		upgradingMPMachine := builder.Machine("ns", "upgradingMP-machine1").
+			WithClusterName("cluster2").
+			WithVersion("v1.2.2").
+			Build()
+
+		objs := []client.Object{stableMP, stableMPMachine, upgradingMP, upgradingMPMachine}
+		fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithScheme(scheme).Build()
+
+		mpsStateMap := MachinePoolsStateMap{
+			"stableMP":    {Object: stableMP},
+			"upgradingMP": {Object: upgradingMP},
+		}
+		want := []string{"upgradingMP"}
+
+		got, err := mpsStateMap.Upgrading(ctx, fakeClient)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).To(BeComparableTo(want))
 	})

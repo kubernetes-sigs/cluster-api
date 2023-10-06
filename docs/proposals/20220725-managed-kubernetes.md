@@ -16,7 +16,7 @@ reviewers:
 creation-date: 2022-07-25
 last-updated: 2023-06-15
 status: implementable
-see-also: ./20230407-managed-k8s-capi-contract-changes.md
+see-also: ./20230407-flexible-managed-k8s-endpoints.md
 replaces:
 superseded-by:
 ---
@@ -97,7 +97,7 @@ Some Cluster API Providers (i.e. Azure with AKS first and then AWS with EKS) hav
 
 While working on supporting ClusterClass for EKS in Cluster API Provider AWS (CAPA), it was discovered that the current implementation of EKS within CAPA, where a single resource kind (AWSManagedControlPlane) is used for both ControlPlane and Infrastructure, is incompatible with other parts of CAPI assuming the two objects are different (Reference [issue here](https://github.com/kubernetes-sigs/cluster-api/issues/6126)).
 
-Separation of ControlPlane and Infrastructure is expected for the ClusterClass implementation to work correctly. However, after the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes) have been implemented there is the option to supply only the control plane, but you still cannot supply the same resource for both.
+Separation of ControlPlane and Infrastructure is expected for the ClusterClass implementation to work correctly. However, after the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md) have been implemented there is the option to supply only the control plane, but you still cannot supply the same resource for both.
 
 The responsibilities between the CAPI control plane and infrastructure are blurred with a managed Kubernetes service like AKS or EKS. For example, when you create a EKS control plane in AWS it also creates infrastructure that CAPI would traditionally view as the responsibility of the cluster “infrastructure provider”.
 
@@ -118,7 +118,7 @@ A good example here is the API server load balancer:
 - Enforce the Managed Kubernetes recommendations as a requirement for Cluster API providers when they implement Managed Kubernetes.
   - If providers that have already implemented Managed Kubernetes and would like guidance on if/how they could move to be aligned with the recommendations of this proposal then discussions should be facilitated.
 - Provide advice in this proposal on how to refactor the existing implementations of managed Kubernetes in CAPA & CAPZ.
-- Propose a new architecture or API changes to CAPI for managed Kubernetes. This has been covered by the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes).
+- Propose a new architecture or API changes to CAPI for managed Kubernetes. This has been covered by the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md).
 - Be a concrete design for the GKE implementation in Cluster API Provider GCP (CAPG).
 - Recommend how Managed Kubernetes services would leverage CAPI internally to run their offer.
 
@@ -247,7 +247,7 @@ The following section discusses different API implementation options along with 
 
 #### Option 1: Two kinds with a ControlPlane and a pass-through InfraCluster
 
-**This option will be no longer needed when the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes) have been implemented as option 2 can be used for a simpler solution**
+**This option will be no longer needed when the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md) have been implemented as option 2 can be used for a simpler solution**
 
 This option introduces 2 new resource kinds:
 
@@ -304,7 +304,7 @@ type GCPManagedClusterSpec struct {
 
 #### Option 2: Just a ControlPlane kind and no InfraCluster
 
-**This option is enabled when the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes) have been implemented.**
+**This option is enabled when the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md) have been implemented.**
 
 This option introduces 1 new resource kind:
 
@@ -400,7 +400,7 @@ type GCPManagedClusterSpec struct {
 }
 ```
 
-When the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes) have been implemented there is the option to return the control plane endpoint directly from the ControlPlane instead of passing it via the Infracluster.
+When the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md) have been implemented there is the option to return the control plane endpoint directly from the ControlPlane instead of passing it via the Infracluster.
 
 **Pros**
 
@@ -429,7 +429,7 @@ The reasons for this recommendation are as follows:
 
 If the managed Kubernetes services does not require any base infrastructure to be setup before creating the instance of the service then option 2 (Just a ControlPlane kind (and no InfraCluster) is the recommendation.
 
-This recommendation assumes that the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes) have been implemented. Until that point option 1 (Two kinds with a ControlPlane and a pass-through InfraCluster) will have to be used.
+This recommendation assumes that the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md) have been implemented. Until that point option 1 (Two kinds with a ControlPlane and a pass-through InfraCluster) will have to be used.
 
 ### Existing Managed Kubernetes Implementations
 
@@ -484,7 +484,7 @@ Some of the areas of change (this is not an exhaustive list):
 - Update the [Provider contracts documentation](../book/src/developer/providers/contracts.md) to state that the same kind should not be used to satisfy 2 different provider contracts.
 - Update the [Cluster Infrastructure documentation](../book/src/developer/providers/cluster-infrastructure.md) to provide guidance on how to populate the `controlPlaneEndpoint` in the scenario where the control plane creates the api server load balancer. We should include sample code.
 - Update the [Control Plane Controller](../book/src/developer/architecture/controllers/control-plane.md) diagram for managed k8s services case. The Control Plane reconcile needs to start when `InfrastructureReady` is true.
-- Updates based on the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes).
+- Updates based on the changes documented in the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md).
 
 ## Other Considerations for CAPI
 
@@ -606,4 +606,4 @@ As mentioned in the goals section, it is up to providers with existing implement
 - [x] 03/17/2022: Compile a Google Doc following the CAEP template ([link](https://docs.google.com/document/d/1dMN4-KppBkA51sxXPSQhYpqETp2AG_kHzByXTmznxFA/edit?usp=sharing))
 - [x] 04/20/2022: Present proposal at a community meeting
 - [x] 07/27/2022: Move the proposal to a PR in CAPI repo
-- [x] 06/15/2023: Updates as a result of the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-managed-k8s-capi-contract-changes.md) and also updates as a result of the current state of managed k8s in CAPI.
+- [x] 06/15/2023: Updates as a result of the [Contract Changes to Support Managed Kubernetes CAEP](./20230407-flexible-managed-k8s-endpoints.md) and also updates as a result of the current state of managed k8s in CAPI.

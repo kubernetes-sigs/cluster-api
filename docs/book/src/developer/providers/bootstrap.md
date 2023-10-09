@@ -4,6 +4,8 @@
 
 A bootstrap provider generates bootstrap data that is used to bootstrap a Kubernetes node.
 
+For example, the Kubeadm bootstrap provider uses a [cloud-init](https://cloudinit.readthedocs.io/en/latest/) file for bootstrapping a node.
+
 ## Data Types
 
 ### Bootstrap API resource

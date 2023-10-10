@@ -523,7 +523,7 @@ func (r *DockerMachineReconciler) getUnsafeLoadBalancerConfigTemplate(ctx contex
 	if dockerCluster.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef == nil {
 		return "", nil
 	}
-	var cm *corev1.ConfigMap
+	cm := &corev1.ConfigMap{}
 	key := types.NamespacedName{
 		Name:      dockerCluster.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef.Name,
 		Namespace: dockerCluster.Namespace,

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -42,10 +42,10 @@ type IPAddressSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=ipaddresses,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Address",type="string",JSONPath=".spec.address",description="Address"
 // +kubebuilder:printcolumn:name="Pool Name",type="string",JSONPath=".spec.poolRef.name",description="Name of the pool the address is from"
 // +kubebuilder:printcolumn:name="Pool Kind",type="string",JSONPath=".spec.poolRef.kind",description="Kind of the pool the address is from"
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of IPAdress"
 
 // IPAddress is the Schema for the ipaddress API.
 type IPAddress struct {

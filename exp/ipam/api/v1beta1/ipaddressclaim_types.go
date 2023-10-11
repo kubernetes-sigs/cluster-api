@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -43,9 +43,9 @@ type IPAddressClaimStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=ipaddressclaims,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pool Name",type="string",JSONPath=".spec.poolRef.name",description="Name of the pool to allocate an address from"
 // +kubebuilder:printcolumn:name="Pool Kind",type="string",JSONPath=".spec.poolRef.kind",description="Kind of the pool to allocate an address from"
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of IPAdressClaim"
 
 // IPAddressClaim is the Schema for the ipaddressclaim API.
 type IPAddressClaim struct {

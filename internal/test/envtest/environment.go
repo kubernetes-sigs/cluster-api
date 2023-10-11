@@ -59,7 +59,7 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	addonswebhooks "sigs.k8s.io/cluster-api/exp/addons/webhooks"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"

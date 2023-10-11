@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 )
 
 func TestIPAddressValidateCreate(t *testing.T) {

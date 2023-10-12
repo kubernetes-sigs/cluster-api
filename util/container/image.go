@@ -24,7 +24,7 @@ import (
 	"path"
 	"regexp"
 
-	"github.com/docker/distribution/reference"
+	"github.com/distribution/reference"
 	"github.com/pkg/errors"
 )
 

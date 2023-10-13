@@ -163,6 +163,9 @@ From this point forward changes which should land in the release have to be cher
 2. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/0b17ef5ffd6c7aa7d8ca1372d837acfb85f7bec6/config/prow/plugins.yaml#L371) accordingly (e.g. `release-1.4: v1.4` and `main: v1.5`)
    <br>Prior art: [cluster-api: update milestone applier config for v1.3](https://github.com/kubernetes/test-infra/pull/26631)
 
+3. Update the GitHub Actions to work with the new release version.
+   <br>Prior art: [Update actions for 1.5 and make names consistent](https://github.com/kubernetes-sigs/cluster-api/pull/9115)
+
 #### [Continuously] Maintain the GitHub release milestone
 
 The goal of this task is to keep an overview over the current release milestone and the implementation

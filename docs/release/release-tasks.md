@@ -418,9 +418,9 @@ TODO: Right now we don't have a template for this message but the Comms Team wil
   * Responsibility for the quality of the release
   * Continuously monitor CI signal, so a release can be cut at any time
   * Add CI signal for new release branches
-  * Bug Triage:
+* Bug Triage:
   * Make sure blocking issues and bugs are triaged and dealt with in a timely fashion
-  * Automation
+* Automation:
   * Maintain and improve release automation, tooling & related developer docs
 
 ### Tasks

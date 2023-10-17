@@ -17,6 +17,7 @@ This document details the responsibilities and tasks for each role in the releas
   - [Tasks](#tasks)
     - [Set a tentative release date for the minor release](#set-a-tentative-release-date-for-the-minor-release)
     - [Assemble release team](#assemble-release-team)
+    - [Add/remove release team members](#addremove-release-team-members)
     - [Finalize release schedule and team](#finalize-release-schedule-and-team)
     - [Prepare main branch for development of the new release](#prepare-main-branch-for-development-of-the-new-release)
     - [Create a new GitHub milestone for the next release](#create-a-new-github-milestone-for-the-next-release)
@@ -84,6 +85,10 @@ This document details the responsibilities and tasks for each role in the releas
 
 There is currently no formalized process to assemble the release team.
 As of now we ask for volunteers in Slack and office hours.
+
+#### Add/remove release team members
+
+If necessary, the release lead can adjust the release team during the cycle to handle unexpected changes in staffing due to personal/professional issues, no-shows, or unplanned work spikes. Adding/removing members can be done by opening a PR to update the release team members list for the release cycle in question.
 
 #### Finalize release schedule and team
 

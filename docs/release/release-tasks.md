@@ -378,6 +378,8 @@ done just remove the hold to merge it.
 The goal of this task is to ensure all stakeholders are informed about the current release cycle. For example announcing
 upcoming code freezes etc based on the [release timeline (1.4 example)](./releases/release-1.4.md).
 
+Templates for all types of communication can be found in the [release-templates page](./release-templates.md).
+
 Information can be distributed via:
 
 * `sig-cluster-lifecycle` mailing list

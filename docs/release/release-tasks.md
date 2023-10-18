@@ -120,6 +120,7 @@ This comes down to changing occurrences of the old version to the new version, e
       Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
 2. Update `create-local-repository.py` and `tools/internal/tilt-prepare/main.go`: `v1.4.99` => `v1.5.99`.
 3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-23-latest-main`).
+4. Remove an unsupported release version of Cluster API from the Makefile target that generates e2e templates. For example, remove `v1.3` while working on `v1.6`.
 
 Prior art: 
 
@@ -443,8 +444,7 @@ While we add test coverage for the new release branch we will also drop the test
             * Change interval (let's use the same as for `1.3`).
         5. For presubmits additionally: Adjust branches: `^main$` => `^release-1.4$`.
 2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml` (`dashboard_groups` and `dashboards`).
-3. Remove tests for old release branches according to our policy documented in [Support and guarantees](../../CONTRIBUTING.md#support-and-guarantees)
-   For example, let's assume we just created tests for v1.4, then we can now drop test coverage for the release-1.1 branch.
+3. Remove tests from the [test-infra](https://github.com/kubernetes/test-infra) repository for old release branches according to our policy documented in [Support and guarantees](../../CONTRIBUTING.md#support-and-guarantees). For example, let's assume we just created tests for v1.4, then we can now drop test coverage for the release-1.1 branch.
 4. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.4`
 5. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
 6. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.4`).

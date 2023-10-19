@@ -604,7 +604,11 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	restConfig, err := r.Tracker.GetRESTConfig(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
+		if errors.Is(err, remote.ErrClusterLocked) {
+			log.V(5).Info("Requeuing drain Node because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
+		log.Error(err, "Error creating a remote client for cluster while draining Node, won't retry")
 		return ctrl.Result{}, nil
 	}
 	restConfig = rest.CopyConfig(restConfig)
@@ -700,7 +704,10 @@ func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster,
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		log.Error(err, "Error creating a remote client for cluster while deleting Machine, won't retry")
+		if errors.Is(err, remote.ErrClusterLocked) {
+			return errors.Wrapf(err, "failed deleting Node because another worker has the lock on the ClusterCacheTracker")
+		}
+		log.Error(err, "Error creating a remote client for cluster while deleting Node, won't retry")
 		return nil
 	}
 

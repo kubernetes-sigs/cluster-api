@@ -483,6 +483,173 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseDeleting))
 	})
+
+	t.Run("Should keep `Running` when MachinePool bootstrap config is changed to another ready one", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
+		machinePool := defaultMachinePool.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready.
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Set infra ready.
+		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.1",
+			},
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.2",
+			},
+		}, "addresses")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Set NodeRef.
+		machinePool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+
+		// Set replicas to fully reconciled
+		machinePool.Spec.ProviderIDList = []string{"test://id-1"}
+		machinePool.Status.ReadyReplicas = 1
+		machinePool.Status.Replicas = 1
+
+		r := &MachinePoolReconciler{
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
+		}
+
+		res, err := r.reconcile(ctx, defaultCluster, machinePool)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinePool)
+		g.Expect(machinePool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+		g.Expect(*machinePool.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+
+		// Change bootstrap reference.
+		newBootstrapConfig := defaultBootstrap.DeepCopy()
+		newBootstrapConfig.SetName("bootstrap-config2")
+		err = unstructured.SetNestedField(newBootstrapConfig.Object, true, "status", "ready")
+		g.Expect(err).ToNot(HaveOccurred())
+		err = unstructured.SetNestedField(newBootstrapConfig.Object, "secret-data-new", "status", "dataSecretName")
+		g.Expect(err).ToNot(HaveOccurred())
+		err = r.Client.Create(ctx, newBootstrapConfig)
+		g.Expect(err).ToNot(HaveOccurred())
+		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name = newBootstrapConfig.GetName()
+
+		// Reconcile again. The new bootstrap config should be used.
+		res, err = r.reconcile(ctx, defaultCluster, machinePool)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinePool)
+		g.Expect(*machinePool.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data-new"))
+		g.Expect(machinePool.Status.BootstrapReady).To(BeTrue())
+		g.Expect(machinePool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+	})
+
+	t.Run("Should keep `Running` when MachinePool bootstrap config is changed to a non-ready one", func(t *testing.T) {
+		g := NewWithT(t)
+
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(env.Config, defaultCluster))
+		machinePool := defaultMachinePool.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Set bootstrap ready
+		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Set infra ready
+		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://id-1"}, "spec", "providerIDList")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.1",
+			},
+			map[string]interface{}{
+				"type":    "InternalIP",
+				"address": "10.0.0.2",
+			},
+		}, "addresses")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Set NodeRef
+		machinePool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+
+		// Set replicas to fully reconciled
+		machinePool.Spec.ProviderIDList = []string{"test://id-1"}
+		machinePool.Status.ReadyReplicas = 1
+		machinePool.Status.Replicas = 1
+
+		r := &MachinePoolReconciler{
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
+		}
+
+		res, err := r.reconcile(ctx, defaultCluster, machinePool)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinePool)
+		g.Expect(machinePool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+		g.Expect(*machinePool.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+
+		// Change bootstrap reference
+		newBootstrapConfig := defaultBootstrap.DeepCopy()
+		newBootstrapConfig.SetName("bootstrap-config2")
+		err = unstructured.SetNestedField(newBootstrapConfig.Object, false, "status", "ready")
+		g.Expect(err).ToNot(HaveOccurred())
+		// Fill the `dataSecretName` so we can check if the machine pool uses the non-ready secret immediately or,
+		// as it should, not yet
+		err = unstructured.SetNestedField(newBootstrapConfig.Object, "secret-data-new", "status", "dataSecretName")
+		g.Expect(err).ToNot(HaveOccurred())
+		err = r.Client.Create(ctx, newBootstrapConfig)
+		g.Expect(err).ToNot(HaveOccurred())
+		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name = newBootstrapConfig.GetName()
+
+		// Reconcile again. The new bootstrap config should be used
+		res, err = r.reconcile(ctx, defaultCluster, machinePool)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Controller should wait until bootstrap provider reports ready bootstrap config
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinePool)
+
+		// The old secret should still be used, as the new bootstrap config is not marked ready
+		g.Expect(*machinePool.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+		g.Expect(machinePool.Status.BootstrapReady).To(BeFalse())
+
+		// There is no phase defined for "changing to new bootstrap config", so it should still be `Running` the
+		// old configuration
+		g.Expect(machinePool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+	})
 }
 
 func TestReconcileMachinePoolBootstrap(t *testing.T) {

@@ -11,6 +11,7 @@ Each certificate must be stored in a single secret named one of:
 | *[cluster name]***-proxy** | CA       | openssl req -x509 -subj "/CN=Front-End Proxy" -new -newkey rsa:2048 -nodes -keyout tls.key -sha256 -days 3650 -out tls.crt                                                           |
 | *[cluster name]***-sa**  | Key Pair | openssl genrsa -out tls.key 2048 && openssl rsa -in tls.key -pubout -out tls.crt |
 
+The certificates *must* also be labeled with the key-value pair `cluster.x-k8s.io/cluster-name=[cluster name]` (where `[cluster name]` is the name of the cluster it should be used with).
 
 <aside class="note warning">
 
@@ -26,9 +27,10 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: cluster1-ca
+  labels:
+    cluster.x-k8s.io/cluster-name: cluster1
 type: kubernetes.io/tls
 data:
   tls.crt: <base 64 encoded PEM>
   tls.key: <base 64 encoded PEM>
 ```
-

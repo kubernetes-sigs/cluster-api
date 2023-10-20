@@ -1097,13 +1097,9 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 	gcloud container images add-tag $(CAPIM_CONTROLLER_IMG):$(TAG) $(CAPIM_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(TEST_EXTENSION_IMG):$(TAG) $(TEST_EXTENSION_IMG):$(RELEASE_ALIAS_TAG)
 
-.PHONY: release-notes
-release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
-	if [ -n "${PRE_RELEASE}" ]; then \
-	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/new)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	else \
-	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	fi
+.PHONY: release-notes-tool
+release-notes-tool:
+	go build -o bin/notes hack/tools/release/notes.go
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

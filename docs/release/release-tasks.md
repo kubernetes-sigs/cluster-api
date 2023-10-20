@@ -322,7 +322,7 @@ The goal of this task to make the book for the current release available under e
 1. Checkout the `main` branch.
 1. Build the release note tools binary.
    ```bash
-   go build -o bin/notes hack/tools/release/notes.go
+   make release-notes-tool
    ```
 1. Checkout the latest commit on the release branch, e.g. `release-1.4`, or the main branch if the release branch doesn't yet exist (e.g. beta release).
 1. Generate release notes with:

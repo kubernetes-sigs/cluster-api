@@ -80,6 +80,9 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	// edge case where an external system intentionally nukes all the owner references in a single operation.
 	// The assumption is that if the system can recover from this edge case, it can also handle use cases where an owner
 	// reference is deleted by mistake.
+
+	// Setting the paused property on the Cluster resource will pause reconciliations, thereby having no effect on OwnerReferences.
+	// This also makes debugging easier.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
 
 	// Once all Clusters are paused remove the OwnerReference from all objects in the graph.
@@ -88,7 +91,7 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	// Unpause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
 
-	// Annotate the clusterClass, if one is in use, to speed up reconciliation. This ensures ClusterClass ownerReferences
+	// Annotate the ClusterClass, if one is in use, to speed up reconciliation. This ensures ClusterClass ownerReferences
 	// are re-reconciled before asserting the owner reference graph.
 	forceClusterClassReconcile(ctx, proxy.GetClient(), clusterKey)
 

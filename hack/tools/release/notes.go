@@ -341,7 +341,7 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 `)
 	}
 
-	fmt.Printf("## Changes since %v\n---\n", commitRange)
+	fmt.Printf("## Changes since %v\n", commitRange)
 
 	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
 	if count := len(commits); count == 1 {

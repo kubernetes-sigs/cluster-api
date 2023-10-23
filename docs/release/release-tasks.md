@@ -483,13 +483,15 @@ The goal of this task is to keep our tests running in CI stable.
     (also dashboards of previous releases). Using the alert mailing list has proven to be a lot less effort though.
 2. Subscribe to `CI Activity` notifications for the Cluster API repo.
 3. Check the existing **failing-test** and **flaking-test** issue templates under `.github/ISSUE_TEMPLATE/` folder of the repo, used to create an issue for failing or flaking tests respectively. Please make sure they are up-to-date and if not, send a PR to update or improve them.
-4. Triage CI failures reported by mail alerts or found by monitoring the testgrid dashboards:
+4. Check if there are any existing jobs that got stuck (have been running for more than 12 hours) in a ['pending'](https://prow.k8s.io/?repo=kubernetes-sigs%2Fcluster-api&state=pending) state:
+   - If that is the case, notify the maintainers and ask them to manually cancel and re-run the stuck jobs.   
+5. Triage CI failures reported by mail alerts or found by monitoring the testgrid dashboards:
     1. Create an issue using an appropriate template (failing-test) in the Cluster API repository to surface the CI failure.
     2. Identify if the issue is a known issue, new issue or a regression.
     3. Mark the issue as `release-blocking` if applicable.
-5. Triage periodic GitHub actions failures, with special attention to image scan results;
+6. Triage periodic GitHub actions failures, with special attention to image scan results;
    Eventually open issues as described above.
-6. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
+7. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
 
 #### [Continuously] Reduce the amount of flaky tests
 

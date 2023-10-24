@@ -59,6 +59,10 @@ type SelfHostedSpecInput struct {
 	// If true, the variable KUBERNETES_VERSION is expected to be set.
 	// If false, the variables KUBERNETES_VERSION_UPGRADE_FROM, KUBERNETES_VERSION_UPGRADE_TO,
 	// ETCD_VERSION_UPGRADE_TO and COREDNS_VERSION_UPGRADE_TO are expected to be set.
+	// There are also (optional) variables CONTROL_PLANE_MACHINE_TEMPLATE_UPGRADE_TO and
+	// WORKERS_MACHINE_TEMPLATE_UPGRADE_TO to change the infrastructure machine template
+	// during the upgrade. Note that these templates need to have the clusterctl.cluster.x-k8s.io/move
+	// label in order to be moved to the self hosted cluster (since they are not part of the owner chain).
 	SkipUpgrade bool
 
 	// ControlPlaneMachineCount is used in `config cluster` to configure the count of the control plane machines used in the test.

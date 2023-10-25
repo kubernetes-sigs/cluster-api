@@ -102,6 +102,8 @@ var (
 		"runtime-sdk":                       "Runtime SDK",
 		"ci":                                "CI",
 		"machinehealthcheck":                "MachineHealthCheck",
+		"clusterctl":                        "clusterctl", // Preserve lowercase
+		"util":                              "util",       // Preserve lowercase
 	}
 
 	releaseBackportMarker = regexp.MustCompile(`(?m)^\[release-\d\.\d\]\s*`)
@@ -180,6 +182,8 @@ func getAreaLabel(merge string) (string, error) {
 		if area, ok := trimAreaLabel(label.Name); ok {
 			if userFriendlyArea, ok := userFriendlyAreas[area]; ok {
 				area = userFriendlyArea
+			} else {
+				area = capitalize(area)
 			}
 
 			areaLabels = append(areaLabels, area)

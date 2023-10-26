@@ -103,7 +103,8 @@ Before you volunteer to be part of a CAPI release team, please make certain that
 
 ## Suggestions for Team Leads
 
-  * Clearly communicate with the team shadows you are responsible for, that the majority of the work during the release cycle will be a collaborative effort.
+  * In the first week of the release cycle, organize an onboarding session with members of your team (i.e CI Lead with CI team members) to go over the general responsibilities and expectations.
+  * Clearly communicate with the team members you are responsible for, that the majority of the work during the release cycle will be a collaborative effort.
   * Establish an ownership rotation policy in consultation with respective team members.
   * Provide opportunities for team members to take the lead in cutting a release within the cycle, based on feasibility.
   * Define backup ownership and tasks for team members, such as:

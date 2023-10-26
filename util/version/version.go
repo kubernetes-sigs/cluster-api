@@ -115,9 +115,9 @@ func (v buildIdentifiers) compare(o buildIdentifiers) int {
 		return 0
 	} else if i == len(v) && i < len(o) {
 		return -1
-	} else {
-		return 1
 	}
+
+	return 1
 }
 
 type buildIdentifier struct {

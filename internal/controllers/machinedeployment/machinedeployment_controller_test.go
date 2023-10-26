@@ -799,7 +799,8 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		var got []client.Object
 		for _, x := range r.getMachineDeploymentsForMachineSet(ctx, &tc.machineSet) {
 			got = append(got, x)
@@ -948,7 +949,8 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 

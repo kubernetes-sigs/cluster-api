@@ -469,9 +469,10 @@ func TestHealthCheckTargets(t *testing.T) {
 			gs.Expect(healthy).To(ConsistOf(tc.expectedHealthy))
 			gs.Expect(unhealthy).To(ConsistOf(tc.expectedNeedsRemediation))
 			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
-			for i, expectedMachineConditions := range tc.expectedNeedsRemediationCondition {
+			for i, expectedMachineCondition := range tc.expectedNeedsRemediationCondition {
 				actualConditions := unhealthy[i].Machine.GetConditions()
-				gs.Expect(actualConditions).To(WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineConditions)))
+				conditionsMatcher := WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineCondition))
+				gs.Expect(actualConditions).To(conditionsMatcher)
 			}
 		})
 	}

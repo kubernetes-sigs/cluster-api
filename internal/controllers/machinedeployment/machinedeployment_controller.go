@@ -362,8 +362,8 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 	}
 
 	deployments := make([]*clusterv1.MachineDeployment, 0, len(dList.Items))
-	for idx, d := range dList.Items {
-		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
+	for idx := range dList.Items {
+		selector, err := metav1.LabelSelectorAsSelector(&dList.Items[idx].Spec.Selector)
 		if err != nil {
 			continue
 		}

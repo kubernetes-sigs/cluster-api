@@ -374,7 +374,8 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).To(HaveLen(1))
 
-	for _, m := range machineList.Items {
+	for i := range machineList.Items {
+		m := machineList.Items[i]
 		g.Expect(m.Namespace).To(Equal(cluster.Namespace))
 		g.Expect(m.Name).NotTo(BeEmpty())
 		g.Expect(m.Name).To(HavePrefix(kcp.Name))

@@ -200,6 +200,8 @@ linters-settings:
       #
       - name: bool-literal-in-expr
       - name: constant-logical-expr
+  goconst:
+    ignore-tests: true
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

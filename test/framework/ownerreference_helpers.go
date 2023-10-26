@@ -171,8 +171,8 @@ var CoreOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error
 		return HasExactOwners(owners, machineDeploymentController)
 	},
 	machineKind: func(owners []metav1.OwnerReference) error {
-		// Machines must be owned and controlled by a MachineSet or a KubeadmControlPlane, depending on if this Machine is part of a ControlPlane or not.
-		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineSetController}, []metav1.OwnerReference{kubeadmControlPlaneController})
+		// Machines must be owned and controlled by a MachineSet, MachinePool, or a KubeadmControlPlane, depending on if this Machine is part of a Machine Deployment, MachinePool, or ControlPlane.
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineSetController}, []metav1.OwnerReference{machinePoolController}, []metav1.OwnerReference{kubeadmControlPlaneController})
 	},
 	machineHealthCheckKind: func(owners []metav1.OwnerReference) error {
 		// MachineHealthChecks must be owned by the Cluster.

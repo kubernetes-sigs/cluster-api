@@ -276,7 +276,7 @@ generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## 
 
 .PHONY: generate-manifests-core
 generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
-	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases,./config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./ \
 		paths=./api/... \
@@ -305,11 +305,12 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 
 .PHONY: generate-manifests-kubeadm-bootstrap
 generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm bootstrap
-	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/kubeadm/config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/kubeadm/config/crd/bases,./bootstrap/kubeadm/config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./bootstrap/kubeadm \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
+		paths=./bootstrap/kubeadm/internal/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
@@ -319,7 +320,7 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 
 .PHONY: generate-manifests-kubeadm-control-plane
 generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm control plane
-	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/kubeadm/config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/kubeadm/config/crd/bases,./controlplane/kubeadm/config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
 		paths=./controlplane/kubeadm \
 		paths=./controlplane/kubeadm/api/... \

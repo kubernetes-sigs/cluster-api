@@ -91,7 +91,7 @@ type ClusterProxy interface {
 	Apply(ctx context.Context, resources []byte, args ...string) error
 
 	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
-	GetWorkloadCluster(ctx context.Context, namespace, name string) ClusterProxy
+	GetWorkloadCluster(ctx context.Context, namespace, name string, options ...Option) ClusterProxy
 
 	// CollectWorkloadClusterLogs collects machines and infrastructure logs from the workload cluster.
 	CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string)
@@ -156,7 +156,7 @@ func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme,
 }
 
 // newFromAPIConfig returns a clusterProxy given a api.Config and the scheme defining the types hosted in the cluster.
-func newFromAPIConfig(name string, config *api.Config, scheme *runtime.Scheme) ClusterProxy {
+func newFromAPIConfig(name string, config *api.Config, scheme *runtime.Scheme, options ...Option) ClusterProxy {
 	// NB. the ClusterProvider is responsible for the cleanup of this file
 	f, err := os.CreateTemp("", "e2e-kubeconfig")
 	Expect(err).ToNot(HaveOccurred(), "Failed to create kubeconfig file for the kind cluster %q")
@@ -165,12 +165,16 @@ func newFromAPIConfig(name string, config *api.Config, scheme *runtime.Scheme) C
 	err = clientcmd.WriteToFile(*config, kubeconfigPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to write kubeconfig for the kind cluster to a file %q")
 
-	return &clusterProxy{
+	proxy := &clusterProxy{
 		name:                    name,
 		kubeconfigPath:          kubeconfigPath,
 		scheme:                  scheme,
 		shouldCleanupKubeconfig: true,
 	}
+	for _, o := range options {
+		o(proxy)
+	}
+	return proxy
 }
 
 // GetName returns the name of the cluster.
@@ -265,7 +269,7 @@ func (p *clusterProxy) GetLogCollector() ClusterLogCollector {
 }
 
 // GetWorkloadCluster returns ClusterProxy for the workload cluster.
-func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name string) ClusterProxy {
+func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name string, options ...Option) ClusterProxy {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for GetWorkloadCluster")
 	Expect(namespace).NotTo(BeEmpty(), "namespace is required for GetWorkloadCluster")
 	Expect(name).NotTo(BeEmpty(), "name is required for GetWorkloadCluster")
@@ -279,12 +283,13 @@ func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name s
 		p.fixConfig(ctx, name, config)
 	}
 
-	return newFromAPIConfig(name, config, p.scheme)
+	return newFromAPIConfig(name, config, p.scheme, options...)
 }
 
 // CollectWorkloadClusterLogs collects machines and infrastructure logs and from the workload cluster.
 func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string) {
 	if p.logCollector == nil {
+		fmt.Printf("Unable to get logs for workload Cluster %s: log collector is nil.\n", klog.KRef(namespace, name))
 		return
 	}
 

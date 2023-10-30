@@ -169,7 +169,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 			}
 		}
 		if len(machines) > upgraded {
-			return 0, errors.New("old nodes remain")
+			return 0, errors.New("old Machines remain")
 		}
 		return upgraded, nil
 	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all control-plane machines in Cluster %s to be upgraded to kubernetes version %s", klog.KObj(input.Cluster), input.KubernetesUpgradeVersion)
@@ -209,7 +209,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 			}
 		}
 		if len(machines) > upgraded {
-			return 0, errors.New("old nodes remain")
+			return 0, errors.New("old Machines remain")
 		}
 		return upgraded, nil
 	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachineDeployment %s Machines to be upgraded to kubernetes version %s", klog.KObj(&input.MachineDeployment), input.KubernetesUpgradeVersion)

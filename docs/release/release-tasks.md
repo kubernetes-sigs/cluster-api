@@ -15,14 +15,14 @@ This document details the responsibilities and tasks for each role in the releas
 - [Release Lead](#release-lead)
   - [Responsibilities](#responsibilities)
   - [Tasks](#tasks)
-    - [Set a tentative release date for the minor release](#set-a-tentative-release-date-for-the-minor-release)
-    - [Assemble release team](#assemble-release-team)
-    - [Add/remove release team members](#addremove-release-team-members)
     - [Finalize release schedule and team](#finalize-release-schedule-and-team)
+    - [Add/remove release team members](#addremove-release-team-members)
     - [Prepare main branch for development of the new release](#prepare-main-branch-for-development-of-the-new-release)
     - [Create a new GitHub milestone for the next release](#create-a-new-github-milestone-for-the-next-release)
     - [[Track] Remove previously deprecated code](#track-remove-previously-deprecated-code)
     - [[Track] Bump dependencies](#track-bump-dependencies)
+    - [Set a tentative release date for the next minor release](#set-a-tentative-release-date-for-the-next-minor-release)
+    - [Assemble next release team](#assemble-next-release-team)
     - [Create a release branch](#create-a-release-branch)
     - [[Continuously] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
     - [[Continuously] Bump the Go version](#continuously-bump-the-go-version)
@@ -30,6 +30,7 @@ This document details the responsibilities and tasks for each role in the releas
     - [[Optional] Public release session](#optional-public-release-session)
     - [[Optional] [Track] Bump the Cluster API apiVersion](#optional-track-bump-the-cluster-api-apiversion)
     - [[Optional] [Track] Bump the Kubernetes version](#optional-track-bump-the-kubernetes-version)
+    - [[Optional] Track Release and Improvement tasks](#optional-track-release-and-improvement-tasks)
 - [Communications/Docs/Release Notes Manager](#communicationsdocsrelease-notes-manager)
   - [Responsibilities](#responsibilities-1)
   - [Tasks](#tasks-1)
@@ -67,7 +68,7 @@ This document details the responsibilities and tasks for each role in the releas
   * Ensure a retrospective happens
   * Ensure a maintainer is available when a release needs to be cut.
 * Staffing:
-  * Assemble the release team for the current release cycle
+  * Assemble the release team for the next release cycle
   * Ensure a release lead for the next release cycle is selected and trained
   * Set a tentative release date for the next release cycle
 * Cutting releases:
@@ -77,25 +78,17 @@ This document details the responsibilities and tasks for each role in the releas
 
 ### Tasks
 
-#### Set a tentative release date for the minor release
-
-1. Set a tentative release date for the release and document it by creating a `release-1.4.md`.
-
-#### Assemble release team
-
-There is currently no formalized process to assemble the release team.
-As of now we ask for volunteers in Slack and office hours.
-
-#### Add/remove release team members
-
-If necessary, the release lead can adjust the release team during the cycle to handle unexpected changes in staffing due to personal/professional issues, no-shows, or unplanned work spikes. Adding/removing members can be done by opening a PR to update the release team members list for the release cycle in question.
-
 #### Finalize release schedule and team
 
 1. Finalize release schedule and team in the [docs/release/releases](../../docs/release/releases), e.g. [release-1.4.md](../../docs/release/releases/release-1.4.md).
 2. Update @cluster-api-release-team Slack user group and GitHub team accordingly.
    <br>Prior art: https://github.com/kubernetes-sigs/cluster-api/issues/7476
-3. Announce the _release team_ and _release schedule_ to the mailing list.
+3. Update @cluster-api-release-lead and @cluster-api-release-team aliases in root OWNERS_ALIASES file with Release Team members.
+4. Announce the _release team_ and _release schedule_ to the mailing list.
+
+#### Add/remove release team members
+
+If necessary, the release lead can adjust the release team during the cycle to handle unexpected changes in staffing due to personal/professional issues, no-shows, or unplanned work spikes. Adding/removing members can be done by opening a PR to update the release team members list for the release cycle in question.
 
 #### Prepare main branch for development of the new release
 
@@ -158,6 +151,16 @@ We should take a look at the following dependencies:
 
 * Go dependencies in `go.mod` files.
 * Tools used in our Makefile (e.g. kustomize).
+
+#### Set a tentative release date for the next minor release
+
+1. Set a tentative release date for the next minor release and document it by creating a `release-X.Y.md` in [docs/release/releases](../../docs/release/releases).
+   <br>Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/9635
+
+#### Assemble next release team
+
+There is currently no formalized process to assemble the release team.
+As of now we ask for volunteers in Slack and office hours.
 
 #### Create a release branch
 
@@ -276,6 +279,20 @@ Additional information:
 
 1. Create an issue for the new Kubernetes version via: [New Issue: Kubernetes bump](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose).
 2. Track the issue to ensure the work is completed in time.
+
+#### [Optional] Track Release and Improvement tasks
+
+1. Create an issue for easier tracking of all the tasks for the release cycle in question.
+   <br>Prior art: [Tasks for v1.6 release cycle](https://github.com/kubernetes-sigs/cluster-api/issues/9094)
+2. Create a release improvement tasks [GitHub Project Board](https://github.com/orgs/kubernetes-sigs/projects/55) to track 
+   the current status of all improvement tasks planned for the release, their priorities, status (i.e `Done`/`In Progress`)
+   and to distribute the work among the Release Team members.
+
+   **Notes**:
+   * At the beginning of the cycle, Release Team Lead should prepare the improvement tasks board for the ongoing release cycle.
+     The following steps can be taken:
+      - Edit improvement tasks board name for current cycle (e.g. `CAPI vX.Y release improvement tasks`)
+      - Add/move all individual missing issues to the board
 
 ## Communications/Docs/Release Notes Manager
 

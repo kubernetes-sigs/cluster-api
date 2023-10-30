@@ -139,7 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
-	// Specifically, it will add MachineDeployment.
+	// Specifically, it will add MachineDeployment .
 	ctx, log, err := clog.AddOwners(ctx, r.Client, machineSet)
 	if err != nil {
 		return ctrl.Result{}, err

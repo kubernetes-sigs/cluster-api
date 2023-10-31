@@ -104,6 +104,7 @@ var (
 		"machinehealthcheck":                "MachineHealthCheck",
 		"clusterctl":                        "clusterctl", // Preserve lowercase
 		"util":                              "util",       // Preserve lowercase
+		"Community-meeting":                 "Community meeting",
 	}
 
 	releaseBackportMarker = regexp.MustCompile(`(?m)^\[release-\d\.\d\]\s*`)

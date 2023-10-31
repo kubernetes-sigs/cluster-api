@@ -385,24 +385,24 @@ Information can be distributed via:
 
 * `sig-cluster-lifecycle` mailing list
   * Note: The person sending out the email should ensure that they are first part of the mailing list. If the email is sent out is not received by the community, reach out to the maintainers to unblock and approve the email.
-* Slack
+* #cluster-api Slack channel
 * Office hours
+* Release Team meetings
 * Cluster API book
-* ...
+* [Github Issue](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#communicate-beta-to-providers) (when communicating beta release to providers)
 
-Relevant information includes: (TBD)
+Relevant information includes:
 
-* Beta, RC, GA release
+* Beta, RC, GA and patch release
 * Start of code freeze
 * Implementation progress
-* ...
+* Release delays and changes if applicable
 
-Stakeholders are: (TBD)
+Stakeholders are:
 
 * End users of Cluster API
 * Contributors to core Cluster API
 * Provider implementers
-* ...
 
 #### Communicate beta to providers
 

@@ -2877,7 +2877,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetSpec(ref common.Referenc
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Replicas is the number of desired replicas. This is a pointer to distinguish between explicit zero and unspecified. Defaults to 1.",
+							Description: "Replicas is the number of desired replicas. This is a pointer to distinguish between explicit zero and unspecified.\n\nDefaults to: * if the Kubernetes autoscaler min size and max size annotations are set:\n  - if it's a new MachineSet, use min size\n  - if the replicas field of the old MachineSet is < min size, use min size\n  - if the replicas field of the old MachineSet is > max size, use max size\n  - if the replicas field of the old MachineSet is in the (min size, max size) range, keep the value from the oldMS\n* otherwise use 1 Note: Defaulting will be run whenever the replicas field is not set: * A new MachineSet is created with replicas not set. * On an existing MachineSet the replicas field was first set and is now unset. Those cases are especially relevant for the following Kubernetes autoscaler use cases: * A new MachineSet is created and replicas should be managed by the autoscaler * An existing MachineSet which initially wasn't controlled by the autoscaler\n  should be later controlled by the autoscaler",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

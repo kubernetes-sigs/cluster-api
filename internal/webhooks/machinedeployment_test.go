@@ -52,7 +52,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 	webhook := &MachineDeployment{
-		Decoder: admission.NewDecoder(scheme),
+		decoder: admission.NewDecoder(scheme),
 	}
 
 	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{
@@ -403,7 +403,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			scheme := runtime.NewScheme()
 			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 			webhook := MachineDeployment{
-				Decoder: admission.NewDecoder(scheme),
+				decoder: admission.NewDecoder(scheme),
 			}
 
 			if tt.expectErr {
@@ -475,7 +475,7 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 			scheme := runtime.NewScheme()
 			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 			webhook := MachineDeployment{
-				Decoder: admission.NewDecoder(scheme),
+				decoder: admission.NewDecoder(scheme),
 			}
 
 			if tt.expectErr {
@@ -537,7 +537,7 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 			scheme := runtime.NewScheme()
 			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 			webhook := MachineDeployment{
-				Decoder: admission.NewDecoder(scheme),
+				decoder: admission.NewDecoder(scheme),
 			}
 
 			warnings, err := webhook.ValidateUpdate(ctx, oldMD, newMD)
@@ -589,7 +589,7 @@ func TestMachineDeploymentTemplateMetadataValidation(t *testing.T) {
 			scheme := runtime.NewScheme()
 			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 			webhook := MachineDeployment{
-				Decoder: admission.NewDecoder(scheme),
+				decoder: admission.NewDecoder(scheme),
 			}
 
 			if tt.expectErr {

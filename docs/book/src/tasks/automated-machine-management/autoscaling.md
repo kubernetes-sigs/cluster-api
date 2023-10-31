@@ -12,17 +12,17 @@ from the [Autoscaler project documentation](https://github.com/kubernetes/autosc
 
 <aside class="note warning">
 
-<h1>Defaulting of the MachineDeployment replicas field</h1>
+<h1>Defaulting of the MachineDeployment, MachineSet replicas field</h1>
 
-Please note that the MachineDeployment replicas field has special defaulting logic to provide a smooth integration with the autoscaler.
-The replica field is defaulted based on the autoscaler min and max size annotations.The goal is to pick a default value which is inside 
+Please note that the MachineDeployment and MachineSet replicas field has special defaulting logic to provide a smooth integration with the autoscaler.
+The replica field is defaulted based on the autoscaler min and max size annotations.The goal is to pick a default value which is inside
 the (min size, max size) range so the autoscaler can take control of the replicase field.
 
 The defaulting logic is as follows:
 * if the autoscaler min size and max size annotations are set:
-  * if it's a new MachineDeployment, use min size
-  * if the replicas field of the old MachineDeployment is < min size, use min size
-  * if the replicas field of the old MachineDeployment is > max size, use max size
-  * if the replicas field of the old MachineDeployment is in the (min size, max size) range, keep the value from the oldMD
+  * if it's a new MachineDeployment or MachineSet, use min size
+  * if the replicas field of the old MachineDeployment or MachineSet is < min size, use min size
+  * if the replicas field of the old MachineDeployment or MachineSet is > max size, use max size
+  * if the replicas field of the old MachineDeployment or MachineSet is in the (min size, max size) range, keep the value from the oldMD or oldMS
 * otherwise, use 1
 </aside>

@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
@@ -1249,7 +1250,9 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 				},
 			},
 		}
-		g.Expect((&webhooks.MachineSet{}).Default(ctx, machineSet)).Should(Succeed())
+
+		reqCtx := admission.NewContextWithRequest(ctx, admission.Request{})
+		g.Expect((&webhooks.MachineSet{}).Default(reqCtx, machineSet)).Should(Succeed())
 		g.Expect(env.Create(ctx, machineSet)).To(Succeed())
 
 		// Ensure machines have been created.

@@ -165,8 +165,12 @@ In order to allow the `ControlPlane Provider` component to take ownership of the
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterEndpoint
+metadata:
+   labels:
+      cluster.x-k8s.io/cluster-name: my-cluster
 spec:
-  host: "name-1234567890.region.elb.amazonaws.com"
+  cluster: my-cluster
+  host: "my-cluster-1234567890.region.elb.amazonaws.com"
   port: 1234
   type: ExternalControlPlaneEndpoint
 ```
@@ -174,7 +178,11 @@ spec:
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterEndpoint
+metadata:
+   labels:
+      cluster.x-k8s.io/cluster-name: my-cluster-2
 spec:
+  cluster: my-cluster-2
   host: "10.40.85.102"
   port: 1234
   type: ExternalControlPlaneEndpoint
@@ -183,13 +191,31 @@ spec:
 This is how the type specification would look:
 
 ```go
+// ClusterEndpointType describes the type of cluster endpoint.
+type ClusterEndpointType string
+
 // ClusterEndpoint represents a reachable Kubernetes API endpoint serving a particular cluster function.
 type ClusterEndpoint struct {
+  metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+  Spec ClusterEndpointSpec   `json:"spec,omitempty"`
+}
+
+// ClusterEndpointSpec defines the desired state of the Cluster endpoint.
+type ClusterEndpointSpec struct {
 	// The Host is the DNS record or the IP address that the endpoint is reachable on.
 	Host string `json:"host"`
 
 	// The port on which the endpoint is serving.
 	Port int32 `json:"port"`
+
+  // Cluster is a reference to the cluster name that this endpoint is reachable on.
+  Cluster string `json:"cluster"`
+
+  // Type describes the function that this cluster endpoint serves.
+  // +kubebuilder:validation:Enum=apiserver
+  Type ClusterEndpointType `json:"type"`
 }
 ```
 
@@ -215,7 +241,7 @@ However, Infra providers will be made aware that `spec.controlPlaneEndpoint` wil
 - All the controllers working with Cluster objects must take into account that the `infrastructureRef` field could be omitted; most notably:
   - The Cluster controller must use skip reconciling this external reference when the `infrastructureRef` is missing; also, the `status.InfrastructureReady` field must be automatically set to true in this case.
 
-- The Cluster controller must reconcile the new `ClusterEndpoint` CR. Please note that:
+- A controller (details TBD) will reconcile the new `ClusterEndpoint` CR. Please note that:
   - The value from the `ClusterEndpoint` CRD must surface on the `spec.ControlPlaneEndpoint` field on the `Cluster` object.
   - If both are present, the value from the `ClusterEndpoint` CRD must take precedence on the value from `<Infra>Cluster` objects still using the `spec.controlPlaneEndpoint`.
 
@@ -224,13 +250,13 @@ However, Infra providers will be made aware that `spec.controlPlaneEndpoint` wil
 
 #### Provider controller changes
 
-- All the `<Infra>Cluster` controller who are responsible to create a control plane endpoint
+- All the `<Infra>Cluster` controllers who are responsible for creating a control plane endpoint
   - As soon as the `spec.controlPlaneEndpoint` field in the `<Infra>Cluster` object will removed, the `<Infra>Cluster` controller must instead create a `ClusterEndpoint` CR to communicate the control plane endpoint to the Cluster API core controllers
     - NOTE: technically it is possible to start creating the `ClusterEndpoint` CR *before* the removal of the `spec.controlPlaneEndpoint` field, because the new CR will take precedence on the value read from the field, but this is up to the infra provider maintainers.
   - The `ClusterEndpoint` CR must have an owner reference to the `<Infra>Cluster` object from which it is originated.
 
-- All the `ControlPlane Provider` controller who are responsible to create a control plane endpoint
-  - Must stop to wait for the `spec.ControlPlaneEndpoint` field on the `Cluster` object to be set before starting to provision the control plane.
+- All the `ControlPlane Provider` controllers who are responsible for creating a control plane endpoint
+  - Must no longer wait for the `spec.ControlPlaneEndpoint` field on the `Cluster` object to be set before starting to provision the control plane.
   - As soon as the Managed Kubernetes Service-provided control plane endpoint is available, the controller must create a `ClusterEndpoint` CR to communicate this to the control plane endpoint to the Cluster API core controllers
   - The `ClusterEndpoint` CR must have an owner reference to the `ControlPlane` object from which is originated.
 
@@ -278,251 +304,6 @@ If the `Foo` cloud provider has a `FKS` managed Kubernetes offering that is not 
     - Must set the `status.Ready` field on the `FKRControlControlplane` object when the provisioning is complete
 
 Please note that this scenario is equivalent to what is implemented for a non managed Kubernetes `FooCluster`, backed by Cluster API managed `FooMachines`, with the only difference that in this case it possible to rely on `KCP` as `ControlControlplane provider`, and thus point 2 of the above list do not apply.
-
-## Background work
-
-This proposal builds on top of the awesome research work of the Managed Kubernetes working group, and it is a result of a huge work of a team of passionate Cluster API contributors.
-
-Below a summary of the main evidences / alternative considered during this this work.
-
-### EKS in CAPA
-
-- [Docs](https://cluster-api-aws.sigs.k8s.io/topics/eks/index.html)
-- Feature Status: GA
-- CRDs
-  - AWSManagedCluster - passthrough kind to fullfill the capi contract
-  - AWSManagedControlPlane - provision EKS cluster
-  - AWSManagedMachinePool - corresponds to EKS managed node pool
-- Supported Flavors
-  - AWSManagedControlPlane with MachineDeployment / AWSMachine
-  - AWSManagedControlPlane with MachinePool / AWSMachinePool
-  - AWSManagedControlPlane with MachinePool / AWSManagedMachinePool
-- Bootstrap Provider
-  - Cluster API bootstrap provider EKS (CABPE)
-- Features
-  - Provisioning/managing an Amazon EKS Cluster
-  - Upgrading the Kubernetes version of the EKS Cluster
-  - Attaching self-managed machines as nodes to the EKS cluster
-  - Creating a machine pool and attaching it to the EKS cluster (experimental)
-  - Creating a managed machine pool and attaching it to the EKS cluster
-  - Managing "EKS Addons"
-  - Creating an EKS Fargate profile (experimental)
-  - Managing aws-iam-authenticator configuration
-
-#### AKS in CAPZ
-
-- [Docs](https://capz.sigs.k8s.io/topics/managedcluster.html)
-- Feature Status: GA
-- CRDs
-  - AzureManagedControlPlane, AzureManagedCluster - provision AKS cluster
-  - AzureManagedMachinePool - corresponds to AKS node pool
-- Supported Flavor
-  - AzureManagedControlPlane + AzureManagedCluster with AzureManagedMachinePool
-
-#### GKE in CAPG
-
-- [Docs](https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/v1.3.0/docs/book/src/topics/gke/index.md)
-- Feature Status: Experimental ()
-- CRDs
-  - GCPManagedControlPlane, GCPManagedCluster - provision GKE cluster
-  - GCPManagedMachinePool - corresponds to the managed node pool for the cluster
-- Supported Flavor
-  - GCPManagedControlPlane + GCPManagedCluster with GCPManagedMachinePool
-
-
-#### Learnings from original Proposal: Two kinds with a Managed Control Plane & Managed Infra Cluster adhering to the current CAPI contracts
-
-The original Managed Kubernetes proposal recommends managing two separate resources for cluster and control plane configuration, what we're referring to as a `<Infra>Cluster` and a `<Infra>ControlPlane`. That recommendation is outlined as [Option 3 in the proposal, here][managedKubernetesRecommendation]. This recommendation has been followed by CAPOCI and CAPG as of this writing.
-
-This propsal was able to be implemented with no upstream changes in CAPI. It makes the following assumptions about representing Managed Kubernetes:
-
-- **`<Infra>Cluster`** - Provides any base infrastructure that is required as a prerequisite for the target environment required for running machines and creating a Managed Kubernetes service.
-- **`<Infra>ControlPlane`** - Represents an instance of the actual Managed Kubernetes service in the target environment (i.e. cloud/service provider). It’s based on the assumption that a Managed Kubernetes service supplies the Kubernetes control plane.
-
-These broadly follow the existing separation within CAPI.
-
-However, for many Managed Kubernetes services this will require less than ideal code in the controllers to retrieve the control plane endpoint from the `<Infra>ControlPlane` kind and report it back via the ControlPlaneEndpoint property on the `<Infra>Cluster` to satisfy CAPI contracts.
-
-To give an idea what this means:
-- `<Infra>Cluster` watches the control plane and vice versa
-- `<Infra>Cluster` controller create base infra and sets Ready = true
-- `<Infra>ControlPlane` waits for `<Infra>Cluster` to be Ready
-- `<Infra>ControlPlane` creates an instance of the managed k8s service
-- `<Infra>ControlPlane` gets the API server endpoint from the managed k8s service and stores it in the CRD instance
-- `<Infra>Cluster` is watching for changes to `<Infra>ControlPlane` and if the "api server endpoint" on the `<Infra>ControlPlane` CRD instance is not empty then:
-  - Map `<Infra>ControlPlane` to `<Infra>Cluster` and queue event
-  - `<Infra>Cluster` reconciler loop gets the `<Infra>ControlPlane` CRD instance and takes the value for "api server endpoint" and populates `ControlPlaneEndpoint` on the `<Infra>Cluster` CRD instance.
-  - (which will then cause the reconciler for `<Infra>ControlPlane` to run... again)
-
-The implementation of the controllers for Managed Kubernetes would be simplified if there was an option to report the ControlPlaneEndpoint via `<Infra>ControlPlane` instead. Below we will outline two new flows that reduce much of the complexity of the above, while allowing Managed Kubernetes providers to represent their services intuitively.
-
-### Two New Flows
-
-#### Flow 1: `<Infra>Cluster` and `<Infra>ControlPlane`, with `ControlPlaneEndpoint` reported via `<Infra>ControlPlane`
-
-We will describe a CRD composition that adheres to the original separation of concerns of the different provider types as documented in the Cluster API documentation, with a different API Server endpoint reporting flow.
-
-As described above, at present the control plane endpoint must be returned via the `ControlPlaneEndpoint` field on the spec of the `<Infra>Cluster` [reference here](https://cluster-api.sigs.k8s.io/developer/providers/cluster-infrastructure.html). This is OK for self-managed clusters, as a load balancer is usually created as part of the reconciliation. But with Managed Kubernetes services the API Server endpoint usually comes from the service directly, which means that the `<Infra>Cluster` has to get the `ControlPlaneEndpoint` from the managed service so that it can be reported back to CAPI. In practice, this results in `<Infra>Cluster` watching the `<Infra>ControlPlane` and the `<Infra>ControlPlane` watching the `<Infra>Cluster`, and without care this can cause event storms in the CAPI management cluster.
-
-This flow would require making changes to CAPI controllers so that there is an option to report the `ControlPlaneEndpoint` via the `<Infra>ControlPlane` as an alternative to coming from the `<Infra>Cluster`.
-
-Using CAPG as an example:
-
-```go
-type GCPManagedControlPlaneSpec struct {
-  // AddonsConfig defines the addons to enable with the GKE cluster.
-  // +optional
-  AddonsConfig *AddonsConfig `json:"addonsConfig,omitempty"`
-
-  // Logging contains the logging configuration for the GKE cluster.
-  // +optional
-  Logging *ControlPlaneLoggingSpec `json:"logging,omitempty"`
-
-  // EnableKubernetesAlpha will indicate the kubernetes alpha features are enabled
-  // +optional
-  EnableKubernetesAlpha bool
-
-  // ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-  // +optional
-  ControlPlaneEndpoint clusterv1.APIEndpoint `json:"controlPlaneEndpoint"`
-
-  ...
-}
-
-
-type GCPManagedClusterSpec struct {
-  // Project is the name of the project to deploy the cluster to.
-  Project string `json:"project"`
-
-  // The GCP Region the cluster lives in.
-  Region string `json:"region"`
-
-  // NetworkSpec encapsulates all things related to the GCP network.
-  // +optional
-  Network NetworkSpec `json:"network"`
-
-  // FailureDomains is an optional field which is used to assign selected availability zones to a cluster
-  // FailureDomains if empty, defaults to all the zones in the selected region and if specified would override
-  // the default zones.
-  // +optional
-  FailureDomains []string `json:"failureDomains,omitempty"`
-
-  ...
-}
-```
-
-**Pros**
-
-- Simplifies provider implementation when reporting `ControlPlaneEndpoint`
-- Clearer separation between the lifecycle management of the general cloud infrastructure required for the cluster and the actual managed control plane (GKE in this example)
-- Follows the original intentions of an "infrastructure" and "control-plane" provider
-- Enables removal/addition of properties for a Managed Kubernetes cluster that may be different from a self-managed Kubernetes cluster
-- Works with ClusterClass
-
-**Cons**
-
-- Requires changes upstream to CAPI controllers to support the change of reporting `ControlPlaneEndpoint`
-- Duplication of API definitions between self-managed and managed `<Infra>Cluster` definitions and related controllers
-- Users need to be aware of when to use the unmanaged or managed `<Infra>Cluster` definitions.
-
-#### Flow 2: Change CAPI to make `<Infra>Cluster` optional
-
-This option follows along from the first flow above (`ControlPlaneEndpoint` reported by `<Infra>ControlPlane` resource rather than `<Infra>Cluster` resource), but takes it further and makes the `<Infra>Cluster` resource optional.
-
-This option would allow providers to implement only a `<Infra>ControlPlane` resource. Using CAPG as an example, rather than:
-
-- `Cluster` ←→ `GCPManagedCluster` + `GCPManagedControlPlane`
-
-We would enable:
-
-- `Cluster` ←→ `GCPManagedControlPlane`
-
-This would have the advantage of imposing a separation of configuration between each provider’s `<Infra>Cluster` and `<Infra>ControlPlane`’s resources. Because our observations have been that various Managed Kubernetes service providers do things a little bit differently, this separation is hard to define and enforce across all providers in a way that is agreeable to each provider.
-
-In practice this will help Managed Kubernetes provider implementations that do not provide infrastructure resources as part of the service contract, and as of now are required to implement a `<Infra>Cluster` resource (e.g., `AzureManagedCluster` ) as a sort of proxy resource that exists solely to fulfill the CAPI requirement for an `<Infra>Cluster` partner of its corresponding Cluster resource even though there is no infrastructure to describe:
-
-```golang
-type ClusterSpec struct {
-    ...
-    // InfrastructureRef is a reference to a provider-specific resource that holds the details
-    // for provisioning infrastructure for a cluster in said provider.
-    // +optional
-    InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
-    ...
-}
-```
-
-The above API specification snippet for `ClusterSpec` emphasizes (in the type comment) that in fact the `InfrastructureRef` child property is an optional property of the data model. We are able to take advantage of this data specification to accommodate these non-infrastructure-providing Managed Cluster infrastructure scenarios, and are entirely able to be represented as a “managed control plane” abstraction. Work will need to be done in the CAPI controllers to support this new workflow, which was originally implemented prior to Managed Kubernetes scenarios being considered.
-
-**Pros**
-
-- Does not require any change to existing Cluster API CRDs
-- Flexible: enables more expressive API semantics for the various scenarios of Managed Kubernetes
-- Is a natural evolution of the prior effort to standardize Managed Kubernetes on CAPI, doesn’t require users following this effort to entirely rethink how they can invest in CAPI + Managed Kubernetes
-
-**Cons**
-
-- Would require an update to the existing Cluster API contract to accommodate new workflows
-
-#### Alternative Option: Introduce a new Managed Kubernetes provider type (with contract)
-
-This option would introduce a new native Managed Kubernetes type definition into Cluster API, which would have the result of standardizing what Managed Kubernetes looks like for all providers under a common interface. We can use the CAPI type definition of “Cluster”, and the various provider implementations of that (e.g., `GCPCluster`) as a model to copy when we design a native Managed Kubernetes specification.
-
-Defining a new CAPI Managed Kubernetes type would require us to discover and standardize the set of "common" (relevant across all providers) specification data into a new set of CAPI types, e.g.:
-
-```golang
-type ManagedCluster struct {
-    metav1.TypeMeta   `json:",inline"`
-    metav1.ObjectMeta `json:"metadata,omitempty"`
-
-    Spec   ManagedClusterSpec   `json:"spec,omitempty"`
-    Status ManagedClusterStatus `json:"status,omitempty"`
-}
-
-type ManagedClusterSpec struct {
-    // Cluster network configuration.
-    // +optional
-    ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
-
-    // ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-    // +optional
-    ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
-
-    // InfrastructureRef is a reference to a provider-specific resource that holds the details
-    // for provisioning infrastructure for a cluster in said provider.
-    // +optional
-    InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
-}
-```
-
-Each provider would then implement its own corresponding type definition:
-
-```golang
-type GCPManagedCluster struct {
-   ....
-}
-```
-
-Our job is to balance the beneficial outcomes of standardization and consistency by strictly defining certain "common" properties that each provider will fulfill, while enabling enough flexibility to allow providers to meaningfully represent their particular environments.
-
-**Pros**
-
-- Standardizing the spec at the foundational, Cluster API layer optimizes for consistency across providers
-
-**Cons**
-
-- Would require a new set of resource specifications to the existing Cluster API spec
-- Differentiates "self-managed clusters" from "managed clusters" at the foundational API layer:
-  - Self-managed clusters would use the `Cluster` API resource as the top-level primitive object
-  - Managed clusters would use the `ManagedCluster` API resource as the top-level primitive object
-  - For example, to see all clusters under management at present, you can issue a `kubectl get clusters --all-namespaces` command (or the API equivalent); going forward, you would issue `kubectl get clusters,managedclusters --all-namespaces`
-- There are no existing provider implementations. All existing provider implementations (e.g., CAPA, CAPZ, CAPOCI, CAPG) would need to be replaced or augmented in order to use a new spec.
-
-## Recommendations
-
-Because Managed Kubernetes was not yet in scope for Cluster API when it first appeared and gained rapid adoption, we are incentivized for paths forward that use the existing, mature, widely used API specification. The option to create a new `ManagedCluster` API type to best enforce provider consistency thusly has a high bar to clear in order to justify itself as the best option for the next phase of Managed Kubernetes in Cluster API.
-
-We conclude that enabling the the CAPI controllers to source authoritative `ControlPlaneEndpoint` data from the `<Infra>ControlPlane` resource is non-invasive to existing API contracts, and offers non-trivial flexibility for CAPI Managed Kubernetes providers at a small additional cost to CAPI maintenance going forward. Existing implementations that leverage a "proxy" `<Infra>Cluster` resource merely to satisfy CAPI contracts can be simplified by dropping the `<Infra>Cluster` resource altogether at little-to-no cost to their existing user communities. New Managed Kubernetes provider implementations will now have a little more flexibility to use a implementation that uses only a `<Infra>ControlPlane` resource, if that is appropriate, or for implementations that define both a `<Infra>Cluster` + `<Infra>ControlPlane` with the appropriate configuration distribution [following our recommendation][managedKubernetesRecommendation], those implementations can be non-trivially simplified with their `ControlPlaneEndpoint` data being observed and straightforwardly returned via `<Infra>ControlPlane`, the most common source of truth for a Managed Kubernetes service.
 
 ## Implementation History
 

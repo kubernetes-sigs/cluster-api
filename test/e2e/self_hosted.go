@@ -311,18 +311,19 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			// Cluster is using ClusterClass, upgrade via topology.
 			By("Upgrading the Cluster topology")
 			framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
-				ClusterProxy:                selfHostedClusterProxy,
-				Cluster:                     clusterResources.Cluster,
-				ControlPlane:                clusterResources.ControlPlane,
-				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
-				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
-				MachineDeployments:          clusterResources.MachineDeployments,
-				MachinePools:                clusterResources.MachinePools,
-				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				ClusterProxy:                   selfHostedClusterProxy,
+				Cluster:                        clusterResources.Cluster,
+				ControlPlane:                   clusterResources.ControlPlane,
+				EtcdImageTag:                   input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
+				DNSImageTag:                    input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				MachineDeployments:             clusterResources.MachineDeployments,
+				MachinePools:                   clusterResources.MachinePools,
+				KubernetesUpgradeVersion:       input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				WaitForMachinesToBeUpgraded:    input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+				WaitForKubeProxyUpgrade:        input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForDNSUpgrade:              input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForEtcdUpgrade:             input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			})
 		} else {
 			// Cluster is not using ClusterClass, upgrade via individual resources.

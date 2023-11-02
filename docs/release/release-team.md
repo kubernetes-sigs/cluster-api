@@ -8,6 +8,7 @@
   - [Duration of Term](#duration-of-term)
   - [Specific Responsibilities](#specific-responsibilities)
   - [Team Roles](#team-roles)
+  - [Team repo permissions](#team-repo-permissions)
   - [Team Selection](#team-selection)
     - [Selection Criteria](#selection-criteria)
   - [Time Commitment](#time-commitment)
@@ -71,6 +72,14 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 - **Team member**: Any Release Team lead or manager may select one or more additional members to help with their tasks. These team members will help fulfill future Release Team staffing requirements and continue to grow the CAPI community in general.
 - **Maintainer**: Responsible for tasks which require write access to the Cluster API repo including creating release tags and creating a release branch. This role must be filled by someone on the [`cluster-api-maintainers` list](https://github.com/kubernetes-sigs/cluster-api/blob/main/OWNERS_ALIASES).
 *Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.  
+
+## Team repo permissions
+- Release notes (`CHANGELOG` folder)
+  - The Release Lead has approval permissions, which allows them to merge PRs that add new release notes. This will start an automated release process through GitHub Actions: creating tags, create GitHub Release draft, etc.
+  - All members of the release team have `lgtm` permissions for PRs that add release notes in this folder.
+- Release notes tool (`hack/tools/release` folder)
+  - The Release Lead has approval permissions, which allows them to merge code changes to this tool. It's not their responsibility to always review the code changes (although they can), but to make sure the right folks have `lgtm`ed the PR.
+  - All members of the release team have `lgtm` permissions for the release notes tool code.
 
 ## Team Selection
 

@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/utils/ptr"
 )
 
 func Test_GetRawTemplateVariable(t *testing.T) {
@@ -28,50 +29,53 @@ func Test_GetRawTemplateVariable(t *testing.T) {
 
 	varA := apiextensionsv1.JSON{Raw: toJSON("a")}
 	tests := []struct {
-		name          string
-		variables     map[string]apiextensionsv1.JSON
-		variableName  string
-		expectedValue *apiextensionsv1.JSON
-		expectedFound bool
-		expectedErr   bool
+		name                  string
+		variables             map[string]apiextensionsv1.JSON
+		variableName          string
+		expectedValue         *apiextensionsv1.JSON
+		expectedNotFoundError bool
+		expectedErr           bool
 	}{
 		{
-			name:          "Fails for invalid variable reference",
-			variables:     nil,
-			variableName:  "invalid[",
-			expectedValue: nil,
-			expectedFound: false,
-			expectedErr:   true,
+			name:                  "Fails for invalid variable reference",
+			variables:             nil,
+			variableName:          "invalid[",
+			expectedValue:         nil,
+			expectedNotFoundError: false,
+			expectedErr:           true,
 		},
 		{
-			name:          "variable not found",
-			variables:     nil,
-			variableName:  "notEsists",
-			expectedValue: nil,
-			expectedFound: false,
-			expectedErr:   false,
+			name:                  "variable not found",
+			variables:             nil,
+			variableName:          "notExists",
+			expectedValue:         nil,
+			expectedNotFoundError: true,
+			expectedErr:           true,
 		},
 		{
 			name: "return a variable",
 			variables: map[string]apiextensionsv1.JSON{
 				"a": varA,
 			},
-			variableName:  "a",
-			expectedValue: &varA,
-			expectedFound: true,
-			expectedErr:   false,
+			variableName:          "a",
+			expectedValue:         &varA,
+			expectedNotFoundError: false,
+			expectedErr:           false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			value, found, err := GetVariable(tt.variables, tt.variableName)
+			value, err := GetVariable(tt.variables, tt.variableName)
 
 			g.Expect(value).To(BeComparableTo(tt.expectedValue))
-			g.Expect(found).To(Equal(tt.expectedFound))
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			if tt.expectedNotFoundError {
+				g.Expect(IsNotFoundError(err)).To(BeTrue())
 			}
 		})
 	}
@@ -82,51 +86,197 @@ func Test_GetStringTemplateVariable(t *testing.T) {
 
 	varA := apiextensionsv1.JSON{Raw: toJSON("a")}
 	tests := []struct {
-		name          string
-		variables     map[string]apiextensionsv1.JSON
-		variableName  string
-		expectedValue string
-		expectedFound bool
-		expectedErr   bool
+		name                  string
+		variables             map[string]apiextensionsv1.JSON
+		variableName          string
+		expectedValue         string
+		expectedNotFoundError bool
+		expectedErr           bool
 	}{
 		{
-			name:          "Fails for invalid variable reference",
-			variables:     nil,
-			variableName:  "invalid[",
-			expectedValue: "",
-			expectedFound: false,
-			expectedErr:   true,
+			name:                  "Fails for invalid variable reference",
+			variables:             nil,
+			variableName:          "invalid[",
+			expectedValue:         "",
+			expectedNotFoundError: false,
+			expectedErr:           true,
 		},
 		{
-			name:          "variable not found",
-			variables:     nil,
-			variableName:  "notEsists",
-			expectedValue: "",
-			expectedFound: false,
-			expectedErr:   false,
+			name:                  "variable not found",
+			variables:             nil,
+			variableName:          "notEsists",
+			expectedValue:         "",
+			expectedNotFoundError: true,
+			expectedErr:           true,
 		},
 		{
-			name: "variable not found",
+			name: "valid variable",
 			variables: map[string]apiextensionsv1.JSON{
 				"a": varA,
 			},
-			variableName:  "a",
-			expectedValue: "a",
-			expectedFound: true,
-			expectedErr:   false,
+			variableName:          "a",
+			expectedValue:         "a",
+			expectedNotFoundError: false,
+			expectedErr:           false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			value, found, err := GetStringVariable(tt.variables, tt.variableName)
+			value, err := GetStringVariable(tt.variables, tt.variableName)
 
 			g.Expect(value).To(Equal(tt.expectedValue))
-			g.Expect(found).To(Equal(tt.expectedFound))
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
+
+			if tt.expectedNotFoundError {
+				g.Expect(IsNotFoundError(err)).To(BeTrue())
+			}
+		})
+	}
+}
+
+func Test_GetBoolVariable(t *testing.T) {
+	g := NewWithT(t)
+
+	varA := apiextensionsv1.JSON{Raw: []byte(`true`)}
+	tests := []struct {
+		name                  string
+		variables             map[string]apiextensionsv1.JSON
+		variableName          string
+		expectedValue         bool
+		expectedNotFoundError bool
+		expectedErr           bool
+	}{
+		{
+			name:                  "Fails for invalid variable reference",
+			variables:             nil,
+			variableName:          "invalid[",
+			expectedValue:         false,
+			expectedNotFoundError: false,
+			expectedErr:           true,
+		},
+		{
+			name:                  "variable not found",
+			variables:             nil,
+			variableName:          "notEsists",
+			expectedValue:         false,
+			expectedNotFoundError: true,
+			expectedErr:           true,
+		},
+		{
+			name: "valid variable",
+			variables: map[string]apiextensionsv1.JSON{
+				"a": varA,
+			},
+			variableName:          "a",
+			expectedValue:         true,
+			expectedNotFoundError: false,
+			expectedErr:           false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			value, err := GetBoolVariable(tt.variables, tt.variableName)
+			if tt.expectedErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			if tt.expectedNotFoundError {
+				g.Expect(IsNotFoundError(err)).To(BeTrue())
+			}
+			g.Expect(value).To(Equal(tt.expectedValue))
+		})
+	}
+}
+
+func Test_GetVariableObjectWithNestedType(t *testing.T) {
+	type AddressesFromPool struct {
+		APIGroup string `json:"apiGroup"`
+		Kind     string `json:"kind"`
+		Name     string `json:"name"`
+	}
+	type Network struct {
+		AddressesFromPools *[]AddressesFromPool `json:"addressesFromPools,omitempty"`
+		Ipv6Primary        *bool                `json:"ipv6Primary,omitempty"`
+	}
+
+	g := NewWithT(t)
+
+	tests := []struct {
+		name                   string
+		variables              map[string]apiextensionsv1.JSON
+		variableName           string
+		expectedNotFoundError  bool
+		expectedErr            bool
+		object                 *Network
+		expectedVariableObject interface{}
+	}{
+		{
+			name:                   "Fails for invalid variable reference",
+			variables:              nil,
+			variableName:           "invalid[",
+			expectedNotFoundError:  false,
+			object:                 &Network{},
+			expectedVariableObject: Network{},
+			expectedErr:            true,
+		},
+		{
+			name:                   "variable not found",
+			variables:              nil,
+			variableName:           "notEsists",
+			expectedNotFoundError:  true,
+			object:                 &Network{},
+			expectedVariableObject: Network{},
+			expectedErr:            true,
+		},
+		{
+			name: "unmarshal error",
+			variables: map[string]apiextensionsv1.JSON{
+				"node":    {Raw: []byte(`{"name": "aadfasdfasd`)},
+				"network": {Raw: []byte(`{"ipv6Primary": true, "addressesFromPools":[{"name":"name"}]asdfasdf`)},
+			},
+			variableName:           "network",
+			expectedNotFoundError:  false,
+			object:                 &Network{},
+			expectedVariableObject: Network{},
+			expectedErr:            true,
+		},
+		{
+			name: "valid variable",
+			variables: map[string]apiextensionsv1.JSON{
+				"node":    {Raw: []byte(`{"name": "a"}`)},
+				"network": {Raw: []byte(`{"ipv6Primary": true, "addressesFromPools":[{"name":"name"}]}`)},
+			},
+			variableName:          "network",
+			expectedNotFoundError: false,
+			expectedErr:           false,
+			object:                &Network{},
+			expectedVariableObject: Network{
+				Ipv6Primary: ptr.To(true),
+				AddressesFromPools: &[]AddressesFromPool{
+					{
+						Name: "name",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := GetObjectVariableInto(tt.variables, tt.variableName, tt.object)
+			if tt.expectedErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			if tt.expectedNotFoundError {
+				g.Expect(IsNotFoundError(err)).To(BeTrue())
+			}
+			g.Expect(*tt.object).To(Equal(tt.expectedVariableObject))
 		})
 	}
 }

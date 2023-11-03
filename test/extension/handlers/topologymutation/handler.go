@@ -129,13 +129,16 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 // It sets the LoadBalancer.ImageRepository if the imageRepository variable is provided.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
 func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav1.DockerClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
-	imageRepo, found, err := topologymutation.GetStringVariable(templateVariables, "imageRepository")
+	imageRepo, err := topologymutation.GetStringVariable(templateVariables, "imageRepository")
 	if err != nil {
+		if topologymutation.IsNotFoundError(err) {
+			return nil
+		}
 		return errors.Wrap(err, "could not set DockerClusterTemplate loadBalancer imageRepository")
 	}
-	if found {
-		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
-	}
+
+	dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
+
 	return nil
 }
 
@@ -152,14 +155,14 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 	// 1) If the Kubernetes version from builtin.controlPlane.version is below 1.24.0 set "cgroup-driver": "cgroupfs" to
 	//    - kubeadmConfigSpec.InitConfiguration.NodeRegistration.KubeletExtraArgs
 	//    - kubeadmConfigSpec.JoinConfiguration.NodeRegistration.KubeletExtraArgs
-	cpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
+	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
 	if err != nil {
+		// This is a required variable. Return an error if it's not found.
+		// NOTE: this should never happen because it is enforced by the patch engine.
+		if topologymutation.IsNotFoundError(err) {
+			return errors.New("could not set cgroup-driver to control plane template kubeletExtraArgs: variable \"builtin.controlPlane.version\" not found")
+		}
 		return errors.Wrap(err, "could not set cgroup-driver to control plane template kubeletExtraArgs")
-	}
-	// This is a required variable. Return an error if it's not found.
-	// NOTE: this should never happen because it is enforced by the patch engine.
-	if !found {
-		return errors.New("could not set cgroup-driver to control plane template kubeletExtraArgs: variable \"builtin.controlPlane.version\" not found")
 	}
 
 	controlPlaneVersion, err := version.ParseMajorMinorPatchTolerant(cpVersion)
@@ -189,22 +192,24 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 
 	// 2) Patch RolloutStrategy RollingUpdate MaxSurge with the value from the Cluster Topology variable.
 	//    If this is unset continue as this variable is not required.
-	kcpControlPlaneMaxSurge, found, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
+	kcpControlPlaneMaxSurge, err := topologymutation.GetStringVariable(templateVariables, "kubeadmControlPlaneMaxSurge")
 	if err != nil {
+		if topologymutation.IsNotFoundError(err) {
+			return nil
+		}
 		return errors.Wrap(err, "could not set KubeadmControlPlaneTemplate MaxSurge")
 	}
-	if found {
-		// This has to be converted to IntOrString type.
-		kubeadmControlPlaneMaxSurgeIntOrString := intstrutil.Parse(kcpControlPlaneMaxSurge)
-		log.Info(fmt.Sprintf("Setting KubeadmControlPlaneMaxSurge to %q", kubeadmControlPlaneMaxSurgeIntOrString.String()))
-		if kcpTemplate.Spec.Template.Spec.RolloutStrategy == nil {
-			kcpTemplate.Spec.Template.Spec.RolloutStrategy = &controlplanev1.RolloutStrategy{}
-		}
-		if kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
-			kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
-		}
-		kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
+
+	// This has to be converted to IntOrString type.
+	kubeadmControlPlaneMaxSurgeIntOrString := intstrutil.Parse(kcpControlPlaneMaxSurge)
+	log.Info(fmt.Sprintf("Setting KubeadmControlPlaneMaxSurge to %q", kubeadmControlPlaneMaxSurgeIntOrString.String()))
+	if kcpTemplate.Spec.Template.Spec.RolloutStrategy == nil {
+		kcpTemplate.Spec.Template.Spec.RolloutStrategy = &controlplanev1.RolloutStrategy{}
 	}
+	if kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate == nil {
+		kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
+	}
+	kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &kubeadmControlPlaneMaxSurgeIntOrString
 	return nil
 }
 
@@ -218,19 +223,19 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 
 	// Only patch the customImage if this DockerMachineTemplate belongs to a MachineDeployment or MachinePool with class "default-class"
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachineDeployments.
-	mdClass, mdFound, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.class")
-	if err != nil {
-		return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
+	mdClass, err1 := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.class")
+	if err1 != nil && !topologymutation.IsNotFoundError(err1) {
+		return errors.Wrap(err1, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
 	}
 
-	mpClass, mpFound, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.class")
-	if err != nil {
-		return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
+	mpClass, err2 := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.class")
+	if err2 != nil && !topologymutation.IsNotFoundError(err2) {
+		return errors.Wrap(err2, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
 	}
 
 	// This is a required variable. Return an error if it's not found.
 	// NOTE: this should never happen because it is enforced by the patch engine.
-	if !mdFound && !mpFound {
+	if topologymutation.IsNotFoundError(err1) && topologymutation.IsNotFoundError(err2) {
 		return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: could find neither \"builtin.machineDeployment.class\" nor \"builtin.machinePool.class\" variable")
 	}
 
@@ -240,15 +245,15 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 		//    - JoinConfiguration.KubeletExtraArgs
 		// NOTE: MachineDeployment version might be different than Cluster.version or other MachineDeployment's versions;
 		// the builtin variables provides the right version to use.
-		mdVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.version")
+		mdVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.version")
 		if err != nil {
+			// This is a required variable. Return an error if it's not found.
+			if topologymutation.IsNotFoundError(err) {
+				return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machineDeployment.version\" not found")
+			}
 			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
 		}
 
-		// This is a required variable. Return an error if it's not found.
-		if !found {
-			return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machineDeployment.version\" not found")
-		}
 		machineDeploymentVersion, err := version.ParseMajorMinorPatchTolerant(mdVersion)
 		if err != nil {
 			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
@@ -274,15 +279,15 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 		//    - JoinConfiguration.KubeletExtraArgs
 		// NOTE: MachinePool version might be different than Cluster.version or other MachinePool's versions;
 		// the builtin variables provides the right version to use.
-		mpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
+		mpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
 		if err != nil {
+			// This is a required variable. Return an error if it's not found.
+			if topologymutation.IsNotFoundError(err) {
+				return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machinePool.version\" not found")
+			}
 			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
 		}
 
-		// This is a required variable. Return an error if it's not found.
-		if !found {
-			return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machinePool.version\" not found")
-		}
 		machinePoolVersion, err := version.ParseMajorMinorPatchTolerant(mpVersion)
 		if err != nil {
 			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
@@ -317,11 +322,13 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 	// NOTE: ControlPlane version might be different than Cluster.version or MachineDeployment's versions;
 	// the builtin variables provides the right version to use.
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to the ControlPlane.
-	cpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
-	if err != nil {
+	cpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.controlPlane.version")
+	if err != nil && !topologymutation.IsNotFoundError(err) {
 		return errors.Wrap(err, "could not set customImage to control plane dockerMachineTemplate")
 	}
-	if found {
+
+	// if found
+	if err == nil {
 		semVer, err := version.ParseMajorMinorPatchTolerant(cpVersion)
 		if err != nil {
 			return errors.Wrap(err, "could not parse control plane version")
@@ -338,25 +345,25 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 	// NOTE: MachineDeployment version might be different from Cluster.version or other MachineDeployment's versions;
 	// the builtin variables provides the right version to use.
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachineDeployments.
-	mdVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.version")
+	mdVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.version")
 	if err != nil {
+		if topologymutation.IsNotFoundError(err) {
+			// If the DockerMachineTemplate didn't have variables for either a control plane or a machineDeployment return an error.
+			// NOTE: this should never happen because it is enforced by the patch engine.
+			return errors.New("no version variables found for DockerMachineTemplate patch")
+		}
 		return errors.Wrap(err, "could not set customImage to MachineDeployment DockerMachineTemplate")
 	}
-	if found {
-		semVer, err := version.ParseMajorMinorPatchTolerant(mdVersion)
-		if err != nil {
-			return errors.Wrap(err, "could not parse MachineDeployment version")
-		}
-		kindMapping := kind.GetMapping(semVer, "")
 
-		log.Info(fmt.Sprintf("Setting MachineDeployment customImage to %q", kindMapping.Image))
-		dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
-		return nil
+	semVer, err := version.ParseMajorMinorPatchTolerant(mdVersion)
+	if err != nil {
+		return errors.Wrap(err, "could not parse MachineDeployment version")
 	}
+	kindMapping := kind.GetMapping(semVer, "")
 
-	// If the DockerMachineTemplate didn't have variables for either a control plane or a machineDeployment return an error.
-	// NOTE: this should never happen because it is enforced by the patch engine.
-	return errors.New("no version variables found for DockerMachineTemplate patch")
+	log.Info(fmt.Sprintf("Setting MachineDeployment customImage to %q", kindMapping.Image))
+	dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
+	return nil
 }
 
 // patchDockerMachinePoolTemplate patches the DockerMachinePoolTemplate.
@@ -370,25 +377,25 @@ func patchDockerMachinePoolTemplate(ctx context.Context, dockerMachinePoolTempla
 	// NOTE: MachinePool version might be different from Cluster.version or other MachinePool's versions;
 	// the builtin variables provides the right version to use.
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates linked to MachinePools.
-	mpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
+	mpVersion, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
 	if err != nil {
+		// If the DockerMachinePoolTemplate didn't have variables for a machinePool return an error.
+		// NOTE: this should never happen because it is enforced by the patch engine.
+		if topologymutation.IsNotFoundError(err) {
+			return errors.New("no version variables found for DockerMachinePoolTemplate patch")
+		}
 		return errors.Wrap(err, "could not set customImage to MachinePool DockerMachinePoolTemplate")
 	}
-	if found {
-		semVer, err := version.ParseMajorMinorPatchTolerant(mpVersion)
-		if err != nil {
-			return errors.Wrap(err, "could not parse MachinePool version")
-		}
-		kindMapping := kind.GetMapping(semVer, "")
 
-		log.Info(fmt.Sprintf("Setting MachinePool customImage to %q", kindMapping.Image))
-		dockerMachinePoolTemplate.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
-		return nil
+	semVer, err := version.ParseMajorMinorPatchTolerant(mpVersion)
+	if err != nil {
+		return errors.Wrap(err, "could not parse MachinePool version")
 	}
+	kindMapping := kind.GetMapping(semVer, "")
 
-	// If the DockerMachinePoolTemplate didn't have variables for a machinePool return an error.
-	// NOTE: this should never happen because it is enforced by the patch engine.
-	return errors.New("no version variables found for DockerMachinePoolTemplate patch")
+	log.Info(fmt.Sprintf("Setting MachinePool customImage to %q", kindMapping.Image))
+	dockerMachinePoolTemplate.Spec.Template.Spec.Template.CustomImage = kindMapping.Image
+	return nil
 }
 
 // ValidateTopology implements the HandlerFunc for the ValidateTopology hook.

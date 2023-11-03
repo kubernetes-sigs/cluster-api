@@ -173,6 +173,12 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 }
 
 func isMachinePoolMachine(m *clusterv1.Machine) bool {
+	if m.Labels != nil {
+		if _, ok := m.Labels[clusterv1.MachinePoolNameLabel]; ok {
+			return true
+		}
+	}
+
 	for _, owner := range m.OwnerReferences {
 		if owner.Kind == "MachinePool" {
 			return true

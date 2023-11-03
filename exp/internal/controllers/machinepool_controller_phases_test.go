@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 )
@@ -1312,7 +1312,8 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			}
 
 			r := &MachinePoolReconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:   fake.NewClientBuilder().WithObjects(objs...).Build(),
+				ssaCache: ssa.NewCache(),
 			}
 
 			err := r.reconcileMachines(ctx, tc.machinepool, infraConfig)
@@ -1335,10 +1336,8 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					g.Expect(machineList.Items).To(HaveLen(len(tc.infraMachines)))
 					for i := range machineList.Items {
 						machine := &machineList.Items[i]
-						infraMachine, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+						_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 						g.Expect(err).ToNot(HaveOccurred())
-
-						g.Expect(util.IsControlledBy(infraMachine, machine)).To(BeTrue())
 					}
 				} else {
 					g.Expect(machineList.Items).To(BeEmpty())

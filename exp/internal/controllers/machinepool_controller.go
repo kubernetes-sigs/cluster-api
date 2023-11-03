@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -69,6 +70,7 @@ type MachinePoolReconciler struct {
 	WatchFilterValue string
 
 	controller      controller.Controller
+	ssaCache        ssa.Cache
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
 }
@@ -105,6 +107,8 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		Controller: c,
 		Cache:      mgr.GetCache(),
 	}
+	r.ssaCache = ssa.NewCache()
+
 	return nil
 }
 

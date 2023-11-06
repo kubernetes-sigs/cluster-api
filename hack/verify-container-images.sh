@@ -41,14 +41,14 @@ make clean-release-git
 "${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-"${GO_ARCH}":dev && R4=$? || R4=$?
 "${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/cluster-api-controller-"${GO_ARCH}":dev && R5=$? || R5=$?
 "${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/capd-manager-"${GO_ARCH}":dev && R6=$? || R6=$?
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/capim-manager-"${GO_ARCH}":dev && R6=$? || R6=$?
+"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/capim-manager-"${GO_ARCH}":dev && R7=$? || R7=$?
 
 echo ""
 BRed='\033[1;31m'
 BGreen='\033[1;32m'
 NC='\033[0m' # No
 
-if [ "$R1" -ne "0" ] || [ "$R2"  -ne "0" ] || [ "$R3" -ne "0" ] || [ "$R4" -ne "0"  ] || [ "$R5" -ne "0"  ] || [ "$R6" -ne "0" ]
+if [ "$R1" -ne "0" ] || [ "$R2"  -ne "0" ] || [ "$R3" -ne "0" ] || [ "$R4" -ne "0"  ] || [ "$R5" -ne "0"  ] || [ "$R6" -ne "0" ] || [ "$R7" -ne "0" ]
 then
   echo -e "${BRed}Check container images failed! There are vulnerabilities to be fixed${NC}"
   exit 1

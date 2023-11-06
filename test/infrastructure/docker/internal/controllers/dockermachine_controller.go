@@ -115,6 +115,11 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
+	if cluster.Spec.InfrastructureRef == nil {
+		log.Info("Cluster infrastructureRef is not available yet")
+		return ctrl.Result{}, nil
+	}
+
 	// Fetch the Docker Cluster.
 	dockerCluster := &infrav1.DockerCluster{}
 	dockerClusterName := client.ObjectKey{

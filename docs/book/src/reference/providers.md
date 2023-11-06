@@ -11,6 +11,7 @@ updated info about which API version they are supporting.
 - [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 - [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
+- [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
 
 ## Control Plane
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
@@ -19,6 +20,7 @@ updated info about which API version they are supporting.
 - [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [Talos](https://github.com/siderolabs/cluster-api-control-plane-provider-talos)
 - [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)
+- [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
 
 ## Infrastructure
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)

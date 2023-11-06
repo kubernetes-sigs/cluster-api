@@ -1100,7 +1100,11 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 
 .PHONY: release-notes-tool
 release-notes-tool:
-	go build -o bin/notes hack/tools/release/notes.go
+	go build -o bin/notes hack/tools/release/notes/main.go
+
+.PHONY: release-weekly-update-tool
+release-weekly-update-tool:
+	go build -o bin/weekly hack/tools/release/weekly/main.go
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

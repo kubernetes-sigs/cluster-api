@@ -384,7 +384,8 @@ func TestFindNewMachineSet(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -478,7 +479,8 @@ func TestFindOldMachineSets(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -716,7 +718,8 @@ func TestDeploymentComplete(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 

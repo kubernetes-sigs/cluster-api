@@ -1369,7 +1369,8 @@ func TestGetCoreDNSInfo(t *testing.T) {
 				expectErr:     true,
 			},
 		}
-		for _, tt := range tests {
+		for i := range tests {
+			tt := tests[i]
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
@@ -1433,7 +1434,8 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 				`),
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{

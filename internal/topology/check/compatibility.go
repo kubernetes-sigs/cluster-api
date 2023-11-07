@@ -450,14 +450,16 @@ func ClusterClassReferencesAreValid(clusterClass *clusterv1.ClusterClass) field.
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(clusterClass.Spec.ControlPlane.MachineInfrastructure, clusterClass.Namespace, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
 
-	for i, mdc := range clusterClass.Spec.Workers.MachineDeployments {
+	for i := range clusterClass.Spec.Workers.MachineDeployments {
+		mdc := clusterClass.Spec.Workers.MachineDeployments[i]
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mdc.Template.Bootstrap, clusterClass.Namespace,
 			field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mdc.Template.Infrastructure, clusterClass.Namespace,
 			field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
 	}
 
-	for i, mpc := range clusterClass.Spec.Workers.MachinePools {
+	for i := range clusterClass.Spec.Workers.MachinePools {
+		mpc := clusterClass.Spec.Workers.MachinePools[i]
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mpc.Template.Bootstrap, clusterClass.Namespace,
 			field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "bootstrap"))...)
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mpc.Template.Infrastructure, clusterClass.Namespace,

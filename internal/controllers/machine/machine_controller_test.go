@@ -717,7 +717,8 @@ func TestReconcileRequest(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		t.Run("machine should be "+tc.machine.Name, func(t *testing.T) {
 			g := NewWithT(t)
 

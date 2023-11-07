@@ -100,7 +100,7 @@ func init() {
 			"Runtime Extension implementers must use this hook to inform the Cluster API runtime about all the handlers " +
 			"that are defined in an external component implementing Runtime Extensions.\n" +
 			"\n" +
-			"Notes:\n" +
+			"Notes:\n" + //nolint:goconst
 			"- When using Runtime SDK utils, a handler for this hook is automatically generated",
 		Singleton: true,
 	})

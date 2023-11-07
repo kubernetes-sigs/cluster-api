@@ -18,6 +18,7 @@ package remote
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -44,10 +45,14 @@ func mapper(_ context.Context, i client.Object) []reconcile.Request {
 		{
 			NamespacedName: types.NamespacedName{
 				Namespace: i.GetNamespace(),
-				Name:      "mapped-" + i.GetName(),
+				Name:      getMappedName(i.GetName()),
 			},
 		},
 	}
+}
+
+func getMappedName(name string) string {
+	return fmt.Sprintf("mapped-%s", name)
 }
 
 func TestClusterCacheTracker(t *testing.T) {
@@ -127,7 +132,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			g.Expect(cleanupTestSecrets(ctx, k8sClient)).To(Succeed())
 			t.Log("Deleting any Clusters")
 			g.Expect(cleanupTestClusters(ctx, k8sClient)).To(Succeed())
-			g.Expect(<-c.ch).To(Equal("mapped-" + clusterA.Name))
+			g.Expect(<-c.ch).To(Equal(getMappedName(clusterA.Name)))
 			g.Consistently(c.ch).ShouldNot(Receive())
 			t.Log("Deleting Namespace")
 			g.Expect(env.Delete(ctx, ns)).To(Succeed())
@@ -150,7 +155,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			})).To(Succeed())
 
 			t.Log("Waiting to receive the watch notification")
-			g.Expect(<-c.ch).To(Equal("mapped-" + clusterA.Name))
+			g.Expect(<-c.ch).To(Equal(getMappedName(clusterA.Name)))
 
 			t.Log("Ensuring no additional watch notifications arrive")
 			g.Consistently(c.ch).ShouldNot(Receive())
@@ -162,7 +167,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			g.Expect(k8sClient.Update(ctx, clusterA)).To(Succeed())
 
 			t.Log("Waiting to receive the watch notification")
-			g.Expect(<-c.ch).To(Equal("mapped-" + clusterA.Name))
+			g.Expect(<-c.ch).To(Equal(getMappedName(clusterA.Name)))
 
 			t.Log("Ensuring no additional watch notifications arrive")
 			g.Consistently(c.ch).ShouldNot(Receive())
@@ -184,7 +189,7 @@ func TestClusterCacheTracker(t *testing.T) {
 			g.Expect(k8sClient.Update(ctx, clusterA)).To(Succeed())
 
 			t.Log("Waiting to receive the watch notification")
-			g.Expect(<-c.ch).To(Equal("mapped-" + clusterA.Name))
+			g.Expect(<-c.ch).To(Equal(getMappedName(clusterA.Name)))
 
 			t.Log("Ensuring no additional watch notifications arrive")
 			g.Consistently(c.ch).ShouldNot(Receive())

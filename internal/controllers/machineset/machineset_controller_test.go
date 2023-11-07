@@ -754,7 +754,8 @@ func TestShouldExcludeMachine(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		g := NewWithT(t)
 
 		got := shouldExcludeMachine(&tc.machineSet, &tc.machine)
@@ -804,7 +805,8 @@ func TestAdoptOrphan(t *testing.T) {
 		Client:                    c,
 		UnstructuredCachingClient: c,
 	}
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		g.Expect(r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())
 
 		key := client.ObjectKey{Namespace: tc.machine.Namespace, Name: tc.machine.Name}

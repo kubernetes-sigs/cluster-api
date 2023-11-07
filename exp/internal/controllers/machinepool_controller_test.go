@@ -409,7 +409,8 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		t.Run("machinePool should be "+tc.machinePool.Name, func(t *testing.T) {
 			g := NewWithT(t)
 

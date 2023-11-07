@@ -313,7 +313,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 
 		manager := cmanager.New(scheme)
 
-		host := "127.0.0.1" //nolint:goconst
+		host := "127.0.0.1"
 		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
 			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
 			MinPort:   server.DefaultMinPort + 1000,

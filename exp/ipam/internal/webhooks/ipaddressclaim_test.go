@@ -61,7 +61,8 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := IPAddressClaim{}
@@ -111,7 +112,8 @@ func TestIPAddressClaimValidateUpdate(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := IPAddressClaim{}

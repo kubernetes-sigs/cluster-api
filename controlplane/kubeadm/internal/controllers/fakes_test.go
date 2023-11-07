@@ -96,6 +96,10 @@ func (f fakeWorkloadCluster) AllowBootstrapTokensToGetNodes(_ context.Context) e
 	return nil
 }
 
+func (f fakeWorkloadCluster) AllowClusterAdminPermissions(_ context.Context, _ semver.Version) error {
+	return nil
+}
+
 func (f fakeWorkloadCluster) ReconcileKubeletRBACRole(_ context.Context, _ semver.Version) error {
 	return nil
 }

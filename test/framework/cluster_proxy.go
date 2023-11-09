@@ -30,7 +30,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -42,9 +44,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -250,7 +252,20 @@ func (p *clusterProxy) Apply(ctx context.Context, resources []byte, args ...stri
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
 	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
 
-	return exec.KubectlApply(ctx, p.kubeconfigPath, resources, args...)
+	var retErrs []error
+	objs, err := yaml.ToUnstructured(resources)
+	if err != nil {
+		return err
+	}
+	for _, o := range objs {
+		if err := p.GetClient().Create(ctx, &o); err != nil {
+			if apierrors.IsAlreadyExists(err) {
+				continue
+			}
+			retErrs = append(retErrs, err)
+		}
+	}
+	return kerrors.NewAggregate(retErrs)
 }
 
 func (p *clusterProxy) GetRESTConfig() *rest.Config {

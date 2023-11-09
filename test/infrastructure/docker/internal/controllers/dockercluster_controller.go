@@ -78,12 +78,6 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Create a helper for managing a docker container hosting the loadbalancer.
-	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster, dockerCluster)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerCluster, r.Client)
 	if err != nil {
@@ -98,6 +92,13 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 	}()
+
+	// Create a helper for managing a docker container hosting the loadbalancer.
+	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster, dockerCluster)
+	if err != nil {
+		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalLoadBalancer")
+	}
 
 	// Support FailureDomains
 	// In cloud providers this would likely look up which failure domains are supported and set the status appropriately.

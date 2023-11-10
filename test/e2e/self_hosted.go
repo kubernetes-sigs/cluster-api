@@ -365,19 +365,18 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 					MachineDeployments:          clusterResources.MachineDeployments,
 					WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 				})
-			}
-		}
 
-		// Only attempt to upgrade MachinePools if they were provided in the template.
-		if len(clusterResources.MachinePools) > 0 && workerMachineCount > 0 {
-			By("Upgrading the machinepool instances")
-			framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
-				ClusterProxy:                   selfHostedClusterProxy,
-				Cluster:                        clusterResources.Cluster,
-				UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-				WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
-				MachinePools:                   clusterResources.MachinePools,
-			})
+				if len(clusterResources.MachinePools) > 0 {
+					By("Upgrading the machinepool instances")
+					framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
+						ClusterProxy:                   selfHostedClusterProxy,
+						Cluster:                        clusterResources.Cluster,
+						UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+						WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+						MachinePools:                   clusterResources.MachinePools,
+					})
+				}
+			}
 		}
 
 		By("Waiting until nodes are ready")

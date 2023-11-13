@@ -26,9 +26,9 @@ A temporary cluster that is used to provision a Target Management cluster.
 ### Bootstrap provider
 
 Refers to a [provider](#provider) that implements a solution for the [bootstrap](#bootstrap) process.
-Bootstrap provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract). 
+Bootstrap provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract).
 
-See [CABPK](#cabpk). 
+See [CABPK](#cabpk).
 
 # C
 ---
@@ -132,6 +132,12 @@ See [core provider](#core-provider)
 
 The Cluster API execution model, a set of controllers cooperating in managing the Kubernetes cluster lifecycle.
 
+### Cluster Infrastructure
+
+or __Kubernetes Cluster Infrastructure__
+
+Defines the **infrastructure that supports a Kubernetes cluster**, like e.g. VPC, security groups, load balancers, etc. Please note that in the context of managed Kubernetes some of those components are going to be provided by the corresponding abstraction for a specific Cloud provider (EKS, OKE, AKS etc), and thus Cluster API should not take care of managing a subset or all those components.
+
 ### Contract
 
 Or __Cluster API contract__
@@ -155,7 +161,7 @@ See [KCP](#kcp).
 
 ### Core provider
 
-Refers to a [provider](#provider) that implements Cluster API core controllers; if you 
+Refers to a [provider](#provider) that implements Cluster API core controllers; if you
 consider that the first project that must be deployed in a management Cluster is Cluster API itself, it should be clear why
 the Cluster API project is also referred to as the core provider.
 
@@ -196,7 +202,7 @@ see [Server](#server)
 
 ### Infrastructure provider
 
-Refers to a [provider](#provider) that implements provisioning of infrastructure/computational resources required by 
+Refers to a [provider](#provider) that implements provisioning of infrastructure/computational resources required by
 the Cluster or by Machines (e.g. VMs, networking, etc.).
 Infrastructure provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract).
 
@@ -205,7 +211,7 @@ When there is more than one way to obtain resources from the same infrastructure
 
 For a complete list of providers see [Provider Implementations](providers.md).
 
-### Inline patch 
+### Inline patch
 
 A [patch](#patch) defined inline in a [ClusterClass](#clusterclass). An alternative to an [external patch](#external-patch).
 
@@ -269,6 +275,10 @@ See also: [Server](#server)
 
 Perform create, scale, upgrade, or destroy operations on the cluster.
 
+### Managed Kubernetes
+
+Managed Kubernetes refers to any Kubernetes cluster provisioning and maintenance abstraction, usually exposed as an API, that is natively available in a Cloud provider. For example: [EKS](https://aws.amazon.com/eks/), [OKE](https://www.oracle.com/cloud/cloud-native/container-engine-kubernetes/), [AKS](https://azure.microsoft.com/en-us/products/kubernetes-service), [GKE](https://cloud.google.com/kubernetes-engine), [IBM Cloud Kubernetes Service](https://www.ibm.com/cloud/kubernetes-service), [DOKS](https://www.digitalocean.com/products/kubernetes), and many more throughout the Kubernetes Cloud Native ecosystem.
+
 ### Managed Topology
 
 See [Topology](#topology)
@@ -306,7 +316,7 @@ A generically understood combination of a kernel and system-level userspace inte
 # P
 ---
 
-### Patch 
+### Patch
 
 A set of instructions describing modifications to a Kubernetes object. Examples include JSON Patch and JSON Merge Patch.
 

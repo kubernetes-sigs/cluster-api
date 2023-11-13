@@ -76,7 +76,7 @@ func discoverOwnerGraph(ctx context.Context, namespace string, o *objectGraph) (
 		typeMeta := discoveryType.typeMeta
 		objList := new(unstructured.UnstructuredList)
 
-		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
 			return getObjList(ctx, o.proxy, typeMeta, selectors, objList)
 		}); err != nil {
 			return nil, err
@@ -92,7 +92,7 @@ func discoverOwnerGraph(ctx context.Context, namespace string, o *objectGraph) (
 				if p.Type == string(clusterctlv1.InfrastructureProviderType) {
 					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
 					providerNamespaceSecretList := new(unstructured.UnstructuredList)
-					if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
+					if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
 						return getObjList(ctx, o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
 					}); err != nil {
 						return nil, err

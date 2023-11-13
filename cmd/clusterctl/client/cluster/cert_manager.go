@@ -187,7 +187,7 @@ func (cm *certManagerClient) install(ctx context.Context) error {
 		o := objs[i]
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make ensureCerts more resilient to unexpected conditions.
-		if err := retryWithExponentialBackoff(createCertManagerBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, createCertManagerBackoff, func(ctx context.Context) error {
 			return cm.createObj(ctx, o)
 		}); err != nil {
 			return err
@@ -306,7 +306,7 @@ func (cm *certManagerClient) deleteObjs(ctx context.Context, objs []unstructured
 			continue
 		}
 
-		if err := retryWithExponentialBackoff(deleteCertManagerBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, deleteCertManagerBackoff, func(ctx context.Context) error {
 			if err := cm.deleteObj(ctx, obj); err != nil {
 				// tolerate NotFound errors when deleting the test resources
 				if apierrors.IsNotFound(err) {
@@ -560,7 +560,7 @@ func (cm *certManagerClient) waitForAPIReady(ctx context.Context, retry bool) er
 	deleteCertManagerBackoff := newWriteBackoff()
 	for i := range testObjs {
 		obj := testObjs[i]
-		if err := retryWithExponentialBackoff(deleteCertManagerBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, deleteCertManagerBackoff, func(ctx context.Context) error {
 			if err := cm.deleteObj(ctx, obj); err != nil {
 				// tolerate NotFound errors when deleting the test resources
 				if apierrors.IsNotFound(err) {

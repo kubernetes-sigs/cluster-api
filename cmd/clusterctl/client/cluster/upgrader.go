@@ -484,7 +484,7 @@ func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clust
 
 // scaleDownDeployment scales down a Deployment to 0 and waits until all replicas have been deleted.
 func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Deployment) error {
-	if err := retryWithExponentialBackoff(newWriteBackoff(), func() error {
+	if err := retryWithExponentialBackoff(ctx, newWriteBackoff(), func(ctx context.Context) error {
 		deployment := &appsv1.Deployment{}
 		if err := c.Get(ctx, client.ObjectKeyFromObject(&deploy), deployment); err != nil {
 			return errors.Wrapf(err, "failed to get Deployment/%s", deploy.GetName())
@@ -511,7 +511,7 @@ func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Dep
 		Steps:    60,
 		Jitter:   0.4,
 	}
-	if err := retryWithExponentialBackoff(deploymentScaleToZeroBackOff, func() error {
+	if err := retryWithExponentialBackoff(ctx, deploymentScaleToZeroBackOff, func(ctx context.Context) error {
 		deployment := &appsv1.Deployment{}
 		if err := c.Get(ctx, client.ObjectKeyFromObject(&deploy), deployment); err != nil {
 			return errors.Wrapf(err, "failed to get Deployment/%s", deploy.GetName())

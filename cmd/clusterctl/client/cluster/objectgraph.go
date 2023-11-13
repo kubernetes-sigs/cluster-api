@@ -333,7 +333,7 @@ func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
 func (o *objectGraph) getDiscoveryTypes(ctx context.Context) error {
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	getDiscoveryTypesBackoff := newReadBackoff()
-	if err := retryWithExponentialBackoff(getDiscoveryTypesBackoff, func() error {
+	if err := retryWithExponentialBackoff(ctx, getDiscoveryTypesBackoff, func(ctx context.Context) error {
 		return getCRDList(ctx, o.proxy, crdList)
 	}); err != nil {
 		return err
@@ -432,7 +432,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		typeMeta := discoveryType.typeMeta
 		objList := new(unstructured.UnstructuredList)
 
-		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
 			return getObjList(ctx, o.proxy, typeMeta, selectors, objList)
 		}); err != nil {
 			return err
@@ -448,7 +448,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 				if p.Type == string(clusterctlv1.InfrastructureProviderType) {
 					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
 					providerNamespaceSecretList := new(unstructured.UnstructuredList)
-					if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
+					if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
 						return getObjList(ctx, o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
 					}); err != nil {
 						return err

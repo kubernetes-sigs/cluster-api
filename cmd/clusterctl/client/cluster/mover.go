@@ -234,7 +234,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 	for i := range clusters {
 		cluster := clusters[i]
 		clusterObj := &clusterv1.Cluster{}
-		if err := retryWithExponentialBackoff(readClusterBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, readClusterBackoff, func(ctx context.Context) error {
 			return getClusterObj(ctx, o.fromProxy, cluster, clusterObj)
 		}); err != nil {
 			return err
@@ -264,7 +264,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 	for i := range machines {
 		machine := machines[i]
 		machineObj := &clusterv1.Machine{}
-		if err := retryWithExponentialBackoff(readMachinesBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, readMachinesBackoff, func(ctx context.Context) error {
 			return getMachineObj(ctx, o.fromProxy, machine, machineObj)
 		}); err != nil {
 			return err
@@ -574,7 +574,7 @@ func setClusterPause(ctx context.Context, proxy Proxy, clusters []*node, value b
 		log.V(5).Info("Set Cluster.Spec.Paused", "paused", value, "Cluster", klog.KRef(cluster.identity.Namespace, cluster.identity.Name))
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterPause more resilient to unexpected conditions.
-		if err := retryWithExponentialBackoff(setClusterPauseBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, setClusterPauseBackoff, func(ctx context.Context) error {
 			return patchCluster(ctx, proxy, cluster, patch, mutators...)
 		}); err != nil {
 			return errors.Wrapf(err, "error setting Cluster.Spec.Paused=%t", value)
@@ -601,7 +601,7 @@ func setClusterClassPause(ctx context.Context, proxy Proxy, clusterclasses []*no
 		}
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterClassPause more resilient to unexpected conditions.
-		if err := retryWithExponentialBackoff(setClusterClassPauseBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, setClusterClassPauseBackoff, func(ctx context.Context) error {
 			return pauseClusterClass(ctx, proxy, clusterclass, pause, mutators...)
 		}); err != nil {
 			return errors.Wrapf(err, "error updating ClusterClass %s/%s", clusterclass.identity.Namespace, clusterclass.identity.Name)
@@ -648,7 +648,7 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 		key := client.ObjectKeyFromObject(obj)
 
 		blockLogged := false
-		if err := retryWithExponentialBackoff(backoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, backoff, func(ctx context.Context) error {
 			if err := c.Get(ctx, key, obj); err != nil {
 				return errors.Wrapf(err, "error getting %s/%s", obj.GroupVersionKind(), key)
 			}
@@ -788,7 +788,7 @@ func (o *objectMover) ensureNamespaces(ctx context.Context, graph *objectGraph, 
 		}
 		namespaces.Insert(namespace)
 
-		if err := retryWithExponentialBackoff(ensureNamespaceBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, ensureNamespaceBackoff, func(ctx context.Context) error {
 			return o.ensureNamespace(ctx, toProxy, namespace)
 		}); err != nil {
 			return err
@@ -872,7 +872,7 @@ func (o *objectMover) createGroup(ctx context.Context, group moveGroup, toProxy 
 	for _, nodeToCreate := range group {
 		// Creates the Kubernetes object corresponding to the nodeToCreate.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retryWithExponentialBackoff(createTargetObjectBackoff, func() error {
+		err := retryWithExponentialBackoff(ctx, createTargetObjectBackoff, func(ctx context.Context) error {
 			return o.createTargetObject(ctx, nodeToCreate, toProxy, mutators, existingNamespaces)
 		})
 		if err != nil {
@@ -894,7 +894,7 @@ func (o *objectMover) backupGroup(ctx context.Context, group moveGroup, director
 	for _, nodeToBackup := range group {
 		// Backs-up the Kubernetes object corresponding to the nodeToBackup.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retryWithExponentialBackoff(backupTargetObjectBackoff, func() error {
+		err := retryWithExponentialBackoff(ctx, backupTargetObjectBackoff, func(ctx context.Context) error {
 			return o.backupTargetObject(ctx, nodeToBackup, directory)
 		})
 		if err != nil {
@@ -916,7 +916,7 @@ func (o *objectMover) restoreGroup(ctx context.Context, group moveGroup, toProxy
 	for _, nodeToRestore := range group {
 		// Creates the Kubernetes object corresponding to the nodeToRestore.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retryWithExponentialBackoff(restoreTargetObjectBackoff, func() error {
+		err := retryWithExponentialBackoff(ctx, restoreTargetObjectBackoff, func(ctx context.Context) error {
 			return o.restoreTargetObject(ctx, nodeToRestore, toProxy)
 		})
 		if err != nil {
@@ -1174,7 +1174,7 @@ func (o *objectMover) deleteGroup(ctx context.Context, group moveGroup) error {
 
 		// Delete the Kubernetes object corresponding to the current node.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
-		err := retryWithExponentialBackoff(deleteSourceObjectBackoff, func() error {
+		err := retryWithExponentialBackoff(ctx, deleteSourceObjectBackoff, func(ctx context.Context) error {
 			return o.deleteSourceObject(ctx, nodeToDelete)
 		})
 

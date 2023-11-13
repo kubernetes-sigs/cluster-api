@@ -162,7 +162,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) e
 	// Nb. The operation is wrapped in a retry loop to make EnsureCustomResourceDefinitions more resilient to unexpected conditions.
 	var crdIsIstalled bool
 	listInventoryBackoff := newReadBackoff()
-	if err := retryWithExponentialBackoff(listInventoryBackoff, func() error {
+	if err := retryWithExponentialBackoff(ctx, listInventoryBackoff, func(ctx context.Context) error {
 		var err error
 		crdIsIstalled, err = checkInventoryCRDs(ctx, p.proxy)
 		return err
@@ -189,7 +189,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) e
 
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make EnsureCustomResourceDefinitions more resilient to unexpected conditions.
-		if err := retryWithExponentialBackoff(createInventoryObjectBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, createInventoryObjectBackoff, func(ctx context.Context) error {
 			return p.createObj(ctx, o)
 		}); err != nil {
 			return err
@@ -272,7 +272,7 @@ func (p *inventoryClient) createObj(ctx context.Context, o unstructured.Unstruct
 func (p *inventoryClient) Create(ctx context.Context, m clusterctlv1.Provider) error {
 	// Create the Kubernetes object.
 	createInventoryObjectBackoff := newWriteBackoff()
-	return retryWithExponentialBackoff(createInventoryObjectBackoff, func() error {
+	return retryWithExponentialBackoff(ctx, createInventoryObjectBackoff, func(ctx context.Context) error {
 		cl, err := p.proxy.NewClient()
 		if err != nil {
 			return err
@@ -310,7 +310,7 @@ func (p *inventoryClient) List(ctx context.Context) (*clusterctlv1.ProviderList,
 	providerList := &clusterctlv1.ProviderList{}
 
 	listProvidersBackoff := newReadBackoff()
-	if err := retryWithExponentialBackoff(listProvidersBackoff, func() error {
+	if err := retryWithExponentialBackoff(ctx, listProvidersBackoff, func(ctx context.Context) error {
 		return listProviders(ctx, p.proxy, providerList)
 	}); err != nil {
 		return nil, err

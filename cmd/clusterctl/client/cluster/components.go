@@ -80,7 +80,7 @@ func (p *providerComponents) Create(ctx context.Context, objs []unstructured.Uns
 
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make Create more resilient to unexpected conditions.
-		if err := retryWithExponentialBackoff(createComponentObjectBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, createComponentObjectBackoff, func(ctx context.Context) error {
 			return p.createObj(ctx, obj)
 		}); err != nil {
 			return err
@@ -217,7 +217,7 @@ func (p *providerComponents) Delete(ctx context.Context, options DeleteOptions) 
 		// Otherwise delete the object
 		log.V(5).Info("Deleting", logf.UnstructuredToValues(obj)...)
 		deleteBackoff := newWriteBackoff()
-		if err := retryWithExponentialBackoff(deleteBackoff, func() error {
+		if err := retryWithExponentialBackoff(ctx, deleteBackoff, func(ctx context.Context) error {
 			if err := cs.Delete(ctx, &obj); err != nil {
 				if apierrors.IsNotFound(err) {
 					// Tolerate IsNotFound error that might happen because we are not enforcing a deletion order

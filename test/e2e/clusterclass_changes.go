@@ -34,6 +34,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -426,6 +427,131 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 	}
 }
 
+// modifyMachinePoolViaClusterClassAndWaitInput is the input type for modifyMachinePoolViaClusterClassAndWait.
+type modifyMachinePoolViaClusterClassAndWaitInput struct {
+	ClusterProxy                                  framework.ClusterProxy
+	ClusterClass                                  *clusterv1.ClusterClass
+	Cluster                                       *clusterv1.Cluster
+	ModifyBootstrapConfigTemplateFields           map[string]interface{}
+	ModifyInfrastructureMachinePoolTemplateFields map[string]interface{}
+	WaitForMachinePools                           []interface{}
+}
+
+// modifyMachinePoolViaClusterClassAndWait modifies the BootstrapConfigTemplate of MachinePoolClasses of a ClusterClass
+// by setting ModifyBootstrapConfigTemplateFields and waits until the changes are rolled out to the MachinePools of the Cluster.
+// NOTE: This helper is really specific to this test, so we are keeping this private vs. adding it to the framework.
+func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMachinePoolViaClusterClassAndWaitInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for modifyMachinePoolViaClusterClassAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling modifyMachinePoolViaClusterClassAndWait")
+	Expect(input.ClusterClass).ToNot(BeNil(), "Invalid argument. input.ClusterClass can't be nil when calling modifyMachinePoolViaClusterClassAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling modifyMachinePoolViaClusterClassAndWait")
+
+	mgmtClient := input.ClusterProxy.GetClient()
+
+	for _, mpClass := range input.ClusterClass.Spec.Workers.MachinePools {
+		// Only try to modify the BootstrapConfigTemplate if the MachinePoolClass is using a BootstrapConfigTemplate.
+		var bootstrapConfigTemplateRef *corev1.ObjectReference
+		var newBootstrapConfigTemplateName string
+		if mpClass.Template.Bootstrap.Ref != nil {
+			log.Logf("Modifying the BootstrapConfigTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
+
+			// Retrieve BootstrapConfigTemplate object.
+			bootstrapConfigTemplateRef = mpClass.Template.Bootstrap.Ref
+			bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef, input.Cluster.Namespace)
+			Expect(err).ToNot(HaveOccurred())
+			// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
+			newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
+			newBootstrapConfigTemplateName = fmt.Sprintf("%s-%s", bootstrapConfigTemplateRef.Name, util.RandomString(6))
+			newBootstrapConfigTemplate.SetName(newBootstrapConfigTemplateName)
+			newBootstrapConfigTemplate.SetResourceVersion("")
+			for fieldPath, value := range input.ModifyBootstrapConfigTemplateFields {
+				Expect(unstructured.SetNestedField(newBootstrapConfigTemplate.Object, value, strings.Split(fieldPath, ".")...)).To(Succeed())
+			}
+			Expect(mgmtClient.Create(ctx, newBootstrapConfigTemplate)).To(Succeed())
+		}
+
+		log.Logf("Modifying the InfrastructureMachinePoolTemplate of MachinePoolClass %q of ClusterClass %s", mpClass.Class, klog.KObj(input.ClusterClass))
+
+		// Retrieve InfrastructureMachineTemplate object.
+		infrastructureMachinePoolTemplateRef := mpClass.Template.Infrastructure.Ref
+		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachinePoolTemplateRef, input.Cluster.Namespace)
+		Expect(err).ToNot(HaveOccurred())
+		// Create a new InfrastructureMachinePoolTemplate object with a new name and ModifyInfrastructureMachinePoolTemplateFields set.
+		newInfrastructureMachinePoolTemplate := infrastructureMachinePoolTemplate.DeepCopy()
+		newInfrastructureMachinePoolTemplateName := fmt.Sprintf("%s-%s", infrastructureMachinePoolTemplateRef.Name, util.RandomString(6))
+		newInfrastructureMachinePoolTemplate.SetName(newInfrastructureMachinePoolTemplateName)
+		newInfrastructureMachinePoolTemplate.SetResourceVersion("")
+		for fieldPath, value := range input.ModifyInfrastructureMachinePoolTemplateFields {
+			Expect(unstructured.SetNestedField(newInfrastructureMachinePoolTemplate.Object, value, strings.Split(fieldPath, ".")...)).To(Succeed())
+		}
+		Expect(mgmtClient.Create(ctx, newInfrastructureMachinePoolTemplate)).To(Succeed())
+
+		// Patch the refs of the MachinePoolClass to reference the new templates.
+		patchHelper, err := patch.NewHelper(input.ClusterClass, mgmtClient)
+		Expect(err).ToNot(HaveOccurred())
+		if mpClass.Template.Bootstrap.Ref != nil {
+			bootstrapConfigTemplateRef.Name = newBootstrapConfigTemplateName
+		}
+		infrastructureMachinePoolTemplateRef.Name = newInfrastructureMachinePoolTemplateName
+		Expect(patchHelper.Patch(ctx, input.ClusterClass)).To(Succeed())
+
+		log.Logf("Waiting for MachinePool rollout for MachinePoolClass %q to complete.", mpClass.Class)
+		for _, mpTopology := range input.Cluster.Spec.Topology.Workers.MachinePools {
+			// Continue if the MachinePoolTopology belongs to another MachinePoolClass.
+			if mpTopology.Class != mpClass.Class {
+				continue
+			}
+
+			// NOTE: We only wait until the change is rolled out to the MachinePool objects and not to the worker machines
+			// to speed up the test and focus the test on the ClusterClass feature.
+			log.Logf("Waiting for MachinePool rollout for MachinePoolTopology %q (class %q) to complete.", mpTopology.Name, mpTopology.Class)
+			Eventually(func(g Gomega) error {
+				// Get MachinePool for the current MachinePoolTopology.
+				mpList := &expv1.MachinePoolList{}
+				g.Expect(mgmtClient.List(ctx, mpList, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels{
+					clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
+				})).To(Succeed())
+				g.Expect(mpList.Items).To(HaveLen(1), fmt.Sprintf("expected one MachinePool for topology %q, but got %d", mpTopology.Name, len(mpList.Items)))
+				mp := mpList.Items[0]
+
+				// Verify that the fields from Cluster topology are set on the MachinePool.
+				assertMachinePoolTopologyFields(g, mp, mpTopology)
+
+				if mpClass.Template.Bootstrap.Ref != nil {
+					// Get the corresponding BootstrapConfig object.
+					bootstrapConfigObjectRef := mp.Spec.Template.Spec.Bootstrap.ConfigRef
+					bootstrapConfigObject, err := external.Get(ctx, mgmtClient, bootstrapConfigObjectRef, input.Cluster.Namespace)
+					g.Expect(err).ToNot(HaveOccurred())
+
+					// Verify that ModifyBootstrapConfigTemplateFields have been set and propagates to the BootstrapConfig.
+					for fieldPath, expectedValue := range input.ModifyBootstrapConfigTemplateFields {
+						// MachinePools have a BootstrapConfig, not a BootstrapConfigTemplate, so we need to convert the fieldPath so it can find it on the object.
+						fieldPath = strings.TrimPrefix(fieldPath, "spec.template.")
+						currentValue, ok, err := unstructured.NestedFieldNoCopy(bootstrapConfigObject.Object, strings.Split(fieldPath, ".")...)
+						g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to get field %q", fieldPath))
+						g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
+						g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
+					}
+				}
+
+				// Get the corresponding InfrastructureMachinePoolTemplate.
+				infrastructureMachinePoolTemplateRef := mp.Spec.Template.Spec.InfrastructureRef
+				infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, &infrastructureMachinePoolTemplateRef, input.Cluster.Namespace)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				// Verify that ModifyInfrastructureMachinePoolTemplateFields have been set.
+				for fieldPath, expectedValue := range input.ModifyInfrastructureMachinePoolTemplateFields {
+					currentValue, ok, err := unstructured.NestedFieldNoCopy(infrastructureMachinePoolTemplate.Object, strings.Split(fieldPath, ".")...)
+					g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to get field %q", fieldPath))
+					g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
+					g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
+				}
+				return nil
+			}, input.WaitForMachinePools...).Should(BeNil())
+		}
+	}
+}
+
 // assertMachineDeploymentTopologyFields asserts that all fields set in the MachineDeploymentTopology have been set on the MachineDeployment.
 // Note: We intentionally focus on the fields set in the MachineDeploymentTopology and ignore the ones set through ClusterClass
 // as we want to validate that the fields of the MachineDeploymentTopology have been propagated correctly.
@@ -461,6 +587,40 @@ func assertMachineDeploymentTopologyFields(g Gomega, md clusterv1.MachineDeploym
 
 	if mdTopology.FailureDomain != nil {
 		g.Expect(md.Spec.Template.Spec.FailureDomain).To(Equal(mdTopology.FailureDomain))
+	}
+}
+
+// assertMachinePoolTopologyFields asserts that all fields set in the MachinePoolTopology have been set on the MachinePool.
+// Note: We intentionally focus on the fields set in the MachinePoolTopology and ignore the ones set through ClusterClass
+// as we want to validate that the fields of the MachinePoolTopology have been propagated correctly.
+func assertMachinePoolTopologyFields(g Gomega, mp expv1.MachinePool, mpTopology clusterv1.MachinePoolTopology) {
+	// Note: We only verify that all labels and annotations from the Cluster topology exist to keep it simple here.
+	// This is fully covered by the ClusterClass rollout test.
+	for k, v := range mpTopology.Metadata.Labels {
+		g.Expect(mp.Labels).To(HaveKeyWithValue(k, v))
+	}
+	for k, v := range mpTopology.Metadata.Annotations {
+		g.Expect(mp.Annotations).To(HaveKeyWithValue(k, v))
+	}
+
+	if mpTopology.NodeDrainTimeout != nil {
+		g.Expect(mp.Spec.Template.Spec.NodeDrainTimeout).To(Equal(mpTopology.NodeDrainTimeout))
+	}
+
+	if mpTopology.NodeDeletionTimeout != nil {
+		g.Expect(mp.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(mpTopology.NodeDeletionTimeout))
+	}
+
+	if mpTopology.NodeVolumeDetachTimeout != nil {
+		g.Expect(mp.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(mpTopology.NodeVolumeDetachTimeout))
+	}
+
+	if mpTopology.MinReadySeconds != nil {
+		g.Expect(mp.Spec.MinReadySeconds).To(Equal(mpTopology.MinReadySeconds))
+	}
+
+	if mpTopology.FailureDomains != nil && mp.Spec.Template.Spec.FailureDomain != nil {
+		g.Expect(mpTopology.FailureDomains).To(ContainElement(mp.Spec.Template.Spec.FailureDomain))
 	}
 }
 

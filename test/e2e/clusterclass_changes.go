@@ -88,6 +88,24 @@ type ClusterClassChangesSpecInput struct {
 	//   "spec.template.spec.path.to.field": <value>,
 	// }
 	ModifyMachineDeploymentInfrastructureMachineTemplateFields map[string]interface{}
+
+	// ModifyMachinePoolBootstrapConfigTemplateFields are the fields which will be set on the
+	// BootstrapConfigTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
+	// The test verifies that these fields are rolled out to the MachinePools.
+	// NOTE: The fields are configured in the following format:
+	// map[string]interface{}{
+	//   "spec.template.spec.path.to.field": <value>,
+	// }
+	ModifyMachinePoolBootstrapConfigTemplateFields map[string]interface{}
+
+	// ModifyMachinePoolInfrastructureMachinePoolTemplateFields are the fields which will be set on the
+	// InfrastructureMachinePoolTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
+	// The test verifies that these fields are rolled out to the MachinePools.
+	// NOTE: The fields are configured in the following format:
+	// map[string]interface{}{
+	//   "spec.template.spec.path.to.field": <value>,
+	// }
+	ModifyMachinePoolInfrastructureMachinePoolTemplateFields map[string]interface{}
 }
 
 // ClusterClassChangesSpec implements a test that verifies that ClusterClass changes are rolled out successfully.
@@ -179,6 +197,16 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 			ModifyBootstrapConfigTemplateFields: input.ModifyMachineDeploymentBootstrapConfigTemplateFields,
 			ModifyInfrastructureMachineTemplateFields: input.ModifyMachineDeploymentInfrastructureMachineTemplateFields,
 			WaitForMachineDeployments:                 input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Modifying the MachinePool configuration in ClusterClass and wait for changes to be applied to the MachinePool objects")
+		modifyMachinePoolViaClusterClassAndWait(ctx, modifyMachinePoolViaClusterClassAndWaitInput{
+			ClusterProxy:                        input.BootstrapClusterProxy,
+			ClusterClass:                        clusterResources.ClusterClass,
+			Cluster:                             clusterResources.Cluster,
+			ModifyBootstrapConfigTemplateFields: input.ModifyMachinePoolBootstrapConfigTemplateFields,
+			ModifyInfrastructureMachinePoolTemplateFields: input.ModifyMachinePoolInfrastructureMachinePoolTemplateFields,
+			WaitForMachinePools:                           input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
 
 		By("Rebasing the Cluster to a ClusterClass with a modified label for MachineDeployments and wait for changes to be applied to the MachineDeployment objects")
@@ -535,13 +563,14 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 				}
 
 				// Get the corresponding InfrastructureMachinePoolTemplate.
-				infrastructureMachinePoolTemplateRef := mp.Spec.Template.Spec.InfrastructureRef
-				infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, &infrastructureMachinePoolTemplateRef, input.Cluster.Namespace)
+				infrastructureMachinePoolRef := mp.Spec.Template.Spec.InfrastructureRef
+				infrastructureMachinePool, err := external.Get(ctx, mgmtClient, &infrastructureMachinePoolRef, input.Cluster.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
 
 				// Verify that ModifyInfrastructureMachinePoolTemplateFields have been set.
 				for fieldPath, expectedValue := range input.ModifyInfrastructureMachinePoolTemplateFields {
-					currentValue, ok, err := unstructured.NestedFieldNoCopy(infrastructureMachinePoolTemplate.Object, strings.Split(fieldPath, ".")...)
+					fieldPath = strings.TrimPrefix(fieldPath, "spec.template.")
+					currentValue, ok, err := unstructured.NestedFieldNoCopy(infrastructureMachinePool.Object, strings.Split(fieldPath, ".")...)
 					g.Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to get field %q", fieldPath))
 					g.Expect(ok).To(BeTrue(), fmt.Sprintf("failed to get field %q", fieldPath))
 					g.Expect(currentValue).To(Equal(expectedValue), fmt.Sprintf("field %q should be equal", fieldPath))
@@ -619,8 +648,9 @@ func assertMachinePoolTopologyFields(g Gomega, mp expv1.MachinePool, mpTopology 
 		g.Expect(mp.Spec.MinReadySeconds).To(Equal(mpTopology.MinReadySeconds))
 	}
 
-	if mpTopology.FailureDomains != nil && mp.Spec.Template.Spec.FailureDomain != nil {
-		g.Expect(mpTopology.FailureDomains).To(ContainElement(mp.Spec.Template.Spec.FailureDomain))
+	if mpTopology.FailureDomains != nil {
+		g.Expect(mp.Spec.FailureDomains).NotTo(BeNil())
+		g.Expect(mpTopology.FailureDomains).To(Equal(mp.Spec.FailureDomains))
 	}
 }
 

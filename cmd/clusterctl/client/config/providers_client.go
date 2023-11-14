@@ -72,6 +72,7 @@ const (
 	MicroK8sBootstrapProviderName          = "microk8s"
 	OracleCloudNativeBootstrapProviderName = "ocne"
 	KubeKeyK3sBootstrapProviderName        = "kubekey-k3s"
+	RKE2BootstrapProviderName              = "rke2"
 )
 
 // ControlPlane providers.
@@ -83,6 +84,7 @@ const (
 	OracleCloudNativeControlPlaneProviderName = "ocne"
 	KubeKeyK3sControlPlaneProviderName        = "kubekey-k3s"
 	KamajiControlPlaneProviderName            = "kamaji"
+	RKE2ControlPlaneProviderName              = "rke2"
 )
 
 // Add-on providers.
@@ -295,6 +297,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+		&provider{
+			name:         RKE2BootstrapProviderName,
+			url:          "https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 
 		// ControlPlane providers
 		&provider{
@@ -330,6 +337,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         KamajiControlPlaneProviderName,
 			url:          "https://github.com/clastix/cluster-api-control-plane-provider-kamaji/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         RKE2ControlPlaneProviderName,
+			url:          "https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 

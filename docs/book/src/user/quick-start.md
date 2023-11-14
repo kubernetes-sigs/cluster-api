@@ -12,6 +12,16 @@ If using a [provider] that does not support v1beta1 or v1alpha4 yet, please foll
 
 ## Installation
 
+There are two major quickstart paths:  Using clusterctl or the Cluster API Operator.  
+ 
+ This article describes a path that uses the `clusterctl` CLI tool to handle the lifecycle of a Cluster API [management cluster](https://cluster-api.sigs.k8s.io/reference/glossary#management-cluster).
+
+The clusterctl command line interface is specifically designed for providing a simple “day 1 experience” and a quick start with Cluster API. It automates fetching the YAML files defining [provider components](https://cluster-api.sigs.k8s.io/reference/glossary#provider-components) and installing them.
+
+Additionally it encodes a set of best practices in managing providers, that helps the user in avoiding mis-configurations or in managing day 2 operations such as upgrades.
+
+The Cluster API Operator is a Kubernetes Operator built on top of clusterctl and designed to empower cluster administrators to handle the lifecycle of Cluster API providers within a management cluster using a declarative approach. It aims to improve user experience in deploying and managing Cluster API, making it easier to handle day-to-day tasks and automate workflows with GitOps. Visit the [CAPI Operator quickstart] if you want to experiment with this tool.
+
 ### Common Prerequisites
 
 - Install and setup [kubectl] in your local environment
@@ -1613,3 +1623,4 @@ kind delete cluster
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md
 [workload cluster]: ../reference/glossary.md#workload-cluster
+[CAPI Operator quickstart]: ./quick-start-operator.md

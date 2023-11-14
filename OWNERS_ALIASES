@@ -127,7 +127,7 @@ aliases:
   cluster-api-release-team:
   # members added in commented lines have a pending membership
   # and will be added back once it is acquired.
-  # - adilGhaffarDev
+  - adilGhaffarDev
   - cahillsf
   - chiukapoor
   - furkatgofurov7 # release lead

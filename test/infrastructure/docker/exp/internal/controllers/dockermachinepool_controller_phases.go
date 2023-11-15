@@ -33,6 +33,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
@@ -142,16 +143,22 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	// Create a DockerMachine for each Docker container so we surface the information to the user. Use the same name as the Docker container for the Docker Machine for ease of lookup.
 	// Providers should iterate through their infrastructure instances and ensure that each instance has a corresponding InfraMachine.
 	for _, machine := range externalMachines {
-		if _, ok := dockerMachineMap[machine.Name()]; !ok {
+		if existingMachine, ok := dockerMachineMap[machine.Name()]; ok {
+			log.V(2).Info("Patching existing DockerMachine", "name", existingMachine.Name)
+			desiredMachine := computeDesiredDockerMachine(machine.Name(), cluster, machinePool, dockerMachinePool, &existingMachine)
+			if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
+				return errors.Wrapf(err, "failed to update DockerMachine %q", klog.KObj(desiredMachine))
+			}
+
+			dockerMachineMap[desiredMachine.Name] = *desiredMachine
+		} else {
 			log.V(2).Info("Creating a new DockerMachine for Docker container", "container", machine.Name())
-			dockerMachine, err := r.createDockerMachine(ctx, machine.Name(), cluster, machinePool, dockerMachinePool)
-			if err != nil {
+			desiredMachine := computeDesiredDockerMachine(machine.Name(), cluster, machinePool, dockerMachinePool, nil)
+			if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, desiredMachine); err != nil {
 				return errors.Wrap(err, "failed to create a new docker machine")
 			}
 
-			dockerMachineMap[dockerMachine.Name] = *dockerMachine
-		} else {
-			log.V(4).Info("DockerMachine already exists, nothing to do", "name", machine.Name())
+			dockerMachineMap[desiredMachine.Name] = *desiredMachine
 		}
 	}
 
@@ -233,30 +240,15 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	return nil
 }
 
-// createDockerMachine creates a DockerMachine to represent a Docker container in a DockerMachinePool.
+// computeDesiredDockerMachine creates a DockerMachine to represent a Docker container in a DockerMachinePool.
 // These DockerMachines have the clusterv1.ClusterNameLabel and clusterv1.MachinePoolNameLabel to support MachinePool Machines.
-func (r *DockerMachinePoolReconciler) createDockerMachine(ctx context.Context, name string, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (*infrav1.DockerMachine, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	labels := map[string]string{
-		clusterv1.ClusterNameLabel:     cluster.Name,
-		clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePool.Name),
-	}
+func computeDesiredDockerMachine(name string, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, existingDockerMachine *infrav1.DockerMachine) *infrav1.DockerMachine {
 	dockerMachine := &infrav1.DockerMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   dockerMachinePool.Namespace,
 			Name:        name,
-			Labels:      labels,
+			Labels:      make(map[string]string),
 			Annotations: make(map[string]string),
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: dockerMachinePool.APIVersion,
-					Kind:       dockerMachinePool.Kind,
-					Name:       dockerMachinePool.Name,
-					UID:        dockerMachinePool.UID,
-				},
-				// Note: Since the MachinePool controller has not created its owner Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
-			},
 		},
 		Spec: infrav1.DockerMachineSpec{
 			CustomImage:   dockerMachinePool.Spec.Template.CustomImage,
@@ -265,13 +257,22 @@ func (r *DockerMachinePoolReconciler) createDockerMachine(ctx context.Context, n
 		},
 	}
 
-	log.V(2).Info("Creating DockerMachine", "dockerMachine", dockerMachine.Name)
-
-	if err := r.Client.Create(ctx, dockerMachine); err != nil {
-		return nil, errors.Wrap(err, "failed to create dockerMachine")
+	if existingDockerMachine != nil {
+		dockerMachine.SetUID(existingDockerMachine.UID)
+		dockerMachine.SetOwnerReferences(existingDockerMachine.OwnerReferences)
 	}
 
-	return dockerMachine, nil
+	// Note: Since the MachinePool controller has not created its owner Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
+	dockerMachine.SetOwnerReferences(util.EnsureOwnerRef(dockerMachine.OwnerReferences, metav1.OwnerReference{
+		APIVersion: dockerMachinePool.APIVersion,
+		Kind:       dockerMachinePool.Kind,
+		Name:       dockerMachinePool.Name,
+		UID:        dockerMachinePool.UID,
+	}))
+	dockerMachine.Labels[clusterv1.ClusterNameLabel] = cluster.Name
+	dockerMachine.Labels[clusterv1.MachinePoolNameLabel] = format.MustFormatValue(machinePool.Name)
+
+	return dockerMachine
 }
 
 // deleteMachinePoolMachine attempts to delete a DockerMachine and its associated owner Machine if it exists.

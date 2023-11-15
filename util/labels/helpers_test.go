@@ -84,3 +84,60 @@ func TestHasWatchLabel(t *testing.T) {
 		})
 	}
 }
+
+func TestIsMachinePoolOwned(t *testing.T) {
+	tests := []struct {
+		name     string
+		object   metav1.Object
+		expected bool
+	}{
+		{
+			name: "machine is a MachinePoolMachine",
+			object: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.MachinePoolNameLabel: "foo",
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "random type is machinepool owned",
+			object: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.MachinePoolNameLabel: "foo",
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "machine not a MachinePoolMachine with random labels",
+			object: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"foo": "bar",
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name:     "machine is not a MachinePoolMachine with no labels",
+			object:   &clusterv1.Machine{},
+			expected: false,
+		},
+	}
+
+	for i := range tests {
+		tt := tests[i]
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			result := IsMachinePoolOwned(tt.object)
+			g.Expect(result).To(Equal(tt.expected))
+		})
+	}
+}

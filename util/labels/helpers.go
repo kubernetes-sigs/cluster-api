@@ -29,6 +29,21 @@ func IsTopologyOwned(o metav1.Object) bool {
 	return ok
 }
 
+// IsMachinePoolOwned returns true if the object has the `cluster.x-k8s.io/pool-name` label or is owned by a MachinePool.
+func IsMachinePoolOwned(o metav1.Object) bool {
+	if _, ok := o.GetLabels()[clusterv1.MachinePoolNameLabel]; ok {
+		return true
+	}
+
+	for _, owner := range o.GetOwnerReferences() {
+		if owner.Kind == "MachinePool" {
+			return true
+		}
+	}
+
+	return false
+}
+
 // HasWatchLabel returns true if the object has a label with the WatchLabel key matching the given value.
 func HasWatchLabel(o metav1.Object, labelValue string) bool {
 	val, ok := o.GetLabels()[clusterv1.WatchLabel]

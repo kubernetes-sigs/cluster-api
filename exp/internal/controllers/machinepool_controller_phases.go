@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -485,12 +486,10 @@ func computeDesiredMachine(mp *expv1.MachinePool, infraMachine *unstructured.Uns
 func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Context, o client.Object) []ctrl.Request {
 	log := ctrl.LoggerFrom(ctx)
 
-	labels := o.GetLabels()
-	_, machinePoolOwned := labels[clusterv1.MachinePoolNameLabel]
-	if machinePoolOwned {
-		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), labels)
+	if labels.IsMachinePoolOwned(o) {
+		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), o.GetLabels())
 		if err != nil {
-			log.Error(err, "failed to get MachinePool for InfraMachine", "infraMachine", klog.KObj(o), "labels", labels)
+			log.Error(err, "failed to get MachinePool for InfraMachine", "infraMachine", klog.KObj(o), "labels", o.GetLabels())
 			return nil
 		}
 		if machinePool != nil {

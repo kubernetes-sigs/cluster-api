@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -120,7 +121,7 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 	specPath := field.NewPath("spec")
 	if newM.Spec.Bootstrap.ConfigRef == nil && newM.Spec.Bootstrap.DataSecretName == nil {
 		// MachinePool Machines don't have a bootstrap configRef, so don't require it. The bootstrap config is instead owned by the MachinePool.
-		if !isMachinePoolMachine(newM) {
+		if !labels.IsMachinePoolOwned(newM) {
 			allErrs = append(
 				allErrs,
 				field.Required(
@@ -170,20 +171,4 @@ func (webhook *Machine) validate(oldM, newM *clusterv1.Machine) error {
 		return nil
 	}
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Machine").GroupKind(), newM.Name, allErrs)
-}
-
-func isMachinePoolMachine(m *clusterv1.Machine) bool {
-	if m.Labels != nil {
-		if _, ok := m.Labels[clusterv1.MachinePoolNameLabel]; ok {
-			return true
-		}
-	}
-
-	for _, owner := range m.OwnerReferences {
-		if owner.Kind == "MachinePool" {
-			return true
-		}
-	}
-
-	return false
 }

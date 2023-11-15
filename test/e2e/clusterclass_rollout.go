@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -246,6 +247,8 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 		})
 		By("Verifying all Machines are replaced through rollout")
 		Eventually(func(g Gomega) {
+			// Note: This excludes MachinePool Machines as they are not replaced by rollout yet.
+			// This is tracked by https://github.com/kubernetes-sigs/cluster-api/issues/8858.
 			machinesAfterUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
 			g.Expect(machinesAfterUpgrade.HasAny(machinesBeforeUpgrade.UnsortedList()...)).To(BeFalse(), "All Machines must be replaced through rollout")
 		}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
@@ -898,6 +901,7 @@ func mustMetadata(metadata *clusterv1.ObjectMeta, err error) *clusterv1.ObjectMe
 }
 
 // getMachinesByCluster gets the Machines of a Cluster and returns them as a Set of Machine names.
+// Note: This excludes MachinePool Machines as they are not replaced by rollout yet.
 func getMachinesByCluster(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) sets.Set[string] {
 	machines := sets.Set[string]{}
 	machinesByCluster := framework.GetMachinesByCluster(ctx, framework.GetMachinesByClusterInput{
@@ -905,8 +909,11 @@ func getMachinesByCluster(ctx context.Context, client client.Client, cluster *cl
 		ClusterName: cluster.Name,
 		Namespace:   cluster.Namespace,
 	})
-	for _, m := range machinesByCluster {
-		machines.Insert(m.Name)
+	for i := range machinesByCluster {
+		m := machinesByCluster[i]
+		if !labels.IsMachinePoolOwned(&m) {
+			machines.Insert(m.Name)
+		}
 	}
 	return machines
 }
@@ -935,7 +942,7 @@ func getMDTopology(cluster *clusterv1.Cluster, md *clusterv1.MachineDeployment) 
 	return nil
 }
 
-// getMPClass looks up the MachinePoolClass for a md in the ClusterClass.
+// getMPClass looks up the MachinePoolClass for a MachinePool in the ClusterClass.
 func getMPClass(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, mp *expv1.MachinePool) *clusterv1.MachinePoolClass {
 	mpTopology := getMPTopology(cluster, mp)
 

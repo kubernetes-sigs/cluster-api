@@ -39,6 +39,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -288,6 +289,8 @@ var (
 	dockerMachinePoolTemplateKind = "DockerMachinePoolTemplate"
 	dockerClusterKind             = "DockerCluster"
 	dockerClusterTemplateKind     = "DockerClusterTemplate"
+
+	dockerMachinePoolController = metav1.OwnerReference{Kind: dockerMachinePoolKind, APIVersion: infraexpv1.GroupVersion.String()}
 )
 
 // DockerInfraOwnerReferenceAssertions maps Docker Infrastructure types to functions which return an error if the passed
@@ -296,8 +299,9 @@ var (
 // That document should be updated if these references change.
 var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	dockerMachineKind: func(owners []metav1.OwnerReference) error {
-		// The DockerMachine must be owned and controlled by a Machine.
-		return HasExactOwners(owners, machineController)
+		// The DockerMachine must be owned and controlled by a Machine or a DockerMachinePool.
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machineController, dockerMachinePoolController})
+
 	},
 	dockerMachineTemplateKind: func(owners []metav1.OwnerReference) error {
 		// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.

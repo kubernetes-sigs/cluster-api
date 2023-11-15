@@ -25,6 +25,10 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,15 +39,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/docker"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+)
+
+const (
+	// dockerMachinePoolLabel is the label used to identify the DockerMachinePool that is responsible for a Docker container.
+	dockerMachinePoolLabel = "docker.cluster.x-k8s.io/machine-pool"
+
+	// requeueAfter is how long to wait before checking again to see if the DockerMachines are still provisioning or deleting.
+	requeueAfter = 10 * time.Second
 )
 
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.
@@ -55,11 +70,15 @@ type DockerMachinePoolReconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+
+	recorder        record.EventRecorder
+	externalTracker external.ObjectTracker
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools/status;dockermachinepools/finalizers,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
 func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, rerr error) {
@@ -121,13 +140,15 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Handle deleted machines
 	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
+		return r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Add finalizer and the InfrastructureMachineKind if they aren't already present, and requeue if either were added.
+	// We want to add the finalizer here to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer) {
-		controllerutil.AddFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
+	needsPatch := controllerutil.AddFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
+	needsPatch = setInfrastructureMachineKind(dockerMachinePool) || needsPatch
+	if needsPatch {
 		return ctrl.Result{}, nil
 	}
 
@@ -149,7 +170,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		return err
 	}
 
-	err = ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infraexpv1.DockerMachinePool{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -159,30 +180,84 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 				infraexpv1.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
 		).
 		Watches(
+			&infrav1.DockerMachine{},
+			handler.EnqueueRequestsFromMapFunc(dockerMachineToDockerMachinePool),
+		).
+		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
 			builder.WithPredicates(
 				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 			),
-		).Complete(r)
+		).Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
+
+	r.recorder = mgr.GetEventRecorderFor("dockermachinepool-controller")
+	r.externalTracker = external.ObjectTracker{
+		Controller: c,
+		Cache:      mgr.GetCache(),
+	}
+
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
-	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool)
+func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
 	if err != nil {
-		return errors.Wrap(err, "failed to build new node pool")
+		return ctrl.Result{}, err
 	}
 
-	if err := pool.Delete(ctx); err != nil {
-		return errors.Wrap(err, "failed to delete all machines in the node pool")
+	if len(dockerMachineList.Items) > 0 {
+		log.Info("DockerMachinePool still has dependent DockerMachines, deleting them first and requeuing", "count", len(dockerMachineList.Items))
+
+		var errs []error
+
+		for _, dockerMachine := range dockerMachineList.Items {
+			if !dockerMachine.GetDeletionTimestamp().IsZero() {
+				// Don't handle deleted child
+				continue
+			}
+
+			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
+				err = errors.Wrapf(err, "error deleting DockerMachinePool %s/%s: failed to delete %s %s", dockerMachinePool.Namespace, dockerMachinePool.Name, dockerMachine.Namespace, dockerMachine.Name)
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			return ctrl.Result{}, kerrors.NewAggregate(errs)
+		}
+
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
+	// Once there are no DockerMachines left, ensure there are no Docker containers left behind.
+	// This can occur if deletion began after containers were created but before the DockerMachines were created, or if creation of a DockerMachine failed.
+	log.Info("DockerMachines have been deleted, deleting any remaining Docker containers")
+
+	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
+	// List Docker containers, i.e. external machines in the cluster.
+	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to list all machines in the cluster with label \"%s:%s\"", dockerMachinePoolLabel, dockerMachinePool.Name)
+	}
+
+	// Providers should similarly ensure that all infrastructure instances are deleted even if the InfraMachine has not been created yet.
+	for _, externalMachine := range externalMachines {
+		log.Info("Deleting Docker container", "container", externalMachine.Name())
+		if err := externalMachine.Delete(ctx); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to delete machine %s", externalMachine.Name())
+		}
+	}
+
+	// Once all DockerMachines and Docker containers are deleted, remove the finalizer.
 	controllerutil.RemoveFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
-	return nil
+
+	return ctrl.Result{}, nil
 }
 
 func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
@@ -198,30 +273,36 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		machinePool.Spec.Replicas = pointer.Int32(1)
 	}
 
-	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
+	// First, reconcile the Docker containers, but do not delete any as we need to delete the Machine to ensure node cordon/drain.
+	// Similarly, providers implementing MachinePool Machines will need to reconcile their analogous infrastructure instances (aside
+	// from deletion) before reconciling InfraMachinePoolMachines.
+	if err := r.reconcileDockerContainers(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// Reconcile machines and updates Status.Instances
-	remoteClient, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(cluster))
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to generate workload cluster client")
-	}
-	res, err := pool.ReconcileMachines(ctx, remoteClient)
-	if err != nil {
-		return res, err
+	// Second, once the Docker containers are created, reconcile the DockerMachines. This function creates a DockerMachine for each newly created Docker
+	// container, and handles container deletion. Instead of deleting an infrastructure instance directly, we want to delete the owner Machine. This will
+	// trigger a cordon and drain of the node, as well as trigger the deletion of the DockerMachine, which in turn causes the Docker container to be deleted.
+	// Similarly, providers will need to create InfraMachines for each instance, and instead of deleting instances directly, delete the owner Machine.
+	if err := r.reconcileDockerMachines(ctx, cluster, machinePool, dockerMachinePool); err != nil {
+		return ctrl.Result{}, err
 	}
 
-	// Derive info from Status.Instances
+	// Fetch the list of DockerMachines to ensure the provider IDs are up to date.
+	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Derive providerIDList from the provider ID on each DockerMachine if it exists. The providerID is set by the DockerMachine controller.
 	dockerMachinePool.Spec.ProviderIDList = []string{}
-	for _, instance := range dockerMachinePool.Status.Instances {
-		if instance.ProviderID != nil && instance.Ready {
-			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *instance.ProviderID)
+	for _, dockerMachine := range dockerMachineList.Items {
+		if dockerMachine.Spec.ProviderID != nil {
+			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
 		}
 	}
 
-	dockerMachinePool.Status.Replicas = int32(len(dockerMachinePool.Status.Instances))
+	dockerMachinePool.Status.Replicas = int32(len(dockerMachineList.Items))
 
 	if dockerMachinePool.Spec.ProviderID == "" {
 		// This is a fake provider ID which does not tie back to any docker infrastructure. In cloud providers,
@@ -230,25 +311,89 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		dockerMachinePool.Spec.ProviderID = getDockerMachinePoolProviderID(cluster.Name, dockerMachinePool.Name)
 	}
 
-	dockerMachinePool.Status.Ready = len(dockerMachinePool.Spec.ProviderIDList) == int(*machinePool.Spec.Replicas)
+	if len(dockerMachinePool.Spec.ProviderIDList) == int(*machinePool.Spec.Replicas) && len(dockerMachineList.Items) == int(*machinePool.Spec.Replicas) {
+		dockerMachinePool.Status.Ready = true
+		conditions.MarkTrue(dockerMachinePool, expv1.ReplicasReadyCondition)
+
+		return ctrl.Result{}, nil
+	}
+
+	dockerMachinePool.Status.Ready = false
+	conditions.MarkFalse(dockerMachinePool, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 
 	// if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
-	if !dockerMachinePool.Status.Ready && res.IsZero() {
-		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+}
+
+func getDockerMachines(ctx context.Context, c client.Client, cluster clusterv1.Cluster, machinePool expv1.MachinePool, dockerMachinePool infraexpv1.DockerMachinePool) (*infrav1.DockerMachineList, error) {
+	dockerMachineList := &infrav1.DockerMachineList{}
+	labels := map[string]string{
+		clusterv1.ClusterNameLabel:     cluster.Name,
+		clusterv1.MachinePoolNameLabel: machinePool.Name,
 	}
-	return res, nil
+	if err := c.List(ctx, dockerMachineList, client.InNamespace(dockerMachinePool.Namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	return dockerMachineList, nil
 }
 
 func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) string {
 	return fmt.Sprintf("docker:////%s-dmp-%s", clusterName, dockerMachinePoolName)
 }
 
+// setInfrastructureMachineKind sets the infrastructure machine kind in the status if it is not set already to support
+// MachinePool Machines and returns a boolean indicating if the status was updated.
+func setInfrastructureMachineKind(dockerMachinePool *infraexpv1.DockerMachinePool) bool {
+	if dockerMachinePool != nil && dockerMachinePool.Status.InfrastructureMachineKind != "DockerMachine" {
+		dockerMachinePool.Status.InfrastructureMachineKind = "DockerMachine"
+		return true
+	}
+
+	return false
+}
+
+// dockerMachineToDockerMachinePool creates a mapping handler to transform DockerMachine to DockerMachinePools.
+func dockerMachineToDockerMachinePool(_ context.Context, o client.Object) []ctrl.Request {
+	dockerMachine, ok := o.(*infrav1.DockerMachine)
+	if !ok {
+		panic(fmt.Sprintf("Expected a DockerMachine but got a %T", o))
+	}
+
+	for _, ownerRef := range dockerMachine.GetOwnerReferences() {
+		gv, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			return nil
+		}
+		if ownerRef.Kind == "DockerMachinePool" && gv.Group == infraexpv1.GroupVersion.Group {
+			return []ctrl.Request{
+				{
+					NamespacedName: types.NamespacedName{
+						Name:      ownerRef.Name,
+						Namespace: dockerMachine.Namespace,
+					},
+				},
+			}
+		}
+	}
+
+	return nil
+}
+
 func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infraexpv1.DockerMachinePool) error {
-	// TODO: add conditions
+	conditions.SetSummary(dockerMachinePool,
+		conditions.WithConditions(
+			expv1.ReplicasReadyCondition,
+		),
+	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	return patchHelper.Patch(
 		ctx,
 		dockerMachinePool,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			expv1.ReplicasReadyCondition,
+		}},
 	)
 }

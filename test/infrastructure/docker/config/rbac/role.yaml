@@ -52,6 +52,15 @@ rules:
   - list
   - watch
 - apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machines
+  verbs:
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
   - dockerclusters

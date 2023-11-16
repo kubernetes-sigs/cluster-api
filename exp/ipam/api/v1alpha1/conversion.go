@@ -19,53 +19,53 @@ package v1alpha1
 import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	ipamv1beta1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 )
 
 func (src *IPAddress) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1beta1.IPAddress)
+	dst := dstRaw.(*ipamv1.IPAddress)
 
 	return Convert_v1alpha1_IPAddress_To_v1beta1_IPAddress(src, dst, nil)
 }
 
 func (dst *IPAddress) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1beta1.IPAddress)
+	src := srcRaw.(*ipamv1.IPAddress)
 
 	return Convert_v1beta1_IPAddress_To_v1alpha1_IPAddress(src, dst, nil)
 }
 
 func (src *IPAddressList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1beta1.IPAddressList)
+	dst := dstRaw.(*ipamv1.IPAddressList)
 
 	return Convert_v1alpha1_IPAddressList_To_v1beta1_IPAddressList(src, dst, nil)
 }
 
 func (dst *IPAddressList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1beta1.IPAddressList)
+	src := srcRaw.(*ipamv1.IPAddressList)
 
 	return Convert_v1beta1_IPAddressList_To_v1alpha1_IPAddressList(src, dst, nil)
 }
 
 func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1beta1.IPAddressClaim)
+	dst := dstRaw.(*ipamv1.IPAddressClaim)
 
 	return Convert_v1alpha1_IPAddressClaim_To_v1beta1_IPAddressClaim(src, dst, nil)
 }
 
 func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1beta1.IPAddressClaim)
+	src := srcRaw.(*ipamv1.IPAddressClaim)
 
 	return Convert_v1beta1_IPAddressClaim_To_v1alpha1_IPAddressClaim(src, dst, nil)
 }
 
 func (src *IPAddressClaimList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*ipamv1beta1.IPAddressClaimList)
+	dst := dstRaw.(*ipamv1.IPAddressClaimList)
 
 	return Convert_v1alpha1_IPAddressClaimList_To_v1beta1_IPAddressClaimList(src, dst, nil)
 }
 
 func (dst *IPAddressClaimList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*ipamv1beta1.IPAddressClaimList)
+	src := srcRaw.(*ipamv1.IPAddressClaimList)
 
 	return Convert_v1beta1_IPAddressClaimList_To_v1alpha1_IPAddressClaimList(src, dst, nil)
 }

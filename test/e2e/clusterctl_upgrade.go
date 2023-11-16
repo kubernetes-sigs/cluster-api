@@ -361,7 +361,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 		log.Logf("Applying the cluster template yaml to the cluster")
-		Expect(managementClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
+		Expect(managementClusterProxy.Create(ctx, workloadClusterTemplate)).To(Succeed())
 
 		if input.PreWaitForCluster != nil {
 			By("Running PreWaitForCluster steps against the management cluster")

@@ -30,7 +30,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -45,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -89,6 +92,9 @@ type ClusterProxy interface {
 
 	// Apply to apply YAML to the Kubernetes cluster, `kubectl apply`.
 	Apply(ctx context.Context, resources []byte, args ...string) error
+
+	// Create creates using the controller-runtime client.
+	Create(ctx context.Context, resources []byte) error
 
 	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
 	GetWorkloadCluster(ctx context.Context, namespace, name string) ClusterProxy
@@ -245,6 +251,27 @@ func (p *clusterProxy) Apply(ctx context.Context, resources []byte, args ...stri
 	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
 
 	return exec.KubectlApply(ctx, p.kubeconfigPath, resources, args...)
+}
+
+// Create creates using the controller-runtime client.
+func (p *clusterProxy) Create(ctx context.Context, resources []byte) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for Create")
+	Expect(resources).NotTo(BeNil(), "resources is required for Create")
+
+	var retErrs []error
+	objs, err := yaml.ToUnstructured(resources)
+	if err != nil {
+		return err
+	}
+	for o := range objs {
+		if err := p.GetClient().Create(ctx, &objs[o]); err != nil {
+			if apierrors.IsAlreadyExists(err) {
+				continue
+			}
+			retErrs = append(retErrs, err)
+		}
+	}
+	return kerrors.NewAggregate(retErrs)
 }
 
 func (p *clusterProxy) GetRESTConfig() *rest.Config {

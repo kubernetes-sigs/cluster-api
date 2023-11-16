@@ -342,7 +342,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		cniYaml, err := os.ReadFile(input.CNIManifestPath)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		Expect(workloadCluster.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
+		Expect(workloadCluster.Create(ctx, cniYaml)).ShouldNot(HaveOccurred())
 	}
 
 	log.Logf("Waiting for control plane to be ready")

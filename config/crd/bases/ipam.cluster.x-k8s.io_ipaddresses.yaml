@@ -117,6 +117,10 @@ spec:
       jsonPath: .spec.poolRef.kind
       name: Pool Kind
       type: string
+    - description: Time duration since creation of IPAdress
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1beta1
     schema:
       openAPIV3Schema:

@@ -929,7 +929,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "object",
-
 							Properties: map[string]clusterv1.JSONSchemaProps{
 								"enabled": {
 									Type:    "boolean",
@@ -948,6 +947,76 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			},
 			createVariable: true,
 			want:           nil,
+		},
+		{
+			name: "Default new object variable if there is a top-level default",
+			clusterClassVariable: &statusVariableDefinition{
+				Name: "httpProxy",
+				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "object",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`{"url":"test-url"}`)},
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+								"url": {
+									Type: "string",
+								},
+								"noProxy": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			createVariable: true,
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					// Defaulting first adds the top-level object and then the enabled field.
+					Raw: []byte(`{"enabled":false,"url":"test-url"}`),
+				},
+			},
+		},
+		{
+			name: "Default new object variable if there is a top-level default (which is an empty object)",
+			clusterClassVariable: &statusVariableDefinition{
+				Name: "httpProxy",
+				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "object",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+								"url": {
+									Type: "string",
+								},
+								"noProxy": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			createVariable: true,
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					// Defaulting first adds the top-level empty object and then the enabled field.
+					Raw: []byte(`{"enabled":false}`),
+				},
+			},
 		},
 		{
 			name: "Don't default existing object variable",

@@ -104,7 +104,7 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 		},
 	})
 	Expect(err).ToNot(HaveOccurred(), "failed to parse %s", workloadYamlTemplate)
-	Expect(input.WorkloadClusterProxy.Apply(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
+	Expect(input.WorkloadClusterProxy.Create(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
 
 	By("Wait for the autoscaler deployment and collect logs")
 	deployment := &appsv1.Deployment{

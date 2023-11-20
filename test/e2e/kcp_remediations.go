@@ -485,7 +485,7 @@ func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClust
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 	Eventually(func() error {
-		return input.Proxy.Apply(ctx, workloadClusterTemplate)
+		return input.Proxy.Create(ctx, workloadClusterTemplate)
 	}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template")
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")

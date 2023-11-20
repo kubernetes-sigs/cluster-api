@@ -842,6 +842,10 @@ func updateDeployment(prefix string, objs []unstructured.Unstructured, f updateD
 		if obj.GetKind() != "Deployment" {
 			continue
 		}
+		// Ignore Deployments that are not part of the provider, eg. ASO in CAPZ.
+		if _, exists := obj.GetLabels()[clusterv1.ProviderNameLabel]; !exists {
+			continue
+		}
 
 		// Convert Unstructured into a typed object
 		d := &appsv1.Deployment{}

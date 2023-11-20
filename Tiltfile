@@ -382,7 +382,8 @@ def enable_provider(name, debug):
 
 def find_object_name(objs, kind):
     for o in objs:
-        if o["kind"] == kind:
+        # Ignore objects that are not part of the provider, e.g. the ASO Deployment in CAPZ.
+        if o["kind"] == kind and "cluster.x-k8s.io/provider" in o["metadata"]["labels"]:
             return o["metadata"]["name"]
     return ""
 

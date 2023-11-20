@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,7 +28,7 @@ import (
 	"strings"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/pkg/errors"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/exec"
@@ -118,11 +119,11 @@ func runTopologyPlan() error {
 	for _, f := range tp.files {
 		raw, err := os.ReadFile(f) //nolint:gosec
 		if err != nil {
-			return errors.Wrapf(err, "failed to read input file %q", f)
+			return pkgerrors.Wrapf(err, "failed to read input file %q", f)
 		}
 		objects, err := utilyaml.ToUnstructured(raw)
 		if err != nil {
-			return errors.Wrapf(err, "failed to convert file %q to list of objects", f)
+			return pkgerrors.Wrapf(err, "failed to convert file %q to list of objects", f)
 		}
 		objs = append(objs, objects...)
 	}
@@ -151,7 +152,7 @@ func printTopologyPlanOutput(out *cluster.TopologyPlanOutput, outdir string) err
 	} else {
 		printChangeSummary(out)
 		if err := writeOutputFiles(out, outdir); err != nil {
-			return errors.Wrap(err, "failed to write output files of target cluster changes")
+			return pkgerrors.Wrap(err, "failed to write output files of target cluster changes")
 		}
 	}
 	fmt.Printf("\n")
@@ -230,17 +231,17 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 	// Write created files
 	createdDir := path.Join(outDir, "created")
 	if err := os.MkdirAll(createdDir, 0750); err != nil {
-		return errors.Wrapf(err, "failed to create %q directory", createdDir)
+		return pkgerrors.Wrapf(err, "failed to create %q directory", createdDir)
 	}
 	for _, c := range out.Created {
 		yaml, err := utilyaml.FromUnstructured([]unstructured.Unstructured{*c})
 		if err != nil {
-			return errors.Wrap(err, "failed to convert object to yaml")
+			return pkgerrors.Wrap(err, "failed to convert object to yaml")
 		}
 		fileName := fmt.Sprintf("%s_%s_%s.yaml", c.GetKind(), c.GetNamespace(), c.GetName())
 		filePath := path.Join(createdDir, fileName)
 		if err := os.WriteFile(filePath, yaml, 0600); err != nil {
-			return errors.Wrapf(err, "failed to write yaml to file %q", filePath)
+			return pkgerrors.Wrapf(err, "failed to write yaml to file %q", filePath)
 		}
 	}
 	if len(out.Created) != 0 {
@@ -250,33 +251,33 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 	// Write modified files
 	modifiedDir := path.Join(outDir, "modified")
 	if err := os.MkdirAll(modifiedDir, 0750); err != nil {
-		return errors.Wrapf(err, "failed to create %q directory", modifiedDir)
+		return pkgerrors.Wrapf(err, "failed to create %q directory", modifiedDir)
 	}
 	for _, m := range out.Modified {
 		// Write the modified object to file.
 		fileNameModified := fmt.Sprintf("%s_%s_%s.modified.yaml", m.After.GetKind(), m.After.GetNamespace(), m.After.GetName())
 		filePathModified := path.Join(modifiedDir, fileNameModified)
 		if err := writeObjectToFile(filePathModified, m.After); err != nil {
-			return errors.Wrap(err, "failed to write modified object to file")
+			return pkgerrors.Wrap(err, "failed to write modified object to file")
 		}
 
 		// Write the original object to file.
 		fileNameOriginal := fmt.Sprintf("%s_%s_%s.original.yaml", m.Before.GetKind(), m.Before.GetNamespace(), m.Before.GetName())
 		filePathOriginal := path.Join(modifiedDir, fileNameOriginal)
 		if err := writeObjectToFile(filePathOriginal, m.Before); err != nil {
-			return errors.Wrap(err, "failed to write original object to file")
+			return pkgerrors.Wrap(err, "failed to write original object to file")
 		}
 
 		// Calculate the jsonpatch and write to a file.
 		patch := crclient.MergeFrom(m.Before)
 		jsonPatch, err := patch.Data(m.After)
 		if err != nil {
-			return errors.Wrapf(err, "failed to calculate jsonpatch of modified object %s/%s", m.After.GetNamespace(), m.After.GetName())
+			return pkgerrors.Wrapf(err, "failed to calculate jsonpatch of modified object %s/%s", m.After.GetNamespace(), m.After.GetName())
 		}
 		patchFileName := fmt.Sprintf("%s_%s_%s.jsonpatch", m.After.GetKind(), m.After.GetNamespace(), m.After.GetName())
 		patchFilePath := path.Join(modifiedDir, patchFileName)
 		if err := os.WriteFile(patchFilePath, jsonPatch, 0600); err != nil {
-			return errors.Wrapf(err, "failed to write jsonpatch to file %q", patchFilePath)
+			return pkgerrors.Wrapf(err, "failed to write jsonpatch to file %q", patchFilePath)
 		}
 
 		// Calculate the diff and write to a file.
@@ -284,10 +285,10 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 		diffFilePath := path.Join(modifiedDir, diffFileName)
 		diffFile, err := os.OpenFile(filepath.Clean(diffFilePath), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		if err != nil {
-			return errors.Wrapf(err, "unable to open file %q", diffFilePath)
+			return pkgerrors.Wrapf(err, "unable to open file %q", diffFilePath)
 		}
 		if err := writeDiffToFile(filePathOriginal, filePathModified, diffFile); err != nil {
-			return errors.Wrapf(err, "failed to write diff to file %q", diffFilePath)
+			return pkgerrors.Wrapf(err, "failed to write diff to file %q", diffFilePath)
 		}
 	}
 	if len(out.Modified) != 0 {
@@ -300,10 +301,10 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 func writeObjectToFile(filePath string, obj *unstructured.Unstructured) error {
 	yaml, err := utilyaml.FromUnstructured([]unstructured.Unstructured{*obj})
 	if err != nil {
-		return errors.Wrap(err, "failed to convert object to yaml")
+		return pkgerrors.Wrap(err, "failed to convert object to yaml")
 	}
 	if err := os.WriteFile(filePath, yaml, 0600); err != nil {
-		return errors.Wrapf(err, "failed to write yaml to file %q", filePath)
+		return pkgerrors.Wrapf(err, "failed to write yaml to file %q", filePath)
 	}
 	return nil
 }
@@ -345,7 +346,7 @@ func writeDiffToFile(from, to string, out io.Writer) error {
 	cmd.SetStdout(out)
 
 	if err := cmd.Run(); err != nil && !isDiffError(err) {
-		return errors.Wrapf(err, "failed to run %q", diff)
+		return pkgerrors.Wrapf(err, "failed to run %q", diff)
 	}
 	return nil
 }
@@ -379,7 +380,8 @@ func getDiffCommand(args ...string) (string, exec.Cmd) {
 // This makes use of the exit code of diff programs which is 0 for no diff, 1 for
 // modified and 2 for other errors.
 func isDiffError(err error) bool {
-	if err, ok := err.(exec.ExitError); ok && err.ExitStatus() <= 1 {
+	var exitErr exec.ExitError
+	if errors.As(err, &exitErr) && exitErr.ExitStatus() <= 1 {
 		return true
 	}
 	return false

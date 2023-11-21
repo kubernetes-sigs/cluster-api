@@ -1772,15 +1772,7 @@ func getFakeProxyWithCRDs() *test.FakeProxy {
 }
 
 func getFakeDiscoveryTypes(graph *objectGraph) error {
-	if err := graph.getDiscoveryTypes(); err != nil {
-		return err
-	}
-
-	// Given that the Fake client behaves in a different way than real client, for this test we are required to add the List suffix to all the types.
-	for _, discoveryType := range graph.types {
-		discoveryType.typeMeta.Kind = fmt.Sprintf("%sList", discoveryType.typeMeta.Kind)
-	}
-	return nil
+	return graph.getDiscoveryTypes()
 }
 
 func TestObjectGraph_Discovery(t *testing.T) {

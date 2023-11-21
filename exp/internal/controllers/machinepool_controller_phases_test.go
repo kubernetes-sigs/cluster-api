@@ -1514,11 +1514,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Namespace:    ns.Name,
 		},
 	}
-	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	defer func(do ...client.Object) {
-		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
-	}(ns, testCluster)
+		g.Expect(env.CleanupAndWait(ctx, do...)).To(Succeed())
+	}(testCluster)
 
 	defaultMachinePool := expv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1594,9 +1594,9 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(env.Create(ctx, node)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, node)).To(Succeed())
 		defer func(do ...client.Object) {
-			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+			g.Expect(env.CleanupAndWait(ctx, do...)).To(Succeed())
 		}(node)
 
 		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
@@ -1657,7 +1657,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		}
 		g.Expect(env.CreateAndWait(ctx, node)).To(Succeed())
 		defer func(do ...client.Object) {
-			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+			g.Expect(env.CleanupAndWait(ctx, do...)).To(Succeed())
 		}(node)
 
 		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
@@ -1781,9 +1781,9 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(env.Create(ctx, node)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, node)).To(Succeed())
 		defer func(do ...client.Object) {
-			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+			g.Expect(env.CleanupAndWait(ctx, do...)).To(Succeed())
 		}(node)
 
 		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))

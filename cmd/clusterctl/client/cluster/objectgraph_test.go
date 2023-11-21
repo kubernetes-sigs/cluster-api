@@ -1774,18 +1774,6 @@ func getFakeProxyWithCRDs() *test.FakeProxy {
 	return proxy
 }
 
-func getFakeDiscoveryTypes(ctx context.Context, graph *objectGraph) error {
-	if err := graph.getDiscoveryTypes(ctx); err != nil {
-		return err
-	}
-
-	// Given that the Fake client behaves in a different way than real client, for this test we are required to add the List suffix to all the types.
-	for _, discoveryType := range graph.types {
-		discoveryType.typeMeta.Kind = fmt.Sprintf("%sList", discoveryType.typeMeta.Kind)
-	}
-	return nil
-}
-
 func TestObjectGraph_Discovery(t *testing.T) {
 	// NB. we are testing the graph is properly built starting from objects (TestGraphBuilder_addObj_WithFakeObjects) or from the same objects read from the cluster (this test).
 	for _, tt := range objectGraphsTests {
@@ -1798,7 +1786,7 @@ func TestObjectGraph_Discovery(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.args.objs)
 
 			// Get all the types to be considered for discovery
-			err := getFakeDiscoveryTypes(ctx, graph)
+			err := graph.getDiscoveryTypes(ctx)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// finally test discovery
@@ -1956,7 +1944,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.args.objs)
 
 			// Get all the types to be considered for discovery
-			err := getFakeDiscoveryTypes(ctx, graph)
+			err := graph.getDiscoveryTypes(ctx)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// finally test discovery

@@ -735,7 +735,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -826,7 +826,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 			graph := getObjectGraph()
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -934,7 +934,7 @@ func Test_objectMover_toDirectory(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -1077,7 +1077,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 			graph := getObjectGraph()
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
@@ -1155,7 +1155,7 @@ func Test_getMoveSequence(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -1188,7 +1188,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -1263,7 +1263,7 @@ func Test_objectMover_move(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -1375,7 +1375,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -1660,7 +1660,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -1906,7 +1906,7 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			graph := getObjectGraphWithObjs(tt.fields.objs)
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// Trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
@@ -2385,7 +2385,7 @@ func TestWaitReadyForMove(t *testing.T) {
 			}
 
 			// Get all the types to be considered for discovery
-			g.Expect(getFakeDiscoveryTypes(ctx, graph)).To(Succeed())
+			g.Expect(graph.getDiscoveryTypes(ctx)).To(Succeed())
 
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())

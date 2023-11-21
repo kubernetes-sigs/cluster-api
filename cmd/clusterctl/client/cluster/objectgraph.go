@@ -439,7 +439,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 		}
 
 		// if we are discovering Secrets, also secrets from the providers namespace should be included.
-		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("SecretList").GroupKind() {
+		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("Secret").GroupKind() {
 			providers, err := o.providerInventory.List(ctx)
 			if err != nil {
 				return err

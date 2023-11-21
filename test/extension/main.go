@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -55,7 +56,8 @@ var (
 	// scheme is a Kubernetes runtime scheme containing all the information about API types used by the test extension.
 	// NOTE: it is not mandatory to use scheme in custom RuntimeExtension, but working with typed API objects makes code
 	// easier to read and less error prone than using unstructured or working with raw json/yaml.
-	scheme = runtime.NewScheme()
+	scheme         = runtime.NewScheme()
+	controllerName = "cluster-api-test-extension-manager"
 
 	// Flags.
 	profilerAddress string
@@ -202,6 +204,7 @@ func main() {
 		setupLog.Error(err, "error getting config for the cluster")
 		os.Exit(1)
 	}
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
 	client, err := client.New(restConfig, client.Options{})
 	if err != nil {

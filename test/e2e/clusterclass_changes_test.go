@@ -63,6 +63,29 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 					},
 				},
 			},
+			// ModifyMachinePoolBootstrapConfigTemplateFields are the fields which will be set on the
+			// BootstrapConfigTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
+			// The test verifies that these fields are rolled out to the MachinePools.
+			ModifyMachinePoolBootstrapConfigTemplateFields: map[string]interface{}{
+				"spec.template.spec.verbosity": int64(4),
+			},
+			// ModifyMachinePoolInfrastructureMachineTemplateFields are the fields which will be set on the
+			// InfrastructureMachinePoolTemplate of all MachinePoolClasses of the ClusterClass after the initial Cluster creation.
+			// The test verifies that these fields are rolled out to the MachinePools.
+			ModifyMachinePoolInfrastructureMachinePoolTemplateFields: map[string]interface{}{
+				"spec.template.spec.template.extraMounts": []interface{}{
+					map[string]interface{}{
+						"containerPath": "/var/run/docker.sock",
+						"hostPath":      "/var/run/docker.sock",
+					},
+					map[string]interface{}{
+						// /tmp cannot be used as containerPath as
+						// it already exists.
+						"containerPath": "/test",
+						"hostPath":      "/tmp",
+					},
+				},
+			},
 		}
 	})
 })

@@ -187,7 +187,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			},
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
-		By("Modifying the MachinePool configuration via Cluster topology and wait for changes to be applied to the MachinePool (in-place)")
+		By("Modifying the MachinePool configuration via Cluster topology and wait for changes to be applied to the MachinePools (in-place)")
 		modifyMachinePoolViaClusterAndWait(ctx, modifyMachinePoolViaClusterAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			Cluster:      clusterResources.Cluster,
@@ -204,7 +204,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.NodeVolumeDetachTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second} //nolint:gosec
 				topology.MinReadySeconds = pointer.Int32(rand.Int31n(20))                                                 //nolint:gosec
 			},
-			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
 		By("Verifying there are no unexpected rollouts through in-place rollout")
 		Consistently(func(g Gomega) {
@@ -243,7 +243,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			ModifyBootstrapConfigTemplateFields: map[string]interface{}{
 				"spec.template.spec.verbosity": int64(4),
 			},
-			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
 		By("Verifying all Machines are replaced through rollout")
 		Eventually(func(g Gomega) {
@@ -647,7 +647,7 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 		g.Expect(
 			union(
 				machinePool.Annotations,
-			).without(g, clusterv1.RevisionAnnotation),
+			),
 		).To(BeEquivalentTo(
 			union(
 				mpTopology.Metadata.Annotations,
@@ -674,68 +674,52 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 			),
 		))
 
-		// MachinePool InfrastructureMachineTemplate.metadata
-		ccInfrastructureMachineTemplate := clusterClassObjects.InfrastructureMachinePoolTemplateByMachinePoolClass[mpClass.Class]
-		ccInfrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(ccInfrastructureMachineTemplate))
-		infrastructureMachineTemplate := clusterObjects.InfrastructureMachinePoolTemplateByMachinePool[machinePool.Name]
-		infrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(infrastructureMachineTemplate))
-		g.Expect(infrastructureMachineTemplate.GetLabels()).To(BeEquivalentTo(
+		// MachinePool InfrastructureMachinePool.metadata
+		ccInfrastructureMachinePoolTemplate := clusterClassObjects.InfrastructureMachinePoolTemplateByMachinePoolClass[mpClass.Class]
+		ccInfrastructureMachinePoolTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachinePoolTemplate().Template().Metadata().Get(ccInfrastructureMachinePoolTemplate))
+		infrastructureMachinePool := clusterObjects.InfrastructureMachinePoolByMachinePool[machinePool.Name]
+		g.Expect(infrastructureMachinePool.GetLabels()).To(BeEquivalentTo(
 			union(
 				map[string]string{
 					clusterv1.ClusterNameLabel:                    cluster.Name,
 					clusterv1.ClusterTopologyOwnedLabel:           "",
 					clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
 				},
-				ccInfrastructureMachineTemplate.GetLabels(),
+				ccInfrastructureMachinePoolTemplateTemplateMetadata.Labels,
 			),
 		))
-		g.Expect(infrastructureMachineTemplate.GetAnnotations()).To(BeEquivalentTo(
+		g.Expect(infrastructureMachinePool.GetAnnotations()).To(BeEquivalentTo(
 			union(
 				map[string]string{
 					clusterv1.TemplateClonedFromGroupKindAnnotation: groupKind(mpClass.Template.Infrastructure.Ref),
 					clusterv1.TemplateClonedFromNameAnnotation:      mpClass.Template.Infrastructure.Ref.Name,
 				},
-				ccInfrastructureMachineTemplate.GetAnnotations(),
-			).without(g, corev1.LastAppliedConfigAnnotation),
-		))
-		// MachinePool InfrastructureMachineTemplate.spec.template.metadata
-		g.Expect(infrastructureMachineTemplateTemplateMetadata.Labels).To(BeEquivalentTo(
-			ccInfrastructureMachineTemplateTemplateMetadata.Labels,
-		))
-		g.Expect(infrastructureMachineTemplateTemplateMetadata.Annotations).To(BeEquivalentTo(
-			ccInfrastructureMachineTemplateTemplateMetadata.Annotations,
+				ccInfrastructureMachinePoolTemplateTemplateMetadata.Annotations,
+			),
 		))
 
-		// MachinePool BootstrapConfigTemplate.metadata
+		// MachinePool BootstrapConfig.metadata
 		ccBootstrapConfigTemplate := clusterClassObjects.BootstrapConfigTemplateByMachinePoolClass[mpClass.Class]
 		ccBootstrapConfigTemplateTemplateMetadata := mustMetadata(contract.BootstrapConfigTemplate().Template().Metadata().Get(ccBootstrapConfigTemplate))
-		bootstrapConfigTemplate := clusterObjects.BootstrapConfigTemplateByMachinePool[machinePool.Name]
-		bootstrapConfigTemplateTemplateMetadata := mustMetadata(contract.BootstrapConfigTemplate().Template().Metadata().Get(bootstrapConfigTemplate))
-		g.Expect(bootstrapConfigTemplate.GetLabels()).To(BeEquivalentTo(
+		bootstrapConfig := clusterObjects.BootstrapConfigByMachinePool[machinePool.Name]
+		g.Expect(bootstrapConfig.GetLabels()).To(BeEquivalentTo(
 			union(
 				map[string]string{
 					clusterv1.ClusterNameLabel:                    cluster.Name,
 					clusterv1.ClusterTopologyOwnedLabel:           "",
 					clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
 				},
-				ccBootstrapConfigTemplate.GetLabels(),
+				ccBootstrapConfigTemplateTemplateMetadata.Labels,
 			),
 		))
-		g.Expect(bootstrapConfigTemplate.GetAnnotations()).To(BeEquivalentTo(
+		g.Expect(bootstrapConfig.GetAnnotations()).To(BeEquivalentTo(
 			union(
 				map[string]string{
 					clusterv1.TemplateClonedFromGroupKindAnnotation: groupKind(mpClass.Template.Bootstrap.Ref),
 					clusterv1.TemplateClonedFromNameAnnotation:      mpClass.Template.Bootstrap.Ref.Name,
 				},
-				ccBootstrapConfigTemplate.GetAnnotations(),
-			).without(g, corev1.LastAppliedConfigAnnotation),
-		))
-		// MachinePool BootstrapConfigTemplate.spec.template.metadata
-		g.Expect(bootstrapConfigTemplateTemplateMetadata.Labels).To(BeEquivalentTo(
-			ccBootstrapConfigTemplateTemplateMetadata.Labels,
-		))
-		g.Expect(bootstrapConfigTemplateTemplateMetadata.Annotations).To(BeEquivalentTo(
-			ccBootstrapConfigTemplateTemplateMetadata.Annotations,
+				ccBootstrapConfigTemplateTemplateMetadata.Annotations,
+			),
 		))
 	}
 }
@@ -1047,6 +1031,8 @@ func getClusterClassObjects(ctx context.Context, g Gomega, clusterProxy framewor
 	res := clusterClassObjects{
 		InfrastructureMachineTemplateByMachineDeploymentClass: map[string]*unstructured.Unstructured{},
 		BootstrapConfigTemplateByMachineDeploymentClass:       map[string]*unstructured.Unstructured{},
+		InfrastructureMachinePoolTemplateByMachinePoolClass:   map[string]*unstructured.Unstructured{},
+		BootstrapConfigTemplateByMachinePoolClass:             map[string]*unstructured.Unstructured{},
 	}
 	var err error
 
@@ -1069,6 +1055,16 @@ func getClusterClassObjects(ctx context.Context, g Gomega, clusterProxy framewor
 		res.BootstrapConfigTemplateByMachineDeploymentClass[mdClass.Class] = bootstrapConfigTemplate
 	}
 
+	for _, mpClass := range clusterClass.Spec.Workers.MachinePools {
+		infrastructureMachinePoolTemplate, err := external.Get(ctx, mgmtClient, mpClass.Template.Infrastructure.Ref, clusterClass.Namespace)
+		g.Expect(err).ToNot(HaveOccurred())
+		res.InfrastructureMachinePoolTemplateByMachinePoolClass[mpClass.Class] = infrastructureMachinePoolTemplate
+
+		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, mpClass.Template.Bootstrap.Ref, clusterClass.Namespace)
+		g.Expect(err).ToNot(HaveOccurred())
+		res.BootstrapConfigTemplateByMachinePoolClass[mpClass.Class] = bootstrapConfigTemplate
+	}
+
 	return res
 }
 
@@ -1089,8 +1085,8 @@ type clusterObjects struct {
 	InfrastructureMachineTemplateByMachineDeployment map[string]*unstructured.Unstructured
 	BootstrapConfigTemplateByMachineDeployment       map[string]*unstructured.Unstructured
 
-	InfrastructureMachinePoolTemplateByMachinePool map[string]*unstructured.Unstructured
-	BootstrapConfigTemplateByMachinePool           map[string]*unstructured.Unstructured
+	InfrastructureMachinePoolByMachinePool map[string]*unstructured.Unstructured
+	BootstrapConfigByMachinePool           map[string]*unstructured.Unstructured
 
 	InfrastructureMachineByMachine map[string]*unstructured.Unstructured
 	BootstrapConfigByMachine       map[string]*unstructured.Unstructured
@@ -1109,6 +1105,8 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 		InfrastructureMachineTemplateByMachineDeployment: map[string]*unstructured.Unstructured{},
 		BootstrapConfigByMachine:                         map[string]*unstructured.Unstructured{},
 		InfrastructureMachineByMachine:                   map[string]*unstructured.Unstructured{},
+		BootstrapConfigByMachinePool:                     map[string]*unstructured.Unstructured{},
+		InfrastructureMachinePoolByMachinePool:           map[string]*unstructured.Unstructured{},
 	}
 	var err error
 
@@ -1175,6 +1173,26 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 				res.MachinesByMachineSet[machine.Labels[clusterv1.MachineSetNameLabel]], &machine)
 			addMachineObjects(ctx, mgmtClient, workloadClient, g, res, cluster, &machine)
 		}
+	}
+
+	// MachinePools.
+	for _, mpTopology := range cluster.Spec.Topology.Workers.MachinePools {
+		// Get MachinePool for the current MachinePoolTopology.
+		mpList := &expv1.MachinePoolList{}
+		g.Expect(mgmtClient.List(ctx, mpList, client.InNamespace(cluster.Namespace), client.MatchingLabels{
+			clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
+		})).To(Succeed())
+		g.Expect(mpList.Items).To(HaveLen(1), fmt.Sprintf("expected one MachinePool for topology %q, but got %d", mpTopology.Name, len(mpList.Items)))
+		mp := mpList.Items[0]
+		res.MachinePools = append(res.MachinePools, &mp)
+
+		bootstrapConfig, err := external.Get(ctx, mgmtClient, mp.Spec.Template.Spec.Bootstrap.ConfigRef, cluster.Namespace)
+		g.Expect(err).ToNot(HaveOccurred())
+		res.BootstrapConfigByMachinePool[mp.Name] = bootstrapConfig
+
+		infrastructureMachinePool, err := external.Get(ctx, mgmtClient, &mp.Spec.Template.Spec.InfrastructureRef, cluster.Namespace)
+		g.Expect(err).ToNot(HaveOccurred())
+		res.InfrastructureMachinePoolByMachinePool[mp.Name] = infrastructureMachinePool
 	}
 
 	return res

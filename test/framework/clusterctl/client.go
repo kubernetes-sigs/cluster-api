@@ -18,6 +18,7 @@ package clusterctl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -99,7 +100,8 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-init.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			stdErr = string(exitErr.Stderr)
 		}
 	}
@@ -369,7 +371,8 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 	_ = os.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			stdErr = string(exitErr.Stderr)
 		}
 	}

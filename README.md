@@ -32,7 +32,7 @@ Cluster API can be extended to support any infrastructure (AWS, Azure, vSphere, 
 
 ## 🤗 Community, discussion, contribution, and support
 
-Cluster API is developed in the open, and is constantly being improved by our users, contributors, and maintainers. It is because of you that we are able to automate cluster lifecycle management for the community. Join us!
+Cluster API is developed in the open, and is constantly being improved by our users, contributors, and maintainers. It is because of you that we are able to automate cluster lifecycle management for the community test. Join us!
 
 If you have questions or want to get the latest project news, you can connect with us in the following ways:
 

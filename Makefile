@@ -1098,11 +1098,15 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 
 .PHONY: release-notes-tool
 release-notes-tool:
-	go build -o bin/notes hack/tools/release/notes/main.go
+	go build -o bin/notes -tags tools sigs.k8s.io/cluster-api/hack/tools/release/notes
+
+.PHONY: test-release-notes-tool
+test-release-notes-tool:
+	go test -v -tags tools,integration sigs.k8s.io/cluster-api/hack/tools/release/notes
 
 .PHONY: release-weekly-update-tool
 release-weekly-update-tool:
-	go build -o bin/weekly hack/tools/release/weekly/main.go
+	go build -o bin/weekly -tags tools sigs.k8s.io/cluster-api/hack/tools/release/weekly
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

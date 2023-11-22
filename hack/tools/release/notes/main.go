@@ -293,7 +293,7 @@ func run() int {
 	for result := range results {
 		if result.err != nil {
 			fmt.Println(result.err)
-			os.Exit(0)
+			return -1
 		}
 
 		if result.prEntry == nil || result.prEntry.title == "" {

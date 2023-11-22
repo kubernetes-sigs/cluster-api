@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	goruntime "runtime"
 	"sync"
@@ -29,6 +30,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -42,7 +44,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework/exec"
+	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 )
@@ -244,7 +246,15 @@ func (p *clusterProxy) Apply(ctx context.Context, resources []byte, args ...stri
 	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
 	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
 
-	return exec.KubectlApply(ctx, p.kubeconfigPath, resources, args...)
+	if err := testexec.KubectlApply(ctx, p.kubeconfigPath, resources, args...); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return pkgerrors.New(fmt.Sprintf("%s: stderr: %s", err.Error(), exitErr.Stderr))
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (p *clusterProxy) GetRESTConfig() *rest.Config {

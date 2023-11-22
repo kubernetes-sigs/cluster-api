@@ -12,7 +12,8 @@ steps:
     - TAG=$_GIT_TAG
     - PULL_BASE_REF=$_PULL_BASE_REF
     - DOCKER_BUILDKIT=1
-    args: ['release-staging', '-j', '8', '-O']
+    args:
+    - release-staging
 substitutions:
   # _GIT_TAG will be filled with a git-based tag for the image, of the form vYYYYMMDD-hash, and
   # can be used as a substitution

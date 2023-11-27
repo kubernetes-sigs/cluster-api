@@ -181,7 +181,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			proxy := tt.fields.client.clusters[input].Proxy()
 			gotProviders := &clusterctlv1.ProviderList{}
 
-			c, err := proxy.NewClient()
+			c, err := proxy.NewClient(ctx)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(c.List(ctx, gotProviders)).To(Succeed())
 

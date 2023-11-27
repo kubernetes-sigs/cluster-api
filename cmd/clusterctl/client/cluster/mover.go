@@ -280,7 +280,7 @@ func (o *objectMover) checkProvisioningCompleted(ctx context.Context, graph *obj
 
 // getClusterObj retrieves the clusterObj corresponding to a node with type Cluster.
 func getClusterObj(ctx context.Context, proxy Proxy, cluster *node, clusterObj *clusterv1.Cluster) error {
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -298,7 +298,7 @@ func getClusterObj(ctx context.Context, proxy Proxy, cluster *node, clusterObj *
 
 // getMachineObj retrieves the machineObj corresponding to a node with type Machine.
 func getMachineObj(ctx context.Context, proxy Proxy, machine *node, machineObj *clusterv1.Machine) error {
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -617,7 +617,7 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 
 	log := logf.Log
 
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return errors.Wrap(err, "error creating client")
 	}
@@ -672,7 +672,7 @@ func waitReadyForMove(ctx context.Context, proxy Proxy, nodes []*node, dryRun bo
 
 // patchCluster applies a patch to a node referring to a Cluster object.
 func patchCluster(ctx context.Context, proxy Proxy, n *node, patch client.Patch, mutators ...ResourceMutatorFunc) error {
-	cFrom, err := proxy.NewClient()
+	cFrom, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -707,7 +707,7 @@ func patchCluster(ctx context.Context, proxy Proxy, n *node, patch client.Patch,
 }
 
 func pauseClusterClass(ctx context.Context, proxy Proxy, n *node, pause bool, mutators ...ResourceMutatorFunc) error {
-	cFrom, err := proxy.NewClient()
+	cFrom, err := proxy.NewClient(ctx)
 	if err != nil {
 		return errors.Wrap(err, "error creating client")
 	}
@@ -802,7 +802,7 @@ func (o *objectMover) ensureNamespaces(ctx context.Context, graph *objectGraph, 
 func (o *objectMover) ensureNamespace(ctx context.Context, toProxy Proxy, namespace string) error {
 	log := logf.Log
 
-	cs, err := toProxy.NewClient()
+	cs, err := toProxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -940,7 +940,7 @@ func (o *objectMover) createTargetObject(ctx context.Context, nodeToCreate *node
 		return nil
 	}
 
-	cFrom, err := o.fromProxy.NewClient()
+	cFrom, err := o.fromProxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -975,7 +975,7 @@ func (o *objectMover) createTargetObject(ctx context.Context, nodeToCreate *node
 	}
 
 	// Creates the targetObj into the target management cluster.
-	cTo, err := toProxy.NewClient()
+	cTo, err := toProxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -1037,7 +1037,7 @@ func (o *objectMover) backupTargetObject(ctx context.Context, nodeToCreate *node
 	log := logf.Log
 	log.V(1).Info("Saving", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
-	cFrom, err := o.fromProxy.NewClient()
+	cFrom, err := o.fromProxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -1089,7 +1089,7 @@ func (o *objectMover) restoreTargetObject(ctx context.Context, nodeToCreate *nod
 	log.V(1).Info("Restoring", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
 	// Creates the targetObj into the target management cluster.
-	cTo, err := toProxy.NewClient()
+	cTo, err := toProxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -1206,7 +1206,7 @@ func (o *objectMover) deleteSourceObject(ctx context.Context, nodeToDelete *node
 		return nil
 	}
 
-	cFrom, err := o.fromProxy.NewClient()
+	cFrom, err := o.fromProxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}

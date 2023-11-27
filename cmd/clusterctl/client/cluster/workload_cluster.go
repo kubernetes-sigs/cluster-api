@@ -44,7 +44,7 @@ func newWorkloadCluster(proxy Proxy) *workloadCluster {
 }
 
 func (p *workloadCluster) GetKubeconfig(ctx context.Context, workloadClusterName string, namespace string) (string, error) {
-	cs, err := p.proxy.NewClient()
+	cs, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return "", err
 	}

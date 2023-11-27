@@ -134,7 +134,7 @@ func (cm *certManagerClient) Images(ctx context.Context) ([]string, error) {
 func (cm *certManagerClient) certManagerNamespaceExists(ctx context.Context) (bool, error) {
 	ns := &corev1.Namespace{}
 	key := client.ObjectKey{Name: certManagerNamespace}
-	c, err := cm.proxy.NewClient()
+	c, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -284,7 +284,7 @@ func (cm *certManagerClient) migrateCRDs(ctx context.Context) error {
 		return err
 	}
 
-	c, err := cm.proxy.NewClient()
+	c, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -471,7 +471,7 @@ func getTestResourcesManifestObjs() ([]unstructured.Unstructured, error) {
 func (cm *certManagerClient) createObj(ctx context.Context, obj unstructured.Unstructured) error {
 	log := logf.Log
 
-	c, err := cm.proxy.NewClient()
+	c, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -512,7 +512,7 @@ func (cm *certManagerClient) deleteObj(ctx context.Context, obj unstructured.Uns
 	log := logf.Log
 	log.V(5).Info("Deleting", logf.UnstructuredToValues(obj)...)
 
-	cl, err := cm.proxy.NewClient()
+	cl, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}

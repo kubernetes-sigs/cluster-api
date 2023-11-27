@@ -120,9 +120,9 @@ func (t *topologyClient) Plan(ctx context.Context, in *TopologyPlanInput) (*Topo
 	// Example: This client will be used to fetch the underlying ClusterClass when the input
 	// only has a Cluster object.
 	var c client.Client
-	if err := t.proxy.CheckClusterAvailable(); err == nil {
+	if err := t.proxy.CheckClusterAvailable(ctx); err == nil {
 		if initialized, err := t.inventoryClient.CheckCAPIInstalled(ctx); err == nil && initialized {
-			c, err = t.proxy.NewClient()
+			c, err = t.proxy.NewClient(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to create a client to the cluster")
 			}
@@ -263,7 +263,7 @@ func (t *topologyClient) validateInput(in *TopologyPlanInput) error {
 //   - Prepare cluster objects so that the state of the cluster, if modified, correctly represents
 //     the expected changes.
 func (t *topologyClient) prepareInput(ctx context.Context, in *TopologyPlanInput, apiReader client.Reader) error {
-	if err := t.setMissingNamespaces(in.TargetNamespace, in.Objs); err != nil {
+	if err := t.setMissingNamespaces(ctx, in.TargetNamespace, in.Objs); err != nil {
 		return errors.Wrap(err, "failed to set missing namespaces")
 	}
 
@@ -275,12 +275,12 @@ func (t *topologyClient) prepareInput(ctx context.Context, in *TopologyPlanInput
 
 // setMissingNamespaces sets the object to the current namespace on objects
 // that are missing the namespace field.
-func (t *topologyClient) setMissingNamespaces(currentNamespace string, objs []*unstructured.Unstructured) error {
+func (t *topologyClient) setMissingNamespaces(ctx context.Context, currentNamespace string, objs []*unstructured.Unstructured) error {
 	if currentNamespace == "" {
 		// If TargetNamespace is not provided use "default" namespace.
 		currentNamespace = metav1.NamespaceDefault
 		// If a cluster is available use the current namespace as defined in its kubeconfig.
-		if err := t.proxy.CheckClusterAvailable(); err == nil {
+		if err := t.proxy.CheckClusterAvailable(ctx); err == nil {
 			currentNamespace, err = t.proxy.CurrentNamespace()
 			if err != nil {
 				return errors.Wrap(err, "failed to get current namespace")

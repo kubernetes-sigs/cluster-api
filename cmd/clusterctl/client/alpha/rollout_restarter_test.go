@@ -211,7 +211,7 @@ func Test_ObjectRestarter(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			for _, obj := range tt.fields.objs {
-				cl, err := proxy.NewClient()
+				cl, err := proxy.NewClient(context.TODO())
 				g.Expect(err).ToNot(HaveOccurred())
 				key := client.ObjectKeyFromObject(obj)
 				switch obj.(type) {

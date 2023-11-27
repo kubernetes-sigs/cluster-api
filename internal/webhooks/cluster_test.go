@@ -1759,7 +1759,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         false,
 		},
 		{
-			name: "Reject a cluster that has MHC enabled for machine deployment but is missing MHC definition in cluster topology and ClusterClass",
+			name: "Do not reject a cluster that has MHC enabled for machine deployment but is missing MHC definition unhealthyConditions in cluster topology and ClusterClass",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1810,7 +1810,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				).
 				Build(),
 			classReconciled: true,
-			wantErr:         true,
+			wantErr:         false,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in ClusterClass",

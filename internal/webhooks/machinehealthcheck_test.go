@@ -201,14 +201,14 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:               "fail if the UnhealthCondition array is nil",
+			name:               "do not fail if the UnhealthCondition array is nil",
 			unhealthConditions: nil,
-			expectErr:          true,
+			expectErr:          false,
 		},
 		{
-			name:               "fail if the UnhealthCondition array is empty",
+			name:               "do not fail if the UnhealthCondition array is empty",
 			unhealthConditions: []clusterv1.UnhealthyCondition{},
-			expectErr:          true,
+			expectErr:          false,
 		},
 	}
 

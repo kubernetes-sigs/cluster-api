@@ -197,12 +197,5 @@ func (webhook *MachineHealthCheck) validateCommonFields(m *clusterv1.MachineHeal
 		)
 	}
 
-	if len(m.Spec.UnhealthyConditions) == 0 {
-		allErrs = append(allErrs, field.Forbidden(
-			fldPath.Child("unhealthyConditions"),
-			"must have at least one entry",
-		))
-	}
-
 	return allErrs
 }

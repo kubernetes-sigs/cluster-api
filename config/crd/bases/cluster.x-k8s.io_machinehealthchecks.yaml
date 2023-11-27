@@ -767,7 +767,6 @@ spec:
                   - timeout
                   - type
                   type: object
-                minItems: 1
                 type: array
               unhealthyRange:
                 description: |-
@@ -781,7 +780,6 @@ spec:
             required:
             - clusterName
             - selector
-            - unhealthyConditions
             type: object
           status:
             description: Most recently observed status of MachineHealthCheck resource

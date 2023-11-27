@@ -143,7 +143,7 @@ const (
 	missingAreaLabelPrefix   = "MISSING_AREA"
 	areaLabelPrefix          = "area/"
 	multipleAreaLabelsPrefix = "MULTIPLE_AREAS["
-	documentationAreaLabel   = "documentation"
+	documentationAreaLabel   = "Documentation"
 )
 
 type githubPullRequest struct {

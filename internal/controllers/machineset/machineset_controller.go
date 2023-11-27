@@ -942,7 +942,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
-	conditions.SetAggregate(ms, clusterv1.MachinesReadyCondition, collections.FromMachines(filteredMachines...).ConditionGetters(), conditions.AddSourceRef(), conditions.WithStepCounterIf(false))
+	conditions.SetAggregate(ms, clusterv1.MachinesReadyCondition, collections.FromMachines(filteredMachines...).ConditionGetters(), conditions.AddSourceRef())
 
 	return nil
 }

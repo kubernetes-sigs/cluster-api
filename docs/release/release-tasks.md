@@ -312,8 +312,8 @@ The goal of this task to make the book for the current release available under e
 
 1. Add a DNS entry for the book of the new release (should be available under e.g. `https://release-1-4.cluster-api.sigs.k8s.io`).
    <br>Prior art: [Add DNS for CAPI release-1.2 release branch](https://github.com/kubernetes/k8s.io/pull/3872)
-2. Open `https://release-1-4.cluster-api.sigs.k8s.io/` and verify that the certificates are valid
-   If they are not, talk to someone with access to Netlify, they have to [click the `renew certificate` button](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/settings/domain#https) in the Netlify UI.
+2. Open `https://release-1-4.cluster-api.sigs.k8s.io/` and verify that the certificates are valid.  If they are not, talk to someone with access to Netlify, they have to [click the `renew certificate` button](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/settings/domain#https) in the Netlify UI.
+    - To add new subdomains to the certificate config, checkout the email snippet [template](https://github.com/kubernetes-sigs/cluster-api/issues/6017#issuecomment-1823306891) for reference.
 3. Update references in introduction.md only on the main branch (drop unsupported versions, add the new release version).
    <br>Prior art: [Add release 1.2 book link](https://github.com/kubernetes-sigs/cluster-api/pull/6697)
 

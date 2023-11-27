@@ -166,7 +166,9 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Requeue if ErrClusterLocked was returned for one of the clusters.
 	if errClusterLockedOccurred {
-		return ctrl.Result{Requeue: true}, nil
+		// Requeue after a minute to not end up in exponential delayed requeue which
+		// could take up to 16m40s.
+		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 
 	return ctrl.Result{}, nil

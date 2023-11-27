@@ -42,8 +42,8 @@ import (
 )
 
 func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	if webhook.Decoder == nil {
-		webhook.Decoder = admission.NewDecoder(mgr.GetScheme())
+	if webhook.decoder == nil {
+		webhook.decoder = admission.NewDecoder(mgr.GetScheme())
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -58,7 +58,7 @@ func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) erro
 
 // MachineDeployment implements a validation and defaulting webhook for MachineDeployment.
 type MachineDeployment struct {
-	Decoder *admission.Decoder
+	decoder *admission.Decoder
 }
 
 var _ webhook.CustomDefaulter = &MachineDeployment{}
@@ -83,7 +83,7 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	var oldMD *clusterv1.MachineDeployment
 	if req.Operation == v1.Update {
 		oldMD = &clusterv1.MachineDeployment{}
-		if err := webhook.Decoder.DecodeRaw(req.OldObject, oldMD); err != nil {
+		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMD); err != nil {
 			return errors.Wrapf(err, "failed to decode oldObject to MachineDeployment")
 		}
 	}

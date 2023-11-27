@@ -17,12 +17,15 @@ limitations under the License.
 package webhooks
 
 import (
+	"context"
 	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
@@ -42,16 +45,185 @@ func TestMachineSetDefault(t *testing.T) {
 			},
 		},
 	}
-	webhook := &MachineSet{}
 
-	t.Run("for MachineSet", util.CustomDefaultValidateTest(ctx, ms, webhook))
-	g.Expect(webhook.Default(ctx, ms)).To(Succeed())
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	webhook := &MachineSet{
+		decoder: admission.NewDecoder(scheme),
+	}
+
+	reqCtx := admission.NewContextWithRequest(ctx, admission.Request{})
+	t.Run("for MachineSet", util.CustomDefaultValidateTest(reqCtx, ms, webhook))
+	g.Expect(webhook.Default(reqCtx, ms)).To(Succeed())
 
 	g.Expect(ms.Labels[clusterv1.ClusterNameLabel]).To(Equal(ms.Spec.ClusterName))
 	g.Expect(ms.Spec.DeletePolicy).To(Equal(string(clusterv1.RandomMachineSetDeletePolicy)))
 	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(clusterv1.MachineSetNameLabel, "test-ms"))
 	g.Expect(*ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
+}
+
+func TestCalculateMachineSetReplicas(t *testing.T) {
+	tests := []struct {
+		name             string
+		newMS            *clusterv1.MachineSet
+		oldMS            *clusterv1.MachineSet
+		expectedReplicas int32
+		expectErr        bool
+	}{
+		{
+			name: "if new MS has replicas set, keep that value",
+			newMS: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32(5),
+				},
+			},
+			expectedReplicas: 5,
+		},
+		{
+			name:             "if new MS does not have replicas set and no annotations, use 1",
+			newMS:            &clusterv1.MachineSet{},
+			expectedReplicas: 1,
+		},
+		{
+			name: "if new MS only has min size annotation, fallback to 1",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+					},
+				},
+			},
+			expectedReplicas: 1,
+		},
+		{
+			name: "if new MS only has max size annotation, fallback to 1",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			expectedReplicas: 1,
+		},
+		{
+			name: "if new MS has min and max size annotation and min size is invalid, fail",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "abc",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "if new MS has min and max size annotation and max size is invalid, fail",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "abc",
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "if new MS has min and max size annotation and new MS is a new MS, use min size",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			expectedReplicas: 3,
+		},
+		{
+			name: "if new MS has min and max size annotation and old MS doesn't have replicas set, use min size",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMS:            &clusterv1.MachineSet{},
+			expectedReplicas: 3,
+		},
+		{
+			name: "if new MS has min and max size annotation and old MS replicas is below min size, use min size",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMS: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32(1),
+				},
+			},
+			expectedReplicas: 3,
+		},
+		{
+			name: "if new MS has min and max size annotation and old MS replicas is above max size, use max size",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMS: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32(15),
+				},
+			},
+			expectedReplicas: 7,
+		},
+		{
+			name: "if new MS has min and max size annotation and old MS replicas is between min and max size, use old MS replicas",
+			newMS: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMS: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32(4),
+				},
+			},
+			expectedReplicas: 4,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			replicas, err := calculateMachineSetReplicas(context.Background(), tt.oldMS, tt.newMS, false)
+
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(replicas).To(Equal(tt.expectedReplicas))
+		})
+	}
 }
 
 func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {

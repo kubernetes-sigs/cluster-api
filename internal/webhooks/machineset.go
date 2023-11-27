@@ -19,14 +19,18 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -39,6 +43,10 @@ import (
 )
 
 func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	if webhook.decoder == nil {
+		webhook.decoder = admission.NewDecoder(mgr.GetScheme())
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.MachineSet{}).
 		WithDefaulter(webhook).
@@ -50,22 +58,48 @@ func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machineset,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinesets,versions=v1beta1,name=default.machineset.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // MachineSet implements a validation and defaulting webhook for MachineSet.
-type MachineSet struct{}
+type MachineSet struct {
+	decoder *admission.Decoder
+}
 
 var _ webhook.CustomDefaulter = &MachineSet{}
 var _ webhook.CustomValidator = &MachineSet{}
 
 // Default sets default MachineSet field values.
-func (webhook *MachineSet) Default(_ context.Context, obj runtime.Object) error {
+func (webhook *MachineSet) Default(ctx context.Context, obj runtime.Object) error {
 	m, ok := obj.(*clusterv1.MachineSet)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachineSet but got a %T", obj))
+	}
+
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	dryRun := false
+	if req.DryRun != nil {
+		dryRun = *req.DryRun
+	}
+
+	var oldMS *clusterv1.MachineSet
+	if req.Operation == v1.Update {
+		oldMS = &clusterv1.MachineSet{}
+		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMS); err != nil {
+			return errors.Wrapf(err, "failed to decode oldObject to MachineSet")
+		}
 	}
 
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
+
+	replicas, err := calculateMachineSetReplicas(ctx, oldMS, m, dryRun)
+	if err != nil {
+		return err
+	}
+	m.Spec.Replicas = pointer.Int32(replicas)
 
 	if m.Spec.DeletePolicy == "" {
 		randomPolicy := string(clusterv1.RandomMachineSetDeletePolicy)
@@ -218,4 +252,105 @@ func validateSkippedMachineSetPreflightChecks(o client.Object) *field.Error {
 		)
 	}
 	return nil
+}
+
+// calculateMachineSetReplicas calculates the default value of the replicas field.
+// The value will be calculated based on the following logic:
+// * if replicas is already set on newMS, keep the current value
+// * if the autoscaler min size and max size annotations are set:
+//   - if it's a new MachineSet, use min size
+//   - if the replicas field of the old MachineSet is < min size, use min size
+//   - if the replicas field of the old MachineSet is > max size, use max size
+//   - if the replicas field of the old MachineSet is in the (min size, max size) range, keep the value from the oldMS
+//
+// * otherwise use 1
+//
+// The goal of this logic is to provide a smoother UX for clusters using the Kubernetes autoscaler.
+// Note: Autoscaler only takes over control of the replicas field if the replicas value is in the (min size, max size) range.
+//
+// We are supporting the following use cases:
+// * A new MS is created and replicas should be managed by the autoscaler
+//   - Either via the default annotation or via the min size and max size annotations the replicas field
+//     is defaulted to a value which is within the (min size, max size) range so the autoscaler can take control.
+//
+// * An existing MS which initially wasn't controlled by the autoscaler should be later controlled by the autoscaler
+//   - To adopt an existing MS users can use the default, min size and max size annotations to enable the autoscaler
+//     and to ensure the replicas field is within the (min size, max size) range. Without the annotations handing over
+//     control to the autoscaler by unsetting the replicas field would lead to the field being set to 1. This is very
+//     disruptive for existing Machines and if 1 is outside the (min size, max size) range the autoscaler won't take
+//     control.
+//
+// Notes:
+//   - While the min size and max size annotations of the autoscaler provide the best UX, other autoscalers can use the
+//     DefaultReplicasAnnotation if they have similar use cases.
+func calculateMachineSetReplicas(ctx context.Context, oldMS *clusterv1.MachineSet, newMS *clusterv1.MachineSet, dryRun bool) (int32, error) {
+	// If replicas is already set => Keep the current value.
+	if newMS.Spec.Replicas != nil {
+		return *newMS.Spec.Replicas, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+
+	// If both autoscaler annotations are set, use them to calculate the default value.
+	minSizeString, hasMinSizeAnnotation := newMS.Annotations[clusterv1.AutoscalerMinSizeAnnotation]
+	maxSizeString, hasMaxSizeAnnotation := newMS.Annotations[clusterv1.AutoscalerMaxSizeAnnotation]
+	if hasMinSizeAnnotation && hasMaxSizeAnnotation {
+		minSize, err := strconv.ParseInt(minSizeString, 10, 32)
+		if err != nil {
+			return 0, errors.Wrapf(err, "failed to caculate MachineSet replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMinSizeAnnotation)
+		}
+		maxSize, err := strconv.ParseInt(maxSizeString, 10, 32)
+		if err != nil {
+			return 0, errors.Wrapf(err, "failed to caculate MachineSet replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMaxSizeAnnotation)
+		}
+
+		// If it's a new MachineSet => Use the min size.
+		// Note: This will result in a scale up to get into the range where autoscaler takes over.
+		if oldMS == nil {
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (MS is a new MS)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
+			}
+			return int32(minSize), nil
+		}
+
+		// Otherwise we are handing over the control for the replicas field for an existing MachineSet
+		// to the autoscaler.
+
+		switch {
+		// If the old MachineSet doesn't have replicas set => Use the min size.
+		// Note: As defaulting always sets the replica field, this case should not be possible
+		// We only have this handling to be 100% safe against panics.
+		case oldMS.Spec.Replicas == nil:
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MS didn't have replicas set)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
+			}
+			return int32(minSize), nil
+		// If the old MachineSet replicas are lower than min size => Use the min size.
+		// Note: This will result in a scale up to get into the range where autoscaler takes over.
+		case *oldMS.Spec.Replicas < int32(minSize):
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MS had replicas below min size)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
+			}
+			return int32(minSize), nil
+		// If the old MachineSet replicas are higher than max size => Use the max size.
+		// Note: This will result in a scale down to get into the range where autoscaler takes over.
+		case *oldMS.Spec.Replicas > int32(maxSize):
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MS had replicas above max size)", maxSize, clusterv1.AutoscalerMaxSizeAnnotation))
+			}
+			return int32(maxSize), nil
+		// If the old MachineSet replicas are between min and max size => Keep the current value.
+		default:
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on replicas of the old MachineSet (old MS had replicas within min size / max size range)", *oldMS.Spec.Replicas))
+			}
+			return *oldMS.Spec.Replicas, nil
+		}
+	}
+
+	// If neither the default nor the autoscaler annotations are set => Default to 1.
+	if !dryRun {
+		log.V(2).Info("Replica field has been defaulted to 1")
+	}
+	return 1, nil
 }

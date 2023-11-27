@@ -3241,9 +3241,8 @@ func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTem
 
 	scheme := runtime.NewScheme()
 	_ = clusterv1.AddToScheme(scheme)
-	if err := (&webhooks.MachineDeployment{
-		Decoder: admission.NewDecoder(scheme),
-	}).Default(admission.NewContextWithRequest(ctx, admission.Request{}), mdState.Object); err != nil {
+	if err := (&webhooks.MachineDeployment{}).
+		Default(admission.NewContextWithRequest(ctx, admission.Request{}), mdState.Object); err != nil {
 		panic(err)
 	}
 	return mdState

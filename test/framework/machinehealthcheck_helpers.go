@@ -56,7 +56,6 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 	Expect(machineHealthChecks).NotTo(BeEmpty())
 
 	for _, mhc := range machineHealthChecks {
-
 		fmt.Fprintln(GinkgoWriter, "Ensuring there is at least 1 Machine that MachineHealthCheck is matching")
 		machines := GetMachinesByMachineHealthCheck(ctx, GetMachinesByMachineHealthCheckInput{
 			Lister:             mgmtClient,

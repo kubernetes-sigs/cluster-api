@@ -413,7 +413,7 @@ func (r *MachinePoolReconciler) createOrUpdateMachines(ctx context.Context, mp *
 			log.Info("Creating new Machine for infraMachine", "infraMachine", klog.KObj(infraMachine))
 			machine := computeDesiredMachine(mp, infraMachine, nil)
 
-			if err := r.Client.Create(ctx, machine); err != nil {
+			if err := ssa.Patch(ctx, r.Client, MachinePoolControllerName, machine); err != nil {
 				errs = append(errs, errors.Wrapf(err, "failed to create new Machine for infraMachine %q in namespace %q", infraMachine.GetName(), infraMachine.GetNamespace()))
 				continue
 			}
@@ -445,7 +445,7 @@ func computeDesiredMachine(mp *expv1.MachinePool, infraMachine *unstructured.Uns
 		ObjectMeta: metav1.ObjectMeta{
 			Name: names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", mp.Name)),
 			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, mp.GroupVersionKind())},
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, machinePoolKind)},
 			Namespace:       mp.Namespace,
 			Labels:          make(map[string]string),
 			Annotations:     make(map[string]string),

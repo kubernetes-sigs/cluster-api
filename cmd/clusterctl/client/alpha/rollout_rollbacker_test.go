@@ -247,7 +247,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			cl, err := proxy.NewClient(context.TODO())
+			cl, err := proxy.NewClient(context.Background())
 			g.Expect(err).ToNot(HaveOccurred())
 			key := client.ObjectKeyFromObject(deployment)
 			md := &clusterv1.MachineDeployment{}

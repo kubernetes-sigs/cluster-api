@@ -264,7 +264,7 @@ func Test_CRDMigrator(t *testing.T) {
 				objs = append(objs, &tt.CRs[i])
 			}
 
-			c, err := test.NewFakeProxy().WithObjs(objs...).NewClient(context.TODO())
+			c, err := test.NewFakeProxy().WithObjs(objs...).NewClient(context.Background())
 			g.Expect(err).ToNot(HaveOccurred())
 			countingClient := newUpgradeCountingClient(c)
 

@@ -23,7 +23,7 @@ This document details the responsibilities and tasks for each role in the releas
     - [[Track] Bump dependencies](#track-bump-dependencies)
     - [Set a tentative release date for the next minor release](#set-a-tentative-release-date-for-the-next-minor-release)
     - [Assemble next release team](#assemble-next-release-team)
-    - [Create a release branch](#create-a-release-branch)
+    - [Update milestone applier and GitHub Actions](#update-milestone-applier-and-github-actions)
     - [[Continuously] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
     - [[Continuously] Bump the Go version](#continuously-bump-the-go-version)
     - [[Repeatedly] Cut a release](#repeatedly-cut-a-release)
@@ -37,6 +37,7 @@ This document details the responsibilities and tasks for each role in the releas
     - [Add docs to collect release notes for users and migration notes for provider implementers](#add-docs-to-collect-release-notes-for-users-and-migration-notes-for-provider-implementers)
     - [Update supported versions](#update-supported-versions)
     - [Ensure the book for the new release is available](#ensure-the-book-for-the-new-release-is-available)
+    - [Generate weekly PR updates to post in Slack](#generate-weekly-pr-updates-to-post-in-slack)
     - [Create PR for release notes](#create-pr-for-release-notes)
     - [Change production branch in Netlify to the new release branch](#change-production-branch-in-netlify-to-the-new-release-branch)
     - [Update clusterctl links in the quickstart](#update-clusterctl-links-in-the-quickstart)
@@ -49,10 +50,6 @@ This document details the responsibilities and tasks for each role in the releas
     - [[Continuously] Monitor CI signal](#continuously-monitor-ci-signal)
     - [[Continuously] Reduce the amount of flaky tests](#continuously-reduce-the-amount-of-flaky-tests)
     - [[Continuously] Bug triage](#continuously-bug-triage)
-- [Maintainer](#maintainer)
-  - [Responsibilities](#responsibilities-3)
-  - [Tasks](#tasks-3)
-    - [[Repeatedly] Publish the release](#repeatedly-publish-the-release)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -66,7 +63,7 @@ This document details the responsibilities and tasks for each role in the releas
   * Create and maintain the GitHub release milestone
   * Track tasks needed to add support for new Kubernetes versions in upcoming releases
   * Ensure a retrospective happens
-  * Ensure a maintainer is available when a release needs to be cut.
+  * Ensure one of the [maintainers](https://github.com/kubernetes-sigs/cluster-api/blob/main/OWNERS_ALIASES) is available when a release needs to be cut.
 * Staffing:
   * Assemble the release team for the next release cycle
   * Ensure a release lead for the next release cycle is selected and trained
@@ -162,17 +159,16 @@ We should take a look at the following dependencies:
 There is currently no formalized process to assemble the release team.
 As of now we ask for volunteers in Slack and office hours.
 
-#### Create a release branch
+#### Update milestone applier and GitHub Actions
 
-The goal of this task is to ensure we have a release branch and the milestone applier applies milestones accordingly.
+Once release branch is created by GitHub Automation, the goal of this task would be to ensure we have the milestone
+applier that applies milestones accordingly and to update GitHub actions to work with new release version.
 From this point forward changes which should land in the release have to be cherry-picked into the release branch.
-
-1. Ask the [Maintainer](#maintainer) to create a new release branch.
   
-2. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/0b17ef5ffd6c7aa7d8ca1372d837acfb85f7bec6/config/prow/plugins.yaml#L371) accordingly (e.g. `release-1.4: v1.4` and `main: v1.5`)
+1. Update the [milestone applier config](https://github.com/kubernetes/test-infra/blob/0b17ef5ffd6c7aa7d8ca1372d837acfb85f7bec6/config/prow/plugins.yaml#L371) accordingly (e.g. `release-1.4: v1.4` and `main: v1.5`)
    <br>Prior art: [cluster-api: update milestone applier config for v1.3](https://github.com/kubernetes/test-infra/pull/26631)
 
-3. Update the GitHub Actions to work with the new release version.
+2. Update the GitHub Actions to work with the new release version.
    <br>Prior art: [Update actions for 1.5 and make names consistent](https://github.com/kubernetes-sigs/cluster-api/pull/9115)
 
 #### [Continuously] Maintain the GitHub release milestone
@@ -232,7 +228,10 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
          ```
 
 4. Publish the release in GitHub:
-   1. Ask the [Maintainer](#maintainer) to publish the release in GitHub.
+   1. Reach out to one of the maintainers over the Slack to publish the release in GitHub.
+      * **NOTE:** clusterctl will have issues installing providers between the time the release tag is cut and the Github release is published. See [issue 7889](https://github.com/kubernetes-sigs/cluster-api/issues/7889) for more details.
+      * The draft release should be automatically created via the [Create Release GitHub Action](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/release.yaml) with release notes previously committed to the repo by the release team. Ensure by reminding the maintainer that release is flagged as `pre-release` for all `beta` and `rc` releases or `latest` for a new release in the most recent release branch.
+   
 5. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/c/clusterctl.rb).
    <br>**Notes**:
     * This is only done for new latest stable releases, not for beta / RC releases and not for previous release branches.
@@ -544,24 +543,3 @@ and add them to the milestone of the current release.
 
 We probably have to figure out some details about the overlap between the bug triage task here, release leads
 and Cluster API maintainers.
-
-## Maintainer
-
-The Maintainer must be a person with write access to the Cluster API repo. They can hold another role in the release team. The Maintainer need only be involved in the release as required on days when releases are cut. They are not expected to take part in release team meetings or other activities, but should feel free to do so.
-
-### Responsibilities
-
-* Be available on release day in case the release team needs help with tag creation.
-* Publish the release.
-* Ensure a substitute is nominated if they are not available.
-
-### Tasks
-
-#### [Repeatedly] Publish the release
-
-**NOTE:** clusterctl will have issues installing providers between the time the release tag is cut and the Github release is published. See [issue 7889](https://github.com/kubernetes-sigs/cluster-api/issues/7889) for more details
-
-Publish the release.
-
-   1. The draft release should be automatically created via the [Create Release GitHub Action](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/release.yml) with release notes previously committed to the repo by the release team.
-   2. Publish the release. Ensure release is flagged as `pre-release` for all `beta` and `rc` releases or `latest` for a new release in the most recent release branch.

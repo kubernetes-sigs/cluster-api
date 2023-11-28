@@ -33,4 +33,3 @@ After the `.0` release monthly patch release will be created.
 | Release Lead                              | TBD | TBD                                    |
 | Communications/Docs/Release Notes Manager | TBD | TBD                                    |
 | CI Signal/Bug Triage/Automation Manager   | TBD | TBD                                    |
-| Maintainer                                | TBD | TBD                                    |

@@ -71,8 +71,7 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 - **Communications/Docs/Release Notes Manager**: Responsible for communicating key dates to the community, improving release process documentation, and polishing release notes. Also responsible for ensuring the user-facing Netlify book and provider upgrade documentation are up to date.
 - **CI Signal/Bug Triage/Automation Manager**: Assumes the responsibility of the quality gate for the release and makes sure blocking issues and bugs are triaged and dealt with in a timely fashion. Helps improve release automation and tools.
 - **Team member**: Any Release Team lead or manager may select one or more additional members to help with their tasks. These team members will help fulfill future Release Team staffing requirements and continue to grow the CAPI community in general.
-- **Maintainer**: Responsible for tasks which require write access to the Cluster API repo including creating release tags and creating a release branch. This role must be filled by someone on the [`cluster-api-maintainers` list](https://github.com/kubernetes-sigs/cluster-api/blob/main/OWNERS_ALIASES).
-*Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.  
+*Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.
 
 ## Team repo permissions
 - Release notes (`CHANGELOG` folder)

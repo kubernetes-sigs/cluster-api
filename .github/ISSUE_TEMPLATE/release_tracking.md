@@ -52,8 +52,8 @@ Week 15:
 * KubeCon idle week
 
 Week 16:
-* [ ] [Release Lead] [Create the release-1.6 release branch](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#create-a-release-branch)
 * [ ] [Release Lead] [Cut the v1.6.0-rc.0 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+* [ ] [Release Lead] [Update milestone applier and GitHub Actions](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#update-milestone-applier-and-github-actions)
 * [ ] [CI Manager] [Setup jobs and dashboards for the release-1.6 release branch](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#setup-jobs-and-dashboards-for-a-new-release-branch)
 * [ ] [Communications Manager] [Ensure the book for the new release is available](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#ensure-the-book-for-the-new-release-is-available)
 

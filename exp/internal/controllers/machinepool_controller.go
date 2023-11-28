@@ -55,6 +55,11 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status;machinepools/finalizers,verbs=get;list;watch;create;update;patch;delete
 
+var (
+	// machinePoolKind contains the schema.GroupVersionKind for the MachinePool type.
+	machinePoolKind = clusterv1.GroupVersion.WithKind("MachinePool")
+)
+
 const (
 	// MachinePoolControllerName defines the controller used when creating clients.
 	MachinePoolControllerName = "machinepool-controller"

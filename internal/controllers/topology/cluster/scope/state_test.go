@@ -25,11 +25,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
-func TestIsUpgrading(t *testing.T) {
+func TestMDIsUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
@@ -115,7 +117,105 @@ func TestIsUpgrading(t *testing.T) {
 	}
 }
 
-func TestUpgrading(t *testing.T) {
+func TestMPIsUpgrading(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+
+	tests := []struct {
+		name    string
+		mp      *expv1.MachinePool
+		nodes   []*corev1.Node
+		want    bool
+		wantErr bool
+	}{
+		{
+			name: "should return false if all the nodes have the same version as the MachinePool",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			nodes: []*corev1.Node{
+				builder.Node("node1").
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
+					Build(),
+				builder.Node("node2").
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
+					Build(),
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "should return true if at least one of the nodes of MachinePool has a different version",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			nodes: []*corev1.Node{
+				builder.Node("node1").
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
+					Build(),
+				builder.Node("node2").
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.4"}}).
+					Build(),
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "should return false if there is no version for MachinePool",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				Build(),
+			nodes: []*corev1.Node{
+				builder.Node("node1").
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
+					Build(),
+				builder.Node("node2").
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.4"}}).
+					Build(),
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "should return false if the MachinePool has no nodes (creation phase)",
+			mp: builder.MachinePool("ns", "mp1").
+				WithClusterName("cluster1").
+				WithVersion("v1.2.3").
+				Build(),
+			nodes: []*corev1.Node{},
+			want:     false,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			objs := []client.Object{}
+			objs = append(objs, tt.mp)
+			for _, m := range tt.nodes {
+				objs = append(objs, m)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+			mpState := &MachinePoolState{
+				Object: tt.mp,
+			}
+			got, err := mpState.IsUpgrading(ctx, fakeClient)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(got).To(Equal(tt.want))
+			}
+		})
+	}
+}
+
+func TestMDUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
@@ -151,6 +251,45 @@ func TestUpgrading(t *testing.T) {
 		want := []string{"upgradingMD"}
 
 		got, err := mdsStateMap.Upgrading(ctx, fakeClient)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).To(BeComparableTo(want))
+	})
+}
+
+func TestMPUpgrading(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+
+	ctx := context.Background()
+
+	t.Run("should return the names of the upgrading MachinePools", func(t *testing.T) {
+		stableMP := builder.MachinePool("ns", "stableMP").
+			WithClusterName("cluster1").
+			WithVersion("v1.2.3").
+			Build()
+		stableMPNnode := builder.Node("stableMP-node1").
+			WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
+			Build()
+
+		upgradingMP := builder.MachinePool("ns", "upgradingMP").
+			WithClusterName("cluster2").
+			WithVersion("v1.2.3").
+			Build()
+		upgradingMPNode := builder.Node("upgradingMP-node1").
+			WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
+			Build()
+
+		objs := []client.Object{stableMP, stableMPNnode, upgradingMP, upgradingMPNode}
+		fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithScheme(scheme).Build()
+
+		mpsStateMap := MachinePoolsStateMap{
+			"stableMP":    {Object: stableMP},
+			"upgradingMP": {Object: upgradingMP},
+		}
+		want := []string{"upgradingMP"}
+
+		got, err := mpsStateMap.Upgrading(ctx, fakeClient)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).To(BeComparableTo(want))
 	})

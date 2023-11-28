@@ -1574,6 +1574,39 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 	return obj
 }
 
+// NodeBuilder holds the variables required to build a Node.
+type NodeBuilder struct {
+	name        string
+	status      corev1.NodeStatus
+}
+
+// Node returns a NodeBuilder.
+func Node(name string) *NodeBuilder {
+	return &NodeBuilder{
+		name:      name,
+	}
+}
+
+// WithStatus adds Status to the NodeBuilder
+func (n *NodeBuilder) WithStatus(status corev1.NodeStatus) *NodeBuilder {
+	n.status = status
+	return n
+}
+
+// Build produces a new Node from the information passed to the NodeBuilder
+func (n *NodeBuilder) Build() *corev1.Node {
+	obj := &corev1.Node{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Node",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      n.name,
+		},
+	}
+	return obj
+}
+
 // MachineDeploymentBuilder holds the variables and objects needed to build a generic MachineDeployment.
 type MachineDeploymentBuilder struct {
 	namespace              string

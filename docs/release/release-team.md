@@ -12,6 +12,7 @@
   - [Team Selection](#team-selection)
     - [Selection Criteria](#selection-criteria)
   - [Time Commitment](#time-commitment)
+  - [Release Team/Day Meetings](#release-teamday-meetings)
   - [Suggestions for Team Leads](#suggestions-for-team-leads)
   - [Why should I volunteer?](#why-should-i-volunteer)
   - [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
@@ -70,8 +71,7 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 - **Communications/Docs/Release Notes Manager**: Responsible for communicating key dates to the community, improving release process documentation, and polishing release notes. Also responsible for ensuring the user-facing Netlify book and provider upgrade documentation are up to date.
 - **CI Signal/Bug Triage/Automation Manager**: Assumes the responsibility of the quality gate for the release and makes sure blocking issues and bugs are triaged and dealt with in a timely fashion. Helps improve release automation and tools.
 - **Team member**: Any Release Team lead or manager may select one or more additional members to help with their tasks. These team members will help fulfill future Release Team staffing requirements and continue to grow the CAPI community in general.
-- **Maintainer**: Responsible for tasks which require write access to the Cluster API repo including creating release tags and creating a release branch. This role must be filled by someone on the [`cluster-api-maintainers` list](https://github.com/kubernetes-sigs/cluster-api/blob/main/OWNERS_ALIASES).
-*Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.  
+*Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.
 
 ## Team repo permissions
 - Release notes (`CHANGELOG` folder)
@@ -110,9 +110,27 @@ While we don't anticipate individuals to be available every week during the rele
 
 Before you volunteer to be part of a CAPI release team, please make certain that your employer is aware and supportive of your commitment to the release team.
 
+## Release Team/Day Meetings
+
+Release Team Members meet and share team specific updates, news and all release specific items in the Release Team Meetings.
+
+- Release Team Meetings happen once a week every Wednesday, half an hour before office hours using the CAPI meeting zoom [link](https://zoom.us/j/861487554?pwd=dTVGVVFCblFJc0VBbkFqQlU0dHpiUT09). 
+- Release Team Meeting notes can be found [here](https://docs.google.com/document/d/1AUiuvapS3ldYVJfKucDhIoH6IJIPS009jqwnSTwS0EI).
+- Reach out to maintainers to get the zoom meeting host key to be able to share the screen when office hours zoom link is used.
+
+*Note:* For now, we don't have a calendar invite for Release Team Meetings to be sent out to all Release Team Members. Create a recurring calendar invite for the period of whole release cycle and send it to all Release Team Members.
+
+Release Day meetings is used to cut the releases as a group following the release cycle timeline.
+
+- Release Day Meetings happen on the release date specified in the release timeline document, using the CAPI meeting zoom [link](https://zoom.us/j/861487554?pwd=dTVGVVFCblFJc0VBbkFqQlU0dHpiUT09) at the time depending on the Release Team Members timezone and availability.
+
 ## Suggestions for Team Leads
 
   * In the first week of the release cycle, organize an onboarding session with members of your team (i.e CI Lead with CI team members) to go over the general responsibilities and expectations.
+  * Public communication should be default: all the Release Team specific topics, issues, discussion have to be public and discussed openly in the communication channels the Release Team uses. It gives visibility on the work being done, it is inclusive and track of record. All other communication
+  within the Release Team Members can de carried out using a private group/chat.
+  * For Release Lead: Inform Release Team Members about the upcoming release, a day prior to the actual release cutting date over a common communication
+  channel (usually Cluster API Slack) and ask for team specific updates from Team Leads (i.e status of CI signal from CI Team Lead or preparing a PR for release notes with new desired tag in advance) to ensure smoother release cutting process and avoid unexpected surprises. 
   * Clearly communicate with the team members you are responsible for, that the majority of the work during the release cycle will be a collaborative effort.
   * Establish an ownership rotation policy in consultation with respective team members.
   * Provide opportunities for team members to take the lead in cutting a release within the cycle, based on feasibility.

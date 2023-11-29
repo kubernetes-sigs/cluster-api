@@ -24,16 +24,6 @@
       - [Core Cluster API Controllers changes](#core-cluster-api-controllers-changes)
       - [Provider controller changes](#provider-controller-changes)
     - [Guidelines for infra providers implementation](#guidelines-for-infra-providers-implementation)
-  - [Background work](#background-work)
-    - [EKS in CAPA](#eks-in-capa)
-      - [AKS in CAPZ](#aks-in-capz)
-      - [GKE in CAPG](#gke-in-capg)
-      - [Learnings from original Proposal: Two kinds with a Managed Control Plane & Managed Infra Cluster adhering to the current CAPI contracts](#learnings-from-original-proposal-two-kinds-with-a-managed-control-plane--managed-infra-cluster-adhering-to-the-current-capi-contracts)
-    - [Two New Flows](#two-new-flows)
-      - [Flow 1: `<Infra>Cluster` and `<Infra>ControlPlane`, with `ControlPlaneEndpoint` reported via `<Infra>ControlPlane`](#flow-1-infracluster-and-infracontrolplane-with-controlplaneendpoint-reported-via-infracontrolplane)
-      - [Flow 2: Change CAPI to make `<Infra>Cluster` optional](#flow-2-change-capi-to-make-infracluster-optional)
-      - [Alternative Option: Introduce a new Managed Kubernetes provider type (with contract)](#alternative-option-introduce-a-new-managed-kubernetes-provider-type-with-contract)
-  - [Recommendations](#recommendations)
   - [Implementation History](#implementation-history)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->

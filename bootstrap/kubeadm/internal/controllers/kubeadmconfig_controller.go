@@ -147,14 +147,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to get config")
-		return ctrl.Result{}, err
-	}
-
-	// AddOwners adds the owners of KubeadmConfig as k/v pairs to the logger.
-	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
-	ctx, log, err := clog.AddOwners(ctx, r.Client, config)
-	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -165,13 +157,22 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 	if err != nil {
-		log.Error(err, "Failed to get owner")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get owner")
 	}
 	if configOwner == nil {
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues(configOwner.GetKind(), klog.KRef(configOwner.GetNamespace(), configOwner.GetName()), "resourceVersion", configOwner.GetResourceVersion())
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	if configOwner.GetKind() == "Machine" {
+		// AddOwners adds the owners of Machine as k/v pairs to the logger.
+		// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
+		ctx, log, err = clog.AddOwners(ctx, r.Client, configOwner)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
 	log = log.WithValues("Cluster", klog.KRef(configOwner.GetNamespace(), configOwner.ClusterName()))
 	ctx = ctrl.LoggerInto(ctx, log)
@@ -1043,7 +1044,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
-		log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "Secret", klog.KObj(secret))
+		log.Info("Bootstrap data secret for KubeadmConfig already exists, updating", "Secret", klog.KObj(secret))
 		if err := r.Client.Update(ctx, secret); err != nil {
 			return errors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}

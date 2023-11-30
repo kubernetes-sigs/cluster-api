@@ -303,13 +303,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
 	tracker, err := remote.NewClusterCacheTracker(
 		mgr,
 		remote.ClusterCacheTrackerOptions{
 			SecretCachingClient: secretCachingClient,
 			ControllerName:      controllerName,
-			Log:                 &log,
+			Log:                 &ctrl.Log,
 		},
 	)
 	if err != nil {

@@ -89,7 +89,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 func main() {
 	// Creates a logger to be used during the main func.
-	setupLog := ctrl.Log.WithName("main")
+	setupLog := ctrl.Log.WithName("setup")
 
 	// Initialize and parse command line flags.
 	InitFlags(pflag.CommandLine)

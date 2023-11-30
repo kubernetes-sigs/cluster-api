@@ -890,7 +890,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 				availableReplicasCount++
 			}
 		} else if machine.GetDeletionTimestamp().IsZero() {
-			log.Info("Waiting for the Kubernetes node on the machine to report ready state")
+			log.V(4).Info("Waiting for the Kubernetes node on the machine to report ready state")
 		}
 	}
 

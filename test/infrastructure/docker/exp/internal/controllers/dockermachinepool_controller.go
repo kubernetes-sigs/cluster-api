@@ -20,7 +20,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -43,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
@@ -57,8 +57,7 @@ const (
 	// dockerMachinePoolLabel is the label used to identify the DockerMachinePool that is responsible for a Docker container.
 	dockerMachinePoolLabel = "docker.cluster.x-k8s.io/machine-pool"
 
-	// requeueAfter is how long to wait before checking again to see if the DockerMachines are still provisioning or deleting.
-	requeueAfter = 10 * time.Second
+	dockerMachinePoolControllerName = "dockermachinepool-controller"
 )
 
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.
@@ -71,6 +70,7 @@ type DockerMachinePoolReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	ssaCache        ssa.Cache
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
 }
@@ -140,7 +140,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Handle deleted machines
 	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
+		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
 	}
 
 	// Add finalizer and the InfrastructureMachineKind if they aren't already present, and requeue if either were added.
@@ -194,21 +194,22 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	r.recorder = mgr.GetEventRecorderFor("dockermachinepool-controller")
+	r.recorder = mgr.GetEventRecorderFor(dockerMachinePoolControllerName)
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
 		Cache:      mgr.GetCache(),
 	}
+	r.ssaCache = ssa.NewCache()
 
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
+func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	if len(dockerMachineList.Items) > 0 {
@@ -229,10 +230,9 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 		}
 
 		if len(errs) > 0 {
-			return ctrl.Result{}, kerrors.NewAggregate(errs)
+			return kerrors.NewAggregate(errs)
 		}
-
-		return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		return nil
 	}
 
 	// Once there are no DockerMachines left, ensure there are no Docker containers left behind.
@@ -243,21 +243,21 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 	// List Docker containers, i.e. external machines in the cluster.
 	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to list all machines in the cluster with label \"%s:%s\"", dockerMachinePoolLabel, dockerMachinePool.Name)
+		return errors.Wrapf(err, "failed to list all machines in the cluster with label \"%s:%s\"", dockerMachinePoolLabel, dockerMachinePool.Name)
 	}
 
 	// Providers should similarly ensure that all infrastructure instances are deleted even if the InfraMachine has not been created yet.
 	for _, externalMachine := range externalMachines {
 		log.Info("Deleting Docker container", "container", externalMachine.Name())
 		if err := externalMachine.Delete(ctx); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to delete machine %s", externalMachine.Name())
+			return errors.Wrapf(err, "failed to delete machine %s", externalMachine.Name())
 		}
 	}
 
 	// Once all DockerMachines and Docker containers are deleted, remove the finalizer.
 	controllerutil.RemoveFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
@@ -318,11 +318,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		return ctrl.Result{}, nil
 	}
 
-	dockerMachinePool.Status.Ready = false
-	conditions.MarkFalse(dockerMachinePool, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
-
-	// if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
-	return ctrl.Result{RequeueAfter: requeueAfter}, nil
+	return r.updateStatus(ctx, cluster, machinePool, dockerMachinePool, dockerMachineList.Items)
 }
 
 func getDockerMachines(ctx context.Context, c client.Client, cluster clusterv1.Cluster, machinePool expv1.MachinePool, dockerMachinePool infraexpv1.DockerMachinePool) (*infrav1.DockerMachineList, error) {
@@ -378,6 +374,64 @@ func dockerMachineToDockerMachinePool(_ context.Context, o client.Object) []ctrl
 	}
 
 	return nil
+}
+
+// updateStatus updates the Status field for the MachinePool object.
+// It checks for the current state of the replicas and updates the Status of the MachineSet.
+func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, dockerMachines []infrav1.DockerMachine) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	// List the Docker containers. This corresponds to an InfraMachinePool instance for providers.
+	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
+	externalMachines, err := docker.ListMachinesByCluster(ctx, cluster, labelFilters)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to list all external machines in the cluster")
+	}
+
+	externalMachineMap := make(map[string]*docker.Machine)
+	for _, externalMachine := range externalMachines {
+		externalMachineMap[externalMachine.Name()] = externalMachine
+	}
+	// We can use reuse getDeletionCandidates to get the list of ready DockerMachines and avoid another API call, even though we aren't deleting them here.
+	_, readyMachines, err := r.getDeletionCandidates(ctx, dockerMachines, externalMachineMap, machinePool, dockerMachinePool)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	readyReplicaCount := len(readyMachines)
+	desiredReplicas := int(*machinePool.Spec.Replicas)
+
+	switch {
+	// We are scaling up
+	case readyReplicaCount < desiredReplicas:
+		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+	// We are scaling down
+	case readyReplicaCount > desiredReplicas:
+		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+	default:
+		// Make sure last resize operation is marked as completed.
+		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines
+		// are actually provisioned (vs reporting completed immediately after the last machine object is created). This convention is also used by KCP.
+		if len(dockerMachines) == readyReplicaCount {
+			if conditions.IsFalse(dockerMachinePool, clusterv1.ResizedCondition) {
+				log.Info("All the replicas are ready", "replicas", readyReplicaCount)
+			}
+			conditions.MarkTrue(dockerMachinePool, clusterv1.ResizedCondition)
+		}
+		// This means that there was no error in generating the desired number of machine objects
+		conditions.MarkTrue(dockerMachinePool, clusterv1.MachinesCreatedCondition)
+	}
+
+	getters := make([]conditions.Getter, 0, len(dockerMachines))
+	for i := range dockerMachines {
+		getters = append(getters, &dockerMachines[i])
+	}
+
+	// Aggregate the operational state of all the machines; while aggregating we are adding the
+	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
+	conditions.SetAggregate(dockerMachinePool, expv1.ReplicasReadyCondition, getters, conditions.AddSourceRef())
+
+	return ctrl.Result{}, nil
 }
 
 func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infraexpv1.DockerMachinePool) error {

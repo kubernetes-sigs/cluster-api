@@ -121,6 +121,8 @@ func TestMPIsUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 	tests := []struct {
 		name    string
@@ -154,10 +156,10 @@ func TestMPIsUpgrading(t *testing.T) {
 				Build(),
 			nodes: []*corev1.Node{
 				builder.Node("node1").
-					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.4"}}).
 					Build(),
 				builder.Node("node2").
-					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.4"}}).
+					WithStatus(corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.2.3"}}).
 					Build(),
 			},
 			want:    true,
@@ -185,9 +187,9 @@ func TestMPIsUpgrading(t *testing.T) {
 				WithClusterName("cluster1").
 				WithVersion("v1.2.3").
 				Build(),
-			nodes: []*corev1.Node{},
-			want:     false,
-			wantErr:  false,
+			nodes:   []*corev1.Node{},
+			want:    false,
+			wantErr: false,
 		},
 	}
 
@@ -260,6 +262,7 @@ func TestMPUpgrading(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 	ctx := context.Background()
 

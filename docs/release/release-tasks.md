@@ -121,6 +121,7 @@ Prior art:
 
 * 1.4 - https://github.com/kubernetes-sigs/cluster-api/pull/7692/files
 * 1.5 - https://github.com/kubernetes-sigs/cluster-api/pull/8430/files
+* 1.6 - https://github.com/kubernetes-sigs/cluster-api/pull/9097/files
 
 #### Create a new GitHub milestone for the next release
 

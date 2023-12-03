@@ -1070,6 +1070,101 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}, timeout, 100*time.Millisecond).Should(Equal(1))
 	})
 
+	t.Run("when a Machine's Node has gone away without conditions", func(t *testing.T) {
+		t.Skip("skipping until made stable")
+		g := NewWithT(t)
+		cluster := createCluster(g, ns.Name)
+
+		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
+		mhc.Spec.UnhealthyConditions = nil
+
+		g.Expect(env.Create(ctx, mhc)).To(Succeed())
+		defer func(do ...client.Object) {
+			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+		}(cluster, mhc)
+
+		// Healthy nodes and machines.
+		nodes, machines, cleanup := createMachinesWithNodes(g, cluster,
+			count(3),
+			firstMachineAsControlPlane(),
+			createNodeRefForMachine(true),
+			nodeStatus(corev1.ConditionTrue),
+			machineLabels(mhc.Spec.Selector.MatchLabels),
+		)
+		defer cleanup()
+		targetMachines := make([]string, len(machines))
+		for i, m := range machines {
+			targetMachines[i] = m.Name
+		}
+		sort.Strings(targetMachines)
+
+		// Forcibly remove the last machine's node.
+		g.Eventually(func() bool {
+			nodeToBeRemoved := nodes[2]
+			if err := env.Delete(ctx, nodeToBeRemoved); err != nil {
+				return apierrors.IsNotFound(err)
+			}
+			return apierrors.IsNotFound(env.Get(ctx, util.ObjectKey(nodeToBeRemoved), nodeToBeRemoved))
+		}).Should(BeTrue())
+
+		// Make sure the status matches.
+		g.Eventually(func() *clusterv1.MachineHealthCheckStatus {
+			err := env.Get(ctx, util.ObjectKey(mhc), mhc)
+			if err != nil {
+				return nil
+			}
+			return &mhc.Status
+		}).Should(MatchMachineHealthCheckStatus(&clusterv1.MachineHealthCheckStatus{
+			ExpectedMachines:    3,
+			CurrentHealthy:      2,
+			RemediationsAllowed: 2,
+			ObservedGeneration:  1,
+			Targets:             targetMachines,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.RemediationAllowedCondition,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		}))
+
+		// Calculate how many Machines have health check succeeded = false.
+		g.Eventually(func() (unhealthy int) {
+			machines := &clusterv1.MachineList{}
+			err := env.List(ctx, machines, client.MatchingLabels{
+				"selector": mhc.Spec.Selector.MatchLabels["selector"],
+			})
+			if err != nil {
+				return -1
+			}
+
+			for i := range machines.Items {
+				if conditions.IsFalse(&machines.Items[i], clusterv1.MachineHealthCheckSucceededCondition) {
+					unhealthy++
+				}
+			}
+			return
+		}).Should(Equal(1))
+
+		// Calculate how many Machines have been remediated.
+		g.Eventually(func() (remediated int) {
+			machines := &clusterv1.MachineList{}
+			err := env.List(ctx, machines, client.MatchingLabels{
+				"selector": mhc.Spec.Selector.MatchLabels["selector"],
+			})
+			if err != nil {
+				return -1
+			}
+
+			for i := range machines.Items {
+				if conditions.Get(&machines.Items[i], clusterv1.MachineOwnerRemediatedCondition) != nil {
+					remediated++
+				}
+			}
+			return
+		}, timeout, 100*time.Millisecond).Should(Equal(1))
+	})
+
 	t.Run("should react when a Node transitions to unhealthy", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)

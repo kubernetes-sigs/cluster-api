@@ -446,6 +446,13 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediationCondition: []clusterv1.Condition{machineAnnotationRemediationCondition},
 			expectedNextCheckTimes:            []time.Duration{},
 		},
+		{
+			desc:                              "health check without conditions",
+			targets:                           []healthCheckTarget{},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{},
+			expectedNextCheckTimes:            []time.Duration{},
+		},
 	}
 
 	for _, tc := range testCases {

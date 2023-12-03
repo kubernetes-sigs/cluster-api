@@ -123,3 +123,30 @@ clusterctl upgrade apply \
 In this case, all the provider's versions must be explicitly stated.
 
 </aside>
+
+<aside class="note warning">
+
+<h1> Upgrading to Cluster API core components pre-release versions </h1>
+
+Use `clusterctl` CLI options to target the [desired version](https://github.com/kubernetes-sigs/cluster-api/releases).  
+
+The following shows an example of upgrading `bootrap`, `kubeadm` and `core` components to version `v1.6.0-rc.1`:
+
+```bash
+TARGET_VERSION=v1.6.0-rc.1
+
+clusterctl upgrade apply \
+    --bootstrap=kubeadm:${TARGET_VERSION} \
+    --control-plane=kubeadm:${TARGET_VERSION} \
+    --core=cluster-api:${TARGET_VERSION}
+```
+
+</aside>
+
+<aside class="note warning">
+
+<h1> Deploying nightly release images </h1>
+
+Cluster API publishes nightly versions of the project componenents' manifests from the `main` branch to a Google storage bucket for user consumption.  The syntax for the URL is: `https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_<YYYYMMDD>/<COMPENENT_NAME>-components.yaml`.
+
+For example, to retrieve the core component manifest published January 1, 2024, the following URL can be used: https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20240101/core-components.yaml.

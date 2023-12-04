@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -28,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,6 +40,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -1065,131 +1068,39 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 }
 
 func TestReconcileMachinePoolMachines(t *testing.T) {
-	defaultCluster := clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: metav1.NamespaceDefault,
-		},
-	}
+	t.Run("Reconcile MachinePool Machines", func(t *testing.T) {
+		// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
+		// Enabling the feature flag temporarily for this test.
+		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 
-	defaultMachinePool := expv1.MachinePool{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machinepool-test",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: defaultCluster.Name,
-			},
-		},
-		Spec: expv1.MachinePoolSpec{
-			ClusterName: defaultCluster.Name,
-			Replicas:    pointer.Int32(2),
-			Template: clusterv1.MachineTemplateSpec{
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "BootstrapConfig",
-							Name:       "bootstrap-config1",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-						Kind:       "InfrastructureConfig",
-						Name:       "infra-config1",
-					},
-				},
-			},
-		},
-	}
+		g := NewWithT(t)
 
-	infraMachine1 := unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
-			"metadata": map[string]interface{}{
-				"name":      "infra-machine1",
-				"namespace": metav1.NamespaceDefault,
-				"labels": map[string]interface{}{
-					clusterv1.ClusterNameLabel:     defaultCluster.Name,
-					clusterv1.MachinePoolNameLabel: defaultMachinePool.Name,
-				},
-			},
-		},
-	}
+		ns, err := env.CreateNamespace(ctx, "test-machinepool-machines")
+		g.Expect(err).ToNot(HaveOccurred())
 
-	infraMachine2 := unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "InfrastructureMachine",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
-			"metadata": map[string]interface{}{
-				"name":      "infra-machine2",
-				"namespace": metav1.NamespaceDefault,
-				"labels": map[string]interface{}{
-					clusterv1.ClusterNameLabel:     defaultCluster.Name,
-					clusterv1.MachinePoolNameLabel: defaultMachinePool.Name,
-				},
-			},
-		},
-	}
+		cluster := builder.Cluster(ns.Name, clusterName).Build()
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 
-	machine1 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine1",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:     defaultCluster.Name,
-				clusterv1.MachinePoolNameLabel: "machinepool-test",
-			},
-		},
-		Spec: clusterv1.MachineSpec{
-			ClusterName: clusterName,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "InfrastructureMachine",
-				Name:       "infra-machine1",
-				Namespace:  metav1.NamespaceDefault,
-			},
-		},
-	}
+		t.Run("Should do nothing if machines already exist", func(t *testing.T) {
+			machinePool := getMachinePool(2, "machinepool-test-1", clusterName, ns.Name)
+			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
 
-	machine2 := clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "machine2",
-			Namespace: metav1.NamespaceDefault,
-			Labels: map[string]string{
-				clusterv1.ClusterNameLabel:     defaultCluster.Name,
-				clusterv1.MachinePoolNameLabel: "machinepool-test",
-			},
-		},
-		Spec: clusterv1.MachineSpec{
-			ClusterName: clusterName,
-			InfrastructureRef: corev1.ObjectReference{
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "InfrastructureMachine",
-				Name:       "infra-machine2",
-				Namespace:  metav1.NamespaceDefault,
-			},
-		},
-	}
+			infraMachines := getInfraMachines(2, machinePool.Name, clusterName, ns.Name)
+			for i := range infraMachines {
+				g.Expect(env.Create(ctx, &infraMachines[i])).To(Succeed())
+			}
 
-	testCases := []struct {
-		name                        string
-		bootstrapConfig             map[string]interface{}
-		infraConfig                 map[string]interface{}
-		machines                    []clusterv1.Machine
-		infraMachines               []unstructured.Unstructured
-		machinepool                 *expv1.MachinePool
-		expectError                 bool
-		supportsMachinePoolMachines bool
-	}{
-		{
-			name: "two infra machines, should create two machinepool machines",
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
+			machines := getMachines(2, machinePool.Name, clusterName, ns.Name)
+			for i := range machines {
+				g.Expect(env.Create(ctx, &machines[i])).To(Succeed())
+			}
+
+			infraConfig := map[string]interface{}{
+				"kind":       builder.GenericInfrastructureMachinePoolKind,
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
-					"namespace": metav1.NamespaceDefault,
+					"namespace": ns.Name,
 				},
 				"spec": map[string]interface{}{
 					"providerIDList": []interface{}{
@@ -1208,143 +1119,145 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 							"address": "10.0.0.2",
 						},
 					},
-					"infrastructureMachineKind": "InfrastructureMachine",
+					"infrastructureMachineKind": builder.GenericInfrastructureMachineKind,
 				},
-			},
-			infraMachines: []unstructured.Unstructured{
-				infraMachine1,
-				infraMachine2,
-			},
-			expectError:                 false,
-			supportsMachinePoolMachines: true,
-		},
-		{
-			name: "two infra machines and two machinepool machines, nothing to do",
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": metav1.NamespaceDefault,
-				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
-						"test://id-1",
-					},
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.2",
-						},
-					},
-					"infrastructureMachineKind": "InfrastructureMachine",
-				},
-			},
-			machines: []clusterv1.Machine{
-				machine1,
-				machine2,
-			},
-			infraMachines: []unstructured.Unstructured{
-				infraMachine1,
-				infraMachine2,
-			},
-			expectError:                 false,
-			supportsMachinePoolMachines: true,
-		},
-		{
-			name: "machinepool does not support machinepool machines, nothing to do",
-			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "infra-config1",
-					"namespace": metav1.NamespaceDefault,
-				},
-				"spec": map[string]interface{}{
-					"providerIDList": []interface{}{
-						"test://id-1",
-					},
-				},
-				"status": map[string]interface{}{
-					"ready": true,
-					"addresses": []interface{}{
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.1",
-						},
-						map[string]interface{}{
-							"type":    "InternalIP",
-							"address": "10.0.0.2",
-						},
-					},
-				},
-			},
-			expectError:                 false,
-			supportsMachinePoolMachines: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			if tc.machinepool == nil {
-				tc.machinepool = defaultMachinePool.DeepCopy()
 			}
-
-			objs := []client.Object{defaultCluster.DeepCopy()}
-			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			objs = append(objs, tc.machinepool, infraConfig.DeepCopy())
-
-			for _, infraMachine := range tc.infraMachines {
-				objs = append(objs, infraMachine.DeepCopy())
-			}
-
-			for _, machine := range tc.machines {
-				objs = append(objs, machine.DeepCopy())
-			}
+			g.Expect(env.Create(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
 
 			r := &MachinePoolReconciler{
-				Client:   fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:   env,
 				ssaCache: ssa.NewCache(),
 			}
 
-			err := r.reconcileMachines(ctx, tc.machinepool, infraConfig)
+			err = r.reconcileMachines(ctx, &machinePool, &unstructured.Unstructured{Object: infraConfig})
+			r.reconcilePhase(&machinePool)
+			g.Expect(err).ToNot(HaveOccurred())
 
-			r.reconcilePhase(tc.machinepool)
-			if tc.expectError {
-				g.Expect(err).To(HaveOccurred())
-			} else {
+			machineList := &clusterv1.MachineList{}
+			labels := map[string]string{
+				clusterv1.ClusterNameLabel:     clusterName,
+				clusterv1.MachinePoolNameLabel: machinePool.Name,
+			}
+			g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace), client.MatchingLabels(labels))).To(Succeed())
+			g.Expect(machineList.Items).To(HaveLen(2))
+			for i := range machineList.Items {
+				machine := &machineList.Items[i]
+				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
 				g.Expect(err).ToNot(HaveOccurred())
-
-				machineList := &clusterv1.MachineList{}
-				labels := map[string]string{
-					clusterv1.ClusterNameLabel:     defaultCluster.Name,
-					clusterv1.MachinePoolNameLabel: tc.machinepool.Name,
-				}
-				err := r.Client.List(ctx, machineList, client.InNamespace(tc.machinepool.Namespace), client.MatchingLabels(labels))
-				g.Expect(err).ToNot(HaveOccurred())
-
-				if tc.supportsMachinePoolMachines {
-					g.Expect(machineList.Items).To(HaveLen(len(tc.infraMachines)))
-					for i := range machineList.Items {
-						machine := &machineList.Items[i]
-						_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
-						g.Expect(err).ToNot(HaveOccurred())
-					}
-				} else {
-					g.Expect(machineList.Items).To(BeEmpty())
-				}
 			}
 		})
-	}
+
+		t.Run("Should create two machines if two infra machines exist", func(t *testing.T) {
+			machinePool := getMachinePool(2, "machinepool-test-2", clusterName, ns.Name)
+			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
+
+			infraMachines := getInfraMachines(2, machinePool.Name, clusterName, ns.Name)
+			for i := range infraMachines {
+				g.Expect(env.Create(ctx, &infraMachines[i])).To(Succeed())
+			}
+
+			infraConfig := map[string]interface{}{
+				"kind":       builder.GenericInfrastructureMachinePoolKind,
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config2",
+					"namespace": ns.Name,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+					"infrastructureMachineKind": builder.GenericInfrastructureMachineKind,
+				},
+			}
+			g.Expect(env.Create(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
+
+			r := &MachinePoolReconciler{
+				Client:   env,
+				ssaCache: ssa.NewCache(),
+			}
+
+			err = r.reconcileMachines(ctx, &machinePool, &unstructured.Unstructured{Object: infraConfig})
+			r.reconcilePhase(&machinePool)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			machineList := &clusterv1.MachineList{}
+			labels := map[string]string{
+				clusterv1.ClusterNameLabel:     clusterName,
+				clusterv1.MachinePoolNameLabel: machinePool.Name,
+			}
+			g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace), client.MatchingLabels(labels))).To(Succeed())
+			g.Expect(machineList.Items).To(HaveLen(2))
+			for i := range machineList.Items {
+				machine := &machineList.Items[i]
+				_, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+		})
+
+		t.Run("Should do nothing if machinepool does not support machinepool machines", func(t *testing.T) {
+			machinePool := getMachinePool(2, "machinepool-test-3", clusterName, ns.Name)
+			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
+
+			infraConfig := map[string]interface{}{
+				"kind":       builder.GenericInfrastructureMachinePoolKind,
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config3",
+					"namespace": ns.Name,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			}
+			g.Expect(env.Create(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
+
+			r := &MachinePoolReconciler{
+				Client:   env,
+				ssaCache: ssa.NewCache(),
+			}
+
+			err = r.reconcileMachines(ctx, &machinePool, &unstructured.Unstructured{Object: infraConfig})
+			r.reconcilePhase(&machinePool)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			machineList := &clusterv1.MachineList{}
+			labels := map[string]string{
+				clusterv1.ClusterNameLabel:     clusterName,
+				clusterv1.MachinePoolNameLabel: machinePool.Name,
+			}
+			g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace), client.MatchingLabels(labels))).To(Succeed())
+			g.Expect(machineList.Items).To(BeEmpty())
+		})
+	})
 }
 
 func TestInfraMachineToMachinePoolMapper(t *testing.T) {
@@ -1824,4 +1737,90 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		delNode := &corev1.Node{}
 		g.Expect(env.Get(ctx, client.ObjectKeyFromObject(node), delNode)).To(Succeed())
 	})
+}
+
+func getInfraMachines(replicas int, mpName, clusterName, nsName string) []unstructured.Unstructured {
+	infraMachines := make([]unstructured.Unstructured, replicas)
+	for i := 0; i < replicas; i++ {
+		infraMachines[i] = unstructured.Unstructured{
+			Object: map[string]interface{}{
+				"kind":       builder.GenericInfrastructureMachineKind,
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      fmt.Sprintf("%s-infra-%d", mpName, i),
+					"namespace": nsName,
+					"labels": map[string]interface{}{
+						clusterv1.ClusterNameLabel:     clusterName,
+						clusterv1.MachinePoolNameLabel: mpName,
+					},
+				},
+			},
+		}
+	}
+	return infraMachines
+}
+
+func getMachines(replicas int, mpName, clusterName, nsName string) []clusterv1.Machine {
+	machines := make([]clusterv1.Machine, replicas)
+	for i := 0; i < replicas; i++ {
+		machines[i] = clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("%s-machine-%d", mpName, i),
+				Namespace: nsName,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel:     clusterName,
+					clusterv1.MachinePoolNameLabel: mpName,
+				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: clusterName,
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &corev1.ObjectReference{
+						APIVersion: builder.BootstrapGroupVersion.String(),
+						Kind:       builder.GenericBootstrapConfigKind,
+						Name:       fmt.Sprintf("bootstrap-config-%d", i),
+					},
+				},
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: builder.InfrastructureGroupVersion.String(),
+					Kind:       builder.GenericInfrastructureMachineKind,
+					Name:       fmt.Sprintf("%s-infra-%d", mpName, i),
+				},
+			},
+		}
+	}
+	return machines
+}
+
+func getMachinePool(replicas int, mpName, clusterName, nsName string) expv1.MachinePool {
+	return expv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mpName,
+			Namespace: nsName,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: clusterName,
+			},
+		},
+		Spec: expv1.MachinePoolSpec{
+			ClusterName: clusterName,
+			Replicas:    pointer.Int32(int32(replicas)),
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					ClusterName: clusterName,
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: builder.BootstrapGroupVersion.String(),
+							Kind:       builder.GenericBootstrapConfigKind,
+							Name:       "bootstrap-config1",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: builder.InfrastructureGroupVersion.String(),
+						Kind:       builder.GenericInfrastructureMachineKind,
+						Name:       "infra-config1",
+					},
+				},
+			},
+		},
+	}
 }

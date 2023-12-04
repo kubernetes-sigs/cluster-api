@@ -19,7 +19,7 @@ Changes to the following fields of MachineSet are propagated in-place to the Mac
 - `.spec.template.spec.nodeVolumeDetachTimeout`
 
 Changes to the following fields of MachineSet are propagated in-place to the InfrastructureMachine and BootstrapConfig:
-- `.spec.machineTemplate.metadata.labels`
-- `.spec.machineTemplate.metadata.annotations`
+- `.spec.template.metadata.labels`
+- `.spec.template.metadata.annotations`
 
 Note: Changes to these fields will not be propagated to Machines that are marked for deletion (example: because of scale down).

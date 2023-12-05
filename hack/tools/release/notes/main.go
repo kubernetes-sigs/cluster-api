@@ -88,7 +88,7 @@ var (
 		"clusterresourceset":                "ClusterResourceSet",
 		"machinedeployment":                 "MachineDeployment",
 		"ipam":                              "IPAM",
-		"provider/bootstrap-kubeadm":        "CAPBK",
+		"provider/bootstrap-kubeadm":        "CABPK",
 		"provider/infrastructure-in-memory": "CAPIM",
 		"provider/core":                     "Core",
 		"runtime-sdk":                       "Runtime SDK",

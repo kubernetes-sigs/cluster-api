@@ -270,7 +270,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 
-			cs, err := proxy.NewClient()
+			cs, err := proxy.NewClient(context.Background())
 			g.Expect(err).ToNot(HaveOccurred())
 
 			for _, want := range tt.wantDiff {
@@ -322,7 +322,7 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 		}
 
 		proxy := test.NewFakeProxy().WithObjs(initObjs...)
-		proxyClient, _ := proxy.NewClient()
+		proxyClient, _ := proxy.NewClient(context.Background())
 		var nsList corev1.NamespaceList
 
 		// assert length before deleting
@@ -457,7 +457,7 @@ func Test_providerComponents_Create(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 
-			cs, err := proxy.NewClient()
+			cs, err := proxy.NewClient(context.Background())
 			g.Expect(err).ToNot(HaveOccurred())
 
 			for _, item := range tt.want {

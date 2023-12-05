@@ -92,7 +92,7 @@ func (p *providerComponents) Create(ctx context.Context, objs []unstructured.Uns
 
 func (p *providerComponents) createObj(ctx context.Context, obj unstructured.Unstructured) error {
 	log := logf.Log
-	c, err := p.proxy.NewClient()
+	c, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (p *providerComponents) Delete(ctx context.Context, options DeleteOptions) 
 	}
 
 	// Delete all the provider components.
-	cs, err := p.proxy.NewClient()
+	cs, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (p *providerComponents) DeleteWebhookNamespace(ctx context.Context) error {
 	log := logf.Log
 	log.V(5).Info("Deleting", "namespace", webhookNamespaceName)
 
-	c, err := p.proxy.NewClient()
+	c, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}

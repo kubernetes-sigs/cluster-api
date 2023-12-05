@@ -79,7 +79,7 @@ func (f *FakeProxy) GetConfig() (*rest.Config, error) {
 	return nil, nil
 }
 
-func (f *FakeProxy) NewClient() (client.Client, error) {
+func (f *FakeProxy) NewClient(_ context.Context) (client.Client, error) {
 	if f.cs != nil {
 		return f.cs, nil
 	}
@@ -87,7 +87,7 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 	return f.cs, nil
 }
 
-func (f *FakeProxy) CheckClusterAvailable() error {
+func (f *FakeProxy) CheckClusterAvailable(_ context.Context) error {
 	// default to considering the cluster as available unless explicitly set to be
 	// unavailable.
 	if f.available == nil || *f.available {

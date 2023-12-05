@@ -153,7 +153,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) e
 	// NB. NewClient has an internal retry loop that should mitigate temporary connection glitch; here we are
 	// trying to detect persistent connection problems (>10s) before entering in longer retry loops while executing
 	// clusterctl operations.
-	_, err := p.proxy.NewClient()
+	_, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) e
 		if apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition").GroupKind() == o.GroupVersionKind().GroupKind() {
 			crdKey := client.ObjectKeyFromObject(&o)
 			if err := p.pollImmediateWaiter(ctx, waitInventoryCRDInterval, waitInventoryCRDTimeout, func(ctx context.Context) (bool, error) {
-				c, err := p.proxy.NewClient()
+				c, err := p.proxy.NewClient(ctx)
 				if err != nil {
 					return false, err
 				}
@@ -226,7 +226,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) e
 
 // checkInventoryCRDs checks if the inventory CRDs are installed in the cluster.
 func checkInventoryCRDs(ctx context.Context, proxy Proxy) (bool, error) {
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -248,7 +248,7 @@ func checkInventoryCRDs(ctx context.Context, proxy Proxy) (bool, error) {
 }
 
 func (p *inventoryClient) createObj(ctx context.Context, o unstructured.Unstructured) error {
-	c, err := p.proxy.NewClient()
+	c, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -273,7 +273,7 @@ func (p *inventoryClient) Create(ctx context.Context, m clusterctlv1.Provider) e
 	// Create the Kubernetes object.
 	createInventoryObjectBackoff := newWriteBackoff()
 	return retryWithExponentialBackoff(ctx, createInventoryObjectBackoff, func(ctx context.Context) error {
-		cl, err := p.proxy.NewClient()
+		cl, err := p.proxy.NewClient(ctx)
 		if err != nil {
 			return err
 		}
@@ -321,7 +321,7 @@ func (p *inventoryClient) List(ctx context.Context) (*clusterctlv1.ProviderList,
 
 // listProviders retrieves the list of provider inventory objects.
 func listProviders(ctx context.Context, proxy Proxy, providerList *clusterctlv1.ProviderList) error {
-	cl, err := proxy.NewClient()
+	cl, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -399,7 +399,7 @@ func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...Chec
 		o.Apply(opt)
 	}
 
-	c, err := p.proxy.NewClient()
+	c, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}

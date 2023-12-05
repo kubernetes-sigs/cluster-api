@@ -156,7 +156,7 @@ func Test_ObjectResumer(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			for _, obj := range tt.fields.objs {
-				cl, err := proxy.NewClient()
+				cl, err := proxy.NewClient(context.Background())
 				g.Expect(err).ToNot(HaveOccurred())
 				key := client.ObjectKeyFromObject(obj)
 				switch obj.(type) {

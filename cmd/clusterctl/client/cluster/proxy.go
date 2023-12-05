@@ -58,10 +58,10 @@ type Proxy interface {
 	ValidateKubernetesVersion() error
 
 	// NewClient returns a new controller runtime Client object for working on the management cluster.
-	NewClient() (client.Client, error)
+	NewClient(ctx context.Context) (client.Client, error)
 
 	// CheckClusterAvailable checks if a cluster is available and reachable.
-	CheckClusterAvailable() error
+	CheckClusterAvailable(ctx context.Context) error
 
 	// ListResources lists namespaced and cluster-wide resources for a component matching the labels. Namespaced resources are only listed
 	// in the given namespaces.
@@ -156,7 +156,7 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 	return restConfig, nil
 }
 
-func (k *proxy) NewClient() (client.Client, error) {
+func (k *proxy) NewClient(ctx context.Context) (client.Client, error) {
 	config, err := k.GetConfig()
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (k *proxy) NewClient() (client.Client, error) {
 	var c client.Client
 	// Nb. The operation is wrapped in a retry loop to make newClientSet more resilient to temporary connection problems.
 	connectBackoff := newConnectBackoff()
-	if err := retryWithExponentialBackoff(context.TODO(), connectBackoff, func(_ context.Context) error {
+	if err := retryWithExponentialBackoff(ctx, connectBackoff, func(_ context.Context) error {
 		var err error
 		c, err = client.New(config, client.Options{Scheme: localScheme})
 		if err != nil {
@@ -179,7 +179,7 @@ func (k *proxy) NewClient() (client.Client, error) {
 	return c, nil
 }
 
-func (k *proxy) CheckClusterAvailable() error {
+func (k *proxy) CheckClusterAvailable(ctx context.Context) error {
 	// Check if the cluster is available by creating a client to the cluster.
 	// If creating the client times out and never established we assume that
 	// the cluster does not exist or is not reachable.
@@ -191,7 +191,7 @@ func (k *proxy) CheckClusterAvailable() error {
 	}
 
 	connectBackoff := newShortConnectBackoff()
-	return retryWithExponentialBackoff(context.TODO(), connectBackoff, func(_ context.Context) error {
+	return retryWithExponentialBackoff(ctx, connectBackoff, func(_ context.Context) error {
 		_, err := client.New(config, client.Options{Scheme: localScheme})
 		return err
 	})
@@ -211,12 +211,12 @@ func (k *proxy) CheckClusterAvailable() error {
 //     as the conversion would fail, because the AWS controller hosting the conversion webhook has already been deleted.
 //   - Thus we exclude resources of other providers if we detect that ListResources is called to list resources of a provider.
 func (k *proxy) ListResources(ctx context.Context, labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
-	cs, err := k.newClientSet()
+	cs, err := k.newClientSet(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := k.NewClient()
+	c, err := k.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (k *proxy) GetContexts(prefix string) ([]string, error) {
 
 // GetResourceNames returns the list of resource names which begin with prefix.
 func (k *proxy) GetResourceNames(ctx context.Context, groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error) {
-	client, err := k.NewClient()
+	client, err := k.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -393,7 +393,7 @@ func newProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
 	return p
 }
 
-func (k *proxy) newClientSet() (*kubernetes.Clientset, error) {
+func (k *proxy) newClientSet(ctx context.Context) (*kubernetes.Clientset, error) {
 	config, err := k.GetConfig()
 	if err != nil {
 		return nil, err
@@ -402,7 +402,7 @@ func (k *proxy) newClientSet() (*kubernetes.Clientset, error) {
 	var cs *kubernetes.Clientset
 	// Nb. The operation is wrapped in a retry loop to make newClientSet more resilient to temporary connection problems.
 	connectBackoff := newConnectBackoff()
-	if err := retryWithExponentialBackoff(context.TODO(), connectBackoff, func(_ context.Context) error {
+	if err := retryWithExponentialBackoff(ctx, connectBackoff, func(_ context.Context) error {
 		var err error
 		cs, err = kubernetes.NewForConfig(config)
 		if err != nil {

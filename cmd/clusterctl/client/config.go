@@ -225,7 +225,7 @@ func (c *clusterctlClient) GetClusterTemplate(ctx context.Context, options GetCl
 
 	// If the option specifying the targetNamespace is empty, try to detect it.
 	if options.TargetNamespace == "" {
-		if err := clusterClient.Proxy().CheckClusterAvailable(); err != nil {
+		if err := clusterClient.Proxy().CheckClusterAvailable(ctx); err != nil {
 			return nil, errors.Wrap(err, "management cluster not available. Cannot auto-discover target namespace. Please specify a target namespace")
 		}
 		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
@@ -277,7 +277,7 @@ func (c *clusterctlClient) getTemplateFromRepository(ctx context.Context, cluste
 	provider := source.InfrastructureProvider
 	ensureCustomResourceDefinitions := false
 	if provider == "" {
-		if err := cluster.Proxy().CheckClusterAvailable(); err != nil {
+		if err := cluster.Proxy().CheckClusterAvailable(ctx); err != nil {
 			return nil, errors.Wrap(err, "management cluster not available. Cannot auto-discover default infrastructure provider. Please specify an infrastructure provider")
 		}
 		// ensure the custom resource definitions required by clusterctl are in place
@@ -305,7 +305,7 @@ func (c *clusterctlClient) getTemplateFromRepository(ctx context.Context, cluste
 
 	// If the version of the infrastructure provider to get templates from is empty, try to detect it.
 	if version == "" {
-		if err := cluster.Proxy().CheckClusterAvailable(); err != nil {
+		if err := cluster.Proxy().CheckClusterAvailable(ctx); err != nil {
 			return nil, errors.Wrapf(err, "management cluster not available. Cannot auto-discover version for the provider %q automatically. Please specify a version", name)
 		}
 		// ensure the custom resource definitions required by clusterctl are in place (if not already done)

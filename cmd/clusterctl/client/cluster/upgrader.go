@@ -377,7 +377,7 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 			return err
 		}
 
-		c, err := u.proxy.NewClient()
+		c, err := u.proxy.NewClient(ctx)
 		if err != nil {
 			return err
 		}
@@ -454,7 +454,7 @@ func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clust
 	log := logf.Log
 	log.Info("Scaling down", "Provider", provider.Name, "Version", provider.Version, "Namespace", provider.Namespace)
 
-	cs, err := u.proxy.NewClient()
+	cs, err := u.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}

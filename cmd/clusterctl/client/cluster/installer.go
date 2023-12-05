@@ -151,7 +151,7 @@ func waitManagerDeploymentsReady(ctx context.Context, opts InstallOptions, insta
 
 func waitDeploymentReady(ctx context.Context, deployment unstructured.Unstructured, timeout time.Duration, proxy Proxy) error {
 	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, timeout, false, func(ctx context.Context) (bool, error) {
-		c, err := proxy.NewClient()
+		c, err := proxy.NewClient(ctx)
 		if err != nil {
 			return false, err
 		}

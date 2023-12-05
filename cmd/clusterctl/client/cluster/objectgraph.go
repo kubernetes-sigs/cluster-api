@@ -405,7 +405,7 @@ func getKindAPIString(typeMeta metav1.TypeMeta) string {
 }
 
 func getCRDList(ctx context.Context, proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionList) error {
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -484,7 +484,7 @@ func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 }
 
 func getObjList(ctx context.Context, proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}

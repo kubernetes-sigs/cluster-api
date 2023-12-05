@@ -38,7 +38,7 @@ import (
 // getMachineDeployment retrieves the MachineDeployment object corresponding to the name and namespace specified.
 func getMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, namespace string) (*clusterv1.MachineDeployment, error) {
 	mdObj := &clusterv1.MachineDeployment{}
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func setRolloutAfterOnMachineDeployment(ctx context.Context, proxy cluster.Proxy
 
 // patchMachineDeployment applies a patch to a machinedeployment.
 func patchMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
-	cFrom, err := proxy.NewClient()
+	cFrom, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
 func getMachineSetsForDeployment(ctx context.Context, proxy cluster.Proxy, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	log := logf.Log
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}

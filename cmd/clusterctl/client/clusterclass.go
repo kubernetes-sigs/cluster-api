@@ -99,7 +99,7 @@ func fetchMissingClusterClassTemplates(ctx context.Context, clusterClassClient r
 	// Check if the cluster is initialized
 	clusterInitialized := false
 	var err error
-	if err := clusterClient.Proxy().CheckClusterAvailable(); err == nil {
+	if err := clusterClient.Proxy().CheckClusterAvailable(ctx); err == nil {
 		clusterInitialized, err = clusterClient.ProviderInventory().CheckCAPIInstalled(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to check if the cluster is initialized")
@@ -107,7 +107,7 @@ func fetchMissingClusterClassTemplates(ctx context.Context, clusterClassClient r
 	}
 	var c client.Client
 	if clusterInitialized {
-		c, err = clusterClient.Proxy().NewClient()
+		c, err = clusterClient.Proxy().NewClient(ctx)
 		if err != nil {
 			return nil, err
 		}

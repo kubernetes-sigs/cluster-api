@@ -82,7 +82,7 @@ func (c *clusterctlClient) DescribeCluster(ctx context.Context, options Describe
 	}
 
 	// Fetch the Cluster client.
-	client, err := cluster.Proxy().NewClient()
+	client, err := cluster.Proxy().NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}

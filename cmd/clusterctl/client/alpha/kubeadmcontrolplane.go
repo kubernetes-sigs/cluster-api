@@ -32,7 +32,7 @@ import (
 // getKubeadmControlPlane retrieves the KubeadmControlPlane object corresponding to the name and namespace specified.
 func getKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, namespace string) (*controlplanev1.KubeadmControlPlane, error) {
 	kcpObj := &controlplanev1.KubeadmControlPlane{}
-	c, err := proxy.NewClient()
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func setRolloutAfterOnKCP(ctx context.Context, proxy cluster.Proxy, name, namesp
 
 // patchKubeadmControlPlane applies a patch to a KubeadmControlPlane.
 func patchKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
-	cFrom, err := proxy.NewClient()
+	cFrom, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}

@@ -63,6 +63,7 @@ const (
 	VclusterProviderName       = "vcluster"
 	VirtinkProviderName        = "virtink"
 	CoxEdgeProviderName        = "coxedge"
+	ProxmoxProviderName        = "proxmox"
 )
 
 // Bootstrap providers.
@@ -268,6 +269,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         VirtinkProviderName,
 			url:          "https://github.com/smartxworks/cluster-api-provider-virtink/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         ProxmoxProviderName,
+			url:          "https://github.com/ionos-cloud/cluster-api-provider-proxmox/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

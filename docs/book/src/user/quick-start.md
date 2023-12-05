@@ -741,6 +741,35 @@ For more information about prerequisites, credentials management, or permissions
 project][vSphere getting started guide].
 
 {{#/tab }}
+{{#tab Proxmox}}
+
+First, we need to add the IPAM provider to your clusterctl config file `~/.cluster-api/clusterctl.yaml`:
+```yaml
+providers:
+  - name: in-cluster
+    url: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml
+    type: IPAMProvider
+```
+
+```bash
+# The host for the Proxmox cluster
+export PROXMOX_URL="https://pve.example:8006"
+# The Proxmox token ID to access the remote Proxmox endpoint
+export PROXMOX_TOKEN='root@pam!capi'
+# The secret associated with the token ID
+# You may want to set this in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml` so your password is not in
+# bash history
+export PROXMOX_SECRET="1234-1234-1234-1234"
+
+
+# Finally, initialize the management cluster
+clusterctl init --infrastructure proxmox --ipam in-cluster
+```
+
+For more information about the CAPI provider for Proxmox, see the [Proxmox
+project][Proxmox getting started guide].
+
+{{#/tab }}
 {{#/tabs }}
 
 The output of `clusterctl init` is similar to this:
@@ -1208,6 +1237,37 @@ export CONTROL_PLANE_ENDPOINT_IP="1.2.3.4"
 For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started guide].
 
 {{#/tab }}
+{{#tab Proxmox}}
+
+A ClusterAPI compatible image must be available in your Proxmox cluster. For instructions on how to build a compatible VM template
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+```bash
+# The node that hosts the VM template to be used to provision VMs
+export PROXMOX_SOURCENODE="pve"
+# The template VM ID used for cloning VMs
+export TEMPLATE_VMID=100
+# The ssh authorized keys used to ssh to the machines.
+export VM_SSH_KEYS="ssh-ed25519 ..., ssh-ed25519 ..."
+# The IP address used for the control plane endpoint
+export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
+# The IP ranges for Cluster nodes
+export NODE_IP_RANGES="[10.10.10.5-10.10.10.50, 10.10.10.55-10.10.10.70]"
+# The gateway for the machines network-config.
+export GATEWAY="10.10.10.1"
+# Subnet Mask in CIDR notation for your node IP ranges
+export IP_PREFIX=24
+# The Proxmox network device for VMs
+export BRIDGE="vmbr1"
+# The dns nameservers for the machines network-config.
+export DNS_SERVERS="[8.8.8.8,8.8.4.4]"
+# The Proxmox nodes used for VM deployments
+export ALLOWED_NODES="[pve1,pve2,pve3]"
+```
+
+For more information about prerequisites and advanced setups for Proxmox, see the [Proxmox getting started guide].
+
+{{#/tab }}
 {{#/tabs }}
 
 #### Generating the cluster configuration
@@ -1624,3 +1684,4 @@ kind delete cluster
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md
 [workload cluster]: ../reference/glossary.md#workload-cluster
 [CAPI Operator quickstart]: ./quick-start-operator.md
+[Proxmox getting started guide]: https://github.com/ionos-cloud/cluster-api-provider-proxmox/blob/main/docs/Usage.md

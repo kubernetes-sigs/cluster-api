@@ -35,7 +35,6 @@ import (
 )
 
 // Cache implements an in-memory cache.
-// TODO: consider if to move to internal.
 type Cache interface {
 	Start(ctx context.Context) error
 

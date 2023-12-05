@@ -27,7 +27,6 @@ We can't use controller-runtime directly for the following reasons:
 * data should be stored in-memory
 * we would like that objects in memory behave like Kubernetes objects (garbage collection)
 
-The Manager, is the object responsible for the lifecycle of objects; it also allows
-defining controllers.
+The Manager, is the object responsible for the lifecycle of objects.
 */
 package cloud

@@ -1550,6 +1550,9 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 			Namespace: m.namespace,
 			Labels:    m.labels,
 		},
+		Status: expv1.MachinePoolStatus{
+			NodeRefs: m.status.NodeRefs,
+		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName:     m.clusterName,
 			Replicas:        m.replicas,
@@ -1576,14 +1579,15 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 
 // NodeBuilder holds the variables required to build a Node.
 type NodeBuilder struct {
-	name        string
-	status      corev1.NodeStatus
+	name   string
+	status corev1.NodeStatus
 }
 
 // Node returns a NodeBuilder.
 func Node(name string) *NodeBuilder {
+
 	return &NodeBuilder{
-		name:      name,
+		name: name,
 	}
 }
 
@@ -1601,7 +1605,7 @@ func (n *NodeBuilder) Build() *corev1.Node {
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      n.name,
+			Name: n.name,
 		},
 	}
 	return obj

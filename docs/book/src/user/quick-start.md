@@ -743,15 +743,12 @@ project][vSphere getting started guide].
 {{#/tab }}
 {{#tab Proxmox}}
 
-First, we need to add the Proxmox infrastructure provider and the IPAM provider to your clusterctl config file `~/.cluster-api/clusterctl.yaml`:
+First, we need to add the IPAM provider to your clusterctl config file `~/.cluster-api/clusterctl.yaml`:
 ```yaml
 providers:
   - name: in-cluster
     url: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml
     type: IPAMProvider
-  - name: proxmox
-    url: https://github.com/ionos-cloud/cluster-api-provider-proxmox/releases/latest/infrastructure-components.yaml
-    type: InfrastructureProvider
 ```
 
 ```bash

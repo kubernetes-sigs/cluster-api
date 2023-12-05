@@ -541,11 +541,11 @@ def deploy_templates(filename, label, substitutions):
     basename = os.path.basename(filename)
     if basename.endswith(".yaml"):
         if basename.startswith("clusterclass-"):
-            template_name = basename.replace("clusterclass-", "").replace(".yaml", "")
-            deploy_clusterclass(template_name, label, filename, substitutions)
+            clusterclass_name = basename.replace("clusterclass-", "").replace(".yaml", "")
+            deploy_clusterclass(clusterclass_name, label, filename, substitutions)
         elif basename.startswith("cluster-template-"):
-            clusterclass_name = basename.replace("cluster-template-", "").replace(".yaml", "")
-            deploy_cluster_template(clusterclass_name, label, filename, substitutions)
+            template_name = basename.replace("cluster-template-", "").replace(".yaml", "")
+            deploy_cluster_template(template_name, label, filename, substitutions)
 
 def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     apply_clusterclass_cmd = "cat " + filename + " | " + envsubst_cmd + " | " + kubectl_cmd + " apply --namespace=$NAMESPACE -f - && echo \"ClusterClass created from\'" + filename + "\', don't forget to delete\n\""

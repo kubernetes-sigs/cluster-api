@@ -610,8 +610,8 @@ generate-diagrams-proposals: ## Generate diagrams for *.plantuml files in propos
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --path-prefix $(TOOLS_DIR) -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --path-prefix $(TOOLS_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
 .PHONY: lint-dockerfiles

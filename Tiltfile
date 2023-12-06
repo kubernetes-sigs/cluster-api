@@ -546,6 +546,9 @@ def deploy_templates(filename, label, substitutions):
         elif basename.startswith("cluster-template-"):
             template_name = basename.replace("cluster-template-", "").replace(".yaml", "")
             deploy_cluster_template(template_name, label, filename, substitutions)
+        elif basename == "cluster-template.yaml":
+            template_name = "default"
+            deploy_cluster_template(template_name, label, filename, substitutions)
 
 def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     apply_clusterclass_cmd = "cat " + filename + " | " + envsubst_cmd + " | " + kubectl_cmd + " apply --namespace=$NAMESPACE -f - && echo \"ClusterClass created from\'" + filename + "\', don't forget to delete\n\""

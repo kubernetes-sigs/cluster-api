@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -153,6 +154,19 @@ func (c *clusterctlClient) Delete(ctx context.Context, options DeleteOptions) er
 			}
 
 			providersToDelete = append(providersToDelete, provider)
+		}
+	}
+
+	if options.IncludeCRDs {
+		errList := []error{}
+		for _, provider := range providersToDelete {
+			err = clusterClient.ProviderComponents().ValidateNoObjectsExist(ctx, provider)
+			if err != nil {
+				errList = append(errList, err)
+			}
+		}
+		if len(errList) > 0 {
+			return kerrors.NewAggregate(errList)
 		}
 	}
 

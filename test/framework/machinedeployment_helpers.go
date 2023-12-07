@@ -582,7 +582,7 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 			return -1, errors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
-	}, input.WaitForMachineDeployments...).Should(Equal(int(*md.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(&md), *md.Spec.Replicas)
+	}, input.WaitForMachineDeployments...).Should(Equal(int(input.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(&md), input.Replicas)
 }
 
 type AssertMachineDeploymentReplicasInput struct {

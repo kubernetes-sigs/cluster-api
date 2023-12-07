@@ -35,6 +35,7 @@ func TestReleaseNotesIntegration(t *testing.T) {
 		name                 string
 		previousRelease      string
 		releaseBranchForTest string
+		head                 string
 		expected             string
 	}{
 		{
@@ -44,6 +45,7 @@ func TestReleaseNotesIntegration(t *testing.T) {
 			name:                 "new patch",
 			previousRelease:      "v1.3.9",
 			releaseBranchForTest: "release-1.3",
+			head:                 "release-1.3",
 			expected:             "test/golden/v1.3.10.md",
 		},
 		{
@@ -55,13 +57,14 @@ func TestReleaseNotesIntegration(t *testing.T) {
 			// it represents accurately the HEAD of release-1.5 when we released v1.5.0.
 			name:                 "new minor",
 			previousRelease:      "v1.4.0",
-			releaseBranchForTest: "v1.5.0",
+			releaseBranchForTest: "v1.5.0-integration-test",
+			head:                 "v1.5.0",
 			expected:             "test/golden/v1.5.0.md",
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			setupNotesTest(t, tc.previousRelease, tc.releaseBranchForTest)
+			setupNotesTest(t, tc.previousRelease, tc.releaseBranchForTest, tc.head)
 			g := NewWithT(t)
 
 			expectedOutput, err := os.ReadFile(tc.expected)
@@ -104,7 +107,7 @@ func runReleaseNotesCmd() error {
 	return nil
 }
 
-func setupNotesTest(tb testing.TB, previousRelease, releaseBranchForTest string) {
+func setupNotesTest(tb testing.TB, previousRelease, releaseBranchForTest, head string) {
 	g := NewWithT(tb)
 
 	_, err := os.Stat(releaseBranchForTest)
@@ -114,7 +117,7 @@ func setupNotesTest(tb testing.TB, previousRelease, releaseBranchForTest string)
 		g.Expect(err).To(Succeed())
 	}
 
-	pull := exec.Command("git", "pull", "upstream", releaseBranchForTest)
+	pull := exec.Command("git", "checkout", head)
 	pull.Dir = releaseBranchForTest
 	runCommand(tb, pull)
 

@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -97,18 +97,18 @@ func (webhook *MachineDeployment) Default(ctx context.Context, obj runtime.Objec
 	if err != nil {
 		return err
 	}
-	m.Spec.Replicas = pointer.Int32(replicas)
+	m.Spec.Replicas = ptr.To[int32](replicas)
 
 	if m.Spec.MinReadySeconds == nil {
-		m.Spec.MinReadySeconds = pointer.Int32(0)
+		m.Spec.MinReadySeconds = ptr.To[int32](0)
 	}
 
 	if m.Spec.RevisionHistoryLimit == nil {
-		m.Spec.RevisionHistoryLimit = pointer.Int32(1)
+		m.Spec.RevisionHistoryLimit = ptr.To[int32](1)
 	}
 
 	if m.Spec.ProgressDeadlineSeconds == nil {
-		m.Spec.ProgressDeadlineSeconds = pointer.Int32(600)
+		m.Spec.ProgressDeadlineSeconds = ptr.To[int32](600)
 	}
 
 	if m.Spec.Selector.MatchLabels == nil {

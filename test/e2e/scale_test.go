@@ -21,7 +21,7 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("When testing the machinery for scale testing using in-memory provider", func() {
@@ -29,15 +29,15 @@ var _ = Describe("When testing the machinery for scale testing using in-memory p
 		return scaleSpecInput{
 			E2EConfig:                e2eConfig,
 			ClusterctlConfigPath:     clusterctlConfigPath,
-			InfrastructureProvider:   pointer.String("in-memory"),
+			InfrastructureProvider:   ptr.To("in-memory"),
 			BootstrapClusterProxy:    bootstrapClusterProxy,
 			ArtifactFolder:           artifactFolder,
-			ClusterCount:             pointer.Int64(10),
-			Concurrency:              pointer.Int64(5),
-			Flavor:                   pointer.String(""),
-			ControlPlaneMachineCount: pointer.Int64(1),
-			MachineDeploymentCount:   pointer.Int64(1),
-			WorkerMachineCount:       pointer.Int64(3),
+			ClusterCount:             ptr.To[int64](10),
+			Concurrency:              ptr.To[int64](5),
+			Flavor:                   ptr.To(""),
+			ControlPlaneMachineCount: ptr.To[int64](1),
+			MachineDeploymentCount:   ptr.To[int64](1),
+			WorkerMachineCount:       ptr.To[int64](3),
 			SkipCleanup:              skipCleanup,
 		}
 	})
@@ -48,15 +48,15 @@ var _ = Describe("When scale testing using in-memory provider  [Scale]", func() 
 		return scaleSpecInput{
 			E2EConfig:                e2eConfig,
 			ClusterctlConfigPath:     clusterctlConfigPath,
-			InfrastructureProvider:   pointer.String("in-memory"),
+			InfrastructureProvider:   ptr.To("in-memory"),
 			BootstrapClusterProxy:    bootstrapClusterProxy,
 			ArtifactFolder:           artifactFolder,
-			ClusterCount:             pointer.Int64(10),
-			Concurrency:              pointer.Int64(5),
-			Flavor:                   pointer.String(""),
-			ControlPlaneMachineCount: pointer.Int64(1),
-			MachineDeploymentCount:   pointer.Int64(1),
-			WorkerMachineCount:       pointer.Int64(3),
+			ClusterCount:             ptr.To[int64](10),
+			Concurrency:              ptr.To[int64](5),
+			Flavor:                   ptr.To(""),
+			ControlPlaneMachineCount: ptr.To[int64](1),
+			MachineDeploymentCount:   ptr.To[int64](1),
+			WorkerMachineCount:       ptr.To[int64](3),
 			SkipCleanup:              skipCleanup,
 		}
 	})

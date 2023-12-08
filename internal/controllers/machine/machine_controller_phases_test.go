@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -495,7 +495,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 		// Set Machine ProviderID.
-		machine.Spec.ProviderID = pointer.String(nodeProviderID)
+		machine.Spec.ProviderID = ptr.To(nodeProviderID)
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
@@ -781,7 +781,7 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:       "GenericBootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
-						DataSecretName: pointer.String("secret-data"),
+						DataSecretName: ptr.To("secret-data"),
 					},
 				},
 				Status: clusterv1.MachineStatus{

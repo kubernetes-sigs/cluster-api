@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -90,9 +90,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName:          testCluster.Name,
-				MinReadySeconds:      pointer.Int32(0),
-				Replicas:             pointer.Int32(2),
-				RevisionHistoryLimit: pointer.Int32(0),
+				MinReadySeconds:      ptr.To[int32](0),
+				Replicas:             ptr.To[int32](2),
+				RevisionHistoryLimit: ptr.To[int32](0),
 				Selector: metav1.LabelSelector{
 					// We're using the same labels for spec.selector and spec.template.labels.
 					// The labels are later changed and we will use the initial labels later to
@@ -104,7 +104,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 						MaxUnavailable: intOrStrPtr(0),
 						MaxSurge:       intOrStrPtr(1),
-						DeletePolicy:   pointer.String("Oldest"),
+						DeletePolicy:   ptr.To("Oldest"),
 					},
 				},
 				Template: clusterv1.MachineTemplateSpec{
@@ -120,7 +120,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 							Name:       "md-template",
 						},
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.String("data-secret-name"),
+							DataSecretName: ptr.To("data-secret-name"),
 						},
 					},
 				},
@@ -256,7 +256,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		t.Log("Scaling the MachineDeployment to 3 replicas")
 		desiredMachineDeploymentReplicas := int32(3)
 		modifyFunc := func(d *clusterv1.MachineDeployment) {
-			d.Spec.Replicas = pointer.Int32(desiredMachineDeploymentReplicas)
+			d.Spec.Replicas = ptr.To[int32](desiredMachineDeploymentReplicas)
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() int {
@@ -365,7 +365,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
 		t.Log("Updating deletePolicy on the MachineDeployment")
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Strategy.RollingUpdate.DeletePolicy = pointer.String("Newest")
+			d.Spec.Strategy.RollingUpdate.DeletePolicy = ptr.To("Newest")
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
@@ -514,9 +514,9 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 		Spec: clusterv1.MachineDeploymentSpec{
 			Paused:               true, // Set this to true as we do not want to test the other parts of the reconciler in this test.
 			ClusterName:          testCluster.Name,
-			MinReadySeconds:      pointer.Int32(0),
-			Replicas:             pointer.Int32(2),
-			RevisionHistoryLimit: pointer.Int32(0),
+			MinReadySeconds:      ptr.To[int32](0),
+			Replicas:             ptr.To[int32](2),
+			RevisionHistoryLimit: ptr.To[int32](0),
 			Selector: metav1.LabelSelector{
 				// We're using the same labels for spec.selector and spec.template.labels.
 				MatchLabels: labels,
@@ -526,7 +526,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   pointer.String("Oldest"),
+					DeletePolicy:   ptr.To("Oldest"),
 				},
 			},
 			Template: clusterv1.MachineTemplateSpec{
@@ -542,7 +542,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 						Name:       "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("data-secret-name"),
+						DataSecretName: ptr.To("data-secret-name"),
 					},
 				},
 			},
@@ -595,7 +595,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 		},
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName:     testCluster.Name,
-			Replicas:        pointer.Int32(0),
+			Replicas:        ptr.To[int32](0),
 			MinReadySeconds: 0,
 			Selector: metav1.LabelSelector{
 				MatchLabels: labels,
@@ -612,7 +612,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 						Name:       "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("data-secret-name"),
+						DataSecretName: ptr.To("data-secret-name"),
 					},
 					Version: &version,
 				},

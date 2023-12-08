@@ -37,7 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -177,7 +177,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			flavor = *input.Flavor
 		}
 
-		controlPlaneMachineCount := pointer.Int64(1)
+		controlPlaneMachineCount := ptr.To[int64](1)
 		if input.ControlPlaneMachineCount != nil {
 			controlPlaneMachineCount = input.ControlPlaneMachineCount
 		}
@@ -186,10 +186,10 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			controlPlaneMachineCountStr := input.E2EConfig.GetVariable(scaleControlPlaneMachineCount)
 			controlPlaneMachineCountInt, err := strconv.Atoi(controlPlaneMachineCountStr)
 			Expect(err).ToNot(HaveOccurred())
-			controlPlaneMachineCount = pointer.Int64(int64(controlPlaneMachineCountInt))
+			controlPlaneMachineCount = ptr.To[int64](int64(controlPlaneMachineCountInt))
 		}
 
-		workerMachineCount := pointer.Int64(1)
+		workerMachineCount := ptr.To[int64](1)
 		if input.WorkerMachineCount != nil {
 			workerMachineCount = input.WorkerMachineCount
 		}
@@ -198,10 +198,10 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			workerMachineCountStr := input.E2EConfig.GetVariable(scaleWorkerMachineCount)
 			workerMachineCountInt, err := strconv.Atoi(workerMachineCountStr)
 			Expect(err).ToNot(HaveOccurred())
-			workerMachineCount = pointer.Int64(int64(workerMachineCountInt))
+			workerMachineCount = ptr.To[int64](int64(workerMachineCountInt))
 		}
 
-		machineDeploymentCount := pointer.Int64(1)
+		machineDeploymentCount := ptr.To[int64](1)
 		if input.MachineDeploymentCount != nil {
 			machineDeploymentCount = input.MachineDeploymentCount
 		}
@@ -210,7 +210,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			machineDeploymentCountStr := input.E2EConfig.GetVariable(scaleMachineDeploymentCount)
 			machineDeploymentCountInt, err := strconv.Atoi(machineDeploymentCountStr)
 			Expect(err).ToNot(HaveOccurred())
-			machineDeploymentCount = pointer.Int64(int64(machineDeploymentCountInt))
+			machineDeploymentCount = ptr.To[int64](int64(machineDeploymentCountInt))
 		}
 
 		clusterCount := int64(10)

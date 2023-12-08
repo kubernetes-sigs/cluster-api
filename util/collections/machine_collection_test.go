@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -86,51 +86,51 @@ func TestMachinesLowestVersion(t *testing.T) {
 			machines: func() collections.Machines {
 				machines := collections.New()
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-1"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.20"),
+					Version: ptr.To("1.20"),
 				}})
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-2"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.19.8"),
+					Version: ptr.To("1.19.8"),
 				}})
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String(""),
+					Version: ptr.To(""),
 				}})
 				return machines
 			}(),
-			expected: pointer.String("1.19.8"),
+			expected: ptr.To("1.19.8"),
 		},
 		{
 			name: "return lowest version from machines with pre release versions",
 			machines: func() collections.Machines {
 				machines := collections.New()
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-1"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.20.1"),
+					Version: ptr.To("1.20.1"),
 				}})
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-2"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.20.1-alpha.1"),
+					Version: ptr.To("1.20.1-alpha.1"),
 				}})
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String(""),
+					Version: ptr.To(""),
 				}})
 				return machines
 			}(),
-			expected: pointer.String("1.20.1-alpha.1"),
+			expected: ptr.To("1.20.1-alpha.1"),
 		},
 		{
 			name: "return lowest version from machines with build identifier versions",
 			machines: func() collections.Machines {
 				machines := collections.New()
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-1"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.20.1+xyz.2"),
+					Version: ptr.To("1.20.1+xyz.2"),
 				}})
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-2"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.20.1+xyz.1"),
+					Version: ptr.To("1.20.1+xyz.1"),
 				}})
 				machines.Insert(&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-3"}, Spec: clusterv1.MachineSpec{
-					Version: pointer.String(""),
+					Version: ptr.To(""),
 				}})
 				return machines
 			}(),
-			expected: pointer.String("1.20.1+xyz.1"),
+			expected: ptr.To("1.20.1+xyz.1"),
 		},
 	}
 

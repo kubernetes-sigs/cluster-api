@@ -30,7 +30,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -271,7 +271,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	if machinePool.Spec.Replicas == nil {
-		machinePool.Spec.Replicas = pointer.Int32(1)
+		machinePool.Spec.Replicas = ptr.To[int32](1)
 	}
 
 	// First, reconcile the Docker containers, but do not delete any as we need to delete the Machine to ensure node cordon/drain.

@@ -25,7 +25,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -412,7 +412,7 @@ func TestControlPlane(t *testing.T) {
 		{
 			name: "Should calculate ControlPlane variables",
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 			},
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithReplicas(3).
@@ -450,7 +450,7 @@ func TestControlPlane(t *testing.T) {
 		{
 			name: "Should calculate ControlPlane variables with InfrastructureMachineTemplate",
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 			},
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithReplicas(3).
@@ -503,7 +503,7 @@ func TestMachineDeployment(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
 				Variables: &clusterv1.MachineDeploymentVariables{
@@ -553,7 +553,7 @@ func TestMachineDeployment(t *testing.T) {
 				"cpu":      true,
 			},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
 				Variables: &clusterv1.MachineDeploymentVariables{
@@ -615,7 +615,7 @@ func TestMachineDeployment(t *testing.T) {
 			forPatch:                    "patch1",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
 			},
@@ -686,7 +686,7 @@ func TestMachineDeployment(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
 				Variables: &clusterv1.MachineDeploymentVariables{
@@ -739,7 +739,7 @@ func TestMachineDeployment(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
 				Variables: &clusterv1.MachineDeploymentVariables{
@@ -790,7 +790,7 @@ func TestMachineDeployment(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
 				Class:    "md-class",
 				Variables: &clusterv1.MachineDeploymentVariables{
@@ -870,7 +870,7 @@ func TestMachinePool(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
 				Variables: &clusterv1.MachinePoolVariables{
@@ -920,7 +920,7 @@ func TestMachinePool(t *testing.T) {
 				"cpu":      true,
 			},
 			mpTopology: &clusterv1.MachinePoolTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
 				Variables: &clusterv1.MachinePoolVariables{
@@ -982,7 +982,7 @@ func TestMachinePool(t *testing.T) {
 			forPatch:                    "patch1",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mpTopology: &clusterv1.MachinePoolTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
 			},
@@ -1053,7 +1053,7 @@ func TestMachinePool(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
 				Variables: &clusterv1.MachinePoolVariables{
@@ -1106,7 +1106,7 @@ func TestMachinePool(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
 				Variables: &clusterv1.MachinePoolVariables{
@@ -1157,7 +1157,7 @@ func TestMachinePool(t *testing.T) {
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
-				Replicas: pointer.Int32(3),
+				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
 				Class:    "mp-class",
 				Variables: &clusterv1.MachinePoolVariables{

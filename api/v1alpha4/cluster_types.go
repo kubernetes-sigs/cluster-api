@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
@@ -422,7 +422,7 @@ func (in FailureDomains) FilterControlPlane() FailureDomains {
 func (in FailureDomains) GetIDs() []*string {
 	ids := make([]*string, 0, len(in))
 	for id := range in {
-		ids = append(ids, pointer.String(id))
+		ids = append(ids, ptr.To(id))
 	}
 	return ids
 }

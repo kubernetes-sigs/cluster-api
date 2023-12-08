@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -404,7 +404,7 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 	if options.ControlPlaneMachineCount == nil {
 		// Check if set through env variable and default to 1 otherwise
 		if v, err := c.configClient.Variables().Get("CONTROL_PLANE_MACHINE_COUNT"); err != nil {
-			options.ControlPlaneMachineCount = pointer.Int64(1)
+			options.ControlPlaneMachineCount = ptr.To[int64](1)
 		} else {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
@@ -422,7 +422,7 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 	if options.WorkerMachineCount == nil {
 		// Check if set through env variable and default to 0 otherwise
 		if v, err := c.configClient.Variables().Get("WORKER_MACHINE_COUNT"); err != nil {
-			options.WorkerMachineCount = pointer.Int64(0)
+			options.WorkerMachineCount = ptr.To[int64](0)
 		} else {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {

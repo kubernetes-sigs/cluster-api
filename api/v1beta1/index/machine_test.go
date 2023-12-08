@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -77,7 +77,7 @@ func TestIndexMachineByProviderID(t *testing.T) {
 			name: "Machine has invalid providerID",
 			object: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					ProviderID: pointer.String(""),
+					ProviderID: ptr.To(""),
 				},
 			},
 			expected: nil,
@@ -86,7 +86,7 @@ func TestIndexMachineByProviderID(t *testing.T) {
 			name: "Machine has valid providerID",
 			object: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					ProviderID: pointer.String(validProviderID),
+					ProviderID: ptr.To(validProviderID),
 				},
 			},
 			expected: []string{validProviderID},

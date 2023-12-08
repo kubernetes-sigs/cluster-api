@@ -24,7 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -68,7 +68,7 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 	if preReconcilePhase != cluster.Status.GetTypedPhase() {
 		// Failed clusters should get a Warning event
 		if cluster.Status.GetTypedPhase() == clusterv1.ClusterPhaseFailed {
-			r.recorder.Eventf(cluster, corev1.EventTypeWarning, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s: %s", cluster.Name, string(cluster.Status.GetTypedPhase()), pointer.StringDeref(cluster.Status.FailureMessage, "unknown"))
+			r.recorder.Eventf(cluster, corev1.EventTypeWarning, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s: %s", cluster.Name, string(cluster.Status.GetTypedPhase()), ptr.Deref(cluster.Status.FailureMessage, "unknown"))
 		} else {
 			r.recorder.Eventf(cluster, corev1.EventTypeNormal, string(cluster.Status.GetTypedPhase()), "Cluster %s is %s", cluster.Name, string(cluster.Status.GetTypedPhase()))
 		}
@@ -137,7 +137,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		cluster.Status.FailureReason = &clusterStatusError
 	}
 	if failureMessage != "" {
-		cluster.Status.FailureMessage = pointer.String(
+		cluster.Status.FailureMessage = ptr.To(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)

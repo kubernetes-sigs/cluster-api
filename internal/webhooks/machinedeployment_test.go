@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -43,7 +43,7 @@ func TestMachineDeploymentDefault(t *testing.T) {
 			ClusterName: "test-cluster",
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.19.10"),
+					Version: ptr.To("1.19.10"),
 				},
 			},
 		},
@@ -66,10 +66,10 @@ func TestMachineDeploymentDefault(t *testing.T) {
 
 	g.Expect(md.Labels[clusterv1.ClusterNameLabel]).To(Equal(md.Spec.ClusterName))
 
-	g.Expect(md.Spec.MinReadySeconds).To(Equal(pointer.Int32(0)))
-	g.Expect(md.Spec.Replicas).To(Equal(pointer.Int32(1)))
-	g.Expect(md.Spec.RevisionHistoryLimit).To(Equal(pointer.Int32(1)))
-	g.Expect(md.Spec.ProgressDeadlineSeconds).To(Equal(pointer.Int32(600)))
+	g.Expect(md.Spec.MinReadySeconds).To(Equal(ptr.To[int32](0)))
+	g.Expect(md.Spec.Replicas).To(Equal(ptr.To[int32](1)))
+	g.Expect(md.Spec.RevisionHistoryLimit).To(Equal(ptr.To[int32](1)))
+	g.Expect(md.Spec.ProgressDeadlineSeconds).To(Equal(ptr.To[int32](600)))
 	g.Expect(md.Spec.Strategy).ToNot(BeNil())
 
 	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.MachineDeploymentNameLabel, "test-md"))
@@ -97,7 +97,7 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			name: "if new MD has replicas set, keep that value",
 			newMD: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32(5),
+					Replicas: ptr.To[int32](5),
 				},
 			},
 			expectedReplicas: 5,
@@ -190,7 +190,7 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			},
 			oldMD: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32(1),
+					Replicas: ptr.To[int32](1),
 				},
 			},
 			expectedReplicas: 3,
@@ -207,7 +207,7 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			},
 			oldMD: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32(15),
+					Replicas: ptr.To[int32](15),
 				},
 			},
 			expectedReplicas: 7,
@@ -224,7 +224,7 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			},
 			oldMD: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32(4),
+					Replicas: ptr.To[int32](4),
 				},
 			},
 			expectedReplicas: 4,
@@ -467,7 +467,7 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 				Spec: clusterv1.MachineDeploymentSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: pointer.String(tt.version),
+							Version: ptr.To(tt.version),
 						},
 					},
 				},

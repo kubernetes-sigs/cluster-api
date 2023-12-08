@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
@@ -37,7 +37,7 @@ func TestMachineDefault(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
-			Version:   pointer.String("1.17.5"),
+			Version:   ptr.To("1.17.5"),
 		},
 	}
 
@@ -66,7 +66,7 @@ func TestMachineBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: pointer.String("test")},
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
 			expectErr: false,
 		},
 		{
@@ -261,7 +261,7 @@ func TestMachineVersionValidation(t *testing.T) {
 			m := &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					Version:   &tt.version,
-					Bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: pointer.String("test")},
+					Bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("test")},
 				},
 			}
 			webhook := &Machine{}

@@ -21,7 +21,7 @@ import (
 	"sort"
 
 	"k8s.io/klog/v2/klogr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -83,7 +83,7 @@ func PickFewest(failureDomains clusterv1.FailureDomains, machines collections.Ma
 		return nil
 	}
 	sort.Sort(aggregations)
-	return pointer.String(aggregations[0].id)
+	return ptr.To(aggregations[0].id)
 }
 
 func pick(failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {

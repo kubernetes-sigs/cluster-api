@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -141,8 +141,8 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 					{
 						Device:    "test-device",
 						Layout:    true,
-						Overwrite: pointer.Bool(false),
-						TableType: pointer.String("gpt"),
+						Overwrite: ptr.To(false),
+						TableType: ptr.To("gpt"),
 					},
 				},
 				Filesystems: []bootstrapv1.Filesystem{

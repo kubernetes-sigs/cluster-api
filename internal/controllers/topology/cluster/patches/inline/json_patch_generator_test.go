@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -66,7 +66,7 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/valueFrom/variable",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Variable: pointer.String("variableA"),
+									Variable: ptr.To("variableA"),
 								},
 							},
 							// .valueFrom.template using sprig functions
@@ -74,7 +74,7 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/valueFrom/template",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Template: pointer.String(`template {{ .variableB | lower | repeat 5 }}`),
+									Template: ptr.To(`template {{ .variableB | lower | repeat 5 }}`),
 								},
 							},
 							// template-specific variable takes precedent, if the same variable exists
@@ -83,7 +83,7 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/templatePrecedent",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Variable: pointer.String("variableC"),
+									Variable: ptr.To("variableC"),
 								},
 							},
 							// global builtin variable should work.
@@ -92,7 +92,7 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/builtinClusterName",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Variable: pointer.String("builtin.cluster.name"),
+									Variable: ptr.To("builtin.cluster.name"),
 								},
 							},
 							// template-specific builtin variable should work.
@@ -101,7 +101,7 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/builtinControlPlaneReplicas",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Variable: pointer.String("builtin.controlPlane.replicas"),
+									Variable: ptr.To("builtin.controlPlane.replicas"),
 								},
 							},
 							// test .builtin.controlPlane.machineTemplate.InfrastructureRef.name var.
@@ -109,7 +109,7 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/template/spec/files",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Template: pointer.String(`[{"contentFrom":{"secret":{"key":"control-plane-azure.json","name":"{{ .builtin.controlPlane.machineTemplate.infrastructureRef.name }}-azure-json"}}}]`),
+									Template: ptr.To(`[{"contentFrom":{"secret":{"key":"control-plane-azure.json","name":"{{ .builtin.controlPlane.machineTemplate.infrastructureRef.name }}-azure-json"}}}]`),
 								},
 							},
 						},
@@ -208,14 +208,14 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/cluster-name",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Variable: pointer.String("builtin.cluster.name"),
+									Variable: ptr.To("builtin.cluster.name"),
 								},
 							},
 							{
 								Op:   "replace",
 								Path: "/spec/template/spec/kubeadmConfigSpec/files",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Template: pointer.String(`
+									Template: ptr.To(`
 - contentFrom:
     secret:
       key: control-plane-azure.json
@@ -245,14 +245,14 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cluster-name",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Variable: pointer.String("builtin.cluster.name"),
+									Variable: ptr.To("builtin.cluster.name"),
 								},
 							},
 							{
 								Op:   "replace",
 								Path: "/spec/template/spec/files",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Template: pointer.String(`
+									Template: ptr.To(`
 [{
 	"contentFrom":{
 		"secret":{
@@ -281,14 +281,14 @@ func TestGenerate(t *testing.T) {
 								Op:   "replace",
 								Path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cluster-name",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Variable: pointer.String("builtin.cluster.name"),
+									Variable: ptr.To("builtin.cluster.name"),
 								},
 							},
 							{
 								Op:   "replace",
 								Path: "/spec/template/spec/files",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Template: pointer.String(`
+									Template: ptr.To(`
 [{
 	"contentFrom":{
 		"secret":{
@@ -1295,31 +1295,31 @@ func TestPatchIsEnabled(t *testing.T) {
 		},
 		{
 			name:      "Fail if template is invalid",
-			enabledIf: pointer.String(`{{ variable }}`), // . is missing
+			enabledIf: ptr.To(`{{ variable }}`), // . is missing
 			wantErr:   true,
 		},
 		// Hardcoded value.
 		{
 			name:      "Enabled if template is true ",
-			enabledIf: pointer.String(`true`),
+			enabledIf: ptr.To(`true`),
 			want:      true,
 		},
 		{
 			name: "Enabled if template is true (even with leading and trailing new line)",
-			enabledIf: pointer.String(`
+			enabledIf: ptr.To(`
 true
 `),
 			want: true,
 		},
 		{
 			name:      "Disabled if template is false",
-			enabledIf: pointer.String(`false`),
+			enabledIf: ptr.To(`false`),
 			want:      false,
 		},
 		// Boolean variable.
 		{
 			name:      "Enabled if simple template with boolean variable evaluates to true",
-			enabledIf: pointer.String(`{{ .httpProxyEnabled }}`),
+			enabledIf: ptr.To(`{{ .httpProxyEnabled }}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"httpProxyEnabled": {Raw: []byte(`true`)},
 			},
@@ -1327,7 +1327,7 @@ true
 		},
 		{
 			name: "Enabled if simple template with boolean variable evaluates to true (even with leading and trailing new line",
-			enabledIf: pointer.String(`
+			enabledIf: ptr.To(`
 {{ .httpProxyEnabled }}
 `),
 			variables: map[string]apiextensionsv1.JSON{
@@ -1337,7 +1337,7 @@ true
 		},
 		{
 			name:      "Disabled if simple template with boolean variable evaluates to false",
-			enabledIf: pointer.String(`{{ .httpProxyEnabled }}`),
+			enabledIf: ptr.To(`{{ .httpProxyEnabled }}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"httpProxyEnabled": {Raw: []byte(`false`)},
 			},
@@ -1347,7 +1347,7 @@ true
 		{
 			name: "Enabled if template with if evaluates to true",
 			// Else is not needed because we check if the result is equal to true.
-			enabledIf: pointer.String(`{{ if eq "v1.21.1" .builtin.cluster.topology.version }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if eq "v1.21.1" .builtin.cluster.topology.version }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
@@ -1355,7 +1355,7 @@ true
 		},
 		{
 			name:      "Disabled if template with if evaluates to false",
-			enabledIf: pointer.String(`{{ if eq "v1.21.2" .builtin.cluster.topology.version }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if eq "v1.21.2" .builtin.cluster.topology.version }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
@@ -1363,7 +1363,7 @@ true
 		},
 		{
 			name:      "Enabled if template with if/else evaluates to true",
-			enabledIf: pointer.String(`{{ if eq "v1.21.1" .builtin.cluster.topology.version }}true{{else}}false{{end}}`),
+			enabledIf: ptr.To(`{{ if eq "v1.21.1" .builtin.cluster.topology.version }}true{{else}}false{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
@@ -1371,7 +1371,7 @@ true
 		},
 		{
 			name:      "Disabled if template with if/else evaluates to false",
-			enabledIf: pointer.String(`{{ if eq "v1.21.2" .builtin.cluster.topology.version }}true{{else}}false{{end}}`),
+			enabledIf: ptr.To(`{{ if eq "v1.21.2" .builtin.cluster.topology.version }}true{{else}}false{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
@@ -1380,7 +1380,7 @@ true
 		// Render value with if to check if var is not empty.
 		{
 			name:      "Enabled if template which checks if variable is set evaluates to true",
-			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if .variableA }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"variableA": {Raw: []byte(`"abc"`)},
 			},
@@ -1388,7 +1388,7 @@ true
 		},
 		{
 			name:      "Disabled if template which checks if variable is set evaluates to false (variable empty)",
-			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if .variableA }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"variableA": {Raw: []byte(``)},
 			},
@@ -1396,7 +1396,7 @@ true
 		},
 		{
 			name:      "Disabled if template which checks if variable is set evaluates to false (variable empty string)",
-			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if .variableA }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"variableA": {Raw: []byte(`""`)},
 			},
@@ -1404,7 +1404,7 @@ true
 		},
 		{
 			name:      "Disabled if template which checks if variable is set evaluates to false (variable does not exist)",
-			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if .variableA }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"variableB": {Raw: []byte(``)},
 			},
@@ -1415,7 +1415,7 @@ true
 		// test mostly exists to visualize how user-defined object variables can be used.
 		{
 			name:      "Enabled if template with complex variable evaluates to true",
-			enabledIf: pointer.String(`{{ if .httpProxy.enabled }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if .httpProxy.enabled }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"httpProxy": {Raw: []byte(`{"enabled": true, "url": "localhost:3128", "noProxy": "internal.example.com"}`)},
 			},
@@ -1423,7 +1423,7 @@ true
 		},
 		{
 			name:      "Disabled if template with complex variable evaluates to false",
-			enabledIf: pointer.String(`{{ if .httpProxy.enabled }}true{{end}}`),
+			enabledIf: ptr.To(`{{ if .httpProxy.enabled }}true{{end}}`),
 			variables: map[string]apiextensionsv1.JSON{
 				"httpProxy": {Raw: []byte(`{"enabled": false, "url": "localhost:3128", "noProxy": "internal.example.com"}`)},
 			},
@@ -1464,7 +1464,7 @@ func TestCalculateValue(t *testing.T) {
 			patch: clusterv1.JSONPatch{
 				Value: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableA"),
+					Variable: ptr.To("variableA"),
 				},
 			},
 			wantErr: true,
@@ -1473,8 +1473,8 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable and .valueFrom.template are set",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableA"),
-					Template: pointer.String("template"),
+					Variable: ptr.To("variableA"),
+					Template: ptr.To("template"),
 				},
 			},
 			wantErr: true,
@@ -1497,7 +1497,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableA"),
+					Variable: ptr.To("variableA"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1509,7 +1509,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable is set but variable does not exist",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableA"),
+					Variable: ptr.To("variableA"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1521,7 +1521,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: builtinVariable int",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("builtin.controlPlane.replicas"),
+					Variable: ptr.To("builtin.controlPlane.replicas"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1533,7 +1533,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: builtinVariable string",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("builtin.cluster.topology.version"),
+					Variable: ptr.To("builtin.cluster.topology.version"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1545,7 +1545,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: variable 'builtin'",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("builtin"),
+					Variable: ptr.To("builtin"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1557,7 +1557,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: variable 'builtin.cluster'",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("builtin.cluster"),
+					Variable: ptr.To("builtin.cluster"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1569,7 +1569,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: variable 'builtin.cluster.topology'",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("builtin.cluster.topology"),
+					Variable: ptr.To("builtin.cluster.topology"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1582,7 +1582,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return rendered .valueFrom.template if set",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Template: pointer.String("{{ .variableA }}"),
+					Template: ptr.To("{{ .variableA }}"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1595,7 +1595,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: whole object",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject"),
+					Variable: ptr.To("variableObject"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1607,7 +1607,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested bool property",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.boolProperty"),
+					Variable: ptr.To("variableObject.boolProperty"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1619,7 +1619,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested integer property",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.integerProperty"),
+					Variable: ptr.To("variableObject.integerProperty"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1631,7 +1631,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested string property",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.enumProperty"),
+					Variable: ptr.To("variableObject.enumProperty"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1643,7 +1643,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable object variable does not exist",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.enumProperty"),
+					Variable: ptr.To("variableObject.enumProperty"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1655,7 +1655,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable nested object property does not exist",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.nonExistingProperty"),
+					Variable: ptr.To("variableObject.nonExistingProperty"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1668,7 +1668,7 @@ func TestCalculateValue(t *testing.T) {
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
 					// NOTE: it's not possible to access a property of an array element without index.
-					Variable: pointer.String("variableObject.nonExistingProperty"),
+					Variable: ptr.To("variableObject.nonExistingProperty"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1681,7 +1681,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested object property top-level",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject"),
+					Variable: ptr.To("variableObject"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1693,7 +1693,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested object property firstLevel",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.firstLevel"),
+					Variable: ptr.To("variableObject.firstLevel"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1705,7 +1705,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested object property secondLevel",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.firstLevel.secondLevel"),
+					Variable: ptr.To("variableObject.firstLevel.secondLevel"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1717,7 +1717,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested object property leaf",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableObject.firstLevel.secondLevel.leaf"),
+					Variable: ptr.To("variableObject.firstLevel.secondLevel.leaf"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1730,7 +1730,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: array",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray"),
+					Variable: ptr.To("variableArray"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1742,7 +1742,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: array element",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray[0]"),
+					Variable: ptr.To("variableArray[0]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1754,7 +1754,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested array",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel"),
+					Variable: ptr.To("variableArray.firstLevel"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1766,7 +1766,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested array element",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel[1]"),
+					Variable: ptr.To("variableArray.firstLevel[1]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1778,7 +1778,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Should return .valueFrom.variable if set: nested field of nested array element",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel[1].secondLevel"),
+					Variable: ptr.To("variableArray.firstLevel[1].secondLevel"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1790,7 +1790,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable array path is invalid: only left delimiter",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel["),
+					Variable: ptr.To("variableArray.firstLevel["),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1802,7 +1802,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable array path is invalid: only right delimiter",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel]"),
+					Variable: ptr.To("variableArray.firstLevel]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1814,7 +1814,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable array path is invalid: no index",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel[]"),
+					Variable: ptr.To("variableArray.firstLevel[]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1826,7 +1826,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable array path is invalid: text index",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel[someText]"),
+					Variable: ptr.To("variableArray.firstLevel[someText]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1838,7 +1838,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable array path is invalid: negative index",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel[-1]"),
+					Variable: ptr.To("variableArray.firstLevel[-1]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1850,7 +1850,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable array path is invalid: index out of bounds",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel[1]"),
+					Variable: ptr.To("variableArray.firstLevel[1]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
@@ -1862,7 +1862,7 @@ func TestCalculateValue(t *testing.T) {
 			name: "Fails if .valueFrom.variable array path is invalid: variable is an object instead",
 			patch: clusterv1.JSONPatch{
 				ValueFrom: &clusterv1.JSONPatchValue{
-					Variable: pointer.String("variableArray.firstLevel[1]"),
+					Variable: ptr.To("variableArray.firstLevel[1]"),
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{

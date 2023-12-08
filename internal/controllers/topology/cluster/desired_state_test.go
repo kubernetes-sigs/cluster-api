@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -833,7 +833,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
 						Version: tt.topologyVersion,
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					}},
 					Current: &scope.ClusterState{
@@ -1220,7 +1220,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
 				Version: "v1.2.3",
 				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				},
 			}},
 			Current: &scope.ClusterState{
@@ -1515,7 +1515,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: pointer.String(version),
+						Version: ptr.To(version),
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToRef(workerBootstrapTemplate),
 						},
@@ -1629,7 +1629,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				name:                        "use machine deployment's spec.template.spec.version if one of the machine deployments is upgrading, concurrency limit reached",
 				upgradingMachineDeployments: []string{"upgrading-md1"},
 				upgradeConcurrency:          "1",
-				currentMDVersion:            pointer.String("v1.2.2"),
+				currentMDVersion:            ptr.To("v1.2.2"),
 				topologyVersion:             "v1.2.3",
 				expectedVersion:             "v1.2.2",
 			},
@@ -1637,7 +1637,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				name:                        "use cluster.spec.topology.version if one of the machine deployments is upgrading, concurrency limit not reached",
 				upgradingMachineDeployments: []string{"upgrading-md1"},
 				upgradeConcurrency:          "2",
-				currentMDVersion:            pointer.String("v1.2.2"),
+				currentMDVersion:            ptr.To("v1.2.2"),
 				topologyVersion:             "v1.2.3",
 				expectedVersion:             "v1.2.3",
 			},
@@ -1656,7 +1656,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				s.Blueprint = blueprint
 				s.Blueprint.Topology.Version = tt.topologyVersion
 				s.Blueprint.Topology.ControlPlane = clusterv1.ControlPlaneTopology{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				}
 				s.Blueprint.Topology.Workers = &clusterv1.WorkersTopology{}
 
@@ -1689,7 +1689,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				mdTopology := clusterv1.MachineDeploymentTopology{
 					Class:    "linux-worker",
 					Name:     "big-pool-of-machines",
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				}
 				s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
 				obj, err := computeMachineDeployment(ctx, s, mdTopology)
@@ -1906,7 +1906,7 @@ func TestComputeMachinePool(t *testing.T) {
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: pointer.String(version),
+						Version: ptr.To(version),
 						Bootstrap: clusterv1.Bootstrap{
 							ConfigRef: contract.ObjToRef(workerBootstrapConfig),
 						},
@@ -2015,7 +2015,7 @@ func TestComputeMachinePool(t *testing.T) {
 				name:                  "use machine pool's spec.template.spec.version if one of the machine pools is upgrading, concurrency limit reached",
 				upgradingMachinePools: []string{"upgrading-mp1"},
 				upgradeConcurrency:    "1",
-				currentMPVersion:      pointer.String("v1.2.2"),
+				currentMPVersion:      ptr.To("v1.2.2"),
 				topologyVersion:       "v1.2.3",
 				expectedVersion:       "v1.2.2",
 			},
@@ -2023,7 +2023,7 @@ func TestComputeMachinePool(t *testing.T) {
 				name:                  "use cluster.spec.topology.version if one of the machine pools is upgrading, concurrency limit not reached",
 				upgradingMachinePools: []string{"upgrading-mp1"},
 				upgradeConcurrency:    "2",
-				currentMPVersion:      pointer.String("v1.2.2"),
+				currentMPVersion:      ptr.To("v1.2.2"),
 				topologyVersion:       "v1.2.3",
 				expectedVersion:       "v1.2.3",
 			},
@@ -2042,7 +2042,7 @@ func TestComputeMachinePool(t *testing.T) {
 				s.Blueprint = blueprint
 				s.Blueprint.Topology.Version = tt.topologyVersion
 				s.Blueprint.Topology.ControlPlane = clusterv1.ControlPlaneTopology{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				}
 				s.Blueprint.Topology.Workers = &clusterv1.WorkersTopology{}
 
@@ -2073,7 +2073,7 @@ func TestComputeMachinePool(t *testing.T) {
 				mpTopology := clusterv1.MachinePoolTopology{
 					Class:    "linux-worker",
 					Name:     "big-pool-of-machines",
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				}
 				s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
 				obj, err := computeMachinePool(ctx, s, mpTopology)
@@ -2218,7 +2218,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
 					Version: tt.topologyVersion,
 					ControlPlane: clusterv1.ControlPlaneTopology{
-						Replicas: pointer.Int32(2),
+						Replicas: ptr.To[int32](2),
 					},
 					Workers: &clusterv1.WorkersTopology{},
 				}},
@@ -2396,7 +2396,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{Topology: &clusterv1.Topology{
 					Version: tt.topologyVersion,
 					ControlPlane: clusterv1.ControlPlaneTopology{
-						Replicas: pointer.Int32(2),
+						Replicas: ptr.To[int32](2),
 					},
 					Workers: &clusterv1.WorkersTopology{},
 				}},

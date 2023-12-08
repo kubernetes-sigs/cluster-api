@@ -22,7 +22,7 @@ import (
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -259,7 +259,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 		//   * This is because the patchHelper marshals before/after object to JSON to calculate a diff
 		//     and as the unavailableReplicas field is not a pointer, not set and 0 are both rendered as 0.
 		//     If before/after of the field is the same (i.e. 0), there is no diff and thus also no patch to set it to 0.
-		unavailableReplicas = pointer.Int64(0)
+		unavailableReplicas = ptr.To[int64](0)
 	}
 
 	// Control plane is still scaling if:

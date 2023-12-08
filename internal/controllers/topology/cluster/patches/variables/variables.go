@@ -23,7 +23,7 @@ import (
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -336,7 +336,7 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 		},
 	}
 	if md.Spec.Replicas != nil {
-		builtin.MachineDeployment.Replicas = pointer.Int64(int64(*md.Spec.Replicas))
+		builtin.MachineDeployment.Replicas = ptr.To[int64](int64(*md.Spec.Replicas))
 	}
 
 	if mdBootstrapTemplate != nil {
@@ -389,7 +389,7 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *expv1.MachinePoo
 		},
 	}
 	if mp.Spec.Replicas != nil {
-		builtin.MachinePool.Replicas = pointer.Int64(int64(*mp.Spec.Replicas))
+		builtin.MachinePool.Replicas = ptr.To[int64](int64(*mp.Spec.Replicas))
 	}
 
 	if mpBootstrapObject != nil {

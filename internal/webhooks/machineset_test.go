@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -40,7 +40,7 @@ func TestMachineSetDefault(t *testing.T) {
 		Spec: clusterv1.MachineSetSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.String("1.19.10"),
+					Version: ptr.To("1.19.10"),
 				},
 			},
 		},
@@ -75,7 +75,7 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 			name: "if new MS has replicas set, keep that value",
 			newMS: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32(5),
+					Replicas: ptr.To[int32](5),
 				},
 			},
 			expectedReplicas: 5,
@@ -168,7 +168,7 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 			},
 			oldMS: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32(1),
+					Replicas: ptr.To[int32](1),
 				},
 			},
 			expectedReplicas: 3,
@@ -185,7 +185,7 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 			},
 			oldMS: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32(15),
+					Replicas: ptr.To[int32](15),
 				},
 			},
 			expectedReplicas: 7,
@@ -202,7 +202,7 @@ func TestCalculateMachineSetReplicas(t *testing.T) {
 			},
 			oldMS: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32(4),
+					Replicas: ptr.To[int32](4),
 				},
 			},
 			expectedReplicas: 4,
@@ -390,7 +390,7 @@ func TestMachineSetVersionValidation(t *testing.T) {
 				Spec: clusterv1.MachineSetSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-							Version: pointer.String(tt.version),
+							Version: ptr.To(tt.version),
 						},
 					},
 				},

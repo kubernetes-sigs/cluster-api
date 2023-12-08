@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -52,7 +52,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -71,7 +71,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Finalizers: []string{"some-other-finalizer"},
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -147,7 +147,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas:    pointer.Int32(1),
+			Replicas:    ptr.To[int32](1),
 			ClusterName: "invalid",
 		},
 	}
@@ -158,7 +158,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -179,7 +179,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			},
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -313,7 +313,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Spec: expv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
 					ProviderIDList: []string{"test://id-1"},
-					Replicas:       pointer.Int32(1),
+					Replicas:       ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 
@@ -322,7 +322,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
 					},
 				},
@@ -350,7 +350,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Spec: expv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
 					ProviderIDList: []string{"test://id-1"},
-					Replicas:       pointer.Int32(1),
+					Replicas:       ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: corev1.ObjectReference{
@@ -358,7 +358,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
 					},
 				},
@@ -389,7 +389,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				},
 				Spec: expv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
-					Replicas:    pointer.Int32(1),
+					Replicas:    ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: corev1.ObjectReference{
@@ -397,7 +397,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
 					},
 				},
@@ -474,7 +474,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
-			Replicas:    pointer.Int32(1),
+			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -577,7 +577,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
-			Replicas:    pointer.Int32(1),
+			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -585,7 +585,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 			},
 		},
@@ -654,7 +654,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
-			Replicas:    pointer.Int32(2),
+			Replicas:    ptr.To[int32](2),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{

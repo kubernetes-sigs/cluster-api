@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -334,9 +334,9 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 	desiredMS.Spec.Template.Annotations = cloneStringMap(deployment.Spec.Template.Annotations)
 
 	// Set all other in-place mutable fields.
-	desiredMS.Spec.MinReadySeconds = pointer.Int32Deref(deployment.Spec.MinReadySeconds, 0)
+	desiredMS.Spec.MinReadySeconds = ptr.Deref(deployment.Spec.MinReadySeconds, 0)
 	if deployment.Spec.Strategy != nil && deployment.Spec.Strategy.RollingUpdate != nil {
-		desiredMS.Spec.DeletePolicy = pointer.StringDeref(deployment.Spec.Strategy.RollingUpdate.DeletePolicy, "")
+		desiredMS.Spec.DeletePolicy = ptr.Deref(deployment.Spec.Strategy.RollingUpdate.DeletePolicy, "")
 	} else {
 		desiredMS.Spec.DeletePolicy = ""
 	}

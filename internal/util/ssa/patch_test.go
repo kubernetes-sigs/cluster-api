@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -106,10 +106,10 @@ func TestPatch(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName:      "cluster-1",
-				Version:          pointer.String("v1.25.0"),
+				Version:          ptr.To("v1.25.0"),
 				NodeDrainTimeout: &metav1.Duration{Duration: 10 * time.Second},
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: pointer.String("data-secret"),
+					DataSecretName: ptr.To("data-secret"),
 				},
 			},
 		}

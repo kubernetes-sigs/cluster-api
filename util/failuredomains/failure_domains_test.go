@@ -20,15 +20,15 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
 func TestNewFailureDomainPicker(t *testing.T) {
-	a := pointer.String("us-west-1a")
-	b := pointer.String("us-west-1b")
+	a := ptr.To("us-west-1a")
+	b := ptr.To("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
 		*a: clusterv1.FailureDomainSpec{},
@@ -98,8 +98,8 @@ func TestNewFailureDomainPicker(t *testing.T) {
 }
 
 func TestNewFailureDomainPickMost(t *testing.T) {
-	a := pointer.String("us-west-1a")
-	b := pointer.String("us-west-1b")
+	a := ptr.To("us-west-1a")
+	b := ptr.To("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
 		*a: clusterv1.FailureDomainSpec{ControlPlane: true},

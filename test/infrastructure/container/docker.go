@@ -38,7 +38,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
@@ -406,7 +406,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		Tmpfs:         runConfig.Tmpfs,
 		PortBindings:  nat.PortMap{},
 		RestartPolicy: dockercontainer.RestartPolicy{Name: restartPolicy, MaximumRetryCount: restartMaximumRetryCount},
-		Init:          pointer.Bool(false),
+		Init:          ptr.To(false),
 	}
 	networkConfig := network.NetworkingConfig{}
 

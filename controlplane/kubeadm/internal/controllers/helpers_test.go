@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -525,7 +525,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 	t.Run("should return the correct Machine object when creating a new Machine", func(t *testing.T) {
 		g := NewWithT(t)
 
-		failureDomain := pointer.String("fd1")
+		failureDomain := ptr.To("fd1")
 		createdMachine, err := (&KubeadmControlPlaneReconciler{}).computeDesiredMachine(
 			kcp, cluster,
 			infraRef, bootstrapRef,
@@ -535,7 +535,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 
 		expectedMachineSpec := clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
-			Version:     pointer.String(kcp.Spec.Version),
+			Version:     ptr.To(kcp.Spec.Version),
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,
 			},
@@ -583,8 +583,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 		// to verify that for an existing machine we do not override this information.
 		existingClusterConfigurationString := "existing-cluster-configuration-information"
 		remediationData := "remediation-data"
-		failureDomain := pointer.String("fd-1")
-		machineVersion := pointer.String("v1.25.3")
+		failureDomain := ptr.To("fd-1")
+		machineVersion := ptr.To("v1.25.3")
 		existingMachine := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: machineName,
@@ -712,8 +712,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 		UID:                "5",
 		Kind:               "OtherController",
 		APIVersion:         clusterv1.GroupVersion.String(),
-		Controller:         pointer.Bool(true),
-		BlockOwnerDeletion: pointer.Bool(true),
+		Controller:         ptr.To(true),
+		BlockOwnerDeletion: ptr.To(true),
 	}
 
 	// A KubeadmConfig secret created by CAPI controllers with no owner references.
@@ -761,8 +761,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 				UID:                kcp.UID,
 				Kind:               kcp.Kind,
 				APIVersion:         kcp.APIVersion,
-				Controller:         pointer.Bool(true),
-				BlockOwnerDeletion: pointer.Bool(true),
+				Controller:         ptr.To(true),
+				BlockOwnerDeletion: ptr.To(true),
 			},
 		},
 		{
@@ -773,8 +773,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 				UID:                kcp.UID,
 				Kind:               kcp.Kind,
 				APIVersion:         kcp.APIVersion,
-				Controller:         pointer.Bool(true),
-				BlockOwnerDeletion: pointer.Bool(true),
+				Controller:         ptr.To(true),
+				BlockOwnerDeletion: ptr.To(true),
 			},
 		},
 		{

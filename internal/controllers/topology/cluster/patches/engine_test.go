@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -406,8 +406,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-infrastructureCluster"),
-						ValidateExtension: pointer.String("validate-infrastructureCluster"),
+						GenerateExtension: ptr.To("patch-infrastructureCluster"),
+						ValidateExtension: ptr.To("validate-infrastructureCluster"),
 					},
 				},
 			},
@@ -442,8 +442,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-infrastructureCluster"),
-						ValidateExtension: pointer.String("validate-infrastructureCluster"),
+						GenerateExtension: ptr.To("patch-infrastructureCluster"),
+						ValidateExtension: ptr.To("validate-infrastructureCluster"),
 					},
 				},
 			},
@@ -475,13 +475,13 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-infrastructureCluster"),
+						GenerateExtension: ptr.To("patch-infrastructureCluster"),
 					},
 				},
 				{
 					Name: "fake-patch2",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-controlPlane"),
+						GenerateExtension: ptr.To("patch-controlPlane"),
 					},
 				},
 			},
@@ -545,7 +545,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/clusterName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.cluster.name"),
+										Variable: ptr.To("builtin.cluster.name"),
 									},
 								},
 							},
@@ -563,7 +563,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.controlPlane.name"),
+										Variable: ptr.To("builtin.controlPlane.name"),
 									},
 								},
 							},
@@ -581,7 +581,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.controlPlane.name"),
+										Variable: ptr.To("builtin.controlPlane.name"),
 									},
 								},
 							},
@@ -601,7 +601,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machineDeploymentTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.machineDeployment.topologyName"),
+										Variable: ptr.To("builtin.machineDeployment.topologyName"),
 									},
 								},
 							},
@@ -621,7 +621,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machineDeploymentTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.machineDeployment.topologyName"),
+										Variable: ptr.To("builtin.machineDeployment.topologyName"),
 									},
 								},
 							},
@@ -641,7 +641,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machinePoolTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.machinePool.topologyName"),
+										Variable: ptr.To("builtin.machinePool.topologyName"),
 									},
 								},
 							},
@@ -661,7 +661,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machinePoolTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.machinePool.topologyName"),
+										Variable: ptr.To("builtin.machinePool.topologyName"),
 									},
 								},
 							},
@@ -746,7 +746,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("infraCluster"),
+										Variable: ptr.To("infraCluster"),
 									},
 								},
 							},
@@ -766,7 +766,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("default-worker-infra"),
+										Variable: ptr.To("default-worker-infra"),
 									},
 								},
 							},
@@ -786,7 +786,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("default-worker-infra"),
+										Variable: ptr.To("default-worker-infra"),
 									},
 								},
 							},
@@ -806,7 +806,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("default-mp-worker-infra"),
+										Variable: ptr.To("default-mp-worker-infra"),
 									},
 								},
 							},
@@ -826,7 +826,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("default-mp-worker-infra"),
+										Variable: ptr.To("default-mp-worker-infra"),
 									},
 								},
 							},
@@ -1027,7 +1027,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		Spec: clusterv1.ClusterSpec{
 			Paused: false,
 			ClusterNetwork: &clusterv1.ClusterNetwork{
-				APIServerPort: pointer.Int32(8),
+				APIServerPort: ptr.To[int32](8),
 				Services: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"10.10.10.1/24"},
 				},
@@ -1042,7 +1042,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				Version: "v1.21.2",
 				Class:   clusterClass.Name,
 				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: pointer.Int32(3),
+					Replicas: ptr.To[int32](3),
 				},
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -1089,7 +1089,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Metadata: clusterv1.ObjectMeta{},
 							Class:    "default-worker",
 							Name:     "default-worker-topo2",
-							Replicas: pointer.Int32(5),
+							Replicas: ptr.To[int32](5),
 						},
 					},
 					MachinePools: []clusterv1.MachinePoolTopology{
@@ -1111,7 +1111,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Metadata: clusterv1.ObjectMeta{},
 							Class:    "default-mp-worker",
 							Name:     "default-mp-worker-topo2",
-							Replicas: pointer.Int32(5),
+							Replicas: ptr.To[int32](5),
 						},
 					},
 				},

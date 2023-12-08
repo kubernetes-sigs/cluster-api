@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -108,12 +108,12 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 			flavor = *input.Flavor
 		}
 
-		controlPlaneMachineCount := pointer.Int64(1)
+		controlPlaneMachineCount := ptr.To[int64](1)
 		if input.ControlPlaneMachineCount != nil {
 			controlPlaneMachineCount = input.ControlPlaneMachineCount
 		}
 
-		workerMachineCount := pointer.Int64(1)
+		workerMachineCount := ptr.To[int64](1)
 		if input.WorkerMachineCount != nil {
 			workerMachineCount = input.WorkerMachineCount
 		}

@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -182,7 +182,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version:   pointer.String("v1.26.2"),
+								Version:   ptr.To("v1.26.2"),
 								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{Kind: "KubeadmConfigTemplate"}},
 							},
 						},
@@ -241,7 +241,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.27.0.0"),
+								Version: ptr.To("v1.27.0.0"),
 							},
 						},
 					},
@@ -266,7 +266,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.27.0"),
+								Version: ptr.To("v1.27.0"),
 							},
 						},
 					},
@@ -291,7 +291,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.24.0"),
+								Version: ptr.To("v1.24.0"),
 							},
 						},
 					},
@@ -316,7 +316,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.23.0"),
+								Version: ptr.To("v1.23.0"),
 							},
 						},
 					},
@@ -344,7 +344,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.27.0"),
+								Version: ptr.To("v1.27.0"),
 							},
 						},
 					},
@@ -369,7 +369,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.25.0"),
+								Version: ptr.To("v1.25.0"),
 							},
 						},
 					},
@@ -394,7 +394,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.24.0"),
+								Version: ptr.To("v1.24.0"),
 							},
 						},
 					},
@@ -419,7 +419,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.25.5"),
+								Version: ptr.To("v1.25.5"),
 								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
 									APIVersion: bootstrapv1.GroupVersion.String(),
 									Kind:       "KubeadmConfigTemplate",
@@ -448,7 +448,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.25.0"),
+								Version: ptr.To("v1.25.0"),
 							},
 						},
 					},
@@ -476,7 +476,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.25.0"),
+								Version: ptr.To("v1.25.0"),
 								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
 									APIVersion: bootstrapv1.GroupVersion.String(),
 									Kind:       "KubeadmConfigTemplate",
@@ -505,7 +505,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.26.2"),
+								Version: ptr.To("v1.26.2"),
 								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
 									APIVersion: bootstrapv1.GroupVersion.String(),
 									Kind:       "KubeadmConfigTemplate",
@@ -534,7 +534,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 					Spec: clusterv1.MachineSetSpec{
 						Template: clusterv1.MachineTemplateSpec{
 							Spec: clusterv1.MachineSpec{
-								Version: pointer.String("v1.26.2"),
+								Version: ptr.To("v1.26.2"),
 								Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
 									APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1/invalid",
 									Kind:       "KubeadmConfigTemplate",
@@ -590,7 +590,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 			Spec: clusterv1.MachineSetSpec{
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
-						Version: pointer.String("v1.26.0"),
+						Version: ptr.To("v1.26.0"),
 						Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{
 							APIVersion: bootstrapv1.GroupVersion.String(),
 							Kind:       "KubeadmConfigTemplate",

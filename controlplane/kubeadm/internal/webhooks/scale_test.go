@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -62,7 +62,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 				NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
 			},
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
 				Type: controlplanev1.RollingUpdateStrategyType,
 				RollingUpdate: &controlplanev1.RollingUpdate{
@@ -121,7 +121,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 				NTP: &bootstrapv1.NTP{
 					Servers: []string{"test-server-1", "test-server-2"},
-					Enabled: pointer.Bool(true),
+					Enabled: ptr.To(true),
 				},
 			},
 			Version: "v1.16.6",

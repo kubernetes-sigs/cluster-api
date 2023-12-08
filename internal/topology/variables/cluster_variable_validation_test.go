@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -47,7 +47,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:    "integer",
-									Minimum: pointer.Int64(1),
+									Minimum: ptr.To[int64](1),
 								},
 							},
 						},
@@ -62,7 +62,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:      "string",
-									MinLength: pointer.Int64(1),
+									MinLength: ptr.To[int64](1),
 								},
 							},
 						},
@@ -122,7 +122,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:    "integer",
-									Minimum: pointer.Int64(1),
+									Minimum: ptr.To[int64](1),
 								},
 							},
 						},
@@ -137,7 +137,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:      "string",
-									MinLength: pointer.Int64(1),
+									MinLength: ptr.To[int64](1),
 								},
 							},
 						},
@@ -167,7 +167,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:    "integer",
-									Minimum: pointer.Int64(1),
+									Minimum: ptr.To[int64](1),
 								},
 							},
 						},
@@ -182,7 +182,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:      "string",
-									MinLength: pointer.Int64(1),
+									MinLength: ptr.To[int64](1),
 								},
 							},
 						},
@@ -656,7 +656,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
-						Minimum: pointer.Int64(1),
+						Minimum: ptr.To[int64](1),
 					},
 				},
 			},
@@ -676,7 +676,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
-						Maximum: pointer.Int64(10),
+						Maximum: ptr.To[int64](10),
 					},
 				},
 			},
@@ -696,7 +696,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
-						Minimum: pointer.Int64(1),
+						Minimum: ptr.To[int64](1),
 					},
 				},
 			},
@@ -717,7 +717,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
-						Minimum: pointer.Int64(1),
+						Minimum: ptr.To[int64](1),
 					},
 				},
 			},
@@ -736,7 +736,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
-						MinLength: pointer.Int64(1),
+						MinLength: ptr.To[int64](1),
 					},
 				},
 			},
@@ -995,7 +995,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 							},
 							"integerProperty": {
 								Type:    "integer",
-								Minimum: pointer.Int64(1),
+								Minimum: ptr.To[int64](1),
 							},
 							"enumProperty": {
 								Type: "string",
@@ -1197,7 +1197,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 						Items: &clusterv1.JSONSchemaProps{
 							Type: "string",
 						},
-						MaxItems: pointer.Int64(3),
+						MaxItems: ptr.To[int64](3),
 					},
 				},
 			},
@@ -1220,7 +1220,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 						Items: &clusterv1.JSONSchemaProps{
 							Type: "string",
 						},
-						MinItems: pointer.Int64(3),
+						MinItems: ptr.To[int64](3),
 					},
 				},
 			},

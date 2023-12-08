@@ -44,6 +44,7 @@ import (
 const (
 	httpsScheme                    = "https"
 	githubDomain                   = "github.com"
+	githubHostPrefix               = "github."
 	githubReleaseRepository        = "releases"
 	githubLatestReleaseLabel       = "latest"
 	githubListReleasesPerPageLimit = 100
@@ -209,8 +210,8 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	}
 
 	// Check if the url is a github repository
-	if rURL.Scheme != httpsScheme || rURL.Host != githubDomain {
-		return nil, errors.New("invalid url: a GitHub repository url should start with https://github.com")
+	if rURL.Scheme != httpsScheme || strings.HasPrefix(rURL.Host, githubHostPrefix) {
+		return nil, errors.New("invalid url: a GitHub repository url should start with https://github.")
 	}
 
 	// Check if the path is in the expected format,
@@ -218,7 +219,7 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	urlSplit := strings.Split(strings.TrimPrefix(rURL.Path, "/"), "/")
 	if len(urlSplit) < 5 || urlSplit[2] != githubReleaseRepository {
 		return nil, errors.Errorf(
-			"invalid url: a GitHub repository url should be in the form https://github.com/{owner}/{Repository}/%s/{latest|version-tag}/{componentsClient.yaml}",
+			"invalid url: a GitHub repository url should be in the form https://{host}/{owner}/{Repository}/%s/{latest|version-tag}/{componentsClient.yaml}",
 			githubReleaseRepository,
 		)
 	}

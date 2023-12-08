@@ -71,6 +71,7 @@ type gitHubRepository struct {
 	providerConfig           config.Provider
 	configVariablesClient    config.VariablesClient
 	authenticatingHTTPClient *http.Client
+	host                     string
 	owner                    string
 	repository               string
 	defaultVersion           string
@@ -210,7 +211,7 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	}
 
 	// Check if the url is a github repository
-	if rURL.Scheme != httpsScheme || strings.HasPrefix(rURL.Host, githubHostPrefix) {
+	if rURL.Scheme != httpsScheme || !strings.HasPrefix(rURL.Host, githubHostPrefix) {
 		return nil, errors.New("invalid url: a GitHub repository url should start with https://github.")
 	}
 
@@ -238,6 +239,7 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	repo := &gitHubRepository{
 		providerConfig:        providerConfig,
 		configVariablesClient: configVariablesClient,
+		host:                  rURL.Host,
 		owner:                 owner,
 		repository:            repository,
 		defaultVersion:        defaultVersion,
@@ -275,6 +277,9 @@ func getComponentsPath(path string, rootPath string) string {
 func (g *gitHubRepository) getClient() *github.Client {
 	if g.injectClient != nil {
 		return g.injectClient
+	}
+	if g.host != githubDomain {
+		github.NewEnterpriseClient(fmt.Sprintf("https://%s/api/v3/", g.host), fmt.Sprintf("https://%s/api/uploads/", g.host), g.authenticatingHTTPClient)
 	}
 	return github.NewClient(g.authenticatingHTTPClient)
 }
@@ -404,7 +409,7 @@ func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*gi
 
 // httpGetFilesFromRelease gets a file from github using http get.
 func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version, fileName string) ([]byte, error) {
-	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", g.owner, g.repository, version, fileName)
+	downloadURL := fmt.Sprintf("https://%s/%s/%s/releases/download/%s/%s", g.host, g.owner, g.repository, version, fileName)
 	var retryError error
 	var content []byte
 	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {

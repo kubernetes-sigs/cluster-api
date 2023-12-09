@@ -106,7 +106,7 @@ func (g *gitHubRepository) DefaultVersion() string {
 func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 	log := logf.Log
 
-	cacheID := fmt.Sprintf("%s/%s", g.owner, g.repository)
+	cacheID := fmt.Sprintf("%s/%s/%s", g.host, g.owner, g.repository)
 	if versions, ok := cacheVersions[cacheID]; ok {
 		return versions, nil
 	}
@@ -119,7 +119,7 @@ func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 	var versions []string
 	if goProxyClient != nil {
 		// A goproxy is also able to handle the github repository path instead of the actual go module name.
-		gomodulePath := path.Join(githubDomain, g.owner, g.repository)
+		gomodulePath := path.Join(g.host, g.owner, g.repository)
 
 		var parsedVersions semver.Versions
 		parsedVersions, err = goProxyClient.GetVersions(ctx, gomodulePath)
@@ -160,7 +160,7 @@ func (g *gitHubRepository) ComponentsPath() string {
 func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([]byte, error) {
 	log := logf.Log
 
-	cacheID := fmt.Sprintf("%s/%s:%s:%s", g.owner, g.repository, version, path)
+	cacheID := fmt.Sprintf("%s/%s/%s:%s:%s", g.host, g.owner, g.repository, version, path)
 	if content, ok := cacheFiles[cacheID]; ok {
 		return content, nil
 	}
@@ -274,14 +274,15 @@ func getComponentsPath(path string, rootPath string) string {
 }
 
 // getClient returns a github API client.
-func (g *gitHubRepository) getClient() *github.Client {
+func (g *gitHubRepository) getClient() (*github.Client, error) {
 	if g.injectClient != nil {
-		return g.injectClient
+		return g.injectClient, nil
 	}
+	// If github is privately hosted, use the enterprise client constructor with default base and upload URLs
 	if g.host != githubDomain {
-		github.NewEnterpriseClient(fmt.Sprintf("https://%s/api/v3/", g.host), fmt.Sprintf("https://%s/api/uploads/", g.host), g.authenticatingHTTPClient)
+		return github.NewEnterpriseClient(fmt.Sprintf("https://%s/api/v3/", g.host), fmt.Sprintf("https://%s/api/uploads/", g.host), g.authenticatingHTTPClient)
 	}
-	return github.NewClient(g.authenticatingHTTPClient)
+	return github.NewClient(g.authenticatingHTTPClient), nil
 }
 
 // getGoproxyClient returns a go proxy client.
@@ -312,7 +313,10 @@ func (g *gitHubRepository) setClientToken(ctx context.Context, token string) {
 
 // getVersions returns all the release versions for a github repository.
 func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
-	client := g.getClient()
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// Get all the releases.
 	// NB. currently Github API does not support result ordering, so it not possible to limit results
@@ -372,12 +376,15 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 
 // getReleaseByTag returns the github repository release with a specific tag name.
 func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*github.RepositoryRelease, error) {
-	cacheID := fmt.Sprintf("%s/%s:%s", g.owner, g.repository, tag)
+	cacheID := fmt.Sprintf("%s/%s/%s:%s", g.host, g.owner, g.repository, tag)
 	if release, ok := cacheReleases[cacheID]; ok {
 		return release, nil
 	}
 
-	client := g.getClient()
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	var release *github.RepositoryRelease
 	var retryError error
@@ -442,8 +449,11 @@ func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version,
 
 // downloadFilesFromRelease download a file from release.
 func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release *github.RepositoryRelease, fileName string) ([]byte, error) {
-	client := g.getClient()
 	absoluteFileName := filepath.Join(g.rootPath, fileName)
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// Search for the file into the release assets, retrieving the asset id.
 	var assetID *int64

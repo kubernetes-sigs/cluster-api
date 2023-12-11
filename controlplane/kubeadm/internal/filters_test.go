@@ -104,6 +104,31 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		}
 		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
 	})
+	t.Run("Return true although the DNS fields are different", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						DNS: bootstrapv1.DNS{
+							ImageMeta: bootstrapv1.ImageMeta{
+								ImageTag:        "v1.10.1",
+								ImageRepository: "gcr.io/capi-test",
+							},
+						},
+					},
+				},
+			},
+		}
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.9.3\"}}",
+				},
+			},
+		}
+		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
+	})
 }
 
 func TestGetAdjustedKcpConfig(t *testing.T) {

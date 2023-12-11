@@ -24,25 +24,33 @@ status: implementable
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Glossary](#glossary)
-- [Summary](#summary)
-- [Motivation](#motivation)
-  - [Goals](#goals)
-  - [Non-Goals/Future Work](#non-goalsfuture-work)
-- [Proposal](#proposal)
-  - [User Stories](#user-stories)
-    - [Story U1](#story-u1)
-    - [Story U2](#story-u2)
-    - [Story U3](#story-u3)
-  - [Requirements](#requirements)
-  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-  - [Risks and Mitigations](#risks-and-mitigations)
-- [Alternatives](#alternatives)
-- [Upgrade Strategy](#upgrade-strategy)
-- [Additional Details](#additional-details)
-  - [clusterctl client](#clusterctl-client)
-  - [Graduation Criteria](#graduation-criteria)
-- [Implementation History](#implementation-history)
+- [MachinePool Machines](#machinepool-machines)
+	- [Table of Contents](#table-of-contents)
+	- [Glossary](#glossary)
+	- [Summary](#summary)
+	- [Motivation](#motivation)
+		- [Goals](#goals)
+		- [Non-Goals/Future Work](#non-goalsfuture-work)
+	- [Proposal](#proposal)
+		- [Enabling MachinePoolMachines](#enabling-machinepoolmachines)
+		- [InfraMachinePoolMachine creation](#inframachinepoolmachine-creation)
+		- [MachinePool Machine creation](#machinepool-machine-creation)
+		- [InfraMachinePoolMachine deletion](#inframachinepoolmachine-deletion)
+		- [Machine controller](#machine-controller)
+		- [User Stories](#user-stories)
+	- [| U3 | MachinePool Machine Rolling Updates |](#-u3--machinepool-machine-rolling-updates-)
+			- [Story U1](#story-u1)
+			- [Story U2](#story-u2)
+			- [Story U3](#story-u3)
+		- [Requirements](#requirements)
+		- [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+		- [Risks and Mitigations](#risks-and-mitigations)
+	- [Alternatives](#alternatives)
+	- [Upgrade Strategy](#upgrade-strategy)
+	- [Additional Details](#additional-details)
+		- [clusterctl client](#clusterctl-client)
+		- [Graduation Criteria](#graduation-criteria)
+	- [Implementation History](#implementation-history)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -87,36 +95,105 @@ As another example, currently each MachinePool infrastructure provider must impl
 
 ## Proposal
 
-To create MachinePool Machines, a MachinePool in CAPI needs information about the instances or replicas associated with the provider's implementation of the MachinePool. This information is attached to the provider's MachinePool infrastructure resource in new status fields `InfrastructureMachineSelector` and `InfrastructureMachineKind`. These fields should be populated by the infrastructure provider.
+
+### Enabling MachinePoolMachines
+
+To enable the MachinePool Machines feature, a MachinePool in CAPI needs to know the type of the instances or replicas associated with the provider's implementation of the MachinePool. This information is attached to the provider's MachinePool infrastructure resource in the new status field `InfrastructureMachineKind`. When this field is populated by the provider, it signals to the Cluster API MachinePool controller that this InfrastructureMachinePool is opted-in to support MachinePool Machines.
 
 ```golang
-// FooMachinePoolStatus defines the observed state of FooMachinePool.
-type FooMachinePoolStatus struct {
-	// InfrastructureMachineSelector is a label query over the infrastructure resources behind MachinePool Machines.
-	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
-	// +optional
-	InfrastructureMachineSelector metav1.LabelSelector `json:"infrastructureMachineSelector,omitempty"`
+// InfraMachinePoolStatus defines the observed state of an InfraMachinePool.
+type InfraMachinePoolStatus struct {
 	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
 	// +optional
 	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
 }
 ```
 
-These fields are an addition to the optional status fields of `InfrastructureMachinePool` in the [provider contract][].
+This field is in addition to the optional status fields of `InfrastructureMachinePool` in the [provider contract][].
 
-If the fields are populated, CAPI's MachinePool controller will query for the provider-specific infrastructure resources. That query uses the Selector and Kind fields with the API version of the \<Provider\>MachinePool, which is assumed to match the API version of the infrastructure resources.
+### InfraMachinePoolMachine creation
 
-Once found, CAPI will create and connect MachinePool Machines to each resource. A MachinePool Machine is implemented as a Cluster API Machine that is owned by a MachinePool, with its BootstrapRef omitted. CAPI's MachinePool controller will loop through the \<Provider\>MachinePoolMachines found by the Selector and if needed, create a Machine and set its infrastructure reference to the \<Provider\>MachinePoolMachine, while setting the \<Provider\>MachinePoolMachine's owner reference to the newly created Machine.
+Like before, the InfraMachinePool controller is still responsible for creating the provider specific resources behind each MachinePool instance. The difference now, is that the InfraMachinePool controller must ensure that a InfraMachinePoolMachine is created for each instance. The instances should be created such that each contains the `clusterv1.ClusterNameLabel` set to `cluster.Name` and the `clusterv1.MachinePoolNameLabel` set to `format.MustFormatValue(machinePool.Name)` to indicate to CAPI that these InfraMachinePoolMachines are associated with the given MachinePool. The InfraMachinePoolMachines should also contain an owner reference to the InfraMachinePool and look as follows:
 
-If the field is empty, "CAPI-only" MachinePool Machines will be created. They will contain only basic information and exist to make a more consistent user experience across all MachinePools and MachineDeployments. These machines will not be connected to any infrastructure resources and a user will be prevented from deleting them. CAPI's MachinePool controller will reconcile their count with its replica count.
+```golang
+infraMachinePoolMachine := &infrav1.InfraMachinePoolMachine{
+	ObjectMeta: metav1.ObjectMeta{
+		Namespace:   infraMachinePool.Namespace,
+		Name:        // ...,
+		Labels:      map[string]string{
+			clusterv1.ClusterNameLabel:     cluster.Name,
+			clusterv1.MachinePoolNameLabel: format.MustFormatValue(machinePool.Name),
+		},
+		Annotations: make(map[string]string),
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				APIVersion: infraMachinePool.APIVersion,
+				Kind:       infraMachinePool.Kind,
+				Name:       infraMachinePool.Name,
+				UID:        infraMachinePool.UID,
+			},
+			// Note: Since the MachinePool controller has not created its owner Machine yet, we want to set the InfraMachinePoool as the owner so it's not orphaned.
+		},
+	},
+	Spec: infrav1.DockerMachineSpec{
+		// ...
+	},
+}
+```
 
-It is the responsibility of each provider to populate `InfrastructureMachineSelector` and `InfrastructureMachineKind`, and to create provider-specific MachinePool Machine resources behind each Machine. For example, the Docker provider may reuse the existing DockerMachine resource to represent the container instance behind the Machine in the infrastructure provider's MachinePool. It will also ensure that the DockerMachine is labeled such that the `InfrastructureMachineSelector` can be used to find it.
+**Note:** Depending on the provider specific implementation of MachinePools, it might make sense to reuse the existing InfraMachine type for both normal Machines and MachinePool Machines rather than creating a new InfraMachinePoolMachine type. This is the case for Docker as there is no difference in implementation of the instances, but most providers will still want to use a new InfraMachinePoolMachine.
 
-![MachinePool Controller Infrastructure Reference Changed Sequence](images/machinepool-machines/infraref-changed-sequence.png)
+![InfraMachinePool scale up](images/machinepool-machines/inframachinepool-scale-up.png)
 
-When a MachinePool Machine is deleted manually, the system will delete the corresponding provider-specific resource. The opposite is also true: when a provider-specific resource is deleted, the system will delete the corresponding MachinePool Machine. This happens by virtue of the infrastructureRef <-> ownerRef relationship.
+### MachinePool Machine creation
 
-In both cases, the MachinePool will notice the missing replica and create a new one in order to maintain the desired number of replicas. To scale down by removing a specific instance, that Machine should be given the "cluster.x-k8s.io/delete-machine" annotation and then the replicaCount on the MachinePool should be decremented.
+The CAPI MachinePool controller is responsible for watching for the creation of InfraMachinePoolMachines and reacting by creating owner Machines for each InfraMachine. Each owner Machine will have its infrastructure reference pointing to the InfraMachinePoolMachine but will not have a bootstrap reference as the bootstrap object is shared among all instances. The MachinePool controller will also ensure each Machine has an owner reference to the MachinePool and replace it if the owner reference is removed. Similarly, Machine controller (not MachinePool) is also responsible for ensuring the the InfraMachinePoolMachine indicated by the infrastructure reference has a controller/owner reference to the Machine as well. The Machines will be created as similar to the following specification.
+
+```golang
+machine := &clusterv1.Machine{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", mp.Name)),
+		OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, mp.GroupVersionKind())},
+		Namespace:       mp.Namespace,
+		Labels:          make(map[string]string),
+		Annotations:     make(map[string]string),
+	},
+	Spec: clusterv1.MachineSpec{
+		ClusterName:       mp.Spec.ClusterName,
+		InfrastructureRef: corev1.ObjectReference{
+			APIVersion: infraMachine.GetAPIVersion(),
+			Kind:       infraMachine.GetKind(),
+			Name:       infraMachine.GetName(),
+			Namespace:  infraMachine.GetNamespace(),
+		},
+	},
+}
+```
+
+To reiterate, this behavior is already implemented by the MachinePool controller, and providers are not responsible for creating/updating these Machines.
+
+![MachinePool reconciliation](images/machinepool-machines/machinepool-reconcile.png)
+
+
+### InfraMachinePoolMachine deletion
+
+Unlike the creation flow, the InfraMachinePool is responsible for deleting both the InfraMachinePoolMachine and MachinePool Machines instead of the MachinePool controller.
+
+The InfraMachinePool will scale down when it is overprovisioned, meaning the total number of ready replicas is greater than the desired replica count and then select a replica to delete. If any replica has an associated Machine containing the `clusterv1.DeleteMachineAnnotation`, the InfraMachinePool should prioritize that replica for deletion first. When deleting a replica, the InfraMachinePool controller should delete the owner Machine instead of deleting the InfraMachinePoolMachine or replica directly. This is so that the Machine deletion flow will cordon and drain the node and trigger deletion of the InfraMachinePoolMachine via its infrastructure reference. The InfraMachinePoolMachine should then delete the provider specific instance associated with the replica.
+
+It is worth noting that when a MachinePool Machine is deleted manually, the Machine controller will delete the corresponding InfraMachinePoolMachine, and the InfraMachinePoolMachine will delete the provider-specific resource. On the other hand, if the provider specific instance backing a Machine and InfraMachinePoolMachine is deleted, the InfraMachinePool controller is responsible for deleting the "dangling" Machine and InfraMachinePoolMachine, and creating a new replica and InfraMachinePoolMachine to replace it.
+
+Additionally, the InfraMachinePool must support surging to ensure it does maintains the desired number of ready replicas during a rolling update similar to a MachineDeployment. However, a `MaxSurge` field is not required and the decision of whether or not to implement it is left up to the provider. For example, a simple implementation could be to simply always delete outdated InfraMachines when overprovisioned.
+
+![InfraMachinePool scale down](images/machinepool-machines/inframachinepool-scale-down.png)
+
+### Machine controller
+
+Once a MachinePool Machine is created, it is reconciled by the Machine controller. The Machine controller will fetch the InfraMachinePoolMachine in the Machine's infrastructure reference, and ensure the InfraMachinePoolMachine has an owner reference to the Machine. This is part of the existing behavior of the Machine controller.
+
+When a MachinePool Machine is being deleted, the Machine controller will cordon and drain the node, delete the InfraMachinePoolMachine, and delete the node. The InfraMachinePoolMachine will then delete the provider specific instance.
+
+![Machine reconcile](images/machinepool-machines/machinepool-machine-reconcile.png)
 
 ### User Stories
 

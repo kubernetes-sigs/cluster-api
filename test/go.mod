@@ -19,7 +19,7 @@ require (
 	github.com/prometheus/client_golang v1.17.0
 	github.com/spf13/pflag v1.0.5
 	github.com/vincent-petithory/dataurl v1.0.0
-	go.etcd.io/etcd/api/v3 v3.5.10
+	go.etcd.io/etcd/api/v3 v3.5.11
 	go.etcd.io/etcd/client/v3 v3.5.10
 	golang.org/x/net v0.19.0
 	google.golang.org/grpc v1.59.0

@@ -25,6 +25,7 @@ import (
 
 	"github.com/google/go-github/v53/github"
 	. "github.com/onsi/gomega"
+	"golang.org/x/oauth2"
 	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
@@ -137,6 +138,10 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 func Test_githubRepository_newGitHubRepository(t *testing.T) {
 	retryableOperationInterval = 200 * time.Millisecond
 	retryableOperationTimeout = 1 * time.Second
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: test.PrivateGithubToken},
+	)
+	authenticatingHTTPClient := oauth2.NewClient(context.Background(), ts)
 	type field struct {
 		providerConfig config.Provider
 		variableClient config.VariablesClient
@@ -168,16 +173,16 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "can create a new private GitHub repo",
+			name: "can create a new private GitHub repo with enterprise client",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.corp.co/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", fmt.Sprintf("https://%s/o/r1/releases/v0.4.1/path", test.PrivateGithubDomain), clusterctlv1.CoreProviderType),
 				variableClient: test.NewFakeVariableClient(),
 			},
 			want: &gitHubRepository{
-				providerConfig:           config.NewProvider("test", "https://github.corp.co/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig:           config.NewProvider("test", fmt.Sprintf("https://%s/o/r1/releases/v0.4.1/path", test.PrivateGithubDomain), clusterctlv1.CoreProviderType),
 				configVariablesClient:    test.NewFakeVariableClient(),
-				authenticatingHTTPClient: nil,
-				host:                     "github.corp.co",
+				authenticatingHTTPClient: authenticatingHTTPClient,
+				host:                     test.PrivateGithubDomain,
 				owner:                    "o",
 				repository:               "r1",
 				defaultVersion:           "v0.4.1",

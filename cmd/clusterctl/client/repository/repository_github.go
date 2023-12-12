@@ -43,7 +43,7 @@ import (
 
 const (
 	httpsScheme                    = "https"
-	githubDomain                   = "github.com"
+	publicGithubDomain             = "github.com"
 	githubHostPrefix               = "github."
 	githubReleaseRepository        = "releases"
 	githubLatestReleaseLabel       = "latest"
@@ -165,18 +165,23 @@ func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([
 		return content, nil
 	}
 
-	// Try to get the file using http get.
-	// NOTE: this can be disabled by setting GORPOXY to `direct` or `off` (same knobs used for skipping goproxy requests).
-	if goProxyClient, _ := g.getGoproxyClient(ctx); goProxyClient != nil {
-		files, err := g.httpGetFilesFromRelease(ctx, version, path)
-		if err != nil {
-			log.V(5).Info("error using httpGet to get file from GitHub releases, falling back to github client", "owner", g.owner, "repository", g.repository, "version", version, "path", path, "error", err)
-		} else {
-			cacheFiles[cacheID] = files
-			return files, nil
+	if g.host == publicGithubDomain {
+		// Try to get the file using http get.
+		// NOTE: this can be disabled by setting GORPOXY to `direct` or `off` (same knobs used for skipping goproxy requests).
+		if goProxyClient, _ := g.getGoproxyClient(ctx); goProxyClient != nil {
+			files, err := g.httpGetFilesFromRelease(ctx, version, path)
+			if err != nil {
+				log.V(5).Info("error using httpGet to get file from GitHub releases, falling back to github client", "owner", g.owner, "repository", g.repository, "version", version, "path", path, "error", err)
+			} else {
+				cacheFiles[cacheID] = files
+				return files, nil
+			}
 		}
+	} else {
+		// Do not attempt http get for private Github Enterprise domains since https access is likely disabled
+		// and an unauthorized http get will return contents of a redirect to the sign in page without an error
+		log.V(5).Info("Private Github Enterprise domain used, skipping httpGet and using github client", "host", g.host, "owner", g.owner, "repository", g.repository, "version", version, "path", path)
 	}
-
 	// If the http get request failed (or it is disabled) falls back on using the GITHUB api to download the file
 
 	release, err := g.getReleaseByTag(ctx, version)
@@ -252,7 +257,12 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 		o(repo)
 	}
 
-	if token, err := configVariablesClient.Get(config.GitHubTokenVariable); err == nil {
+	// NOTE: tokens for private Github Enterprise domains must be of the format, github-token-{host}
+	tokenKey := config.GitHubTokenVariable
+	if repo.host != publicGithubDomain {
+		tokenKey = fmt.Sprintf("%s-%s", config.GitHubTokenVariable, repo.host)
+	}
+	if token, err := configVariablesClient.Get(tokenKey); err == nil {
 		repo.setClientToken(ctx, token)
 	}
 
@@ -278,8 +288,7 @@ func (g *gitHubRepository) getClient() (*github.Client, error) {
 	if g.injectClient != nil {
 		return g.injectClient, nil
 	}
-	// If github is privately hosted, use the enterprise client constructor with default base and upload URLs
-	if g.host != githubDomain {
+	if g.host != publicGithubDomain {
 		return github.NewEnterpriseClient(fmt.Sprintf("https://%s/api/v3/", g.host), fmt.Sprintf("https://%s/api/uploads/", g.host), g.authenticatingHTTPClient)
 	}
 	return github.NewClient(g.authenticatingHTTPClient), nil

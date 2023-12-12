@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -555,7 +555,7 @@ func NewFakeInfrastructureTemplate(name string) *fakeinfrastructure.GenericInfra
 // - the DataSecretName contains the name of the static data secret.
 func NewStaticBootstrapConfig(name string) *clusterv1.Bootstrap {
 	return &clusterv1.Bootstrap{
-		DataSecretName: pointer.String(name + "-bootstrap-secret"),
+		DataSecretName: ptr.To(name + "-bootstrap-secret"),
 	}
 }
 

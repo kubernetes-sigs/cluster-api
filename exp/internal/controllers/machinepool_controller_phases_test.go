@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -70,7 +70,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: defaultCluster.Name,
-			Replicas:    pointer.Int32(1),
+			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -373,7 +373,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.ReadyReplicas = 1
 
 		// Scale up
-		machinepool.Spec.Replicas = pointer.Int32(5)
+		machinepool.Spec.Replicas = ptr.To[int32](5)
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseScalingUp))
@@ -404,7 +404,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(4), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		machinepool.Spec.Replicas = pointer.Int32(4)
+		machinepool.Spec.Replicas = ptr.To[int32](4)
 
 		// Set NodeRef.
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{
@@ -428,7 +428,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.ReadyReplicas = 4
 
 		// Scale down
-		machinepool.Spec.Replicas = pointer.Int32(1)
+		machinepool.Spec.Replicas = ptr.To[int32](1)
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseScalingDown))
@@ -647,7 +647,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
 								},
-								DataSecretName: pointer.String("data"),
+								DataSecretName: ptr.To("data"),
 							},
 						},
 					},
@@ -686,7 +686,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
-								DataSecretName: pointer.String("data"),
+								DataSecretName: ptr.To("data"),
 							},
 						},
 					},
@@ -730,7 +730,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
 								},
-								DataSecretName: pointer.String("data"),
+								DataSecretName: ptr.To("data"),
 							},
 						},
 					},
@@ -784,7 +784,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			},
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -863,7 +863,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32(1),
+					Replicas: ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
@@ -959,7 +959,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32(0),
+					Replicas: ptr.To[int32](0),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
@@ -1519,7 +1519,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		// Setup prerequisites - a running MachinePool with one instance and user sets Replicas to 0
 
 		// set replicas to 0
-		machinepool.Spec.Replicas = pointer.Int32(0)
+		machinepool.Spec.Replicas = ptr.To[int32](0)
 
 		// set nodeRefs to one instance
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
@@ -1580,7 +1580,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		// Setup prerequisites - a running MachinePool with one instance and user sets Replicas to 0
 
 		// set replicas to 0
-		machinepool.Spec.Replicas = pointer.Int32(0)
+		machinepool.Spec.Replicas = ptr.To[int32](0)
 
 		// set nodeRefs to one instance
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
@@ -1620,7 +1620,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		// Setup prerequisites - a running MachinePool with no instances and replicas set to 0
 
 		// set replicas to 0
-		machinepool.Spec.Replicas = pointer.Int32(0)
+		machinepool.Spec.Replicas = ptr.To[int32](0)
 
 		// set nodeRefs to no instance
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{}
@@ -1654,7 +1654,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		// Setup prerequisites - a running MachinePool with no instances and replicas set to 1
 
 		// set replicas to 1
-		machinepool.Spec.Replicas = pointer.Int32(1)
+		machinepool.Spec.Replicas = ptr.To[int32](1)
 
 		// set nodeRefs to no instance
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{}
@@ -1706,7 +1706,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		// Setup prerequisites - a running MachinePool with no refs but providerIDList and replicas set to 1
 
 		// set replicas to 1
-		machinepool.Spec.Replicas = pointer.Int32(1)
+		machinepool.Spec.Replicas = ptr.To[int32](1)
 
 		// set nodeRefs to no instance
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{}
@@ -1803,7 +1803,7 @@ func getMachinePool(replicas int, mpName, clusterName, nsName string) expv1.Mach
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: clusterName,
-			Replicas:    pointer.Int32(int32(replicas)),
+			Replicas:    ptr.To[int32](int32(replicas)),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: clusterName,

@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -129,8 +129,8 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64(1),
-				WorkerMachineCount:       pointer.Int64(1),
+				ControlPlaneMachineCount: ptr.To[int64](1),
+				WorkerMachineCount:       ptr.To[int64](1),
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -175,13 +175,13 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}        //nolint:gosec
 				topology.NodeDeletionTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}     //nolint:gosec
 				topology.NodeVolumeDetachTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second} //nolint:gosec
-				topology.MinReadySeconds = pointer.Int32(rand.Int31n(20))                                                 //nolint:gosec
+				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                                                 //nolint:gosec
 				topology.Strategy = &clusterv1.MachineDeploymentStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 						MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
 						MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 5 + rand.Int31n(20)}, //nolint:gosec
-						DeletePolicy:   pointer.String(string(clusterv1.NewestMachineSetDeletePolicy)),
+						DeletePolicy:   ptr.To(string(clusterv1.NewestMachineSetDeletePolicy)),
 					},
 				}
 			},
@@ -202,7 +202,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 				topology.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}        //nolint:gosec
 				topology.NodeDeletionTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second}     //nolint:gosec
 				topology.NodeVolumeDetachTimeout = &metav1.Duration{Duration: time.Duration(rand.Intn(20)) * time.Second} //nolint:gosec
-				topology.MinReadySeconds = pointer.Int32(rand.Int31n(20))                                                 //nolint:gosec
+				topology.MinReadySeconds = ptr.To[int32](rand.Int31n(20))                                                 //nolint:gosec
 			},
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})

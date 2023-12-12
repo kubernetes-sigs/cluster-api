@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -75,7 +75,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	cluster.Status.InfrastructureReady = true
 	kcp.UID = types.UID(util.RandomString(10))
 	kcp.Spec.KubeadmConfigSpec.ClusterConfiguration = nil
-	kcp.Spec.Replicas = pointer.Int32(1)
+	kcp.Spec.Replicas = ptr.To[int32](1)
 	setKCPHealthy(kcp)
 
 	r := &KubeadmControlPlaneReconciler{
@@ -186,7 +186,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 	cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com1"
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443
-	kcp.Spec.Replicas = pointer.Int32(3)
+	kcp.Spec.Replicas = ptr.To[int32](3)
 	kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
 	setKCPHealthy(kcp)
 

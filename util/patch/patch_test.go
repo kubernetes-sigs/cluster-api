@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -762,7 +762,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Replicas = pointer.Int32(10)
+			obj.Spec.Replicas = ptr.To[int32](10)
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
@@ -802,7 +802,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
-			obj.Spec.Replicas = pointer.Int32(10)
+			obj.Spec.Replicas = ptr.To[int32](10)
 
 			t.Log("Updating the object status")
 			obj.Status.AvailableReplicas = 6

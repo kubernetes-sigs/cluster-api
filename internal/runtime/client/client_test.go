@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -194,7 +194,7 @@ func TestClient_httpCall(t *testing.T) {
 				defer srv.Close()
 
 				// set url to srv for in tt.opts
-				tt.opts.config.URL = pointer.String(srv.URL)
+				tt.opts.config.URL = ptr.To(srv.URL)
 				tt.opts.config.CABundle = testcerts.CACert
 			}
 
@@ -257,7 +257,7 @@ func TestURLForExtension(t *testing.T) {
 					Service: &runtimev1.ServiceReference{
 						Namespace: "test1",
 						Name:      "extension-service",
-						Port:      pointer.Int32(8443),
+						Port:      ptr.To[int32](8443),
 					},
 				},
 				gvh:                  gvh,
@@ -277,7 +277,7 @@ func TestURLForExtension(t *testing.T) {
 					Service: &runtimev1.ServiceReference{
 						Namespace: "test1",
 						Name:      "extension-service",
-						Port:      pointer.Int32(8443),
+						Port:      ptr.To[int32](8443),
 					},
 					CABundle: []byte("some-ca-data"),
 				},
@@ -295,7 +295,7 @@ func TestURLForExtension(t *testing.T) {
 			name: "ClientConfig using URL should have correct URL values",
 			args: args{
 				config: runtimev1.ClientConfig{
-					URL: pointer.String("https://extension-host.com"),
+					URL: ptr.To("https://extension-host.com"),
 				},
 				gvh:                  gvh,
 				extensionHandlerName: "test-handler",
@@ -408,7 +408,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 					},
-					TimeoutSeconds: pointer.Int32(100),
+					TimeoutSeconds: ptr.To[int32](100),
 				}},
 			},
 			wantErr: true,
@@ -426,7 +426,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 					},
-					TimeoutSeconds: pointer.Int32(-1),
+					TimeoutSeconds: ptr.To[int32](-1),
 				}},
 			},
 			wantErr: true,
@@ -444,7 +444,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 					},
-					TimeoutSeconds: pointer.Int32(20),
+					TimeoutSeconds: ptr.To[int32](20),
 					FailurePolicy:  &invalidFailurePolicy,
 				}},
 			},
@@ -546,7 +546,7 @@ func TestClient_CallExtension(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      pointer.String("https://127.0.0.1/"),
+				URL:      ptr.To("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -559,7 +559,7 @@ func TestClient_CallExtension(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 			},
@@ -569,7 +569,7 @@ func TestClient_CallExtension(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      pointer.String("https://127.0.0.1/"),
+				URL:      ptr.To("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{}},
@@ -581,7 +581,7 @@ func TestClient_CallExtension(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpIgnore,
 				},
 			},
@@ -755,7 +755,7 @@ func TestClient_CallExtension(t *testing.T) {
 
 				// Set the URL to the real address of the test server.
 				for i := range tt.registeredExtensionConfigs {
-					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = pointer.String(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = ptr.To(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
 				}
 			}
 
@@ -884,7 +884,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      pointer.String("https://127.0.0.1/"),
+				URL:      ptr.To("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -897,7 +897,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 				{
@@ -906,7 +906,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 				{
@@ -915,7 +915,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 			},
@@ -1040,7 +1040,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 
 				// Set the URL to the real address of the test server.
 				for i := range tt.registeredExtensionConfigs {
-					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = pointer.String(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = ptr.To(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
 				}
 			}
 

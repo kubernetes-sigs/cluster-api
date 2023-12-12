@@ -34,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -816,7 +816,7 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 			{
 				Name: ns.Name + ".kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io",
 				ClientConfig: admissionv1.WebhookClientConfig{
-					URL:      pointer.String(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
+					URL:      ptr.To(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
 					CABundle: caBundle,
 				},
 				Rules: []admissionv1.RuleWithOperations{

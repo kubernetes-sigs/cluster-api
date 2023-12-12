@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -496,7 +496,7 @@ func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Dep
 		}
 
 		// Scale down.
-		deployment.Spec.Replicas = pointer.Int32(0)
+		deployment.Spec.Replicas = ptr.To[int32](0)
 		if err := c.Update(ctx, deployment); err != nil {
 			return errors.Wrapf(err, "failed to update Deployment/%s", deploy.GetName())
 		}

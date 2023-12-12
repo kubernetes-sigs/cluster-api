@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -156,7 +156,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		m.Status.FailureReason = &machineStatusError
 	}
 	if failureMessage != "" {
-		m.Status.FailureMessage = pointer.String(
+		m.Status.FailureMessage = ptr.To(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
@@ -230,7 +230,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	} else if secretName == "" {
 		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
-	m.Spec.Bootstrap.DataSecretName = pointer.String(secretName)
+	m.Spec.Bootstrap.DataSecretName = ptr.To(secretName)
 	if !m.Status.BootstrapReady {
 		log.Info("Bootstrap provider generated data secret and reports status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName))
 	}
@@ -255,7 +255,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		if m.Status.InfrastructureReady {
 			log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
 			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
-			m.Status.FailureMessage = pointer.String(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
+			m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
 			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeuing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 		}
@@ -315,10 +315,10 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	case err != nil:
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	default:
-		m.Spec.FailureDomain = pointer.String(failureDomain)
+		m.Spec.FailureDomain = ptr.To(failureDomain)
 	}
 
-	m.Spec.ProviderID = pointer.String(providerID)
+	m.Spec.ProviderID = ptr.To(providerID)
 	return ctrl.Result{}, nil
 }
 

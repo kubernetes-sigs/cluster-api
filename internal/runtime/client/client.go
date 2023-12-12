@@ -40,7 +40,7 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/transport"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -631,7 +631,7 @@ func defaultDiscoveryResponse(discovery *runtimehooksv1.DiscoveryResponse) *runt
 
 		// If TimeoutSeconds is not defined set to 10.
 		if handler.TimeoutSeconds == nil {
-			handler.TimeoutSeconds = pointer.Int32(runtimehooksv1.DefaultHandlersTimeoutSeconds)
+			handler.TimeoutSeconds = ptr.To[int32](runtimehooksv1.DefaultHandlersTimeoutSeconds)
 		}
 
 		discovery.Handlers[i] = handler

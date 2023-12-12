@@ -34,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -173,7 +173,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Int32(int32(replicas)),
+			Replicas: ptr.To[int32](int32(replicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "scale-up",
@@ -408,7 +408,7 @@ func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterP
 
 	tokenRequest := &authenticationv1.TokenRequest{
 		Spec: authenticationv1.TokenRequestSpec{
-			ExpirationSeconds: pointer.Int64(2 * 60 * 60), // 2 hours.
+			ExpirationSeconds: ptr.To[int64](2 * 60 * 60), // 2 hours.
 		},
 	}
 	tokenRequest, err := managementClusterProxy.GetClientSet().CoreV1().ServiceAccounts(namespace).CreateToken(ctx, name, tokenRequest, metav1.CreateOptions{})

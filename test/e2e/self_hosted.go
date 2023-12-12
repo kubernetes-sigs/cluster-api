@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -334,11 +334,11 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			)
 
 			if input.E2EConfig.HasVariable(CPMachineTemplateUpgradeTo) {
-				upgradeCPMachineTemplateTo = pointer.String(input.E2EConfig.GetVariable(CPMachineTemplateUpgradeTo))
+				upgradeCPMachineTemplateTo = ptr.To(input.E2EConfig.GetVariable(CPMachineTemplateUpgradeTo))
 			}
 
 			if input.E2EConfig.HasVariable(WorkersMachineTemplateUpgradeTo) {
-				upgradeWorkersMachineTemplateTo = pointer.String(input.E2EConfig.GetVariable(WorkersMachineTemplateUpgradeTo))
+				upgradeWorkersMachineTemplateTo = ptr.To(input.E2EConfig.GetVariable(WorkersMachineTemplateUpgradeTo))
 			}
 
 			framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{

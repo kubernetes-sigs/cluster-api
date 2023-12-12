@@ -32,7 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -169,12 +169,12 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   infrastructureProvider,
-				Flavor:                   pointer.StringDeref(input.Flavor, "upgrades"),
+				Flavor:                   ptr.Deref(input.Flavor, "upgrades"),
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
-				ControlPlaneMachineCount: pointer.Int64(controlPlaneMachineCount),
-				WorkerMachineCount:       pointer.Int64(workerMachineCount),
+				ControlPlaneMachineCount: ptr.To[int64](controlPlaneMachineCount),
+				WorkerMachineCount:       ptr.To[int64](workerMachineCount),
 			},
 			PreWaitForCluster: func() {
 				beforeClusterCreateTestHandler(ctx,

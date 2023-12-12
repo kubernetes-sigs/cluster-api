@@ -32,7 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -378,7 +378,7 @@ func fakeExtensionConfigForURL(namespace, name, url string) *runtimev1.Extension
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL: pointer.String(url),
+				URL: ptr.To(url),
 			},
 			NamespaceSelector: nil,
 		},

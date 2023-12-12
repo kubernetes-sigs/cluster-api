@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -733,7 +733,7 @@ func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploy
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             s.Current.Cluster.Name,
-					Version:                 pointer.String(version),
+					Version:                 ptr.To(version),
 					Bootstrap:               clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
 					InfrastructureRef:       *desiredInfraMachineTemplateRef,
 					FailureDomain:           failureDomain,
@@ -1082,7 +1082,7 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             s.Current.Cluster.Name,
-					Version:                 pointer.String(version),
+					Version:                 ptr.To(version),
 					Bootstrap:               clusterv1.Bootstrap{ConfigRef: desiredBootstrapConfigRef},
 					InfrastructureRef:       *desiredInfraMachinePoolRef,
 					NodeDrainTimeout:        nodeDrainTimeout,

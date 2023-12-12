@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -515,7 +515,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -545,7 +545,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -582,7 +582,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -619,7 +619,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -656,7 +656,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -693,7 +693,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -731,7 +731,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -769,7 +769,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -806,7 +806,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -843,7 +843,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -880,7 +880,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -917,7 +917,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -955,7 +955,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -993,7 +993,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},
@@ -1030,7 +1030,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
 						ControlPlane: clusterv1.ControlPlaneTopology{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 					},
 				},

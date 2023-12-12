@@ -38,7 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/klogr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -212,7 +212,7 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 	}, 10*time.Second).Should(Equal(generation))
 
 	// triggers a generation change by changing the spec
-	kcp.Spec.Replicas = pointer.Int32(*kcp.Spec.Replicas + 2)
+	kcp.Spec.Replicas = ptr.To[int32](*kcp.Spec.Replicas + 2)
 	g.Expect(env.Update(ctx, kcp)).To(Succeed())
 
 	// read kcp.Generation after the update
@@ -754,7 +754,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 								Kind:       "KubeadmConfig",
 							},
 						},
-						Version: pointer.String("v1.15.0"),
+						Version: ptr.To("v1.15.0"),
 					},
 				},
 			},
@@ -880,7 +880,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 					Kind:       "OtherController",
 					Name:       "name",
 					UID:        "uid",
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 				},
 			})
 
@@ -930,8 +930,8 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 					Kind:               "OtherController",
 					Name:               kcp.Name,
 					UID:                kcp.UID,
-					Controller:         pointer.Bool(true),
-					BlockOwnerDeletion: pointer.Bool(true),
+					Controller:         ptr.To(true),
+					BlockOwnerDeletion: ptr.To(true),
 				},
 			))
 
@@ -1497,7 +1497,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(env.Create(ctx, existingKubeadmConfig, client.FieldOwner("manager"))).To(Succeed())
 
 	// Existing Machine to validate in-place mutation
-	fd := pointer.String("fd1")
+	fd := ptr.To("fd1")
 	inPlaceMutatingMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
@@ -1523,9 +1523,9 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				ConfigRef: bootstrapRef,
 			},
 			InfrastructureRef:       *infraMachineRef,
-			Version:                 pointer.String("v1.25.3"),
+			Version:                 ptr.To("v1.25.3"),
 			FailureDomain:           fd,
-			ProviderID:              pointer.String("provider-id"),
+			ProviderID:              ptr.To("provider-id"),
 			NodeDrainTimeout:        duration5s,
 			NodeVolumeDetachTimeout: duration5s,
 			NodeDeletionTimeout:     duration5s,
@@ -1553,7 +1553,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				Namespace: namespace.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: pointer.String("machine-bootstrap-secret"),
+				DataSecretName: ptr.To("machine-bootstrap-secret"),
 			},
 		},
 	}
@@ -1587,7 +1587,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 				Namespace: namespace.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: pointer.String("machine-bootstrap-secret"),
+				DataSecretName: ptr.To("machine-bootstrap-secret"),
 			},
 		},
 	}
@@ -2355,7 +2355,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				},
 			},
-			Replicas: pointer.Int32(int32(3)),
+			Replicas: ptr.To[int32](int32(3)),
 			Version:  "v1.16.6",
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
 				Type: "RollingUpdate",

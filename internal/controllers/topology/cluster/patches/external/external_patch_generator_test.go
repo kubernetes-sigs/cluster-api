@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
@@ -53,7 +53,7 @@ func TestExternalPatchGenerator_Generate(t *testing.T) {
 				EnabledIf:   nil,
 				Definitions: nil,
 				External: &clusterv1.ExternalPatchDefinition{
-					GenerateExtension: pointer.String("test-generate-extension"),
+					GenerateExtension: ptr.To("test-generate-extension"),
 					Settings:          nil,
 				},
 			},
@@ -72,7 +72,7 @@ func TestExternalPatchGenerator_Generate(t *testing.T) {
 				EnabledIf:   nil,
 				Definitions: nil,
 				External: &clusterv1.ExternalPatchDefinition{
-					GenerateExtension: pointer.String("test-generate-extension"),
+					GenerateExtension: ptr.To("test-generate-extension"),
 					Settings: map[string]string{
 						"key1": "value1",
 					},

@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -2015,7 +2015,7 @@ func Test_createTargetObject(t *testing.T) {
 								APIVersion: "cluster.x-k8s.io/v1beta1",
 							},
 						}: {
-							Controller: pointer.Bool(true),
+							Controller: ptr.To(true),
 						},
 					},
 				},
@@ -2033,7 +2033,7 @@ func Test_createTargetObject(t *testing.T) {
 				}
 				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
 				g.Expect(c.OwnerReferences).To(HaveLen(1))
-				g.Expect(c.OwnerReferences[0].Controller).To(Equal(pointer.Bool(true)))
+				g.Expect(c.OwnerReferences[0].Controller).To(Equal(ptr.To(true)))
 			},
 		},
 		{

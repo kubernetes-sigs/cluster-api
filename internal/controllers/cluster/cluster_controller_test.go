@@ -24,7 +24,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -315,13 +315,13 @@ func TestClusterReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: cluster.Name,
-				ProviderID:  pointer.String("aws:///id-node-1"),
+				ProviderID:  ptr.To("aws:///id-node-1"),
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: pointer.String(""),
+					DataSecretName: ptr.To(""),
 				},
 			},
 		}
-		machine.Spec.Bootstrap.DataSecretName = pointer.String("test6-bootstrapdata")
+		machine.Spec.Bootstrap.DataSecretName = ptr.To("test6-bootstrapdata")
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 		defer func() {

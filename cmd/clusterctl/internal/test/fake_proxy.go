@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -203,7 +203,7 @@ func (f *FakeProxy) WithFakeCAPISetup() *FakeProxy {
 }
 
 func (f *FakeProxy) WithClusterAvailable(available bool) *FakeProxy {
-	f.available = pointer.Bool(available)
+	f.available = ptr.To(available)
 	return f
 }
 

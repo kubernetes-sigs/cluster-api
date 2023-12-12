@@ -44,7 +44,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kustomize/api/types"
 
@@ -75,22 +75,22 @@ var (
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
 	providers = map[string]tiltProviderConfig{
 		"core": {
-			Context: pointer.String("."),
+			Context: ptr.To("."),
 		},
 		"kubeadm-bootstrap": {
-			Context: pointer.String("bootstrap/kubeadm"),
+			Context: ptr.To("bootstrap/kubeadm"),
 		},
 		"kubeadm-control-plane": {
-			Context: pointer.String("controlplane/kubeadm"),
+			Context: ptr.To("controlplane/kubeadm"),
 		},
 		"docker": {
-			Context: pointer.String("test/infrastructure/docker"),
+			Context: ptr.To("test/infrastructure/docker"),
 		},
 		"in-memory": {
-			Context: pointer.String("test/infrastructure/inmemory"),
+			Context: ptr.To("test/infrastructure/inmemory"),
 		},
 		"test-extension": {
-			Context: pointer.String("test/extension"),
+			Context: ptr.To("test/extension"),
 		},
 	}
 
@@ -152,7 +152,7 @@ func init() {
 func main() {
 	// Set clusterctl logger with a log level of 5.
 	// This makes it easier to see what clusterctl is doing and to debug it.
-	logf.SetLogger(logf.NewLogger(logf.WithThreshold(pointer.Int(5))))
+	logf.SetLogger(logf.NewLogger(logf.WithThreshold(ptr.To(5))))
 
 	// Set controller-runtime logger as well.
 	ctrl.SetLogger(klog.Background())
@@ -212,19 +212,19 @@ func readTiltSettings(path string) (*tiltSettings, error) {
 // setTiltSettingsDefaults sets default values for tiltSettings info.
 func setTiltSettingsDefaults(ts *tiltSettings) {
 	if ts.DeployCertManager == nil {
-		ts.DeployCertManager = pointer.Bool(true)
+		ts.DeployCertManager = ptr.To(true)
 	}
 
 	for k := range ts.Debug {
 		p := ts.Debug[k]
 		if p.Continue == nil {
-			p.Continue = pointer.Bool(true)
+			p.Continue = ptr.To(true)
 		}
 		if p.Port == nil {
-			p.Port = pointer.Int(0)
+			p.Port = ptr.To(0)
 		}
 		if p.ProfilerPort == nil {
-			p.ProfilerPort = pointer.Int(0)
+			p.ProfilerPort = ptr.To(0)
 		}
 
 		ts.Debug[k] = p
@@ -358,7 +358,7 @@ func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig,
 		}
 
 		// Resolving context, that is a relative path to the repository where the tilt-provider is defined
-		contextPath := filepath.Join(providerRepository, pointer.StringDeref(p.Config.Context, "."))
+		contextPath := filepath.Join(providerRepository, ptr.Deref(p.Config.Context, "."))
 
 		ret[p.Name] = tiltProviderConfig{
 			Context: &contextPath,
@@ -929,7 +929,7 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 			},
 			ProviderName: providerName,
 			Type:         providerType,
-			Version:      pointer.StringDeref(version, defaultProviderVersion),
+			Version:      ptr.Deref(version, defaultProviderVersion),
 		}
 
 		providerObj := &unstructured.Unstructured{}

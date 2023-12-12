@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -137,12 +137,12 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   infrastructureProvider,
-				Flavor:                   pointer.StringDeref(input.Flavor, "upgrades"),
+				Flavor:                   ptr.Deref(input.Flavor, "upgrades"),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
-				ControlPlaneMachineCount: pointer.Int64(controlPlaneMachineCount),
-				WorkerMachineCount:       pointer.Int64(workerMachineCount),
+				ControlPlaneMachineCount: ptr.To[int64](controlPlaneMachineCount),
+				WorkerMachineCount:       ptr.To[int64](workerMachineCount),
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -178,11 +178,11 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			)
 
 			if input.E2EConfig.HasVariable(CPMachineTemplateUpgradeTo) {
-				upgradeCPMachineTemplateTo = pointer.String(input.E2EConfig.GetVariable(CPMachineTemplateUpgradeTo))
+				upgradeCPMachineTemplateTo = ptr.To(input.E2EConfig.GetVariable(CPMachineTemplateUpgradeTo))
 			}
 
 			if input.E2EConfig.HasVariable(WorkersMachineTemplateUpgradeTo) {
-				upgradeWorkersMachineTemplateTo = pointer.String(input.E2EConfig.GetVariable(WorkersMachineTemplateUpgradeTo))
+				upgradeWorkersMachineTemplateTo = ptr.To(input.E2EConfig.GetVariable(WorkersMachineTemplateUpgradeTo))
 			}
 
 			framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{

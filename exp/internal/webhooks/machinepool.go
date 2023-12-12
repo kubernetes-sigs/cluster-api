@@ -24,7 +24,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -65,11 +65,11 @@ func (webhook *MachinePool) Default(_ context.Context, obj runtime.Object) error
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
 	if m.Spec.Replicas == nil {
-		m.Spec.Replicas = pointer.Int32(1)
+		m.Spec.Replicas = ptr.To[int32](1)
 	}
 
 	if m.Spec.MinReadySeconds == nil {
-		m.Spec.MinReadySeconds = pointer.Int32(0)
+		m.Spec.MinReadySeconds = ptr.To[int32](0)
 	}
 
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {

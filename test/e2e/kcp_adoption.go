@@ -29,7 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -82,7 +82,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		namespace     *corev1.Namespace
 		cancelWatches context.CancelFunc
 		cluster       *clusterv1.Cluster
-		replicas      = pointer.Int64(1)
+		replicas      = ptr.To[int64](1)
 	)
 
 	SetDefaultEventuallyTimeout(15 * time.Minute)
@@ -120,14 +120,14 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			// pass the clusterctl config file that points to the local provider repository created for this test,
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// select template
-			Flavor: pointer.StringDeref(input.Flavor, "kcp-adoption"),
+			Flavor: ptr.Deref(input.Flavor, "kcp-adoption"),
 			// define template variables
 			Namespace:                namespace.Name,
 			ClusterName:              clusterName,
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 			InfrastructureProvider:   infrastructureProvider,
 			ControlPlaneMachineCount: replicas,
-			WorkerMachineCount:       pointer.Int64(0),
+			WorkerMachineCount:       ptr.To[int64](0),
 			// setup clusterctl logs folder
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 		})

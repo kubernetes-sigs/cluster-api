@@ -24,7 +24,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -113,17 +113,17 @@ func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 	for i := 0; i < c.Intn(10); i++ {
 		in.Required = append(in.Required, c.RandString())
 	}
-	in.MaxItems = pointer.Int64(c.Int63())
-	in.MinItems = pointer.Int64(c.Int63())
+	in.MaxItems = ptr.To(c.Int63())
+	in.MinItems = ptr.To(c.Int63())
 	in.UniqueItems = c.RandBool()
 	in.Format = c.RandString()
-	in.MaxLength = pointer.Int64(c.Int63())
-	in.MinLength = pointer.Int64(c.Int63())
+	in.MaxLength = ptr.To(c.Int63())
+	in.MinLength = ptr.To(c.Int63())
 	in.Pattern = c.RandString()
-	in.Maximum = pointer.Int64(c.Int63())
-	in.Maximum = pointer.Int64(c.Int63())
+	in.Maximum = ptr.To(c.Int63())
+	in.Maximum = ptr.To(c.Int63())
 	in.ExclusiveMaximum = c.RandBool()
-	in.Minimum = pointer.Int64(c.Int63())
+	in.Minimum = ptr.To(c.Int63())
 	in.ExclusiveMinimum = c.RandBool()
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting valid values.

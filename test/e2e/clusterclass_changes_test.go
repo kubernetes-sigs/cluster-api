@@ -21,7 +21,7 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
@@ -32,7 +32,7 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,
 			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: pointer.String("docker"),
+			InfrastructureProvider: ptr.To("docker"),
 			Flavor:                 "topology",
 			// ModifyControlPlaneFields are the ControlPlane fields which will be set on the
 			// ControlPlaneTemplate of the ClusterClass after the initial Cluster creation.

@@ -22,7 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -38,7 +38,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 		},
 	}
 	updateDefaultingKubeadmConfigTemplate := kubeadmConfigTemplate.DeepCopy()
-	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = pointer.Int32(4)
+	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = ptr.To[int32](4)
 	webhook := &KubeadmConfigTemplate{}
 	t.Run("for KubeadmConfigTemplate", util.CustomDefaultValidateTest(ctx, updateDefaultingKubeadmConfigTemplate, webhook))
 

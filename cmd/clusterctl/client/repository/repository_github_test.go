@@ -27,7 +27,7 @@ import (
 
 	"github.com/google/go-github/v53/github"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -732,7 +732,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			args: args{
 				tag: "foo",
 			},
-			wantTagName: pointer.String("v0.4.1"),
+			wantTagName: ptr.To("v0.4.1"),
 			wantErr:     false,
 		},
 		{

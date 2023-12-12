@@ -23,7 +23,7 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -53,7 +53,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	// apiextensions.JSONSchemaProps only allows setting XPreserveUnknownFields
 	// to true or undefined, false is forbidden.
 	if schema.XPreserveUnknownFields {
-		props.XPreserveUnknownFields = pointer.Bool(true)
+		props.XPreserveUnknownFields = ptr.To(true)
 	}
 
 	if schema.Default != nil && schema.Default.Raw != nil {

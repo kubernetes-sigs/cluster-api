@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -1172,7 +1172,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 				Namespace: namespace.Name,
 			},
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: pointer.String("machine-bootstrap-secret"),
+				DataSecretName: ptr.To("machine-bootstrap-secret"),
 			},
 		},
 	}
@@ -1512,7 +1512,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 				Namespace: "default",
 			},
 			Spec: clusterv1.MachineSetSpec{
-				Replicas: pointer.Int32(1),
+				Replicas: ptr.To[int32](1),
 			},
 		}
 
@@ -1567,7 +1567,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName:     "test-cluster",
-			Replicas:        pointer.Int32(3),
+			Replicas:        ptr.To[int32](3),
 			MinReadySeconds: 10,
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"k1": "v1"},
@@ -1578,7 +1578,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 					Annotations: map[string]string{"machine-annotation1": "machine-value1"},
 				},
 				Spec: clusterv1.MachineSpec{
-					Version:           pointer.String("v1.25.3"),
+					Version:           ptr.To("v1.25.3"),
 					InfrastructureRef: infraRef,
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &bootstrapRef,
@@ -1604,7 +1604,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:             "test-cluster",
-			Version:                 pointer.String("v1.25.3"),
+			Version:                 ptr.To("v1.25.3"),
 			NodeDrainTimeout:        duration10s,
 			NodeVolumeDetachTimeout: duration10s,
 			NodeDeletionTimeout:     duration10s,

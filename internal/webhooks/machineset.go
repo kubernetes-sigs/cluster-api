@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -99,7 +99,7 @@ func (webhook *MachineSet) Default(ctx context.Context, obj runtime.Object) erro
 	if err != nil {
 		return err
 	}
-	m.Spec.Replicas = pointer.Int32(replicas)
+	m.Spec.Replicas = ptr.To[int32](replicas)
 
 	if m.Spec.DeletePolicy == "" {
 		randomPolicy := string(clusterv1.RandomMachineSetDeletePolicy)

@@ -45,7 +45,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	toolscache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -464,7 +464,7 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 			Namespace: input.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Int32(4),
+			Replicas: ptr.To[int32](4),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "nonstop",

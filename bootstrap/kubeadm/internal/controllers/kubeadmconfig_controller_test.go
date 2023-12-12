@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -138,7 +138,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		WithClusterName(clusterName).
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
-	machine.Spec.Bootstrap.DataSecretName = pointer.String("something")
+	machine.Spec.Bootstrap.DataSecretName = ptr.To("something")
 
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
 	config.SetOwnerReferences(util.EnsureOwnerRef(config.GetOwnerReferences(), metav1.OwnerReference{
@@ -211,7 +211,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 				Kind:       machine.Kind,
 				Name:       machine.Name,
 				UID:        machine.UID,
-				Controller: pointer.Bool(true),
+				Controller: ptr.To(true),
 			}})
 		g.Expect(myclient.Update(ctx, actual)).To(Succeed())
 
@@ -269,7 +269,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 		WithClusterName("cluster1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
-	machine.Spec.Bootstrap.DataSecretName = pointer.String("something")
+	machine.Spec.Bootstrap.DataSecretName = ptr.To("something")
 
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
 	addKubeadmConfigToMachine(config, machine)
@@ -975,7 +975,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 					Kind:       "KubeadmConfig",
 					Name:       workerJoinConfig.Name,
 					UID:        workerJoinConfig.UID,
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 				},
 			},
 		},
@@ -1617,7 +1617,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.String("otherVersion"),
+					Version: ptr.To("otherVersion"),
 				},
 			},
 		},
@@ -1643,7 +1643,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.String("myversion"),
+					Version: ptr.To("myversion"),
 				},
 			},
 		},

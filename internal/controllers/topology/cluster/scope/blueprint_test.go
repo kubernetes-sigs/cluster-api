@@ -25,7 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
@@ -80,7 +80,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: pointer.Bool(false),
+						Enable: ptr.To(false),
 					}).
 					Build(),
 			},
@@ -96,7 +96,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: pointer.Bool(true),
+						Enable: ptr.To(true),
 					}).
 					Build(),
 			},
@@ -134,7 +134,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: pointer.Bool(false),
+						Enable: ptr.To(false),
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 							UnhealthyConditions: []clusterv1.UnhealthyCondition{
 								{
@@ -158,7 +158,7 @@ func TestIsControlPlaneMachineHealthCheckEnabled(t *testing.T) {
 				Topology: builder.ClusterTopology().
 					WithClass("cluster-class").
 					WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-						Enable: pointer.Bool(true),
+						Enable: ptr.To(true),
 						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 							UnhealthyConditions: []clusterv1.UnhealthyCondition{
 								{
@@ -292,7 +292,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
 				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: pointer.Bool(false),
+					Enable: ptr.To(false),
 				},
 			},
 			want: false,
@@ -309,7 +309,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
 				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: pointer.Bool(true),
+					Enable: ptr.To(true),
 				},
 			},
 			want: true,
@@ -347,7 +347,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
 				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: pointer.Bool(false),
+					Enable: ptr.To(false),
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 						UnhealthyConditions: []clusterv1.UnhealthyCondition{
 							{
@@ -371,7 +371,7 @@ func TestIsMachineDeploymentMachineHealthCheckEnabled(t *testing.T) {
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Class: "worker-class",
 				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
-					Enable: pointer.Bool(true),
+					Enable: ptr.To(true),
 					MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 						UnhealthyConditions: []clusterv1.UnhealthyCondition{
 							{

@@ -34,7 +34,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -290,7 +290,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Cont
 
 	// TODO: consider if to surface VM provisioned also on the cloud machine (currently it surfaces only on the inMemoryMachine)
 
-	inMemoryMachine.Spec.ProviderID = pointer.String(calculateProviderID(inMemoryMachine))
+	inMemoryMachine.Spec.ProviderID = ptr.To(calculateProviderID(inMemoryMachine))
 	inMemoryMachine.Status.Ready = true
 	conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
 	return ctrl.Result{}, nil

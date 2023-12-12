@@ -27,7 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -1355,7 +1355,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-							Enable: pointer.Bool(true),
+							Enable: ptr.To(true),
 						}).
 						Build()).
 				Build(),
@@ -1418,7 +1418,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-							Enable: pointer.Bool(true),
+							Enable: ptr.To(true),
 						}).
 						Build()).
 				Build(),
@@ -1437,7 +1437,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-							Enable: pointer.Bool(true),
+							Enable: ptr.To(true),
 							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 								UnhealthyConditions: []clusterv1.UnhealthyCondition{
 									{
@@ -1467,7 +1467,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-									Enable: pointer.Bool(true),
+									Enable: ptr.To(true),
 								}).
 								Build(),
 						).
@@ -1521,7 +1521,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-									Enable: pointer.Bool(true),
+									Enable: ptr.To(true),
 								}).
 								Build(),
 						).
@@ -1549,7 +1549,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-									Enable: pointer.Bool(true),
+									Enable: ptr.To(true),
 									MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 										UnhealthyConditions: []clusterv1.UnhealthyCondition{
 											{

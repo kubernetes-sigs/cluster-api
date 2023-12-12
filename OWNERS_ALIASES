@@ -122,23 +122,26 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-release-lead:
-  - furkatgofurov7
+  - cahillsf
   
   cluster-api-release-team:
   # members added in commented lines have a pending membership
   # and will be added back once it is acquired.
-  - adilGhaffarDev
-  - cahillsf
-  - chiukapoor
-  - furkatgofurov7 # release lead
-  - g-gaston # release comms manager
-  - hackeramitkumar
-  # - kranurag7
-  - mjlshen
-  - nawazkh # release ci manager
-  - nprokopic
-  - Prajyot-Parab
-  # - razashahid107
+  - adilGhaffarDev # release ci lead
+  # - adityabhatia
+  # - akshay196
+  - cahillsf # release lead
+  # - chandankumar4
+  # - Dhairya-Arora01
+  - Fedosin
+  # - mansikulkarni96
+  - mcbenjemaa
+  - nawazkh
+  # - ssuriyan7
+  - SubhasmitaSw
   # - Sunnatillo
-  - vincepri
-  - willie-yao
+  - troy0820 
+  # - typeid
+  - VibhorChinda
+  - willie-yao # release comms lead
+  - yrs147 

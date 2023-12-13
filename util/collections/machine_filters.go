@@ -264,3 +264,13 @@ func HealthyAPIServer() Func {
 		return conditions.IsTrue(machine, controlplanev1.MachineAPIServerPodHealthyCondition)
 	}
 }
+
+// HasNode returns a filter to find all machines that have a corresponding Kubernetes node.
+func HasNode() Func {
+	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
+		return machine.Status.NodeRef != nil
+	}
+}

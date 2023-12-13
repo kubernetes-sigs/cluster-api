@@ -472,7 +472,8 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
 
 - KCP remediation is triggered by the MachineHealthCheck controller marking a machine for remediation. See
   [machine-health-checking proposal](https://github.com/kubernetes-sigs/cluster-api/blob/11485f4f817766c444840d8ea7e4e7d1a6b94cc9/docs/proposals/20191030-machine-health-checking.md)
-  for additional details. When there are multiple machines that are marked for remediation, the oldest one will be remediated first.
+  for additional details. When there are multiple machines that are marked for remediation, the oldest machine marked as unhealthy not yet provisioned (if any)
+  or the oldest machine marked as unhealthy will be remediated first.
 
 - Following rules should be satisfied in order to start remediation
   - One of the following apply:
@@ -480,6 +481,7 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
     - The cluster MUST have at least two control plane machines, because this is the smallest cluster size that can be remediated.
   - Previous remediation (delete and re-create) MUST have been completed. This rule prevents KCP to remediate more machines while the
     replacement for the previous machine is not yet created. 
+  - The cluster MUST NOT have healthy machines still provisioning (without a node). This rule prevents KCP taking actions while the cluster is in a transitional state.
   - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
   - Remediation MUST preserve etcd quorum. This rule ensures that we will not remove a member that would result in etcd
     losing a majority of members and thus become unable to field new requests (note: this rule applies only to CP already

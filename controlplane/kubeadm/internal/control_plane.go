@@ -253,6 +253,11 @@ func (c *ControlPlane) HasUnhealthyMachine() bool {
 	return len(c.UnhealthyMachines()) > 0
 }
 
+// HasHealthyMachineStillProvisioning returns true if any healthy machine in the control plane is still in the process of being provisioned.
+func (c *ControlPlane) HasHealthyMachineStillProvisioning() bool {
+	return len(c.HealthyMachines().Filter(collections.Not(collections.HasNode()))) > 0
+}
+
 // PatchMachines patches all the machines conditions.
 func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 	errList := []error{}

@@ -21,6 +21,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -430,6 +431,27 @@ func TestGetFilteredMachinesForCluster(t *testing.T) {
 	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
+}
+
+func TestHasNode(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(collections.HasNode()(nil)).To(BeFalse())
+	})
+
+	t.Run("machine without node returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		g.Expect(collections.HasNode()(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with node returns true", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Name: "foo"}},
+		}
+		g.Expect(collections.HasNode()(machine)).To(BeTrue())
+	})
 }
 
 func testControlPlaneMachine(name string) *clusterv1.Machine {

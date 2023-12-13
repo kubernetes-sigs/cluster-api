@@ -288,7 +288,7 @@ func ResolveRelease(ctx context.Context, releaseMarker string) (string, error) {
 
 // resolveReleaseMarker resolves releaseMarker string to verion string e.g.
 // - Resolves "go://sigs.k8s.io/cluster-api@v1.0" to the latest stable patch release of v1.0.
-// - Resolves "go://sigs.k8s.io/cluster-api@latest-v1.0" to the latest patch release of v.1.0 including rc and pre releases.
+// - Resolves "go://sigs.k8s.io/cluster-api@latest-v1.0" to the latest patch release of v1.0 including rc and pre releases.
 func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClient *goproxy.Client) (string, error) {
 	if !strings.HasPrefix(releaseMarker, "go://") {
 		return "", errors.Errorf("unknown release marker scheme")

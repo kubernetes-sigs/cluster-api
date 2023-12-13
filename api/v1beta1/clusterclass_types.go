@@ -252,6 +252,8 @@ type MachineHealthCheckClass struct {
 	// UnhealthyConditions contains a list of the conditions that determine
 	// whether a node is considered unhealthy. The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+	//
+	// +optional
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
 
 	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by

@@ -1071,6 +1071,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	})
 
 	t.Run("when a Machine's Node has gone away without conditions", func(t *testing.T) {
+		// FIXME: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)

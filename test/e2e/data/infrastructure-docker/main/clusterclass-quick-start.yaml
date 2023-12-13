@@ -20,10 +20,7 @@ spec:
         name: quick-start-control-plane
     machineHealthCheck:
       maxUnhealthy: 100%
-      unhealthyConditions:
-      - type: e2e.remediation.condition
-        status: "False"
-        timeout: 20s
+      # We are intentionally not setting the 'unhealthyConditions' here to test that the field is optional.
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -50,10 +47,7 @@ spec:
             name: quick-start-default-worker-machinetemplate
       machineHealthCheck:
         maxUnhealthy: 100%
-        unhealthyConditions:
-        - type: e2e.remediation.condition
-          status: "False"
-          timeout: 20s
+        # We are intentionally not setting the 'unhealthyConditions' here to test that the field is optional.
     machinePools:
     - class: default-worker
       template:

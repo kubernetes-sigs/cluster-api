@@ -165,7 +165,7 @@ func (webhook *MachineHealthCheck) validate(oldMHC, newMHC *clusterv1.MachineHea
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachineHealthCheck").GroupKind(), newMHC.Name, allErrs)
 }
 
-// ValidateCommonFields validates UnhealthyConditions NodeStartupTimeout, MaxUnhealthy, and RemediationTemplate of the MHC.
+// ValidateCommonFields validates NodeStartupTimeout, MaxUnhealthy, and RemediationTemplate of the MHC.
 // These are the fields in common with other types which define MachineHealthChecks such as MachineHealthCheckClass and MachineHealthCheckTopology.
 func (webhook *MachineHealthCheck) validateCommonFields(m *clusterv1.MachineHealthCheck, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList

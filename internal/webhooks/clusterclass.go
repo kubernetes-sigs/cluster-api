@@ -403,7 +403,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		}
 	}
 
-	// Ensure MachineDeployment MachineHealthChecks define UnhealthyConditions.
+	// Validate MachineDeployment MachineHealthChecks.
 	for i, md := range clusterClass.Spec.Workers.MachineDeployments {
 		if md.MachineHealthCheck == nil {
 			continue

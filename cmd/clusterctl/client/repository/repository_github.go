@@ -182,6 +182,7 @@ func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([
 		// and an unauthorized http get will return contents of a redirect to the sign in page without an error
 		log.V(5).Info("Private Github Enterprise domain used, skipping httpGet and using github client", "host", g.host, "owner", g.owner, "repository", g.repository, "version", version, "path", path)
 	}
+
 	// If the http get request failed (or it is disabled) falls back on using the GITHUB api to download the file
 
 	release, err := g.getReleaseByTag(ctx, version)
@@ -217,7 +218,7 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 
 	// Check if the url is a github repository
 	if rURL.Scheme != httpsScheme || !strings.HasPrefix(rURL.Host, githubHostPrefix) {
-		return nil, errors.New("invalid url: a GitHub repository url should start with https://github.")
+		return nil, errors.New("invalid url: a GitHub repository url should start with \"https://github.\"")
 	}
 
 	// Check if the path is in the expected format,

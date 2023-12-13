@@ -23,8 +23,10 @@ import (
 )
 
 var (
+	// PrivateGithubDomain is the private github enterprise domain used int tests.
 	PrivateGithubDomain = "github.corp.co"
-	PrivateGithubToken  = "token"
+	// PrivateGithubToken is the test token for github enterprise client.
+	PrivateGithubToken = "token"
 )
 
 // FakeVariableClient provides a VariableClient backed by a map.

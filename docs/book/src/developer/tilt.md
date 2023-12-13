@@ -8,14 +8,14 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer
-1. [kind](https://kind.sigs.k8s.io): v0.20.0 or newer
-1. [Tilt](https://docs.tilt.dev/install.html): v0.30.8 or newer
-1. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
-1. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
-1. [helm](https://github.com/helm/helm): v3.7.1 or newer
-1. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
+2. [kind](https://kind.sigs.k8s.io): v0.20.0 or newer
+3. [Tilt](https://docs.tilt.dev/install.html): v0.30.8 or newer
+4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
+5. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
+6. [helm](https://github.com/helm/helm): v3.7.1 or newer
+7. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
    locally
-1. Clone the provider(s) you want to deploy locally as well
+8. Clone the provider(s) you want to deploy locally as well
 
 ## Getting started
 

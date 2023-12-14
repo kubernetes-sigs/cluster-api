@@ -168,7 +168,7 @@ func (c *clusterctlClient) RolloutUndo(ctx context.Context, options RolloutUndoO
 	return nil
 }
 
-func (c *clusterctlClient) RolloutStatus(options RolloutStatusOptions) error {
+func (c *clusterctlClient) RolloutStatus(ctx context.Context, options RolloutStatusOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
@@ -178,7 +178,7 @@ func (c *clusterctlClient) RolloutStatus(options RolloutStatusOptions) error {
 		return err
 	}
 	for _, ref := range objRefs {
-		if err := c.alphaClient.Rollout().ObjectStatusWatcher(clusterClient.Proxy(), ref); err != nil {
+		if err := c.alphaClient.Rollout().ObjectStatusWatcher(ctx, clusterClient.Proxy(), ref); err != nil {
 			return err
 		}
 	}

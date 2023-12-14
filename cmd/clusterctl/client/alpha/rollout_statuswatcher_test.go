@@ -18,6 +18,7 @@ package alpha
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -26,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -84,7 +85,7 @@ func Test_ObjectStatusWatcher(t *testing.T) {
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
 							ClusterName: clusterName,
-							Replicas:    pointer.Int32(2),
+							Replicas:    ptr.To[int32](2),
 						},
 						Status: clusterv1.MachineDeploymentStatus{
 							Replicas:          2,
@@ -116,7 +117,7 @@ func Test_ObjectStatusWatcher(t *testing.T) {
 							Name:      kcpName,
 						},
 						Spec: controlplanev1.KubeadmControlPlaneSpec{
-							Replicas: pointer.Int32(2),
+							Replicas: ptr.To[int32](2),
 						},
 						Status: controlplanev1.KubeadmControlPlaneStatus{
 							Replicas:        2,
@@ -143,7 +144,7 @@ func Test_ObjectStatusWatcher(t *testing.T) {
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
 			output, err := captureStdout(func() {
-				err := r.ObjectStatusWatcher(proxy, tt.fields.ref)
+				err := r.ObjectStatusWatcher(context.Background(), proxy, tt.fields.ref)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {
@@ -183,7 +184,7 @@ func Test_MachineDeploymentStatusWatcherStatus(t *testing.T) {
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
-					Replicas:    pointer.Int32(2),
+					Replicas:    ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineDeploymentStatus{
 					Replicas:          2,
@@ -206,7 +207,7 @@ func Test_MachineDeploymentStatusWatcherStatus(t *testing.T) {
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
-					Replicas:    pointer.Int32(2),
+					Replicas:    ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineDeploymentStatus{
 					Replicas:          3,
@@ -229,7 +230,7 @@ func Test_MachineDeploymentStatusWatcherStatus(t *testing.T) {
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
-					Replicas:    pointer.Int32(2),
+					Replicas:    ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineDeploymentStatus{
 					Replicas:          2,
@@ -252,7 +253,7 @@ func Test_MachineDeploymentStatusWatcherStatus(t *testing.T) {
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
 					ClusterName: clusterName,
-					Replicas:    pointer.Int32(2),
+					Replicas:    ptr.To[int32](2),
 				},
 				Status: clusterv1.MachineDeploymentStatus{
 					Replicas:          2,
@@ -278,7 +279,7 @@ func Test_MachineDeploymentStatusWatcherStatus(t *testing.T) {
 			if tt.md != nil {
 				proxy = proxy.WithObjs(tt.md)
 			}
-			status, done, err := statusViewer.Status(proxy, mdName, namespace)
+			status, done, err := statusViewer.Status(context.Background(), proxy, mdName, namespace)
 			g.Expect(done).Should(Equal(tt.expectedDone))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -313,7 +314,7 @@ func Test_KubeadmControlPlaneStatusWatcherStatus(t *testing.T) {
 					Name:      kcpName,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Replicas:        2,
@@ -335,7 +336,7 @@ func Test_KubeadmControlPlaneStatusWatcherStatus(t *testing.T) {
 					Name:      kcpName,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Replicas:        3,
@@ -357,7 +358,7 @@ func Test_KubeadmControlPlaneStatusWatcherStatus(t *testing.T) {
 					Name:      kcpName,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Replicas:        2,
@@ -379,7 +380,7 @@ func Test_KubeadmControlPlaneStatusWatcherStatus(t *testing.T) {
 					Name:      kcpName,
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				},
 				Status: controlplanev1.KubeadmControlPlaneStatus{
 					Replicas:        2,
@@ -405,7 +406,7 @@ func Test_KubeadmControlPlaneStatusWatcherStatus(t *testing.T) {
 			if tt.md != nil {
 				proxy = proxy.WithObjs(tt.md)
 			}
-			status, done, err := statusViewer.Status(proxy, kcpName, namespace)
+			status, done, err := statusViewer.Status(context.Background(), proxy, kcpName, namespace)
 			g.Expect(done).Should(Equal(tt.expectedDone))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())

@@ -17,6 +17,8 @@ limitations under the License.
 package rollout
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -66,12 +68,14 @@ func NewCmdRolloutStatus(cfgFile string) *cobra.Command {
 func runStatus(cfgFile string, args []string) error {
 	statusOpt.resources = args
 
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	return c.RolloutStatus(client.RolloutStatusOptions{
+	return c.RolloutStatus(ctx, client.RolloutStatusOptions{
 		Kubeconfig: client.Kubeconfig{Path: statusOpt.kubeconfig, Context: statusOpt.kubeconfigContext},
 		Namespace:  statusOpt.namespace,
 		Resources:  statusOpt.resources,

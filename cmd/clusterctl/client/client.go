@@ -87,7 +87,7 @@ type AlphaClient interface {
 	// RolloutUndo provides rollout rollback of cluster-api resources
 	RolloutUndo(ctx context.Context, options RolloutUndoOptions) error
 	// RolloutStatus provides rollout status of cluster-api resources
-	RolloutStatus(options RolloutStatusOptions) error
+	RolloutStatus(ctx context.Context, options RolloutStatusOptions) error
 	// TopologyPlan dry runs the topology reconciler
 	TopologyPlan(ctx context.Context, options TopologyPlanOptions) (*TopologyPlanOutput, error)
 }

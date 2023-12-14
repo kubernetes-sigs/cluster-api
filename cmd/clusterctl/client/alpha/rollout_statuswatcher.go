@@ -17,6 +17,7 @@ limitations under the License.
 package alpha
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -30,7 +31,7 @@ import (
 
 // StatusWatcher provides an interface for resources that have rollout status.
 type StatusWatcher interface {
-	Status(proxy cluster.Proxy, name, namespace string) (string, bool, error)
+	Status(ctx context.Context, proxy cluster.Proxy, name, namespace string) (string, bool, error)
 }
 
 // KubeadmControlPlaneStatusWatcher implements the StatusViewer interface.
@@ -40,7 +41,7 @@ type KubeadmControlPlaneStatusWatcher struct{}
 type MachineDeploymentStatusWatcher struct{}
 
 // ObjectStatusWatcher will issue a view on the specified cluster-api resource.
-func (r *rollout) ObjectStatusWatcher(proxy cluster.Proxy, ref corev1.ObjectReference) error {
+func (r *rollout) ObjectStatusWatcher(ctx context.Context, proxy cluster.Proxy, ref corev1.ObjectReference) error {
 	log := ctrl.LoggerFrom(ctx)
 	var statusViewer StatusWatcher
 	switch ref.Kind {
@@ -56,7 +57,7 @@ func (r *rollout) ObjectStatusWatcher(proxy cluster.Proxy, ref corev1.ObjectRefe
 	timeout := 600 * time.Second
 	lastChange := time.Now()
 	for {
-		status, done, err := statusViewer.Status(proxy, ref.Name, ref.Namespace)
+		status, done, err := statusViewer.Status(ctx, proxy, ref.Name, ref.Namespace)
 		if err != nil {
 			log.Error(err, "failed to get resource status")
 			time.Sleep(2 * time.Second)
@@ -76,8 +77,8 @@ func (r *rollout) ObjectStatusWatcher(proxy cluster.Proxy, ref corev1.ObjectRefe
 }
 
 // Status returns a status describing kubeadmcontrolplane status, and a bool value indicating if the status is considered done.
-func (s *KubeadmControlPlaneStatusWatcher) Status(proxy cluster.Proxy, name, namespace string) (string, bool, error) {
-	newKcp, err := getKubeadmControlPlane(proxy, name, namespace)
+func (s *KubeadmControlPlaneStatusWatcher) Status(ctx context.Context, proxy cluster.Proxy, name, namespace string) (string, bool, error) {
+	newKcp, err := getKubeadmControlPlane(ctx, proxy, name, namespace)
 	if err != nil || newKcp == nil {
 		return "", false, errors.Wrapf(err, "failed to get kubeadmcontrolplane/%v", name)
 	}
@@ -94,8 +95,8 @@ func (s *KubeadmControlPlaneStatusWatcher) Status(proxy cluster.Proxy, name, nam
 }
 
 // Status returns a status describing machinedeployment status, and a bool value indicating if the status is considered done.
-func (s *MachineDeploymentStatusWatcher) Status(proxy cluster.Proxy, name, namespace string) (string, bool, error) {
-	newMD, err := getMachineDeployment(proxy, name, namespace)
+func (s *MachineDeploymentStatusWatcher) Status(ctx context.Context, proxy cluster.Proxy, name, namespace string) (string, bool, error) {
+	newMD, err := getMachineDeployment(ctx, proxy, name, namespace)
 	if err != nil || newMD == nil {
 		return "", false, errors.Wrapf(err, "failed to get machinedeployment/%v", name)
 	}

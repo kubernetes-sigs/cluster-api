@@ -76,7 +76,6 @@ func TestMain(m *testing.M) {
 		}
 		// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 		// requiring a connection to a remote cluster
-		log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
 		secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 			HTTPClient: mgr.GetHTTPClient(),
 			Cache: &client.CacheOptions{
@@ -89,7 +88,7 @@ func TestMain(m *testing.M) {
 		tracker, err := remote.NewClusterCacheTracker(
 			mgr,
 			remote.ClusterCacheTrackerOptions{
-				Log:                 &log,
+				Log:                 &ctrl.Log,
 				SecretCachingClient: secretCachingClient,
 			},
 		)

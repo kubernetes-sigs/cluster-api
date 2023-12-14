@@ -129,6 +129,9 @@ func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
 		opts.Log = &l
 	}
 
+	l := opts.Log.WithValues("component", "remote/clustercachetracker")
+	opts.Log = &l
+
 	if len(opts.ClientUncachedObjects) == 0 {
 		opts.ClientUncachedObjects = []client.Object{
 			&corev1.ConfigMap{},

@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/ptr"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 )
 
@@ -48,8 +49,12 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name:      "should accept a valid claim",
-			claim:     getClaim(func(addr *ipamv1.IPAddressClaim) {}),
+			name: "should accept a valid claim",
+			claim: getClaim(func(addr *ipamv1.IPAddressClaim) {
+				addr.GetObjectMeta().SetLabels(map[string]string{
+					clusterv1.ClusterNameLabel: "test-cluster",
+				})
+			}),
 			expectErr: false,
 		},
 		{
@@ -57,6 +62,11 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 			claim: getClaim(func(addr *ipamv1.IPAddressClaim) {
 				addr.Spec.PoolRef.APIGroup = nil
 			}),
+			expectErr: true,
+		},
+		{
+			name:      "should reject an IPAddressClaim that doesn't have a cluster name label",
+			claim:     getClaim(func(addr *ipamv1.IPAddressClaim) {}),
 			expectErr: true,
 		},
 	}

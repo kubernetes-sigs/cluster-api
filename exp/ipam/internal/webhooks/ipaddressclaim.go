@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 )
 
@@ -52,6 +53,15 @@ func (webhook *IPAddressClaim) ValidateCreate(_ context.Context, obj runtime.Obj
 	claim, ok := obj.(*ipamv1.IPAddressClaim)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddressClaim but got a %T", obj))
+	}
+
+	// Ensures the IPAddressClaim has a cluster name label, to pause IPAddressClaim when the root cluster is paused
+	// and essentially prevent clusterctl move from failing.
+	if claim.GetObjectMeta().GetLabels()[clusterv1.ClusterNameLabel] == "" {
+		return nil, field.Invalid(
+			field.NewPath("metadata.labels"),
+			claim.GetObjectMeta().GetLabels(),
+			"the IPAddressClaim needs to have the cluster name label 'cluster.x-k8s.io/cluster-name'")
 	}
 
 	if claim.Spec.PoolRef.APIGroup == nil {

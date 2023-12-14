@@ -64,11 +64,10 @@ func TestMain(m *testing.M) {
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 		// requiring a connection to a remote cluster
-		log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
 		tracker, err := remote.NewClusterCacheTracker(
 			mgr,
 			remote.ClusterCacheTrackerOptions{
-				Log:     &log,
+				Log:     &ctrl.Log,
 				Indexes: []remote.Index{remote.NodeProviderIDIndex},
 			},
 		)

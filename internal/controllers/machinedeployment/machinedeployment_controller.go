@@ -164,7 +164,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	err = r.reconcile(ctx, cluster, deployment)
 	if err != nil {
-		log.Error(err, "Failed to reconcile MachineDeployment")
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
 	return ctrl.Result{}, err

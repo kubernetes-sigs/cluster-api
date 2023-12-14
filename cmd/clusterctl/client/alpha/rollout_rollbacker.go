@@ -52,7 +52,7 @@ func (r *rollout) ObjectRollbacker(ctx context.Context, proxy cluster.Proxy, ref
 }
 
 // rollbackMachineDeployment will rollback to a previous MachineSet revision used by this MachineDeployment.
-func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clusterv1.MachineDeployment, toRevision int64, force bool) error {
+func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clusterv1.MachineDeployment, toRevision int64, forceRollback bool) error {
 	log := logf.Log
 	c, err := proxy.NewClient(ctx)
 	if err != nil {

@@ -27,6 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -73,7 +74,7 @@ func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clu
 	}
 	log.V(7).Info("Found revision", "revision", msForRevision)
 
-	if !force {
+	if !forceRollback {
 		if msForRevision.Spec.Template.Spec.Version == nil {
 			return errors.Errorf("can't validate version skew policy because verion field of MachineSet %v is not set"+
 				" The result of the operation may not comply with Kubernetes' version skew policy."+
@@ -86,7 +87,8 @@ func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clu
 		}
 
 		var cpVersion semver.Version
-		cluster, err := getCluster(ctx, proxy, md.Spec.ClusterName, md.Namespace)
+		cluster, err := util.GetClusterByName(ctx, c, md.Namespace, md.Spec.ClusterName)
+
 		if err != nil {
 			return err
 		}

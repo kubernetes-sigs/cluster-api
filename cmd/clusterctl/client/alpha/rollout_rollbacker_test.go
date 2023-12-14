@@ -311,14 +311,14 @@ func Test_ObjectRollbacker(t *testing.T) {
 								},
 								Spec: clusterv1.MachineSpec{
 									ClusterName: "test",
-									Version:     pointer.String("v0.0.0"),
+									Version:     ptr.To("v0.0.0"),
 									InfrastructureRef: corev1.ObjectReference{
 										APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 										Kind:       "InfrastructureMachineTemplate",
 										Name:       "md-template-rollback",
 									},
 									Bootstrap: clusterv1.Bootstrap{
-										DataSecretName: pointer.String("data-secret-name-rollback"),
+										DataSecretName: ptr.To("data-secret-name-rollback"),
 									},
 								},
 							},
@@ -378,7 +378,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 										Name:       "md-template-rollback",
 									},
 									Bootstrap: clusterv1.Bootstrap{
-										DataSecretName: pointer.String("data-secret-name-rollback"),
+										DataSecretName: ptr.To("data-secret-name-rollback"),
 									},
 								},
 							},
@@ -450,14 +450,14 @@ func Test_ObjectRollbacker(t *testing.T) {
 								},
 								Spec: clusterv1.MachineSpec{
 									ClusterName: "test",
-									Version:     pointer.String("v0.0.0"),
+									Version:     ptr.To("v0.0.0"),
 									InfrastructureRef: corev1.ObjectReference{
 										APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 										Kind:       "InfrastructureMachineTemplate",
 										Name:       "md-template-rollback",
 									},
 									Bootstrap: clusterv1.Bootstrap{
-										DataSecretName: pointer.String("data-secret-name-rollback"),
+										DataSecretName: ptr.To("data-secret-name-rollback"),
 									},
 								},
 							},

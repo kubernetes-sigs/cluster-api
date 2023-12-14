@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -443,7 +442,7 @@ func computeDesiredMachine(mp *expv1.MachinePool, infraMachine *unstructured.Uns
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", mp.Name)),
+			Name: infraMachine.GetName(),
 			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, machinePoolKind)},
 			Namespace:       mp.Namespace,

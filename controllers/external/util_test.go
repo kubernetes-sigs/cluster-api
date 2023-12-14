@@ -265,6 +265,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 		Client:      fakeClient,
 		TemplateRef: templateRef,
 		Namespace:   metav1.NamespaceDefault,
+		Name:        "object-name",
 		ClusterName: testClusterName,
 	})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -272,7 +273,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 	g.Expect(ref.Kind).To(Equal(expectedKind))
 	g.Expect(ref.APIVersion).To(Equal(expectedAPIVersion))
 	g.Expect(ref.Namespace).To(Equal(metav1.NamespaceDefault))
-	g.Expect(ref.Name).To(HavePrefix(templateRef.Name))
+	g.Expect(ref.Name).To(Equal("object-name"))
 
 	clone := &unstructured.Unstructured{}
 	clone.SetKind(expectedKind)

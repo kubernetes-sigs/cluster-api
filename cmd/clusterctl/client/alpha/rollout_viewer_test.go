@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -231,7 +231,7 @@ func Test_ObjectViewer(t *testing.T) {
 											Name:       "md-template",
 											Namespace:  namespace,
 										},
-										DataSecretName: pointer.String("secret-name"),
+										DataSecretName: ptr.To[string]("secret-name"),
 									},
 									InfrastructureRef: corev1.ObjectReference{
 										APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -239,9 +239,9 @@ func Test_ObjectViewer(t *testing.T) {
 										Name:       "md-template",
 										Namespace:  namespace,
 									},
-									Version:                 pointer.String("v1.25.1"),
-									ProviderID:              pointer.String("test://id-1"),
-									FailureDomain:           pointer.String("one"),
+									Version:                 ptr.To[string]("v1.25.1"),
+									ProviderID:              ptr.To[string]("test://id-1"),
+									FailureDomain:           ptr.To[string]("one"),
 									NodeDrainTimeout:        &metav1.Duration{Duration: 0},
 									NodeVolumeDetachTimeout: &metav1.Duration{Duration: 0},
 									NodeDeletionTimeout:     &metav1.Duration{Duration: 0},

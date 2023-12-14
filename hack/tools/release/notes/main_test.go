@@ -19,7 +19,12 @@ limitations under the License.
 
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/blang/semver/v4"
+	. "github.com/onsi/gomega"
+)
 
 func Test_trimTitle(t *testing.T) {
 	tests := []struct {
@@ -100,6 +105,66 @@ func Test_trimAreaFromTitle(t *testing.T) {
 			if got := trimAreaFromTitle(tt.title, tt.area); got != tt.want {
 				t.Errorf("trimAreaFromTitle() = %v, want %v", got, tt.want)
 			}
+		})
+	}
+}
+
+func Test_defaultBranchForNewTag(t *testing.T) {
+	tests := []struct {
+		name       string
+		newVersion string
+		want       string
+	}{
+		{
+			name:       "new minor",
+			newVersion: "v1.5.0",
+			want:       "release-1.5",
+		},
+		{
+			name:       "new patch",
+			newVersion: "v1.6.1",
+			want:       "release-1.6",
+		},
+		{
+			name:       "first RC",
+			newVersion: "v1.6.0-rc.0",
+			want:       "main",
+		},
+		{
+			name:       "second RC",
+			newVersion: "v1.6.0-rc.1",
+			want:       "release-1.6",
+		},
+		{
+			name:       "third RC",
+			newVersion: "v1.6.0-rc.2",
+			want:       "release-1.6",
+		},
+		{
+			name:       "first Beta",
+			newVersion: "v1.6.0-beta.0",
+			want:       "main",
+		},
+		{
+			name:       "second Beta",
+			newVersion: "v1.6.0-beta.1",
+			want:       "main",
+		},
+		{
+			name:       "third Beta",
+			newVersion: "v1.6.0-beta.2",
+			want:       "main",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			version, err := semver.ParseTolerant(tt.newVersion)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(defaultBranchForNewTag(version)).To(Equal(tt.want))
 		})
 	}
 }

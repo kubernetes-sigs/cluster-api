@@ -126,7 +126,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Cache:      mgr.GetCache(),
 	}
 	r.patchEngine = patches.NewEngine(r.RuntimeClient)
-	r.recorder = mgr.GetEventRecorderFor("topology/cluster")
+	r.recorder = mgr.GetEventRecorderFor("topology/cluster-controller")
 	if r.patchHelperFactory == nil {
 		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, ssa.NewCache())
 	}

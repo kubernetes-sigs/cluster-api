@@ -109,7 +109,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	}
 
 	r.controller = c
-	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
+	r.recorder = mgr.GetEventRecorderFor("kubeadmcontrolplane-controller")
 	r.ssaCache = ssa.NewCache()
 
 	if r.managementCluster == nil {

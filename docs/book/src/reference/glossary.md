@@ -87,7 +87,7 @@ Cluster API Provider Kubevirt
 ### CAPO
 Cluster API Provider OpenStack
 
-## CAPOSC
+### CAPOSC
 Cluster API Provider Outscale
 
 ### CAPOCI

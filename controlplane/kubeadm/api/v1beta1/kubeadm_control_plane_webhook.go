@@ -139,12 +139,20 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.War
 	// add a * to indicate everything beneath is ok.
 	// For example, {"spec", "*"} will allow any path under "spec" to change.
 	allowedPaths := [][]string{
+		// metadata
 		{"metadata", "*"},
-		{spec, kubeadmConfigSpec, "useExperimentalRetryJoin"},
+		// spec.kubeadmConfigSpec.clusterConfiguration
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "extraArgs"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "extraArgs", "*"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "dataDir"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "peerCertSANs"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "local", "serverCertSANs"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "endpoints"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "caFile"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "certFile"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, "etcd", "external", "keyFile"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "imageRepository"},
@@ -154,16 +162,27 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.War
 		{spec, kubeadmConfigSpec, clusterConfiguration, controllerManager, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler, "*"},
+		// spec.kubeadmConfigSpec.initConfiguration
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration},
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration, "*"},
 		{spec, kubeadmConfigSpec, initConfiguration, patches, directory},
 		{spec, kubeadmConfigSpec, initConfiguration, patches},
 		{spec, kubeadmConfigSpec, initConfiguration, skipPhases},
+		{spec, kubeadmConfigSpec, initConfiguration, "bootstrapTokens"},
+		{spec, kubeadmConfigSpec, initConfiguration, "localAPIEndpoint"},
+		{spec, kubeadmConfigSpec, initConfiguration, "localAPIEndpoint", "*"},
+		// spec.kubeadmConfigSpec.joinConfiguration
 		{spec, kubeadmConfigSpec, joinConfiguration, nodeRegistration},
 		{spec, kubeadmConfigSpec, joinConfiguration, nodeRegistration, "*"},
 		{spec, kubeadmConfigSpec, joinConfiguration, patches, directory},
 		{spec, kubeadmConfigSpec, joinConfiguration, patches},
 		{spec, kubeadmConfigSpec, joinConfiguration, skipPhases},
+		{spec, kubeadmConfigSpec, joinConfiguration, "caCertPath"},
+		{spec, kubeadmConfigSpec, joinConfiguration, "controlPlane"},
+		{spec, kubeadmConfigSpec, joinConfiguration, "controlPlane", "*"},
+		{spec, kubeadmConfigSpec, joinConfiguration, "discovery"},
+		{spec, kubeadmConfigSpec, joinConfiguration, "discovery", "*"},
+		// spec.kubeadmConfigSpec
 		{spec, kubeadmConfigSpec, preKubeadmCommands},
 		{spec, kubeadmConfigSpec, postKubeadmCommands},
 		{spec, kubeadmConfigSpec, files},
@@ -177,6 +196,8 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.War
 		{spec, kubeadmConfigSpec, diskSetup, "*"},
 		{spec, kubeadmConfigSpec, "format"},
 		{spec, kubeadmConfigSpec, "mounts"},
+		{spec, kubeadmConfigSpec, "useExperimentalRetryJoin"},
+		// spec.machineTemplate
 		{spec, "machineTemplate", "metadata"},
 		{spec, "machineTemplate", "metadata", "*"},
 		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
@@ -185,6 +206,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.War
 		{spec, "machineTemplate", "nodeDrainTimeout"},
 		{spec, "machineTemplate", "nodeVolumeDetachTimeout"},
 		{spec, "machineTemplate", "nodeDeletionTimeout"},
+		// spec
 		{spec, "replicas"},
 		{spec, "version"},
 		{spec, "remediationStrategy"},

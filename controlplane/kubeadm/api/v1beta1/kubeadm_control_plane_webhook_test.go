@@ -353,17 +353,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	wrongReplicaCountForScaleIn := before.DeepCopy()
 	wrongReplicaCountForScaleIn.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(0)
 
-	invalidUpdateKubeadmConfigInit := before.DeepCopy()
-	invalidUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-
 	validUpdateKubeadmConfigInit := before.DeepCopy()
 	validUpdateKubeadmConfigInit.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration = bootstrapv1.NodeRegistrationOptions{}
 
 	invalidUpdateKubeadmConfigCluster := before.DeepCopy()
 	invalidUpdateKubeadmConfigCluster.Spec.KubeadmConfigSpec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
-
-	invalidUpdateKubeadmConfigJoin := before.DeepCopy()
-	invalidUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 
 	validUpdateKubeadmConfigJoin := before.DeepCopy()
 	validUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration = bootstrapv1.NodeRegistrationOptions{}
@@ -559,8 +553,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	localDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &bootstrapv1.LocalEtcd{
 		DataDir: "some local data dir",
 	}
-	modifyLocalDataDir := localDataDir.DeepCopy()
-	modifyLocalDataDir.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.DataDir = "a different local data dir"
 
 	localPeerCertSANs := before.DeepCopy()
 	localPeerCertSANs.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &bootstrapv1.LocalEtcd{
@@ -690,12 +682,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       validUpdate,
 		},
 		{
-			name:      "should return error when trying to mutate the kubeadmconfigspec initconfiguration",
-			expectErr: true,
-			before:    before,
-			kcp:       invalidUpdateKubeadmConfigInit,
-		},
-		{
 			name:      "should not return an error when trying to mutate the kubeadmconfigspec initconfiguration noderegistration",
 			expectErr: false,
 			before:    before,
@@ -706,12 +692,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    before,
 			kcp:       invalidUpdateKubeadmConfigCluster,
-		},
-		{
-			name:      "should return error when trying to mutate the kubeadmconfigspec joinconfiguration",
-			expectErr: true,
-			before:    before,
-			kcp:       invalidUpdateKubeadmConfigJoin,
 		},
 		{
 			name:      "should not return an error when trying to mutate the kubeadmconfigspec joinconfiguration noderegistration",
@@ -875,20 +855,20 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       featureGates,
 		},
 		{
-			name:      "should fail when making a change to the cluster config's local etcd's configuration localDataDir field",
-			expectErr: true,
+			name:      "should succeed when making a change to the cluster config's local etcd's configuration localDataDir field",
+			expectErr: false,
 			before:    before,
 			kcp:       localDataDir,
 		},
 		{
-			name:      "should fail when making a change to the cluster config's local etcd's configuration localPeerCertSANs field",
-			expectErr: true,
+			name:      "should succeed when making a change to the cluster config's local etcd's configuration localPeerCertSANs field",
+			expectErr: false,
 			before:    before,
 			kcp:       localPeerCertSANs,
 		},
 		{
-			name:      "should fail when making a change to the cluster config's local etcd's configuration localServerCertSANs field",
-			expectErr: true,
+			name:      "should succeed when making a change to the cluster config's local etcd's configuration localServerCertSANs field",
+			expectErr: false,
 			before:    before,
 			kcp:       localServerCertSANs,
 		},
@@ -899,8 +879,8 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       localExtraArgs,
 		},
 		{
-			name:      "should fail when making a change to the cluster config's external etcd's configuration",
-			expectErr: true,
+			name:      "should succeed when making a change to the cluster config's external etcd's configuration",
+			expectErr: false,
 			before:    before,
 			kcp:       externalEtcd,
 		},
@@ -909,12 +889,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    etcdLocalImageTag,
 			kcp:       unsetEtcd,
-		},
-		{
-			name:      "should fail when modifying a field that is not the local etcd image metadata",
-			expectErr: true,
-			before:    localDataDir,
-			kcp:       modifyLocalDataDir,
 		},
 		{
 			name:      "should fail if both local and external etcd are set",

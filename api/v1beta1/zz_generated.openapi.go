@@ -2277,7 +2277,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref common.
 						},
 					},
 				},
-				Required: []string{"clusterName", "selector", "unhealthyConditions"},
+				Required: []string{"clusterName", "selector"},
 			},
 		},
 		Dependencies: []string{

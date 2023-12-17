@@ -88,6 +88,11 @@ const (
 	RKE2ControlPlaneProviderName              = "rke2"
 )
 
+// Runtime extension providers.
+const (
+	RuntimeExtensionTestProviderName = "runtime-test"
+)
+
 // Add-on providers.
 const (
 	HelmAddonProviderName = "helm"
@@ -349,6 +354,13 @@ func (p *providersClient) defaults() []Provider {
 			name:         RKE2ControlPlaneProviderName,
 			url:          "https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+
+		// Runtime extension providers
+		&provider{
+			name:         RuntimeExtensionTestProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/runtime-extension-components-development.yaml",
+			providerType: clusterctlv1.RuntimeExtensionProviderType,
 		},
 
 		// Add-on providers

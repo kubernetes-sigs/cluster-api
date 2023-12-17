@@ -94,17 +94,17 @@ func init() {
 	initCmd.PersistentFlags().StringVar(&initOpts.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	initCmd.PersistentFlags().StringVar(&initOpts.coreProvider, "core", "",
-		"Core provider version (e.g. cluster-api:v1.1.5) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
+		"Core provider version (e.g. cluster-api:v1.6.0) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
 	initCmd.PersistentFlags().StringSliceVarP(&initOpts.infrastructureProviders, "infrastructure", "i", nil,
 		"Infrastructure providers and versions (e.g. aws:v0.5.0) to add to the management cluster.")
 	initCmd.PersistentFlags().StringSliceVarP(&initOpts.bootstrapProviders, "bootstrap", "b", nil,
-		"Bootstrap providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
+		"Bootstrap providers and versions (e.g. kubeadm:v1.6.0) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
 	initCmd.PersistentFlags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
-		"Control plane providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
+		"Control plane providers and versions (e.g. kubeadm:v1.6.0) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.ipamProviders, "ipam", nil,
 		"IPAM providers and versions (e.g. infoblox:v0.0.1) to add to the management cluster.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.runtimeExtensionProviders, "runtime-extension", nil,
-		"Runtime extension providers and versions (e.g. test:v0.0.1) to add to the management cluster.")
+		"Runtime extension providers and versions (e.g. runtime-test:v1.6.0) to add to the management cluster.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.addonProviders, "addon", nil,
 		"Add-on providers and versions (e.g. helm:v0.1.0) to add to the management cluster.")
 	initCmd.Flags().StringVarP(&initOpts.targetNamespace, "target-namespace", "n", "",

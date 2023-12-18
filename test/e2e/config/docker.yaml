@@ -287,3 +287,5 @@ intervals:
   scale/wait-cluster: ["10m", "10s"]
   scale/wait-control-plane: ["20m", "10s"]
   scale/wait-worker-nodes: ["20m", "10s"]
+  #  For testing.
+  clusterctl-upgrade/wait-worker-nodes: ["10m", "10s"]

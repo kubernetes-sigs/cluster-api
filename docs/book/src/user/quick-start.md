@@ -530,14 +530,17 @@ The Docker provider is not designed for production use and is intended for devel
 
 </aside>
 
-The Docker provider requires the `ClusterTopology` feature to deploy ClusterClass-based clusters. We are
-only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to
+The Docker provider requires the `ClusterTopology` and `MachinePool` features to deploy ClusterClass-based clusters.
+We are only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to
 adapt configuration based on Kubernetes version. This is required to install Kubernetes clusters < v1.24 and
 for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers depending on Kubernetes version.
 
 ```bash
 # Enable the experimental Cluster topology feature.
 export CLUSTER_TOPOLOGY=true
+
+# Enable the experimental Machine Pool feature
+export EXP_MACHINE_POOL=true
 
 # Initialize the management cluster
 clusterctl init --infrastructure docker

@@ -111,7 +111,7 @@ func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace
 		setFinalizers := obj.GetFinalizers()
 
 		if len(setFinalizers) > 0 {
-			objsWithFinalizers[client.ObjectKey{Namespace: node.Object.Namespace, Name: node.Object.Name}.String()] = obj
+			objsWithFinalizers[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
 		}
 	}
 
@@ -124,11 +124,11 @@ func assertFinalizersExist(ctx context.Context, proxy ClusterProxy, namespace st
 		var allErrs []error
 		finalObjsWithFinalizers := getObjectsWithFinalizers(ctx, proxy, namespace)
 
-		for objNamespacedName, obj := range initialObjsWithFinalizers {
+		for objKindNamespacedName, obj := range initialObjsWithFinalizers {
 			// verify if finalizers for this resource were set on reconcile
-			if _, valid := finalObjsWithFinalizers[objNamespacedName]; !valid {
-				allErrs = append(allErrs, fmt.Errorf("no finalizers set for %s/%s",
-					obj.GetKind(), objNamespacedName))
+			if _, valid := finalObjsWithFinalizers[objKindNamespacedName]; !valid {
+				allErrs = append(allErrs, fmt.Errorf("no finalizers set for %s",
+					objKindNamespacedName))
 				continue
 			}
 
@@ -138,10 +138,10 @@ func assertFinalizersExist(ctx context.Context, proxy ClusterProxy, namespace st
 				continue
 			}
 
-			setFinalizers := finalObjsWithFinalizers[objNamespacedName].GetFinalizers()
+			setFinalizers := finalObjsWithFinalizers[objKindNamespacedName].GetFinalizers()
 			if !reflect.DeepEqual(expectedFinalizers, setFinalizers) {
-				allErrs = append(allErrs, fmt.Errorf("expected finalizers do not exist for %s/%s: expected: %v, found: %v",
-					obj.GetKind(), objNamespacedName, expectedFinalizers, setFinalizers))
+				allErrs = append(allErrs, fmt.Errorf("expected finalizers do not exist for %s: expected: %v, found: %v",
+					objKindNamespacedName, expectedFinalizers, setFinalizers))
 			}
 		}
 

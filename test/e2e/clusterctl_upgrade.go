@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -175,7 +174,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initContract            string
 		initKubernetesVersion   string
 
-		workLoadClusterName string
+		workloadClusterName string
 	)
 
 	BeforeEach(func() {
@@ -355,7 +354,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// In this case ApplyClusterTemplateAndWait can't be used because this helper is linked to the last version of the API;
 		// so we are getting a template using the downloaded version of clusterctl, applying it, and wait for machines to be provisioned.
 
-		workLoadClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		workloadClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		kubernetesVersion := input.WorkloadKubernetesVersion
 		if kubernetesVersion == "" {
 			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
@@ -364,7 +363,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		workerMachineCount := ptr.To[int64](1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-			workLoadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
+			workloadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
 
 		log.Logf("Getting the cluster template yaml")
 		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
@@ -376,7 +375,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			Flavor: input.WorkloadFlavor,
 			// define template variables
 			Namespace:                testNamespace.Name,
-			ClusterName:              workLoadClusterName,
+			ClusterName:              workloadClusterName,
 			KubernetesVersion:        kubernetesVersion,
 			ControlPlaneMachineCount: controlPlaneMachineCount,
 			WorkerMachineCount:       workerMachineCount,
@@ -391,8 +390,16 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		if input.PreWaitForCluster != nil {
 			By("Running PreWaitForCluster steps against the management cluster")
-			input.PreWaitForCluster(managementClusterProxy, testNamespace.Name, workLoadClusterName)
+			input.PreWaitForCluster(managementClusterProxy, testNamespace.Name, workloadClusterName)
 		}
+
+		workloadCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+			Getter:    managementClusterProxy.GetClient(),
+			Namespace: testNamespace.Name,
+			Name:      workloadClusterName,
+		}, input.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+
+		expectedMachineCount := *controlPlaneMachineCount + calculateExpectedWorkerCount(ctx, managementClusterProxy.GetClient(), input.E2EConfig, specName, workloadCluster)
 
 		// Build GroupVersionKind for Machine resources
 		machineListGVK := schema.GroupVersionKind{
@@ -416,8 +423,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			if err := managementClusterProxy.GetClient().List(
 				ctx,
 				machineList,
-				client.InNamespace(testNamespace.Name),
-				client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
+				client.InNamespace(workloadCluster.Namespace),
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.Name},
 			); err == nil {
 				for _, m := range machineList.Items {
 					_, found, err := unstructured.NestedMap(m.Object, "status", "nodeRef")
@@ -427,7 +434,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				}
 			}
 			return n, nil
-		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(*controlPlaneMachineCount+*workerMachineCount), "Timed out waiting for all machines to be exist")
+		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(expectedMachineCount), "Timed out waiting for all machines to be exist")
 
 		By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
 
@@ -443,8 +450,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		err = managementClusterProxy.GetClient().List(
 			ctx,
 			preUpgradeMachineList,
-			client.InNamespace(testNamespace.Name),
-			client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
+			client.InNamespace(workloadCluster.Namespace),
+			client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.Name},
 		)
 		Expect(err).ToNot(HaveOccurred())
 		// Check if the user want a custom upgrade
@@ -497,20 +504,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			err = managementClusterProxy.GetClient().List(
 				ctx,
 				postUpgradeMachineList,
-				client.InNamespace(testNamespace.Name),
-				client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
+				client.InNamespace(workloadCluster.Namespace),
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.Name},
 			)
 			Expect(err).ToNot(HaveOccurred())
 			return validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)
 		}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
-
-		// After upgrading we are sure the version is the latest version of the API,
-		// so it is possible to use the standard helpers
-		workloadCluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
-			Getter:    managementClusterProxy.GetClient(),
-			Namespace: testNamespace.Name,
-			Name:      workLoadClusterName,
-		})
 
 		if workloadCluster.Spec.Topology != nil {
 			// Cluster is using ClusterClass, scale up via topology.
@@ -524,12 +523,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// Cluster is not using ClusterClass, scale up via MachineDeployment.
 			testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
 				Lister:      managementClusterProxy.GetClient(),
-				ClusterName: workLoadClusterName,
-				Namespace:   testNamespace.Name,
+				ClusterName: workloadCluster.Name,
+				Namespace:   workloadCluster.Namespace,
 			})
 			framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
 				ClusterProxy:              managementClusterProxy,
-				Cluster:                   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace.Name}},
+				Cluster:                   workloadCluster,
 				MachineDeployment:         testMachineDeployments[0],
 				Replicas:                  2,
 				WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
@@ -613,6 +612,52 @@ func downloadToTmpFile(ctx context.Context, url string) string {
 	Expect(err).ToNot(HaveOccurred(), "failed to write temporary file")
 
 	return tmpFile.Name()
+}
+
+func calculateExpectedWorkerCount(ctx context.Context, c client.Client, e2eConfig *clusterctl.E2EConfig, specName string, cluster *clusterv1.Cluster) int64 {
+	var expectedWorkerCount int64
+
+	if cluster.Spec.Topology != nil {
+		if cluster.Spec.Topology.Workers != nil {
+			for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+				if md.Replicas == nil {
+					continue
+				}
+				expectedWorkerCount += int64(*md.Replicas)
+			}
+			for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
+				if mp.Replicas == nil {
+					continue
+				}
+				expectedWorkerCount += int64(*mp.Replicas)
+			}
+		}
+		return expectedWorkerCount
+	}
+
+	machineDeployments := framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
+		Lister:  c,
+		Cluster: cluster,
+	}, e2eConfig.GetIntervals(specName, "wait-worker-nodes")...)
+	for _, md := range machineDeployments {
+		if md.Spec.Replicas == nil {
+			continue
+		}
+		expectedWorkerCount += int64(*md.Spec.Replicas)
+	}
+
+	machinePools := framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
+		Getter:  c,
+		Lister:  c,
+		Cluster: cluster,
+	}, e2eConfig.GetIntervals(specName, "wait-machine-pool-nodes")...)
+	for _, mp := range machinePools {
+		if mp.Spec.Replicas == nil {
+			continue
+		}
+		expectedWorkerCount += int64(*mp.Spec.Replicas)
+	}
+	return expectedWorkerCount
 }
 
 // deleteAllClustersAndWaitV1alpha4 deletes all cluster resources in the given namespace and waits for them to be gone using the older API.
@@ -699,7 +744,7 @@ func validateMachineRollout(preMachineList, postMachineList *unstructured.Unstru
 		return true
 	}
 
-	log.Logf("Rollout detected")
+	log.Logf("Rollout detected (%d Machines before, %d Machines after)", len(preMachineList.Items), len(postMachineList.Items))
 	newMachines := names(postMachineList).Difference(names(preMachineList))
 	deletedMachines := names(preMachineList).Difference(names(postMachineList))
 

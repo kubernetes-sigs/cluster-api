@@ -32,6 +32,18 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 )
 
+const (
+	kubeproxyComponentConfig = `
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+conntrack:
+# Skip setting sysctl value "net.netfilter.nf_conntrack_max"
+# It is a global variable that affects other namespaces
+  maxPerCore: 0
+`
+)
+
 // RawIgnitionToProvisioningCommands converts an Ignition YAML document to a slice of commands.
 func RawIgnitionToProvisioningCommands(config []byte) ([]provisioning.Cmd, error) {
 	// Ensure Ignition is a valid YAML document.
@@ -76,6 +88,10 @@ func getActions(userData []byte) ([]provisioning.Cmd, error) {
 			contents = hackKubeadmIgnoreErrors(contents)
 		}
 
+		if f.Path == "/etc/kubeadm.yml" {
+			contents = hackKubeProxySysctlWorkaround(contents)
+		}
+
 		commands = append(commands, []provisioning.Cmd{
 			// Idempotently create the directory.
 			{Cmd: "mkdir", Args: []string{"-p", filepath.Dir(f.Path)}},
@@ -116,6 +132,13 @@ func hackKubeadmIgnoreErrors(s string) string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// hackKubeProxySysctlWorkaround adds kube-proxy configuration for kubeadm so it
+// to skips setting the sysctl value for "net.netfilter.nf_conntrack_max"
+// which would fail on kind clusters because of the sysctls being read-only.
+func hackKubeProxySysctlWorkaround(s string) string {
+	return s + kubeproxyComponentConfig
 }
 
 // decodeFileContents accepts a string representing the contents of a file encoded in Ignition

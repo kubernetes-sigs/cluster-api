@@ -144,6 +144,9 @@ The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 
 #### Kubernetes version specific notes
 
+**1.29**:
+* In-tree cloud providers are now switched off by default. Please use DisableCloudProviders and DisableKubeletCloudCredentialProvider feature flags if you still need this functionality. (https://github.com/kubernetes/kubernetes/pull/117503)
+
 **1.28**:
 * No specific notes
 

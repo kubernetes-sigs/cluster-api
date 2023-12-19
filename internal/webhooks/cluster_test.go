@@ -1759,7 +1759,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         false,
 		},
 		{
-			name: "Accept a cluster that has MHC enabled for machine deployment but is missing MHC definition unhealthyConditions in cluster topology and ClusterClass",
+			name: "Reject a cluster that has MHC enabled for machine deployment but is missing MHC definition in cluster topology and ClusterClass",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1785,7 +1785,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         true,
 		},
 		{
-			name: "Reject a cluster that has MHC override defined for machine deployment but is missing unhealthy conditions",
+			name: "Accept a cluster that has MHC override defined for machine deployment and does not set unhealthy conditions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().

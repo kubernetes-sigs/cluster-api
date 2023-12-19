@@ -129,7 +129,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.5=>cur
 })
 
 var _ = Describe("When testing clusterctl upgrades (v1.6=>current)", func() {
-	// Get v1.5 latest stable release
+	// Get v1.6 latest stable release
 	version := "1.6"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
@@ -144,7 +144,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.6=>current)", func() {
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			//  Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.28.0",
+			InitWithKubernetesVersion: "v1.29.0",
 			WorkloadKubernetesVersion: "v1.28.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
@@ -153,7 +153,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.6=>current)", func() {
 })
 
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.6=>current) [ClusterClass]", func() {
-	// Get v1.5 latest stable release
+	// Get v1.6 latest stable release
 	version := "1.6"
 	stableRelease, err := GetStableReleaseOfMinor(ctx, version)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version)
@@ -168,7 +168,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.6=>cur
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.28.0",
+			InitWithKubernetesVersion: "v1.29.0",
 			WorkloadKubernetesVersion: "v1.28.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "topology",

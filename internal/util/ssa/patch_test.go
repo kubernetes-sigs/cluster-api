@@ -21,6 +21,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
@@ -110,6 +111,11 @@ func TestPatch(t *testing.T) {
 				NodeDrainTimeout: &metav1.Duration{Duration: 10 * time.Second},
 				Bootstrap: clusterv1.Bootstrap{
 					DataSecretName: ptr.To("data-secret"),
+				},
+				InfrastructureRef: corev1.ObjectReference{
+					// The namespace needs to get set here. Otherwise the defaulting webhook always sets this field again
+					// which would lead to an resourceVersion bump at the 3rd step and to a flaky test.
+					Namespace: ns.Name,
 				},
 			},
 		}

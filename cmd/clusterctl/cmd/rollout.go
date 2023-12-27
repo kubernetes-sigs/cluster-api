@@ -45,7 +45,10 @@ var (
 		clusterctl alpha rollout resume kubeadmcontrolplane/my-kcp
 
 		# Rollback a machinedeployment
-		clusterctl alpha rollout undo machinedeployment/my-md-0 --to-revision=3`)
+		clusterctl alpha rollout undo machinedeployment/my-md-0 --to-revision=3
+
+		# View rollback history of a machinedeployment
+		clusterctl alpha rollout history machinedeployment/my-md-0 --revision=3`)
 
 	rolloutCmd = &cobra.Command{
 		Use:     "rollout SUBCOMMAND",
@@ -61,4 +64,5 @@ func init() {
 	rolloutCmd.AddCommand(rollout.NewCmdRolloutPause(cfgFile))
 	rolloutCmd.AddCommand(rollout.NewCmdRolloutResume(cfgFile))
 	rolloutCmd.AddCommand(rollout.NewCmdRolloutUndo(cfgFile))
+	rolloutCmd.AddCommand(rollout.NewCmdRolloutHistory(cfgFile))
 }

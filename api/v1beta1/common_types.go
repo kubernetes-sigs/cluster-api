@@ -190,6 +190,9 @@ const (
 	// VariableDefinitionFromInline indicates a patch or variable was defined in the `.spec` of a ClusterClass
 	// rather than from an external patch extension.
 	VariableDefinitionFromInline = "inline"
+	// ChangeCauseAnnotation is the annotation set on MachineSets by users to identify the cause of revision changes.
+	// This annotation will be shown when users run `clusterctl alpha rollout history`.
+	ChangeCauseAnnotation = "cluster.x-k8s.io/change-cause"
 )
 
 // MachineSetPreflightCheck defines a valid MachineSet preflight check.

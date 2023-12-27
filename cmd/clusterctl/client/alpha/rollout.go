@@ -40,12 +40,17 @@ var validRollbackResourceTypes = []string{
 	MachineDeployment,
 }
 
+var validHistoryResourceTypes = []string{
+	MachineDeployment,
+}
+
 // Rollout defines the behavior of a rollout implementation.
 type Rollout interface {
 	ObjectRestarter(context.Context, cluster.Proxy, corev1.ObjectReference) error
 	ObjectPauser(context.Context, cluster.Proxy, corev1.ObjectReference) error
 	ObjectResumer(context.Context, cluster.Proxy, corev1.ObjectReference) error
 	ObjectRollbacker(context.Context, cluster.Proxy, corev1.ObjectReference, int64) error
+	ObjectViewer(context.Context, cluster.Proxy, corev1.ObjectReference, int64) error
 }
 
 var _ Rollout = &rollout{}

@@ -1068,7 +1068,7 @@ release-binary: $(RELEASE_DIR)
 
 .PHONY: release-staging
 release-staging: ## Build and push container images to the staging bucket
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-image-verify docker-push-all release-alias-tag
 
 .PHONY: release-staging-nightly
 release-staging-nightly: ## Tag and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_main_20210121
@@ -1115,6 +1115,10 @@ promote-images: $(KPROMO)
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
+
+.PHONY: docker-image-verify
+docker-image-verify: ## Verifies all built images to contain the correct binary in the expected arch
+	ALL_ARCH="$(ALL_ARCH)" TAG="$(TAG)" ./hack/docker-image-verify.sh
 
 .PHONY: docker-push-all
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests

@@ -28,6 +28,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -36,6 +37,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -44,6 +46,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kustomize/api/types"
@@ -129,8 +132,11 @@ type tiltProvider struct {
 }
 
 type tiltProviderConfig struct {
-	Context *string `json:"context,omitempty"`
-	Version *string `json:"version,omitempty"`
+	Context           *string `json:"context,omitempty"`
+	Version           *string `json:"version,omitempty"`
+	ApplyProviderYaml *bool   `json:"apply_provider_yaml,omitempty"`
+	KustomizeFolder   *string `json:"kustomize_folder,omitempty"`
+	KustomizeOptions  *string `json:"kustomize_options,omitempty"`
 }
 
 func init() {
@@ -339,7 +345,11 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		if !ok {
 			return errors.Errorf("failed to obtain config for the provider %s, please add the providers path to the provider_repos list in tilt-settings.yaml/json file", providerName)
 		}
-		tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, fmt.Sprintf("%s/config/default", *config.Context), getProviderObj(config.Version))
+		if ptr.Deref(config.ApplyProviderYaml, true) {
+			kustomize_folder := path.Join(*config.Context, ptr.Deref(config.KustomizeFolder, "config/default"))
+			kustomize_options := ptr.Deref(config.KustomizeOptions, "")
+			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, kustomize_folder, kustomize_options, getProviderObj(config.Version))
+		}
 	}
 
 	return runTaskGroup(ctx, "resources", tasks)
@@ -361,8 +371,11 @@ func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig,
 		contextPath := filepath.Join(providerRepository, ptr.Deref(p.Config.Context, "."))
 
 		ret[p.Name] = tiltProviderConfig{
-			Context: &contextPath,
-			Version: p.Config.Version,
+			Context:           &contextPath,
+			Version:           p.Config.Version,
+			ApplyProviderYaml: p.Config.ApplyProviderYaml,
+			KustomizeFolder:   p.Config.KustomizeFolder,
+			KustomizeOptions:  p.Config.KustomizeOptions,
 		}
 	}
 	return ret, nil
@@ -674,9 +687,13 @@ func kustomizeTask(path, out string) taskFunction {
 // workloadTask generates a task for creating the component yaml for a workload and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
 // and adding the workload resource mimicking what clusterctl init does.
-func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
+func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path, options string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, "build", path)
+		args := []string{"build", path}
+		if options != "" {
+			args = []string{"build", options, path}
+		}
+		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, args...)
 		var stdout1, stderr1 bytes.Buffer
 		kustomizeCmd.Dir = rootPath
 		kustomizeCmd.Stdout = &stdout1
@@ -823,11 +840,14 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 
 				container.LivenessProbe = nil
 				container.ReadinessProbe = nil
+
+				container.Resources = corev1.ResourceRequirements{}
 			}
 
 			container.Command = cmd
 			container.Args = args
 			deployment.Spec.Template.Spec.Containers[j] = container
+			deployment.Spec.Replicas = pointer.Int32(1)
 		}
 	})
 }

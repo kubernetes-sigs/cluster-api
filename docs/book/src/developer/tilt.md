@@ -429,7 +429,13 @@ COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 ```
 
-**kustomize_config** (Bool, default=true): Whether or not running kustomize on the ./config folder of the provider.
+**kustomize_folder** (String, default=config/default): The folder where the kustomize file for a provider
+are defined; the path is relative to the provider root folder.
+
+**kustomize_options** (String, default="""): Options to be applied when running kustomize for genereating
+yaml manifest for a provider. e.g. `"kustomize_options": "--load-restrictor=LoadRestrictionsNone"`
+
+**apply_provider_yaml** (Bool, default=true): Whether or not apply the provider yaml.
 Set to `false` if your provider does not have a ./config folder or you do not want it to be applied in the cluster.
 
 **go_main** (String, default="main.go"): The go main file if not located at the root of the folder

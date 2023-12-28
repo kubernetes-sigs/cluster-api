@@ -46,7 +46,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kustomize/api/types"
@@ -346,9 +345,9 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 			return errors.Errorf("failed to obtain config for the provider %s, please add the providers path to the provider_repos list in tilt-settings.yaml/json file", providerName)
 		}
 		if ptr.Deref(config.ApplyProviderYaml, true) {
-			kustomize_folder := path.Join(*config.Context, ptr.Deref(config.KustomizeFolder, "config/default"))
-			kustomize_options := ptr.Deref(config.KustomizeOptions, "")
-			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, kustomize_folder, kustomize_options, getProviderObj(config.Version))
+			kustomizeFolder := path.Join(*config.Context, ptr.Deref(config.KustomizeFolder, "config/default"))
+			kustomizeOptions := ptr.Deref(config.KustomizeOptions, "")
+			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, kustomizeFolder, kustomizeOptions, getProviderObj(config.Version))
 		}
 	}
 
@@ -693,7 +692,7 @@ func workloadTask(name, workloadType, binaryName, containerName string, ts *tilt
 		if options != "" {
 			args = []string{"build", options, path}
 		}
-		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, args...)
+		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, args...) //nolint: gosec
 		var stdout1, stderr1 bytes.Buffer
 		kustomizeCmd.Dir = rootPath
 		kustomizeCmd.Stdout = &stdout1
@@ -847,7 +846,7 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 			container.Command = cmd
 			container.Args = args
 			deployment.Spec.Template.Spec.Containers[j] = container
-			deployment.Spec.Replicas = pointer.Int32(1)
+			deployment.Spec.Replicas = ptr.To[int32](1)
 		}
 	})
 }

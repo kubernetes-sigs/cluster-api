@@ -190,6 +190,9 @@ OPENAPI_GEN_BIN := openapi-gen
 OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(OPENAPI_GEN_BIN))
 OPENAPI_GEN_PKG := k8s.io/kube-openapi/cmd/openapi-gen
 
+PROWJOB_GEN_BIN := prowjob-gen
+PROWJOB_GEN := $(abspath $(TOOLS_BIN_DIR)/$(PROWJOB_GEN_BIN))
+
 RUNTIME_OPENAPI_GEN_BIN := runtime-openapi-gen
 RUNTIME_OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN))
 
@@ -600,6 +603,13 @@ generate-diagrams-book: ## Generate diagrams for *.plantuml files in book
 generate-diagrams-proposals: ## Generate diagrams for *.plantuml files in proposals
 	docker run -v $(ROOT_DIR)/$(DOCS_DIR):/$(DOCS_DIR)$(DOCKER_VOL_OPTS)  plantuml/plantuml:$(PLANTUML_VER) /$(DOCS_DIR)/proposals/**/*.plantuml
 
+.PHONY: generate-test-infra-prowjobs
+generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra
+	@if [ -z "${TEST_INFRA_DIR}" ]; then echo "TEST_INFRA_DIR is not set"; exit 1; fi
+	$(PROWJOB_GEN) \
+		-config "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api/cluster-api-prowjob-gen.yaml" \
+		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api/templates" \
+		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api"
 
 ## --------------------------------------
 ## Lint / Verify
@@ -1307,6 +1317,9 @@ $(OPENAPI_GEN_BIN): $(OPENAPI_GEN) ## Build a local copy of openapi-gen.
 .PHONY: $(RUNTIME_OPENAPI_GEN_BIN)
 $(RUNTIME_OPENAPI_GEN_BIN): $(RUNTIME_OPENAPI_GEN) ## Build a local copy of runtime-openapi-gen.
 
+.PHONY: $(PROWJOB_GEN_BIN)
+$(PROWJOB_GEN_BIN): $(PROWJOB_GEN) ## Build a local copy of prowjob-gen.
+
 .PHONY: $(CONVERSION_VERIFIER_BIN)
 $(CONVERSION_VERIFIER_BIN): $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
 
@@ -1366,6 +1379,10 @@ $(OPENAPI_GEN): # Build openapi-gen from tools folder.
 .PHONY: $(RUNTIME_OPENAPI_GEN)
 $(RUNTIME_OPENAPI_GEN): $(TOOLS_DIR)/go.mod # Build openapi-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen
+
+.PHONY: $(PROWJOB_GEN)
+$(PROWJOB_GEN): $(TOOLS_DIR)/go.mod # Build prowjob-gen from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(PROWJOB_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/prowjob-gen
 
 $(GOTESTSUM): # Build gotestsum from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)

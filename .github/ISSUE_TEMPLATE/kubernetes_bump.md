@@ -34,21 +34,25 @@ changes should be cherry-picked to all release series that will support the new 
     * Note: Only bump for Cluster API versions that will support the new Kubernetes release.
   * Prior art: #9160
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
-  * For the main branch:
-    * periodics:
-      * Drop the oldest upgrade job as the oldest Kubernetes minor version is now out of support.
-      * Add new upgrade job which upgrades from the previous to the new Kubernetes version.
-    * periodics & presubmits:
-      * Bump `KUBERNETES_VERSION_MANAGEMENT` of the `e2e-mink8s` job to the new minimum supported management cluster version.
-      * Bump `KUBEBUILDER_ENVTEST_KUBERNETES_VERSION` of the `test-mink8s` jobs to the new minimum supported management cluster version.
-      * Adjust the `-latest` upgrade job to upgrade from the new Kubernetes to the next Kubernetes version.
-  * For the release branch of the latest supported Cluster API minor release:
-    * periodics & presubmits:
-      * Adust the `-latest` upgrade jobs to upgrade to the new Kubernetes version instead of latest.
-  * Note: Also check if `ETCD_VERSION_UPGRADE_TO` or `COREDNS_VERSION_UPGRADE_TO` needs to change for the upgrades jobs to the new or next Kubernetes version.
-    * For etcd, see the `DefaultEtcdVersion` kubeadm constant: [e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L308)
-    * For coredns, see the `CoreDNSVersion` kubeadm constant:[e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L344)
-  * Prior art: https://github.com/kubernetes/test-infra/pull/30347 https://github.com/kubernetes/test-infra/pull/30406 https://github.com/kubernetes/test-infra/pull/30407
+
+  * At the `.versions`  section in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/):
+    * Add a new entry for the new Kubernetes version
+    * Adjust the released kKubernetes's version entry to refer `stable-1.<minor>` instead of `ci/latest-1.<minor>`
+    * Check and update the versions for the keys `etcd` and `coreDNS` if necessary:
+      * For etcd, see the `DefaultEtcdVersion` kubeadm constant: [e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L308)
+      * For coredns, see the `CoreDNSVersion` kubeadm constant:[e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L344)
+  * For the `.branches.main` section in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/):
+    * For the `.upgrades` section:
+      * Drop the oldest upgrade
+      * Add a new upgrade entry from the previous to the new Kubernetes version
+    * Bump the version set at `.kubernetesVersionManagement` to the new minimum supported management cluster version (This is the image version available as kind image).
+    * Bump the version set at `.kubebuilderEnvtestKubernetesVersion` to the new minimum supported management cluster version.
+  * Run `make generate-test-infra-prowjobs` to generate the resulting prowjob configuration:
+
+    ```sh
+    TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs
+    ```
+
 * [ ] Update book:
   * Update supported versions in `versions.md`
   * Update job documentation in `jobs.md`
@@ -65,7 +69,7 @@ need them in older releases as they are not necessary to manage workload cluster
 run the Cluster API controllers on the new Kubernetes version.
 
 * [ ] Ensure there is a new controller-runtime minor release which uses the new Kubernetes Go dependencies.
-* [ ] Update our Prow jobs for the `main` branch to use the correct `kubekins-e2e` image
+* [ ] Update our Prow jobs for the `main` branch to use the correct `kubekins-e2e` image via the configuration file and by running `make generate-test-infra-prowjobs`.
   * It is recommended to have one PR for presubmit and one for periodic jobs to reduce the risk of breaking the periodic jobs.
   * Prior art: presubmit jobs: https://github.com/kubernetes/test-infra/pull/27311
   * Prior art: periodic jobs: https://github.com/kubernetes/test-infra/pull/27326

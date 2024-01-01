@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
@@ -88,6 +87,7 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 }
 
 var fooProvider = clusterctlv1.Provider{ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "ns1", ResourceVersion: "999"}}
+var v1alpha4Contract = "v1alpha4"
 
 func Test_inventoryClient_List(t *testing.T) {
 	type fields struct {
@@ -302,7 +302,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 				}),
 			},
 			args: args{
-				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: clusterv1alpha4.GroupVersion.Version}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
+				options: []CheckCAPIContractOption{AllowCAPIContract{Contract: v1alpha4Contract}, AllowCAPIContract{Contract: test.PreviousCAPIContractNotSupported}},
 			},
 			wantErr: false,
 		},

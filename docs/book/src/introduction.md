@@ -15,19 +15,6 @@ Please read the [announcement](https://kubernetes.io/blog/2023/03/10/image-regis
 
 Also, this [guide](https://github.com/kubernetes/registry.k8s.io/tree/main/docs/mirroring) provide instructions about how to identify images to mirror and how to use mirrored images.
 
-</aside>
-
-<aside class="note">
-<h1>Deprecated API removal</h1>
-
-- API version v1alpha3 support is no longer served in release v1.5
-- API version v1alpha4 support will be removed in the upcoming release of v1.6
-
-Review the [support-and-guarantees](./CONTRIBUTING.md#support-and-guarantees) section of the
-contributing guide for more details.
-
-</aside>
-
 ## Getting started
 
 * [Quick Start](./user/quick-start.md)

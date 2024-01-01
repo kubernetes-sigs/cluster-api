@@ -115,28 +115,18 @@ linters-settings:
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
       # CABPK
-      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4
-        alias: bootstrapv1alpha4
       - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
         alias: bootstrapv1
       # KCP
-      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4
-        alias: controlplanev1alpha4
       - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
         alias: controlplanev1
       # CAPI
-      - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
-        alias: clusterv1alpha4
       - pkg: sigs.k8s.io/cluster-api/api/v1beta1
         alias: clusterv1
       # CAPI exp
-      - pkg: sigs.k8s.io/cluster-api/exp/api/v1alpha4
-        alias: expv1alpha4
       - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
         alias: expv1
       # CAPI exp addons
-      - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4
-        alias: addonsv1alpha4
       - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1beta1
         alias: addonsv1
       # CAPI exp IPAM
@@ -158,13 +148,9 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
         alias: runtimewebhooks
       # CAPD
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4
-        alias: infrav1alpha4
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
         alias: infrav1
       # CAPD exp
-      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4
-        alias: infraexpv1alpha4
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1
         alias: infraexpv1
   nolintlint:
@@ -224,9 +210,6 @@ issues:
     text: "SA1019: .* is deprecated: This package will be removed in one of the next releases."
   # Specific exclude rules for deprecated types that are still part of the codebase. These
   # should be removed as the referenced deprecated types are removed from the project.
-  - linters:
-    - staticcheck
-    text: "SA1019: (clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"

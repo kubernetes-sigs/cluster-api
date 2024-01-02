@@ -226,7 +226,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
 		if err := patchHelper.Patch(ctx, config, patchOpts...); err != nil {
-			rerr = kerrors.NewAggregate([]error{rerr, errors.Wrapf(err, "failed to patch %s", klog.KObj(config))})
+			rerr = kerrors.NewAggregate([]error{rerr, err})
 		}
 	}()
 

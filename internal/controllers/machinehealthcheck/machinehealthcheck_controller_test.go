@@ -2607,7 +2607,8 @@ func TestPatchTargets(t *testing.T) {
 	// To make the patch fail, create patchHelper with a different client.
 	fakeMachine := machine1.DeepCopy()
 	fakeMachine.Name = "fake"
-	patchHelper, _ := patch.NewHelper(fakeMachine, fake.NewClientBuilder().WithObjects(fakeMachine).Build())
+	patchHelper, err := patch.NewHelper(fakeMachine, fake.NewClientBuilder().WithObjects(fakeMachine).Build())
+	g.Expect(err).ToNot(HaveOccurred())
 	// healthCheckTarget with fake patchHelper, patch should fail on this target.
 	target1 := healthCheckTarget{
 		MHC:         mhc,
@@ -2617,7 +2618,8 @@ func TestPatchTargets(t *testing.T) {
 	}
 
 	// healthCheckTarget with correct patchHelper.
-	patchHelper2, _ := patch.NewHelper(machine2, cl)
+	patchHelper2, err := patch.NewHelper(machine2, cl)
+	g.Expect(err).ToNot(HaveOccurred())
 	target3 := healthCheckTarget{
 		MHC:         mhc,
 		Machine:     machine2,

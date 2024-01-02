@@ -123,11 +123,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Create a patch helper to add or remove the finalizer from the MachineSet.
 	patchHelper, err := patch.NewHelper(ms, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: ms})
+		return ctrl.Result{}, err
 	}
 	defer func() {
 		if err := patchHelper.Patch(ctx, ms); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: ms})})
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 

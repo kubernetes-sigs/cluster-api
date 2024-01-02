@@ -212,7 +212,7 @@ func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, 
 
 		patchHelper, err := patch.NewHelper(&machines[k], r.Client)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to initialize patch helper")
+			return nil, err
 		}
 		target := healthCheckTarget{
 			Cluster:     cluster,

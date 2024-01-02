@@ -104,11 +104,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) (reterr error) {
 	patchHelper, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {
-		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
+		return err
 	}
 	defer func() {
 		if err := patchHelper.Patch(ctx, configSecret); err != nil {
-			reterr = errors.Wrap(err, "failed to patch the kubeconfig secret")
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
 	controller := metav1.GetControllerOf(configSecret)

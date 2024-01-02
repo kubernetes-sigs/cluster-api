@@ -179,8 +179,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{patch.WithStatusObservedGeneration{}}
 		if err := patchHelper.Patch(ctx, kcp, patchOpts...); err != nil {
-			log.Error(err, "Failed to patch KubeadmControlPlane to add finalizer")
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer")
 		}
 
 		return ctrl.Result{}, nil
@@ -627,7 +626,7 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 		// TODO: This should be cleaned-up to have a more streamline way of constructing and using patchHelpers.
 		patchHelper, err := patch.NewHelper(updatedMachine, r.Client)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create patch helper for Machine %s", klog.KObj(updatedMachine))
+			return err
 		}
 		patchHelpers[machineName] = patchHelper
 
@@ -812,7 +811,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		log.V(2).Info(fmt.Sprintf("Setting certificate expiry to %s", expiry))
 		patchHelper, err := patch.NewHelper(kubeadmConfig, r.Client)
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s: failed to create PatchHelper for KubeadmConfig/%s", m.Name, kubeadmConfig.Name)
+			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
 		}
 
 		if annotations == nil {
@@ -822,7 +821,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		kubeadmConfig.SetAnnotations(annotations)
 
 		if err := patchHelper.Patch(ctx, kubeadmConfig); err != nil {
-			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s: failed to patch KubeadmConfig/%s", m.Name, kubeadmConfig.Name)
+			return errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
 		}
 	}
 
@@ -950,7 +949,7 @@ func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.C
 
 		patchHelper, err := patch.NewHelper(c.Secret, r.Client)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create patchHelper for Secret %s", klog.KObj(c.Secret))
+			return err
 		}
 
 		controller := metav1.GetControllerOf(c.Secret)
@@ -971,7 +970,7 @@ func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.C
 			c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
 		}
 		if err := patchHelper.Patch(ctx, c.Secret); err != nil {
-			return errors.Wrapf(err, "failed to patch Secret %s with ownerReference %s", klog.KObj(c.Secret), owner.String())
+			return errors.Wrapf(err, "failed to set ownerReference")
 		}
 	}
 	return nil

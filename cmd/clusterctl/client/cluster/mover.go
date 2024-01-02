@@ -741,7 +741,7 @@ func pauseClusterClass(ctx context.Context, proxy Proxy, n *node, pause bool, mu
 
 	patchHelper, err := patch.NewHelper(clusterClass, cFrom)
 	if err != nil {
-		return errors.Wrapf(err, "error creating patcher for ClusterClass %s/%s", n.identity.Namespace, n.identity.Name)
+		return err
 	}
 
 	// Update the annotation to the desired state
@@ -759,11 +759,8 @@ func pauseClusterClass(ctx context.Context, proxy Proxy, n *node, pause bool, mu
 
 	// Update the ClusterClass with the new annotations.
 	clusterClass.SetAnnotations(ccAnnotations)
-	if err := patchHelper.Patch(ctx, clusterClass); err != nil {
-		return errors.Wrapf(err, "error patching ClusterClass %s/%s", n.identity.Namespace, n.identity.Name)
-	}
 
-	return nil
+	return patchHelper.Patch(ctx, clusterClass)
 }
 
 // ensureNamespaces ensures all the expected target namespaces are in place before creating objects.

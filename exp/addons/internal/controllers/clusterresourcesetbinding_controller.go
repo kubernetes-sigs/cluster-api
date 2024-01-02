@@ -123,7 +123,7 @@ func (r *ClusterResourceSetBindingReconciler) clusterToClusterResourceSetBinding
 func (r *ClusterResourceSetBindingReconciler) updateClusterReference(ctx context.Context, binding *addonsv1.ClusterResourceSetBinding) error {
 	patchHelper, err := patch.NewHelper(binding, r.Client)
 	if err != nil {
-		return errors.Wrap(err, "failed to configure the patch helper")
+		return err
 	}
 
 	// If the `.spec.clusterName` is not set, take the value from the ownerReference.

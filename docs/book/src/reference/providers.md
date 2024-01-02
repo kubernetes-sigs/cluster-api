@@ -12,6 +12,7 @@ updated info about which API version they are supporting.
 - [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
 - [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
 - [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
+- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## Control Plane
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
@@ -21,6 +22,7 @@ updated info about which API version they are supporting.
 - [Talos](https://github.com/siderolabs/cluster-api-control-plane-provider-talos)
 - [Kamaji](https://github.com/clastix/cluster-api-control-plane-provider-kamaji)
 - [K3s](https://github.com/cluster-api-provider-k3s/cluster-api-k3s)
+- [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## Infrastructure
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)
@@ -51,6 +53,7 @@ updated info about which API version they are supporting.
 - [Virtink](https://github.com/smartxworks/cluster-api-provider-virtink)
 - [VMware Cloud Director](https://github.com/vmware/cluster-api-provider-cloud-director)  
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
+- [k0smotron RemoteMachine (SSH)](https://github.com/k0sproject/k0smotron)
 
 ## IP Address Management (IPAM)
 - [In Cluster](https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster)

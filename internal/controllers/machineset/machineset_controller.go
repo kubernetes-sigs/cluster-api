@@ -995,12 +995,12 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, cluster *cl
 		for _, m := range machinesToRemediate {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to create patch helper for Machine %s", klog.KObj(m)))
+				errs = append(errs, err)
 				continue
 			}
 			conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, preflightCheckErrMessage)
 			if err := patchHelper.Patch(ctx, m); err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to patch Machine %s", klog.KObj(m)))
+				errs = append(errs, err)
 			}
 		}
 

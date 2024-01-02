@@ -277,7 +277,7 @@ func DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, i
 
 	log.Logf("Dropping the %s and %s annotations from the MachineDeployments in ClusterTopology", clusterv1.AutoscalerMinSizeAnnotation, clusterv1.AutoscalerMaxSizeAnnotation)
 	patchHelper, err := patch.NewHelper(input.Cluster, mgmtClient)
-	Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to create patch helper for Cluster %s", klog.KObj(input.Cluster)))
+	Expect(err).ToNot(HaveOccurred())
 	for i := range input.Cluster.Spec.Topology.Workers.MachineDeployments {
 		md := input.Cluster.Spec.Topology.Workers.MachineDeployments[i]
 		delete(md.Metadata.Annotations, clusterv1.AutoscalerMinSizeAnnotation)
@@ -321,7 +321,7 @@ func EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, in
 
 	log.Logf("Add the %s and %s annotations to the MachineDeployments in ClusterTopology", clusterv1.AutoscalerMinSizeAnnotation, clusterv1.AutoscalerMaxSizeAnnotation)
 	patchHelper, err := patch.NewHelper(input.Cluster, mgmtClient)
-	Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to create patch helper for Cluster %s", klog.KObj(input.Cluster)))
+	Expect(err).ToNot(HaveOccurred())
 	for i := range input.Cluster.Spec.Topology.Workers.MachineDeployments {
 		md := input.Cluster.Spec.Topology.Workers.MachineDeployments[i]
 		if md.Metadata.Annotations == nil {

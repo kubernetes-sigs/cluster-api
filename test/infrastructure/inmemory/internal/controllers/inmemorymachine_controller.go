@@ -75,8 +75,6 @@ type InMemoryMachineReconciler struct {
 
 // Reconcile handles InMemoryMachine events.
 func (r *InMemoryMachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Fetch the InMemoryMachine instance
 	inMemoryMachine := &infrav1.InMemoryMachine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, inMemoryMachine); err != nil {
@@ -162,10 +160,7 @@ func (r *InMemoryMachineReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			conditions.WithStepCounterIf(inMemoryMachine.ObjectMeta.DeletionTimestamp.IsZero() && inMemoryMachine.Spec.ProviderID == nil),
 		)
 		if err := patchHelper.Patch(ctx, inMemoryMachine, patch.WithOwnedConditions{Conditions: inMemoryMachineConditions}); err != nil {
-			log.Error(err, "failed to patch InMemoryMachine")
-			if rerr == nil {
-				rerr = err
-			}
+			rerr = kerrors.NewAggregate([]error{rerr, err})
 		}
 	}()
 

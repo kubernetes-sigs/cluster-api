@@ -191,7 +191,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			patch.WithForceOverwriteConditions{},
 		}
 		if err := patchHelper.Patch(ctx, cluster, options...); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to patch cluster")})
+			reterr = kerrors.NewAggregate([]error{reterr, err})
 			return
 		}
 	}()

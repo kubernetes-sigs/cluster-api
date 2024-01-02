@@ -70,7 +70,7 @@ func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, c
 	for _, machine := range ownedMachines {
 		patchHelper, err := patch.NewHelper(machine, client)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create patch helper for machine %s", machine.Name)
+			return nil, err
 		}
 		patchHelpers[machine.Name] = patchHelper
 	}
@@ -271,7 +271,7 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 				controlplanev1.MachineEtcdPodHealthyCondition,
 				controlplanev1.MachineEtcdMemberHealthyCondition,
 			}}); err != nil {
-				errList = append(errList, errors.Wrapf(err, "failed to patch machine %s", machine.Name))
+				errList = append(errList, err)
 			}
 			continue
 		}

@@ -148,7 +148,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(m, r.Client)
 	if err != nil {
-		log.Error(err, "Failed to build patch helper")
 		return ctrl.Result{}, err
 	}
 

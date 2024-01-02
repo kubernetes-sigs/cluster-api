@@ -212,7 +212,6 @@ func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clus
 				log.Error(err, "failed to delete empty ClusterResourceSetBinding")
 			}
 		} else if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
-			log.Error(err, "failed to patch ClusterResourceSetBinding")
 			return err
 		}
 	}

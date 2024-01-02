@@ -159,17 +159,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func patchExtensionConfig(ctx context.Context, client client.Client, original, modified *runtimev1.ExtensionConfig, options ...patch.Option) error {
 	patchHelper, err := patch.NewHelper(original, client)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: modified})
+		return err
 	}
 
 	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 		runtimev1.RuntimeExtensionDiscoveredCondition,
 	}})
-	err = patchHelper.Patch(ctx, modified, options...)
-	if err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: modified})
-	}
-	return nil
+	return patchHelper.Patch(ctx, modified, options...)
 }
 
 // reconcileDelete will remove the ExtensionConfig from the registry on deletion of the object. Note this is a best

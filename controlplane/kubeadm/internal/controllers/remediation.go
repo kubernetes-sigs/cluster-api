@@ -55,7 +55,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			m.DeletionTimestamp.IsZero() {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				errList = append(errList, errors.Wrapf(err, "failed to get PatchHelper for machine %s", m.Name))
+				errList = append(errList, err)
 				continue
 			}
 
@@ -64,7 +64,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineOwnerRemediatedCondition,
 			}}); err != nil {
-				errList = append(errList, errors.Wrapf(err, "failed to patch machine %s", m.Name))
+				errList = append(errList, err)
 			}
 		}
 	}

@@ -346,14 +346,6 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	return remediationInProgressData, true, nil
 }
 
-// max calculates the maximum duration.
-func max(x, y time.Duration) time.Duration {
-	if x < y {
-		return y
-	}
-	return x
-}
-
 // canSafelyRemoveEtcdMember assess if it is possible to remove the member hosted on the machine to be remediated
 // without loosing etcd quorum.
 //

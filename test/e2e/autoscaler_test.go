@@ -35,7 +35,7 @@ var _ = Describe("When using the autoscaler with Cluster API using ClusterClass 
 			InfrastructureProvider:            ptr.To("docker"),
 			InfrastructureMachineTemplateKind: "dockermachinetemplates",
 			Flavor:                            ptr.To("topology-autoscaler"),
-			AutoscalerVersion:                 "v1.28.0",
+			AutoscalerVersion:                 "v1.29.0",
 		}
 	})
 })

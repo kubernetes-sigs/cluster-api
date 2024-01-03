@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -342,7 +343,13 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !dockerMachine.Spec.Bootstrapped {
-		timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		var bootstrapTimeout metav1.Duration
+		if dockerMachine.Spec.BootstrapTimeout != nil {
+			bootstrapTimeout = *dockerMachine.Spec.BootstrapTimeout
+		} else {
+			bootstrapTimeout = metav1.Duration{Duration: 3 * time.Minute}
+		}
+		timeoutCtx, cancel := context.WithTimeout(ctx, bootstrapTimeout.Duration)
 		defer cancel()
 
 		// Check for bootstrap success

@@ -56,6 +56,11 @@ type DockerMachineSpec struct {
 	// When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
 	// +optional
 	Bootstrapped bool `json:"bootstrapped,omitempty"`
+
+	// BootstrapTimeout is the total amount of time to wait for the machine to bootstrap before timing out.
+	// The default value is 3m.
+	// +optional
+	BootstrapTimeout *metav1.Duration `json:"bootstrapTimeout,omitempty"`
 }
 
 // Mount specifies a host volume to mount into a container.

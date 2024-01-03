@@ -146,6 +146,16 @@ To test another iteration, you'll need to follow the steps to build, push, updat
 
 **Additional ClusterAPI KubeCon talks**
 
+* [SIG Cluster Lifecycle Intro & Future - November 2023](https://www.youtube.com/watch?v=MM0YPhIel2M)
+* [Cluster API Deep Dive: Improving Performance up to 2k Clusters - November 2023](https://www.youtube.com/watch?v=bRPfmviTi3s)
+* [Leveraging Cluster-API for Production-Ready Multi-Regional Infrastructures - November 2023](https://www.youtube.com/watch?v=BDjhGEVJ0Gs)
+* [The Stars Look Very Different Today”: Kubernetes and Cloud Native at the SKA Observatory - November 2023](https://www.youtube.com/watch?v=quW8FbW1fVM)
+* [15,000 Minecraft Players Vs One K8s Cluster. Who Wins? - November 2023](https://www.youtube.com/watch?v=4YNp2vb9NTA)
+* [Cluster API Providers: Intro, Deep Dive, and Community! - April 2023](https://www.youtube.com/watch?v=QA4OhqLKJn4)
+* [Ephemeral Clusters as a Service with ClusterAPI and GitOps - April 2023](https://www.youtube.com/watch?v=cXIo8C7yWvg)
+* [The Power of Self-Managing Clusters - April 2023](https://www.youtube.com/watch?v=tNUH_8MFyTc)
+* [How to Turn Release Management from Duty to Fun - April 2023](https://www.youtube.com/watch?v=sgP3tyGJ5tQ)
+* [Tilt Your World! Lessons Learned in Improving Dev Productivity with Tilt - April 2023](https://www.youtube.com/watch?v=h6llT5Bg97g)
 * [How Adobe Planned For Scale With Argo CD, Cluster API, And VCluster - October 2022](https://www.youtube.com/watch?v=p8BluR5WT5w)
 * [Bare-Metal Chronicles: Intertwinement Of Tinkerbell, Cluster API And GitOps - October 2022](https://www.youtube.com/watch?v=NCFUUjTw6hA)
 * [Running Isolated VirtualClusters With Kata & Cluster API - October 2022](https://www.youtube.com/watch?v=T6w3YrExorY)

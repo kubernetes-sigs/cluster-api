@@ -210,7 +210,7 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 		oldMSAvailableReplicas := targetMS.Status.AvailableReplicas
 		log.V(4).Info("Found available Machines in old MachineSet",
 			"count", oldMSAvailableReplicas, "target-machineset", client.ObjectKeyFromObject(targetMS).String())
-		if oldMSReplicas == oldMSAvailableReplicas {
+		if oldMSReplicas <= oldMSAvailableReplicas {
 			// no unhealthy replicas found, no scaling required.
 			continue
 		}
@@ -278,8 +278,8 @@ func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context
 		}
 
 		// Scale down.
-		scaleDownCount := integer.Int32Min(*(targetMS.Spec.Replicas), totalScaleDownCount-totalScaledDown)
-		newReplicasCount := *(targetMS.Spec.Replicas) - scaleDownCount
+		scaleDownCount := integer.Int32Min(targetMS.Status.AvailableReplicas, totalScaleDownCount-totalScaledDown)
+		newReplicasCount := targetMS.Status.AvailableReplicas - scaleDownCount
 		if newReplicasCount > *(targetMS.Spec.Replicas) {
 			return totalScaledDown, errors.Errorf("when scaling down old MachineSet, got invalid request to scale down %v: %d -> %d",
 				client.ObjectKeyFromObject(targetMS), *(targetMS.Spec.Replicas), newReplicasCount)

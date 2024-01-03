@@ -21,7 +21,6 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
-	"k8s.io/utils/integer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -217,7 +216,7 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 
 		remainingCleanupCount := maxCleanupCount - totalScaledDown
 		unhealthyCount := oldMSReplicas - oldMSAvailableReplicas
-		scaledDownCount := integer.Int32Min(remainingCleanupCount, unhealthyCount)
+		scaledDownCount := min(remainingCleanupCount, unhealthyCount)
 		newReplicasCount := oldMSReplicas - scaledDownCount
 
 		if newReplicasCount > oldMSReplicas {
@@ -278,7 +277,7 @@ func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context
 		}
 
 		// Scale down.
-		scaleDownCount := integer.Int32Min(*(targetMS.Spec.Replicas), totalScaleDownCount-totalScaledDown)
+		scaleDownCount := min(*(targetMS.Spec.Replicas), totalScaleDownCount-totalScaledDown)
 		newReplicasCount := *(targetMS.Spec.Replicas) - scaleDownCount
 		if newReplicasCount > *(targetMS.Spec.Replicas) {
 			return totalScaledDown, errors.Errorf("when scaling down old MachineSet, got invalid request to scale down %v: %d -> %d",

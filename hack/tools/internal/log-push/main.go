@@ -431,10 +431,3 @@ func pushStreamToLoki(ctx context.Context, lokiURL, lokiOrgID string, body []byt
 	klog.Infof("Push response: status: %q, body: %q", resp.Status, string(respBody))
 	return nil
 }
-
-func min(a, b int) int {
-	if a <= b {
-		return a
-	}
-	return b
-}

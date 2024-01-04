@@ -144,7 +144,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
 		scope := scope.New(clusterWithInfrastructureRef)
 		scope.Current.InfrastructureCluster = infrastructureClusterTemplate.DeepCopy()
-		scope.Current.InfrastructureCluster.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim)})
+		scope.Current.InfrastructureCluster.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
 		scope.Blueprint = blueprint
 
 		obj, err := computeInfrastructureCluster(ctx, scope)
@@ -623,7 +623,7 @@ func TestComputeControlPlane(t *testing.T) {
 				}).
 				Build(),
 		}
-		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim)})
+		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
 		s.Blueprint = blueprint
 
 		r := &Reconciler{}
@@ -2877,8 +2877,8 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	clusterName := "cluster1"
 	want := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
 			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "MachineHealthCheck",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "md1",

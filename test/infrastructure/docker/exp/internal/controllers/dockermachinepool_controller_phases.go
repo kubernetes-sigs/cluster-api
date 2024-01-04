@@ -264,8 +264,8 @@ func computeDesiredDockerMachine(name string, cluster *clusterv1.Cluster, machin
 
 	// Note: Since the MachinePool controller has not created its owner Machine yet, we want to set the DockerMachinePool as the owner so it's not orphaned.
 	dockerMachine.SetOwnerReferences(util.EnsureOwnerRef(dockerMachine.OwnerReferences, metav1.OwnerReference{
-		APIVersion: dockerMachinePool.APIVersion,
-		Kind:       dockerMachinePool.Kind,
+		APIVersion: infraexpv1.GroupVersion.String(),
+		Kind:       "DockerMachinePool",
 		Name:       dockerMachinePool.Name,
 		UID:        dockerMachinePool.UID,
 	}))

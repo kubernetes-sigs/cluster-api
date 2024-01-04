@@ -189,8 +189,8 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 				ready++
 			}
 			nodeRefs = append(nodeRefs, corev1.ObjectReference{
-				Kind:       node.Kind,
-				APIVersion: node.APIVersion,
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "Node",
 				Name:       node.Name,
 				UID:        node.UID,
 			})

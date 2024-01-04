@@ -126,12 +126,12 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 
 		// Add the shim as a temporary owner for the InfrastructureCluster.
 		ownerRefs := s.Desired.InfrastructureCluster.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(shim))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret")))
 		s.Desired.InfrastructureCluster.SetOwnerReferences(ownerRefs)
 
 		// Add the shim as a temporary owner for the ControlPlane.
 		ownerRefs = s.Desired.ControlPlane.Object.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(shim))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret")))
 		s.Desired.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 	}
 
@@ -168,7 +168,7 @@ func clusterShim(c *clusterv1.Cluster) *corev1.Secret {
 			Name:      fmt.Sprintf("%s-shim", c.Name),
 			Namespace: c.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*ownerReferenceTo(c),
+				*ownerReferenceTo(c, clusterv1.GroupVersion.WithKind("Cluster")),
 			},
 		},
 		Type: clusterv1.ClusterSecretType,

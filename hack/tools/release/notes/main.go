@@ -154,7 +154,7 @@ func validateConfig(config *notesCmdConfig) error {
 // computeConfigDefaults calculates the value the non specified configuration fields
 // based on the set fields.
 func computeConfigDefaults(config *notesCmdConfig) error {
-	if config.fromRef != "" && config.branch != "" {
+	if config.fromRef != "" && config.branch != "" && config.toRef != "" {
 		return nil
 	}
 

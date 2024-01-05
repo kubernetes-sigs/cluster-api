@@ -84,8 +84,6 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeClusterTopologyAndWaitForUpgrade")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeClusterTopologyAndWaitForUpgrade")
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling UpgradeClusterTopologyAndWaitForUpgrade")
-	Expect(input.MachineDeployments).ToNot(BeEmpty(), "Invalid argument. input.MachineDeployments can't be empty when calling UpgradeClusterTopologyAndWaitForUpgrade")
-	Expect(input.MachinePools).ToNot(BeEmpty(), "Invalid argument. input.MachinePools can't be empty when calling UpgradeClusterTopologyAndWaitForUpgrade")
 	Expect(input.KubernetesUpgradeVersion).ToNot(BeNil(), "Invalid argument. input.KubernetesUpgradeVersion can't be empty when calling UpgradeClusterTopologyAndWaitForUpgrade")
 
 	mgmtClient := input.ClusterProxy.GetClient()

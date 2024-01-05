@@ -205,6 +205,11 @@ spec:
           spec:
             description: DockerMachineSpec defines the desired state of DockerMachine.
             properties:
+              bootstrapTimeout:
+                description: BootstrapTimeout is the total amount of time to wait
+                  for the machine to bootstrap before timing out. The default value
+                  is 3m.
+                type: string
               bootstrapped:
                 description: "Bootstrapped is true when the kubeadm bootstrapping
                   has been run against this machine \n Deprecated: This field will

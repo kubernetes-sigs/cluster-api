@@ -28,6 +28,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -36,6 +37,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -129,8 +131,11 @@ type tiltProvider struct {
 }
 
 type tiltProviderConfig struct {
-	Context *string `json:"context,omitempty"`
-	Version *string `json:"version,omitempty"`
+	Context           *string  `json:"context,omitempty"`
+	Version           *string  `json:"version,omitempty"`
+	ApplyProviderYaml *bool    `json:"apply_provider_yaml,omitempty"`
+	KustomizeFolder   *string  `json:"kustomize_folder,omitempty"`
+	KustomizeOptions  []string `json:"kustomize_options,omitempty"`
 }
 
 func init() {
@@ -339,7 +344,11 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		if !ok {
 			return errors.Errorf("failed to obtain config for the provider %s, please add the providers path to the provider_repos list in tilt-settings.yaml/json file", providerName)
 		}
-		tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, fmt.Sprintf("%s/config/default", *config.Context), getProviderObj(config.Version))
+		if ptr.Deref(config.ApplyProviderYaml, true) {
+			kustomizeFolder := path.Join(*config.Context, ptr.Deref(config.KustomizeFolder, "config/default"))
+			kustomizeOptions := config.KustomizeOptions
+			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, kustomizeFolder, kustomizeOptions, getProviderObj(config.Version))
+		}
 	}
 
 	return runTaskGroup(ctx, "resources", tasks)
@@ -361,8 +370,11 @@ func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig,
 		contextPath := filepath.Join(providerRepository, ptr.Deref(p.Config.Context, "."))
 
 		ret[p.Name] = tiltProviderConfig{
-			Context: &contextPath,
-			Version: p.Config.Version,
+			Context:           &contextPath,
+			Version:           p.Config.Version,
+			ApplyProviderYaml: p.Config.ApplyProviderYaml,
+			KustomizeFolder:   p.Config.KustomizeFolder,
+			KustomizeOptions:  p.Config.KustomizeOptions,
 		}
 	}
 	return ret, nil
@@ -674,9 +686,12 @@ func kustomizeTask(path, out string) taskFunction {
 // workloadTask generates a task for creating the component yaml for a workload and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
 // and adding the workload resource mimicking what clusterctl init does.
-func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
+func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, options []string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, "build", path)
+		args := []string{"build"}
+		args = append(args, options...)
+		args = append(args, path)
+		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, args...)
 		var stdout1, stderr1 bytes.Buffer
 		kustomizeCmd.Dir = rootPath
 		kustomizeCmd.Stdout = &stdout1
@@ -823,11 +838,14 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 
 				container.LivenessProbe = nil
 				container.ReadinessProbe = nil
+
+				container.Resources = corev1.ResourceRequirements{}
 			}
 
 			container.Command = cmd
 			container.Args = args
 			deployment.Spec.Template.Spec.Containers[j] = container
+			deployment.Spec.Replicas = ptr.To[int32](1)
 		}
 	})
 }

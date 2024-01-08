@@ -326,8 +326,6 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeControlPlaneAndWaitForUpgrade")
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling UpgradeControlPlaneAndWaitForUpgrade")
 	Expect(input.KubernetesUpgradeVersion).ToNot(BeNil(), "Invalid argument. input.KubernetesUpgradeVersion can't be empty when calling UpgradeControlPlaneAndWaitForUpgrade")
-	Expect(input.EtcdImageTag).ToNot(BeNil(), "Invalid argument. input.EtcdImageTag can't be empty when calling UpgradeControlPlaneAndWaitForUpgrade")
-	Expect(input.DNSImageTag).ToNot(BeNil(), "Invalid argument. input.DNSImageTag can't be empty when calling UpgradeControlPlaneAndWaitForUpgrade")
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
@@ -348,8 +346,12 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = new(bootstrapv1.LocalEtcd)
 	}
 
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta.ImageTag = input.EtcdImageTag
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageMeta.ImageTag = input.DNSImageTag
+	if input.EtcdImageTag != "" {
+		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta.ImageTag = input.EtcdImageTag
+	}
+	if input.DNSImageTag != "" {
+		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageMeta.ImageTag = input.DNSImageTag
+	}
 
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.ControlPlane)
@@ -371,20 +373,24 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		KubernetesVersion: input.KubernetesUpgradeVersion,
 	}, input.WaitForKubeProxyUpgrade...)
 
-	log.Logf("Waiting for CoreDNS to have the upgraded image tag")
-	WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
-		Getter:     workloadClient,
-		DNSVersion: input.DNSImageTag,
-	}, input.WaitForDNSUpgrade...)
+	if input.DNSImageTag != "" {
+		log.Logf("Waiting for CoreDNS to have the upgraded image tag")
+		WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
+			Getter:     workloadClient,
+			DNSVersion: input.DNSImageTag,
+		}, input.WaitForDNSUpgrade...)
+	}
 
-	log.Logf("Waiting for etcd to have the upgraded image tag")
-	lblSelector, err := labels.Parse("component=etcd")
-	Expect(err).ToNot(HaveOccurred())
-	WaitForPodListCondition(ctx, WaitForPodListConditionInput{
-		Lister:      workloadClient,
-		ListOptions: &client.ListOptions{LabelSelector: lblSelector},
-		Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
-	}, input.WaitForEtcdUpgrade...)
+	if input.EtcdImageTag != "" {
+		log.Logf("Waiting for etcd to have the upgraded image tag")
+		lblSelector, err := labels.Parse("component=etcd")
+		Expect(err).ToNot(HaveOccurred())
+		WaitForPodListCondition(ctx, WaitForPodListConditionInput{
+			Lister:      workloadClient,
+			ListOptions: &client.ListOptions{LabelSelector: lblSelector},
+			Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
+		}, input.WaitForEtcdUpgrade...)
+	}
 }
 
 // controlPlaneMachineOptions returns a set of ListOptions that allows to get all machine objects belonging to control plane.

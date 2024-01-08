@@ -131,11 +131,11 @@ type tiltProvider struct {
 }
 
 type tiltProviderConfig struct {
-	Context           *string `json:"context,omitempty"`
-	Version           *string `json:"version,omitempty"`
-	ApplyProviderYaml *bool   `json:"apply_provider_yaml,omitempty"`
-	KustomizeFolder   *string `json:"kustomize_folder,omitempty"`
-	KustomizeOptions  *string `json:"kustomize_options,omitempty"`
+	Context           *string  `json:"context,omitempty"`
+	Version           *string  `json:"version,omitempty"`
+	ApplyProviderYaml *bool    `json:"apply_provider_yaml,omitempty"`
+	KustomizeFolder   *string  `json:"kustomize_folder,omitempty"`
+	KustomizeOptions  []string `json:"kustomize_options,omitempty"`
 }
 
 func init() {
@@ -346,7 +346,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		}
 		if ptr.Deref(config.ApplyProviderYaml, true) {
 			kustomizeFolder := path.Join(*config.Context, ptr.Deref(config.KustomizeFolder, "config/default"))
-			kustomizeOptions := ptr.Deref(config.KustomizeOptions, "")
+			kustomizeOptions := config.KustomizeOptions
 			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, kustomizeFolder, kustomizeOptions, getProviderObj(config.Version))
 		}
 	}
@@ -686,13 +686,12 @@ func kustomizeTask(path, out string) taskFunction {
 // workloadTask generates a task for creating the component yaml for a workload and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
 // and adding the workload resource mimicking what clusterctl init does.
-func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path, options string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
+func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, options []string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		args := []string{"build", path}
-		if options != "" {
-			args = []string{"build", options, path}
-		}
-		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, args...) //nolint: gosec
+		args := []string{"build"}
+		args = append(args, options...)
+		args = append(args, path)
+		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, args...)
 		var stdout1, stderr1 bytes.Buffer
 		kustomizeCmd.Dir = rootPath
 		kustomizeCmd.Stdout = &stdout1

@@ -23,8 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	ccache "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/cache"
-	cresourcegroup "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/resourcegroup"
+	inmemorycache "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/cache"
+	inmemoryresoucegroup "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/resourcegroup"
 )
 
 // Manager initializes shared dependencies such as Caches and Clients.
@@ -32,12 +32,12 @@ type Manager interface {
 	// TODO: refactor in resoucegroup.add/delete/get; make delete fail if rs does not exist
 	AddResourceGroup(name string)
 	DeleteResourceGroup(name string)
-	GetResourceGroup(name string) cresourcegroup.ResourceGroup
+	GetResourceGroup(name string) inmemoryresoucegroup.ResourceGroup
 
 	GetScheme() *runtime.Scheme
 
 	// TODO: expose less (only get informers)
-	GetCache() ccache.Cache
+	GetCache() inmemorycache.Cache
 
 	Start(ctx context.Context) error
 }
@@ -47,7 +47,7 @@ var _ Manager = &manager{}
 type manager struct {
 	scheme *runtime.Scheme
 
-	cache   ccache.Cache
+	cache   inmemorycache.Cache
 	started bool
 }
 
@@ -56,7 +56,7 @@ func New(scheme *runtime.Scheme) Manager {
 	m := &manager{
 		scheme: scheme,
 	}
-	m.cache = ccache.NewCache(scheme)
+	m.cache = inmemorycache.NewCache(scheme)
 	return m
 }
 
@@ -69,15 +69,15 @@ func (m *manager) DeleteResourceGroup(name string) {
 }
 
 // GetResourceGroup returns a resource group which reads from the cache.
-func (m *manager) GetResourceGroup(name string) cresourcegroup.ResourceGroup {
-	return cresourcegroup.NewResourceGroup(name, m.cache)
+func (m *manager) GetResourceGroup(name string) inmemoryresoucegroup.ResourceGroup {
+	return inmemoryresoucegroup.NewResourceGroup(name, m.cache)
 }
 
 func (m *manager) GetScheme() *runtime.Scheme {
 	return m.scheme
 }
 
-func (m *manager) GetCache() ccache.Cache {
+func (m *manager) GetCache() inmemorycache.Cache {
 	return m.cache
 }
 

@@ -24,9 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud"
 	inmemorycontrollers "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/controllers"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -34,9 +34,9 @@ import (
 
 // InMemoryClusterReconciler reconciles a InMemoryCluster object.
 type InMemoryClusterReconciler struct {
-	Client       client.Client
-	CloudManager cloud.Manager
-	APIServerMux *server.WorkloadClustersMux // TODO: find a way to use an interface here
+	Client          client.Client
+	InMemoryManager inmemoryruntime.Manager
+	APIServerMux    *inmemoryserver.WorkloadClustersMux // TODO: find a way to use an interface here
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -46,7 +46,7 @@ type InMemoryClusterReconciler struct {
 func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&inmemorycontrollers.InMemoryClusterReconciler{
 		Client:           r.Client,
-		CloudManager:     r.CloudManager,
+		InMemoryManager:  r.InMemoryManager,
 		APIServerMux:     r.APIServerMux,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
@@ -54,9 +54,9 @@ func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 
 // InMemoryMachineReconciler reconciles a InMemoryMachine object.
 type InMemoryMachineReconciler struct {
-	Client       client.Client
-	CloudManager cloud.Manager
-	APIServerMux *server.WorkloadClustersMux // TODO: find a way to use an interface here
+	Client          client.Client
+	InMemoryManager inmemoryruntime.Manager
+	APIServerMux    *inmemoryserver.WorkloadClustersMux // TODO: find a way to use an interface here
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -66,7 +66,7 @@ type InMemoryMachineReconciler struct {
 func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&inmemorycontrollers.InMemoryMachineReconciler{
 		Client:           r.Client,
-		CloudManager:     r.CloudManager,
+		InMemoryManager:  r.InMemoryManager,
 		APIServerMux:     r.APIServerMux,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)

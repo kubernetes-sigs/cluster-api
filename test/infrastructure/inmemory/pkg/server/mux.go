@@ -39,9 +39,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
-	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server/api"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server/etcd"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryapi "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/api"
+	inmemoryetcd "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/etcd"
 	"sigs.k8s.io/cluster-api/util/certs"
 )
 
@@ -103,7 +103,7 @@ type WorkloadClustersMux struct {
 	maxPort   int
 	portIndex int
 
-	manager cmanager.Manager // TODO: figure out if we can have a smaller interface (GetResourceGroup, GetSchema)
+	manager inmemoryruntime.Manager // TODO: figure out if we can have a smaller interface (GetResourceGroup, GetSchema)
 
 	debugServer              http.Server
 	muxServer                http.Server
@@ -116,7 +116,7 @@ type WorkloadClustersMux struct {
 }
 
 // NewWorkloadClustersMux returns a WorkloadClustersMux that handles requests for multiple workload clusters.
-func NewWorkloadClustersMux(manager cmanager.Manager, host string, opts ...WorkloadClustersMuxOption) (*WorkloadClustersMux, error) {
+func NewWorkloadClustersMux(manager inmemoryruntime.Manager, host string, opts ...WorkloadClustersMuxOption) (*WorkloadClustersMux, error) {
 	options := WorkloadClustersMuxOptions{
 		MinPort:   DefaultMinPort,
 		MaxPort:   DefaultMaxPort,
@@ -151,7 +151,7 @@ func NewWorkloadClustersMux(manager cmanager.Manager, host string, opts ...Workl
 
 	//nolint:gosec // Ignoring the following for now: "G112: Potential Slowloris Attack because ReadHeaderTimeout is not configured in the http.Server (gosec)"
 	m.debugServer = http.Server{
-		Handler: api.NewDebugHandler(manager, m.log, m),
+		Handler: inmemoryapi.NewDebugHandler(manager, m.log, m),
 	}
 	l, err := net.Listen("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", options.DebugPort)))
 	if err != nil {
@@ -179,8 +179,8 @@ func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 	}
 
 	// build the handlers for API server and etcd.
-	apiHandler := api.NewAPIServerHandler(m.manager, m.log, resourceGroupResolver)
-	etcdHandler := etcd.NewEtcdServerHandler(m.manager, m.log, resourceGroupResolver)
+	apiHandler := inmemoryapi.NewAPIServerHandler(m.manager, m.log, resourceGroupResolver)
+	etcdHandler := inmemoryetcd.NewEtcdServerHandler(m.manager, m.log, resourceGroupResolver)
 
 	// Creates the mixed handler combining the two above depending on
 	// the type of request being processed

@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
 )
 
 // InMemoryCluster implements a validating and defaulting webhook for InMemoryCluster.
@@ -32,7 +32,7 @@ type InMemoryCluster struct{}
 
 func (webhook *InMemoryCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&v1alpha1.InMemoryCluster{}).
+		For(&infrav1.InMemoryCluster{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()

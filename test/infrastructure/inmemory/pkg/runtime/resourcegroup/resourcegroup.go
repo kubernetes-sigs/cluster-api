@@ -17,10 +17,10 @@ limitations under the License.
 package resourcegroup
 
 import (
-	cclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/client"
+	inmemoryclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/client"
 )
 
 // ResourceGroup groups resources for a workload cluster.
 type ResourceGroup interface {
-	GetClient() cclient.Client
+	GetClient() inmemoryclient.Client
 }

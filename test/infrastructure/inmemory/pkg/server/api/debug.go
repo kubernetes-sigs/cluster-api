@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 )
 
 // DebugInfoProvider defines the methods the server must implement
@@ -33,7 +33,7 @@ type DebugInfoProvider interface {
 }
 
 // NewDebugHandler returns an http.Handler for debugging the server.
-func NewDebugHandler(manager cmanager.Manager, log logr.Logger, infoProvider DebugInfoProvider) http.Handler {
+func NewDebugHandler(manager inmemoryruntime.Manager, log logr.Logger, infoProvider DebugInfoProvider) http.Handler {
 	debugServer := &debugHandler{
 		container:    restful.NewContainer(),
 		manager:      manager,
@@ -54,7 +54,7 @@ func NewDebugHandler(manager cmanager.Manager, log logr.Logger, infoProvider Deb
 
 type debugHandler struct {
 	container    *restful.Container
-	manager      cmanager.Manager
+	manager      inmemoryruntime.Manager
 	log          logr.Logger
 	infoProvider DebugInfoProvider
 }

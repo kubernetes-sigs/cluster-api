@@ -34,8 +34,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -44,8 +44,8 @@ import (
 // InMemoryClusterReconciler reconciles a InMemoryCluster object.
 type InMemoryClusterReconciler struct {
 	client.Client
-	CloudManager cloud.Manager
-	APIServerMux *server.WorkloadClustersMux
+	InMemoryManager inmemoryruntime.Manager
+	APIServerMux    *inmemoryserver.WorkloadClustersMux
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -158,11 +158,11 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 	// Store the resource group used by this inMemoryCluster.
 	inMemoryCluster.Annotations[infrav1.ResourceGroupAnnotationName] = resourceGroup
 
-	// Create a resource group for all the cloud resources belonging the workload cluster;
+	// Create a resource group for all the in memory resources belonging the workload cluster;
 	// if the resource group already exists, the operation is a no-op.
-	// NOTE: We are storing in this resource group both the cloud resources (e.g. VM) as
+	// NOTE: We are storing in this resource group both the in memory resources (e.g. VM) as
 	// well as Kubernetes resources that are expected to exist on the workload cluster (e.g Nodes).
-	r.CloudManager.AddResourceGroup(resourceGroup)
+	r.InMemoryManager.AddResourceGroup(resourceGroup)
 
 	// Initialize a listener for the workload cluster; if the listener has been already initialized
 	// the operation is a no-op.
@@ -190,8 +190,8 @@ func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()
 
-	// Delete the resource group hosting all the cloud resources belonging the workload cluster;
-	r.CloudManager.DeleteResourceGroup(resourceGroup)
+	// Delete the resource group hosting all the in memory resources belonging the workload cluster;
+	r.InMemoryManager.DeleteResourceGroup(resourceGroup)
 
 	// Delete the listener for the workload cluster;
 	if err := r.APIServerMux.DeleteWorkloadClusterListener(resourceGroup); err != nil {

@@ -42,8 +42,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
-	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server/proxy"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryproxy "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/proxy"
 	"sigs.k8s.io/cluster-api/util/certs"
 )
 
@@ -64,7 +64,7 @@ func TestMux(t *testing.T) {
 	t.Parallel()
 	g := NewWithT(t)
 
-	manager := cmanager.New(scheme)
+	manager := inmemoryruntime.NewManager(scheme)
 
 	wcl := "workload-cluster"
 	host := "127.0.0.1"
@@ -251,7 +251,7 @@ func TestAPI_rbacv1_CRUD(t *testing.T) {
 func TestAPI_PortForward(t *testing.T) {
 	t.Parallel()
 	g := NewWithT(t)
-	manager := cmanager.New(scheme)
+	manager := inmemoryruntime.NewManager(scheme)
 
 	// TODO: deduplicate this setup code with the test above
 	host := "127.0.0.1"
@@ -312,14 +312,14 @@ func TestAPI_PortForward(t *testing.T) {
 	restConfig, err := listener.RESTConfig()
 	g.Expect(err).ToNot(HaveOccurred())
 
-	p1 := proxy.Proxy{
+	p1 := inmemoryproxy.Proxy{
 		Kind:       "pods",
 		Namespace:  metav1.NamespaceSystem,
 		KubeConfig: restConfig,
 		Port:       1234,
 	}
 
-	dialer1, err := proxy.NewDialer(p1)
+	dialer1, err := inmemoryproxy.NewDialer(p1)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	rawConn, err := dialer1.DialContextWithAddr(ctx, "kube-apiserver-foo")
@@ -343,14 +343,14 @@ func TestAPI_PortForward(t *testing.T) {
 	clientCert, err := tls.X509KeyPair(certs.EncodeCertPEM(cert), certs.EncodePrivateKeyPEM(key))
 	g.Expect(err).ToNot(HaveOccurred())
 
-	p2 := proxy.Proxy{
+	p2 := inmemoryproxy.Proxy{
 		Kind:       "pods",
 		Namespace:  metav1.NamespaceSystem,
 		KubeConfig: restConfig,
 		Port:       2379,
 	}
 
-	dialer2, err := proxy.NewDialer(p2)
+	dialer2, err := inmemoryproxy.NewDialer(p2)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	etcdClient1, err := clientv3.New(clientv3.Config{
@@ -480,7 +480,7 @@ func TestAPI_corev1_Watch(t *testing.T) {
 }
 
 func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadClustersMux, client.WithWatch) {
-	manager := cmanager.New(scheme)
+	manager := inmemoryruntime.NewManager(scheme)
 
 	host := "127.0.0.1"
 	wcmux, err := NewWorkloadClustersMux(manager, host, ports)

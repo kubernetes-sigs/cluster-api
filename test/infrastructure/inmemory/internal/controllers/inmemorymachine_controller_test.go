@@ -41,8 +41,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
-	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	secretutil "sigs.k8s.io/cluster-api/util/secret"
@@ -102,10 +102,10 @@ func TestReconcileNormalCloudMachine(t *testing.T) {
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := r.reconcileNormalCloudMachine(ctx, cluster, cpMachine, inMemoryMachine)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -181,10 +181,10 @@ func TestReconcileNormalNode(t *testing.T) {
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := r.reconcileNormalNode(ctx, cluster, cpMachine, inMemoryMachineWithVMNotYetProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -203,10 +203,10 @@ func TestReconcileNormalNode(t *testing.T) {
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := r.reconcileNormalNode(ctx, cluster, cpMachine, inMemoryMachineWithVMProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -289,10 +289,10 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeNotYetProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -311,26 +311,26 @@ func TestReconcileNormalEtcd(t *testing.T) {
 	t.Run("create pod if Node is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		manager := cmanager.New(scheme)
+		manager := inmemoryruntime.NewManager(scheme)
 
 		host := "127.0.0.1"
-		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
+		wcmux, err := inmemoryserver.NewWorkloadClustersMux(manager, host, inmemoryserver.CustomPorts{
 			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-			MinPort:   server.DefaultMinPort + 1000,
-			MaxPort:   server.DefaultMinPort + 1099,
-			DebugPort: server.DefaultDebugPort + 10,
+			MinPort:   inmemoryserver.DefaultMinPort + 1000,
+			MaxPort:   inmemoryserver.DefaultMinPort + 1099,
+			DebugPort: inmemoryserver.DefaultDebugPort + 10,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := InMemoryMachineReconciler{
-			Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.EtcdCA)).Build(),
-			CloudManager: manager,
-			APIServerMux: wcmux,
+			Client:          fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.EtcdCA)).Build(),
+			InMemoryManager: manager,
+			APIServerMux:    wcmux,
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -390,26 +390,26 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		inMemoryMachineWithNodeProvisioned2 := inMemoryMachineWithNodeProvisioned1.DeepCopy()
 		inMemoryMachineWithNodeProvisioned2.Name = "bar2"
 
-		manager := cmanager.New(scheme)
+		manager := inmemoryruntime.NewManager(scheme)
 
 		host := "127.0.0.1"
-		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
+		wcmux, err := inmemoryserver.NewWorkloadClustersMux(manager, host, inmemoryserver.CustomPorts{
 			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-			MinPort:   server.DefaultMinPort + 1200,
-			MaxPort:   server.DefaultMinPort + 1299,
-			DebugPort: server.DefaultDebugPort + 20,
+			MinPort:   inmemoryserver.DefaultMinPort + 1200,
+			MaxPort:   inmemoryserver.DefaultMinPort + 1299,
+			DebugPort: inmemoryserver.DefaultDebugPort + 20,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := InMemoryMachineReconciler{
-			Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.EtcdCA)).Build(),
-			CloudManager: manager,
-			APIServerMux: wcmux,
+			Client:          fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.EtcdCA)).Build(),
+			InMemoryManager: manager,
+			APIServerMux:    wcmux,
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		// first etcd pod gets annotated with clusterID, memberID, and also set as a leader
 
@@ -496,10 +496,10 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := r.reconcileNormalAPIServer(ctx, cluster, cpMachine, inMemoryMachineWithNodeNotYetProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -518,26 +518,26 @@ func TestReconcileNormalApiServer(t *testing.T) {
 	t.Run("create pod if Node is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		manager := cmanager.New(scheme)
+		manager := inmemoryruntime.NewManager(scheme)
 
 		host := "127.0.0.1"
-		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
+		wcmux, err := inmemoryserver.NewWorkloadClustersMux(manager, host, inmemoryserver.CustomPorts{
 			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
-			MinPort:   server.DefaultMinPort + 1100,
-			MaxPort:   server.DefaultMinPort + 1199,
-			DebugPort: server.DefaultDebugPort + 11,
+			MinPort:   inmemoryserver.DefaultMinPort + 1100,
+			MaxPort:   inmemoryserver.DefaultMinPort + 1199,
+			DebugPort: inmemoryserver.DefaultDebugPort + 11,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := InMemoryMachineReconciler{
-			Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.ClusterCA)).Build(),
-			CloudManager: manager,
-			APIServerMux: wcmux,
+			Client:          fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.ClusterCA)).Build(),
+			InMemoryManager: manager,
+			APIServerMux:    wcmux,
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := r.reconcileNormalAPIServer(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -624,10 +624,10 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := reconcileFunc(r)(ctx, cluster, workerMachine, inMemoryMachineWithAPIServerProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -647,10 +647,10 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := reconcileFunc(r)(ctx, cluster, cpMachine, inMemoryMachineWithAPIServerNotYetProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -670,10 +670,10 @@ func testReconcileNormalComponent(t *testing.T, component string, reconcileFunc 
 		g := NewWithT(t)
 
 		r := InMemoryMachineReconciler{
-			CloudManager: cmanager.New(scheme),
+			InMemoryManager: inmemoryruntime.NewManager(scheme),
 		}
-		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
-		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+		r.InMemoryManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.InMemoryManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
 		res, err := reconcileFunc(r)(ctx, cluster, cpMachine, inMemoryMachineWithAPIServerProvisioned)
 		g.Expect(err).ToNot(HaveOccurred())

@@ -18,6 +18,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -29,7 +30,6 @@ import (
 
 	"github.com/emicklei/go-restful/v3"
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -274,7 +274,11 @@ func (h *apiServerHandler) apiV1Create(req *restful.Request, resp *restful.Respo
 	// TODO: consider check vs enforce for namespace on the object - namespace on the request path
 	obj.SetNamespace(req.PathParameter("namespace"))
 	if err := cloudClient.Create(ctx, obj); err != nil {
-		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
+			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
+			return
+		}
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if err := resp.WriteEntity(obj); err != nil {
@@ -324,7 +328,11 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 	}
 
 	if err := cloudClient.List(ctx, list, listOpts...); err != nil {
-		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
+			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
+			return
+		}
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if err := resp.WriteEntity(list); err != nil {
@@ -439,7 +447,11 @@ func (h *apiServerHandler) apiV1Update(req *restful.Request, resp *restful.Respo
 	// TODO: consider check vs enforce for namespace on the object - namespace on the request path
 	obj.SetNamespace(req.PathParameter("namespace"))
 	if err := cloudClient.Update(ctx, obj); err != nil {
-		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
+			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
+			return
+		}
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if err := resp.WriteEntity(obj); err != nil {
@@ -488,7 +500,11 @@ func (h *apiServerHandler) apiV1Patch(req *restful.Request, resp *restful.Respon
 		return
 	}
 	if err := cloudClient.Patch(ctx, obj, patch); err != nil {
-		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
+			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
+			return
+		}
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
 		return
 	}
 	if err := resp.WriteEntity(obj); err != nil {
@@ -525,7 +541,11 @@ func (h *apiServerHandler) apiV1Delete(req *restful.Request, resp *restful.Respo
 	obj.SetNamespace(req.PathParameter("namespace"))
 
 	if err := cloudClient.Delete(ctx, obj); err != nil {
-		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
+			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
+			return
+		}
+		_ = resp.WriteHeaderAndEntity(http.StatusInternalServerError, err.Error())
 		return
 	}
 }
@@ -613,11 +633,11 @@ func (h *apiServerHandler) healthz(_ *restful.Request, resp *restful.Response) {
 func requestToGVK(req *restful.Request) (*schema.GroupVersionKind, error) {
 	resourceList := getAPIResourceList(req)
 	if resourceList == nil {
-		return nil, errors.Errorf("no APIResourceList defined for %s", req.PathParameters())
+		return nil, fmt.Errorf("no APIResourceList defined for %s", req.PathParameters())
 	}
 	gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
 	if err != nil {
-		return nil, errors.Errorf("invalid group version in APIResourceList: %s", resourceList.GroupVersion)
+		return nil, fmt.Errorf("invalid group version in APIResourceList: %s", resourceList.GroupVersion)
 	}
 
 	resource := req.PathParameter("resource")
@@ -627,7 +647,7 @@ func requestToGVK(req *restful.Request) (*schema.GroupVersionKind, error) {
 			return &gvk, nil
 		}
 	}
-	return nil, errors.Errorf("Resource %s is not defined in the APIResourceList for %s", resource, req.PathParameters())
+	return nil, fmt.Errorf("resource %s is not defined in the APIResourceList for %s", resource, req.PathParameters())
 }
 
 func getAPIResourceList(req *restful.Request) *metav1.APIResourceList {

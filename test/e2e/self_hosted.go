@@ -94,6 +94,9 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		controlPlaneMachineCount int64
 		workerMachineCount       int64
 
+		etcdVersionUpgradeTo    string
+		coreDNSVersionUpgradeTo string
+
 		kubernetesVersion string
 	)
 
@@ -113,10 +116,15 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		} else {
 			Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeFrom))
 			Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeTo))
-			Expect(input.E2EConfig.Variables).To(HaveKey(EtcdVersionUpgradeTo))
-			Expect(input.E2EConfig.Variables).To(HaveKey(CoreDNSVersionUpgradeTo))
 
 			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom)
+
+			if input.E2EConfig.HasVariable(EtcdVersionUpgradeTo) {
+				etcdVersionUpgradeTo = input.E2EConfig.GetVariable(EtcdVersionUpgradeTo)
+			}
+			if input.E2EConfig.HasVariable(CoreDNSVersionUpgradeTo) {
+				coreDNSVersionUpgradeTo = input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo)
+			}
 		}
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
@@ -314,8 +322,8 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				ClusterProxy:                   selfHostedClusterProxy,
 				Cluster:                        clusterResources.Cluster,
 				ControlPlane:                   clusterResources.ControlPlane,
-				EtcdImageTag:                   input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
-				DNSImageTag:                    input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				EtcdImageTag:                   etcdVersionUpgradeTo,
+				DNSImageTag:                    coreDNSVersionUpgradeTo,
 				MachineDeployments:             clusterResources.MachineDeployments,
 				MachinePools:                   clusterResources.MachinePools,
 				KubernetesUpgradeVersion:       input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
@@ -345,8 +353,8 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				ClusterProxy:                selfHostedClusterProxy,
 				Cluster:                     clusterResources.Cluster,
 				ControlPlane:                clusterResources.ControlPlane,
-				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
-				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				EtcdImageTag:                etcdVersionUpgradeTo,
+				DNSImageTag:                 coreDNSVersionUpgradeTo,
 				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
 				UpgradeMachineTemplate:      upgradeCPMachineTemplateTo,
 				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),

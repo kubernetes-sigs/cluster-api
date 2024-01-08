@@ -94,11 +94,11 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 
 	input.Cluster.Spec.Topology.Version = input.KubernetesUpgradeVersion
 	for i, variable := range input.Cluster.Spec.Topology.Variables {
-		if variable.Name == "etcdImageTag" {
+		if input.EtcdImageTag != "" && variable.Name == "etcdImageTag" {
 			// NOTE: strconv.Quote is used to produce a valid JSON string.
 			input.Cluster.Spec.Topology.Variables[i].Value = apiextensionsv1.JSON{Raw: []byte(strconv.Quote(input.EtcdImageTag))}
 		}
-		if variable.Name == "coreDNSImageTag" {
+		if input.DNSImageTag != "" && variable.Name == "coreDNSImageTag" {
 			// NOTE: strconv.Quote is used to produce a valid JSON string.
 			input.Cluster.Spec.Topology.Variables[i].Value = apiextensionsv1.JSON{Raw: []byte(strconv.Quote(input.DNSImageTag))}
 		}

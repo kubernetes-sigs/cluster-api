@@ -42,22 +42,3 @@ var _ = Describe("When testing the machinery for scale testing using in-memory p
 		}
 	})
 })
-
-var _ = Describe("When scale testing using in-memory provider  [Scale]", func() {
-	scaleSpec(ctx, func() scaleSpecInput {
-		return scaleSpecInput{
-			E2EConfig:                e2eConfig,
-			ClusterctlConfigPath:     clusterctlConfigPath,
-			InfrastructureProvider:   ptr.To("in-memory"),
-			BootstrapClusterProxy:    bootstrapClusterProxy,
-			ArtifactFolder:           artifactFolder,
-			ClusterCount:             ptr.To[int64](10),
-			Concurrency:              ptr.To[int64](5),
-			Flavor:                   ptr.To(""),
-			ControlPlaneMachineCount: ptr.To[int64](1),
-			MachineDeploymentCount:   ptr.To[int64](1),
-			WorkerMachineCount:       ptr.To[int64](3),
-			SkipCleanup:              skipCleanup,
-		}
-	})
-})

@@ -350,20 +350,17 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
 
 #### Create PR for release notes
 1. Checkout the `main` branch.
-1. Build the release note tools binary.
-   ```bash
-   make release-notes-tool
-   ```
-1. Checkout the latest commit on the release branch, e.g. `release-1.6`, or the main branch if the release branch doesn't yet exist (e.g. beta release).
 1. Generate release notes with:
 
    ```bash
-   # PREVIOUS_TAG should be the last patch release of the previous minor release.
-   PREVIOUS_TAG=v1.5.x
    # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
-   RELEASE_TAG=v1.6.x
-   # If this is a beta or RC release, add the --pre-release-version flag
-   ./bin/notes --from=$PREVIOUS_TAG > CHANGELOG/${RELEASE_TAG}.md
+   RELEASE_TAG=v1.6.x make release-notes
+   ```
+
+   If this is a beta or RC release, add the --pre-release-version flag
+   ```bash
+   make release-notes-tool
+   ./bin/notes --release=${RELEASE_TAG} --pre-release-version > CHANGELOG/${RELEASE_TAG}.md
    ```
 
 1. This will generate a new release notes file at `CHANGELOG/<RELEASE_TAG>.md`. Finalize the release notes:

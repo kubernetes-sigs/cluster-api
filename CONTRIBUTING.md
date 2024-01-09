@@ -18,7 +18,7 @@
 - [Proposal process (CAEP)](#proposal-process-caep)
 - [Triaging E2E test failures](#triaging-e2e-test-failures)
 - [Reviewing a Patch](#reviewing-a-patch)
-- [Reviews](#reviews)
+  - [Reviews](#reviews)
   - [Approvals](#approvals)
 - [Features and bugs](#features-and-bugs)
 - [Experiments](#experiments)
@@ -314,7 +314,7 @@ In case you want to run E2E test locally, please refer to the [Testing](https://
 
 ## Reviewing a Patch
 
-## Reviews
+### Reviews
 
 > Parts of the following content have been adapted from https://google.github.io/eng-practices/review.
 

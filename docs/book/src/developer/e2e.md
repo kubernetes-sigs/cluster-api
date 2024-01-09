@@ -164,7 +164,7 @@ The following recommendations should be followed to write portable E2E tests:
 
 - Create different [E2E config file], one for each target infrastructure provider,
   providing different sets of env variables and timeout intervals.
-- Use the [InitManagementCluster method] for setting up the management cluster.
+- Use the [InitManagementClusterAndWatchControllerLogs method] for setting up the management cluster.
 - Use the [ClusterTemplate method] and the [Apply method]
   for creating objects in the cluster using `cluster-templates.yaml` files instead
   of hard coding object creation.

@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var _ = Describe("When scale testing using in-memory provider [Scale]", func() {
+var _ = Describe("When testing the machinery for scale testing using in-memory provider", func() {
 	scaleSpec(ctx, func() scaleSpecInput {
 		return scaleSpecInput{
 			E2EConfig:                e2eConfig,

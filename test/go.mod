@@ -8,7 +8,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/emicklei/go-restful/v3 v3.11.0
+	github.com/emicklei/go-restful/v3 v3.11.2
 	github.com/evanphx/json-patch/v5 v5.7.0
 	github.com/flatcar/ignition v0.36.2
 	github.com/go-logr/logr v1.4.1

@@ -30,13 +30,13 @@ Each release cycle will last approximately 4 months (~ 17 weeks) and it can be s
 * After that:
     * **Note** The following is the responsibility of the release team of the following release cycle.
     * `x.y.1+`-Monthly : Monthly patch releases will be released based on the release branch
-    * `x.y.1+`-Extra: In order to quickly provide official support for new Kubernetes release to Cluster API users, an additional
-      patch release will be released one week after a new Kubernetes minor release is available.
+    * `x.y.1+`-Extra: In order to quickly provide official support for  a new Kubernetes minor release to Cluster API users,
+      an additional patch release will be released approximately one week after a new Kubernetes minor release is available.
       * The additional patch release will be created only for the latest supported Cluster API minor release.
       * The additional patch release might be canceled if: 
         * The release date for the additional patch release overlaps the release date of a monthly patch release (+/- 5 days).
         * Cluster API maintainers determine that required changes in Cluster API to support the new release are too
-          invasive and cannot be back ported to older releases.
+          invasive and cannot be back ported.
   * Cherry-picks to the release branch are allowed according to the [backport policy](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#backporting-a-patch)
   * Providers create releases using the new CAPI minor release when they are ready
   * Development of the next release can now officially start on the main branch

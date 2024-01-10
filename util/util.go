@@ -522,7 +522,7 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 
 		results := []ctrl.Request{}
 		for _, obj := range objects {
-			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// Note: We don't check if the type cast succeeds as all items in a client.ObjectList
 			// are client.Objects.
 			o := obj.(client.Object)
 			results = append(results, ctrl.Request{

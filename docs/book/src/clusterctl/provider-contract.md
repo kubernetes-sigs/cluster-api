@@ -25,7 +25,7 @@ Optionally, the provider repository can include the following files:
 <h1> Pre-defined list of providers </h1>
 
 The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
-As a provider implementer, if you are interested in being added to this list, please create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api).
+As a provider implementer, if you are interested in being added to this list, please see next paragraph.
 
 </aside>
 
@@ -34,6 +34,60 @@ As a provider implementer, if you are interested in being added to this list, pl
 <h1>Customizing the list of providers</h1>
 
 It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](configuration.md).
+
+</aside>
+
+#### Adding a provider to clusterctl
+
+As a Cluster API project, we always have been more than happy to give visibility to all the open source CAPI providers
+by allowing provider's maintainers to add their own project to the pre-defined list of provider shipped with `clusterctl`.
+
+<aside class="note">
+
+<h1>Important! it is visibility only</h1>
+
+Provider's maintainer are the ultimately responsible for their own project.
+
+Adding a provider to the `clusterctl` provider list does not imply any form of quality assessment, market screening, 
+entitlement, recognition or support by the Cluster API maintainers.
+
+</aside>
+
+This is the process to add a new provider to add a new project to the pre-defined list of providers shipped with `clusterctl`:
+- As soon as possible, create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api) declaring the intent to add a new provider;
+  each provider must have a unique name & type in the pre-defined list of providers shipped with `clusterctl`; the provider's name
+  must be declared in the issue above and abide to the following naming convention:
+  - The name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character.
+  - The name length should not exceed 63 characters.
+  - For providers not in the kubernetes-sigs org, in order to prevent conflicts the `clusterctl` name must be prefixed with
+    the provider's GitHub org name followed by `-` (see note below).
+- Create a PR making the necessary changes to clusterctl and the Cluster API book, e.g. [#9798](https://github.com/kubernetes-sigs/cluster-api/pull/9798),
+  [9720](https://github.com/kubernetes-sigs/cluster-api/pull/9720/files). 
+
+The Cluster API maintainers will review issue/PRs for adding new providers; if the PR merges before code freeze deadline
+for a the next Cluster API minor release, changes will be included it in the such release, otherwise in the next minor
+release; maintainers will also consider if possible/convenient to backport to the current Cluster API minor release
+branch and included in the next patch release.
+
+<aside class="note">
+
+<h1>What about closed source providers?</h1>
+
+Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however, 
+those providers could be used with `clusterctl` by changing the [clusterctl configuration](configuration.md).
+
+</aside>
+
+<aside class="note">
+
+<h1>Provider's GitHub org prefix</h1>
+
+The need to add a prefix for providers not in the kubernetes-sigs org applies to all the providers being added to
+`clusterctl`'s pre-defined list of provider starting from January 2024; as of today this rule doesn't applies retroactively
+to all the existing pre-defined providers, but we reserve the right to reconsider this in future.
+
+Please note that the need to add a prefix for providers not in the kubernetes-sigs org do not apply to providers added by
+changing the [clusterctl configuration](configuration.md).
 
 </aside>
 

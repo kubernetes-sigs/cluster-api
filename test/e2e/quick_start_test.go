@@ -187,7 +187,12 @@ var _ = Describe("When following the Cluster API quick-start check finalizers re
 			InfrastructureProvider: ptr.To("docker"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
-				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName)
+				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName,
+					framework.CoreFinalizersAssertion,
+					framework.KubeadmControlPlaneFinalizersAssertion,
+					framework.ExpFinalizersAssertion,
+					framework.DockerInfraFinalizersAssertion,
+				)
 			},
 		}
 	})
@@ -205,7 +210,12 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass c
 			InfrastructureProvider: ptr.To("docker"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
-				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName)
+				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName,
+					framework.CoreFinalizersAssertion,
+					framework.KubeadmControlPlaneFinalizersAssertion,
+					framework.ExpFinalizersAssertion,
+					framework.DockerInfraFinalizersAssertion,
+				)
 			},
 		}
 	})

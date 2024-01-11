@@ -245,6 +245,27 @@ type Files struct {
 	TargetName string `json:"targetName,omitempty"`
 }
 
+func (c *E2EConfig) DeepCopy() *E2EConfig {
+	if c == nil {
+		return nil
+	}
+	out := new(E2EConfig)
+	out.ManagementClusterName = c.ManagementClusterName
+	out.Images = make([]ContainerImage, len(c.Images))
+	copy(out.Images, c.Images)
+	out.Providers = make([]ProviderConfig, len(c.Providers))
+	copy(out.Providers, c.Providers)
+	out.Variables = make(map[string]string, len(c.Variables))
+	for key, val := range c.Variables {
+		out.Variables[key] = val
+	}
+	out.Intervals = make(map[string][]string, len(c.Intervals))
+	for key, val := range c.Intervals {
+		out.Intervals[key] = val
+	}
+	return out
+}
+
 // Defaults assigns default values to the object. More specifically:
 // - ManagementClusterName gets a default name if empty.
 // - Providers version gets type KustomizeSource if not otherwise specified.

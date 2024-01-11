@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io
 spec:
   group: bootstrap.cluster.x-k8s.io
@@ -25,18 +25,26 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: "KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates
-          API. \n Deprecated: This type will be removed in one of the next releases."
+        description: |-
+          KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.
+
+
+          Deprecated: This type will be removed in one of the next releases.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -47,9 +55,9 @@ spec:
                 description: KubeadmConfigTemplateResource defines the Template structure.
                 properties:
                   spec:
-                    description: KubeadmConfigSpec defines the desired state of KubeadmConfig.
-                      Either ClusterConfiguration and InitConfiguration should be
-                      defined or the JoinConfiguration should be defined.
+                    description: |-
+                      KubeadmConfigSpec defines the desired state of KubeadmConfig.
+                      Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
                     properties:
                       clusterConfiguration:
                         description: ClusterConfiguration along with InitConfiguration
@@ -68,21 +76,23 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: 'ExtraArgs is an extra set of flags to
-                                  pass to the control plane component. TODO: This
-                                  is temporary and ideally we would like to switch
-                                  all components to use ComponentConfig + ConfigMaps.'
+                                description: |-
+                                  ExtraArgs is an extra set of flags to pass to the control plane component.
+                                  TODO: This is temporary and ideally we would like to switch all components to
+                                  use ComponentConfig + ConfigMaps.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
                                   volumes, mounted to the control plane component.
                                 items:
-                                  description: HostPathMount contains elements describing
-                                    volumes that are mounted from the host.
+                                  description: |-
+                                    HostPathMount contains elements describing volumes that are mounted from the
+                                    host.
                                   properties:
                                     hostPath:
-                                      description: HostPath is the path in the host
-                                        that will be mounted inside the pod.
+                                      description: |-
+                                        HostPath is the path in the host that will be mounted inside
+                                        the pod.
                                       type: string
                                     mountPath:
                                       description: MountPath is the path inside the
@@ -111,35 +121,34 @@ spec:
                                 type: string
                             type: object
                           apiVersion:
-                            description: 'APIVersion defines the versioned schema
-                              of this representation of an object. Servers should
-                              convert recognized schemas to the latest internal value,
-                              and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                            description: |-
+                              APIVersion defines the versioned schema of this representation of an object.
+                              Servers should convert recognized schemas to the latest internal value, and
+                              may reject unrecognized values.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
                             type: string
                           certificatesDir:
-                            description: 'CertificatesDir specifies where to store
-                              or look for all required certificates. NB: if not provided,
-                              this will default to `/etc/kubernetes/pki`'
+                            description: |-
+                              CertificatesDir specifies where to store or look for all required certificates.
+                              NB: if not provided, this will default to `/etc/kubernetes/pki`
                             type: string
                           clusterName:
                             description: The cluster name
                             type: string
                           controlPlaneEndpoint:
-                            description: 'ControlPlaneEndpoint sets a stable IP address
-                              or DNS name for the control plane; it can be a valid
-                              IP address or a RFC-1123 DNS subdomain, both with optional
-                              TCP port. In case the ControlPlaneEndpoint is not specified,
-                              the AdvertiseAddress + BindPort are used; in case the
-                              ControlPlaneEndpoint is specified but without a TCP
-                              port, the BindPort is used. Possible usages are: e.g.
-                              In a cluster with more than one control plane instances,
-                              this field should be assigned the address of the external
-                              load balancer in front of the control plane instances.
-                              e.g.  in environments with enforced node recycling,
-                              the ControlPlaneEndpoint could be used for assigning
-                              a stable DNS to the control plane. NB: This value defaults
-                              to the first value in the Cluster object status.apiEndpoints
-                              array.'
+                            description: |-
+                              ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
+                              can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+                              In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
+                              are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
+                              the BindPort is used.
+                              Possible usages are:
+                              e.g. In a cluster with more than one control plane instances, this field should be
+                              assigned the address of the external load balancer in front of the
+                              control plane instances.
+                              e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
+                              could be used for assigning a stable DNS to the control plane.
+                              NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
                             type: string
                           controllerManager:
                             description: ControllerManager contains extra settings
@@ -148,21 +157,23 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: 'ExtraArgs is an extra set of flags to
-                                  pass to the control plane component. TODO: This
-                                  is temporary and ideally we would like to switch
-                                  all components to use ComponentConfig + ConfigMaps.'
+                                description: |-
+                                  ExtraArgs is an extra set of flags to pass to the control plane component.
+                                  TODO: This is temporary and ideally we would like to switch all components to
+                                  use ComponentConfig + ConfigMaps.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
                                   volumes, mounted to the control plane component.
                                 items:
-                                  description: HostPathMount contains elements describing
-                                    volumes that are mounted from the host.
+                                  description: |-
+                                    HostPathMount contains elements describing volumes that are mounted from the
+                                    host.
                                   properties:
                                     hostPath:
-                                      description: HostPath is the path in the host
-                                        that will be mounted inside the pod.
+                                      description: |-
+                                        HostPath is the path in the host that will be mounted inside
+                                        the pod.
                                       type: string
                                     mountPath:
                                       description: MountPath is the path inside the
@@ -191,35 +202,35 @@ spec:
                               installed in the cluster.
                             properties:
                               imageRepository:
-                                description: ImageRepository sets the container registry
-                                  to pull images from. if not set, the ImageRepository
-                                  defined in ClusterConfiguration will be used instead.
+                                description: |-
+                                  ImageRepository sets the container registry to pull images from.
+                                  if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
                                 type: string
                               imageTag:
-                                description: ImageTag allows to specify a tag for
-                                  the image. In case this value is set, kubeadm does
-                                  not change automatically the version of the above
-                                  components during upgrades.
+                                description: |-
+                                  ImageTag allows to specify a tag for the image.
+                                  In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
                                 type: string
                             type: object
                           etcd:
-                            description: 'Etcd holds configuration for etcd. NB: This
-                              value defaults to a Local (stacked) etcd'
+                            description: |-
+                              Etcd holds configuration for etcd.
+                              NB: This value defaults to a Local (stacked) etcd
                             properties:
                               external:
-                                description: External describes how to connect to
-                                  an external etcd cluster Local and External are
-                                  mutually exclusive
+                                description: |-
+                                  External describes how to connect to an external etcd cluster
+                                  Local and External are mutually exclusive
                                 properties:
                                   caFile:
-                                    description: CAFile is an SSL Certificate Authority
-                                      file used to secure etcd communication. Required
-                                      if using a TLS connection.
+                                    description: |-
+                                      CAFile is an SSL Certificate Authority file used to secure etcd communication.
+                                      Required if using a TLS connection.
                                     type: string
                                   certFile:
-                                    description: CertFile is an SSL certification
-                                      file used to secure etcd communication. Required
-                                      if using a TLS connection.
+                                    description: |-
+                                      CertFile is an SSL certification file used to secure etcd communication.
+                                      Required if using a TLS connection.
                                     type: string
                                   endpoints:
                                     description: Endpoints of etcd members. Required
@@ -228,9 +239,9 @@ spec:
                                       type: string
                                     type: array
                                   keyFile:
-                                    description: KeyFile is an SSL key file used to
-                                      secure etcd communication. Required if using
-                                      a TLS connection.
+                                    description: |-
+                                      KeyFile is an SSL key file used to secure etcd communication.
+                                      Required if using a TLS connection.
                                     type: string
                                 required:
                                 - caFile
@@ -239,32 +250,31 @@ spec:
                                 - keyFile
                                 type: object
                               local:
-                                description: Local provides configuration knobs for
-                                  configuring the local etcd instance Local and External
-                                  are mutually exclusive
+                                description: |-
+                                  Local provides configuration knobs for configuring the local etcd instance
+                                  Local and External are mutually exclusive
                                 properties:
                                   dataDir:
-                                    description: DataDir is the directory etcd will
-                                      place its data. Defaults to "/var/lib/etcd".
+                                    description: |-
+                                      DataDir is the directory etcd will place its data.
+                                      Defaults to "/var/lib/etcd".
                                     type: string
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: ExtraArgs are extra arguments provided
-                                      to the etcd binary when run inside a static
-                                      pod.
+                                    description: |-
+                                      ExtraArgs are extra arguments provided to the etcd binary
+                                      when run inside a static pod.
                                     type: object
                                   imageRepository:
-                                    description: ImageRepository sets the container
-                                      registry to pull images from. if not set, the
-                                      ImageRepository defined in ClusterConfiguration
-                                      will be used instead.
+                                    description: |-
+                                      ImageRepository sets the container registry to pull images from.
+                                      if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
                                     type: string
                                   imageTag:
-                                    description: ImageTag allows to specify a tag
-                                      for the image. In case this value is set, kubeadm
-                                      does not change automatically the version of
-                                      the above components during upgrades.
+                                    description: |-
+                                      ImageTag allows to specify a tag for the image.
+                                      In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
                                     type: string
                                   peerCertSANs:
                                     description: PeerCertSANs sets extra Subject Alternative
@@ -287,47 +297,45 @@ spec:
                             description: FeatureGates enabled by the user.
                             type: object
                           imageRepository:
-                            description: ImageRepository sets the container registry
-                              to pull images from. If empty, `registry.k8s.io` will
-                              be used by default; in case of kubernetes version is
-                              a CI build (kubernetes version starts with `ci/` or
-                              `ci-cross/`) `gcr.io/k8s-staging-ci-images` will be
-                              used as a default for control plane components and for
-                              kube-proxy, while `registry.k8s.io` will be used for
-                              all the other images.
+                            description: |-
+                              ImageRepository sets the container registry to pull images from.
+                              If empty, `registry.k8s.io` will be used by default; in case of kubernetes version is a CI build (kubernetes version starts with `ci/` or `ci-cross/`)
+                              `gcr.io/k8s-staging-ci-images` will be used as a default for control plane components and for kube-proxy, while `registry.k8s.io`
+                              will be used for all the other images.
                             type: string
                           kind:
-                            description: 'Kind is a string value representing the
-                              REST resource this object represents. Servers may infer
-                              this from the endpoint the client submits requests to.
-                              Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            description: |-
+                              Kind is a string value representing the REST resource this object represents.
+                              Servers may infer this from the endpoint the client submits requests to.
+                              Cannot be updated.
+                              In CamelCase.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                             type: string
                           kubernetesVersion:
-                            description: 'KubernetesVersion is the target version
-                              of the control plane. NB: This value defaults to the
-                              Machine object spec.version'
+                            description: |-
+                              KubernetesVersion is the target version of the control plane.
+                              NB: This value defaults to the Machine object spec.version
                             type: string
                           networking:
-                            description: 'Networking holds configuration for the networking
-                              topology of the cluster. NB: This value defaults to
-                              the Cluster object spec.clusterNetwork.'
+                            description: |-
+                              Networking holds configuration for the networking topology of the cluster.
+                              NB: This value defaults to the Cluster object spec.clusterNetwork.
                             properties:
                               dnsDomain:
                                 description: DNSDomain is the dns domain used by k8s
                                   services. Defaults to "cluster.local".
                                 type: string
                               podSubnet:
-                                description: PodSubnet is the subnet used by pods.
-                                  If unset, the API server will not allocate CIDR
-                                  ranges for every node. Defaults to a comma-delimited
-                                  string of the Cluster object's spec.clusterNetwork.services.cidrBlocks
-                                  if that is set
+                                description: |-
+                                  PodSubnet is the subnet used by pods.
+                                  If unset, the API server will not allocate CIDR ranges for every node.
+                                  Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
                                 type: string
                               serviceSubnet:
-                                description: ServiceSubnet is the subnet used by k8s
-                                  services. Defaults to a comma-delimited string of
-                                  the Cluster object's spec.clusterNetwork.pods.cidrBlocks,
-                                  or to "10.96.0.0/12" if that's unset.
+                                description: |-
+                                  ServiceSubnet is the subnet used by k8s services.
+                                  Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
+                                  to "10.96.0.0/12" if that's unset.
                                 type: string
                             type: object
                           scheduler:
@@ -337,21 +345,23 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: 'ExtraArgs is an extra set of flags to
-                                  pass to the control plane component. TODO: This
-                                  is temporary and ideally we would like to switch
-                                  all components to use ComponentConfig + ConfigMaps.'
+                                description: |-
+                                  ExtraArgs is an extra set of flags to pass to the control plane component.
+                                  TODO: This is temporary and ideally we would like to switch all components to
+                                  use ComponentConfig + ConfigMaps.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
                                   volumes, mounted to the control plane component.
                                 items:
-                                  description: HostPathMount contains elements describing
-                                    volumes that are mounted from the host.
+                                  description: |-
+                                    HostPathMount contains elements describing volumes that are mounted from the
+                                    host.
                                   properties:
                                     hostPath:
-                                      description: HostPath is the path in the host
-                                        that will be mounted inside the pod.
+                                      description: |-
+                                        HostPath is the path in the host that will be mounted inside
+                                        the pod.
                                       type: string
                                     mountPath:
                                       description: MountPath is the path inside the
@@ -405,10 +415,9 @@ spec:
                                     to be used. If set to None, no label is used.
                                   type: string
                                 overwrite:
-                                  description: Overwrite defines whether or not to
-                                    overwrite any existing filesystem. If true, any
-                                    pre-existing file system will be destroyed. Use
-                                    with Caution.
+                                  description: |-
+                                    Overwrite defines whether or not to overwrite any existing filesystem.
+                                    If true, any pre-existing file system will be destroyed. Use with Caution.
                                   type: boolean
                                 partition:
                                   description: 'Partition specifies the partition
@@ -417,11 +426,9 @@ spec:
                                     partition number.'
                                   type: string
                                 replaceFS:
-                                  description: 'ReplaceFS is a special directive,
-                                    used for Microsoft Azure that instructs cloud-init
-                                    to replace a file system of <FS_TYPE>. NOTE: unless
-                                    you define a label, this requires the use of the
-                                    ''any'' partition directive.'
+                                  description: |-
+                                    ReplaceFS is a special directive, used for Microsoft Azure that instructs cloud-init to replace a file system of <FS_TYPE>.
+                                    NOTE: unless you define a label, this requires the use of the 'any' partition directive.
                                   type: string
                               required:
                               - device
@@ -440,22 +447,21 @@ spec:
                                   description: Device is the name of the device.
                                   type: string
                                 layout:
-                                  description: Layout specifies the device layout.
-                                    If it is true, a single partition will be created
-                                    for the entire device. When layout is false, it
-                                    means don't partition or ignore existing partitioning.
+                                  description: |-
+                                    Layout specifies the device layout.
+                                    If it is true, a single partition will be created for the entire device.
+                                    When layout is false, it means don't partition or ignore existing partitioning.
                                   type: boolean
                                 overwrite:
-                                  description: Overwrite describes whether to skip
-                                    checks and create the partition if a partition
-                                    or filesystem is found on the device. Use with
-                                    caution. Default is 'false'.
+                                  description: |-
+                                    Overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
+                                    Use with caution. Default is 'false'.
                                   type: boolean
                                 tableType:
-                                  description: 'TableType specifies the tupe of partition
-                                    table. The following are supported: ''mbr'': default
-                                    and setups a MS-DOS partition table ''gpt'': setups
-                                    a GPT partition table'
+                                  description: |-
+                                    TableType specifies the tupe of partition table. The following are supported:
+                                    'mbr': default and setups a MS-DOS partition table
+                                    'gpt': setups a GPT partition table
                                   type: string
                               required:
                               - device
@@ -531,54 +537,52 @@ spec:
                           are the configurations necessary for the init command
                         properties:
                           apiVersion:
-                            description: 'APIVersion defines the versioned schema
-                              of this representation of an object. Servers should
-                              convert recognized schemas to the latest internal value,
-                              and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                            description: |-
+                              APIVersion defines the versioned schema of this representation of an object.
+                              Servers should convert recognized schemas to the latest internal value, and
+                              may reject unrecognized values.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
                             type: string
                           bootstrapTokens:
-                            description: BootstrapTokens is respected at `kubeadm
-                              init` time and describes a set of Bootstrap Tokens to
-                              create. This information IS NOT uploaded to the kubeadm
-                              cluster configmap, partly because of its sensitive nature
+                            description: |-
+                              BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
+                              This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
                             items:
                               description: BootstrapToken describes one bootstrap
                                 token, stored as a Secret in the cluster.
                               properties:
                                 description:
-                                  description: Description sets a human-friendly message
-                                    why this token exists and what it's used for,
-                                    so other administrators can know its purpose.
+                                  description: |-
+                                    Description sets a human-friendly message why this token exists and what it's used
+                                    for, so other administrators can know its purpose.
                                   type: string
                                 expires:
-                                  description: Expires specifies the timestamp when
-                                    this token expires. Defaults to being set dynamically
-                                    at runtime based on the TTL. Expires and TTL are
-                                    mutually exclusive.
+                                  description: |-
+                                    Expires specifies the timestamp when this token expires. Defaults to being set
+                                    dynamically at runtime based on the TTL. Expires and TTL are mutually exclusive.
                                   format: date-time
                                   type: string
                                 groups:
-                                  description: Groups specifies the extra groups that
-                                    this token will authenticate as when/if used for
-                                    authentication
+                                  description: |-
+                                    Groups specifies the extra groups that this token will authenticate as when/if
+                                    used for authentication
                                   items:
                                     type: string
                                   type: array
                                 token:
-                                  description: Token is used for establishing bidirectional
-                                    trust between nodes and control-planes. Used for
-                                    joining nodes in the cluster.
+                                  description: |-
+                                    Token is used for establishing bidirectional trust between nodes and control-planes.
+                                    Used for joining nodes in the cluster.
                                   type: string
                                 ttl:
-                                  description: TTL defines the time to live for this
-                                    token. Defaults to 24h. Expires and TTL are mutually
-                                    exclusive.
+                                  description: |-
+                                    TTL defines the time to live for this token. Defaults to 24h.
+                                    Expires and TTL are mutually exclusive.
                                   type: string
                                 usages:
-                                  description: Usages describes the ways in which
-                                    this token can be used. Can by default be used
-                                    for establishing bidirectional trust, but that
-                                    can be changed here.
+                                  description: |-
+                                    Usages describes the ways in which this token can be used. Can by default be used
+                                    for establishing bidirectional trust, but that can be changed here.
                                   items:
                                     type: string
                                   type: array
@@ -587,22 +591,20 @@ spec:
                               type: object
                             type: array
                           kind:
-                            description: 'Kind is a string value representing the
-                              REST resource this object represents. Servers may infer
-                              this from the endpoint the client submits requests to.
-                              Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            description: |-
+                              Kind is a string value representing the REST resource this object represents.
+                              Servers may infer this from the endpoint the client submits requests to.
+                              Cannot be updated.
+                              In CamelCase.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                             type: string
                           localAPIEndpoint:
-                            description: LocalAPIEndpoint represents the endpoint
-                              of the API server instance that's deployed on this control
-                              plane node In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint
-                              in the sense that ControlPlaneEndpoint is the global
-                              endpoint for the cluster, which then loadbalances the
-                              requests to each individual API server. This configuration
-                              object lets you customize what IP/DNS name and port
-                              the local API server advertises it's accessible on.
-                              By default, kubeadm tries to auto-detect the IP of the
-                              default interface and use that, but in case that process
+                            description: |-
+                              LocalAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
+                              In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
+                              is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+                              configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
+                              on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
                               fails you may set the desired value here.
                             properties:
                               advertiseAddress:
@@ -610,17 +612,17 @@ spec:
                                   for the API server to advertise.
                                 type: string
                               bindPort:
-                                description: BindPort sets the secure port for the
-                                  API Server to bind to. Defaults to 6443.
+                                description: |-
+                                  BindPort sets the secure port for the API Server to bind to.
+                                  Defaults to 6443.
                                 format: int32
                                 type: integer
                             type: object
                           nodeRegistration:
-                            description: NodeRegistration holds fields that relate
-                              to registering the new control-plane node to the cluster.
-                              When used in the context of control plane nodes, NodeRegistration
-                              should remain consistent across both InitConfiguration
-                              and JoinConfiguration
+                            description: |-
+                              NodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
+                              When used in the context of control plane nodes, NodeRegistration should remain consistent
+                              across both InitConfiguration and JoinConfiguration
                             properties:
                               criSocket:
                                 description: CRISocket is used to retrieve container
@@ -637,51 +639,41 @@ spec:
                               kubeletExtraArgs:
                                 additionalProperties:
                                   type: string
-                                description: KubeletExtraArgs passes through extra
-                                  arguments to the kubelet. The arguments here are
-                                  passed to the kubelet command line via the environment
-                                  file kubeadm writes at runtime for the kubelet to
-                                  source. This overrides the generic base-level configuration
-                                  in the kubelet-config-1.X ConfigMap Flags have higher
-                                  priority when parsing. These values are local and
-                                  specific to the node kubeadm is executing on.
+                                description: |-
+                                  KubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
+                                  kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
+                                  Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
                                 type: object
                               name:
-                                description: Name is the `.Metadata.Name` field of
-                                  the Node API object that will be created in this
-                                  `kubeadm init` or `kubeadm join` operation. This
-                                  field is also used in the CommonName field of the
-                                  kubelet's client certificate to the API server.
+                                description: |-
+                                  Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
+                                  This field is also used in the CommonName field of the kubelet's client certificate to the API server.
                                   Defaults to the hostname of the node if not provided.
                                 type: string
                               taints:
-                                description: 'Taints specifies the taints the Node
-                                  API object should be registered with. If this field
-                                  is unset, i.e. nil, in the `kubeadm init` process
-                                  it will be defaulted to []v1.Taint{''node-role.kubernetes.io/master=""''}.
-                                  If you don''t want to taint your control-plane node,
-                                  set this field to an empty slice, i.e. `taints:
-                                  {}` in the YAML file. This field is solely used
-                                  for Node registration.'
+                                description: |-
+                                  Taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil, in the `kubeadm init` process
+                                  it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
+                                  empty slice, i.e. `taints: {}` in the YAML file. This field is solely used for Node registration.
                                 items:
-                                  description: The node this Taint is attached to
-                                    has the "effect" on any pod that does not tolerate
-                                    the Taint.
+                                  description: |-
+                                    The node this Taint is attached to has the "effect" on
+                                    any pod that does not tolerate the Taint.
                                   properties:
                                     effect:
-                                      description: Required. The effect of the taint
-                                        on pods that do not tolerate the taint. Valid
-                                        effects are NoSchedule, PreferNoSchedule and
-                                        NoExecute.
+                                      description: |-
+                                        Required. The effect of the taint on pods
+                                        that do not tolerate the taint.
+                                        Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                                       type: string
                                     key:
                                       description: Required. The taint key to be applied
                                         to a node.
                                       type: string
                                     timeAdded:
-                                      description: TimeAdded represents the time at
-                                        which the taint was added. It is only written
-                                        for NoExecute taints.
+                                      description: |-
+                                        TimeAdded represents the time at which the taint was added.
+                                        It is only written for NoExecute taints.
                                       format: date-time
                                       type: string
                                     value:
@@ -700,21 +692,23 @@ spec:
                           for the join command
                         properties:
                           apiVersion:
-                            description: 'APIVersion defines the versioned schema
-                              of this representation of an object. Servers should
-                              convert recognized schemas to the latest internal value,
-                              and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                            description: |-
+                              APIVersion defines the versioned schema of this representation of an object.
+                              Servers should convert recognized schemas to the latest internal value, and
+                              may reject unrecognized values.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
                             type: string
                           caCertPath:
-                            description: 'CACertPath is the path to the SSL certificate
-                              authority used to secure comunications between node
-                              and control-plane. Defaults to "/etc/kubernetes/pki/ca.crt".
-                              TODO: revisit when there is defaulting from k/k'
+                            description: |-
+                              CACertPath is the path to the SSL certificate authority used to
+                              secure comunications between node and control-plane.
+                              Defaults to "/etc/kubernetes/pki/ca.crt".
+                              TODO: revisit when there is defaulting from k/k
                             type: string
                           controlPlane:
-                            description: ControlPlane defines the additional control
-                              plane instance to be deployed on the joining node. If
-                              nil, no additional control plane instance will be deployed.
+                            description: |-
+                              ControlPlane defines the additional control plane instance to be deployed on the joining node.
+                              If nil, no additional control plane instance will be deployed.
                             properties:
                               localAPIEndpoint:
                                 description: LocalAPIEndpoint represents the endpoint
@@ -726,21 +720,22 @@ spec:
                                       for the API server to advertise.
                                     type: string
                                   bindPort:
-                                    description: BindPort sets the secure port for
-                                      the API Server to bind to. Defaults to 6443.
+                                    description: |-
+                                      BindPort sets the secure port for the API Server to bind to.
+                                      Defaults to 6443.
                                     format: int32
                                     type: integer
                                 type: object
                             type: object
                           discovery:
-                            description: 'Discovery specifies the options for the
-                              kubelet to use during the TLS Bootstrap process TODO:
-                              revisit when there is defaulting from k/k'
+                            description: |-
+                              Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
+                              TODO: revisit when there is defaulting from k/k
                             properties:
                               bootstrapToken:
-                                description: BootstrapToken is used to set the options
-                                  for bootstrap token based discovery BootstrapToken
-                                  and File are mutually exclusive
+                                description: |-
+                                  BootstrapToken is used to set the options for bootstrap token based discovery
+                                  BootstrapToken and File are mutually exclusive
                                 properties:
                                   apiServerEndpoint:
                                     description: APIServerEndpoint is an IP or domain
@@ -748,40 +743,36 @@ spec:
                                       be fetched.
                                     type: string
                                   caCertHashes:
-                                    description: 'CACertHashes specifies a set of
-                                      public key pins to verify when token-based discovery
-                                      is used. The root CA found during discovery
-                                      must match one of these values. Specifying an
-                                      empty set disables root CA pinning, which can
-                                      be unsafe. Each hash is specified as "<type>:<value>",
-                                      where the only currently supported type is "sha256".
-                                      This is a hex-encoded SHA-256 hash of the Subject
-                                      Public Key Info (SPKI) object in DER-encoded
-                                      ASN.1. These hashes can be calculated using,
-                                      for example, OpenSSL: openssl x509 -pubkey -in
-                                      ca.crt openssl rsa -pubin -outform der 2>&/dev/null
-                                      | openssl dgst -sha256 -hex'
+                                    description: |-
+                                      CACertHashes specifies a set of public key pins to verify
+                                      when token-based discovery is used. The root CA found during discovery
+                                      must match one of these values. Specifying an empty set disables root CA
+                                      pinning, which can be unsafe. Each hash is specified as "<type>:<value>",
+                                      where the only currently supported type is "sha256". This is a hex-encoded
+                                      SHA-256 hash of the Subject Public Key Info (SPKI) object in DER-encoded
+                                      ASN.1. These hashes can be calculated using, for example, OpenSSL:
+                                      openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
                                     items:
                                       type: string
                                     type: array
                                   token:
-                                    description: Token is a token used to validate
-                                      cluster information fetched from the control-plane.
+                                    description: |-
+                                      Token is a token used to validate cluster information
+                                      fetched from the control-plane.
                                     type: string
                                   unsafeSkipCAVerification:
-                                    description: UnsafeSkipCAVerification allows token-based
-                                      discovery without CA verification via CACertHashes.
-                                      This can weaken the security of kubeadm since
-                                      other nodes can impersonate the control-plane.
+                                    description: |-
+                                      UnsafeSkipCAVerification allows token-based discovery
+                                      without CA verification via CACertHashes. This can weaken
+                                      the security of kubeadm since other nodes can impersonate the control-plane.
                                     type: boolean
                                 required:
                                 - token
                                 type: object
                               file:
-                                description: File is used to specify a file or URL
-                                  to a kubeconfig file from which to load cluster
-                                  information BootstrapToken and File are mutually
-                                  exclusive
+                                description: |-
+                                  File is used to specify a file or URL to a kubeconfig file from which to load cluster information
+                                  BootstrapToken and File are mutually exclusive
                                 properties:
                                   kubeConfigPath:
                                     description: KubeConfigPath is used to specify
@@ -795,26 +786,25 @@ spec:
                                 description: Timeout modifies the discovery timeout
                                 type: string
                               tlsBootstrapToken:
-                                description: TLSBootstrapToken is a token used for
-                                  TLS bootstrapping. If .BootstrapToken is set, this
-                                  field is defaulted to .BootstrapToken.Token, but
-                                  can be overridden. If .File is set, this field **must
-                                  be set** in case the KubeConfigFile does not contain
-                                  any other authentication information
+                                description: |-
+                                  TLSBootstrapToken is a token used for TLS bootstrapping.
+                                  If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token, but can be overridden.
+                                  If .File is set, this field **must be set** in case the KubeConfigFile does not contain any other authentication information
                                 type: string
                             type: object
                           kind:
-                            description: 'Kind is a string value representing the
-                              REST resource this object represents. Servers may infer
-                              this from the endpoint the client submits requests to.
-                              Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            description: |-
+                              Kind is a string value representing the REST resource this object represents.
+                              Servers may infer this from the endpoint the client submits requests to.
+                              Cannot be updated.
+                              In CamelCase.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                             type: string
                           nodeRegistration:
-                            description: NodeRegistration holds fields that relate
-                              to registering the new control-plane node to the cluster.
-                              When used in the context of control plane nodes, NodeRegistration
-                              should remain consistent across both InitConfiguration
-                              and JoinConfiguration
+                            description: |-
+                              NodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
+                              When used in the context of control plane nodes, NodeRegistration should remain consistent
+                              across both InitConfiguration and JoinConfiguration
                             properties:
                               criSocket:
                                 description: CRISocket is used to retrieve container
@@ -831,51 +821,41 @@ spec:
                               kubeletExtraArgs:
                                 additionalProperties:
                                   type: string
-                                description: KubeletExtraArgs passes through extra
-                                  arguments to the kubelet. The arguments here are
-                                  passed to the kubelet command line via the environment
-                                  file kubeadm writes at runtime for the kubelet to
-                                  source. This overrides the generic base-level configuration
-                                  in the kubelet-config-1.X ConfigMap Flags have higher
-                                  priority when parsing. These values are local and
-                                  specific to the node kubeadm is executing on.
+                                description: |-
+                                  KubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
+                                  kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
+                                  Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
                                 type: object
                               name:
-                                description: Name is the `.Metadata.Name` field of
-                                  the Node API object that will be created in this
-                                  `kubeadm init` or `kubeadm join` operation. This
-                                  field is also used in the CommonName field of the
-                                  kubelet's client certificate to the API server.
+                                description: |-
+                                  Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
+                                  This field is also used in the CommonName field of the kubelet's client certificate to the API server.
                                   Defaults to the hostname of the node if not provided.
                                 type: string
                               taints:
-                                description: 'Taints specifies the taints the Node
-                                  API object should be registered with. If this field
-                                  is unset, i.e. nil, in the `kubeadm init` process
-                                  it will be defaulted to []v1.Taint{''node-role.kubernetes.io/master=""''}.
-                                  If you don''t want to taint your control-plane node,
-                                  set this field to an empty slice, i.e. `taints:
-                                  {}` in the YAML file. This field is solely used
-                                  for Node registration.'
+                                description: |-
+                                  Taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil, in the `kubeadm init` process
+                                  it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
+                                  empty slice, i.e. `taints: {}` in the YAML file. This field is solely used for Node registration.
                                 items:
-                                  description: The node this Taint is attached to
-                                    has the "effect" on any pod that does not tolerate
-                                    the Taint.
+                                  description: |-
+                                    The node this Taint is attached to has the "effect" on
+                                    any pod that does not tolerate the Taint.
                                   properties:
                                     effect:
-                                      description: Required. The effect of the taint
-                                        on pods that do not tolerate the taint. Valid
-                                        effects are NoSchedule, PreferNoSchedule and
-                                        NoExecute.
+                                      description: |-
+                                        Required. The effect of the taint on pods
+                                        that do not tolerate the taint.
+                                        Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                                       type: string
                                     key:
                                       description: Required. The taint key to be applied
                                         to a node.
                                       type: string
                                     timeAdded:
-                                      description: TimeAdded represents the time at
-                                        which the taint was added. It is only written
-                                        for NoExecute taints.
+                                      description: |-
+                                        TimeAdded represents the time at which the taint was added.
+                                        It is only written for NoExecute taints.
                                       format: date-time
                                       type: string
                                     value:
@@ -924,13 +904,20 @@ spec:
                           type: string
                         type: array
                       useExperimentalRetryJoin:
-                        description: "UseExperimentalRetryJoin replaces a basic kubeadm
-                          command with a shell script with retries for joins. \n This
-                          is meant to be an experimental temporary workaround on some
-                          environments where joins fail due to timing (and other issues).
-                          The long term goal is to add retries to kubeadm proper and
-                          use that functionality. \n This will add about 40KB to userdata
-                          \n For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055."
+                        description: |-
+                          UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
+                          script with retries for joins.
+
+
+                          This is meant to be an experimental temporary workaround on some environments
+                          where joins fail due to timing (and other issues). The long term goal is to add retries to
+                          kubeadm proper and use that functionality.
+
+
+                          This will add about 40KB to userdata
+
+
+                          For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
                         type: boolean
                       users:
                         description: Users specifies extra users to add
@@ -986,8 +973,9 @@ spec:
                           type: object
                         type: array
                       verbosity:
-                        description: Verbosity is the number for the kubeadm log level
-                          verbosity. It overrides the `--v` flag in kubeadm commands.
+                        description: |-
+                          Verbosity is the number for the kubeadm log level verbosity.
+                          It overrides the `--v` flag in kubeadm commands.
                         format: int32
                         type: integer
                     type: object
@@ -1011,14 +999,19 @@ spec:
           API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -1029,30 +1022,33 @@ spec:
                 description: KubeadmConfigTemplateResource defines the Template structure.
                 properties:
                   metadata:
-                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    description: |-
+                      Standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: 'Annotations is an unstructured key value map
-                          stored with a resource that may be set by external tools
-                          to store and retrieve arbitrary metadata. They are not queryable
-                          and should be preserved when modifying objects. More info:
-                          http://kubernetes.io/docs/user-guide/annotations'
+                        description: |-
+                          Annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
                         type: object
                       labels:
                         additionalProperties:
                           type: string
-                        description: 'Map of string keys and values that can be used
-                          to organize and categorize (scope and select) objects. May
-                          match selectors of replication controllers and services.
-                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        description: |-
+                          Map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
                         type: object
                     type: object
                   spec:
-                    description: KubeadmConfigSpec defines the desired state of KubeadmConfig.
-                      Either ClusterConfiguration and InitConfiguration should be
-                      defined or the JoinConfiguration should be defined.
+                    description: |-
+                      KubeadmConfigSpec defines the desired state of KubeadmConfig.
+                      Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
                     properties:
                       clusterConfiguration:
                         description: ClusterConfiguration along with InitConfiguration
@@ -1071,21 +1067,23 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: 'ExtraArgs is an extra set of flags to
-                                  pass to the control plane component. TODO: This
-                                  is temporary and ideally we would like to switch
-                                  all components to use ComponentConfig + ConfigMaps.'
+                                description: |-
+                                  ExtraArgs is an extra set of flags to pass to the control plane component.
+                                  TODO: This is temporary and ideally we would like to switch all components to
+                                  use ComponentConfig + ConfigMaps.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
                                   volumes, mounted to the control plane component.
                                 items:
-                                  description: HostPathMount contains elements describing
-                                    volumes that are mounted from the host.
+                                  description: |-
+                                    HostPathMount contains elements describing volumes that are mounted from the
+                                    host.
                                   properties:
                                     hostPath:
-                                      description: HostPath is the path in the host
-                                        that will be mounted inside the pod.
+                                      description: |-
+                                        HostPath is the path in the host that will be mounted inside
+                                        the pod.
                                       type: string
                                     mountPath:
                                       description: MountPath is the path inside the
@@ -1114,35 +1112,34 @@ spec:
                                 type: string
                             type: object
                           apiVersion:
-                            description: 'APIVersion defines the versioned schema
-                              of this representation of an object. Servers should
-                              convert recognized schemas to the latest internal value,
-                              and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                            description: |-
+                              APIVersion defines the versioned schema of this representation of an object.
+                              Servers should convert recognized schemas to the latest internal value, and
+                              may reject unrecognized values.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
                             type: string
                           certificatesDir:
-                            description: 'CertificatesDir specifies where to store
-                              or look for all required certificates. NB: if not provided,
-                              this will default to `/etc/kubernetes/pki`'
+                            description: |-
+                              CertificatesDir specifies where to store or look for all required certificates.
+                              NB: if not provided, this will default to `/etc/kubernetes/pki`
                             type: string
                           clusterName:
                             description: The cluster name
                             type: string
                           controlPlaneEndpoint:
-                            description: 'ControlPlaneEndpoint sets a stable IP address
-                              or DNS name for the control plane; it can be a valid
-                              IP address or a RFC-1123 DNS subdomain, both with optional
-                              TCP port. In case the ControlPlaneEndpoint is not specified,
-                              the AdvertiseAddress + BindPort are used; in case the
-                              ControlPlaneEndpoint is specified but without a TCP
-                              port, the BindPort is used. Possible usages are: e.g.
-                              In a cluster with more than one control plane instances,
-                              this field should be assigned the address of the external
-                              load balancer in front of the control plane instances.
-                              e.g.  in environments with enforced node recycling,
-                              the ControlPlaneEndpoint could be used for assigning
-                              a stable DNS to the control plane. NB: This value defaults
-                              to the first value in the Cluster object status.apiEndpoints
-                              array.'
+                            description: |-
+                              ControlPlaneEndpoint sets a stable IP address or DNS name for the control plane; it
+                              can be a valid IP address or a RFC-1123 DNS subdomain, both with optional TCP port.
+                              In case the ControlPlaneEndpoint is not specified, the AdvertiseAddress + BindPort
+                              are used; in case the ControlPlaneEndpoint is specified but without a TCP port,
+                              the BindPort is used.
+                              Possible usages are:
+                              e.g. In a cluster with more than one control plane instances, this field should be
+                              assigned the address of the external load balancer in front of the
+                              control plane instances.
+                              e.g.  in environments with enforced node recycling, the ControlPlaneEndpoint
+                              could be used for assigning a stable DNS to the control plane.
+                              NB: This value defaults to the first value in the Cluster object status.apiEndpoints array.
                             type: string
                           controllerManager:
                             description: ControllerManager contains extra settings
@@ -1151,21 +1148,23 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: 'ExtraArgs is an extra set of flags to
-                                  pass to the control plane component. TODO: This
-                                  is temporary and ideally we would like to switch
-                                  all components to use ComponentConfig + ConfigMaps.'
+                                description: |-
+                                  ExtraArgs is an extra set of flags to pass to the control plane component.
+                                  TODO: This is temporary and ideally we would like to switch all components to
+                                  use ComponentConfig + ConfigMaps.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
                                   volumes, mounted to the control plane component.
                                 items:
-                                  description: HostPathMount contains elements describing
-                                    volumes that are mounted from the host.
+                                  description: |-
+                                    HostPathMount contains elements describing volumes that are mounted from the
+                                    host.
                                   properties:
                                     hostPath:
-                                      description: HostPath is the path in the host
-                                        that will be mounted inside the pod.
+                                      description: |-
+                                        HostPath is the path in the host that will be mounted inside
+                                        the pod.
                                       type: string
                                     mountPath:
                                       description: MountPath is the path inside the
@@ -1194,35 +1193,35 @@ spec:
                               installed in the cluster.
                             properties:
                               imageRepository:
-                                description: ImageRepository sets the container registry
-                                  to pull images from. if not set, the ImageRepository
-                                  defined in ClusterConfiguration will be used instead.
+                                description: |-
+                                  ImageRepository sets the container registry to pull images from.
+                                  if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
                                 type: string
                               imageTag:
-                                description: ImageTag allows to specify a tag for
-                                  the image. In case this value is set, kubeadm does
-                                  not change automatically the version of the above
-                                  components during upgrades.
+                                description: |-
+                                  ImageTag allows to specify a tag for the image.
+                                  In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
                                 type: string
                             type: object
                           etcd:
-                            description: 'Etcd holds configuration for etcd. NB: This
-                              value defaults to a Local (stacked) etcd'
+                            description: |-
+                              Etcd holds configuration for etcd.
+                              NB: This value defaults to a Local (stacked) etcd
                             properties:
                               external:
-                                description: External describes how to connect to
-                                  an external etcd cluster Local and External are
-                                  mutually exclusive
+                                description: |-
+                                  External describes how to connect to an external etcd cluster
+                                  Local and External are mutually exclusive
                                 properties:
                                   caFile:
-                                    description: CAFile is an SSL Certificate Authority
-                                      file used to secure etcd communication. Required
-                                      if using a TLS connection.
+                                    description: |-
+                                      CAFile is an SSL Certificate Authority file used to secure etcd communication.
+                                      Required if using a TLS connection.
                                     type: string
                                   certFile:
-                                    description: CertFile is an SSL certification
-                                      file used to secure etcd communication. Required
-                                      if using a TLS connection.
+                                    description: |-
+                                      CertFile is an SSL certification file used to secure etcd communication.
+                                      Required if using a TLS connection.
                                     type: string
                                   endpoints:
                                     description: Endpoints of etcd members. Required
@@ -1231,9 +1230,9 @@ spec:
                                       type: string
                                     type: array
                                   keyFile:
-                                    description: KeyFile is an SSL key file used to
-                                      secure etcd communication. Required if using
-                                      a TLS connection.
+                                    description: |-
+                                      KeyFile is an SSL key file used to secure etcd communication.
+                                      Required if using a TLS connection.
                                     type: string
                                 required:
                                 - caFile
@@ -1242,32 +1241,31 @@ spec:
                                 - keyFile
                                 type: object
                               local:
-                                description: Local provides configuration knobs for
-                                  configuring the local etcd instance Local and External
-                                  are mutually exclusive
+                                description: |-
+                                  Local provides configuration knobs for configuring the local etcd instance
+                                  Local and External are mutually exclusive
                                 properties:
                                   dataDir:
-                                    description: DataDir is the directory etcd will
-                                      place its data. Defaults to "/var/lib/etcd".
+                                    description: |-
+                                      DataDir is the directory etcd will place its data.
+                                      Defaults to "/var/lib/etcd".
                                     type: string
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: ExtraArgs are extra arguments provided
-                                      to the etcd binary when run inside a static
-                                      pod.
+                                    description: |-
+                                      ExtraArgs are extra arguments provided to the etcd binary
+                                      when run inside a static pod.
                                     type: object
                                   imageRepository:
-                                    description: ImageRepository sets the container
-                                      registry to pull images from. if not set, the
-                                      ImageRepository defined in ClusterConfiguration
-                                      will be used instead.
+                                    description: |-
+                                      ImageRepository sets the container registry to pull images from.
+                                      if not set, the ImageRepository defined in ClusterConfiguration will be used instead.
                                     type: string
                                   imageTag:
-                                    description: ImageTag allows to specify a tag
-                                      for the image. In case this value is set, kubeadm
-                                      does not change automatically the version of
-                                      the above components during upgrades.
+                                    description: |-
+                                      ImageTag allows to specify a tag for the image.
+                                      In case this value is set, kubeadm does not change automatically the version of the above components during upgrades.
                                     type: string
                                   peerCertSANs:
                                     description: PeerCertSANs sets extra Subject Alternative
@@ -1290,54 +1288,52 @@ spec:
                             description: FeatureGates enabled by the user.
                             type: object
                           imageRepository:
-                            description: 'ImageRepository sets the container registry
-                              to pull images from. * If not set, the default registry
-                              of kubeadm will be used, i.e. * registry.k8s.io (new
-                              registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >=
-                              v1.25.0 * k8s.gcr.io (old registry): all older versions
-                              Please note that when imageRepository is not set we
-                              don''t allow upgrades to versions >= v1.22.0 which use
-                              the old registry (k8s.gcr.io). Please use a newer patch
-                              version with the new registry instead (i.e. >= v1.22.17,
-                              >= v1.23.15, >= v1.24.9, >= v1.25.0). * If the version
-                              is a CI build (kubernetes version starts with `ci/`
-                              or `ci-cross/`) `gcr.io/k8s-staging-ci-images` will
-                              be used as a default for control plane components and
-                              for kube-proxy, while `registry.k8s.io` will be used
-                              for all the other images.'
+                            description: |-
+                              ImageRepository sets the container registry to pull images from.
+                              * If not set, the default registry of kubeadm will be used, i.e.
+                                * registry.k8s.io (new registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >= v1.25.0
+                                * k8s.gcr.io (old registry): all older versions
+                                Please note that when imageRepository is not set we don't allow upgrades to
+                                versions >= v1.22.0 which use the old registry (k8s.gcr.io). Please use
+                                a newer patch version with the new registry instead (i.e. >= v1.22.17,
+                                >= v1.23.15, >= v1.24.9, >= v1.25.0).
+                              * If the version is a CI build (kubernetes version starts with `ci/` or `ci-cross/`)
+                               `gcr.io/k8s-staging-ci-images` will be used as a default for control plane components
+                                and for kube-proxy, while `registry.k8s.io` will be used for all the other images.
                             type: string
                           kind:
-                            description: 'Kind is a string value representing the
-                              REST resource this object represents. Servers may infer
-                              this from the endpoint the client submits requests to.
-                              Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            description: |-
+                              Kind is a string value representing the REST resource this object represents.
+                              Servers may infer this from the endpoint the client submits requests to.
+                              Cannot be updated.
+                              In CamelCase.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                             type: string
                           kubernetesVersion:
-                            description: 'KubernetesVersion is the target version
-                              of the control plane. NB: This value defaults to the
-                              Machine object spec.version'
+                            description: |-
+                              KubernetesVersion is the target version of the control plane.
+                              NB: This value defaults to the Machine object spec.version
                             type: string
                           networking:
-                            description: 'Networking holds configuration for the networking
-                              topology of the cluster. NB: This value defaults to
-                              the Cluster object spec.clusterNetwork.'
+                            description: |-
+                              Networking holds configuration for the networking topology of the cluster.
+                              NB: This value defaults to the Cluster object spec.clusterNetwork.
                             properties:
                               dnsDomain:
                                 description: DNSDomain is the dns domain used by k8s
                                   services. Defaults to "cluster.local".
                                 type: string
                               podSubnet:
-                                description: PodSubnet is the subnet used by pods.
-                                  If unset, the API server will not allocate CIDR
-                                  ranges for every node. Defaults to a comma-delimited
-                                  string of the Cluster object's spec.clusterNetwork.services.cidrBlocks
-                                  if that is set
+                                description: |-
+                                  PodSubnet is the subnet used by pods.
+                                  If unset, the API server will not allocate CIDR ranges for every node.
+                                  Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.services.cidrBlocks if that is set
                                 type: string
                               serviceSubnet:
-                                description: ServiceSubnet is the subnet used by k8s
-                                  services. Defaults to a comma-delimited string of
-                                  the Cluster object's spec.clusterNetwork.pods.cidrBlocks,
-                                  or to "10.96.0.0/12" if that's unset.
+                                description: |-
+                                  ServiceSubnet is the subnet used by k8s services.
+                                  Defaults to a comma-delimited string of the Cluster object's spec.clusterNetwork.pods.cidrBlocks, or
+                                  to "10.96.0.0/12" if that's unset.
                                 type: string
                             type: object
                           scheduler:
@@ -1347,21 +1343,23 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: 'ExtraArgs is an extra set of flags to
-                                  pass to the control plane component. TODO: This
-                                  is temporary and ideally we would like to switch
-                                  all components to use ComponentConfig + ConfigMaps.'
+                                description: |-
+                                  ExtraArgs is an extra set of flags to pass to the control plane component.
+                                  TODO: This is temporary and ideally we would like to switch all components to
+                                  use ComponentConfig + ConfigMaps.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
                                   volumes, mounted to the control plane component.
                                 items:
-                                  description: HostPathMount contains elements describing
-                                    volumes that are mounted from the host.
+                                  description: |-
+                                    HostPathMount contains elements describing volumes that are mounted from the
+                                    host.
                                   properties:
                                     hostPath:
-                                      description: HostPath is the path in the host
-                                        that will be mounted inside the pod.
+                                      description: |-
+                                        HostPath is the path in the host that will be mounted inside
+                                        the pod.
                                       type: string
                                     mountPath:
                                       description: MountPath is the path inside the
@@ -1415,10 +1413,9 @@ spec:
                                     to be used. If set to None, no label is used.
                                   type: string
                                 overwrite:
-                                  description: Overwrite defines whether or not to
-                                    overwrite any existing filesystem. If true, any
-                                    pre-existing file system will be destroyed. Use
-                                    with Caution.
+                                  description: |-
+                                    Overwrite defines whether or not to overwrite any existing filesystem.
+                                    If true, any pre-existing file system will be destroyed. Use with Caution.
                                   type: boolean
                                 partition:
                                   description: 'Partition specifies the partition
@@ -1427,11 +1424,9 @@ spec:
                                     partition number.'
                                   type: string
                                 replaceFS:
-                                  description: 'ReplaceFS is a special directive,
-                                    used for Microsoft Azure that instructs cloud-init
-                                    to replace a file system of <FS_TYPE>. NOTE: unless
-                                    you define a label, this requires the use of the
-                                    ''any'' partition directive.'
+                                  description: |-
+                                    ReplaceFS is a special directive, used for Microsoft Azure that instructs cloud-init to replace a file system of <FS_TYPE>.
+                                    NOTE: unless you define a label, this requires the use of the 'any' partition directive.
                                   type: string
                               required:
                               - device
@@ -1450,22 +1445,21 @@ spec:
                                   description: Device is the name of the device.
                                   type: string
                                 layout:
-                                  description: Layout specifies the device layout.
-                                    If it is true, a single partition will be created
-                                    for the entire device. When layout is false, it
-                                    means don't partition or ignore existing partitioning.
+                                  description: |-
+                                    Layout specifies the device layout.
+                                    If it is true, a single partition will be created for the entire device.
+                                    When layout is false, it means don't partition or ignore existing partitioning.
                                   type: boolean
                                 overwrite:
-                                  description: Overwrite describes whether to skip
-                                    checks and create the partition if a partition
-                                    or filesystem is found on the device. Use with
-                                    caution. Default is 'false'.
+                                  description: |-
+                                    Overwrite describes whether to skip checks and create the partition if a partition or filesystem is found on the device.
+                                    Use with caution. Default is 'false'.
                                   type: boolean
                                 tableType:
-                                  description: 'TableType specifies the tupe of partition
-                                    table. The following are supported: ''mbr'': default
-                                    and setups a MS-DOS partition table ''gpt'': setups
-                                    a GPT partition table'
+                                  description: |-
+                                    TableType specifies the tupe of partition table. The following are supported:
+                                    'mbr': default and setups a MS-DOS partition table
+                                    'gpt': setups a GPT partition table
                                   type: string
                               required:
                               - device
@@ -1549,11 +1543,12 @@ spec:
                               configuration.
                             properties:
                               additionalConfig:
-                                description: "AdditionalConfig contains additional
-                                  configuration to be merged with the Ignition configuration
-                                  generated by the bootstrapper controller. More info:
-                                  https://coreos.github.io/ignition/operator-notes/#config-merging
-                                  \n The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/"
+                                description: |-
+                                  AdditionalConfig contains additional configuration to be merged with the Ignition
+                                  configuration generated by the bootstrapper controller. More info: https://coreos.github.io/ignition/operator-notes/#config-merging
+
+
+                                  The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/
                                 type: string
                               strict:
                                 description: Strict controls if AdditionalConfig should
@@ -1567,54 +1562,52 @@ spec:
                           are the configurations necessary for the init command
                         properties:
                           apiVersion:
-                            description: 'APIVersion defines the versioned schema
-                              of this representation of an object. Servers should
-                              convert recognized schemas to the latest internal value,
-                              and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                            description: |-
+                              APIVersion defines the versioned schema of this representation of an object.
+                              Servers should convert recognized schemas to the latest internal value, and
+                              may reject unrecognized values.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
                             type: string
                           bootstrapTokens:
-                            description: BootstrapTokens is respected at `kubeadm
-                              init` time and describes a set of Bootstrap Tokens to
-                              create. This information IS NOT uploaded to the kubeadm
-                              cluster configmap, partly because of its sensitive nature
+                            description: |-
+                              BootstrapTokens is respected at `kubeadm init` time and describes a set of Bootstrap Tokens to create.
+                              This information IS NOT uploaded to the kubeadm cluster configmap, partly because of its sensitive nature
                             items:
                               description: BootstrapToken describes one bootstrap
                                 token, stored as a Secret in the cluster.
                               properties:
                                 description:
-                                  description: Description sets a human-friendly message
-                                    why this token exists and what it's used for,
-                                    so other administrators can know its purpose.
+                                  description: |-
+                                    Description sets a human-friendly message why this token exists and what it's used
+                                    for, so other administrators can know its purpose.
                                   type: string
                                 expires:
-                                  description: Expires specifies the timestamp when
-                                    this token expires. Defaults to being set dynamically
-                                    at runtime based on the TTL. Expires and TTL are
-                                    mutually exclusive.
+                                  description: |-
+                                    Expires specifies the timestamp when this token expires. Defaults to being set
+                                    dynamically at runtime based on the TTL. Expires and TTL are mutually exclusive.
                                   format: date-time
                                   type: string
                                 groups:
-                                  description: Groups specifies the extra groups that
-                                    this token will authenticate as when/if used for
-                                    authentication
+                                  description: |-
+                                    Groups specifies the extra groups that this token will authenticate as when/if
+                                    used for authentication
                                   items:
                                     type: string
                                   type: array
                                 token:
-                                  description: Token is used for establishing bidirectional
-                                    trust between nodes and control-planes. Used for
-                                    joining nodes in the cluster.
+                                  description: |-
+                                    Token is used for establishing bidirectional trust between nodes and control-planes.
+                                    Used for joining nodes in the cluster.
                                   type: string
                                 ttl:
-                                  description: TTL defines the time to live for this
-                                    token. Defaults to 24h. Expires and TTL are mutually
-                                    exclusive.
+                                  description: |-
+                                    TTL defines the time to live for this token. Defaults to 24h.
+                                    Expires and TTL are mutually exclusive.
                                   type: string
                                 usages:
-                                  description: Usages describes the ways in which
-                                    this token can be used. Can by default be used
-                                    for establishing bidirectional trust, but that
-                                    can be changed here.
+                                  description: |-
+                                    Usages describes the ways in which this token can be used. Can by default be used
+                                    for establishing bidirectional trust, but that can be changed here.
                                   items:
                                     type: string
                                   type: array
@@ -1623,22 +1616,20 @@ spec:
                               type: object
                             type: array
                           kind:
-                            description: 'Kind is a string value representing the
-                              REST resource this object represents. Servers may infer
-                              this from the endpoint the client submits requests to.
-                              Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            description: |-
+                              Kind is a string value representing the REST resource this object represents.
+                              Servers may infer this from the endpoint the client submits requests to.
+                              Cannot be updated.
+                              In CamelCase.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                             type: string
                           localAPIEndpoint:
-                            description: LocalAPIEndpoint represents the endpoint
-                              of the API server instance that's deployed on this control
-                              plane node In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint
-                              in the sense that ControlPlaneEndpoint is the global
-                              endpoint for the cluster, which then loadbalances the
-                              requests to each individual API server. This configuration
-                              object lets you customize what IP/DNS name and port
-                              the local API server advertises it's accessible on.
-                              By default, kubeadm tries to auto-detect the IP of the
-                              default interface and use that, but in case that process
+                            description: |-
+                              LocalAPIEndpoint represents the endpoint of the API server instance that's deployed on this control plane node
+                              In HA setups, this differs from ClusterConfiguration.ControlPlaneEndpoint in the sense that ControlPlaneEndpoint
+                              is the global endpoint for the cluster, which then loadbalances the requests to each individual API server. This
+                              configuration object lets you customize what IP/DNS name and port the local API server advertises it's accessible
+                              on. By default, kubeadm tries to auto-detect the IP of the default interface and use that, but in case that process
                               fails you may set the desired value here.
                             properties:
                               advertiseAddress:
@@ -1646,17 +1637,17 @@ spec:
                                   for the API server to advertise.
                                 type: string
                               bindPort:
-                                description: BindPort sets the secure port for the
-                                  API Server to bind to. Defaults to 6443.
+                                description: |-
+                                  BindPort sets the secure port for the API Server to bind to.
+                                  Defaults to 6443.
                                 format: int32
                                 type: integer
                             type: object
                           nodeRegistration:
-                            description: NodeRegistration holds fields that relate
-                              to registering the new control-plane node to the cluster.
-                              When used in the context of control plane nodes, NodeRegistration
-                              should remain consistent across both InitConfiguration
-                              and JoinConfiguration
+                            description: |-
+                              NodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
+                              When used in the context of control plane nodes, NodeRegistration should remain consistent
+                              across both InitConfiguration and JoinConfiguration
                             properties:
                               criSocket:
                                 description: CRISocket is used to retrieve container
@@ -1671,12 +1662,12 @@ spec:
                                   type: string
                                 type: array
                               imagePullPolicy:
-                                description: ImagePullPolicy specifies the policy
-                                  for image pulling during kubeadm "init" and "join"
-                                  operations. The value of this field must be one
-                                  of "Always", "IfNotPresent" or "Never". Defaults
-                                  to "IfNotPresent". This can be used only with Kubernetes
-                                  version equal to 1.22 and later.
+                                description: |-
+                                  ImagePullPolicy specifies the policy for image pulling
+                                  during kubeadm "init" and "join" operations. The value of
+                                  this field must be one of "Always", "IfNotPresent" or
+                                  "Never". Defaults to "IfNotPresent". This can be used only
+                                  with Kubernetes version equal to 1.22 and later.
                                 enum:
                                 - Always
                                 - IfNotPresent
@@ -1685,51 +1676,41 @@ spec:
                               kubeletExtraArgs:
                                 additionalProperties:
                                   type: string
-                                description: KubeletExtraArgs passes through extra
-                                  arguments to the kubelet. The arguments here are
-                                  passed to the kubelet command line via the environment
-                                  file kubeadm writes at runtime for the kubelet to
-                                  source. This overrides the generic base-level configuration
-                                  in the kubelet-config-1.X ConfigMap Flags have higher
-                                  priority when parsing. These values are local and
-                                  specific to the node kubeadm is executing on.
+                                description: |-
+                                  KubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
+                                  kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
+                                  Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
                                 type: object
                               name:
-                                description: Name is the `.Metadata.Name` field of
-                                  the Node API object that will be created in this
-                                  `kubeadm init` or `kubeadm join` operation. This
-                                  field is also used in the CommonName field of the
-                                  kubelet's client certificate to the API server.
+                                description: |-
+                                  Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
+                                  This field is also used in the CommonName field of the kubelet's client certificate to the API server.
                                   Defaults to the hostname of the node if not provided.
                                 type: string
                               taints:
-                                description: 'Taints specifies the taints the Node
-                                  API object should be registered with. If this field
-                                  is unset, i.e. nil, in the `kubeadm init` process
-                                  it will be defaulted to []v1.Taint{''node-role.kubernetes.io/master=""''}.
-                                  If you don''t want to taint your control-plane node,
-                                  set this field to an empty slice, i.e. `taints:
-                                  []` in the YAML file. This field is solely used
-                                  for Node registration.'
+                                description: |-
+                                  Taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil, in the `kubeadm init` process
+                                  it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
+                                  empty slice, i.e. `taints: []` in the YAML file. This field is solely used for Node registration.
                                 items:
-                                  description: The node this Taint is attached to
-                                    has the "effect" on any pod that does not tolerate
-                                    the Taint.
+                                  description: |-
+                                    The node this Taint is attached to has the "effect" on
+                                    any pod that does not tolerate the Taint.
                                   properties:
                                     effect:
-                                      description: Required. The effect of the taint
-                                        on pods that do not tolerate the taint. Valid
-                                        effects are NoSchedule, PreferNoSchedule and
-                                        NoExecute.
+                                      description: |-
+                                        Required. The effect of the taint on pods
+                                        that do not tolerate the taint.
+                                        Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                                       type: string
                                     key:
                                       description: Required. The taint key to be applied
                                         to a node.
                                       type: string
                                     timeAdded:
-                                      description: TimeAdded represents the time at
-                                        which the taint was added. It is only written
-                                        for NoExecute taints.
+                                      description: |-
+                                        TimeAdded represents the time at which the taint was added.
+                                        It is only written for NoExecute taints.
                                       format: date-time
                                       type: string
                                     value:
@@ -1743,34 +1724,29 @@ spec:
                                 type: array
                             type: object
                           patches:
-                            description: Patches contains options related to applying
-                              patches to components deployed by kubeadm during "kubeadm
-                              init". The minimum kubernetes version needed to support
-                              Patches is v1.22
+                            description: |-
+                              Patches contains options related to applying patches to components deployed by kubeadm during
+                              "kubeadm init". The minimum kubernetes version needed to support Patches is v1.22
                             properties:
                               directory:
-                                description: Directory is a path to a directory that
-                                  contains files named "target[suffix][+patchtype].extension".
-                                  For example, "kube-apiserver0+merge.yaml" or just
-                                  "etcd.json". "target" can be one of "kube-apiserver",
-                                  "kube-controller-manager", "kube-scheduler", "etcd".
-                                  "patchtype" can be one of "strategic" "merge" or
-                                  "json" and they match the patch formats supported
-                                  by kubectl. The default "patchtype" is "strategic".
-                                  "extension" must be either "json" or "yaml". "suffix"
-                                  is an optional string that can be used to determine
-                                  which patches are applied first alpha-numerically.
-                                  These files can be written into the target directory
-                                  via KubeadmConfig.Files which specifies additional
-                                  files to be created on the machine, either with
-                                  content inline or by referencing a secret.
+                                description: |-
+                                  Directory is a path to a directory that contains files named "target[suffix][+patchtype].extension".
+                                  For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of
+                                  "kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd". "patchtype" can be one
+                                  of "strategic" "merge" or "json" and they match the patch formats supported by kubectl.
+                                  The default "patchtype" is "strategic". "extension" must be either "json" or "yaml".
+                                  "suffix" is an optional string that can be used to determine which patches are applied
+                                  first alpha-numerically.
+                                  These files can be written into the target directory via KubeadmConfig.Files which
+                                  specifies additional files to be created on the machine, either with content inline or
+                                  by referencing a secret.
                                 type: string
                             type: object
                           skipPhases:
-                            description: SkipPhases is a list of phases to skip during
-                              command execution. The list of phases can be obtained
-                              with the "kubeadm init --help" command. This option
-                              takes effect only on Kubernetes >=1.22.0.
+                            description: |-
+                              SkipPhases is a list of phases to skip during command execution.
+                              The list of phases can be obtained with the "kubeadm init --help" command.
+                              This option takes effect only on Kubernetes >=1.22.0.
                             items:
                               type: string
                             type: array
@@ -1780,21 +1756,23 @@ spec:
                           for the join command
                         properties:
                           apiVersion:
-                            description: 'APIVersion defines the versioned schema
-                              of this representation of an object. Servers should
-                              convert recognized schemas to the latest internal value,
-                              and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                            description: |-
+                              APIVersion defines the versioned schema of this representation of an object.
+                              Servers should convert recognized schemas to the latest internal value, and
+                              may reject unrecognized values.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
                             type: string
                           caCertPath:
-                            description: 'CACertPath is the path to the SSL certificate
-                              authority used to secure comunications between node
-                              and control-plane. Defaults to "/etc/kubernetes/pki/ca.crt".
-                              TODO: revisit when there is defaulting from k/k'
+                            description: |-
+                              CACertPath is the path to the SSL certificate authority used to
+                              secure comunications between node and control-plane.
+                              Defaults to "/etc/kubernetes/pki/ca.crt".
+                              TODO: revisit when there is defaulting from k/k
                             type: string
                           controlPlane:
-                            description: ControlPlane defines the additional control
-                              plane instance to be deployed on the joining node. If
-                              nil, no additional control plane instance will be deployed.
+                            description: |-
+                              ControlPlane defines the additional control plane instance to be deployed on the joining node.
+                              If nil, no additional control plane instance will be deployed.
                             properties:
                               localAPIEndpoint:
                                 description: LocalAPIEndpoint represents the endpoint
@@ -1806,21 +1784,22 @@ spec:
                                       for the API server to advertise.
                                     type: string
                                   bindPort:
-                                    description: BindPort sets the secure port for
-                                      the API Server to bind to. Defaults to 6443.
+                                    description: |-
+                                      BindPort sets the secure port for the API Server to bind to.
+                                      Defaults to 6443.
                                     format: int32
                                     type: integer
                                 type: object
                             type: object
                           discovery:
-                            description: 'Discovery specifies the options for the
-                              kubelet to use during the TLS Bootstrap process TODO:
-                              revisit when there is defaulting from k/k'
+                            description: |-
+                              Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
+                              TODO: revisit when there is defaulting from k/k
                             properties:
                               bootstrapToken:
-                                description: BootstrapToken is used to set the options
-                                  for bootstrap token based discovery BootstrapToken
-                                  and File are mutually exclusive
+                                description: |-
+                                  BootstrapToken is used to set the options for bootstrap token based discovery
+                                  BootstrapToken and File are mutually exclusive
                                 properties:
                                   apiServerEndpoint:
                                     description: APIServerEndpoint is an IP or domain
@@ -1828,40 +1807,36 @@ spec:
                                       be fetched.
                                     type: string
                                   caCertHashes:
-                                    description: 'CACertHashes specifies a set of
-                                      public key pins to verify when token-based discovery
-                                      is used. The root CA found during discovery
-                                      must match one of these values. Specifying an
-                                      empty set disables root CA pinning, which can
-                                      be unsafe. Each hash is specified as "<type>:<value>",
-                                      where the only currently supported type is "sha256".
-                                      This is a hex-encoded SHA-256 hash of the Subject
-                                      Public Key Info (SPKI) object in DER-encoded
-                                      ASN.1. These hashes can be calculated using,
-                                      for example, OpenSSL: openssl x509 -pubkey -in
-                                      ca.crt openssl rsa -pubin -outform der 2>&/dev/null
-                                      | openssl dgst -sha256 -hex'
+                                    description: |-
+                                      CACertHashes specifies a set of public key pins to verify
+                                      when token-based discovery is used. The root CA found during discovery
+                                      must match one of these values. Specifying an empty set disables root CA
+                                      pinning, which can be unsafe. Each hash is specified as "<type>:<value>",
+                                      where the only currently supported type is "sha256". This is a hex-encoded
+                                      SHA-256 hash of the Subject Public Key Info (SPKI) object in DER-encoded
+                                      ASN.1. These hashes can be calculated using, for example, OpenSSL:
+                                      openssl x509 -pubkey -in ca.crt openssl rsa -pubin -outform der 2>&/dev/null | openssl dgst -sha256 -hex
                                     items:
                                       type: string
                                     type: array
                                   token:
-                                    description: Token is a token used to validate
-                                      cluster information fetched from the control-plane.
+                                    description: |-
+                                      Token is a token used to validate cluster information
+                                      fetched from the control-plane.
                                     type: string
                                   unsafeSkipCAVerification:
-                                    description: UnsafeSkipCAVerification allows token-based
-                                      discovery without CA verification via CACertHashes.
-                                      This can weaken the security of kubeadm since
-                                      other nodes can impersonate the control-plane.
+                                    description: |-
+                                      UnsafeSkipCAVerification allows token-based discovery
+                                      without CA verification via CACertHashes. This can weaken
+                                      the security of kubeadm since other nodes can impersonate the control-plane.
                                     type: boolean
                                 required:
                                 - token
                                 type: object
                               file:
-                                description: File is used to specify a file or URL
-                                  to a kubeconfig file from which to load cluster
-                                  information BootstrapToken and File are mutually
-                                  exclusive
+                                description: |-
+                                  File is used to specify a file or URL to a kubeconfig file from which to load cluster information
+                                  BootstrapToken and File are mutually exclusive
                                 properties:
                                   kubeConfigPath:
                                     description: KubeConfigPath is used to specify
@@ -1875,26 +1850,25 @@ spec:
                                 description: Timeout modifies the discovery timeout
                                 type: string
                               tlsBootstrapToken:
-                                description: TLSBootstrapToken is a token used for
-                                  TLS bootstrapping. If .BootstrapToken is set, this
-                                  field is defaulted to .BootstrapToken.Token, but
-                                  can be overridden. If .File is set, this field **must
-                                  be set** in case the KubeConfigFile does not contain
-                                  any other authentication information
+                                description: |-
+                                  TLSBootstrapToken is a token used for TLS bootstrapping.
+                                  If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token, but can be overridden.
+                                  If .File is set, this field **must be set** in case the KubeConfigFile does not contain any other authentication information
                                 type: string
                             type: object
                           kind:
-                            description: 'Kind is a string value representing the
-                              REST resource this object represents. Servers may infer
-                              this from the endpoint the client submits requests to.
-                              Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            description: |-
+                              Kind is a string value representing the REST resource this object represents.
+                              Servers may infer this from the endpoint the client submits requests to.
+                              Cannot be updated.
+                              In CamelCase.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                             type: string
                           nodeRegistration:
-                            description: NodeRegistration holds fields that relate
-                              to registering the new control-plane node to the cluster.
-                              When used in the context of control plane nodes, NodeRegistration
-                              should remain consistent across both InitConfiguration
-                              and JoinConfiguration
+                            description: |-
+                              NodeRegistration holds fields that relate to registering the new control-plane node to the cluster.
+                              When used in the context of control plane nodes, NodeRegistration should remain consistent
+                              across both InitConfiguration and JoinConfiguration
                             properties:
                               criSocket:
                                 description: CRISocket is used to retrieve container
@@ -1909,12 +1883,12 @@ spec:
                                   type: string
                                 type: array
                               imagePullPolicy:
-                                description: ImagePullPolicy specifies the policy
-                                  for image pulling during kubeadm "init" and "join"
-                                  operations. The value of this field must be one
-                                  of "Always", "IfNotPresent" or "Never". Defaults
-                                  to "IfNotPresent". This can be used only with Kubernetes
-                                  version equal to 1.22 and later.
+                                description: |-
+                                  ImagePullPolicy specifies the policy for image pulling
+                                  during kubeadm "init" and "join" operations. The value of
+                                  this field must be one of "Always", "IfNotPresent" or
+                                  "Never". Defaults to "IfNotPresent". This can be used only
+                                  with Kubernetes version equal to 1.22 and later.
                                 enum:
                                 - Always
                                 - IfNotPresent
@@ -1923,51 +1897,41 @@ spec:
                               kubeletExtraArgs:
                                 additionalProperties:
                                   type: string
-                                description: KubeletExtraArgs passes through extra
-                                  arguments to the kubelet. The arguments here are
-                                  passed to the kubelet command line via the environment
-                                  file kubeadm writes at runtime for the kubelet to
-                                  source. This overrides the generic base-level configuration
-                                  in the kubelet-config-1.X ConfigMap Flags have higher
-                                  priority when parsing. These values are local and
-                                  specific to the node kubeadm is executing on.
+                                description: |-
+                                  KubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
+                                  kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap
+                                  Flags have higher priority when parsing. These values are local and specific to the node kubeadm is executing on.
                                 type: object
                               name:
-                                description: Name is the `.Metadata.Name` field of
-                                  the Node API object that will be created in this
-                                  `kubeadm init` or `kubeadm join` operation. This
-                                  field is also used in the CommonName field of the
-                                  kubelet's client certificate to the API server.
+                                description: |-
+                                  Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
+                                  This field is also used in the CommonName field of the kubelet's client certificate to the API server.
                                   Defaults to the hostname of the node if not provided.
                                 type: string
                               taints:
-                                description: 'Taints specifies the taints the Node
-                                  API object should be registered with. If this field
-                                  is unset, i.e. nil, in the `kubeadm init` process
-                                  it will be defaulted to []v1.Taint{''node-role.kubernetes.io/master=""''}.
-                                  If you don''t want to taint your control-plane node,
-                                  set this field to an empty slice, i.e. `taints:
-                                  []` in the YAML file. This field is solely used
-                                  for Node registration.'
+                                description: |-
+                                  Taints specifies the taints the Node API object should be registered with. If this field is unset, i.e. nil, in the `kubeadm init` process
+                                  it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
+                                  empty slice, i.e. `taints: []` in the YAML file. This field is solely used for Node registration.
                                 items:
-                                  description: The node this Taint is attached to
-                                    has the "effect" on any pod that does not tolerate
-                                    the Taint.
+                                  description: |-
+                                    The node this Taint is attached to has the "effect" on
+                                    any pod that does not tolerate the Taint.
                                   properties:
                                     effect:
-                                      description: Required. The effect of the taint
-                                        on pods that do not tolerate the taint. Valid
-                                        effects are NoSchedule, PreferNoSchedule and
-                                        NoExecute.
+                                      description: |-
+                                        Required. The effect of the taint on pods
+                                        that do not tolerate the taint.
+                                        Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
                                       type: string
                                     key:
                                       description: Required. The taint key to be applied
                                         to a node.
                                       type: string
                                     timeAdded:
-                                      description: TimeAdded represents the time at
-                                        which the taint was added. It is only written
-                                        for NoExecute taints.
+                                      description: |-
+                                        TimeAdded represents the time at which the taint was added.
+                                        It is only written for NoExecute taints.
                                       format: date-time
                                       type: string
                                     value:
@@ -1981,34 +1945,29 @@ spec:
                                 type: array
                             type: object
                           patches:
-                            description: Patches contains options related to applying
-                              patches to components deployed by kubeadm during "kubeadm
-                              join". The minimum kubernetes version needed to support
-                              Patches is v1.22
+                            description: |-
+                              Patches contains options related to applying patches to components deployed by kubeadm during
+                              "kubeadm join". The minimum kubernetes version needed to support Patches is v1.22
                             properties:
                               directory:
-                                description: Directory is a path to a directory that
-                                  contains files named "target[suffix][+patchtype].extension".
-                                  For example, "kube-apiserver0+merge.yaml" or just
-                                  "etcd.json". "target" can be one of "kube-apiserver",
-                                  "kube-controller-manager", "kube-scheduler", "etcd".
-                                  "patchtype" can be one of "strategic" "merge" or
-                                  "json" and they match the patch formats supported
-                                  by kubectl. The default "patchtype" is "strategic".
-                                  "extension" must be either "json" or "yaml". "suffix"
-                                  is an optional string that can be used to determine
-                                  which patches are applied first alpha-numerically.
-                                  These files can be written into the target directory
-                                  via KubeadmConfig.Files which specifies additional
-                                  files to be created on the machine, either with
-                                  content inline or by referencing a secret.
+                                description: |-
+                                  Directory is a path to a directory that contains files named "target[suffix][+patchtype].extension".
+                                  For example, "kube-apiserver0+merge.yaml" or just "etcd.json". "target" can be one of
+                                  "kube-apiserver", "kube-controller-manager", "kube-scheduler", "etcd". "patchtype" can be one
+                                  of "strategic" "merge" or "json" and they match the patch formats supported by kubectl.
+                                  The default "patchtype" is "strategic". "extension" must be either "json" or "yaml".
+                                  "suffix" is an optional string that can be used to determine which patches are applied
+                                  first alpha-numerically.
+                                  These files can be written into the target directory via KubeadmConfig.Files which
+                                  specifies additional files to be created on the machine, either with content inline or
+                                  by referencing a secret.
                                 type: string
                             type: object
                           skipPhases:
-                            description: SkipPhases is a list of phases to skip during
-                              command execution. The list of phases can be obtained
-                              with the "kubeadm init --help" command. This option
-                              takes effect only on Kubernetes >=1.22.0.
+                            description: |-
+                              SkipPhases is a list of phases to skip during command execution.
+                              The list of phases can be obtained with the "kubeadm init --help" command.
+                              This option takes effect only on Kubernetes >=1.22.0.
                             items:
                               type: string
                             type: array
@@ -2048,17 +2007,24 @@ spec:
                           type: string
                         type: array
                       useExperimentalRetryJoin:
-                        description: "UseExperimentalRetryJoin replaces a basic kubeadm
-                          command with a shell script with retries for joins. \n This
-                          is meant to be an experimental temporary workaround on some
-                          environments where joins fail due to timing (and other issues).
-                          The long term goal is to add retries to kubeadm proper and
-                          use that functionality. \n This will add about 40KB to userdata
-                          \n For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
-                          \n Deprecated: This experimental fix is no longer needed
-                          and this field will be removed in a future release. When
-                          removing also remove from staticcheck exclude-rules for
-                          SA1019 in golangci.yml"
+                        description: |-
+                          UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
+                          script with retries for joins.
+
+
+                          This is meant to be an experimental temporary workaround on some environments
+                          where joins fail due to timing (and other issues). The long term goal is to add retries to
+                          kubeadm proper and use that functionality.
+
+
+                          This will add about 40KB to userdata
+
+
+                          For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
+
+
+                          Deprecated: This experimental fix is no longer needed and this field will be removed in a future release.
+                          When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml
                         type: boolean
                       users:
                         description: Users specifies extra users to add
@@ -2137,8 +2103,9 @@ spec:
                           type: object
                         type: array
                       verbosity:
-                        description: Verbosity is the number for the kubeadm log level
-                          verbosity. It overrides the `--v` flag in kubeadm commands.
+                        description: |-
+                          Verbosity is the number for the kubeadm log level verbosity.
+                          It overrides the `--v` flag in kubeadm commands.
                         format: int32
                         type: integer
                     type: object

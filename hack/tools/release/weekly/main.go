@@ -171,7 +171,7 @@ func run() int {
 
 	// TODO Turn this into a link (requires knowing the project name + organization)
 	fmt.Println("Weekly update :rotating_light:")
-	fmt.Printf("Changes from %v a total of %d new commits where merged into main.\n\n", commitRange, len(commits))
+	fmt.Printf("Changes from %v a total of %d new commits were merged into main.\n\n", commitRange, len(commits))
 
 	for _, key := range outputOrder {
 		mergeslice := merges[key]

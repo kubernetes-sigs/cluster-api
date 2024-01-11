@@ -53,7 +53,7 @@ entitlement, recognition or support by the Cluster API maintainers.
 
 </aside>
 
-This is the process to add a new provider to add a new project to the pre-defined list of providers shipped with `clusterctl`:
+This is the process to add a new provider to the pre-defined list of providers shipped with `clusterctl`:
 - As soon as possible, create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api) declaring the intent to add a new provider;
   each provider must have a unique name & type in the pre-defined list of providers shipped with `clusterctl`; the provider's name
   must be declared in the issue above and abide to the following naming convention:
@@ -64,10 +64,10 @@ This is the process to add a new provider to add a new project to the pre-define
 - Create a PR making the necessary changes to clusterctl and the Cluster API book, e.g. [#9798](https://github.com/kubernetes-sigs/cluster-api/pull/9798),
   [9720](https://github.com/kubernetes-sigs/cluster-api/pull/9720/files). 
 
-The Cluster API maintainers will review issue/PRs for adding new providers; if the PR merges before code freeze deadline
-for a the next Cluster API minor release, changes will be included it in the such release, otherwise in the next minor
-release; maintainers will also consider if possible/convenient to backport to the current Cluster API minor release
-branch and included in the next patch release.
+The Cluster API maintainers will review issues/PRs for adding new providers. If the PR merges before code freeze deadline
+for the next Cluster API minor release, changes will be included in the release, otherwise in the next minor
+release. Maintainers will also consider if possible/convenient to backport to the current Cluster API minor release
+branch to include it in the next patch release.
 
 <aside class="note">
 
@@ -83,10 +83,10 @@ those providers could be used with `clusterctl` by changing the [clusterctl conf
 <h1>Provider's GitHub org prefix</h1>
 
 The need to add a prefix for providers not in the kubernetes-sigs org applies to all the providers being added to
-`clusterctl`'s pre-defined list of provider starting from January 2024; as of today this rule doesn't applies retroactively
-to all the existing pre-defined providers, but we reserve the right to reconsider this in future.
+`clusterctl`'s pre-defined list of provider starting from January 2024. This rule doesn't apply retroactively
+to the existing pre-defined providers, but we reserve the right to reconsider this in the future.
 
-Please note that the need to add a prefix for providers not in the kubernetes-sigs org do not apply to providers added by
+Please note that the need to add a prefix for providers not in the kubernetes-sigs org does not apply to providers added by
 changing the [clusterctl configuration](configuration.md).
 
 </aside>

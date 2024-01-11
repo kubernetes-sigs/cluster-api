@@ -193,7 +193,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 		if item.HolderReference.Kind == "MachineDeployment" {
 			md, ok := mdStateIndex[item.HolderReference.Name]
 			if !ok {
-				return errors.Errorf("could not find desired state for MachineDeployment %s", klog.KObj(md.Object))
+				return errors.Errorf("could not find desired state for MachineDeployment %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))
 			}
 			mdTopology, err := getMDTopologyFromMD(blueprint, md.Object)
 			if err != nil {
@@ -209,7 +209,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 		} else if item.HolderReference.Kind == "MachinePool" {
 			mp, ok := mpStateIndex[item.HolderReference.Name]
 			if !ok {
-				return errors.Errorf("could not find desired state for MachinePool %s", klog.KObj(mp.Object))
+				return errors.Errorf("could not find desired state for MachinePool %s", klog.KRef(item.HolderReference.Namespace, item.HolderReference.Name))
 			}
 			mpTopology, err := getMPTopologyFromMP(blueprint, mp.Object)
 			if err != nil {
@@ -263,7 +263,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 	// Add the InfrastructureClusterTemplate.
 	t, err := newRequestItemBuilder(blueprint.InfrastructureClusterTemplate).
-		WithHolder(desired.Cluster, "spec.infrastructureRef").
+		WithHolder(desired.Cluster, clusterv1.GroupVersion.WithKind("Cluster"), "spec.infrastructureRef").
 		Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to prepare InfrastructureCluster template %s for patching",
@@ -273,7 +273,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 	// Add the ControlPlaneTemplate.
 	t, err = newRequestItemBuilder(blueprint.ControlPlane.Template).
-		WithHolder(desired.Cluster, "spec.controlPlaneRef").
+		WithHolder(desired.Cluster, clusterv1.GroupVersion.WithKind("Cluster"), "spec.controlPlaneRef").
 		Build()
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to prepare ControlPlane template %s for patching",
@@ -285,7 +285,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 	// add the InfrastructureMachineTemplate for control plane machines.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
 		t, err := newRequestItemBuilder(blueprint.ControlPlane.InfrastructureMachineTemplate).
-			WithHolder(desired.ControlPlane.Object, strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".")).
+			WithHolder(desired.ControlPlane.Object, desired.ControlPlane.Object.GroupVersionKind(), strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".")).
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare ControlPlane's machine template %s for patching",
@@ -315,7 +315,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 		// Add the BootstrapTemplate.
 		t, err := newRequestItemBuilder(mdClass.BootstrapTemplate).
-			WithHolder(md.Object, "spec.template.spec.bootstrap.configRef").
+			WithHolder(md.Object, clusterv1.GroupVersion.WithKind("MachineDeployment"), "spec.template.spec.bootstrap.configRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare BootstrapConfig template %s for MachineDeployment topology %s for patching",
@@ -325,7 +325,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 		// Add the InfrastructureMachineTemplate.
 		t, err = newRequestItemBuilder(mdClass.InfrastructureMachineTemplate).
-			WithHolder(md.Object, "spec.template.spec.infrastructureRef").
+			WithHolder(md.Object, clusterv1.GroupVersion.WithKind("MachineDeployment"), "spec.template.spec.infrastructureRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare InfrastructureMachine template %s for MachineDeployment topology %s for patching",
@@ -355,7 +355,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 		// Add the BootstrapTemplate.
 		t, err := newRequestItemBuilder(mpClass.BootstrapTemplate).
-			WithHolder(mp.Object, "spec.template.spec.bootstrap.configRef").
+			WithHolder(mp.Object, expv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.bootstrap.configRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare BootstrapConfig template %s for MachinePool topology %s for patching",
@@ -365,7 +365,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 		// Add the InfrastructureMachineTemplate.
 		t, err = newRequestItemBuilder(mpClass.InfrastructureMachinePoolTemplate).
-			WithHolder(mp.Object, "spec.template.spec.infrastructureRef").
+			WithHolder(mp.Object, expv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.infrastructureRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare InfrastructureMachinePoolTemplate %s for MachinePool topology %s for patching",

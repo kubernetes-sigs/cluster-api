@@ -174,10 +174,10 @@ func TestReconcileShim(t *testing.T) {
 
 		// Add the shim as a temporary owner for the InfrastructureCluster and ControlPlane.
 		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")))
 		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
 		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
@@ -221,14 +221,14 @@ func TestReconcileShim(t *testing.T) {
 		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
 		ownerRefs = append(
 			ownerRefs,
-			*ownerReferenceTo(cluster1Shim),
-			*ownerReferenceTo(cluster1))
+			*ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")),
+			*ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
 		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
 		ownerRefs = append(
 			ownerRefs,
-			*ownerReferenceTo(cluster1Shim),
-			*ownerReferenceTo(cluster1))
+			*ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")),
+			*ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
@@ -269,10 +269,10 @@ func TestReconcileShim(t *testing.T) {
 
 		// Add the cluster as a final owner for the InfrastructureCluster and ControlPlane (reconciled).
 		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
 		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1))
+		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Run reconcileClusterShim using a nil client, so an error will be triggered if any operation is attempted

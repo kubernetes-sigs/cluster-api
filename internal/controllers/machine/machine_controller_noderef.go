@@ -87,8 +87,8 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	// Set the Machine NodeRef.
 	if machine.Status.NodeRef == nil {
 		machine.Status.NodeRef = &corev1.ObjectReference{
-			Kind:       node.Kind,
-			APIVersion: node.APIVersion,
+			APIVersion: corev1.SchemeGroupVersion.String(),
+			Kind:       "Node",
 			Name:       node.Name,
 			UID:        node.UID,
 		}

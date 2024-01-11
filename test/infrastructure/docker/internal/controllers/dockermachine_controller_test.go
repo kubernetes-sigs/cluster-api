@@ -75,10 +75,10 @@ func newCluster(clusterName string, dockerCluster *infrav1.DockerCluster) *clust
 	}
 	if dockerCluster != nil {
 		cluster.Spec.InfrastructureRef = &corev1.ObjectReference{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       "DockerCluster",
 			Name:       dockerCluster.Name,
 			Namespace:  dockerCluster.Namespace,
-			Kind:       dockerCluster.Kind,
-			APIVersion: dockerCluster.GroupVersionKind().GroupVersion().String(),
 		}
 	}
 	return cluster
@@ -111,10 +111,10 @@ func newMachine(clusterName, machineName string, dockerMachine *infrav1.DockerMa
 	}
 	if dockerMachine != nil {
 		machine.Spec.InfrastructureRef = corev1.ObjectReference{
+			APIVersion: infrav1.GroupVersion.String(),
+			Kind:       "DockerMachine",
 			Name:       dockerMachine.Name,
 			Namespace:  dockerMachine.Namespace,
-			Kind:       dockerMachine.Kind,
-			APIVersion: dockerMachine.GroupVersionKind().GroupVersion().String(),
 		}
 	}
 	return machine

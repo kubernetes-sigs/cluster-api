@@ -142,8 +142,8 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
 	config.SetOwnerReferences(util.EnsureOwnerRef(config.GetOwnerReferences(), metav1.OwnerReference{
-		APIVersion: machine.APIVersion,
-		Kind:       machine.Kind,
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Machine",
 		Name:       machine.Name,
 		UID:        machine.UID,
 	}))
@@ -207,8 +207,8 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 
 		actual.SetOwnerReferences([]metav1.OwnerReference{
 			{
-				APIVersion: machine.APIVersion,
-				Kind:       machine.Kind,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Machine",
 				Name:       machine.Name,
 				UID:        machine.UID,
 				Controller: ptr.To(true),

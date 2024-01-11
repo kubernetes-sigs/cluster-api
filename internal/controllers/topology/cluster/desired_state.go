@@ -208,7 +208,7 @@ func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scop
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and updating the Cluster object
 		// with the reference to the ControlPlane object using this template.
-		ownerRef: ownerReferenceTo(s.Current.Cluster),
+		ownerRef: ownerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 	})
 }
 
@@ -623,7 +623,7 @@ func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploy
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachineDeployment object
 		// with the reference to this template.
-		ownerRef: ownerReferenceTo(s.Current.Cluster),
+		ownerRef: ownerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 	})
 	if err != nil {
 		return nil, err
@@ -651,7 +651,7 @@ func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploy
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachineDeployment object
 		// with the reference to this template.
-		ownerRef: ownerReferenceTo(s.Current.Cluster),
+		ownerRef: ownerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 	})
 	if err != nil {
 		return nil, err
@@ -719,8 +719,8 @@ func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploy
 
 	desiredMachineDeploymentObj := &clusterv1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       clusterv1.GroupVersion.WithKind("MachineDeployment").Kind,
 			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "MachineDeployment",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -977,7 +977,7 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachinePool object
 		// with the reference to this template.
-		ownerRef: ownerReferenceTo(s.Current.Cluster),
+		ownerRef: ownerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to compute bootstrap object for topology %q", machinePoolTopology.Name)
@@ -1005,7 +1005,7 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
 		// in case of errors in between creating this template and creating/updating the MachinePool object
 		// with the reference to this template.
-		ownerRef: ownerReferenceTo(s.Current.Cluster),
+		ownerRef: ownerReferenceTo(s.Current.Cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to compute infrastructure object for topology %q", machinePoolTopology.Name)
@@ -1068,8 +1068,8 @@ func computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology c
 
 	desiredMachinePoolObj := &expv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       expv1.GroupVersion.WithKind("MachinePool").Kind,
 			APIVersion: expv1.GroupVersion.String(),
+			Kind:       "MachinePool",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -1345,12 +1345,15 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 	return template, nil
 }
 
-func ownerReferenceTo(obj client.Object) *metav1.OwnerReference {
+// ownerReferenceTo converts an object to an OwnerReference.
+// Note: We pass in gvk explicitly as we can't rely on GVK being set on all objects
+// (only on Unstructured).
+func ownerReferenceTo(obj client.Object, gvk schema.GroupVersionKind) *metav1.OwnerReference {
 	return &metav1.OwnerReference{
-		Kind:       obj.GetObjectKind().GroupVersionKind().Kind,
+		APIVersion: gvk.GroupVersion().String(),
+		Kind:       gvk.Kind,
 		Name:       obj.GetName(),
 		UID:        obj.GetUID(),
-		APIVersion: obj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
 	}
 }
 
@@ -1358,8 +1361,8 @@ func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Obj
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
 	mhc := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
 			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "MachineHealthCheck",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      healthCheckTarget.GetName(),

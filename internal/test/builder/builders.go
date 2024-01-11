@@ -24,7 +24,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -1859,7 +1858,9 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 }
 
 // objToRef returns a reference to the given object.
-func objToRef(obj client.Object) *corev1.ObjectReference {
+// Note: This function only operates on Unstructured instead of client.Object
+// because it is only safe to assume for Unstructured that the GVK is set.
+func objToRef(obj *unstructured.Unstructured) *corev1.ObjectReference {
 	gvk := obj.GetObjectKind().GroupVersionKind()
 	return &corev1.ObjectReference{
 		Kind:       gvk.Kind,

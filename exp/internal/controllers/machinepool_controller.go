@@ -225,7 +225,7 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv
 	// Ensure the MachinePool is owned by the Cluster it belongs to.
 	mp.SetOwnerReferences(util.EnsureOwnerRef(mp.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       cluster.Kind,
+		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
 	}))

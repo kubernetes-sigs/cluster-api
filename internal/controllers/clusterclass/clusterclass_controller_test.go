@@ -185,7 +185,7 @@ func assertInfrastructureClusterTemplate(ctx context.Context, actualClusterClass
 	if err := env.Get(ctx, actualInfraClusterTemplateKey, actualInfraClusterTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfraClusterTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualInfraClusterTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 
@@ -205,7 +205,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 	if err := env.Get(ctx, actualControlPlaneTemplateKey, actualControlPlaneTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualControlPlaneTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualControlPlaneTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 
@@ -226,7 +226,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 		if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 			return err
 		}
-		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 			return err
 		}
 
@@ -260,7 +260,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 
@@ -280,7 +280,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 

@@ -99,10 +99,25 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
 		}
 
+		// Validate cluster class variables transitions that may be enforced by CEL validation rules on variables.
+		// If no request found in context, then this has not come via a webhook request, so skip validation of old cluster.
+		var oldCluster *clusterv1.Cluster
+		req, err := admission.RequestFromContext(ctx)
+		if err == nil && len(req.OldObject.Raw) > 0 {
+			scheme := runtime.NewScheme()
+			if err := clusterv1.AddToScheme(scheme); err != nil {
+				return apierrors.NewInternalError(errors.Wrap(err, "failed to configure API scheme"))
+			}
+
+			oldCluster = &clusterv1.Cluster{}
+			if err := admission.NewDecoder(scheme).DecodeRaw(req.OldObject, oldCluster); err != nil {
+				return apierrors.NewBadRequest(errors.Wrap(err, "failed to decode old cluster object").Error())
+			}
+		}
+
 		// Doing both defaulting and validating here prevents a race condition where the ClusterClass could be
 		// different in the defaulting and validating webhook.
-		allErrs = append(allErrs, DefaultAndValidateVariables(cluster, clusterClass)...)
-
+		allErrs = append(allErrs, DefaultAndValidateVariables(cluster, oldCluster, clusterClass)...)
 		if len(allErrs) > 0 {
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
 		}
@@ -493,30 +508,67 @@ func validateCIDRBlocks(fldPath *field.Path, cidrs []string) field.ErrorList {
 
 // DefaultAndValidateVariables defaults and validates variables in the Cluster and MachineDeployment/MachinePool topologies based
 // on the definitions in the ClusterClass.
-func DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func DefaultAndValidateVariables(cluster, oldCluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, DefaultVariables(cluster, clusterClass)...)
 
+	// Capture variables from old cluster if it is present to be used in validation for transitions that may be specified
+	// via CEL validation rules.
+	var (
+		oldClusterVariables []clusterv1.ClusterVariable
+		oldMDVariables      map[string][]clusterv1.ClusterVariable
+		oldMPVariables      map[string][]clusterv1.ClusterVariable
+	)
+	if oldCluster != nil {
+		oldClusterVariables = oldCluster.Spec.Topology.Variables
+
+		oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
+		for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+			if md.Variables != nil {
+				oldMDVariables[md.Name] = md.Variables.Overrides
+			}
+		}
+
+		oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
+		for _, mp := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+			if mp.Variables != nil {
+				oldMPVariables[mp.Name] = mp.Variables.Overrides
+			}
+		}
+	}
+
 	// Variables must be validated in the defaulting webhook. Variable definitions are stored in the ClusterClass status
 	// and are patched in the ClusterClass reconcile.
-	allErrs = append(allErrs, variables.ValidateClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Status.Variables,
-		field.NewPath("spec", "topology", "variables"))...)
+	allErrs = append(allErrs, variables.ValidateClusterVariables(
+		cluster.Spec.Topology.Variables,
+		oldClusterVariables,
+		clusterClass.Status.Variables,
+		field.NewPath("spec", "topology", "variables"))...,
+	)
 	if cluster.Spec.Topology.Workers != nil {
 		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
 			// Continue if there are no variable overrides.
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
-			allErrs = append(allErrs, variables.ValidateMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
+			allErrs = append(allErrs, variables.ValidateMachineVariables(
+				md.Variables.Overrides,
+				oldMDVariables[md.Name],
+				clusterClass.Status.Variables,
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...,
+			)
 		}
 		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
 			// Continue if there are no variable overrides.
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
 				continue
 			}
-			allErrs = append(allErrs, variables.ValidateMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))...)
+			allErrs = append(allErrs, variables.ValidateMachineVariables(
+				mp.Variables.Overrides,
+				oldMPVariables[mp.Name],
+				clusterClass.Status.Variables,
+				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))...,
+			)
 		}
 	}
 	return allErrs

@@ -629,7 +629,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterVariables(tt.values, tt.definitions,
+			errList := validateClusterVariables(tt.values, nil, tt.definitions,
 				tt.validateRequired, field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -1522,13 +1522,535 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			name: "Valid integer with CEL expression",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "self <= 1",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`1`),
+				},
+			},
+		},
+		{
+			name:    "Error if integer is above maximum via with CEL expression",
+			wantErr: true,
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "self <= 1",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`99`),
+				},
+			},
+		},
+		{
+			name:    "Error if integer is below minimum via CEL expression",
+			wantErr: true,
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "self >= 1",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`0`),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariable(tt.clusterVariable, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(tt.clusterVariable, nil, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
+
+			if tt.wantErr {
+				g.Expect(errList).NotTo(BeEmpty())
+				return
+			}
+			g.Expect(errList).To(BeEmpty())
+		})
+	}
+}
+
+func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
+	tests := []struct {
+		name                 string
+		clusterClassVariable *clusterv1.ClusterClassVariable
+		clusterVariable      *clusterv1.ClusterVariable
+		oldClusterVariable   *clusterv1.ClusterVariable
+		wantErr              bool
+	}{
+		{
+			name: "Valid transition if old value is not set",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "self > oldSelf",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`1`),
+				},
+			},
+		},
+		{
+			name: "Valid transition if old value is less than new value via CEL expression",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "self > oldSelf",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`1`),
+				},
+			},
+			oldClusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`0`),
+				},
+			},
+		},
+		{
+			name:    "Error if integer is not greater than old value via CEL expression",
+			wantErr: true,
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "self > oldSelf",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`0`),
+				},
+			},
+			oldClusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`1`),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			errList := ValidateClusterVariable(tt.clusterVariable, tt.oldClusterVariable, tt.clusterClassVariable,
+				field.NewPath("spec", "topology", "variables"))
+
+			if tt.wantErr {
+				g.Expect(errList).NotTo(BeEmpty())
+				return
+			}
+			g.Expect(errList).To(BeEmpty())
+		})
+	}
+}
+
+func Test_ValidateMachineVariables(t *testing.T) {
+	tests := []struct {
+		name        string
+		definitions []clusterv1.ClusterClassStatusVariable
+		values      []clusterv1.ClusterVariable
+		oldValues   []clusterv1.ClusterVariable
+		wantErr     bool
+	}{
+		{
+			name: "Pass when no value for required definition.",
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "integer",
+									Minimum: ptr.To[int64](1),
+								},
+							},
+						},
+					},
+				},
+				{
+					Name: "zone",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:      "string",
+									MinLength: ptr.To[int64](1),
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				// cpu is missing in the values but is required in definition.
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+		},
+		{
+			name:        "Error if value has no definition.",
+			wantErr:     true,
+			definitions: []clusterv1.ClusterClassStatusVariable{},
+			values: []clusterv1.ClusterVariable{
+				// location has a value but no definition.
+				{
+					Name: "location",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"us-east-1"`),
+					},
+				},
+			},
+		},
+		{
+			name:    "Fail if value DefinitionFrom field does not match any definition.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					// This definition does not exist.
+					DefinitionFrom: "non-existent-patch",
+				},
+			},
+		},
+		{
+			name:    "Fail when values invalid by their definition schema.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:                "cpu",
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+						{
+							From: "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					DefinitionFrom: "inline",
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"one"`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+			},
+		},
+		{
+			name: "Valid integer with CEL expression",
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: clusterv1.ValidationRules{{
+										Rule: "self <= 1",
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+			},
+		},
+		{
+			name:    "Error if integer is above maximum via with CEL expression",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: clusterv1.ValidationRules{{
+										Rule: "self <= 1",
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`99`),
+					},
+				},
+			},
+		},
+		{
+			name:    "Error if integer is below minimum via CEL expression",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: clusterv1.ValidationRules{{
+										Rule: "self >= 1",
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`0`),
+					},
+				},
+			},
+		},
+		{
+			name: "Valid transition if old value is not set",
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: clusterv1.ValidationRules{{
+										Rule: "self > oldSelf",
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+			},
+		},
+		{
+			name: "Valid transition if old value is less than new value via CEL expression",
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: clusterv1.ValidationRules{{
+										Rule: "self > oldSelf",
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+			},
+			oldValues: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`0`),
+					},
+				},
+			},
+		},
+		{
+			name:    "Error if integer is not greater than old value via CEL expression",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: clusterv1.ValidationRules{{
+										Rule: "self > oldSelf",
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`0`),
+					},
+				},
+			},
+			oldValues: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			errList := ValidateMachineVariables(tt.values, tt.oldValues, tt.definitions,
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(0).Child("variables", "overrides"))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())

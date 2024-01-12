@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: dockerclustertemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -25,18 +25,26 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: "DockerClusterTemplate is the Schema for the dockerclustertemplates
-          API. \n Deprecated: This type will be removed in one of the next releases."
+        description: |-
+          DockerClusterTemplate is the Schema for the dockerclustertemplates API.
+
+
+          Deprecated: This type will be removed in one of the next releases.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -68,10 +76,9 @@ spec:
                         type: object
                       failureDomains:
                         additionalProperties:
-                          description: FailureDomainSpec is the Schema for Cluster
-                            API failure domains. It allows controllers to understand
-                            how many failure domains a cluster can optionally span
-                            across.
+                          description: |-
+                            FailureDomainSpec is the Schema for Cluster API failure domains.
+                            It allows controllers to understand how many failure domains a cluster can optionally span across.
                           properties:
                             attributes:
                               additionalProperties:
@@ -84,26 +91,25 @@ spec:
                                 domain is suitable for use by control plane machines.
                               type: boolean
                           type: object
-                        description: FailureDomains are not usulaly defined on the
-                          spec. The docker provider is special since failure domains
-                          don't mean anything in a local docker environment. Instead,
-                          the docker cluster controller will simply copy these into
-                          the Status and allow the Cluster API controllers to do what
-                          they will with the defined failure domains.
+                        description: |-
+                          FailureDomains are not usulaly defined on the spec.
+                          The docker provider is special since failure domains don't mean anything in a local docker environment.
+                          Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
+                          controllers to do what they will with the defined failure domains.
                         type: object
                       loadBalancer:
                         description: LoadBalancer allows defining configurations for
                           the cluster load balancer.
                         properties:
                           imageRepository:
-                            description: ImageRepository sets the container registry
-                              to pull the haproxy image from. if not set, "kindest"
-                              will be used instead.
+                            description: |-
+                              ImageRepository sets the container registry to pull the haproxy image from.
+                              if not set, "kindest" will be used instead.
                             type: string
                           imageTag:
-                            description: ImageTag allows to specify a tag for the
-                              haproxy image. if not set, "v20210715-a6da3463" will
-                              be used instead.
+                            description: |-
+                              ImageTag allows to specify a tag for the haproxy image.
+                              if not set, "v20210715-a6da3463" will be used instead.
                             type: string
                         type: object
                     type: object
@@ -129,14 +135,19 @@ spec:
           API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -148,24 +159,27 @@ spec:
                   to create a DockerCluster from a template.
                 properties:
                   metadata:
-                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    description: |-
+                      Standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
                     properties:
                       annotations:
                         additionalProperties:
                           type: string
-                        description: 'Annotations is an unstructured key value map
-                          stored with a resource that may be set by external tools
-                          to store and retrieve arbitrary metadata. They are not queryable
-                          and should be preserved when modifying objects. More info:
-                          http://kubernetes.io/docs/user-guide/annotations'
+                        description: |-
+                          Annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
                         type: object
                       labels:
                         additionalProperties:
                           type: string
-                        description: 'Map of string keys and values that can be used
-                          to organize and categorize (scope and select) objects. May
-                          match selectors of replication controllers and services.
-                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        description: |-
+                          Map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
                         type: object
                     type: object
                   spec:
@@ -180,8 +194,9 @@ spec:
                               is serving.
                             type: string
                           port:
-                            description: Port is the port on which the API server
-                              is serving. Defaults to 6443 if not set.
+                            description: |-
+                              Port is the port on which the API server is serving.
+                              Defaults to 6443 if not set.
                             type: integer
                         required:
                         - host
@@ -189,10 +204,9 @@ spec:
                         type: object
                       failureDomains:
                         additionalProperties:
-                          description: FailureDomainSpec is the Schema for Cluster
-                            API failure domains. It allows controllers to understand
-                            how many failure domains a cluster can optionally span
-                            across.
+                          description: |-
+                            FailureDomainSpec is the Schema for Cluster API failure domains.
+                            It allows controllers to understand how many failure domains a cluster can optionally span across.
                           properties:
                             attributes:
                               additionalProperties:
@@ -205,54 +219,44 @@ spec:
                                 domain is suitable for use by control plane machines.
                               type: boolean
                           type: object
-                        description: FailureDomains are usually not defined in the
-                          spec. The docker provider is special since failure domains
-                          don't mean anything in a local docker environment. Instead,
-                          the docker cluster controller will simply copy these into
-                          the Status and allow the Cluster API controllers to do what
-                          they will with the defined failure domains.
+                        description: |-
+                          FailureDomains are usually not defined in the spec.
+                          The docker provider is special since failure domains don't mean anything in a local docker environment.
+                          Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
+                          controllers to do what they will with the defined failure domains.
                         type: object
                       loadBalancer:
                         description: LoadBalancer allows defining configurations for
                           the cluster load balancer.
                         properties:
                           customHAProxyConfigTemplateRef:
-                            description: 'CustomHAProxyConfigTemplateRef allows you
-                              to replace the default HAProxy config file. This field
-                              is a reference to a config map that contains the configuration
-                              template. The key of the config map should be equal
-                              to ''value''. The content of the config map will be
-                              processed and will replace the default HAProxy config
-                              file. Please use it with caution, as there are no checks
-                              to ensure the validity of the configuration. This template
-                              will support the following variables that will be passed
-                              by the controller: $IPv6 (bool) indicates if the cluster
-                              is IPv6, $FrontendControlPlanePort (string) indicates
-                              the frontend control plane port, $BackendControlPlanePort
-                              (string) indicates the backend control plane port, $BackendServers
-                              (map[string]string) indicates the backend server where
-                              the key is the server name and the value is the address.
-                              This map is dynamic and is updated every time a new
-                              control plane node is added or removed. The template
-                              will also support the JoinHostPort function to join
-                              the host and port of the backend server.'
+                            description: |-
+                              CustomHAProxyConfigTemplateRef allows you to replace the default HAProxy config file.
+                              This field is a reference to a config map that contains the configuration template. The key of the config map should be equal to 'value'.
+                              The content of the config map will be processed and will replace the default HAProxy config file. Please use it with caution, as there are
+                              no checks to ensure the validity of the configuration. This template will support the following variables that will be passed by the controller:
+                              $IPv6 (bool) indicates if the cluster is IPv6, $FrontendControlPlanePort (string) indicates the frontend control plane port,
+                              $BackendControlPlanePort (string) indicates the backend control plane port, $BackendServers (map[string]string) indicates the backend server
+                              where the key is the server name and the value is the address. This map is dynamic and is updated every time a new control plane
+                              node is added or removed. The template will also support the JoinHostPort function to join the host and port of the backend server.
                             properties:
                               name:
-                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                  TODO: Add other useful fields. apiVersion, kind,
-                                  uid?'
+                                description: |-
+                                  Name of the referent.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                  TODO: Add other useful fields. apiVersion, kind, uid?
                                 type: string
                             type: object
                             x-kubernetes-map-type: atomic
                           imageRepository:
-                            description: ImageRepository sets the container registry
-                              to pull the haproxy image from. if not set, "kindest"
-                              will be used instead.
+                            description: |-
+                              ImageRepository sets the container registry to pull the haproxy image from.
+                              if not set, "kindest" will be used instead.
                             type: string
                           imageTag:
-                            description: ImageTag allows to specify a tag for the
-                              haproxy image. if not set, "v20210715-a6da3463" will
-                              be used instead.
+                            description: |-
+                              ImageTag allows to specify a tag for the haproxy image.
+                              if not set, "v20210715-a6da3463" will be used instead.
                             type: string
                         type: object
                     type: object

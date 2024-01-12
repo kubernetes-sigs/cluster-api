@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: inmemorymachines.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -43,14 +43,19 @@ spec:
         description: InMemoryMachine is the schema for the in-memory machine API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -58,34 +63,28 @@ spec:
             description: InMemoryMachineSpec defines the desired state of InMemoryMachine.
             properties:
               behaviour:
-                description: Behaviour of the InMemoryMachine; this will allow to
-                  make a simulation more alike to real use cases e.g. by defining
-                  the duration of the provisioning phase mimicking the performances
-                  of the target infrastructure.
+                description: |-
+                  Behaviour of the InMemoryMachine; this will allow to make a simulation more alike to real use cases
+                  e.g. by defining the duration of the provisioning phase mimicking the performances of the target infrastructure.
                 properties:
                   apiServer:
                     description: APIServer defines the behaviour of the APIServer
                       hosted on the InMemoryMachine.
                     properties:
                       provisioning:
-                        description: 'Provisioning defines variables influencing how
-                          the APIServer hosted on the InMemoryMachine is going to
-                          be provisioned. NOTE: APIServer provisioning includes all
-                          the steps from starting the static Pod to the Pod become
-                          ready and being registered in K8s.'
+                        description: |-
+                          Provisioning defines variables influencing how the APIServer hosted on the InMemoryMachine is going to be provisioned.
+                          NOTE: APIServer provisioning includes all the steps from starting the static Pod to the Pod become ready and being registered in K8s.
                         properties:
                           startupDuration:
                             description: StartupDuration defines the duration of the
                               object provisioning phase.
                             type: string
                           startupJitter:
-                            description: 'StartupJitter adds some randomness on StartupDuration;
-                              the actual duration will be StartupDuration plus an
-                              additional amount chosen uniformly at random from the
-                              interval between zero and `StartupJitter*StartupDuration`.
-                              NOTE: this is modeled as string because the usage of
-                              float is highly discouraged, as support for them varies
-                              across languages.'
+                            description: |-
+                              StartupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                              amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                              NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
                             type: string
                         required:
                         - startupDuration
@@ -96,24 +95,19 @@ spec:
                       on the InMemoryMachine.
                     properties:
                       provisioning:
-                        description: 'Provisioning defines variables influencing how
-                          the etcd member hosted on the InMemoryMachine is going to
-                          be provisioned. NOTE: Etcd provisioning includes all the
-                          steps from starting the static Pod to the Pod become ready
-                          and being registered in K8s.'
+                        description: |-
+                          Provisioning defines variables influencing how the etcd member hosted on the InMemoryMachine is going to be provisioned.
+                          NOTE: Etcd provisioning includes all the steps from starting the static Pod to the Pod become ready and being registered in K8s.
                         properties:
                           startupDuration:
                             description: StartupDuration defines the duration of the
                               object provisioning phase.
                             type: string
                           startupJitter:
-                            description: 'StartupJitter adds some randomness on StartupDuration;
-                              the actual duration will be StartupDuration plus an
-                              additional amount chosen uniformly at random from the
-                              interval between zero and `StartupJitter*StartupDuration`.
-                              NOTE: this is modeled as string because the usage of
-                              float is highly discouraged, as support for them varies
-                              across languages.'
+                            description: |-
+                              StartupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                              amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                              NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
                             type: string
                         required:
                         - startupDuration
@@ -124,24 +118,19 @@ spec:
                       hosted on the InMemoryMachine.
                     properties:
                       provisioning:
-                        description: 'Provisioning defines variables influencing how
-                          the Node (the kubelet) hosted on the InMemoryMachine is
-                          going to be provisioned. NOTE: Node provisioning includes
-                          all the steps from starting kubelet to the node become ready,
-                          get a provider ID, and being registered in K8s.'
+                        description: |-
+                          Provisioning defines variables influencing how the Node (the kubelet) hosted on the InMemoryMachine is going to be provisioned.
+                          NOTE: Node provisioning includes all the steps from starting kubelet to the node become ready, get a provider ID, and being registered in K8s.
                         properties:
                           startupDuration:
                             description: StartupDuration defines the duration of the
                               object provisioning phase.
                             type: string
                           startupJitter:
-                            description: 'StartupJitter adds some randomness on StartupDuration;
-                              the actual duration will be StartupDuration plus an
-                              additional amount chosen uniformly at random from the
-                              interval between zero and `StartupJitter*StartupDuration`.
-                              NOTE: this is modeled as string because the usage of
-                              float is highly discouraged, as support for them varies
-                              across languages.'
+                            description: |-
+                              StartupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                              amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                              NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
                             type: string
                         required:
                         - startupDuration
@@ -152,23 +141,19 @@ spec:
                       InMemoryMachine.
                     properties:
                       provisioning:
-                        description: 'Provisioning defines variables influencing how
-                          the VM implementing the InMemoryMachine is going to be provisioned.
-                          NOTE: VM provisioning includes all the steps from creation
-                          to power-on.'
+                        description: |-
+                          Provisioning defines variables influencing how the VM implementing the InMemoryMachine is going to be provisioned.
+                          NOTE: VM provisioning includes all the steps from creation to power-on.
                         properties:
                           startupDuration:
                             description: StartupDuration defines the duration of the
                               object provisioning phase.
                             type: string
                           startupJitter:
-                            description: 'StartupJitter adds some randomness on StartupDuration;
-                              the actual duration will be StartupDuration plus an
-                              additional amount chosen uniformly at random from the
-                              interval between zero and `StartupJitter*StartupDuration`.
-                              NOTE: this is modeled as string because the usage of
-                              float is highly discouraged, as support for them varies
-                              across languages.'
+                            description: |-
+                              StartupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+                              amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+                              NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
                             type: string
                         required:
                         - startupDuration
@@ -190,37 +175,37 @@ spec:
                     operational state.
                   properties:
                     lastTransitionTime:
-                      description: Last time the condition transitioned from one status
-                        to another. This should be when the underlying condition changed.
-                        If that is not known, then using the time when the API field
-                        changed is acceptable.
+                      description: |-
+                        Last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed. If that is not known, then using the time when
+                        the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: A human readable message indicating details about
-                        the transition. This field may be empty.
+                      description: |-
+                        A human readable message indicating details about the transition.
+                        This field may be empty.
                       type: string
                     reason:
-                      description: The reason for the condition's last transition
-                        in CamelCase. The specific API may choose whether or not this
-                        field is considered a guaranteed API. This field may not be
-                        empty.
+                      description: |-
+                        The reason for the condition's last transition in CamelCase.
+                        The specific API may choose whether or not this field is considered a guaranteed API.
+                        This field may not be empty.
                       type: string
                     severity:
-                      description: Severity provides an explicit classification of
-                        Reason code, so the users or machines can immediately understand
-                        the current situation and act accordingly. The Severity field
-                        MUST be set only when Status=False.
+                      description: |-
+                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        understand the current situation and act accordingly.
+                        The Severity field MUST be set only when Status=False.
                       type: string
                     status:
                       description: Status of the condition, one of True, False, Unknown.
                       type: string
                     type:
-                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
-                        Many .condition.type values are consistent across resources
-                        like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to deconflict is
-                        important.
+                      description: |-
+                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
+                        can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
                   - lastTransitionTime

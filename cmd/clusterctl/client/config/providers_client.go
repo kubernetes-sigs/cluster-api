@@ -64,7 +64,7 @@ const (
 	VirtinkProviderName        = "virtink"
 	CoxEdgeProviderName        = "coxedge"
 	ProxmoxProviderName        = "proxmox"
-	K0smotronProviderName      = "k0smotron"
+	K0smotronProviderName      = "k0sproject-k0smotron"
 )
 
 // Bootstrap providers.
@@ -75,7 +75,7 @@ const (
 	OracleCloudNativeBootstrapProviderName = "ocne"
 	KubeKeyK3sBootstrapProviderName        = "kubekey-k3s"
 	RKE2BootstrapProviderName              = "rke2"
-	K0smotronBootstrapProviderName         = "k0smotron"
+	K0smotronBootstrapProviderName         = "k0sproject-k0smotron"
 )
 
 // ControlPlane providers.
@@ -88,7 +88,7 @@ const (
 	KubeKeyK3sControlPlaneProviderName        = "kubekey-k3s"
 	KamajiControlPlaneProviderName            = "kamaji"
 	RKE2ControlPlaneProviderName              = "rke2"
-	K0smotronControlPlaneProviderName         = "k0smotron"
+	K0smotronControlPlaneProviderName         = "k0sproject-k0smotron"
 )
 
 // Add-on providers.

@@ -597,7 +597,7 @@ clusterctl init --infrastructure ibmcloud
 
 ```bash
 # Initialize the management cluster
-clusterctl init --infrastructure k0smotron
+clusterctl init --infrastructure k0sproject-k0smotron
 ```
 
 {{#/tab }}

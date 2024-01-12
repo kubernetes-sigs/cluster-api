@@ -105,12 +105,14 @@ providers:
 var expectedOutputText = `NAME                TYPE                     URL                                                                                         FILE
 cluster-api         CoreProvider             https://github.com/myorg/myforkofclusterapi/releases/latest/                                core_components.yaml
 another-provider    BootstrapProvider        ./                                                                                          bootstrap-components.yaml
+k0smotron           BootstrapProvider        https://github.com/k0sproject/k0smotron/releases/latest/                                    bootstrap-components.yaml
 kubeadm             BootstrapProvider        https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             bootstrap-components.yaml
 kubekey-k3s         BootstrapProvider        https://github.com/kubesphere/kubekey/releases/latest/                                      bootstrap-components.yaml
 microk8s            BootstrapProvider        https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/       bootstrap-components.yaml
 ocne                BootstrapProvider        https://github.com/verrazzano/cluster-api-provider-ocne/releases/latest/                    bootstrap-components.yaml
 rke2                BootstrapProvider        https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/               bootstrap-components.yaml
 talos               BootstrapProvider        https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/         bootstrap-components.yaml
+k0smotron           ControlPlaneProvider     https://github.com/k0sproject/k0smotron/releases/latest/                                    control-plane-components.yaml
 kamaji              ControlPlaneProvider     https://github.com/clastix/cluster-api-control-plane-provider-kamaji/releases/latest/       control-plane-components.yaml
 kubeadm             ControlPlaneProvider     https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             control-plane-components.yaml
 kubekey-k3s         ControlPlaneProvider     https://github.com/kubesphere/kubekey/releases/latest/                                      control-plane-components.yaml
@@ -130,6 +132,7 @@ gcp                 InfrastructureProvider   https://github.com/kubernetes-sigs/
 hetzner             InfrastructureProvider   https://github.com/syself/cluster-api-provider-hetzner/releases/latest/                     infrastructure-components.yaml
 ibmcloud            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/           infrastructure-components.yaml
 in-memory           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             infrastructure-components-in-memory-development.yaml
+k0smotron           InfrastructureProvider   https://github.com/k0sproject/k0smotron/releases/latest/                                    infrastructure-components.yaml
 kubekey             InfrastructureProvider   https://github.com/kubesphere/kubekey/releases/latest/                                      infrastructure-components.yaml
 kubevirt            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/           infrastructure-components.yaml
 maas                InfrastructureProvider   https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                  infrastructure-components.yaml
@@ -159,6 +162,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   ProviderType: BootstrapProvider
   URL: ./
 - File: bootstrap-components.yaml
+  Name: k0smotron
+  ProviderType: BootstrapProvider
+  URL: https://github.com/k0sproject/k0smotron/releases/latest/
+- File: bootstrap-components.yaml
   Name: kubeadm
   ProviderType: BootstrapProvider
   URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
@@ -182,6 +189,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: talos
   ProviderType: BootstrapProvider
   URL: https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/
+- File: control-plane-components.yaml
+  Name: k0smotron
+  ProviderType: ControlPlaneProvider
+  URL: https://github.com/k0sproject/k0smotron/releases/latest/
 - File: control-plane-components.yaml
   Name: kamaji
   ProviderType: ControlPlaneProvider
@@ -258,6 +269,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: in-memory
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
+- File: infrastructure-components.yaml
+  Name: k0smotron
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/k0sproject/k0smotron/releases/latest/
 - File: infrastructure-components.yaml
   Name: kubekey
   ProviderType: InfrastructureProvider

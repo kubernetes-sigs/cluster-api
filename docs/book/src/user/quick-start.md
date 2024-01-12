@@ -593,6 +593,14 @@ clusterctl init --infrastructure ibmcloud
 ```
 
 {{#/tab }}
+{{#tab K0smotron}}
+
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure k0smotron
+```
+
+{{#/tab }}
 {{#tab KubeKey}}
 
 ```bash
@@ -1040,6 +1048,11 @@ export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
 ```
 
 Please visit the [IBM Cloud provider] for more information.
+
+{{#/tab }}
+{{#tab K0smotron}}
+
+Please visit the [K0smotron provider] for more information.
 
 {{#/tab }}
 {{#tab KubeKey}}
@@ -1678,6 +1691,7 @@ kind delete cluster
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[K0smotron provider]: https://github.com/k0sproject/k0smotron
 [KubeKey provider]: https://github.com/kubesphere/kubekey
 [KubeVirt provider]: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/
 [KubeVirt]: https://kubevirt.io/

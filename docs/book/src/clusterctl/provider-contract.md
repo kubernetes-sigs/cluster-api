@@ -252,11 +252,13 @@ providers.
 | CABPM         | cluster.x-k8s.io/provider=bootstrap-microk8s          |
 | CABPKK3S      | cluster.x-k8s.io/provider=bootstrap-kubekey-k3s       |
 | CABPOCNE      | cluster.x-k8s.io/provider=bootstrap-ocne              |
+| CABPK0S       | cluster.x-k8s.io/provider=bootstrap-k0smotron         |
 | CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm       |
 | CACPM         | cluster.x-k8s.io/provider=control-plane-microk8s      |
 | CACPN         | cluster.x-k8s.io/provider=control-plane-nested        |
 | CACPKK3S      | cluster.x-k8s.io/provider=control-plane-kubekey-k3s   |
 | CACPOCNE      | cluster.x-k8s.io/provider=control-plane-ocne          |
+| CACPK0S       | cluster.x-k8s.io/provider=control-plane-k0smotron     |
 | CAPA          | cluster.x-k8s.io/provider=infrastructure-aws          |
 | CAPB          | cluster.x-k8s.io/provider=infrastructure-byoh         |
 | CAPC          | cluster.x-k8s.io/provider=infrastructure-cloudstack   |
@@ -279,6 +281,7 @@ providers.
 | CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix      |
 | CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure        |
 | CAPOSC        | cluster.x-k8s.io/provider=infrastructure-outscale     |
+| CAPK0S        | cluster.x-k8s.io/provider=infrastructure-k0smotron    |
 
 ### Workload cluster templates
 

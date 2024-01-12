@@ -127,12 +127,12 @@ func WatchDeploymentLogsByLabelSelector(ctx context.Context, input WatchDeployme
 
 	for _, deployment := range deploymentList.Items {
 		watchPodLogs(ctx, watchPodLogsInput{
-			Cache:          input.Cache,
-			ClientSet:      input.ClientSet,
-			Namespace:      deployment.Namespace,
-			DeploymentName: deployment.Name,
-			LabelSelector:  deployment.Spec.Selector,
-			LogPath:        input.LogPath,
+			Cache:                input.Cache,
+			ClientSet:            input.ClientSet,
+			Namespace:            deployment.Namespace,
+			ManagingResourceName: deployment.Name,
+			LabelSelector:        deployment.Spec.Selector,
+			LogPath:              input.LogPath,
 		})
 	}
 }
@@ -163,23 +163,23 @@ func WatchDeploymentLogsByName(ctx context.Context, input WatchDeploymentLogsByN
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s", klog.KObj(input.Deployment))
 
 	watchPodLogs(ctx, watchPodLogsInput{
-		Cache:          input.Cache,
-		ClientSet:      input.ClientSet,
-		Namespace:      deployment.Namespace,
-		DeploymentName: deployment.Name,
-		LabelSelector:  deployment.Spec.Selector,
-		LogPath:        input.LogPath,
+		Cache:                input.Cache,
+		ClientSet:            input.ClientSet,
+		Namespace:            deployment.Namespace,
+		ManagingResourceName: deployment.Name,
+		LabelSelector:        deployment.Spec.Selector,
+		LogPath:              input.LogPath,
 	})
 }
 
 // watchPodLogsInput is the input for watchPodLogs.
 type watchPodLogsInput struct {
-	Cache          toolscache.Cache
-	ClientSet      *kubernetes.Clientset
-	Namespace      string
-	DeploymentName string
-	LabelSelector  *metav1.LabelSelector
-	LogPath        string
+	Cache                toolscache.Cache
+	ClientSet            *kubernetes.Clientset
+	Namespace            string
+	ManagingResourceName string
+	LabelSelector        *metav1.LabelSelector
+	LogPath              string
 }
 
 // watchPodLogs streams logs for all containers for all pods belonging to a deployment with the given label. Each container's logs are streamed
@@ -251,16 +251,16 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 	}
 
 	for _, container := range pod.Spec.Containers {
-		log.Logf("Creating log watcher for controller %s, pod %s, container %s", klog.KRef(eh.input.Namespace, eh.input.DeploymentName), pod.Name, container.Name)
+		log.Logf("Creating log watcher for controller %s, pod %s, container %s", klog.KRef(eh.input.Namespace, eh.input.ManagingResourceName), pod.Name, container.Name)
 
 		// Create log metadata file.
-		logMetadataFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.DeploymentName, pod.Name, container.Name+"-log-metadata.json"))
+		logMetadataFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.ManagingResourceName, pod.Name, container.Name+"-log-metadata.json"))
 		Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0750)).To(Succeed())
 
 		metadata := logMetadata{
-			Job:       eh.input.Namespace + "/" + eh.input.DeploymentName,
+			Job:       eh.input.Namespace + "/" + eh.input.ManagingResourceName,
 			Namespace: eh.input.Namespace,
-			App:       eh.input.DeploymentName,
+			App:       eh.input.ManagingResourceName,
 			Pod:       pod.Name,
 			Container: container.Name,
 			NodeName:  pod.Spec.NodeName,
@@ -274,7 +274,7 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 		go func(pod *corev1.Pod, container corev1.Container) {
 			defer GinkgoRecover()
 
-			logFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.DeploymentName, pod.Name, container.Name+".log"))
+			logFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.ManagingResourceName, pod.Name, container.Name+".log"))
 			Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
 
 			f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)

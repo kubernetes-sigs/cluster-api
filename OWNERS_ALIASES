@@ -20,6 +20,7 @@ aliases:
   # non-admin folks who have write-access and can approve any PRs in the repo
   cluster-api-maintainers:
   - CecileRobertMichon
+  - chrischdi
   - enxebre
   - fabriziopandini
   - killianmuldoon
@@ -28,7 +29,6 @@ aliases:
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
-  - chrischdi
   - jackfrancis
   - JoelSpeed
   - richardcase

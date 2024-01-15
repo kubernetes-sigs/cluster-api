@@ -69,6 +69,9 @@ Cluster API Provider Hetzner
 ### CAPIBM
 Cluster API Provider IBM Cloud
 
+### CAPIO
+Cluster API Operator
+
 ### CAPM3
 Cluster API Provider Metal3
 

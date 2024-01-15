@@ -974,6 +974,17 @@ func TestMachineConditions(t *testing.T) {
 				conditions.UnknownCondition(clusterv1.MachineNodeHealthyCondition, clusterv1.NodeInspectionFailedReason, "Failed to get the Node for this Machine by ProviderID"),
 			},
 		},
+		{
+			name:           "ready condition summary consumes reason from the draining succeeded condition",
+			infraReady:     true,
+			bootstrapReady: true,
+			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, "")
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, ""),
+			},
+		},
 	}
 
 	for _, tt := range testcases {

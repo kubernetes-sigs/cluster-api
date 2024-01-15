@@ -427,7 +427,7 @@ type VariableSchema struct {
 	OpenAPIV3Schema JSONSchemaProps `json:"openAPIV3Schema"`
 }
 
-// +lifted:source=https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.1/pkg/apis/apiextensions/v1/types_jsonschema.go#L40
+// +lifted:source=https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L40
 // +lifted:changed
 
 // JSONSchemaProps is a JSON-Schema following Specification Draft 4 (http://json-schema.org/).
@@ -556,7 +556,10 @@ type JSONSchemaProps struct {
 	Default *apiextensionsv1.JSON `json:"default,omitempty"`
 
 	// XValidations describes a list of validation rules written in the CEL expression language.
+	// See: https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L191.
 	// +optional
+	// +listType=map
+	// +listMapKey=rule
 	XValidations ValidationRules `json:"x-kubernetes-validations,omitempty"`
 }
 

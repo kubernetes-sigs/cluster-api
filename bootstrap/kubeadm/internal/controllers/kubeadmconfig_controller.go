@@ -31,6 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
+	bootstrapsecretutil "k8s.io/cluster-bootstrap/util/secrets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -272,7 +274,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 				// If the BootstrapToken has been generated for a join but the config owner has no nodeRefs,
 				// this indicates that the node has not yet joined and the token in the join config has not
 				// been consumed and it may need a refresh.
-				return r.refreshBootstrapToken(ctx, config, cluster)
+				return r.refreshBootstrapTokenIfNeeded(ctx, config, cluster)
 			}
 			if configOwner.IsMachinePool() {
 				// If the BootstrapToken has been generated and infrastructure is ready but the configOwner is a MachinePool,
@@ -310,7 +312,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	return r.joinWorker(ctx, scope)
 }
 
-func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *KubeadmConfigReconciler) refreshBootstrapTokenIfNeeded(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
@@ -319,12 +321,42 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 		return ctrl.Result{}, err
 	}
 
-	log.Info("Refreshing token until the infrastructure has a chance to consume it")
-	if err := refreshToken(ctx, remoteClient, token, r.TokenTTL); err != nil {
+	secret, err := getToken(ctx, remoteClient, token)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap token secret in order to refresh it")
+	}
+	log = log.WithValues("Secret", klog.KObj(secret))
+
+	secretExpiration := bootstrapsecretutil.GetData(secret, bootstrapapi.BootstrapTokenExpirationKey)
+	if secretExpiration == "" {
+		log.Info(fmt.Sprintf("Token has no valid value for %s, writing new expiration timestamp", bootstrapapi.BootstrapTokenExpirationKey))
+	} else {
+		// Assuming UTC, since we create the label value with that timezone
+		expiration, err := time.Parse(time.RFC3339, secretExpiration)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "can't parse expiration time of bootstrap token")
+		}
+
+		now := time.Now().UTC()
+		skipTokenRefreshIfExpiringAfter := now.Add(r.skipTokenRefreshIfExpiringAfter())
+		if expiration.After(skipTokenRefreshIfExpiringAfter) {
+			log.V(3).Info("Token needs no refresh", "tokenExpiresInSeconds", expiration.Sub(now).Seconds())
+			return ctrl.Result{
+				RequeueAfter: r.tokenCheckRefreshOrRotationInterval(),
+			}, nil
+		}
+	}
+
+	// Extend TTL for existing token
+	newExpiration := time.Now().UTC().Add(r.TokenTTL).Format(time.RFC3339)
+	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(newExpiration)
+	log.Info("Refreshing token until the infrastructure has a chance to consume it", "oldExpiration", secretExpiration, "newExpiration", newExpiration)
+	err = remoteClient.Update(ctx, secret)
+	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to refresh bootstrap token")
 	}
 	return ctrl.Result{
-		RequeueAfter: r.TokenTTL / 2,
+		RequeueAfter: r.tokenCheckRefreshOrRotationInterval(),
 	}, nil
 }
 
@@ -355,7 +387,7 @@ func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Co
 		return r.joinWorker(ctx, scope)
 	}
 	return ctrl.Result{
-		RequeueAfter: r.TokenTTL / 3,
+		RequeueAfter: r.tokenCheckRefreshOrRotationInterval(),
 	}, nil
 }
 
@@ -632,7 +664,9 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		scope.Error(err, "Failed to store bootstrap data")
 		return ctrl.Result{}, err
 	}
-	return ctrl.Result{}, nil
+
+	// Ensure reconciling this object again so we keep refreshing the bootstrap token until it is consumed
+	return ctrl.Result{RequeueAfter: r.tokenCheckRefreshOrRotationInterval()}, nil
 }
 
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
@@ -737,7 +771,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	// Ensure reconciling this object again so we keep refreshing the bootstrap token until it is consumed
+	return ctrl.Result{RequeueAfter: r.tokenCheckRefreshOrRotationInterval()}, nil
 }
 
 // resolveFiles maps .Spec.Files into cloudinit.Files, resolving any object references
@@ -815,6 +850,27 @@ func (r *KubeadmConfigReconciler) resolveSecretPasswordContent(ctx context.Conte
 		return nil, errors.Errorf("secret references non-existent secret key: %q", source.PasswdFrom.Secret.Key)
 	}
 	return data, nil
+}
+
+// skipTokenRefreshIfExpiringAfter returns a duration. If the token's expiry timestamp is after
+// `now + skipTokenRefreshIfExpiringAfter()`, it does not yet need a refresh.
+func (r *KubeadmConfigReconciler) skipTokenRefreshIfExpiringAfter() time.Duration {
+	// Choose according to how often reconciliation is "woken up" by `tokenCheckRefreshOrRotationInterval`.
+	// Reconciliation should get triggered at least two times, i.e. have two chances to refresh the token (in case of
+	// one temporary failure), while the token is not refreshed.
+	return r.TokenTTL * 5 / 6
+}
+
+// tokenCheckRefreshOrRotationInterval defines when to trigger a reconciliation loop again to refresh or rotate a token.
+func (r *KubeadmConfigReconciler) tokenCheckRefreshOrRotationInterval() time.Duration {
+	// This interval defines how often the reconciler should get triggered.
+	//
+	// `r.TokenTTL / 3` means reconciliation gets triggered at least 3 times within the expiry time of the token. The
+	// third call may be too late, so the first/second call have a chance to extend the expiry (refresh/rotate),
+	// allowing for one temporary failure.
+	//
+	// Related to `skipTokenRefreshIfExpiringAfter` and also token rotation (which is different from refreshing).
+	return r.TokenTTL / 3
 }
 
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqueue

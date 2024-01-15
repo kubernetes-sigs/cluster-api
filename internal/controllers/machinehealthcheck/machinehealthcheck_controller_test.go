@@ -2601,7 +2601,7 @@ func TestPatchTargets(t *testing.T) {
 	r := &Reconciler{
 		Client:   cl,
 		recorder: record.NewFakeRecorder(32),
-		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
+		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
 	}
 
 	// To make the patch fail, create patchHelper with a different client.

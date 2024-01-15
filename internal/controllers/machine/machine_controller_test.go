@@ -733,7 +733,7 @@ func TestReconcileRequest(t *testing.T) {
 			r := &Reconciler{
 				Client:                    clientFake,
 				UnstructuredCachingClient: clientFake,
-				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				ssaCache:                  ssa.NewCache(),
 			}
 
@@ -1003,7 +1003,7 @@ func TestMachineConditions(t *testing.T) {
 				Client:                    clientFake,
 				UnstructuredCachingClient: clientFake,
 				recorder:                  record.NewFakeRecorder(10),
-				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				ssaCache:                  ssa.NewCache(),
 			}
 
@@ -2198,7 +2198,7 @@ func TestNodeDeletion(t *testing.T) {
 			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
-			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
+			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
 
 			r := &Reconciler{
 				Client:                    fakeClient,

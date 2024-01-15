@@ -168,7 +168,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 			PatchType: options.patchFormat,
 			Patch:     patch,
 		})
-		requestItemLog.V(5).Info("Generated patch (uid: %q): %q\n", requestItem.UID, string(patch))
+		requestItemLog.V(5).Info("Generated patch", "uid", requestItem.UID, "patch", string(patch))
 	}
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess

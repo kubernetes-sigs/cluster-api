@@ -34,7 +34,7 @@ type Config struct {
 // BranchConfig is the branch-based configuration struct.
 type BranchConfig struct {
 	Interval                            string     `json:"interval"`
-	UpdatesInterval                     string     `json:"updatesInterval"`
+	UpgradesInterval                    string     `json:"upgradesInterval"`
 	TestImage                           string     `json:"testImage"`
 	KubernetesVersionManagement         string     `json:"kubernetesVersionManagement"`
 	KubebuilderEnvtestKubernetesVersion string     `json:"kubebuilderEnvtestKubernetesVersion"`

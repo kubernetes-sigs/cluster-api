@@ -97,7 +97,7 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	// Set log level 2 as default.
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
-		setupLog.Error(err, "failed to set log level: %v")
+		setupLog.Error(err, "failed to set default log level")
 		os.Exit(1)
 	}
 	pflag.Parse()

@@ -169,9 +169,24 @@ func run() int {
 		merges[key] = append(merges[key], formatMerge(body, prNumber))
 	}
 
+	// fetch the current branch
+	out, err = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").CombinedOutput()
+	if err != nil {
+		fmt.Println("Error")
+		fmt.Println(err)
+		fmt.Println(string(out))
+		return 1
+	}
+
+	branch := strings.TrimSpace(string(out))
+	if branch == "" {
+		fmt.Println("Error: failed to get current branch!!!")
+		return 1
+	}
+
 	// TODO Turn this into a link (requires knowing the project name + organization)
 	fmt.Println("Weekly update :rotating_light:")
-	fmt.Printf("Changes from %v a total of %d new commits were merged into main.\n\n", commitRange, len(commits))
+	fmt.Printf("Changes from %v a total of %d new commits were merged into %s.\n\n", commitRange, len(commits), branch)
 
 	for _, key := range outputOrder {
 		mergeslice := merges[key]

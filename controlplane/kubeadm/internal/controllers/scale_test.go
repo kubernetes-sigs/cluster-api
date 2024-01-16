@@ -464,7 +464,7 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			selectedMachine, err := selectMachineForScaleDown(tc.cp, tc.outDatedMachines)
+			selectedMachine, err := selectMachineForScaleDown(ctx, tc.cp, tc.outDatedMachines)
 
 			if tc.expectErr {
 				g.Expect(err).To(HaveOccurred())

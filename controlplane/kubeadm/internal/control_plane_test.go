@@ -53,12 +53,12 @@ func TestControlPlane(t *testing.T) {
 		}
 
 		t.Run("With all machines in known failure domain, should return the FD with most number of machines", func(t *testing.T) {
-			g.Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("two"))
+			g.Expect(*controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("two"))
 		})
 
 		t.Run("With some machines in non defined failure domains", func(t *testing.T) {
 			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
-			g.Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("unknown"))
+			g.Expect(*controlPlane.FailureDomainWithMostMachines(ctx, controlPlane.Machines)).To(Equal("unknown"))
 		})
 	})
 }

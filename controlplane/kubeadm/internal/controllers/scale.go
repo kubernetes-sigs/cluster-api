@@ -39,7 +39,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	logger := ctrl.LoggerFrom(ctx)
 
 	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
-	fd := controlPlane.NextFailureDomainForScaleUp()
+	fd := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd); err != nil {
 		logger.Error(err, "Failed to create initial control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedInitialization", "Failed to create initial control plane Machine for cluster %s control plane: %v", klog.KObj(controlPlane.Cluster), err)
@@ -60,7 +60,7 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
-	fd := controlPlane.NextFailureDomainForScaleUp()
+	fd := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd); err != nil {
 		logger.Error(err, "Failed to create additional control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedScaleUp", "Failed to create additional control plane Machine for cluster % control plane: %v", klog.KObj(controlPlane.Cluster), err)
@@ -79,7 +79,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	logger := ctrl.LoggerFrom(ctx)
 
 	// Pick the Machine that we should scale down.
-	machineToDelete, err := selectMachineForScaleDown(controlPlane, outdatedMachines)
+	machineToDelete, err := selectMachineForScaleDown(ctx, controlPlane, outdatedMachines)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to select machine for scale down")
 	}
@@ -223,7 +223,7 @@ func preflightCheckCondition(kind string, obj conditions.Getter, condition clust
 	return nil
 }
 
-func selectMachineForScaleDown(controlPlane *internal.ControlPlane, outdatedMachines collections.Machines) (*clusterv1.Machine, error) {
+func selectMachineForScaleDown(ctx context.Context, controlPlane *internal.ControlPlane, outdatedMachines collections.Machines) (*clusterv1.Machine, error) {
 	machines := controlPlane.Machines
 	switch {
 	case controlPlane.MachineWithDeleteAnnotation(outdatedMachines).Len() > 0:
@@ -233,5 +233,5 @@ func selectMachineForScaleDown(controlPlane *internal.ControlPlane, outdatedMach
 	case outdatedMachines.Len() > 0:
 		machines = outdatedMachines
 	}
-	return controlPlane.MachineInFailureDomainWithMostMachines(machines)
+	return controlPlane.MachineInFailureDomainWithMostMachines(ctx, machines)
 }

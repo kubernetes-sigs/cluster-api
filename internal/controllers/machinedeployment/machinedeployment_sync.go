@@ -22,7 +22,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -150,7 +149,7 @@ func (r *Reconciler) updateMachineSet(ctx context.Context, deployment *clusterv1
 	log := ctrl.LoggerFrom(ctx)
 
 	// Compute the desired MachineSet.
-	updatedMS, err := r.computeDesiredMachineSet(deployment, ms, oldMSs, log)
+	updatedMS, err := r.computeDesiredMachineSet(ctx, deployment, ms, oldMSs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update MachineSet %q", klog.KObj(ms))
 	}
@@ -172,7 +171,7 @@ func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *cl
 	log := ctrl.LoggerFrom(ctx)
 
 	// Compute the desired MachineSet.
-	newMS, err := r.computeDesiredMachineSet(deployment, nil, oldMSs, log)
+	newMS, err := r.computeDesiredMachineSet(ctx, deployment, nil, oldMSs)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create new MachineSet")
 	}
@@ -213,7 +212,7 @@ func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *cl
 // There are small differences in how we calculate the MachineSet depending on if it
 // is a create or update. Example: for a new MachineSet we have to calculate a new name,
 // while for an existing MachineSet we have to use the name of the existing MachineSet.
-func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeployment, existingMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, log logr.Logger) (*clusterv1.MachineSet, error) {
+func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *clusterv1.MachineDeployment, existingMS *clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
 	var name string
 	var uid types.UID
 	var finalizers []string
@@ -328,7 +327,7 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 	desiredMS.Spec.Selector = *mdutil.CloneSelectorAndAddLabel(&deployment.Spec.Selector, clusterv1.MachineDeploymentUniqueLabel, uniqueIdentifierLabelValue)
 
 	// Set annotations and .spec.template.annotations.
-	if desiredMS.Annotations, err = mdutil.ComputeMachineSetAnnotations(log, deployment, oldMSs, existingMS); err != nil {
+	if desiredMS.Annotations, err = mdutil.ComputeMachineSetAnnotations(ctx, deployment, oldMSs, existingMS); err != nil {
 		return nil, errors.Wrap(err, "failed to compute desired MachineSet: failed to compute annotations")
 	}
 	desiredMS.Spec.Template.Annotations = cloneStringMap(deployment.Spec.Template.Annotations)

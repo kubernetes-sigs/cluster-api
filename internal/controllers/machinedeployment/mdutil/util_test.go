@@ -30,10 +30,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
+
+var (
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func newDControllerRef(md *clusterv1.MachineDeployment) *metav1.OwnerReference {
@@ -939,11 +943,10 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 		},
 	}
 
-	log := klogr.New()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got, err := ComputeMachineSetAnnotations(log, tt.deployment, tt.oldMSs, tt.ms)
+			got, err := ComputeMachineSetAnnotations(ctx, tt.deployment, tt.oldMSs, tt.ms)
 			if tt.wantErr {
 				g.Expect(err).ShouldNot(HaveOccurred())
 			} else {

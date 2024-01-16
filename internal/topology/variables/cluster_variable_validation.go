@@ -66,7 +66,8 @@ func validateClusterVariables(values, oldValues []clusterv1.ClusterVariable, def
 
 	// Get a map of old ClusterVariable values, assume they are all valid and not duplicate names, etc.
 	oldValuesMap := make(map[string]*clusterv1.ClusterVariable, len(oldValues))
-	for _, v := range oldValues {
+	for idx := range oldValues {
+		v := oldValues[idx]
 		oldValuesMap[v.Name] = &v
 	}
 
@@ -188,7 +189,7 @@ func ValidateClusterVariable(value, oldValue *clusterv1.ClusterVariable, definit
 				fmt.Errorf("failed to create structural schema for variable %q; ClusterClass should be checked: %v", value.Name, err))} // TODO: consider if to add ClusterClass name
 	}
 
-	if err := validateUnknownFields(fldPath, definition.Name, wrappedVariable, variableValue, ss); err != nil {
+	if err := validateUnknownFields(fldPath, definition.Name, wrappedVariable, ss); err != nil {
 		return err
 	}
 
@@ -221,7 +222,7 @@ func ValidateClusterVariable(value, oldValue *clusterv1.ClusterVariable, definit
 // validateUnknownFields validates the given variableValue for unknown fields.
 // This func returns an error if there are variable fields in variableValue that are not defined in
 // variableSchema and if x-kubernetes-preserve-unknown-fields is not set.
-func validateUnknownFields(fldPath *field.Path, variableName string, wrappedVariable map[string]interface{}, variableValue interface{}, ss *structuralschema.Structural) field.ErrorList {
+func validateUnknownFields(fldPath *field.Path, variableName string, wrappedVariable map[string]interface{}, ss *structuralschema.Structural) field.ErrorList {
 	// Run Prune to check if it would drop any unknown fields.
 	opts := structuralschema.UnknownFieldPathOptions{
 		// TrackUnknownFieldPaths has to be true so PruneWithOptions returns the unknown fields.

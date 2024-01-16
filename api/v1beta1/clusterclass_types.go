@@ -558,12 +558,12 @@ type JSONSchemaProps struct {
 	// XValidations describes a list of validation rules written in the CEL expression language.
 	// See: https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L191.
 	// +optional
-	// +listType=map
-	// +listMapKey=rule
 	XValidations ValidationRules `json:"x-kubernetes-validations,omitempty"`
 }
 
 // ValidationRules describes a list of validation rules written in the CEL expression language.
+// +listType=map
+// +listMapKey=rule
 type ValidationRules []ValidationRule
 
 // ValidationRule describes a validation rule written in the CEL expression language.

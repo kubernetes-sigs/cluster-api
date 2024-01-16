@@ -547,7 +547,6 @@ type JSONSchemaProps struct {
 	Default *apiextensionsv1.JSON `json:"default,omitempty"`
 
 	// XValidations describes a list of validation rules written in the CEL expression language.
-	// See: https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L191.
 	// +optional
 	XValidations ValidationRules `json:"x-kubernetes-validations,omitempty"`
 }

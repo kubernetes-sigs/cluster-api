@@ -1148,9 +1148,8 @@ spec:
                                 except if nested properties or additionalProperties are specified in the schema.
                               type: boolean
                             x-kubernetes-validations:
-                              description: |-
-                                XValidations describes a list of validation rules written in the CEL expression language.
-                                See: https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L191.
+                              description: XValidations describes a list of validation
+                                rules written in the CEL expression language.
                               items:
                                 description: ValidationRule describes a validation
                                   rule written in the CEL expression language.
@@ -2136,9 +2135,9 @@ spec:
                                       except if nested properties or additionalProperties are specified in the schema.
                                     type: boolean
                                   x-kubernetes-validations:
-                                    description: |-
-                                      XValidations describes a list of validation rules written in the CEL expression language.
-                                      See: https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L191.
+                                    description: XValidations describes a list of
+                                      validation rules written in the CEL expression
+                                      language.
                                     items:
                                       description: ValidationRule describes a validation
                                         rule written in the CEL expression language.

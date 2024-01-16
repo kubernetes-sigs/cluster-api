@@ -37,7 +37,7 @@ changes should be cherry-picked to all release series that will support the new 
 
   * At the `.versions`  section in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/):
     * Add a new entry for the new Kubernetes version
-    * Adjust the released kKubernetes's version entry to refer `stable-1.<minor>` instead of `ci/latest-1.<minor>`
+    * Adjust the released Kubernetes's version entry to refer `stable-1.<minor>` instead of `ci/latest-1.<minor>`
     * Check and update the versions for the keys `etcd` and `coreDNS` if necessary:
       * For etcd, see the `DefaultEtcdVersion` kubeadm constant: [e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L308)
       * For coredns, see the `CoreDNSVersion` kubeadm constant:[e.g. for v1.28.0](https://github.com/kubernetes/kubernetes/blob/v1.28.0/cmd/kubeadm/app/constants/constants.go#L344)

@@ -60,13 +60,13 @@ func main() {
 		klog.Fatalf("Failed to initialize generator: %v", err)
 	}
 
+	// Cleanup old files.
+	if err := g.cleanup(); err != nil {
+		klog.Fatalf("Failed to cleanup old generated files: %v", err)
+	}
+
 	// Generate new files.
 	if err := g.generate(); err != nil {
 		klog.Fatalf("Failed to generate prowjobs: %v", err)
-	}
-
-	// Cleanup old files which did not get updated.
-	if err := g.cleanup(); err != nil {
-		klog.Fatalf("Failed to cleanup old generated files: %v", err)
 	}
 }

@@ -38,7 +38,7 @@ prow_ignored:
 
   templates:
   - name: "cluster-api-periodics.yaml.tpl"
-    format: "cluster-api-periodics-%s.yaml"
+    format: "cluster-api-periodics-{{ .branch }}.yaml"
 
   versions:
     "1.29":
@@ -63,6 +63,6 @@ When executing a template, the following functions are available as addition to 
 
 When executing a template, the following variables are available:
 
-- `branch`: The branch name the file get's templated for (The key in `.prow_ignored.branches`).
+- `branch`: The branch name the file gets templated for (The key in `.prow_ignored.branches`).
 - `config`: The branch's configuration from `.prow_ignored.branches.<branch>`.
 - `versions`: The versions mapper from `.prow_ignored.versions`.

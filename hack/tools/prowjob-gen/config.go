@@ -26,24 +26,25 @@ type ProwIgnoredConfig struct {
 
 // Config is the configuration file struct.
 type Config struct {
-	Branches       map[string]BranchConfig `json:"branches"`
-	Templates      []Template              `json:"templates"`
-	VersionsMapper VersionsMapper          `json:"versions"`
+	Branches  map[string]BranchConfig `json:"branches"`
+	Templates []Template              `json:"templates"`
+	Versions  VersionsMapper          `json:"versions"`
 }
 
 // BranchConfig is the branch-based configuration struct.
 type BranchConfig struct {
 	Interval                            string     `json:"interval"`
-	KubekinsImage                       string     `json:"kubekinsImage"`
+	UpdatesInterval                     string     `json:"updatesInterval"`
+	TestImage                           string     `json:"testImage"`
 	KubernetesVersionManagement         string     `json:"kubernetesVersionManagement"`
 	KubebuilderEnvtestKubernetesVersion string     `json:"kubebuilderEnvtestKubernetesVersion"`
 	Upgrades                            []*Upgrade `json:"upgrades"`
 }
 
-// Template refers a template file and defines the target file name format.
+// Template refers a template file and defines the target file name template.
 type Template struct {
-	Format string `json:"format"`
-	Name   string `json:"name"`
+	Template string `json:"template"`
+	Name     string `json:"name"`
 }
 
 // Upgrade describes a kubernetes upgrade.

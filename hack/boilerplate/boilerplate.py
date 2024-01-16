@@ -157,7 +157,9 @@ skipped_dirs = ['_output', '.git', "hack/boilerplate/test"]
 skipped_ungenerated_files = [
     'hack/lib/swagger.sh',
     'hack/boilerplate/boilerplate.py',
-    '/hack/tools/prowjob-gen/generator.go',
+    # The generator injects `DO NOT EDIT` and thus needs to get excluded to not
+    # get detected as false positive.
+    'hack/tools/prowjob-gen/generator.go',
     ]
 
 def normalize_files(files):

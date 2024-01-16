@@ -184,7 +184,8 @@ func TestHasNodeRefs(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machine-name",
@@ -205,7 +206,8 @@ func TestHasNodeRefs(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machine-name",
@@ -237,7 +239,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// No replicas specified (default is 1). No nodeRefs either.
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
@@ -247,7 +250,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 1 replica but no nodeRefs
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
@@ -260,7 +264,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 2 replicas but only 1 nodeRef
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
@@ -300,7 +305,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 1 replica (default) and 1 nodeRef
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
@@ -319,7 +325,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 2 replicas and nodeRefs
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
@@ -346,7 +353,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 0 replicas and 0 nodeRef
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,

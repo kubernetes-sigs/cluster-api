@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -39,10 +40,17 @@ func TestToUnstructured(t *testing.T) {
 				Paused: true,
 			},
 		}
-		newObj, err := toUnstructured(obj)
+		gvk := schema.GroupVersionKind{
+			Group:   clusterv1.GroupVersion.Group,
+			Kind:    "Cluster",
+			Version: clusterv1.GroupVersion.Version,
+		}
+		newObj, err := toUnstructured(obj, gvk)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(newObj.GetName()).To(Equal(obj.Name))
 		g.Expect(newObj.GetNamespace()).To(Equal(obj.Namespace))
+		g.Expect(newObj.GetAPIVersion()).To(Equal(clusterv1.GroupVersion.String()))
+		g.Expect(newObj.GetKind()).To(Equal("Cluster"))
 
 		// Change a spec field and validate that it stays the same in the incoming object.
 		g.Expect(unstructured.SetNestedField(newObj.Object, false, "spec", "paused")).To(Succeed())
@@ -55,6 +63,7 @@ func TestToUnstructured(t *testing.T) {
 		obj := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": "test.x.y.z/v1",
+				"kind":       "TestKind",
 				"metadata": map[string]interface{}{
 					"name":      "test-1",
 					"namespace": "namespace-1",
@@ -64,11 +73,18 @@ func TestToUnstructured(t *testing.T) {
 				},
 			},
 		}
+		gvk := schema.GroupVersionKind{
+			Group:   "test.x.y.z",
+			Kind:    "TestKind",
+			Version: "v1",
+		}
 
-		newObj, err := toUnstructured(obj)
+		newObj, err := toUnstructured(obj, gvk)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(newObj.GetName()).To(Equal(obj.GetName()))
 		g.Expect(newObj.GetNamespace()).To(Equal(obj.GetNamespace()))
+		g.Expect(newObj.GetAPIVersion()).To(Equal("test.x.y.z/v1"))
+		g.Expect(newObj.GetKind()).To(Equal("TestKind"))
 
 		// Validate that the maps point to different addresses.
 		g.Expect(obj.Object).ToNot(BeIdenticalTo(newObj.Object))

@@ -1315,6 +1315,9 @@ func patchTopologyManagedFields(ctx context.Context, oldManagedFields []metav1.M
 	return nil
 }
 
+// applyMutators applies mutators to an object.
+// Note: TypeMeta must always be set in the object because otherwise after conversion the
+// resulting Unstructured would have an empty GVK.
 func applyMutators(object client.Object, mutators ...ResourceMutatorFunc) (*unstructured.Unstructured, error) {
 	if object == nil {
 		return nil, nil

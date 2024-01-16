@@ -135,7 +135,7 @@ ENVSUBST_VER := $(call get_go_version,github.com/drone/envsubst/v2)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-$(ENVSUBST_VER))
 ENVSUBST_PKG := github.com/drone/envsubst/v2/cmd/envsubst
 
-GO_APIDIFF_VER := v0.7.0
+GO_APIDIFF_VER := v0.8.2
 GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
 GO_APIDIFF_PKG := github.com/joelanford/go-apidiff

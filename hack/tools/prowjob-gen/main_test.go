@@ -18,13 +18,37 @@ limitations under the License.
 package main
 
 import (
+	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func Test_newGenerator(t *testing.T) {
-	_, err := newGenerator(Config{}, "test", "")
+func Test_Generator(t *testing.T) {
+	g, err := newGenerator("test/test-configuration.yaml", "test", "test")
 	if err != nil {
 		t.Errorf("newGenerator() error = %v", err)
 		return
+	}
+
+	if err := g.generate(); err != nil {
+		t.Errorf("g.generate() error = %v", err)
+		return
+	}
+
+	goldenData, err := os.ReadFile("test/test-main.yaml.golden")
+	if err != nil {
+		t.Errorf("reading golden file: %v", err)
+		return
+	}
+
+	testData, err := os.ReadFile("test/test-main.yaml.tmp")
+	if err != nil {
+		t.Errorf("reading file generated from test: %v", err)
+		return
+	}
+
+	if diff := cmp.Diff(string(goldenData), string(testData)); diff != "" {
+		t.Errorf("generated and golden test file differ, diff:\n%s", diff)
 	}
 }

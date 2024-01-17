@@ -19,10 +19,8 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -44,18 +42,8 @@ func main() {
 		klog.Fatal("Expected flag \"templates-dir\" to be set")
 	}
 
-	// Read and Unmarshal the configuration file.
-	rawConfig, err := os.ReadFile(*configFile)
-	if err != nil {
-		klog.Fatalf("Failed to read config file %q: %v", *configFile, err)
-	}
-	prowIgnoredConfig := ProwIgnoredConfig{}
-	if err := yaml.Unmarshal(rawConfig, &prowIgnoredConfig); err != nil {
-		klog.Fatalf("Failed to parse config file %q: %v", *configFile, err)
-	}
-
 	// Initialize a generator using the config data.
-	g, err := newGenerator(prowIgnoredConfig.ProwIgnored, *templatesDir, *outputDir)
+	g, err := newGenerator(*configFile, *templatesDir, *outputDir)
 	if err != nil {
 		klog.Fatalf("Failed to initialize generator: %v", err)
 	}

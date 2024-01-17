@@ -65,7 +65,7 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
-	unstructuredObj, err := toUnstructured(obj)
+	unstructuredObj, err := toUnstructured(obj, gvk)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to create patch helper for %s %s: failed to convert object to Unstructured", gvk.Kind, klog.KObj(obj))
 	}
@@ -105,7 +105,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Convert the object to unstructured to compare against our before copy.
-	h.after, err = toUnstructured(obj)
+	h.after, err = toUnstructured(obj, gvk)
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch %s %s: failed to convert object to Unstructured", h.gvk.Kind, klog.KObj(h.beforeObject))
 	}

@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/klog/v2/klogr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -76,9 +76,8 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			k8sClient = mgr.GetClient()
 
 			t.Log("Setting up a ClusterCacheTracker")
-			log := klogr.New()
 			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{
-				Log:     &log,
+				Log:     &ctrl.Log,
 				Indexes: []Index{NodeProviderIDIndex},
 			})
 			g.Expect(err).ToNot(HaveOccurred())

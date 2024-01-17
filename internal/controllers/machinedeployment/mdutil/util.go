@@ -18,6 +18,7 @@ limitations under the License.
 package mdutil
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -33,6 +34,7 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/integer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conversion"
@@ -114,13 +116,14 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 }
 
 // MaxRevision finds the highest revision in the machine sets.
-func MaxRevision(allMSs []*clusterv1.MachineSet, logger logr.Logger) int64 {
+func MaxRevision(ctx context.Context, allMSs []*clusterv1.MachineSet) int64 {
+	log := ctrl.LoggerFrom(ctx)
+
 	max := int64(0)
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
 			// Skip the machine sets when it failed to parse their revision information
-			logger.Error(err, "Couldn't parse revision for machine set, deployment controller will skip it when reconciling revisions",
-				"machineset", ms.Name)
+			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", ms.Name))
 		} else if v > max {
 			max = v
 		}
@@ -185,7 +188,7 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 
 // ComputeMachineSetAnnotations computes the annotations that should be set on the MachineSet.
 // Note: The passed in newMS is nil if the new MachineSet doesn't exist in the apiserver yet.
-func ComputeMachineSetAnnotations(log logr.Logger, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (map[string]string, error) {
+func ComputeMachineSetAnnotations(ctx context.Context, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (map[string]string, error) {
 	// Copy annotations from Deployment annotations while filtering out some annotations
 	// that we don't want to propagate.
 	annotations := map[string]string{}
@@ -199,7 +202,7 @@ func ComputeMachineSetAnnotations(log logr.Logger, deployment *clusterv1.Machine
 	// The newMS's revision should be the greatest among all MSes. Usually, its revision number is newRevision (the max revision number
 	// of all old MSes + 1). However, it's possible that some old MSes are deleted after the newMS revision being updated, and
 	// newRevision becomes smaller than newMS's revision. We will never decrease a revision of a MachineSet.
-	maxOldRevision := MaxRevision(oldMSs, log)
+	maxOldRevision := MaxRevision(ctx, oldMSs)
 	newRevisionInt := maxOldRevision + 1
 	newRevision := strconv.FormatInt(newRevisionInt, 10)
 	if newMS != nil {

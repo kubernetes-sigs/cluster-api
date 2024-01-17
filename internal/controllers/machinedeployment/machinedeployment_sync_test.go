@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -555,8 +554,6 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		},
 	}
 
-	log := klogr.New()
-
 	skeletonMSBasedOnMD := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   "default",
@@ -577,7 +574,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		expectedMS := skeletonMSBasedOnMD.DeepCopy()
 
 		g := NewWithT(t)
-		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, nil, nil, log)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(ctx, deployment, nil, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
@@ -590,7 +587,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		expectedMS.Spec.Replicas = ptr.To[int32](2) // 4 (maxsurge+replicas) - 2 (replicas of old ms) = 2
 
 		g := NewWithT(t)
-		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, nil, []*clusterv1.MachineSet{oldMS}, log)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(ctx, deployment, nil, []*clusterv1.MachineSet{oldMS})
 		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
@@ -627,7 +624,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		expectedMS.Spec.Template.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
 
 		g := NewWithT(t)
-		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, nil, log)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(ctx, deployment, existingMS, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
@@ -668,7 +665,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		expectedMS.Spec.Template.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
 
 		g := NewWithT(t)
-		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, []*clusterv1.MachineSet{oldMS}, log)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(ctx, deployment, existingMS, []*clusterv1.MachineSet{oldMS})
 		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
@@ -714,7 +711,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		expectedMS.Spec.DeletePolicy = ""
 
 		g := NewWithT(t)
-		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, nil, log)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(ctx, deployment, existingMS, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})

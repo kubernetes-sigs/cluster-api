@@ -181,10 +181,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				},
 			},
 			wantProviders: &clusterctlv1.ProviderList{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "ProviderList",
-				},
 				ListMeta: metav1.ListMeta{},
 				Items: []clusterctlv1.Provider{ // both providers should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
@@ -209,10 +205,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				},
 			},
 			wantProviders: &clusterctlv1.ProviderList{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "ProviderList",
-				},
 				ListMeta: metav1.ListMeta{},
 				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),
@@ -237,10 +229,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				},
 			},
 			wantProviders: &clusterctlv1.ProviderList{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "ProviderList",
-				},
 				ListMeta: metav1.ListMeta{},
 				Items: []clusterctlv1.Provider{ // only one provider should be upgraded
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),
@@ -265,10 +253,6 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				},
 			},
 			wantProviders: &clusterctlv1.ProviderList{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: clusterctlv1.GroupVersion.String(),
-					Kind:       "ProviderList",
-				},
 				ListMeta: metav1.ListMeta{},
 				Items: []clusterctlv1.Provider{
 					fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.1", "cluster-api-system"),

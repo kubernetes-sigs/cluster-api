@@ -186,11 +186,12 @@ func GetOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 // GetTypedOwnerByRef finds and returns the owner by looking at the object
 // reference. The implementation ensures a typed client is used, so the objects are read from the cache.
 func GetTypedOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectReference) (*ConfigOwner, error) {
-	obj, err := c.Scheme().New(ref.GroupVersionKind())
+	objGVK := ref.GroupVersionKind()
+	obj, err := c.Scheme().New(objGVK)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to construct object of type %s", ref.GroupVersionKind())
 	}
-	metaObj, ok := obj.(client.Object)
+	clientObj, ok := obj.(client.Object)
 	if !ok {
 		return nil, errors.Errorf("expected owner reference to refer to a client.Object, is actually %T", obj)
 	}
@@ -198,17 +199,18 @@ func GetTypedOwnerByRef(ctx context.Context, c client.Client, ref *corev1.Object
 		Namespace: ref.Namespace,
 		Name:      ref.Name,
 	}
-	err = c.Get(ctx, key, metaObj)
+	err = c.Get(ctx, key, clientObj)
 	if err != nil {
 		return nil, err
 	}
 
-	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(metaObj)
+	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(clientObj)
 	if err != nil {
 		return nil, err
 	}
 	u := unstructured.Unstructured{}
 	u.SetUnstructuredContent(content)
+	u.SetGroupVersionKind(objGVK)
 
 	return &ConfigOwner{&u}, nil
 }

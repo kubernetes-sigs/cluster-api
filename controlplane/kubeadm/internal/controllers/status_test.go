@@ -24,10 +24,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -72,7 +70,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
-	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
@@ -145,7 +142,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 	}
 
 	fakeClient := newFakeClient(objs...)
-	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
@@ -219,7 +215,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	}
 
 	fakeClient := newFakeClient(objs...)
-	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
@@ -302,7 +297,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	objs = append(objs, n, m, kubeadmConfigMap())
 	machines[m.Name] = m
 	fakeClient := newFakeClient(objs...)
-	log.SetLogger(klogr.New())
 
 	r := &KubeadmControlPlaneReconciler{
 		Client: fakeClient,
@@ -383,7 +377,6 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	}
 
 	fakeClient := newFakeClient(objs...)
-	log.SetLogger(klogr.New())
 
 	// Set all the machines to `not ready`
 	r := &KubeadmControlPlaneReconciler{

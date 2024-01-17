@@ -18,10 +18,12 @@ limitations under the License.
 package failuredomains
 
 import (
+	"context"
+	"fmt"
 	"sort"
 
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -50,9 +52,9 @@ func (f failureDomainAggregations) Swap(i, j int) {
 }
 
 // PickMost returns a failure domain that is in machines and has most of the group of machines on.
-func PickMost(failureDomains clusterv1.FailureDomains, groupMachines, machines collections.Machines) *string {
+func PickMost(ctx context.Context, failureDomains clusterv1.FailureDomains, groupMachines, machines collections.Machines) *string {
 	// orderDescending sorts failure domains according to all machines belonging to the group.
-	fds := orderDescending(failureDomains, groupMachines)
+	fds := orderDescending(ctx, failureDomains, groupMachines)
 	for _, fd := range fds {
 		for _, m := range machines {
 			if m.Spec.FailureDomain == nil {
@@ -67,8 +69,8 @@ func PickMost(failureDomains clusterv1.FailureDomains, groupMachines, machines c
 }
 
 // orderDescending returns the sorted failure domains in decreasing order.
-func orderDescending(failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {
-	aggregations := pick(failureDomains, machines)
+func orderDescending(ctx context.Context, failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {
+	aggregations := pick(ctx, failureDomains, machines)
 	if len(aggregations) == 0 {
 		return nil
 	}
@@ -77,8 +79,8 @@ func orderDescending(failureDomains clusterv1.FailureDomains, machines collectio
 }
 
 // PickFewest returns the failure domain with the fewest number of machines.
-func PickFewest(failureDomains clusterv1.FailureDomains, machines collections.Machines) *string {
-	aggregations := pick(failureDomains, machines)
+func PickFewest(ctx context.Context, failureDomains clusterv1.FailureDomains, machines collections.Machines) *string {
+	aggregations := pick(ctx, failureDomains, machines)
 	if len(aggregations) == 0 {
 		return nil
 	}
@@ -86,7 +88,9 @@ func PickFewest(failureDomains clusterv1.FailureDomains, machines collections.Ma
 	return ptr.To(aggregations[0].id)
 }
 
-func pick(failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {
+func pick(ctx context.Context, failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {
+	log := ctrl.LoggerFrom(ctx)
+
 	if len(failureDomains) == 0 {
 		return failureDomainAggregations{}
 	}
@@ -105,7 +109,11 @@ func pick(failureDomains clusterv1.FailureDomains, machines collections.Machines
 		}
 		id := *m.Spec.FailureDomain
 		if _, ok := failureDomains[id]; !ok {
-			klogr.New().Info("unknown failure domain", "machine-name", m.GetName(), "failure-domain-id", id, "known-failure-domains", failureDomains)
+			var knownFailureDomains []string
+			for failureDomainID := range failureDomains {
+				knownFailureDomains = append(knownFailureDomains, failureDomainID)
+			}
+			log.Info(fmt.Sprintf("Unknown failure domain %q for Machine %s (known failure domains: %v)", id, m.GetName(), knownFailureDomains))
 			continue
 		}
 		counters[id]++

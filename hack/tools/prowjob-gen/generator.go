@@ -157,7 +157,7 @@ func (g *generator) executeNameTemplate(branch, templateName string) (string, er
 
 // templateFunctions returns the functions available inside of templates.
 func (g *generator) templateFunctions() template.FuncMap {
-	funcs := map[string]any{}
+	funcs := template.FuncMap{}
 	funcs["TrimPrefix"] = strings.TrimPrefix
 	funcs["TrimSuffix"] = strings.TrimSuffix
 	funcs["ReplaceAll"] = strings.ReplaceAll

@@ -33,7 +33,6 @@ aliases:
   - JoelSpeed
   - richardcase
   - stmcginnis
-  - ykakarap
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controllers/topology
@@ -73,7 +72,6 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-clusterctl-maintainers:
-  - ykakarap
   cluster-api-clusterctl-reviewers:
   - Jont828
 

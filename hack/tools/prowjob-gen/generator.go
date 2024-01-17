@@ -85,7 +85,6 @@ func (g *generator) generate() error {
 			if err := os.WriteFile(filePath, out.Bytes(), 0644); err != nil { //nolint:gosec
 				return errors.Wrapf(err, "Writing prowjob to %q", filePath)
 			}
-
 		}
 	}
 	return nil

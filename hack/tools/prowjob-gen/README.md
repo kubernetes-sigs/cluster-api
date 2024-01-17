@@ -28,8 +28,9 @@ A sample configuration looks as follows:
 prow_ignored:
   branches:
     main: # values below the branch here are available in the template 
-      kubekinsImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20231208-8b9fd88e88-1.29"
+      testImage: "gcr.io/k8s-staging-test-infra/kubekins-e2e:v20231208-8b9fd88e88-1.29"
       interval: "2h"
+      upgradesInterval: "2h"
       kubernetesVersionManagement: "v1.26.6@sha256:6e2d8b28a5b601defe327b98bd1c2d1930b49e5d8c512e1895099e4504007adb"
       kubebuilderEnvtestKubernetesVersion: "1.26.1"
       upgrades:
@@ -37,8 +38,8 @@ prow_ignored:
         to: "1.30"
 
   templates:
-  - name: "cluster-api-periodics.yaml.tpl"
-    format: "cluster-api-periodics-{{ .branch }}.yaml"
+  - name: "test.yaml.tpl"
+    template: "test-{{ .branch }}.yaml.tmp"
 
   versions:
     "1.29":

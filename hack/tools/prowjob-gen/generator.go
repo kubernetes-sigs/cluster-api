@@ -162,12 +162,7 @@ func (g *generator) templateFunctions() template.FuncMap {
 	funcs["TrimSuffix"] = strings.TrimSuffix
 	funcs["ReplaceAll"] = strings.ReplaceAll
 	funcs["last"] = last
-	// funcs["lastGeneric"] = lastGeneric
 	return funcs
-}
-
-func lastGeneric[T any](l []T) T {
-	return l[len(l)-1]
 }
 
 func last(list any) any {

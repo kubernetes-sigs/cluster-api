@@ -24,6 +24,7 @@ Because of that the top-level key for the configuration file is `prow-ignored:`.
 
 A sample configuration looks as follows:
 
+<!-- test/test-configuration.yaml -->
 ```yaml
 prow_ignored:
   branches:
@@ -51,6 +52,7 @@ prow_ignored:
       coreDNS: "v1.11.1"
       k8sRelease: "ci/latest-1.30"
 ```
+<!-- test/test-configuration.yaml -->
 
 With this configuration, the template `cluster-api-periodics.yaml.tpl` would get executed for each branch.
 In this example we only configure the `main` branch which results in the output file `cluster-api-periodics-main.yaml`.

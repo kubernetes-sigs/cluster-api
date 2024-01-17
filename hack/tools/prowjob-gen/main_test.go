@@ -19,6 +19,7 @@ package main
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -49,6 +50,34 @@ func Test_Generator(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(string(goldenData), string(testData)); diff != "" {
-		t.Errorf("generated and golden test file differ, diff:\n%s", diff)
+		t.Errorf("generated and golden test file differ:\n%s", diff)
+	}
+}
+
+const configFileDelimiter = "<!-- test/test-configuration.yaml -->"
+
+func Test_testConfiguration(t *testing.T) {
+	rawReadme, err := os.ReadFile("README.md")
+	if err != nil {
+		t.Errorf("reading file README.md: %v", err)
+		return
+	}
+
+	splitted := strings.Split(string(rawReadme), configFileDelimiter)
+	if len(splitted) != 3 {
+		t.Errorf("expected README.md to contain %q twice", configFileDelimiter)
+	}
+
+	rawConfiguration, err := os.ReadFile("test/test-configuration.yaml")
+	if err != nil {
+		t.Errorf("reading file test/test-configuration.yaml: %v", err)
+		return
+	}
+
+	readmeConfiguration := strings.TrimPrefix(string(rawConfiguration), "\n``yaml\n")
+	readmeConfiguration = strings.TrimSuffix(readmeConfiguration, "```\n")
+
+	if diff := cmp.Diff(readmeConfiguration, string(rawConfiguration)); diff != "" {
+		t.Errorf("Configuration in README.md and test/test-configuration.yaml differ:\n%s", diff)
 	}
 }

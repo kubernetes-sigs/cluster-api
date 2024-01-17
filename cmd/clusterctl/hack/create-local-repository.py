@@ -40,10 +40,12 @@
 
 from __future__ import unicode_literals
 
+import sys
 import errno
 import json
 import os
 import subprocess
+import urllib.request
 from distutils.dir_util import copy_tree
 from distutils.file_util import copy_file
 
@@ -68,19 +70,19 @@ providers = {
         'configFolder': 'controlplane/kubeadm/config/default',
     },
     'infrastructure-docker': {
-        'componentsFile': 'infrastructure-components.yaml',
+        'componentsFile': 'infrastructure-components-development.yaml',
         'nextVersion': 'v1.7.99',
         'type': 'InfrastructureProvider',
         'configFolder': 'test/infrastructure/docker/config/default',
     },
     'infrastructure-in-memory': {
-          'componentsFile': 'infrastructure-components.yaml',
+          'componentsFile': 'infrastructure-components-in-memory-development.yaml',
           'nextVersion': 'v1.7.99',
           'type': 'InfrastructureProvider',
           'configFolder': 'test/infrastructure/inmemory/config/default',
       },
       'runtime-extension-test': {
-        'componentsFile': 'runtime-extension-components.yaml',
+        'componentsFile': 'runtime-extension-components-development.yaml',
         'nextVersion': 'v1.7.99',
         'type': 'RuntimeExtensionProvider',
         'configFolder': 'test/extension/config/default',
@@ -167,6 +169,9 @@ def create_local_repositories():
     assert providerList is not None, 'invalid configuration: please define the list of providers to override'
     assert len(providerList)>0, 'invalid configuration: please define at least one provider to override'
 
+    if len(sys.argv) == 1:
+        execCmd(['make', 'kustomize'])
+
     for provider in providerList:
         p = providers.get(provider)
         assert p is not None, 'invalid configuration: please specify the configuration for the {} provider'.format(
@@ -188,10 +193,14 @@ def create_local_repositories():
         assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(
             provider)
 
-        execCmd(['make', 'kustomize'])
-        components_yaml = execCmd(['./hack/tools/bin/kustomize', 'build', os.path.join(repo, config_folder)])
+        if len(sys.argv) > 1:
+            url = "{}/{}".format(sys.argv[1], components_file)
+            components_yaml = urllib.request.urlopen(url).read()
+        else:
+            components_yaml = execCmd(['./hack/tools/bin/kustomize', 'build', os.path.join(repo, config_folder)])
+
         components_path = write_local_repository(provider, next_version, components_file, components_yaml,
-                                                 metadata_file)
+                                                     metadata_file)
 
         yield name, type, next_version, components_path
 
@@ -289,7 +298,11 @@ def print_instructions(repos):
     cmd = "clusterctl init \\\n"
     for name, type, next_version, components_path in repos:
         cmd += "   {} {}:{} \\\n".format(type_to_flag(type), name, next_version)
-    cmd += "   --config $XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml"
+    config_dir = os.getenv("XDG_CONFIG_HOME", "")
+    if config_dir != "":
+        cmd += "   --config $XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml"
+    else:
+        cmd += "   --config $HOME/.config/cluster-api/dev-repository/config.yaml"
     print(cmd)
     print
     if 'infrastructure-docker' in providerList:

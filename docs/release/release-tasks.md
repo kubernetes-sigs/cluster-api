@@ -477,22 +477,15 @@ The goal of this task is to have test coverage for the new release branch and re
 While we add test coverage for the new release branch we will also drop the tests for old release branches if necessary.
 
 1. Create new jobs based on the jobs running against our `main` branch:
-    1. Copy `test-infra/config/jobs/kubernetes-sigs/cluster-api/cluster-api-periodics-main.yaml` to `config/jobs/kubernetes-sigs/cluster-api/cluster-api-periodics-release-1-6.yaml`.
-    2. Copy `test-infra/config/jobs/kubernetes-sigs/cluster-api/cluster-api-periodics-main-upgrades.yaml` to `test-infra/config/jobs/kubernetes-sigs/cluster-api/cluster-api-periodics-release-1-6-upgrades.yaml`.
-    3. Copy `test-infra/config/jobs/kubernetes-sigs/cluster-api/cluster-api-presubmits-main.yaml` to `test-infra/config/jobs/kubernetes-sigs/cluster-api/cluster-api-presubmits-release-1-6.yaml`.
-    4. Modify the following:
-        1. Rename the jobs, e.g.: `periodic-cluster-api-test-main` => `periodic-cluster-api-test-release-1-6`.
-        2. Change `annotations.testgrid-dashboards` to `sig-cluster-lifecycle-cluster-api-1.6`.
-        3. Change `annotations.testgrid-tab-name`, e.g. `capi-test-main` => `capi-test-release-1-6`.
-        4. For periodics additionally:
-            * Change `extra_refs[].base_ref` to `release-1.6` (for repo: `cluster-api`).
-            * Change interval (let's use the same as for `1.5`).
-        5. For presubmits additionally: Adjust branches: `^main$` => `^release-1.6$`.
+    1. Copy the `main` branch entry as `release-1.6` in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/).
+    2. Modify the following at the `release-1.6` branch entry:
+            * Change intervals (let's use the same as for `release-1.5`).
 2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml` (`dashboard_groups` and `dashboards`).
-3. Remove tests from the [test-infra](https://github.com/kubernetes/test-infra) repository for old release branches according to our policy documented in [Support and guarantees](../../CONTRIBUTING.md#support-and-guarantees). For example, let's assume we just created tests for v1.6, then we can now drop test coverage for the release-1.3 branch.
-4. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.6`
-5. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
-6. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.6`).
+3. Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](../../CONTRIBUTING.md#support-and-guarantees). For example, let's assume we just added `release-1.6`, then we can now drop test coverage for the `release-1.3` branch.
+4. Regenerate the probjob configuration using `make generate-test-infra-prowjobs`.
+5. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.6`
+6. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
+7. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.6`).
    <br>Prior art: [Update branch for link checker](https://github.com/kubernetes-sigs/cluster-api/pull/9206)
 
 

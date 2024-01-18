@@ -87,6 +87,11 @@ func (g *generator) generate() error {
 				return errors.Wrapf(err, "Generating prowjobs for template %s", tpl.Name)
 			}
 
+			if out.Len() == len(generatedFileHeader) {
+				klog.Infof("Skipping template %s for branch %s because the resulting file would have been empty", tpl.Name, branch)
+				continue
+			}
+
 			fileName, err := g.executeNameTemplate(branch, tpl.Name)
 			if err != nil {
 				return errors.Wrapf(err, "Generating name for template %s and branch %s", tpl.Name, branch)

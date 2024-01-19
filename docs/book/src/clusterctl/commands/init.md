@@ -19,9 +19,9 @@ You can use the `clusterctl config repositories` command to get a list of suppor
 If the provider of your choice is missing, you can customize the list of supported providers by using the
 [clusterctl configuration](../configuration.md) file.
 
-Important! The Cluster API project supports the ecosystem growth by adding to the `clusterctl` pre-defined provider's list
-any open source providers who asks for it, but provider's maintainer are the ultimately responsible for their own project, 
-the quality of it, and its support.
+Important! The Cluster API project supports ecosystem growth and extensibility. The `clusterctl` CLI carries a list of
+predefined providers sponsored by SIG Cluster Lifecycle, and out-of-organization third party open-source repositories.
+Each repository is the responsibility of the respective maintainers, including their quality standards and support.
 
 </aside>
 

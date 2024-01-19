@@ -251,30 +251,7 @@ When submitting the PR remember to label it with the 📖 (:book:) icon.
 
 ## Releases
 
-- Minor versions CAN be planned and scheduled for each quarter, or sooner if necessary.
-  - Each minor version is preceded with one or more planning session.
-  - Planning consists of one or more backlog grooming meetings, roadmap amendments,
-    and CAEP proposal reviews.
-  - Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track work
-    for minor releases. 
-  - Adding an issue to a milestone provides forward visibility on what the next release will be, so, as soon as there
-    is the intent to work on an issue for a specific target release, contributors are expected to work with maintainers to 
-    set the milestone on the issue so it will be tracked for the release (note: only major features/bug fixes specifically
-    targeting a release must be tracked; everything else will simply merge when ready without additional toil). 
-  - Before adding an issue to a release milestone, maintainers must ensure that the issue have been triaged and
-    there is an assignee who expressed the intent to complete the work before the release date.
-  - An issue being in the milestone doesn't guarantee inclusion in the release; this depends on the work being
-    completed before the release code freeze target date.
-  - Code freeze is in effect at least 72 hours (3 days) before a major/minor release.
-  - Maintainers should communicate the code freeze date at a community meeting preceding the code freeze date.
-  - Only critical bug fixes may be merged in between freeze & release.
-    - Each bug MUST be associated with an open issue and properly triaged.
-    - PRs MUST be approved by at least 2 project maintainers.
-      - First approver should `/approve` and `/hold`.
-      - Second approver should `/approve` and `/hold cancel`.
-  - [E2E Test grid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi%20e2e%20tests) SHOULD be green before cutting a release.
-- Patch versions CAN be planned and scheduled each month for supported minor releases.
-- Dates in a release are approximations and always subject to change.
+Cluster API release process is described in [this document](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md). 
 
 ## Proposal process (CAEP)
 

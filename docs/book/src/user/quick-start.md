@@ -1278,7 +1278,7 @@ For more information about prerequisites, credentials management, or permissions
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, others..."}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Other providers..."}}
 {{#tab Docker}}
 
 <aside class="note warning">
@@ -1330,7 +1330,7 @@ clusterctl generate cluster capi-quickstart \
 ```
 
 {{#/tab }}
-{{#tab others...}}
+{{#tab Other providers...}}
 
 ```bash
 clusterctl generate cluster capi-quickstart \
@@ -1463,7 +1463,7 @@ For more information, see the [CAPZ book](https://capz.sigs.k8s.io/topics/addons
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"Azure,vcluster,KubeVirt,others..."}}
+{{#tabs name:"tab-deploy-cni" tabs:"Azure,vcluster,KubeVirt,Other providers..."}}
 {{#tab Azure}}
 
 Install the official Calico Helm chart on the workload cluster:
@@ -1606,7 +1606,7 @@ kube-scheduler-capi-quickstart-control-plane-kjjbb            1/1     Running   
 </aside>
 
 {{#/tab }}
-{{#tab others...}}
+{{#tab Other providers...}}
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \

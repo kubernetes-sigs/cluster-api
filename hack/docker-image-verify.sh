@@ -51,7 +51,7 @@ for arch in ${ALL_ARCH}; do
   TESTIMAGE "${REGISTRY}/cluster-api-controller-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api$"
   TESTIMAGE "${REGISTRY}/kubeadm-bootstrap-controller-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/bootstrap/kubeadm$"
   TESTIMAGE "${REGISTRY}/kubeadm-control-plane-controller-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/controlplane/kubeadm$"
-  TESTIMAGE "${REGISTRY}/capd-manager-${arch}:${TAG}" "${arch}" "command-line-arguments$"
+  TESTIMAGE "${REGISTRY}/capd-manager-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/test/infrastructure/docker$"
   TESTIMAGE "${REGISTRY}/capim-manager-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/test/infrastructure/inmemory$"
   TESTIMAGE "${REGISTRY}/test-extension-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/test/extension$"
   TESTIMAGE "${REGISTRY}/clusterctl-${arch}:${TAG}" "${arch}" "sigs.k8s.io/cluster-api/cmd/clusterctl$" "clusterctl"

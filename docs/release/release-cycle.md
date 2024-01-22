@@ -2,10 +2,7 @@
 
 The release cycle is the time between when we start working on a release on the `main` branch until the `.0` release (e.g. `v1.3.0`) is released.
 
-**Note**: For the `v1.3` and `v1.4` releases we assume each release cycle will last approximately 4 months (~ 17 weeks).  
-The release cycle will follow a 4 month cadence for 2023. The release cycle duration will be revisited in 2024.
-
-A release cycle can be split up into the following phases:
+Each release cycle will last approximately 4 months (~ 17 weeks) and it can be split up into the following phases:
 
 * Week 1-12: Active development
     * All changes impacting providers' adoption of Cluster API should be implemented and merged in this period. Exceptions
@@ -32,16 +29,23 @@ A release cycle can be split up into the following phases:
     * `x.y.0` GA release is created based on the release branch
 * After that:
     * **Note** The following is the responsibility of the release team of the following release cycle.
-    * `x.y.1+`: Monthly patch releases will be released based on the release branch
-    * Cherry-picks to the release branch are allowed according to the [backport policy](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#backporting-a-patch)
-    * Providers create releases using the new CAPI minor release when they are ready
-    * Development of the next release can now officially start on the main branch
+    * `x.y.1+` monthly patch release: Monthly patch releases will be released based on the release branch
+    * `x.y.1+` extra patch release: In order to quickly provide official support for  a new Kubernetes minor release to Cluster API users,
+      an additional patch release will be released approximately one week after a new Kubernetes minor release is available.
+      * The additional patch release will be created only for the latest supported Cluster API minor release.
+      * The additional patch release might be canceled if: 
+        * The release date for the additional patch release overlaps the release date of a monthly patch release (+/- 5 business days).
+        * Cluster API maintainers determine that required changes in Cluster API to support the new release are too
+          invasive and cannot be back ported.
+  * Cherry-picks to the release branch are allowed according to the [backport policy](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#backporting-a-patch)
+  * Providers create releases using the new CAPI minor release when they are ready
+  * Development of the next release can now officially start on the main branch
 
 Some additional notes:
 
 * Support for new Kubernetes minor versions (for management and workload clusters) is first implemented
-  on the main branch, then cherry-picked into supported release branches when feasible and eventually
-  released in the next monthly patch release(s).
+  on the main branch, then cherry-picked into the release branch for the latest minor version only, and then
+  released according to the `x.y.1+` extra patch release schedule defined above.
     * **Note**: We usually don't have to bump Go dependencies to support new Kubernetes minor versions as it's not necessary
       to run on a management cluster with the new version or create a workload cluster with the new version.
       If it becomes necessary to bump dependencies to a new CR/Kubernetes minor version, the change cannot be cherry-picked

@@ -63,7 +63,7 @@ ARG ARCH
 # Build the CAPD manager using the compiler cache folder
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
-    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -trimpath -a -o /workspace/manager main.go
+    CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -trimpath -a -o /workspace/manager .
 
 # NOTE: CAPD can't use non-root because docker requires access to the docker socket
 

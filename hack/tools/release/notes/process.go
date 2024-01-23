@@ -25,6 +25,8 @@ import (
 	"regexp"
 	"strings"
 
+	"k8s.io/release/pkg/notes"
+
 	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"
 )
 
@@ -80,6 +82,20 @@ func newPREntryProcessor(addAreaPrefix bool) prEntriesProcessor {
 	}
 }
 
+type dependenciesProcessor struct {
+	repo    string
+	fromTag string
+	toTag   string
+}
+
+func newDependenciesProcessor(repo, fromTag, toTag string) dependenciesProcessor {
+	return dependenciesProcessor{
+		repo:    repo,
+		fromTag: fromTag,
+		toTag:   toTag,
+	}
+}
+
 // process generates a PR entry ready for printing per PR. It extracts the area
 // from the PR labels and appends it as a prefix to the title.
 // It might skip some PRs depending on the title.
@@ -99,6 +115,17 @@ func (g prEntriesProcessor) process(prs []pr) []notesEntry {
 	}
 
 	return entries
+}
+
+func (d dependenciesProcessor) generateDependencies() (string, error) {
+	repoURL := fmt.Sprintf("https://github.com/%s", d.repo)
+	deps, err := notes.NewDependencies().ChangesForURL(
+		repoURL, d.fromTag, d.toTag,
+	)
+	if err != nil {
+		return "", err
+	}
+	return deps, nil
 }
 
 func (g prEntriesProcessor) generateNoteEntry(p *pr) *notesEntry {
@@ -132,6 +159,10 @@ func (g prEntriesProcessor) generateNoteEntry(p *pr) *notesEntry {
 		// Release trigger PRs from previous releases are not included in the release notes
 		return nil
 	case strings.HasPrefix(entry.title, ":seedling:"), strings.HasPrefix(entry.title, "🌱"):
+		// Skip PRs from depndabot. Dependency updates are listed in the dependencies section.
+		if p.user == "dependabot[bot]" {
+			return nil
+		}
 		entry.section = release.Other
 		entry.title = removePrefixes(entry.title, []string{":seedling:", "🌱"})
 	default:

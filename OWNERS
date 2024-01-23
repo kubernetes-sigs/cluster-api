@@ -11,6 +11,7 @@ reviewers:
   - cluster-api-reviewers
 
 emeritus_approvers:
+  - CecileRobertMichon
   - chuckha
   - detiber
   - kris-nova

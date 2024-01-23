@@ -14,12 +14,11 @@ aliases:
   # active folks who can be contacted to perform admin-related
   # tasks on the repo, or otherwise approve any PRS.
   cluster-api-admins:
-  - CecileRobertMichon
+  - fabriziopandini
   - vincepri
 
   # non-admin folks who have write-access and can approve any PRs in the repo
   cluster-api-maintainers:
-  - CecileRobertMichon
   - enxebre
   - fabriziopandini
   - killianmuldoon

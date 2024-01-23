@@ -24,7 +24,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -84,10 +83,6 @@ func ValidateFinalizersResilience(ctx context.Context, proxy ClusterProxy, names
 
 	// Unpause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
-
-	// Annotate the MachineDeployment  to speed up reconciliation. This ensures MachineDeployment topology Finalizers are re-reconciled.
-	// TODO: Remove this as part of https://github.com/kubernetes-sigs/cluster-api/issues/9532
-	forceMachineDeploymentTopologyReconcile(ctx, proxy.GetClient(), clusterKey)
 
 	// Check that the Finalizers are as expected after further reconciliations.
 	assertFinalizersExist(ctx, proxy, namespace, objectsWithFinalizers, allFinalizerAssertions)
@@ -188,20 +183,4 @@ func concatenateFinalizerAssertions(finalizerAssertions ...map[string][]string) 
 	}
 
 	return allFinalizerAssertions, kerrors.NewAggregate(allErrs)
-}
-
-// forceMachineDeploymentTopologyReconcile forces reconciliation of the MachineDeployment.
-func forceMachineDeploymentTopologyReconcile(ctx context.Context, cli client.Client, clusterKey types.NamespacedName) {
-	mdList := &clusterv1.MachineDeploymentList{}
-	clientOptions := (&client.ListOptions{}).ApplyOptions([]client.ListOption{
-		client.MatchingLabels{clusterv1.ClusterNameLabel: clusterKey.Name},
-	})
-	Expect(cli.List(ctx, mdList, clientOptions)).To(Succeed())
-
-	for i := range mdList.Items {
-		if _, ok := mdList.Items[i].GetLabels()[clusterv1.ClusterTopologyOwnedLabel]; ok {
-			annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
-			Expect(cli.Patch(ctx, &mdList.Items[i], annotationPatch)).To(Succeed())
-		}
-	}
 }

@@ -36,12 +36,12 @@ func TestNewUpgradeTracker(t *testing.T) {
 			},
 			{
 				name:    "should set the value of 1 if given concurrency is less than 1",
-				options: []UpgradeTrackerOption{MaxMDUpgradeConcurrency(0)},
+				options: []UpgradeTrackerOption{MaxMDUpgradeConcurrency(0), MaxMPUpgradeConcurrency(0)},
 				want:    1,
 			},
 			{
 				name:    "should set the value to the given concurrency if the value is greater than 0",
-				options: []UpgradeTrackerOption{MaxMDUpgradeConcurrency(2)},
+				options: []UpgradeTrackerOption{MaxMDUpgradeConcurrency(2), MaxMPUpgradeConcurrency(2)},
 				want:    2,
 			},
 		}
@@ -50,6 +50,7 @@ func TestNewUpgradeTracker(t *testing.T) {
 			g := NewWithT(t)
 			got := NewUpgradeTracker(tt.options...)
 			g.Expect(got.MachineDeployments.maxUpgradeConcurrency).To(Equal(tt.want))
+			g.Expect(got.MachinePools.maxUpgradeConcurrency).To(Equal(tt.want))
 		}
 	})
 }

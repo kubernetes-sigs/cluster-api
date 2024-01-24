@@ -343,8 +343,8 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	setupReconcilers(ctx, mgr)
-	setupWebhooks(mgr)
+	tracker := setupReconcilers(ctx, mgr)
+	setupWebhooks(mgr, tracker)
 
 	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
@@ -372,7 +372,7 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager) *remote.ClusterCacheTracker {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -564,9 +564,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineHealthCheck")
 		os.Exit(1)
 	}
+
+	return tracker
 }
 
-func setupWebhooks(mgr ctrl.Manager) {
+func setupWebhooks(mgr ctrl.Manager, tracker *remote.ClusterCacheTracker) {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.
 	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
@@ -576,7 +578,7 @@ func setupWebhooks(mgr ctrl.Manager) {
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
-	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.Cluster{Client: mgr.GetClient(), ClusterCacheTrackerReader: tracker}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)
 	}

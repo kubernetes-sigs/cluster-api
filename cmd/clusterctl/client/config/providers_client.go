@@ -64,6 +64,7 @@ const (
 	VirtinkProviderName        = "virtink"
 	CoxEdgeProviderName        = "coxedge"
 	ProxmoxProviderName        = "proxmox"
+	K0smotronProviderName      = "k0sproject-k0smotron"
 )
 
 // Bootstrap providers.
@@ -74,6 +75,7 @@ const (
 	OracleCloudNativeBootstrapProviderName = "ocne"
 	KubeKeyK3sBootstrapProviderName        = "kubekey-k3s"
 	RKE2BootstrapProviderName              = "rke2"
+	K0smotronBootstrapProviderName         = "k0sproject-k0smotron"
 )
 
 // ControlPlane providers.
@@ -86,6 +88,7 @@ const (
 	KubeKeyK3sControlPlaneProviderName        = "kubekey-k3s"
 	KamajiControlPlaneProviderName            = "kamaji"
 	RKE2ControlPlaneProviderName              = "rke2"
+	K0smotronControlPlaneProviderName         = "k0sproject-k0smotron"
 )
 
 // Add-on providers.
@@ -276,6 +279,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/ionos-cloud/cluster-api-provider-proxmox/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
+		&provider{
+			name:         K0smotronProviderName,
+			url:          "https://github.com/k0sproject/k0smotron/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
 
 		// Bootstrap providers
 		&provider{
@@ -306,6 +314,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         RKE2BootstrapProviderName,
 			url:          "https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
+		&provider{
+			name:         K0smotronBootstrapProviderName,
+			url:          "https://github.com/k0sproject/k0smotron/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 
@@ -348,6 +361,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         RKE2ControlPlaneProviderName,
 			url:          "https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         K0smotronControlPlaneProviderName,
+			url:          "https://github.com/k0sproject/k0smotron/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 

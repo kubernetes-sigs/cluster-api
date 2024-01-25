@@ -15,18 +15,17 @@ limitations under the License.
 */
 
 /*
-Package cloud implements an in memory cloud provider.
+Package runtime implements an in memory runtime for handling objects grouped in resource groups,
+similarly to resource groups in Azure.
 
-Cloud provider objects are grouped in resource groups, similarly to resource groups in Azure.
+In memory objects are defined like Kubernetes objects and they can be operated with
+a client inspired from the controller-runtime client; they also have some behaviour
+of real Kubernetes objects, like e.g. a garbage collection and owner references,
+as well as informers to support watches.
 
-Cloud provider objects are defined like Kubernetes objects and they can be operated with
-a client inspired from the controller-runtime client.
-
-We can't use controller-runtime directly for the following reasons:
+NOTE: We can't use controller-runtime directly for the following reasons:
 * multi-cluster (we have resourceGroups to differentiate resources belonging to different clusters)
 * data should be stored in-memory
-* we would like that objects in memory behave like Kubernetes objects (garbage collection)
-
-The Manager, is the object responsible for the lifecycle of objects.
+* we would like that objects in memory behave like Kubernetes objects (garbage collection).
 */
-package cloud
+package runtime

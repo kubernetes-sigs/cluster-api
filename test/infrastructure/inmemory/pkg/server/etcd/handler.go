@@ -34,8 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
-	cclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/client"
-	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 )
 
 // ResourceGroupResolver defines a func that can identify which workloadCluster/resourceGroup a
@@ -43,7 +42,7 @@ import (
 type ResourceGroupResolver func(host string) (string, error)
 
 // NewEtcdServerHandler returns an http.Handler for fake etcd members.
-func NewEtcdServerHandler(manager cmanager.Manager, log logr.Logger, resolver ResourceGroupResolver) http.Handler {
+func NewEtcdServerHandler(manager inmemoryruntime.Manager, log logr.Logger, resolver ResourceGroupResolver) http.Handler {
 	svr := grpc.NewServer()
 
 	baseSvr := &baseServer{
@@ -102,10 +101,10 @@ func (m *maintenanceServer) Status(ctx context.Context, _ *pb.StatusRequest) (*p
 	if err != nil {
 		return nil, err
 	}
-	cloudClient := m.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := m.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	m.log.V(4).Info("Etcd: Status", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
-	_, statusResponse, err := m.inspectEtcd(ctx, cloudClient, etcdMember)
+	_, statusResponse, err := m.inspectEtcd(ctx, inmemoryClient, etcdMember)
 	if err != nil {
 		return nil, err
 	}
@@ -143,8 +142,8 @@ func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRe
 		return nil, err
 	}
 	etcdPods := &corev1.PodList{}
-	cloudClient := m.manager.GetResourceGroup(resourceGroup).GetClient()
-	if err := cloudClient.List(ctx, etcdPods,
+	inmemoryClient := m.manager.GetResourceGroup(resourceGroup).GetClient()
+	if err := inmemoryClient.List(ctx, etcdPods,
 		client.InNamespace(metav1.NamespaceSystem),
 		client.MatchingLabels{
 			"component": "etcd",
@@ -167,7 +166,7 @@ func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRe
 					annotations := updatedPod.GetAnnotations()
 					annotations[cloudv1.EtcdLeaderFromAnnotationName] = time.Now().Format(time.RFC3339)
 					updatedPod.SetAnnotations(annotations)
-					err := cloudClient.Patch(ctx, updatedPod, client.MergeFrom(pod))
+					err := inmemoryClient.Patch(ctx, updatedPod, client.MergeFrom(pod))
 					if err != nil {
 						return nil, err
 					}
@@ -206,11 +205,11 @@ func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRe
 	if err != nil {
 		return nil, err
 	}
-	cloudClient := c.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := c.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	etcdPods := &corev1.PodList{}
 
-	if err := cloudClient.List(ctx, etcdPods,
+	if err := inmemoryClient.List(ctx, etcdPods,
 		client.InNamespace(metav1.NamespaceSystem),
 		client.MatchingLabels{
 			"component": "etcd",
@@ -227,7 +226,7 @@ func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRe
 		}
 		updatedPod := pod.DeepCopy()
 		updatedPod.Annotations[cloudv1.EtcdMemberRemoved] = ""
-		if err := cloudClient.Patch(ctx, updatedPod, client.MergeFrom(&pod)); err != nil {
+		if err := inmemoryClient.Patch(ctx, updatedPod, client.MergeFrom(&pod)); err != nil {
 			return nil, err
 		}
 		return out, nil
@@ -252,10 +251,10 @@ func (c *clusterServerServer) MemberList(ctx context.Context, _ *pb.MemberListRe
 	if err != nil {
 		return nil, err
 	}
-	cloudClient := c.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := c.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	c.log.V(4).Info("Etcd: MemberList", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
-	memberList, _, err := c.inspectEtcd(ctx, cloudClient, etcdMember)
+	memberList, _, err := c.inspectEtcd(ctx, inmemoryClient, etcdMember)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +267,7 @@ func (c *clusterServerServer) MemberPromote(_ context.Context, _ *pb.MemberPromo
 }
 
 type baseServer struct {
-	manager               cmanager.Manager
+	manager               inmemoryruntime.Manager
 	log                   logr.Logger
 	resourceGroupResolver ResourceGroupResolver
 }
@@ -289,9 +288,9 @@ func (b *baseServer) getResourceGroupAndMember(ctx context.Context) (resourceGro
 	return
 }
 
-func (b *baseServer) inspectEtcd(ctx context.Context, cloudClient cclient.Client, etcdMember string) (*pb.MemberListResponse, *pb.StatusResponse, error) {
+func (b *baseServer) inspectEtcd(ctx context.Context, inmemoryClient inmemoryruntime.Client, etcdMember string) (*pb.MemberListResponse, *pb.StatusResponse, error) {
 	etcdPods := &corev1.PodList{}
-	if err := cloudClient.List(ctx, etcdPods,
+	if err := inmemoryClient.List(ctx, etcdPods,
 		client.InNamespace(metav1.NamespaceSystem),
 		client.MatchingLabels{
 			"component": "etcd",

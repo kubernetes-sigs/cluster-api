@@ -33,7 +33,7 @@ type CloudMachineStatus struct {
 
 // +kubebuilder:object:root=true
 
-// CloudMachine represents a machine in the cloud.
+// CloudMachine represents a machine in memory.
 type CloudMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

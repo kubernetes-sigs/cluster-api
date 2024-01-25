@@ -48,8 +48,8 @@ import (
 	"k8s.io/client-go/tools/portforward"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
-	gportforward "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server/api/portforward"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryportforward "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server/api/portforward"
 )
 
 // ResourceGroupResolver defines a func that can identify which workloadCluster/resourceGroup a
@@ -57,7 +57,7 @@ import (
 type ResourceGroupResolver func(host string) (string, error)
 
 // NewAPIServerHandler returns an http.Handler for a fake API server.
-func NewAPIServerHandler(manager cmanager.Manager, log logr.Logger, resolver ResourceGroupResolver) http.Handler {
+func NewAPIServerHandler(manager inmemoryruntime.Manager, log logr.Logger, resolver ResourceGroupResolver) http.Handler {
 	apiServer := &apiServerHandler{
 		container:             restful.NewContainer(),
 		manager:               manager,
@@ -128,7 +128,7 @@ func NewAPIServerHandler(manager cmanager.Manager, log logr.Logger, resolver Res
 
 type apiServerHandler struct {
 	container             *restful.Container
-	manager               cmanager.Manager
+	manager               inmemoryruntime.Manager
 	log                   logr.Logger
 	resourceGroupResolver ResourceGroupResolver
 	requestInfoResolver   *request.RequestInfoFactory
@@ -243,7 +243,7 @@ func (h *apiServerHandler) apiV1Create(req *restful.Request, resp *restful.Respo
 	}
 
 	// Gets at client to the resource group.
-	cloudClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Maps the requested resource to a gvk.
 	gvk, err := requestToGVK(req)
@@ -273,7 +273,7 @@ func (h *apiServerHandler) apiV1Create(req *restful.Request, resp *restful.Respo
 	obj := newObj.(client.Object)
 	// TODO: consider check vs enforce for namespace on the object - namespace on the request path
 	obj.SetNamespace(req.PathParameter("namespace"))
-	if err := cloudClient.Create(ctx, obj); err != nil {
+	if err := inmemoryClient.Create(ctx, obj); err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
 			return
@@ -298,7 +298,7 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 	}
 
 	// Gets at client to the resource group.
-	cloudClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Maps the requested resource to a gvk.
 	gvk, err := requestToGVK(req)
@@ -327,7 +327,7 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 		listOpts = append(listOpts, client.MatchingFieldsSelector{Selector: selector})
 	}
 
-	if err := cloudClient.List(ctx, list, listOpts...); err != nil {
+	if err := inmemoryClient.List(ctx, list, listOpts...); err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
 			return
@@ -375,7 +375,7 @@ func (h *apiServerHandler) apiV1Get(req *restful.Request, resp *restful.Response
 	}
 
 	// Gets at client to the resource group.
-	cloudClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Maps the requested resource to a gvk.
 	gvk, err := requestToGVK(req)
@@ -391,7 +391,7 @@ func (h *apiServerHandler) apiV1Get(req *restful.Request, resp *restful.Response
 	obj.SetName(req.PathParameter("name"))
 	obj.SetNamespace(req.PathParameter("namespace"))
 
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
 			return
@@ -416,7 +416,7 @@ func (h *apiServerHandler) apiV1Update(req *restful.Request, resp *restful.Respo
 	}
 
 	// Gets at client to the resource group.
-	cloudClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Maps the requested resource to a gvk.
 	gvk, err := requestToGVK(req)
@@ -446,7 +446,7 @@ func (h *apiServerHandler) apiV1Update(req *restful.Request, resp *restful.Respo
 	obj := newObj.(client.Object)
 	// TODO: consider check vs enforce for namespace on the object - namespace on the request path
 	obj.SetNamespace(req.PathParameter("namespace"))
-	if err := cloudClient.Update(ctx, obj); err != nil {
+	if err := inmemoryClient.Update(ctx, obj); err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
 			return
@@ -471,7 +471,7 @@ func (h *apiServerHandler) apiV1Patch(req *restful.Request, resp *restful.Respon
 	}
 
 	// Gets at client to the resource group.
-	cloudClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Maps the requested resource to a gvk.
 	gvk, err := requestToGVK(req)
@@ -495,11 +495,11 @@ func (h *apiServerHandler) apiV1Patch(req *restful.Request, resp *restful.Respon
 	obj.SetName(req.PathParameter("name"))
 	obj.SetNamespace(req.PathParameter("namespace"))
 
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if err := cloudClient.Patch(ctx, obj, patch); err != nil {
+	if err := inmemoryClient.Patch(ctx, obj, patch); err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
 			return
@@ -524,7 +524,7 @@ func (h *apiServerHandler) apiV1Delete(req *restful.Request, resp *restful.Respo
 	}
 
 	// Gets at client to the resource group.
-	cloudClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := h.manager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Maps the requested resource to a gvk.
 	gvk, err := requestToGVK(req)
@@ -540,7 +540,7 @@ func (h *apiServerHandler) apiV1Delete(req *restful.Request, resp *restful.Respo
 	obj.SetName(req.PathParameter("name"))
 	obj.SetNamespace(req.PathParameter("namespace"))
 
-	if err := cloudClient.Delete(ctx, obj); err != nil {
+	if err := inmemoryClient.Delete(ctx, obj); err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)
 			return
@@ -579,7 +579,7 @@ func (h *apiServerHandler) apiV1PortForward(req *restful.Request, resp *restful.
 	// Upgrade the connection specifying what to do when a new http stream is received.
 	// After being received, the new stream will be published into the stream channel for handling.
 	upgrader := spdy.NewResponseUpgrader()
-	conn := upgrader.UpgradeResponse(respWriter, request, gportforward.HTTPStreamReceived(streamChan))
+	conn := upgrader.UpgradeResponse(respWriter, request, inmemoryportforward.HTTPStreamReceived(streamChan))
 	if conn == nil {
 		_ = resp.WriteErrorString(http.StatusInternalServerError, "failed to get upgraded connection")
 		return
@@ -592,7 +592,7 @@ func (h *apiServerHandler) apiV1PortForward(req *restful.Request, resp *restful.
 	// Start the process handling streams that are published in the stream channel, please note that:
 	// - The connection with the target will be established only when the first operation will be executed
 	// - Following operations will re-use the same connection.
-	streamHandler := gportforward.NewHTTPStreamHandler(
+	streamHandler := inmemoryportforward.NewHTTPStreamHandler(
 		conn,
 		streamChan,
 		podName,
@@ -623,7 +623,7 @@ func (h *apiServerHandler) doPortForward(ctx context.Context, address string, st
 
 	// Create a tunnel for bidirectional copy of data between the stream
 	// originated from the initiator of the port forward operation and the target.
-	return gportforward.HTTPStreamTunnel(ctx, stream, dial)
+	return inmemoryportforward.HTTPStreamTunnel(ctx, stream, dial)
 }
 
 func (h *apiServerHandler) healthz(_ *restful.Request, resp *restful.Response) {

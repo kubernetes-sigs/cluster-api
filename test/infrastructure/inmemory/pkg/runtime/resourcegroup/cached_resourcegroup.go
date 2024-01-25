@@ -21,37 +21,37 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	ccache "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/cache"
-	cclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/client"
+	inmemorycache "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/cache"
+	inmemoryclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/client"
 )
 
 var _ ResourceGroup = &cachedResourceGroup{}
 
 type cachedResourceGroup struct {
 	name  string
-	cache ccache.Cache
+	cache inmemorycache.Cache
 }
 
 // NewResourceGroup returns a new resource group.
-func NewResourceGroup(name string, cache ccache.Cache) ResourceGroup {
+func NewResourceGroup(name string, cache inmemorycache.Cache) ResourceGroup {
 	return &cachedResourceGroup{
 		name:  name,
 		cache: cache,
 	}
 }
 
-func (cc *cachedResourceGroup) GetClient() cclient.Client {
+func (cc *cachedResourceGroup) GetClient() inmemoryclient.Client {
 	return &cachedClient{
 		resourceGroup: cc.name,
 		cache:         cc.cache,
 	}
 }
 
-var _ cclient.Client = &cachedClient{}
+var _ inmemoryclient.Client = &cachedClient{}
 
 type cachedClient struct {
 	resourceGroup string
-	cache         ccache.Cache
+	cache         inmemorycache.Cache
 }
 
 func (c *cachedClient) Get(_ context.Context, key client.ObjectKey, obj client.Object) error {

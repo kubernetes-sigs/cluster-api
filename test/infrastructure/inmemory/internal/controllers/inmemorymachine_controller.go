@@ -44,10 +44,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud"
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
-	cclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/client"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -61,8 +60,8 @@ import (
 // InMemoryMachineReconciler reconciles a InMemoryMachine object.
 type InMemoryMachineReconciler struct {
 	client.Client
-	CloudManager cloud.Manager
-	APIServerMux *server.WorkloadClustersMux
+	InMemoryManager inmemoryruntime.Manager
+	APIServerMux    *inmemoryserver.WorkloadClustersMux
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -240,21 +239,21 @@ func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Cont
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create VM; a Cloud VM can be created as soon as the Infra Machine is created
-	// NOTE: for sake of simplicity we keep cloud resources as global resources (namespace empty).
+	// NOTE: for sake of simplicity we keep in memory resources as global resources (namespace empty).
 	cloudMachine := &cloudv1.CloudMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: inMemoryMachine.Name,
 		},
 	}
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(cloudMachine), cloudMachine); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(cloudMachine), cloudMachine); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, err
 		}
 
-		if err := cloudClient.Create(ctx, cloudMachine); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err := inmemoryClient.Create(ctx, cloudMachine); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create CloudMachine")
 		}
 	}
@@ -324,7 +323,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create Node
 	// TODO: consider if to handle an additional setting adding a delay in between create node and node ready/provider ID being set
@@ -351,14 +350,14 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 		node.Labels["node-role.kubernetes.io/control-plane"] = ""
 	}
 
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(node), node); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(node), node); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get node")
 		}
 
 		// NOTE: for the first control plane machine we might create the node before etcd and API server pod are running
 		// but this is not an issue, because it won't be visible to CAPI until the API server start serving requests.
-		if err := cloudClient.Create(ctx, node); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err := inmemoryClient.Create(ctx, node); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create Node")
 		}
 	}
@@ -409,7 +408,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create the etcd pod
 	// TODO: consider if to handle an additional setting adding a delay in between create pod and pod ready
@@ -436,13 +435,13 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 			},
 		},
 	}
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get etcd Pod")
 		}
 
 		// Gets info about the current etcd cluster, if any.
-		info, err := r.getEtcdInfo(ctx, cloudClient)
+		info, err := r.getEtcdInfo(ctx, inmemoryClient)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -479,7 +478,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 
 		// NOTE: for the first control plane machine we might create the etcd pod before the API server pod is running
 		// but this is not an issue, because it won't be visible to CAPI until the API server start serving requests.
-		if err := cloudClient.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err := inmemoryClient.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create Pod")
 		}
 	}
@@ -526,9 +525,9 @@ type etcdInfo struct {
 	members   sets.Set[string]
 }
 
-func (r *InMemoryMachineReconciler) getEtcdInfo(ctx context.Context, cloudClient cclient.Client) (etcdInfo, error) {
+func (r *InMemoryMachineReconciler) getEtcdInfo(ctx context.Context, inmemoryClient inmemoryruntime.Client) (etcdInfo, error) {
 	etcdPods := &corev1.PodList{}
-	if err := cloudClient.List(ctx, etcdPods,
+	if err := inmemoryClient.List(ctx, etcdPods,
 		client.InNamespace(metav1.NamespaceSystem),
 		client.MatchingLabels{
 			"component": "etcd",
@@ -613,7 +612,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create the apiserver pod
 	// TODO: consider if to handle an additional setting adding a delay in between create pod and pod ready
@@ -641,12 +640,12 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 			},
 		},
 	}
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(apiServerPod), apiServerPod); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(apiServerPod), apiServerPod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get apiServer Pod")
 		}
 
-		if err := cloudClient.Create(ctx, apiServerPod); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err := inmemoryClient.Create(ctx, apiServerPod); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create apiServer Pod")
 		}
 	}
@@ -706,7 +705,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalScheduler(ctx context.Context
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	schedulerPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -730,7 +729,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalScheduler(ctx context.Context
 			},
 		},
 	}
-	if err := cloudClient.Create(ctx, schedulerPod); err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := inmemoryClient.Create(ctx, schedulerPod); err != nil && !apierrors.IsAlreadyExists(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create scheduler Pod")
 	}
 
@@ -754,7 +753,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalControllerManager(ctx context
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	controllerManagerPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -778,7 +777,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalControllerManager(ctx context
 			},
 		},
 	}
-	if err := cloudClient.Create(ctx, controllerManagerPod); err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := inmemoryClient.Create(ctx, controllerManagerPod); err != nil && !apierrors.IsAlreadyExists(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create controller manager Pod")
 	}
 
@@ -794,7 +793,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// create kubeadm ClusterRole and ClusterRoleBinding enforced by KCP
 	// NOTE: we create those objects because this is what kubeadm does, but KCP creates
@@ -812,7 +811,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 			},
 		},
 	}
-	if err := cloudClient.Create(ctx, role); err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := inmemoryClient.Create(ctx, role); err != nil && !apierrors.IsAlreadyExists(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create kubeadm:get-nodes ClusterRole")
 	}
 
@@ -832,7 +831,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 			},
 		},
 	}
-	if err := cloudClient.Create(ctx, roleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := inmemoryClient.Create(ctx, roleBinding); err != nil && !apierrors.IsAlreadyExists(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create kubeadm:get-nodes ClusterRoleBinding")
 	}
 
@@ -846,7 +845,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 			"ClusterConfiguration": "",
 		},
 	}
-	if err := cloudClient.Create(ctx, cm); err != nil && !apierrors.IsAlreadyExists(err) {
+	if err := inmemoryClient.Create(ctx, cm); err != nil && !apierrors.IsAlreadyExists(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create kubeadm-config ConfigMap")
 	}
 
@@ -864,7 +863,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeProxy(ctx context.Context
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create the kube-proxy-daemonset
 	kubeProxyDaemonSet := &appsv1.DaemonSet{
@@ -888,12 +887,12 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeProxy(ctx context.Context
 			},
 		},
 	}
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(kubeProxyDaemonSet), kubeProxyDaemonSet); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(kubeProxyDaemonSet), kubeProxyDaemonSet); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get kube-proxy DaemonSet")
 		}
 
-		if err := cloudClient.Create(ctx, kubeProxyDaemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err := inmemoryClient.Create(ctx, kubeProxyDaemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create kube-proxy DaemonSet")
 		}
 	}
@@ -911,7 +910,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalCoredns(ctx context.Context, 
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create the coredns configMap.
 	corednsConfigMap := &corev1.ConfigMap{
@@ -923,12 +922,12 @@ func (r *InMemoryMachineReconciler) reconcileNormalCoredns(ctx context.Context, 
 			"Corefile": "ANG",
 		},
 	}
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(corednsConfigMap), corednsConfigMap); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(corednsConfigMap), corednsConfigMap); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get coreDNS configMap")
 		}
 
-		if err := cloudClient.Create(ctx, corednsConfigMap); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err := inmemoryClient.Create(ctx, corednsConfigMap); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create coreDNS configMap")
 		}
 	}
@@ -952,12 +951,12 @@ func (r *InMemoryMachineReconciler) reconcileNormalCoredns(ctx context.Context, 
 		},
 	}
 
-	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(corednsDeployment), corednsDeployment); err != nil {
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(corednsDeployment), corednsDeployment); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get coreDNS deployment")
 		}
 
-		if err := cloudClient.Create(ctx, corednsDeployment); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err := inmemoryClient.Create(ctx, corednsDeployment); err != nil && !apierrors.IsAlreadyExists(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create coreDNS deployment")
 		}
 	}
@@ -999,7 +998,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteCloudMachine(ctx context.Cont
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Delete VM
 	cloudMachine := &cloudv1.CloudMachine{
@@ -1007,7 +1006,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteCloudMachine(ctx context.Cont
 			Name: inMemoryMachine.Name,
 		},
 	}
-	if err := cloudClient.Delete(ctx, cloudMachine); err != nil && !apierrors.IsNotFound(err) {
+	if err := inmemoryClient.Delete(ctx, cloudMachine); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete CloudMachine")
 	}
 
@@ -1018,7 +1017,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteNode(ctx context.Context, clu
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Delete Node
 	node := &corev1.Node{
@@ -1028,7 +1027,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteNode(ctx context.Context, clu
 	}
 
 	// TODO(killianmuldoon): check if we can drop this given that the MachineController is already draining pods and deleting nodes.
-	if err := cloudClient.Delete(ctx, node); err != nil && !apierrors.IsNotFound(err) {
+	if err := inmemoryClient.Delete(ctx, node); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete Node")
 	}
 
@@ -1044,7 +1043,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteETCD(ctx context.Context, clu
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	etcdMember := fmt.Sprintf("etcd-%s", inMemoryMachine.Name)
 	etcdPod := &corev1.Pod{
@@ -1053,7 +1052,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteETCD(ctx context.Context, clu
 			Name:      etcdMember,
 		},
 	}
-	if err := cloudClient.Delete(ctx, etcdPod); err != nil && !apierrors.IsNotFound(err) {
+	if err := inmemoryClient.Delete(ctx, etcdPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete etcd Pod")
 	}
 	if err := r.APIServerMux.DeleteEtcdMember(resourceGroup, etcdMember); err != nil {
@@ -1077,7 +1076,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteAPIServer(ctx context.Context
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	apiServer := fmt.Sprintf("kube-apiserver-%s", inMemoryMachine.Name)
 	apiServerPod := &corev1.Pod{
@@ -1086,7 +1085,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteAPIServer(ctx context.Context
 			Name:      apiServer,
 		},
 	}
-	if err := cloudClient.Delete(ctx, apiServerPod); err != nil && !apierrors.IsNotFound(err) {
+	if err := inmemoryClient.Delete(ctx, apiServerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete apiServer Pod")
 	}
 	if err := r.APIServerMux.DeleteAPIServer(resourceGroup, apiServer); err != nil {
@@ -1105,7 +1104,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteScheduler(ctx context.Context
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	schedulerPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1113,7 +1112,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteScheduler(ctx context.Context
 			Name:      fmt.Sprintf("kube-scheduler-%s", inMemoryMachine.Name),
 		},
 	}
-	if err := cloudClient.Delete(ctx, schedulerPod); err != nil && !apierrors.IsNotFound(err) {
+	if err := inmemoryClient.Delete(ctx, schedulerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to scheduler Pod")
 	}
 
@@ -1129,7 +1128,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteControllerManager(ctx context
 	// Compute the resource group unique name.
 	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
-	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	controllerManagerPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1137,7 +1136,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteControllerManager(ctx context
 			Name:      fmt.Sprintf("kube-controller-manager-%s", inMemoryMachine.Name),
 		},
 	}
-	if err := cloudClient.Delete(ctx, controllerManagerPod); err != nil && !apierrors.IsNotFound(err) {
+	if err := inmemoryClient.Delete(ctx, controllerManagerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to controller manager Pod")
 	}
 

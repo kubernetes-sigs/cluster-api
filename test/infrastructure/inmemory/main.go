@@ -48,16 +48,16 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/controllers"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud"
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
+	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/webhooks"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
 
 var (
-	cloudScheme    = runtime.NewScheme()
+	inmemoryScheme = runtime.NewScheme()
 	scheme         = runtime.NewScheme()
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-inmemory-controller-manager"
@@ -92,10 +92,10 @@ func init() {
 	_ = infrav1.AddToScheme(scheme)
 
 	// scheme used for operating on the cloud resource.
-	_ = cloudv1.AddToScheme(cloudScheme)
-	_ = corev1.AddToScheme(cloudScheme)
-	_ = appsv1.AddToScheme(cloudScheme)
-	_ = rbacv1.AddToScheme(cloudScheme)
+	_ = cloudv1.AddToScheme(inmemoryScheme)
+	_ = corev1.AddToScheme(inmemoryScheme)
+	_ = appsv1.AddToScheme(inmemoryScheme)
+	_ = rbacv1.AddToScheme(inmemoryScheme)
 }
 
 // InitFlags initializes the flags.
@@ -272,16 +272,16 @@ func setupIndexes(_ context.Context, _ ctrl.Manager) {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
-	// Start cloud manager
-	cloudMgr := cloud.NewManager(cloudScheme)
-	if err := cloudMgr.Start(ctx); err != nil {
-		setupLog.Error(err, "unable to start a cloud manager")
+	// Start in memory manager
+	inMemoryManager := inmemoryruntime.NewManager(inmemoryScheme)
+	if err := inMemoryManager.Start(ctx); err != nil {
+		setupLog.Error(err, "unable to start a in memory manager")
 		os.Exit(1)
 	}
 
 	// Start an http server
 	podIP := os.Getenv("POD_IP")
-	apiServerMux, err := server.NewWorkloadClustersMux(cloudMgr, podIP)
+	apiServerMux, err := inmemoryserver.NewWorkloadClustersMux(inMemoryManager, podIP)
 	if err != nil {
 		setupLog.Error(err, "unable to create workload clusters mux")
 		os.Exit(1)
@@ -290,7 +290,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Setup reconcilers
 	if err := (&controllers.InMemoryClusterReconciler{
 		Client:           mgr.GetClient(),
-		CloudManager:     cloudMgr,
+		InMemoryManager:  inMemoryManager,
 		APIServerMux:     apiServerMux,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
@@ -300,7 +300,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.InMemoryMachineReconciler{
 		Client:           mgr.GetClient(),
-		CloudManager:     cloudMgr,
+		InMemoryManager:  inMemoryManager,
 		APIServerMux:     apiServerMux,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {

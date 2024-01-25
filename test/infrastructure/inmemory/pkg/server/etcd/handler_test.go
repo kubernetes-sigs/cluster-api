@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
+	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 )
 
 func Test_etcd_scalingflow(t *testing.T) {
@@ -42,7 +42,7 @@ func Test_etcd_scalingflow(t *testing.T) {
 	// During a scale down event - for example during upgrade - KCP will call `MoveLeader` and `MemberRemove` in sequence.
 	g := NewWithT(t)
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{":authority": "etcd-1"}))
-	manager := manager.New(scheme)
+	manager := inmemoryruntime.NewManager(scheme)
 	resourceGroupResolver := func(host string) (string, error) { return "group1", nil }
 	c := &clusterServerServer{
 		baseServer: &baseServer{
@@ -60,7 +60,7 @@ func Test_etcd_scalingflow(t *testing.T) {
 		},
 	}
 	c.manager.AddResourceGroup("group1")
-	cloudClient := c.manager.GetResourceGroup("group1").GetClient()
+	inmemoryClient := c.manager.GetResourceGroup("group1").GetClient()
 
 	for i := 1; i <= 3; i++ {
 		etcdMember := fmt.Sprintf("etcd-%d", i)
@@ -94,7 +94,7 @@ func Test_etcd_scalingflow(t *testing.T) {
 		if i == 1 {
 			etcdPod.Annotations[cloudv1.EtcdLeaderFromAnnotationName] = time.Date(2020, 07, 03, 14, 25, 58, 651387237, time.UTC).Format(time.RFC3339)
 		}
-		g.Expect(cloudClient.Create(ctx, etcdPod)).To(Succeed())
+		g.Expect(inmemoryClient.Create(ctx, etcdPod)).To(Succeed())
 	}
 	var etcdMemberToRemove uint64 = 2
 	var etcdMemberToBeLeader uint64 = 3
@@ -107,11 +107,11 @@ func Test_etcd_scalingflow(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Expect the inspect call to fail on a member which has been removed.
-		_, _, err = c.inspectEtcd(ctx, cloudClient, fmt.Sprintf("%d", etcdMemberToRemove))
+		_, _, err = c.inspectEtcd(ctx, inmemoryClient, fmt.Sprintf("%d", etcdMemberToRemove))
 		g.Expect(err).To(HaveOccurred())
 
 		// inspectEtcd should succeed when calling on a member that has not been removed.
-		members, status, err := c.inspectEtcd(ctx, cloudClient, fmt.Sprintf("%d", etcdMemberToBeLeader))
+		members, status, err := c.inspectEtcd(ctx, inmemoryClient, fmt.Sprintf("%d", etcdMemberToBeLeader))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(status.Leader).To(Equal(etcdMemberToBeLeader))

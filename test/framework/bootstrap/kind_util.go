@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindnodes "sigs.k8s.io/kind/pkg/cluster/nodes"
 	kindnodesutils "sigs.k8s.io/kind/pkg/cluster/nodeutils"
@@ -52,6 +53,9 @@ type CreateKindBootstrapClusterAndLoadImagesInput struct {
 
 	// LogFolder where to dump logs in case of errors
 	LogFolder string
+
+	// ExtraPortMappings specifies the port forward configuration of the kind node.
+	ExtraPortMappings []kindv1.PortMapping
 }
 
 // CreateKindBootstrapClusterAndLoadImages returns a new Kubernetes cluster with pre-loaded images.
@@ -77,6 +81,7 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	if input.LogFolder != "" {
 		options = append(options, LogFolder(input.LogFolder))
 	}
+	options = append(options, WithExtraPortMappings(input.ExtraPortMappings))
 
 	clusterProvider := NewKindClusterProvider(input.Name, options...)
 	Expect(clusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")

@@ -82,6 +82,13 @@ func WithDualStackFamily() KindClusterOption {
 	})
 }
 
+// WithExtraPortMappings implements a New Option that instruct the kindClusterProvider to set extra port forward mappings.
+func WithExtraPortMappings(mappings []kindv1.PortMapping) KindClusterOption {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
+		k.extraPortMappings = mappings
+	})
+}
+
 // LogFolder implements a New Option that instruct the kindClusterProvider to dump bootstrap logs in a folder in case of errors.
 func LogFolder(path string) KindClusterOption {
 	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
@@ -104,12 +111,13 @@ func NewKindClusterProvider(name string, options ...KindClusterOption) *KindClus
 
 // KindClusterProvider implements a ClusterProvider that can create a kind cluster.
 type KindClusterProvider struct {
-	name           string
-	withDockerSock bool
-	kubeconfigPath string
-	nodeImage      string
-	ipFamily       clusterv1.ClusterIPFamily
-	logFolder      string
+	name              string
+	withDockerSock    bool
+	kubeconfigPath    string
+	nodeImage         string
+	ipFamily          clusterv1.ClusterIPFamily
+	logFolder         string
+	extraPortMappings []kindv1.PortMapping
 }
 
 // Create a Kubernetes cluster using kind.
@@ -138,6 +146,11 @@ func (k *KindClusterProvider) createKindCluster() {
 		TypeMeta: kindv1.TypeMeta{
 			APIVersion: "kind.x-k8s.io/v1alpha4",
 			Kind:       "Cluster",
+		},
+		Nodes: []kindv1.Node{
+			{
+				ExtraPortMappings: k.extraPortMappings,
+			},
 		},
 	}
 

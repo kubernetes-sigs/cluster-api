@@ -829,7 +829,7 @@ docker-build-in-memory-infrastructure: ## Build the docker image for in-memory i
 .PHONY: docker-build-clusterctl
 docker-build-clusterctl: ## Build the docker image for clusterctl
 ## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
-	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" -f ./cmd/clusterctl/Dockerfile . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG) --file -
+	cat ./cmd/clusterctl/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG) --file -
 
 .PHONY: docker-build-test-extension
 docker-build-test-extension: ## Build the docker image for core controller manager

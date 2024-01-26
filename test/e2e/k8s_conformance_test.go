@@ -21,13 +21,36 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
+
+	"sigs.k8s.io/cluster-api/test/framework/kubernetesversions"
 )
 
-var _ = Describe("When testing K8S conformance [Conformance]", func() {
+var _ = Describe("When testing K8S conformance [Conformance] [K8s-Install]", func() {
 	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
 		return K8SConformanceSpecInput{
 			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: ptr.To("docker")}
+	})
+})
+
+var _ = Describe("When testing K8S conformance with K8S latest ci [Conformance] [K8s-Install-ci-latest]", func() {
+	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
+		kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.Variables["KUBERNETES_VERSION_LATEST_CI"])
+		Expect(err).NotTo(HaveOccurred())
+
+		// Kubernetes version has to be set as KUBERNETES_VERSION because the conformance test
+		// expects it there.
+		testSpecificE2EConfig := e2eConfig.DeepCopy()
+		e2eConfig.Variables["KUBERNETES_VERSION"] = kubernetesVersion
+
+		return K8SConformanceSpecInput{
+			E2EConfig:              testSpecificE2EConfig,
 			ClusterctlConfigPath:   clusterctlConfigPath,
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,

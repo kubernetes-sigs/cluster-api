@@ -44,6 +44,7 @@ capi:buildDockerImages
 # - KUBERNETES_VERSION
 # - KUBERNETES_VERSION_UPGRADE_TO
 # - KUBERNETES_VERSION_UPGRADE_FROM
+# - KUBERNETES_VERSION_LATEST_CI
 k8s::prepareKindestImages
 
 # pre-pull all the images that will be used in the e2e, thus making the actual test run

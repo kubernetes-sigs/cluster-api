@@ -65,6 +65,13 @@ k8s::prepareKindestImages() {
     kind::prepareKindestImage "$resolveVersion"
   fi
 
+  if [ -n "${KUBERNETES_VERSION_LATEST_CI:-}" ]; then
+    k8s::resolveVersion "KUBERNETES_VERSION_LATEST_CI" "$KUBERNETES_VERSION_LATEST_CI"
+    export KUBERNETES_VERSION_LATEST_CI=$resolveVersion
+
+    kind::prepareKindestImage "$resolveVersion"
+  fi
+
   if [ -n "${BUILD_NODE_IMAGE_TAG:-}" ]; then
     k8s::resolveVersion "BUILD_NODE_IMAGE_TAG" "$BUILD_NODE_IMAGE_TAG"
     export BUILD_NODE_IMAGE_TAG=$resolveVersion

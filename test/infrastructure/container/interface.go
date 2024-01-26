@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io"
 
+	dockercontainer "github.com/docker/docker/api/types/container"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
@@ -97,8 +99,8 @@ type RunContainerInput struct {
 	// IPFamily is the IP version to use.
 	IPFamily clusterv1.ClusterIPFamily
 	// RestartPolicy to use for the container.
-	// If not set, defaults to "unless-stopped".
-	RestartPolicy string
+	// If not set, defaults to RestartPolicyUnlessStopped.
+	RestartPolicy dockercontainer.RestartPolicyMode
 	// Defines how the kindest/node image must be started.
 	KindMode kind.Mode
 }

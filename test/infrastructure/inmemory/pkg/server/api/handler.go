@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -317,16 +318,24 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 		listOpts = append(listOpts, client.InNamespace(req.PathParameter("namespace")))
 	}
 
-	// TODO: The only field selector which works is for `spec.nodeName` on pods.
-	selector, err := fields.ParseSelector(req.QueryParameter("fieldSelector"))
+	// TODO: The only field Selector which works is for `spec.nodeName` on pods.
+	fieldSelector, err := fields.ParseSelector(req.QueryParameter("fieldSelector"))
 	if err != nil {
 		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if selector != nil {
-		listOpts = append(listOpts, client.MatchingFieldsSelector{Selector: selector})
+	if fieldSelector != nil {
+		listOpts = append(listOpts, client.MatchingFieldsSelector{Selector: fieldSelector})
 	}
 
+	labelSelector, err := labels.Parse(req.QueryParameter("labelSelector"))
+	if err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if labelSelector != nil {
+		listOpts = append(listOpts, client.MatchingLabelsSelector{Selector: labelSelector})
+	}
 	if err := inmemoryClient.List(ctx, list, listOpts...); err != nil {
 		if status, ok := err.(apierrors.APIStatus); ok || errors.As(err, &status) {
 			_ = resp.WriteHeaderAndEntity(int(status.Status().Code), status)

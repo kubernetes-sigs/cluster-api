@@ -393,13 +393,6 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	}
 }
 
-// controlPlaneMachineOptions returns a set of ListOptions that allows to get all machine objects belonging to control plane.
-func controlPlaneMachineOptions() []client.ListOption {
-	return []client.ListOption{
-		client.HasLabels{clusterv1.MachineControlPlaneLabel},
-	}
-}
-
 type ScaleAndWaitControlPlaneInput struct {
 	ClusterProxy        ClusterProxy
 	Cluster             *clusterv1.Cluster

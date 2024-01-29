@@ -74,6 +74,10 @@ type SelfHostedSpecInput struct {
 	// worker machines is a multiple of WorkerMachineCount.
 	// Default is 1.
 	WorkerMachineCount *int64
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // SelfHostedSpec implements a test that verifies Cluster API creating a cluster, pivoting to a self-hosted cluster.
@@ -128,7 +132,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		}
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
 		if input.ControlPlaneMachineCount == nil {

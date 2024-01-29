@@ -51,6 +51,10 @@ type K8SConformanceSpecInput struct {
 
 	Flavor              string
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // K8SConformanceSpec implements a spec that creates a cluster and runs Kubernetes conformance suite.
@@ -83,7 +87,7 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 		Expect(kubetestConfigFilePath).To(BeAnExistingFile(), "%s should be a valid kubetest config file")
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

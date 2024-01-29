@@ -62,6 +62,10 @@ type ClusterUpgradeConformanceSpecInput struct {
 
 	// Flavor to use when creating the cluster for testing, "upgrades" is used if not specified.
 	Flavor *string
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // ClusterUpgradeConformanceSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
@@ -126,7 +130,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		}
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the Namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

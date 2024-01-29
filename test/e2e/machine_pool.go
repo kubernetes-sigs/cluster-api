@@ -54,6 +54,10 @@ type MachinePoolInput struct {
 	// Flavor, if specified must refer to a template that contains a MachinePool resource.
 	// If not specified, "machine-pool" is used
 	Flavor *string
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // MachinePoolSpec implements a test that verifies MachinePool create, scale up and scale down.
@@ -77,7 +81,7 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

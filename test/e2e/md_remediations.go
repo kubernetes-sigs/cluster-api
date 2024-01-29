@@ -54,6 +54,10 @@ type MachineDeploymentRemediationSpecInput struct {
 	// condition with a short timeout.
 	// If not specified, "md-remediation" is used.
 	Flavor *string
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // MachineDeploymentRemediationSpec implements a test that verifies that Machines are remediated by MHC during unhealthy conditions.
@@ -76,7 +80,7 @@ func MachineDeploymentRemediationSpec(ctx context.Context, inputGetter func() Ma
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

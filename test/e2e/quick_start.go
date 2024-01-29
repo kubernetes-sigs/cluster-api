@@ -62,6 +62,10 @@ type QuickStartSpecInput struct {
 	// which unblocks CNI installation, and for the control plane machines to be ready (after CNI installation).
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+
 	// Allows to inject a function to be run after machines are provisioned.
 	// If not specified, this is a no-op.
 	PostMachinesProvisioned func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
@@ -91,7 +95,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

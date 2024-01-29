@@ -71,6 +71,10 @@ type ClusterClassRolloutSpecInput struct {
 	// NOTE: The template must be using ClusterClass, KCP and CABPK as this test is specifically
 	// testing ClusterClass and KCP rollout behavior.
 	Flavor string
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // ClusterClassRolloutSpec implements a test that verifies the ClusterClass rollout behavior.
@@ -108,7 +112,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
 
 		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

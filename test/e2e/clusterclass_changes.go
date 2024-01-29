@@ -106,6 +106,10 @@ type ClusterClassChangesSpecInput struct {
 	//   "spec.template.spec.path.to.field": <value>,
 	// }
 	ModifyMachinePoolInfrastructureMachinePoolTemplateFields map[string]interface{}
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // ClusterClassChangesSpec implements a test that verifies that ClusterClass changes are rolled out successfully.
@@ -150,7 +154,7 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 		Expect(input.ModifyControlPlaneFields).ToNot(BeEmpty(), "Invalid argument. input.ModifyControlPlaneFields can't be empty when calling %s spec", specName)
 
 		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

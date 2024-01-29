@@ -24,8 +24,6 @@ package v1alpha1
 import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	v1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	v1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
 )
 
@@ -56,24 +54,12 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddConversionFunc((*v1alpha4.Cluster)(nil), (*v1beta1.Cluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1alpha4_Cluster_To_v1beta1_Cluster(a.(*v1alpha4.Cluster), b.(*v1beta1.Cluster), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddConversionFunc((*v1beta1.Cluster)(nil), (*v1alpha4.Cluster)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Cluster_To_v1alpha4_Cluster(a.(*v1beta1.Cluster), b.(*v1alpha4.Cluster), scope)
-	}); err != nil {
-		return err
-	}
 	return nil
 }
 
 func autoConvert_v1alpha1_FakeRequest_To_v1alpha2_FakeRequest(in *FakeRequest, out *v1alpha2.FakeRequest, s conversion.Scope) error {
 	out.CommonRequest = in.CommonRequest
-	if err := Convert_v1alpha4_Cluster_To_v1beta1_Cluster(&in.Cluster, &out.Cluster, s); err != nil {
-		return err
-	}
+	out.Cluster = in.Cluster
 	out.Second = in.Second
 	out.First = in.First
 	return nil
@@ -86,9 +72,7 @@ func Convert_v1alpha1_FakeRequest_To_v1alpha2_FakeRequest(in *FakeRequest, out *
 
 func autoConvert_v1alpha2_FakeRequest_To_v1alpha1_FakeRequest(in *v1alpha2.FakeRequest, out *FakeRequest, s conversion.Scope) error {
 	out.CommonRequest = in.CommonRequest
-	if err := Convert_v1beta1_Cluster_To_v1alpha4_Cluster(&in.Cluster, &out.Cluster, s); err != nil {
-		return err
-	}
+	out.Cluster = in.Cluster
 	out.Second = in.Second
 	out.First = in.First
 	return nil

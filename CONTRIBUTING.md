@@ -156,8 +156,6 @@ Cluster API maintains the most recent release/releases for all supported API and
 | API Version  | Supported Until                                                                         |
 |--------------|-----------------------------------------------------------------------------------------|
 | **v1beta1**  | TBD (current stable)                                                                    |
-| **v1alpha4** | EOL since 2022-04-06 ([apiVersion removal](#removal-of-v1alpha3--v1alpha4-apiversions)) |
-| **v1alpha3** | EOL since 2022-02-23 ([apiVersion removal](#removal-of-v1alpha3--v1alpha4-apiversions)) |
 
 - For the current stable API version (v1beta1) we support the two most recent minor releases; older minor releases are immediately unsupported when a new major/minor release is available.
 - For older API versions we only support the most recent minor release until the API version reaches EOL.
@@ -183,14 +181,8 @@ Cluster API maintains the most recent release/releases for all supported API and
 
 ### Removal of v1alpha3 & v1alpha4 apiVersions
 
-We are going to remove the apiVersions in upcoming releases:
-* v1.5:
-  * Kubernetes API server stops serving the v1alpha3 apiVersion
-* v1.6:
-  * v1alpha3 apiVersion is removed from the CRDs
-  * Kubernetes API server stops serving the v1alpha4 apiVersion
-* v1.7
-  * v1alpha4 apiVersion is removed from the CRDs
+Both v1alpha3 and v1alpha4 have been removed from Cluster API as of release 1.7.
+
 For more details and latest information please see the following issue: [Removing v1alpha3 & v1alpha4 apiVersions](https://github.com/kubernetes-sigs/cluster-api/issues/8038).
 
 Note: Removal of a deprecated APIVersion in Kubernetes [can cause issues with garbage collection by the kube-controller-manager](https://github.com/kubernetes/kubernetes/issues/102641)

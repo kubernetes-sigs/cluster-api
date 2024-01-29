@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 )
@@ -32,7 +32,7 @@ type FakeRequest struct {
 	// CommonRequest contains Settings field common to all request types.
 	runtimehooksv1.CommonRequest `json:",inline"`
 
-	Cluster clusterv1alpha4.Cluster
+	Cluster clusterv1.Cluster
 
 	Second string
 	First  int
@@ -61,7 +61,7 @@ type SecondFakeRequest struct {
 	// CommonRequest contains Settings field common to all request types.
 	runtimehooksv1.CommonRequest `json:",inline"`
 
-	Cluster clusterv1alpha4.Cluster
+	Cluster clusterv1.Cluster
 
 	Second string
 	First  int
@@ -90,7 +90,7 @@ type RetryableFakeRequest struct {
 	// CommonRequest contains Settings field common to all request types.
 	runtimehooksv1.CommonRequest `json:",inline"`
 
-	Cluster clusterv1alpha4.Cluster
+	Cluster clusterv1.Cluster
 
 	Second string
 	First  int

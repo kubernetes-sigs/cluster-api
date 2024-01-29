@@ -184,10 +184,7 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	client := input.ClusterProxy.GetClient()
 
 	log.Logf("Waiting for provider controllers to be running")
-	controllersDeployments := framework.GetControllerDeployments(ctx, framework.GetControllerDeploymentsInput{
-		Lister:            client,
-		ExcludeNamespaces: []string{"capi-webhook-system"}, // this namespace has been dropped in v1alpha4; this ensures we are not waiting for deployments being deleted as part of the upgrade process
-	})
+	controllersDeployments := framework.GetControllerDeployments(ctx, framework.GetControllerDeploymentsInput{Lister: client})
 	Expect(controllersDeployments).ToNot(BeEmpty(), "The list of controller deployments should not be empty")
 	for _, deployment := range controllersDeployments {
 		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{

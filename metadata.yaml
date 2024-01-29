@@ -30,6 +30,3 @@ releaseSeries:
   - major: 1
     minor: 0
     contract: v1beta1
-  - major: 0
-    minor: 4
-    contract: v1alpha4

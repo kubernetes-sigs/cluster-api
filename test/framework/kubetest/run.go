@@ -173,7 +173,7 @@ func Run(ctx context.Context, input RunInput) error {
 	// Get our current working directory. Just for information, so we don't need
 	// to worry about errors at this point.
 	cwd, _ := os.Getwd()
-	ginkgoextensions.Byf("Running e2e test: dir=%s, command=%q", cwd, args)
+	ginkgoextensions.Byf("Running e2e test: dir=%s, command=%q, image=%q", cwd, args, input.ConformanceImage)
 
 	containerRuntime, err := container.NewDockerClient()
 	if err != nil {

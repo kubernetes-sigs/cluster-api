@@ -48,6 +48,10 @@ type MachineDeploymentRolloutSpecInput struct {
 	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
 	// able to identify the default.
 	InfrastructureProvider *string
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // MachineDeploymentRolloutSpec implements a test that verifies that MachineDeployment rolling updates are successful.
@@ -71,7 +75,7 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 

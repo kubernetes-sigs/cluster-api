@@ -115,6 +115,10 @@ type scaleSpecInput struct {
 	// be MachineDeploymentCount*WorkerMachineCount (CAPI_SCALE_MACHINE_DEPLOYMENT_COUNT*CAPI_SCALE_WORKER_MACHINE_COUNT).
 	MachineDeploymentCount *int64
 
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+
 	// FailFast if set to true will return immediately after the first cluster operation fails.
 	// If set to false, the test suite will not exit immediately after the first cluster operation fails.
 	// Example: When creating clusters from c1 to c20 consider c6 fails creation. If FailFast is set to true
@@ -168,6 +172,11 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			LogFolder:           filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 			IgnoreAlreadyExists: true,
 		})
+
+		if input.PostNamespaceCreated != nil {
+			log.Logf("Calling postNamespaceCreated for namespace %s", namespace.Name)
+			input.PostNamespaceCreated(input.BootstrapClusterProxy, namespace.Name)
+		}
 	})
 
 	It("Should create and delete workload clusters", func() {

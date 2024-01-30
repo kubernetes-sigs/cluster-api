@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -56,7 +57,7 @@ func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
 }
 
-func setupSpecNamespace(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string) (*corev1.Namespace, context.CancelFunc) {
+func setupSpecNamespace(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, postNamespaceCreated func(framework.ClusterProxy, string)) (*corev1.Namespace, context.CancelFunc) {
 	Byf("Creating a namespace for hosting the %q test spec", specName)
 	namespace, cancelWatches := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
 		Creator:   clusterProxy.GetClient(),
@@ -64,6 +65,11 @@ func setupSpecNamespace(ctx context.Context, specName string, clusterProxy frame
 		Name:      fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 		LogFolder: filepath.Join(artifactFolder, "clusters", clusterProxy.GetName()),
 	})
+
+	if postNamespaceCreated != nil {
+		log.Logf("Calling postNamespaceCreated for namespace %s", namespace.Name)
+		postNamespaceCreated(clusterProxy, namespace.Name)
+	}
 
 	return namespace, cancelWatches
 }

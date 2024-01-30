@@ -48,6 +48,11 @@ type DockerClusterSpec struct {
 	// LoadBalancer allows defining configurations for the cluster load balancer.
 	// +optional
 	LoadBalancer DockerLoadBalancer `json:"loadBalancer,omitempty"`
+
+	// Network describes the name of the network to use for kind
+	// It will fallback to 'kind' if not specified
+	// +optional
+	Network string `json:"network,omitempty"`
 }
 
 // DockerLoadBalancer allows defining configurations for the cluster load balancer.

@@ -61,6 +61,11 @@ type DockerMachineSpec struct {
 	// The default value is 3m.
 	// +optional
 	BootstrapTimeout *metav1.Duration `json:"bootstrapTimeout,omitempty"`
+
+	// Network describes the name of the network to use for kind
+	// The default value is 'kind'
+	// +optional
+	Network string `json:"network,omitempty"`
 }
 
 // Mount specifies a host volume to mount into a container.

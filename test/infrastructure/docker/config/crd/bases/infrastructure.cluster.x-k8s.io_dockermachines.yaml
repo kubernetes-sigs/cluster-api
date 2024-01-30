@@ -115,6 +115,9 @@ spec:
                 description: ProviderID will be the container name in ProviderID format
                   (docker:////<containername>)
                 type: string
+              network:
+                description: Network describes the name of the network to use for kind
+                type: string
             type: object
           status:
             description: DockerMachineStatus defines the observed state of DockerMachine.

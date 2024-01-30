@@ -55,12 +55,13 @@ type nodeCreateOpts struct {
 	Labels       map[string]string
 	IPFamily     clusterv1.ClusterIPFamily
 	KindMapping  kind.Mapping
+	Network      string
 }
 
 // CreateControlPlaneNode will create a new control plane container.
 // NOTE: If port is 0 picking a host port for the control plane is delegated to the container runtime and is not stable across container restarts.
 // This means that connection to a control plane node may take some time to recover if the underlying container is restarted.
-func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (*types.Node, error) {
+func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping, network string) (*types.Node, error) {
 	// add api server port mapping
 	portMappingsWithAPIServer := append(portMappings, v1alpha4.PortMapping{
 		ListenAddress: listenAddress,
@@ -77,6 +78,7 @@ func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, clusterName,
 		Labels:       labels,
 		IPFamily:     ipFamily,
 		KindMapping:  kindMapping,
+		Network:      network,
 	}
 	node, err := createNode(ctx, createOpts)
 	if err != nil {
@@ -87,7 +89,7 @@ func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, clusterName,
 }
 
 // CreateWorkerNode will create a new worker container.
-func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (*types.Node, error) {
+func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping, network string) (*types.Node, error) {
 	createOpts := &nodeCreateOpts{
 		Name:         name,
 		ClusterName:  clusterName,
@@ -97,6 +99,7 @@ func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string
 		Labels:       labels,
 		IPFamily:     ipFamily,
 		KindMapping:  kindMapping,
+		Network:      network,
 	}
 	return createNode(ctx, createOpts)
 }
@@ -104,7 +107,7 @@ func (m *Manager) CreateWorkerNode(ctx context.Context, name, clusterName string
 // CreateExternalLoadBalancerNode will create a new container to act as the load balancer for external access.
 // NOTE: If port is 0 picking a host port for the load balancer is delegated to the container runtime and is not stable across container restarts.
 // This can break the Kubeconfig in kind, i.e. the file resulting from `kind get kubeconfig -n $CLUSTER_NAME' if the load balancer container is restarted.
-func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, _ clusterv1.ClusterIPFamily) (*types.Node, error) {
+func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, _ clusterv1.ClusterIPFamily, network string) (*types.Node, error) {
 	// load balancer port mapping
 	portMappings := []v1alpha4.PortMapping{{
 		ListenAddress: listenAddress,
@@ -124,6 +127,7 @@ func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, imag
 			Image: image,
 			Mode:  kind.ModeNone,
 		},
+		Network: network,
 	}
 	node, err := createNode(ctx, createOpts)
 	if err != nil {
@@ -145,6 +149,10 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		containerLabels[name] = value
 	}
 
+	if opts.Network == "" {
+		opts.Network = DefaultNetwork
+	}
+
 	runOptions := &container.RunContainerInput{
 		Name:   opts.Name, // make hostname match container name
 		Image:  opts.KindMapping.Image,
@@ -158,7 +166,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		Volumes:      map[string]string{"/var": ""},
 		Mounts:       generateMountInfo(opts.Mounts),
 		PortMappings: generatePortMappings(opts.PortMappings),
-		Network:      DefaultNetwork,
+		Network:      opts.Network,
 		Tmpfs: map[string]string{
 			"/tmp": "", // various things depend on working /tmp
 			"/run": "", // systemd wants a writable /run

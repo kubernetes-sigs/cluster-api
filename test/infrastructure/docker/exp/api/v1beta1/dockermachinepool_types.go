@@ -44,6 +44,11 @@ type DockerMachinePoolMachineTemplate struct {
 	// These may be used to bind a hostPath
 	// +optional
 	ExtraMounts []infrav1.Mount `json:"extraMounts,omitempty"`
+
+	// Network describes the name of the network to use for kind
+	// It will fallback to 'kind' if not specified
+	// +optional
+	Network string `json:"network,omitempty"`
 }
 
 // DockerMachinePoolSpec defines the desired state of DockerMachinePool.

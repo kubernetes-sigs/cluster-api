@@ -123,6 +123,9 @@ spec:
                       if not set, "v20210715-a6da3463" will be used instead.
                     type: string
                 type: object
+              network:
+                description: Network describes the name of the network to use for kind
+                type: string
             type: object
           status:
             description: DockerClusterStatus defines the observed state of DockerCluster.

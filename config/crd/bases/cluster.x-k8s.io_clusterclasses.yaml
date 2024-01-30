@@ -979,6 +979,13 @@ spec:
                     ClusterClassVariable defines a variable which can
                     be configured in the Cluster topology and used in patches.
                   properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        Arbitrary annotations related to the variable. May be used
+                        to store and retrieve arbitrary metadata related to variable.
+                      type: object
                     name:
                       description: Name of the variable.
                       type: string

@@ -376,6 +376,10 @@ type ClusterClassVariable struct {
 	// Name of the variable.
 	Name string `json:"name"`
 
+	// Arbitrary annotations related to the variable. May be used
+	// to store and retrieve arbitrary metadata related to variable.
+	Annotations map[string]string `json:"annotations,omitempty"`
+
 	// Required specifies if the variable is required.
 	// Note: this applies to the variable as a whole and thus the
 	// top-level object defined in the schema. If nested fields are

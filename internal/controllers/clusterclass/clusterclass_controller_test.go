@@ -90,7 +90,10 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 		WithWorkerMachineDeploymentClasses(*machineDeploymentClass1, *machineDeploymentClass2).
 		WithVariables(
 			clusterv1.ClusterClassVariable{
-				Name:     "hdd",
+				Name: "hdd",
+				Annotations: map[string]string{
+					"type": "disk-size",
+				},
 				Required: true,
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -100,6 +103,9 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 			},
 			clusterv1.ClusterClassVariable{
 				Name: "cpu",
+				Annotations: map[string]string{
+					"type": "cpu-size",
+				},
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",

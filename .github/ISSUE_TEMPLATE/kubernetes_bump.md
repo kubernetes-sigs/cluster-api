@@ -55,7 +55,6 @@ changes should be cherry-picked to all release series that will support the new 
 
 * [ ] Update book:
   * Update supported versions in `versions.md`
-  * Update job documentation in `jobs.md`
   * Prior art: #9161
 * [ ] Issues specific to the Kubernetes minor release:
   * Sometimes there are adjustments that we have to make in Cluster API to be able to support

@@ -349,6 +349,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", "bootstrap"),
 		})
 
+		if input.PostNamespaceCreated != nil {
+			log.Logf("Calling postNamespaceCreated for namespace %s", testNamespace.Name)
+			input.PostNamespaceCreated(managementClusterProxy, testNamespace.Name)
+		}
+
 		By("Creating a test workload cluster")
 
 		// NOTE: This workload cluster is used to check the old management cluster works fine.

@@ -209,6 +209,11 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", "bootstrap"),
 		})
 
+		if input.PostNamespaceCreated != nil {
+			log.Logf("Calling postNamespaceCreated for namespace %s", selfHostedNamespace.Name)
+			input.PostNamespaceCreated(selfHostedClusterProxy, selfHostedNamespace.Name)
+		}
+
 		By("Initializing the workload cluster")
 		// watchesCtx is used in log streaming to be able to get canceld via cancelWatches after ending the test suite.
 		watchesCtx, cancelWatches := context.WithCancel(ctx)

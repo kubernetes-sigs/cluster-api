@@ -49,8 +49,8 @@ type DockerClusterSpec struct {
 	// +optional
 	LoadBalancer DockerLoadBalancer `json:"loadBalancer,omitempty"`
 
-	// Network describes the name of the network to use for kind
-	// It will fallback to 'kind' if not specified
+	// Network describes the name of the network to use in Docker
+	// The default value is 'kind'
 	// +optional
 	Network string `json:"network,omitempty"`
 }

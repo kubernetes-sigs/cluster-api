@@ -62,7 +62,7 @@ type DockerMachineSpec struct {
 	// +optional
 	BootstrapTimeout *metav1.Duration `json:"bootstrapTimeout,omitempty"`
 
-	// Network describes the name of the network to use for kind
+	// Network describes the name of the network to use in Docker
 	// The default value is 'kind'
 	// +optional
 	Network string `json:"network,omitempty"`

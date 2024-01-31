@@ -123,7 +123,7 @@ spec:
                         type: array
                       network:
                         description: |-
-                          Network describes the name of the network to use for kind
+                          Network describes the name of the network to use in Docker
                           The default value is 'kind'
                         type: string
                       preLoadImages:

@@ -20,6 +20,8 @@ limitations under the License.
 package e2e
 
 import (
+	"os"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
@@ -28,6 +30,7 @@ import (
 )
 
 var _ = Describe("When testing K8S conformance [Conformance] [K8s-Install]", func() {
+	// Note: This installs a cluster based on KUBERNETES_VERSION and runs conformance tests.
 	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
 		return K8SConformanceSpecInput{
 			E2EConfig:              e2eConfig,
@@ -40,17 +43,16 @@ var _ = Describe("When testing K8S conformance [Conformance] [K8s-Install]", fun
 })
 
 var _ = Describe("When testing K8S conformance with K8S latest ci [Conformance] [K8s-Install-ci-latest]", func() {
+	// Note: This installs a cluster based on KUBERNETES_VERSION_LATEST_CI and runs conformance tests.
+	// Note: We are resolving KUBERNETES_VERSION_LATEST_CI and then setting the resolved version as
+	// KUBERNETES_VERSION env var. This only works without side effects on other tests because we are
+	// running this test in its separate job.
 	K8SConformanceSpec(ctx, func() K8SConformanceSpecInput {
-		kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.Variables["KUBERNETES_VERSION_LATEST_CI"])
+		kubernetesVersion, err := kubernetesversions.ResolveVersion(ctx, e2eConfig.GetVariable("KUBERNETES_VERSION_LATEST_CI"))
 		Expect(err).NotTo(HaveOccurred())
-
-		// Kubernetes version has to be set as KUBERNETES_VERSION because the conformance test
-		// expects it there.
-		testSpecificE2EConfig := e2eConfig.DeepCopy()
-		e2eConfig.Variables["KUBERNETES_VERSION"] = kubernetesVersion
-
+		Expect(os.Setenv("KUBERNETES_VERSION", kubernetesVersion)).To(Succeed())
 		return K8SConformanceSpecInput{
-			E2EConfig:              testSpecificE2EConfig,
+			E2EConfig:              e2eConfig,
 			ClusterctlConfigPath:   clusterctlConfigPath,
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,

@@ -65,6 +65,15 @@ k8s::prepareKindestImages() {
     kind::prepareKindestImage "$resolveVersion"
   fi
 
+  # If the test focuses on [K8s-Install-ci-latest], default KUBERNETES_VERSION_LATEST_CI
+  # to the value in the e2e config if it is not set.
+  # Note: We do this because we want to specify KUBERNETES_VERSION_LATEST_CI *only* in the e2e config.
+  if [[ $GINKGO_FOCUS == *"K8s-Install-ci-latest"* ]]; then
+    if [[ -z "${KUBERNETES_VERSION_LATEST_CI:-}" ]]; then
+      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
+    fi
+  fi
   if [ -n "${KUBERNETES_VERSION_LATEST_CI:-}" ]; then
     k8s::resolveVersion "KUBERNETES_VERSION_LATEST_CI" "$KUBERNETES_VERSION_LATEST_CI"
     export KUBERNETES_VERSION_LATEST_CI=$resolveVersion

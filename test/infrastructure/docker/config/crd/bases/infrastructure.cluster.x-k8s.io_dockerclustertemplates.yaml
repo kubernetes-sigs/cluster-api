@@ -152,6 +152,11 @@ spec:
                               if not set, "v20210715-a6da3463" will be used instead.
                             type: string
                         type: object
+                      network:
+                        description: |-
+                          Network describes the name of the network to use for kind
+                          It will fallback to 'kind' if not specified
+                        type: string
                     type: object
                 required:
                 - spec

@@ -87,6 +87,11 @@ spec:
                           type: boolean
                       type: object
                     type: array
+                  network:
+                    description: |-
+                      Network describes the name of the network to use for kind
+                      It will fallback to 'kind' if not specified
+                    type: string
                   preLoadImages:
                     description: |-
                       PreLoadImages allows to pre-load images in a newly created machine. This can be used to

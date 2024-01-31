@@ -104,6 +104,11 @@ spec:
                       type: boolean
                   type: object
                 type: array
+              network:
+                description: |-
+                  Network describes the name of the network to use for kind
+                  The default value is 'kind'
+                type: string
               preLoadImages:
                 description: |-
                   PreLoadImages allows to pre-load images in a newly created machine. This can be used to
@@ -114,9 +119,6 @@ spec:
               providerID:
                 description: ProviderID will be the container name in ProviderID format
                   (docker:////<containername>)
-                type: string
-              network:
-                description: Network describes the name of the network to use for kind
                 type: string
             type: object
           status:

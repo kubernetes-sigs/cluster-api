@@ -124,7 +124,9 @@ spec:
                     type: string
                 type: object
               network:
-                description: Network describes the name of the network to use for kind
+                description: |-
+                  Network describes the name of the network to use for kind
+                  It will fallback to 'kind' if not specified
                 type: string
             type: object
           status:

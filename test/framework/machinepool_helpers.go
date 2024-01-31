@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -201,6 +202,46 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 	}
 }
 
+type ScaleMachinePoolTopologyAndWaitInput struct {
+	ClusterProxy        ClusterProxy
+	Cluster             *clusterv1.Cluster
+	Replicas            int32
+	WaitForMachinePools []interface{}
+}
+
+// ScaleMachinePoolTopologyAndWait scales a machine pool and waits for its instances to scale up.
+func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePoolTopologyAndWaitInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeMachinePoolAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeMachinePoolAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeMachinePoolAndWait")
+
+	mpTopology := input.Cluster.Spec.Topology.Workers.MachinePools[0]
+	if mpTopology.Replicas != nil {
+		log.Logf("Scaling machine pool topology %s from %d to %d replicas", mpTopology.Name, *mpTopology.Replicas, input.Replicas)
+	} else {
+		log.Logf("Scaling machine pool topology %s to %d replicas", mpTopology.Name, input.Replicas)
+	}
+	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())
+	Expect(err).ToNot(HaveOccurred())
+	mpTopology.Replicas = ptr.To[int32](input.Replicas)
+	input.Cluster.Spec.Topology.Workers.MachinePools[0] = mpTopology
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.Cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine pool topology %s", mpTopology.Name)
+
+	log.Logf("Waiting for correct number of replicas to exist")
+	mpList := &expv1.MachinePoolList{}
+	Eventually(func() error {
+		return input.ClusterProxy.GetClient().List(ctx, mpList,
+			client.InNamespace(input.Cluster.Namespace),
+			client.MatchingLabels{
+				clusterv1.ClusterNameLabel:                    input.Cluster.Name,
+				clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
+			},
+		)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+}
+
 // WaitForMachinePoolInstancesToBeUpgradedInput is the input for WaitForMachinePoolInstancesToBeUpgraded.
 type WaitForMachinePoolInstancesToBeUpgradedInput struct {
 	Getter                   Getter
@@ -288,4 +329,29 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 	}
 
 	return versions
+}
+
+type AssertMachinePoolReplicasInput struct {
+	Getter             Getter
+	MachinePool        *expv1.MachinePool
+	Replicas           int32
+	WaitForMachinePool []interface{}
+}
+
+func AssertMachinePoolReplicas(ctx context.Context, input AssertMachinePoolReplicasInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for AssertMachinePoolReplicas")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling AssertMachinePoolReplicas")
+	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling AssertMachinePoolReplicas")
+
+	Eventually(func(g Gomega) {
+		// Get the MachinePool
+		mp := &expv1.MachinePool{}
+		key := client.ObjectKey{
+			Namespace: input.MachinePool.Namespace,
+			Name:      input.MachinePool.Name,
+		}
+		g.Expect(input.Getter.Get(ctx, key, mp)).To(Succeed(), fmt.Sprintf("failed to get MachinePool %s", klog.KObj(input.MachinePool)))
+		g.Expect(mp.Spec.Replicas).Should(Not(BeNil()), fmt.Sprintf("MachinePool %s replicas should not be nil", klog.KObj(mp)))
+		g.Expect(*mp.Spec.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachinePool %s replicas should match expected replicas", klog.KObj(mp)))
+	}, input.WaitForMachinePool...).Should(Succeed())
 }

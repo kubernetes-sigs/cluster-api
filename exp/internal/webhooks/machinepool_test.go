@@ -17,6 +17,7 @@ limitations under the License.
 package webhooks
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -26,6 +27,7 @@ import (
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -33,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
-var ctx = ctrl.SetupSignalHandler()
+var ctx = admission.NewContextWithRequest(ctrl.SetupSignalHandler(), admission.Request{})
 
 func TestMachinePoolDefault(t *testing.T) {
 	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
@@ -65,6 +67,169 @@ func TestMachinePoolDefault(t *testing.T) {
 	g.Expect(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(mp.Namespace))
 	g.Expect(mp.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(mp.Namespace))
 	g.Expect(mp.Spec.Template.Spec.Version).To(Equal(ptr.To("v1.20.0")))
+}
+
+func TestCalculateMachinePoolReplicas(t *testing.T) {
+	tests := []struct {
+		name             string
+		newMP            *expv1.MachinePool
+		oldMP            *expv1.MachinePool
+		expectedReplicas int32
+		expectErr        bool
+	}{
+		{
+			name: "if new MP has replicas set, keep that value",
+			newMP: &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
+					Replicas: ptr.To[int32](5),
+				},
+			},
+			expectedReplicas: 5,
+		},
+		{
+			name:             "if new MP does not have replicas set and no annotations, use 1",
+			newMP:            &expv1.MachinePool{},
+			expectedReplicas: 1,
+		},
+		{
+			name: "if new MP only has min size annotation, fallback to 1",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+					},
+				},
+			},
+			expectedReplicas: 1,
+		},
+		{
+			name: "if new MP only has max size annotation, fallback to 1",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			expectedReplicas: 1,
+		},
+		{
+			name: "if new MP has min and max size annotation and min size is invalid, fail",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "abc",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "if new MP has min and max size annotation and max size is invalid, fail",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "abc",
+					},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "if new MP has min and max size annotation and new MP is a new MP, use min size",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			expectedReplicas: 3,
+		},
+		{
+			name: "if new MP has min and max size annotation and old MP doesn't have replicas set, use min size",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMP:            &expv1.MachinePool{},
+			expectedReplicas: 3,
+		},
+		{
+			name: "if new MP has min and max size annotation and old MP replicas is below min size, use min size",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMP: &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
+					Replicas: ptr.To[int32](1),
+				},
+			},
+			expectedReplicas: 3,
+		},
+		{
+			name: "if new MP has min and max size annotation and old MP replicas is above max size, use max size",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMP: &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
+					Replicas: ptr.To[int32](15),
+				},
+			},
+			expectedReplicas: 7,
+		},
+		{
+			name: "if new MP has min and max size annotation and old MP replicas is between min and max size, use old MP replicas",
+			newMP: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "3",
+						clusterv1.AutoscalerMaxSizeAnnotation: "7",
+					},
+				},
+			},
+			oldMP: &expv1.MachinePool{
+				Spec: expv1.MachinePoolSpec{
+					Replicas: ptr.To[int32](4),
+				},
+			},
+			expectedReplicas: 4,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			replicas, err := calculateMachinePoolReplicas(context.Background(), tt.oldMP, tt.newMP, false)
+
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(replicas).To(Equal(tt.expectedReplicas))
+		})
+	}
 }
 
 func TestMachinePoolBootstrapValidation(t *testing.T) {

@@ -29,6 +29,12 @@ spec:
             annotations:
               cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "5"
               cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "2"
+      machinePools:
+        - class: "default-worker"
+          name: "mp-0"
+          nodeDeletionTimeout: "30s"
+          failureDomains:
+          - fd4
     variables:
       - name: etcdImageTag
         value: ""

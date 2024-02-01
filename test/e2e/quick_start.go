@@ -40,6 +40,10 @@ type QuickStartSpecInput struct {
 	ArtifactFolder        string
 	SkipCleanup           bool
 
+	// Cluster name allows to specify a deterministic clusterName.
+	// If not set, a random one will be generated.
+	ClusterName *string
+
 	// InfrastructureProvider allows to specify the infrastructure provider to be used when looking for
 	// cluster templates.
 	// If not set, clusterctl will look at the infrastructure provider installed in the management cluster;
@@ -123,6 +127,9 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		}
 
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		if input.ClusterName != nil {
+			clusterName = *input.ClusterName
+		}
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{

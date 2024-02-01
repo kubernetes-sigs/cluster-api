@@ -1021,6 +1021,15 @@ func TestMachineConditions(t *testing.T) {
 		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 	}
 
+	pod := &corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Pod",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pod",
+		},
+	}
+
 	testcases := []struct {
 		name               string
 		infraReady         bool
@@ -1162,6 +1171,31 @@ func TestMachineConditions(t *testing.T) {
 			},
 			conditionsToAssert: []*clusterv1.Condition{
 				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, ""),
+			},
+		},
+		{
+			name:           "ready condition summary consumes reason from the draining succeeded condition when pod eviction is finished without error",
+			infraReady:     true,
+			bootstrapReady: true,
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
+				callback := onPodDeletionOrEvictionFinished(context.Background(), m)
+				callback(pod, true, nil)
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, "Evicted pod test-pod from node test"),
+			},
+		},
+		{
+			name:           "ready condition summary consumes reason from the draining succeeded condition when pod eviction is finished with error",
+			infraReady:     true,
+			bootstrapReady: true,
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
+				callback := onPodDeletionOrEvictionFinished(context.Background(), m)
+				err := fmt.Errorf("fake error")
+				callback(pod, true, err)
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, "Failed to evict pod test-pod from node test"),
 			},
 		},
 	}

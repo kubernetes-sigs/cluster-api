@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -386,7 +387,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
 			}
 
-			if result, err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name); !result.IsZero() || err != nil {
+			if result, err := r.drainNode(ctx, cluster, m); !result.IsZero() || err != nil {
 				if err != nil {
 					conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
@@ -615,7 +616,8 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 	return nil
 }
 
-func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
+func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	nodeName := m.Status.NodeRef.Name
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 
 	restConfig, err := r.Tracker.GetRESTConfig(ctx, util.ObjectKey(cluster))
@@ -654,13 +656,14 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 		GracePeriodSeconds:  -1,
 		// If a pod is not evicted in 20 seconds, retry the eviction next time the
 		// machine gets reconciled again (to allow other machines to be reconciled).
-		Timeout: 20 * time.Second,
-		OnPodDeletedOrEvicted: func(pod *corev1.Pod, usingEviction bool) {
-			verbStr := "Deleted"
+		Timeout:                         20 * time.Second,
+		OnPodDeletionOrEvictionFinished: onPodDeletionOrEvictionFinished(ctx, m),
+		OnPodDeletionOrEvictionStarted: func(pod *corev1.Pod, usingEviction bool) {
+			verbStr := "Deletion"
 			if usingEviction {
-				verbStr = "Evicted"
+				verbStr = "Eviction"
 			}
-			log.Info(fmt.Sprintf("%s pod from Node", verbStr),
+			log.Info(fmt.Sprintf("%s of pod %s started from node %s", verbStr, pod.Name, nodeName),
 				"Pod", klog.KObj(pod))
 		},
 		Out: writer{log.Info},
@@ -698,6 +701,41 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	log.Info("Drain successful")
 	return ctrl.Result{}, nil
+}
+
+// onPodDeletionOrEvictionFinished returns a function for a  m *clusterv1.Machine that update
+// the drain information at the machine's DrainingSucceededCondition when a pod eviction finished or failed.
+func onPodDeletionOrEvictionFinished(ctx context.Context, m *clusterv1.Machine) func(pod *corev1.Pod, usingEviction bool, err error) {
+	log := ctrl.LoggerFrom(ctx)
+	return func(pod *corev1.Pod, usingEviction bool, drainErr error) {
+		if usingEviction {
+			var verbStr string
+			if drainErr != nil {
+				verbStr = "failed to evict"
+				failStr := fmt.Sprintf("Failed to evict pod %s from node %s", pod.Name, m.Status.NodeRef.Name)
+				if conditions.Get(m, clusterv1.DrainingSucceededCondition) != nil {
+					if !strings.Contains(conditions.Get(m, clusterv1.DrainingSucceededCondition).Message, failStr) {
+						conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, failStr)
+					}
+				} else {
+					conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, failStr)
+				}
+			} else {
+				verbStr = "evicted"
+				drainingStr := fmt.Sprintf("Evicted pod %s from node %s", pod.Name, m.Status.NodeRef.Name)
+				if conditions.Get(m, clusterv1.DrainingSucceededCondition) != nil {
+					if !strings.Contains(conditions.Get(m, clusterv1.DrainingSucceededCondition).Message, drainingStr) {
+						conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, drainingStr)
+					}
+				} else {
+					conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, drainingStr)
+				}
+			}
+			log.Info(fmt.Sprintf("%s pod from Node", verbStr), "Pod", klog.KObj(pod))
+		} else {
+			log.Info("Using kubedrain.Helper with Deletion is not supported", "Pod", klog.KObj(pod))
+		}
+	}
 }
 
 // shouldWaitForNodeVolumes returns true if node status still have volumes attached and the node is reachable

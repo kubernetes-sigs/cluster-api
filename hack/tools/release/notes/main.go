@@ -51,6 +51,7 @@ type notesCmdConfig struct {
 	toRef                       string
 	newTag                      string
 	branch                      string
+	previousReleaseVersion      string
 	prefixAreaLabel             bool
 	preReleaseVersion           bool
 	deprecation                 bool
@@ -65,6 +66,7 @@ func readCmdConfig() *notesCmdConfig {
 	flag.StringVar(&config.toRef, "to", "", "The ref (tag, branch or commit to stop at. It must be formatted as heads/<branch name> for branches and tags/<tag name> for tags. If not set, it will default to branch.")
 	flag.StringVar(&config.branch, "branch", "", "The branch to generate the notes from. If not set, it will be calculated from release.")
 	flag.StringVar(&config.newTag, "release", "", "The tag for the new release.")
+	flag.StringVar(&config.previousReleaseVersion, "previous-release-version", "", "The tag for the previous beta release.")
 
 	flag.BoolVar(&config.prefixAreaLabel, "prefix-area-label", true, "If enabled, will prefix the area label.")
 	flag.BoolVar(&config.preReleaseVersion, "pre-release-version", false, "If enabled, will add a pre-release warning header. (default false)")
@@ -102,6 +104,11 @@ func (cmd *notesCmd) run() error {
 
 	from, to := parseRef(cmd.config.fromRef), parseRef(cmd.config.toRef)
 
+	var previousReleaseRef ref
+	if cmd.config.previousReleaseVersion != "" {
+		previousReleaseRef = parseRef(cmd.config.previousReleaseVersion)
+	}
+
 	printer := newReleaseNotesPrinter(cmd.config.repo, from.value)
 	printer.isPreRelease = cmd.config.preReleaseVersion
 	printer.printDeprecation = cmd.config.deprecation
@@ -114,7 +121,7 @@ func (cmd *notesCmd) run() error {
 		newDependenciesProcessor(cmd.config.repo, from.value, to.value),
 	)
 
-	return generator.run()
+	return generator.run(previousReleaseRef)
 }
 
 func ensureInstalledDependencies() error {
@@ -148,6 +155,12 @@ func validateConfig(config *notesCmdConfig) error {
 	if config.toRef != "" {
 		if err := validateRef(config.toRef); err != nil {
 			return err
+		}
+	}
+
+	if config.preReleaseVersion {
+		if config.previousReleaseVersion == "" {
+			return errors.New("--previous-release-version need to be set with --pre-release-version as true")
 		}
 	}
 

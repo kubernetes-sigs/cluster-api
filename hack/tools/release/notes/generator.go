@@ -49,7 +49,7 @@ type pr struct {
 
 // prLister returns a list of PRs.
 type prLister interface {
-	listPRs() ([]pr, error)
+	listPRs(previousRelease ref) ([]pr, error)
 }
 
 // notesEntry represents a line item for the release notes.
@@ -67,25 +67,39 @@ type prProcessor interface {
 // entriesPrinter formats and outputs to stdout the notes
 // based on a list of entries.
 type entriesPrinter interface {
-	print([]notesEntry, int, string)
+	print([]notesEntry, int, string, ref)
 }
 
-// run generates and prints the notes.
-func (g *notesGenerator) run() error {
-	prs, err := g.lister.listPRs()
+// run generating and prints the notes.
+func (g *notesGenerator) run(previousReleaseRef ref) error {
+	if previousReleaseRef.value != "" {
+		previousReleasePRs, err := g.lister.listPRs(previousReleaseRef)
+		if err != nil {
+			return err
+		}
+		previousEntries := g.processor.process(previousReleasePRs)
+
+		dependencies, err := g.dependenciesProcessor.generateDependencies(previousReleaseRef)
+		if err != nil {
+			return err
+		}
+
+		g.printer.print(previousEntries, len(previousReleasePRs), dependencies, previousReleaseRef)
+	}
+
+	prs, err := g.lister.listPRs(ref{})
 	if err != nil {
 		return err
 	}
-
 	entries := g.processor.process(prs)
 
-	dependencies, err := g.dependenciesProcessor.generateDependencies()
+	dependencies, err := g.dependenciesProcessor.generateDependencies(ref{})
 	if err != nil {
 		return err
 	}
 
 	// Pass in length of PRs to printer as some PRs are excluded from the entries list
-	g.printer.print(entries, len(prs), dependencies)
+	g.printer.print(entries, len(prs), dependencies, ref{})
 
 	return nil
 }

@@ -368,14 +368,35 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{},
 	}
 	startDate := time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC)
-	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)))
-	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)))
-	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)))
-	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)))
-	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)))
-	m6 := machine("machine-6", withFailureDomain("two"), withTimestamp(startDate.Add(-7*time.Hour)))
-	m7 := machine("machine-7", withFailureDomain("two"), withTimestamp(startDate.Add(-5*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
-	m8 := machine("machine-8", withFailureDomain("two"), withTimestamp(startDate.Add(-6*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
+
+	controlPlaneHealthyConditions := []clusterv1.Condition{
+		*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+		*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+		*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+		*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+		*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
+	}
+
+	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)),
+		machineOpt(withNodeRef("machine-1")), withConditions(controlPlaneHealthyConditions))
+	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)),
+		machineOpt(withNodeRef("machine-2")), withConditions(controlPlaneHealthyConditions))
+	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)),
+		machineOpt(withNodeRef("machine-3")), withConditions(controlPlaneHealthyConditions))
+	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)),
+		machineOpt(withNodeRef("machine-4")), withConditions(controlPlaneHealthyConditions))
+	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)),
+		machineOpt(withNodeRef("machine-5")), withConditions(controlPlaneHealthyConditions))
+	m6 := machine("machine-6", withFailureDomain("two"), withTimestamp(startDate.Add(-7*time.Hour)),
+		machineOpt(withNodeRef("machine-6")), withConditions(controlPlaneHealthyConditions))
+	m7 := machine("machine-7", withFailureDomain("two"), withTimestamp(startDate.Add(-5*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"),
+		machineOpt(withNodeRef("machine-7")), withConditions(controlPlaneHealthyConditions))
+	m8 := machine("machine-8", withFailureDomain("two"), withTimestamp(startDate.Add(-6*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"),
+		machineOpt(withNodeRef("machine-8")), withConditions(controlPlaneHealthyConditions))
+	m9 := machine("machine-9", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)),
+		machineOpt(withNodeRef("machine-9")), withConditions(controlPlaneHealthyConditions), machineOpt(withUnhealthyEtcdMember()))
+	m10 := machine("machine-10", withFailureDomain("two"), withTimestamp(startDate.Add(-3*time.Hour)),
+		machineOpt(withNodeRef("machine-10")), withConditions(controlPlaneHealthyConditions), machineOpt(withUnhealthyEtcdMember()))
 
 	mc3 := collections.FromMachines(m1, m2, m3, m4, m5)
 	mc6 := collections.FromMachines(m6, m7, m8)
@@ -457,6 +478,20 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 			outDatedMachines: collections.FromMachines(m5, m3, m8, m7, m6, m1, m2),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
+		},
+		{
+			name:             "when there are machines needing upgrade, it returns the unhealthy machine in the largest failure domain which needing upgrade",
+			cp:               upToDateControlPlane,
+			outDatedMachines: collections.FromMachines(m6, m9),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-9"}},
+		},
+		{
+			name:             "when there are machines needing upgrade, it returns the oldest unhealthy machine in the largest failure domain which needing upgrade",
+			cp:               upToDateControlPlane,
+			outDatedMachines: collections.FromMachines(m6, m9, m10),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-10"}},
 		},
 	}
 
@@ -668,5 +703,11 @@ func withAnnotation(annotation string) machineOpt {
 func withTimestamp(t time.Time) machineOpt {
 	return func(m *clusterv1.Machine) {
 		m.CreationTimestamp = metav1.NewTime(t)
+	}
+}
+
+func withConditions(conditions clusterv1.Conditions) machineOpt {
+	return func(m *clusterv1.Machine) {
+		m.Status.Conditions = conditions
 	}
 }

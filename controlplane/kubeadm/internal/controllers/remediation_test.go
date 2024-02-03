@@ -1877,6 +1877,8 @@ func withHealthyEtcdMember() machineOption {
 
 func withUnhealthyEtcdMember() machineOption {
 	return func(machine *clusterv1.Machine) {
+		newConditions := machine.Status.Conditions.DeepCopy()
+		machine.Status.Conditions = newConditions
 		conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "")
 	}
 }

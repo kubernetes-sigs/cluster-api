@@ -403,6 +403,7 @@ spec:
 - Allow scaling down of KCP with the possibility of marking specific control plane machine(s) to be deleted with delete annotation key. The presence of the annotation will affect the rollout strategy in a way that, it implements the following prioritization logic in descending order, while selecting machines for scale down:
   - outdatedMachines with the delete annotation
   - machines with the delete annotation
+  - outdatedMachines with unhealthy conditions
   - outdated machines
   - all machines
 

@@ -274,3 +274,35 @@ func HasNode() Func {
 		return machine.Status.NodeRef != nil
 	}
 }
+
+// HasUnhealthyControlPlaneMachineCondition returns a filter to find all unhealthy control plane machines,
+// unlike the HasUnhealthyCondition func, it checks whether all health conditions on the control plane machine are true,
+// including 'APIServerPodHealthy', 'ControllerManagerPodHealthy', 'SchedulerPodHealthy' and kubernetes node exist.
+// If etcd managed, additional checks for 'EtcdPodHealthy', 'EtcdMemberHealthy' conditions.
+func HasUnhealthyControlPlaneMachineCondition(isEtcdManaged bool) Func {
+	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
+		controlplanev1.MachineAPIServerPodHealthyCondition,
+		controlplanev1.MachineControllerManagerPodHealthyCondition,
+		controlplanev1.MachineSchedulerPodHealthyCondition,
+	}
+	if isEtcdManaged {
+		controlPlaneMachineHealthConditions = append(controlPlaneMachineHealthConditions,
+			controlplanev1.MachineEtcdPodHealthyCondition,
+			controlplanev1.MachineEtcdMemberHealthyCondition,
+		)
+	}
+
+	return func(machine *clusterv1.Machine) bool {
+		if !HasNode()(machine) {
+			return true
+		}
+
+		for _, condition := range controlPlaneMachineHealthConditions {
+			if conditions.IsFalse(machine, condition) {
+				return true
+			}
+		}
+
+		return false
+	}
+}

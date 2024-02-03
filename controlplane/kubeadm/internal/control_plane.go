@@ -314,3 +314,9 @@ func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementC
 	c.managementCluster = managementCluster
 	c.workloadCluster = nil
 }
+
+// ControlPlaneMachinesWithUnhealthyCondition Returns unhealthy control plane machines. Unlike the UnhealthyMachines function,
+// it checks if all health conditions on the control plane machines are true, not just marked by MHC.
+func (c *ControlPlane) ControlPlaneMachinesWithUnhealthyCondition(machines collections.Machines) collections.Machines {
+	return machines.Filter(collections.HasUnhealthyControlPlaneMachineCondition(c.IsEtcdManaged()))
+}

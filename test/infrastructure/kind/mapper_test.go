@@ -50,6 +50,14 @@ func TestGetMapping(t *testing.T) {
 		},
 		{
 			name:       "Exact match for Kubernetes version, kind Mode0_20",
+			k8sVersion: semver.MustParse("1.29.1"),
+			expectedMapping: Mapping{
+				Mode:  Mode0_20,
+				Image: "kindest/node:v1.29.1@sha256:0c06baa545c3bb3fbd4828eb49b8b805f6788e18ce67bff34706ffa91866558b",
+			},
+		},
+		{
+			name:       "Exact match for Kubernetes version, kind Mode0_20",
 			k8sVersion: semver.MustParse("1.27.3"),
 			expectedMapping: Mapping{
 				Mode:  Mode0_20,
@@ -69,7 +77,7 @@ func TestGetMapping(t *testing.T) {
 			k8sVersion: semver.MustParse("1.23.17"),
 			expectedMapping: Mapping{
 				Mode:  Mode0_20,
-				Image: "kindest/node:v1.23.17@sha256:59c989ff8a517a93127d4a536e7014d28e235fb3529d9fba91b3951d461edfdb",
+				Image: "kindest/node:v1.23.17@sha256:14d0a9a892b943866d7e6be119a06871291c517d279aedb816a4b4bc0ec0a5b3",
 			},
 		},
 		{

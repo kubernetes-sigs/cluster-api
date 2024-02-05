@@ -43,8 +43,8 @@ var DefaultPort = 9443
 
 // Server is a runtime webhook server.
 type Server struct {
+	webhook.Server
 	catalog  *runtimecatalog.Catalog
-	server   webhook.Server
 	handlers map[string]ExtensionHandler
 }
 
@@ -53,13 +53,15 @@ type Options struct {
 	// Catalog is the catalog used to handle requests.
 	Catalog *runtimecatalog.Catalog
 
-	// Port is the port that the webhook server serves at.
-	// It is used to set webhook.Server.Port.
-	Port int
-
-	// Host is the hostname that the webhook server binds to.
+	// Host is the address that the server will listen on.
+	// Defaults to "" - all addresses.
 	// It is used to set webhook.Server.Host.
 	Host string
+
+	// Port is the port number that the server will serve.
+	// It will be defaulted to 9443 if unspecified.
+	// It is used to set webhook.Server.Port.
+	Port int
 
 	// CertDir is the directory that contains the server key and certificate.
 	// If not set, webhook server would look up the server key and certificate in
@@ -67,6 +69,10 @@ type Options struct {
 	// must be named tls.key and tls.crt, respectively.
 	// It is used to set webhook.Server.CertDir.
 	CertDir string
+
+	// TLSOpts is used to allow configuring the TLS config used for the server.
+	// This also allows providing a certificate via GetCertificate.
+	TLSOpts []func(*tls.Config)
 }
 
 // New creates a new runtime webhook server based on the given Options.
@@ -88,18 +94,14 @@ func New(options Options) (*Server, error) {
 			CertDir:    options.CertDir,
 			CertName:   "tls.crt",
 			KeyName:    "tls.key",
+			TLSOpts:    options.TLSOpts,
 			WebhookMux: http.NewServeMux(),
-			TLSOpts: []func(*tls.Config){
-				func(cfg *tls.Config) {
-					cfg.MinVersion = tls.VersionTLS13
-				},
-			},
 		},
 	)
 
 	return &Server{
+		Server:   webhookServer,
 		catalog:  options.Catalog,
-		server:   webhookServer,
 		handlers: map[string]ExtensionHandler{},
 	}, nil
 }
@@ -232,10 +234,10 @@ func (s *Server) Start(ctx context.Context) error {
 		handler := h
 
 		wrappedHandler := s.wrapHandler(handler)
-		s.server.Register(handlerPath, http.HandlerFunc(wrappedHandler))
+		s.Server.Register(handlerPath, http.HandlerFunc(wrappedHandler))
 	}
 
-	return s.server.Start(ctx)
+	return s.Server.Start(ctx)
 }
 
 // discoveryHandler generates a discovery handler based on a list of handlers.

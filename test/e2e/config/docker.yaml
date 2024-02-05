@@ -229,6 +229,9 @@ providers:
   versions:
     - name: v1.6.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
+      replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect\n        - --logging-format=json"
       files:
       - sourcePath: "../data/shared/main/metadata.yaml"
 

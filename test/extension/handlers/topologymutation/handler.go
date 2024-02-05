@@ -49,6 +49,8 @@ var (
 	cgroupDriverPatchVersionCeiling = semver.Version{Major: 1, Minor: 24}
 )
 
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;patch;update;create
+
 // ExtensionHandlers provides a common struct shared across the topology mutation hooks handlers;
 // this is convenient because in Cluster API's E2E tests all of them are using a decoder for working with typed
 // API objects, which makes code easier to read and less error prone than using unstructured or working with raw json/yaml.

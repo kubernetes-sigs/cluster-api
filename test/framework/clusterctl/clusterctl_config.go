@@ -19,7 +19,7 @@ package clusterctl
 import (
 	"os"
 
-	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 )
 
@@ -40,18 +40,29 @@ type providerConfig struct {
 }
 
 // write writes a clusterctl config file to disk.
-func (c *clusterctlConfig) write() {
+func (c *clusterctlConfig) write() error {
 	data, err := yaml.Marshal(c.Values)
-	Expect(err).ToNot(HaveOccurred(), "Failed to marshal the clusterctl config file")
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal the clusterctl config file")
+	}
 
-	Expect(os.WriteFile(c.Path, data, 0600)).To(Succeed(), "Failed to write the clusterctl config file")
+	if err := os.WriteFile(c.Path, data, 0600); err != nil {
+		return errors.Wrap(err, "failed to write the clusterctl config file")
+	}
+
+	return nil
 }
 
 // read reads a clusterctl config file from disk.
-func (c *clusterctlConfig) read() {
+func (c *clusterctlConfig) read() error {
 	data, err := os.ReadFile(c.Path)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return errors.Wrapf(err, "failed to read clusterctl config file %q", c.Path)
+	}
 
-	err = yaml.Unmarshal(data, &c.Values)
-	Expect(err).ToNot(HaveOccurred(), "Failed to unmarshal the clusterctl config file")
+	if err = yaml.Unmarshal(data, &c.Values); err != nil {
+		return errors.Wrap(err, "failed to unmarshal the clusterctl config file")
+	}
+
+	return nil
 }

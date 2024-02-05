@@ -155,11 +155,11 @@ type UpgradeInput struct {
 func Upgrade(ctx context.Context, input UpgradeInput) {
 	if len(input.ClusterctlVariables) > 0 {
 		outputPath := filepath.Join(filepath.Dir(input.ClusterctlConfigPath), fmt.Sprintf("clusterctl-upgrade-config-%s.yaml", input.ClusterName))
-		copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+		Expect(CopyAndAmendClusterctlConfig(ctx, CopyAndAmendClusterctlConfigInput{
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			OutputPath:           outputPath,
 			Variables:            input.ClusterctlVariables,
-		})
+		})).To(Succeed(), "Failed to CopyAndAmendClusterctlConfig")
 		input.ClusterctlConfigPath = outputPath
 	}
 
@@ -288,11 +288,11 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 
 	if len(input.ClusterctlVariables) > 0 {
 		outputPath := filepath.Join(filepath.Dir(input.ClusterctlConfigPath), fmt.Sprintf("clusterctl-upgrade-config-%s.yaml", input.ClusterName))
-		copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+		Expect(CopyAndAmendClusterctlConfig(ctx, CopyAndAmendClusterctlConfigInput{
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			OutputPath:           outputPath,
 			Variables:            input.ClusterctlVariables,
-		})
+		})).To(Succeed(), "Failed to CopyAndAmendClusterctlConfig")
 		input.ClusterctlConfigPath = outputPath
 	}
 

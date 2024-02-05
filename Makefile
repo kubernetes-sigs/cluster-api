@@ -1049,7 +1049,10 @@ release-binary: $(RELEASE_DIR)
 
 .PHONY: release-staging
 release-staging: ## Build and push container images to the staging bucket
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-image-verify docker-push-all release-alias-tag
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-image-verify
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-push-all
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) release-alias-tag
 
 .PHONY: release-staging-nightly
 release-staging-nightly: ## Tag and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_main_20210121

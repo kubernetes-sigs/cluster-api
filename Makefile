@@ -265,7 +265,7 @@ help:  # Display this help
 
 ##@ generate:
 
-ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure
+ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
@@ -365,6 +365,13 @@ generate-manifests-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate manif
 		output:webhook:dir=./config/webhook \
 		webhook
 
+.PHONY: generate-manifests-test-extension
+generate-manifests-test-extension: $(CONTROLLER_GEN) ## Generate manifests e.g. RBAC for test-extension provider
+	cd ./test/extension; $(CONTROLLER_GEN) \
+		paths=./... \
+		output:rbac:dir=./config/rbac \
+		rbac:roleName=manager-role
+
 .PHONY: generate-go-deepcopy
 generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 	$(MAKE) $(addprefix generate-go-deepcopy-,$(ALL_GENERATE_MODULES))
@@ -414,6 +421,9 @@ generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate dee
 		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
         paths=./internal/cloud/api/...
+
+.PHONY: generate-go-deepcopy-test-extension
+generate-go-deepcopy-test-extension: $(CONTROLLER_GEN) ## Generate deepcopy go code for test-extension
 
 .PHONY: generate-go-conversions
 generate-go-conversions: ## Run all generate-go-conversions-* targets
@@ -504,6 +514,9 @@ generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate con
 .PHONY: generate-go-conversions-in-memory-infrastructure
 generate-go-conversions-in-memory-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for in-memory infrastructure provider
 	cd $(CAPIM_DIR)
+
+.PHONY: generate-go-conversions-test-extension
+generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversions go code for in-memory infrastructure provider
 
 # The tmp/sigs.k8s.io/cluster-api symlink is a workaround to make this target run outside of GOPATH
 .PHONY: generate-go-openapi

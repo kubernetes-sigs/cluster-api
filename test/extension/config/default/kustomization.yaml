@@ -10,13 +10,10 @@ resources:
 - namespace.yaml
 - manager.yaml
 - service.yaml
-- service_account.yaml
-# Note: resources specific of the CAPI test-extension, other Runtime extensions provider might want to drop this
-- role.yaml
-- rolebinding.yaml
 
 bases:
 - ../certmanager
+- ../rbac
 
 patchesStrategicMerge:
 # Enable webhook with corresponding certificate mount.

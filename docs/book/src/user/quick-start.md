@@ -708,7 +708,8 @@ clusterctl init --infrastructure outscale
 
 {{#tab Proxmox}}
 
-First, we need to add the IPAM provider to your clusterctl config file `~/.cluster-api/clusterctl.yaml`:
+First, we need to add the IPAM provider to your [clusterctl config file](../clusterctl/configuration.md) (`$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`):
+
 ```yaml
 providers:
   - name: in-cluster

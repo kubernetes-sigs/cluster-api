@@ -17,7 +17,7 @@ Different rules apply to each provider type and for each different resource that
   - Contract rules for [ControlPlane](control-plane.md) resource
 
 - IPAM provider
-  - Contract rules for IPAM resource (TODO)
+  - Contract rules for [IPAM](ipam.md) resources
   
 - Addon Providers
   - [Cluster API Add-On Orchestration](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220712-cluster-api-addon-orchestration.md)

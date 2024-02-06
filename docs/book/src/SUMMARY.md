@@ -98,6 +98,7 @@
           - [BootstrapConfig](developer/providers/contracts/bootstrap-config.md)
           - [ControlPlane](developer/providers/contracts/control-plane.md)
           - [clusterctl](developer/providers/contracts/clusterctl.md)
+          - [IPAM](developer/providers/contracts/ipam.md)
         - [Best practices](./developer/providers/best-practices.md)
         - [Security guidelines](./developer/providers/security-guidelines.md)
         - [Version migration](developer/providers/migrations/overview.md)

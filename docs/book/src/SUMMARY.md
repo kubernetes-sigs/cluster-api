@@ -100,6 +100,7 @@
           - [Cluster Infrastructure](./developer/providers/cluster-infrastructure.md)
           - [Machine Infrastructure](./developer/providers/machine-infrastructure.md)
           - [Bootstrap](./developer/providers/bootstrap.md)
+          - [IPAM](./developer/providers/ipam.md)
         - [Implementer's Guide](./developer/providers/implementers-guide/overview.md)
           - [Naming](./developer/providers/implementers-guide/naming.md)
           - [Configure](./developer/providers/implementers-guide/configure.md)

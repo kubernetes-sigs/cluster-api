@@ -102,6 +102,7 @@
           - [Control Plane](./developer/providers/control-plane.md)
           - [Machine Infrastructure](./developer/providers/machine-infrastructure.md)
           - [Bootstrap](./developer/providers/bootstrap.md)
+          - [IPAM](./developer/providers/ipam.md)
         - [Version migration](./developer/providers/version-migration.md)
           - [v1.6 to v1.7](./developer/providers/migrations/v1.6-to-v1.7.md)
           - [v1.7 to v1.8](./developer/providers/migrations/v1.7-to-v1.8.md)

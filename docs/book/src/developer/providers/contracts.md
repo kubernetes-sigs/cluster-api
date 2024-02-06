@@ -10,6 +10,7 @@ Cluster API defines the following contracts:
 - [Machine provider contract](./machine-infrastructure.md)
 - [clusterctl provider contract](../../clusterctl/provider-contract.md#clusterctl-provider-contract)
 - [Multi tenancy contract](../core/multi-tenancy.md#contract)
+- [IPAM contract](./ipam.md)
 
 ## API version labels
 Providers MUST set `cluster.x-k8s.io/<version>` label on all Custom Resource Definitions related to Cluster API starting with v1alpha3.

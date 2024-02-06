@@ -382,7 +382,7 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 			return err
 		}
 
-		if err := newCRDMigrator(c).Run(ctx, components.Objs()); err != nil {
+		if err := NewCRDMigrator(c).Run(ctx, components.Objs()); err != nil {
 			return err
 		}
 	}

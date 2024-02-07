@@ -521,6 +521,6 @@ As mentioned in the goals section, it is up to providers with existing implement
 ## Implementation History
 
 - [x] 03/01/2022: Had a community meeting to discuss an issue regarding ClusterClass support for EKS and managed k8s in CAPI
-- [x] 03/17/2022: Compile a Google Doc following the CAEP template ([link](https://docs.google.com/document/d/1dMN4-KppBkA51sxXPSQhYpqETp2AG_kHzByXTmznxFA/edit?usp=sharing))
+- [x] 03/17/2022: Compile a Google Doc following the CAEP template
 - [x] 04/20/2022: Present proposal at a community meeting
 - [x] 07/27/2022: Move the proposal to a PR in CAPI repo

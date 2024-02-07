@@ -81,7 +81,7 @@ The generated binary can be found at ./hack/tools/bin/envsubst
 You'll need to deploy [cert-manager] components on your [management cluster][mcluster], using `kubectl`
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.1/cert-manager.yaml
 ```
 
 Ensure the cert-manager webhook service is ready before creating the Cluster API components.
@@ -179,8 +179,8 @@ To test another iteration, you'll need to follow the steps to build, push, updat
 
 **Let's chat about ...**
 
-We are currently hosting "Let's chat about ..." sessions where we are talking about topics relevant to 
-contributors and users of the Cluster API project. For more details and an up-to-date list of recordings of past sessions please 
+We are currently hosting "Let's chat about ..." sessions where we are talking about topics relevant to
+contributors and users of the Cluster API project. For more details and an up-to-date list of recordings of past sessions please
 see [Let's chat about ...](https://github.com/kubernetes-sigs/cluster-api/discussions/6106).
 
 * [Local CAPI development and debugging with Tilt (EMEA/Americas) - February 2022](https://www.youtube.com/watch?v=tEIRGmJahWs)

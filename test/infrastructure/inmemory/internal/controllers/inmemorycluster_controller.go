@@ -152,11 +152,13 @@ func (r *InMemoryClusterReconciler) reconcileHotRestart(ctx context.Context) err
 }
 
 func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
-	// Compute the resource group unique name.
+	// Compute the name for resource group and listener.
+	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
+	listenerName := klog.KObj(cluster).String()
 
 	// Store the resource group used by this inMemoryCluster.
-	inMemoryCluster.Annotations[infrav1.ResourceGroupAnnotationName] = resourceGroup
+	inMemoryCluster.Annotations[infrav1.ListenerAnnotationName] = listenerName
 
 	// Create a resource group for all the in memory resources belonging the workload cluster;
 	// if the resource group already exists, the operation is a no-op.
@@ -166,12 +168,12 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 
 	// Initialize a listener for the workload cluster; if the listener has been already initialized
 	// the operation is a no-op.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
-	// IMPORTANT: The fact that both the listener and the resourceGroup for a workload cluster have
-	// the same name is used by the current implementation of the resourceGroup resolvers in the APIServerMux.
-	listener, err := r.APIServerMux.InitWorkloadClusterListener(resourceGroup)
+	listener, err := r.APIServerMux.InitWorkloadClusterListener(listenerName)
 	if err != nil {
 		return errors.Wrap(err, "failed to init the listener for the workload cluster")
+	}
+	if err := r.APIServerMux.RegisterResourceGroup(listenerName, resourceGroup); err != nil {
+		return errors.Wrap(err, "failed to register the resource group for the workload cluster")
 	}
 
 	// Surface the control plane endpoint
@@ -187,14 +189,16 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 }
 
 func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
-	// Compute the resource group unique name.
+	// Compute the name for resource group and listener.
+	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
+	listenerName := klog.KObj(cluster).String()
 
 	// Delete the resource group hosting all the in memory resources belonging the workload cluster;
 	r.InMemoryManager.DeleteResourceGroup(resourceGroup)
 
 	// Delete the listener for the workload cluster;
-	if err := r.APIServerMux.DeleteWorkloadClusterListener(resourceGroup); err != nil {
+	if err := r.APIServerMux.DeleteWorkloadClusterListener(listenerName); err != nil {
 		return err
 	}
 

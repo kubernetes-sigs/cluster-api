@@ -166,8 +166,6 @@ func NewWorkloadClustersMux(manager inmemoryruntime.Manager, host string, opts .
 func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 	// Prepare a function that can identify which workloadCluster/resourceGroup a
 	// request targets to.
-	// IMPORTANT: this function assumes that both the listener and the resourceGroup
-	// for a workload cluster have the same name.
 	resourceGroupResolver := func(host string) (string, error) {
 		m.lock.RLock()
 		defer m.lock.RUnlock()
@@ -175,7 +173,18 @@ func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 		if !ok {
 			return "", errors.Errorf("failed to get workloadClusterListener for host %s", host)
 		}
-		return wclName, nil
+		wcl, ok := m.workloadClusterListeners[wclName]
+		if !ok {
+			// NOTE: this should never happen because initWorkloadClusterListenerWithPortLocked always add a workload cluster in both maps
+			panic(fmt.Sprintf("workloadCluster with name %s exists in workloadClusterNameByHost but not workloadClusterListeners", wclName))
+		}
+
+		resourceGroup := wcl.ResourceGroup()
+		if resourceGroup == "" {
+			return "", errors.Errorf("workloadClusterListener with name %s does not have a registered resource group", wclName)
+		}
+
+		return resourceGroup, nil
 	}
 
 	// build the handlers for API server and etcd.
@@ -260,12 +269,12 @@ func (m *WorkloadClustersMux) HotRestart(clusters *infrav1.InMemoryClusterList) 
 			return errors.Errorf("unable to restart the WorkloadClustersMux, there are two or more clusters using port %d", c.Spec.ControlPlaneEndpoint.Port)
 		}
 
-		resourceGroup, ok := c.Annotations[infrav1.ResourceGroupAnnotationName]
+		listenerName, ok := c.Annotations[infrav1.ListenerAnnotationName]
 		if !ok {
-			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", klog.KRef(c.Namespace, c.Name), infrav1.ResourceGroupAnnotationName)
+			return errors.Errorf("unable to restart the WorkloadClustersMux, cluster %s doesn't have the %s annotation", klog.KRef(c.Namespace, c.Name), infrav1.ListenerAnnotationName)
 		}
 
-		m.initWorkloadClusterListenerWithPortLocked(resourceGroup, c.Spec.ControlPlaneEndpoint.Port)
+		m.initWorkloadClusterListenerWithPortLocked(listenerName, c.Spec.ControlPlaneEndpoint.Port)
 
 		if maxPort < c.Spec.ControlPlaneEndpoint.Port {
 			maxPort = c.Spec.ControlPlaneEndpoint.Port
@@ -307,11 +316,57 @@ func (m *WorkloadClustersMux) initWorkloadClusterListenerWithPortLocked(wclName 
 		etcdMembers:             sets.New[string](),
 		etcdServingCertificates: map[string]*tls.Certificate{},
 	}
+
+	// NOTE: it is required to add on both maps and keep them in sync
+	// In order to get the resourceGroupResolver to work.
 	m.workloadClusterListeners[wclName] = wcl
 	m.workloadClusterNameByHost[wcl.HostPort()] = wclName
 
 	m.log.Info("Workload cluster listener created", "listenerName", wclName, "address", wcl.Address())
 	return wcl
+}
+
+// RegisterResourceGroup registers the resource group that host in memory resources for a WorkloadClusterListener.
+func (m *WorkloadClustersMux) RegisterResourceGroup(wclName, resourceGroup string) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	wcl, ok := m.workloadClusterListeners[wclName]
+	if !ok {
+		return errors.Errorf("workloadClusterListener with name %s must be initialized before registering a resource group", wclName)
+	}
+	wcl.resourceGroup = resourceGroup
+	return nil
+}
+
+// ResourceGroupByWorkloadCluster returns the resource group that host in memory resources for a WorkloadClusterListener.
+func (m *WorkloadClustersMux) ResourceGroupByWorkloadCluster(wclName string) (string, error) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	wcl, ok := m.workloadClusterListeners[wclName]
+	if !ok {
+		return "", errors.Errorf("workloadClusterListener with name %s not yet initialized", wclName)
+	}
+
+	resourceGroup := wcl.ResourceGroup()
+	if resourceGroup == "" {
+		return "", errors.Errorf("workloadClusterListener with name %s does not have a registered resource group", wclName)
+	}
+	return resourceGroup, nil
+}
+
+// WorkloadClusterByResourceGroup returns the WorkloadClusterListener that serves resources from a given resource.
+func (m *WorkloadClustersMux) WorkloadClusterByResourceGroup(resouceGroup string) (string, error) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	for wclName, wcl := range m.workloadClusterListeners {
+		if wcl.ResourceGroup() == resouceGroup {
+			return wclName, nil
+		}
+	}
+	return "", errors.Errorf("resouceGroup with name %s not yet registered to a workloadClusterListener", resouceGroup)
 }
 
 // AddAPIServer mimics adding an API server instance behind the WorkloadClusterListener.

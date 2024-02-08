@@ -236,8 +236,7 @@ func (r *InMemoryMachineReconciler) reconcileNormal(ctx context.Context, cluster
 }
 
 func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
-	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	// Compute the name for resource group.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -320,8 +319,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 		return ctrl.Result{RequeueAfter: start.Add(provisioningDuration).Sub(now)}, nil
 	}
 
-	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	// Compute the name for resource group.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -405,9 +403,10 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 		return ctrl.Result{RequeueAfter: start.Add(provisioningDuration).Sub(now)}, nil
 	}
 
-	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	// Compute the resource group and listener unique name.
+	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
+	listenerName := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create the etcd pod
@@ -484,7 +483,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 	}
 
 	// If there is not yet an etcd member listener for this machine, add it to the server.
-	if !r.APIServerMux.HasEtcdMember(resourceGroup, etcdMember) {
+	if !r.APIServerMux.HasEtcdMember(listenerName, etcdMember) {
 		// Getting the etcd CA
 		s, err := secret.Get(ctx, r.Client, client.ObjectKeyFromObject(cluster), secret.EtcdCA)
 		if err != nil {
@@ -510,7 +509,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 			return ctrl.Result{}, errors.Wrapf(err, "invalid etcd CA: invalid %s", secret.TLSKeyDataName)
 		}
 
-		if err := r.APIServerMux.AddEtcdMember(resourceGroup, etcdMember, cert, key.(*rsa.PrivateKey)); err != nil {
+		if err := r.APIServerMux.AddEtcdMember(listenerName, etcdMember, cert, key.(*rsa.PrivateKey)); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to start etcd member")
 		}
 	}
@@ -609,9 +608,10 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 		return ctrl.Result{RequeueAfter: start.Add(provisioningDuration).Sub(now)}, nil
 	}
 
-	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	// Compute the resource group and listener unique name.
+	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
+	listenerName := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	// Create the apiserver pod
@@ -651,7 +651,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 	}
 
 	// If there is not yet an API server listener for this machine.
-	if !r.APIServerMux.HasAPIServer(resourceGroup, apiServer) {
+	if !r.APIServerMux.HasAPIServer(listenerName, apiServer) {
 		// Getting the Kubernetes CA
 		s, err := secret.Get(ctx, r.Client, client.ObjectKeyFromObject(cluster), secret.ClusterCA)
 		if err != nil {
@@ -679,7 +679,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 
 		// Adding the APIServer.
 		// NOTE: When the first APIServer is added, the workload cluster listener is started.
-		if err := r.APIServerMux.AddAPIServer(resourceGroup, apiServer, cert, key.(*rsa.PrivateKey)); err != nil {
+		if err := r.APIServerMux.AddAPIServer(listenerName, apiServer, cert, key.(*rsa.PrivateKey)); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to start API server")
 		}
 	}
@@ -703,7 +703,6 @@ func (r *InMemoryMachineReconciler) reconcileNormalScheduler(ctx context.Context
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -751,7 +750,6 @@ func (r *InMemoryMachineReconciler) reconcileNormalControllerManager(ctx context
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -791,7 +789,6 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -861,7 +858,6 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeProxy(ctx context.Context
 	// TODO: Add provisioning time for KubeProxy.
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -908,7 +904,6 @@ func (r *InMemoryMachineReconciler) reconcileNormalCoredns(ctx context.Context, 
 	// TODO: Add provisioning time for CoreDNS.
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -996,7 +991,6 @@ func (r *InMemoryMachineReconciler) reconcileDelete(ctx context.Context, cluster
 
 func (r *InMemoryMachineReconciler) reconcileDeleteCloudMachine(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -1015,7 +1009,6 @@ func (r *InMemoryMachineReconciler) reconcileDeleteCloudMachine(ctx context.Cont
 
 func (r *InMemoryMachineReconciler) reconcileDeleteNode(ctx context.Context, cluster *clusterv1.Cluster, _ *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -1040,9 +1033,10 @@ func (r *InMemoryMachineReconciler) reconcileDeleteETCD(ctx context.Context, clu
 		return ctrl.Result{}, nil
 	}
 
-	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	// Compute the resource group and listener unique name.
+	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
+	listenerName := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	etcdMember := fmt.Sprintf("etcd-%s", inMemoryMachine.Name)
@@ -1055,7 +1049,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteETCD(ctx context.Context, clu
 	if err := inmemoryClient.Delete(ctx, etcdPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete etcd Pod")
 	}
-	if err := r.APIServerMux.DeleteEtcdMember(resourceGroup, etcdMember); err != nil {
+	if err := r.APIServerMux.DeleteEtcdMember(listenerName, etcdMember); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -1073,9 +1067,10 @@ func (r *InMemoryMachineReconciler) reconcileDeleteAPIServer(ctx context.Context
 		return ctrl.Result{}, nil
 	}
 
-	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	// Compute the resource group and listener unique name.
+	// NOTE: we are using the same name for convenience, but it is not required.
 	resourceGroup := klog.KObj(cluster).String()
+	listenerName := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
 	apiServer := fmt.Sprintf("kube-apiserver-%s", inMemoryMachine.Name)
@@ -1088,7 +1083,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteAPIServer(ctx context.Context
 	if err := inmemoryClient.Delete(ctx, apiServerPod); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete apiServer Pod")
 	}
-	if err := r.APIServerMux.DeleteAPIServer(resourceGroup, apiServer); err != nil {
+	if err := r.APIServerMux.DeleteAPIServer(listenerName, apiServer); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -1102,7 +1097,6 @@ func (r *InMemoryMachineReconciler) reconcileDeleteScheduler(ctx context.Context
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 
@@ -1126,7 +1120,6 @@ func (r *InMemoryMachineReconciler) reconcileDeleteControllerManager(ctx context
 	}
 
 	// Compute the resource group unique name.
-	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
 	resourceGroup := klog.KObj(cluster).String()
 	inmemoryClient := r.InMemoryManager.GetResourceGroup(resourceGroup).GetClient()
 

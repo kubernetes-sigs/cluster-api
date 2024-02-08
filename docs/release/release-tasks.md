@@ -330,7 +330,7 @@ The goal of this task to make the book for the current release available under e
 
 1. Add a DNS entry for the book of the new release (should be available under e.g. `https://release-1-6.cluster-api.sigs.k8s.io`).
    <br>Prior art: [Add DNS for CAPI release-1.6 release branch](https://github.com/kubernetes/k8s.io/pull/6114)
-2. Open `https://release-1-6.cluster-api.sigs.k8s.io/` and verify that the certificates are valid.  If they are not, talk to someone with access to Netlify, they have to [click the `renew certificate` button](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/settings/domain#https) in the Netlify UI.
+2. Open `https://release-1-6.cluster-api.sigs.k8s.io/` and verify that the certificates are valid.  If they are not, reach out to CAPI maintainers and request someone with access Netlify [click the `renew certificate` button](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/settings/domain#https) in the Netlify UI.
     - To add new subdomains to the certificate config, checkout the email snippet [template](https://github.com/kubernetes-sigs/cluster-api/issues/6017#issuecomment-1823306891) for reference.
 3. Update references in introduction.md only on the main branch (drop unsupported versions, add the new release version).
    <br>Prior art: [Add release 1.5 book link](https://github.com/kubernetes-sigs/cluster-api/pull/9767)
@@ -385,7 +385,7 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
 
 The goal of this task to make the book for the current release available under `https://cluster-api.sigs.k8s.io`.
 
-Someone with access to Netlify should:
+Reach out to the CAPI maintainers to request someone with access to Netlify perform the following steps:
 
 1. Change production branch in Netlify the current release branch (e.g. `release-1.6`) to make the book available under `https://cluster-api.sigs.k8s.io`. It's done under [production branch settings](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/settings/deploys#branches-and-deploy-contexts)
 2. [Trigger a redeploy](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/deploys).

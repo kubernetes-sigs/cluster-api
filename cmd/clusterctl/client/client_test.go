@@ -176,7 +176,7 @@ func newFakeClient(ctx context.Context, configClient config.Client) *fakeClient 
 	fake.internalClient, _ = newClusterctlClient(ctx, "fake-config",
 		InjectConfig(fake.configClient),
 		InjectClusterClientFactory(clusterClientFactory),
-		InjectRepositoryFactory(func(ctx context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
+		InjectRepositoryFactory(func(_ context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
 			if _, ok := fake.repositories[input.Provider.ManifestLabel()]; !ok {
 				return nil, errors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
 			}
@@ -212,14 +212,14 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 	}
 
 	fake.fakeProxy = test.NewFakeProxy()
-	pollImmediateWaiter := func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
+	pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 		return nil
 	}
 
 	fake.internalclient = cluster.New(kubeconfig, configClient,
 		cluster.InjectProxy(fake.fakeProxy),
 		cluster.InjectPollImmediateWaiter(pollImmediateWaiter),
-		cluster.InjectRepositoryFactory(func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+		cluster.InjectRepositoryFactory(func(_ context.Context, provider config.Provider, _ config.Client, _ ...repository.Option) (repository.Client, error) {
 			if _, ok := fake.repositories[provider.Name()]; !ok {
 				return nil, errors.Errorf("repository for kubeconfig %q does not exist", provider.Name())
 			}

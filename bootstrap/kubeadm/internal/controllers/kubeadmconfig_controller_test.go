@@ -179,7 +179,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 	key := client.ObjectKeyFromObject(config)
 	actual := &corev1.Secret{}
 
-	t.Run("KubeadmConfig ownerReference is added on first reconcile", func(t *testing.T) {
+	t.Run("KubeadmConfig ownerReference is added on first reconcile", func(*testing.T) {
 		_, err = k.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -191,7 +191,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
 
-	t.Run("KubeadmConfig ownerReference re-reconciled without error", func(t *testing.T) {
+	t.Run("KubeadmConfig ownerReference re-reconciled without error", func(*testing.T) {
 		_, err = k.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -202,7 +202,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		g.Expect(controllerOwner.Kind).To(Equal(config.Kind))
 		g.Expect(controllerOwner.Name).To(Equal(config.Name))
 	})
-	t.Run("non-KubeadmConfig controller OwnerReference is replaced", func(t *testing.T) {
+	t.Run("non-KubeadmConfig controller OwnerReference is replaced", func(*testing.T) {
 		g.Expect(myclient.Get(ctx, key, actual)).To(Succeed())
 
 		actual.SetOwnerReferences([]metav1.OwnerReference{
@@ -741,7 +741,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			name:        "Join a worker node with a fully compiled kubeadm config object",
 			machinePool: newWorkerMachinePoolForCluster(cluster),
 			configName:  "workerpool-join-cfg",
-			configBuilder: func(namespace, name string) *bootstrapv1.KubeadmConfig {
+			configBuilder: func(namespace, _ string) *bootstrapv1.KubeadmConfig {
 				return newWorkerJoinKubeadmConfig(namespace, "workerpool-join-cfg")
 			},
 		},

@@ -34,7 +34,7 @@ import (
 // HTTPStreamReceived is the httpstream.NewStreamHandler for port
 // forward streams. Each valid stream is sent to the streams channel.
 func HTTPStreamReceived(streamsCh chan httpstream.Stream) func(httpstream.Stream, <-chan struct{}) error {
-	return func(stream httpstream.Stream, replySent <-chan struct{}) error {
+	return func(stream httpstream.Stream, _ <-chan struct{}) error {
 		// make sure it has a valid stream type header
 		streamType := stream.Headers().Get(corev1.StreamType)
 		if streamType == "" {

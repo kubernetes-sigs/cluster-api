@@ -549,7 +549,7 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	})
 
 	// Setup a handler for returning no releases.
-	muxGoproxy.HandleFunc("/github.com/o/r2/@v/list", func(w http.ResponseWriter, r *http.Request) {
+	muxGoproxy.HandleFunc("/github.com/o/r2/@v/list", func(_ http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		// no releases
 	})

@@ -84,7 +84,7 @@ var deleteCmd = &cobra.Command{
 		# are "orphaned" and thus there may be ongoing costs incurred as a result of this.
 		clusterctl delete --all --include-crd  --include-namespace`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runDelete()
 	},
 }

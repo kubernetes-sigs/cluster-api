@@ -43,7 +43,7 @@ func Test_etcd_scalingflow(t *testing.T) {
 	g := NewWithT(t)
 	ctx := metadata.NewIncomingContext(context.Background(), metadata.New(map[string]string{":authority": "etcd-1"}))
 	manager := inmemoryruntime.NewManager(scheme)
-	resourceGroupResolver := func(host string) (string, error) { return "group1", nil }
+	resourceGroupResolver := func(string) (string, error) { return "group1", nil }
 	c := &clusterServerServer{
 		baseServer: &baseServer{
 			log:                   log.FromContext(ctx),
@@ -99,7 +99,7 @@ func Test_etcd_scalingflow(t *testing.T) {
 	var etcdMemberToRemove uint64 = 2
 	var etcdMemberToBeLeader uint64 = 3
 
-	t.Run("move leader and remove etcd member", func(t *testing.T) {
+	t.Run("move leader and remove etcd member", func(*testing.T) {
 		_, err := m.MoveLeader(ctx, &pb.MoveLeaderRequest{TargetID: etcdMemberToBeLeader})
 		g.Expect(err).NotTo(HaveOccurred())
 

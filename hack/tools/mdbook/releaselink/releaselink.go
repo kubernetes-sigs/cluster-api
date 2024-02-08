@@ -47,7 +47,7 @@ func (ReleaseLink) SupportsOutput(_ string) bool { return true }
 
 // Process modifies the book in the input, which gets returned as the result of the plugin.
 func (l ReleaseLink) Process(input *plugin.Input) error {
-	return plugin.EachCommand(&input.Book, "releaselink", func(chapter *plugin.BookChapter, args string) (string, error) {
+	return plugin.EachCommand(&input.Book, "releaselink", func(_ *plugin.BookChapter, args string) (string, error) {
 		var gomodule, asset, repo string
 		var found bool
 

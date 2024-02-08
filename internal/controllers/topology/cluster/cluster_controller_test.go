@@ -1420,7 +1420,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			initObjects := []client.Object{tt.initialCluster, tt.clusterClass}
 			fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(initObjects...).Build()
 			r := &Reconciler{
@@ -1513,7 +1513,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			initObjects := []client.Object{tt.cluster, tt.clusterClass}
 			fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(initObjects...).Build()
 			r := &Reconciler{

@@ -176,7 +176,7 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 		},
 	}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			l := &ControlPlaneInitMutex{
 				client: tc.client,
 			}

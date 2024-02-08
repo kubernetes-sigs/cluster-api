@@ -56,7 +56,7 @@ func NewCmdRolloutUndo(cfgFile string) *cobra.Command {
 		Short:                 "Undo a cluster-api resource",
 		Long:                  undoLong,
 		Example:               undoExample,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runUndo(cfgFile, args)
 		},
 	}

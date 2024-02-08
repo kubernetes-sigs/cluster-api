@@ -101,7 +101,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			fn := MachineToInfrastructureMapFunc(tc.input)
 			out := fn(ctx, tc.request)
 			g.Expect(out).To(BeComparableTo(tc.output))
@@ -316,7 +316,7 @@ func TestHasOwner(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(*testing.T) {
 			result := HasOwner(
 				test.refList,
 				clusterv1.GroupVersion.String(),
@@ -433,7 +433,7 @@ func TestIsOwnedByObject(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
+		t.Run(test.name, func(*testing.T) {
 			pointer := &metav1.ObjectMeta{
 				OwnerReferences: test.refs,
 			}
@@ -542,7 +542,7 @@ func TestGetOwnerMachineSuccessByNameFromDifferentVersion(t *testing.T) {
 func TestIsExternalManagedControlPlane(t *testing.T) {
 	g := NewWithT(t)
 
-	t.Run("should return true if control plane status externalManagedControlPlane is true", func(t *testing.T) {
+	t.Run("should return true if control plane status externalManagedControlPlane is true", func(*testing.T) {
 		controlPlane := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"status": map[string]interface{}{
@@ -554,7 +554,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 		g.Expect(result).Should(BeTrue())
 	})
 
-	t.Run("should return false if control plane status externalManagedControlPlane is false", func(t *testing.T) {
+	t.Run("should return false if control plane status externalManagedControlPlane is false", func(*testing.T) {
 		controlPlane := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"status": map[string]interface{}{
@@ -566,7 +566,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 		g.Expect(result).Should(BeFalse())
 	})
 
-	t.Run("should return false if control plane status externalManagedControlPlane is not set", func(t *testing.T) {
+	t.Run("should return false if control plane status externalManagedControlPlane is not set", func(*testing.T) {
 		controlPlane := &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"status": map[string]interface{}{
@@ -582,7 +582,7 @@ func TestIsExternalManagedControlPlane(t *testing.T) {
 func TestEnsureOwnerRef(t *testing.T) {
 	g := NewWithT(t)
 
-	t.Run("should set ownerRef on an empty list", func(t *testing.T) {
+	t.Run("should set ownerRef on an empty list", func(*testing.T) {
 		obj := &clusterv1.Machine{}
 		ref := metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -593,7 +593,7 @@ func TestEnsureOwnerRef(t *testing.T) {
 		g.Expect(obj.OwnerReferences).Should(ContainElement(ref))
 	})
 
-	t.Run("should not duplicate owner references", func(t *testing.T) {
+	t.Run("should not duplicate owner references", func(*testing.T) {
 		obj := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
@@ -615,7 +615,7 @@ func TestEnsureOwnerRef(t *testing.T) {
 		g.Expect(obj.OwnerReferences).Should(HaveLen(1))
 	})
 
-	t.Run("should update the APIVersion if duplicate", func(t *testing.T) {
+	t.Run("should update the APIVersion if duplicate", func(*testing.T) {
 		oldgvk := schema.GroupVersion{
 			Group:   clusterv1.GroupVersion.Group,
 			Version: "v1alpha2",
@@ -877,7 +877,7 @@ func TestRemoveOwnerRef(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Use a fresh ownerRefs slice for each test, because RemoveOwnerRef may modify the underlying array.
 			ownerRefs := makeOwnerRefs()
 			ownerRefs = RemoveOwnerRef(ownerRefs, tt.toBeRemoved)

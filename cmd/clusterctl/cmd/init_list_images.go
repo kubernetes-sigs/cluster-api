@@ -43,7 +43,7 @@ var initListImagesCmd = &cobra.Command{
 		clusterctl init list-images --infrastructure vcd --bootstrap kubeadm --control-plane nested --core cluster-api:v1.2.0
 	`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runInitListImages()
 	},
 }

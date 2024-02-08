@@ -62,7 +62,7 @@ var generateYamlCmd = &cobra.Command{
 		cat ~/workspace/cluster-template.yaml | clusterctl generate yaml --list-variables
 `),
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return generateYAML(os.Stdin, os.Stdout)
 	},
 }

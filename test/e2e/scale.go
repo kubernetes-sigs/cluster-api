@@ -703,7 +703,7 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 type clusterUpgrader func(ctx context.Context, namespace, clusterName string, clusterTemplateYAML []byte)
 
 func getClusterUpgradeAndWaitFn(input framework.UpgradeClusterTopologyAndWaitForUpgradeInput) clusterUpgrader {
-	return func(ctx context.Context, namespace, clusterName string, clusterTemplateYAML []byte) {
+	return func(ctx context.Context, namespace, clusterName string, _ []byte) {
 		resources := getClusterResourcesForUpgrade(ctx, input.ClusterProxy.GetClient(), namespace, clusterName)
 		// Nb. We cannot directly modify and use `input` in this closure function because this function
 		// will be called multiple times and this closure will keep modifying the same `input` multiple

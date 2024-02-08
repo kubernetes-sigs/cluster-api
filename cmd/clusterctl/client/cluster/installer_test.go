@@ -245,7 +245,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 				configClient:      configClient,
 				proxy:             tt.fields.proxy,
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
-				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(repositoryMap[provider.ManifestLabel()]))
 				},
 				installQueue: tt.fields.installQueue,

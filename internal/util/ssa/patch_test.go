@@ -38,7 +38,7 @@ func TestPatch(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "ssa")
 	g.Expect(err).ToNot(HaveOccurred())
 
-	t.Run("Test patch with unstructured", func(t *testing.T) {
+	t.Run("Test patch with unstructured", func(*testing.T) {
 		// Build the test object to work with.
 		initialObject := builder.TestInfrastructureCluster(ns.Name, "obj1").WithSpecFields(map[string]interface{}{
 			"spec.controlPlaneEndpoint.host": "1.2.3.4",
@@ -88,7 +88,7 @@ func TestPatch(t *testing.T) {
 		g.Expect(ssaCache.Has(requestIdentifier)).To(BeTrue())
 	})
 
-	t.Run("Test patch with Machine", func(t *testing.T) {
+	t.Run("Test patch with Machine", func(*testing.T) {
 		// Build the test object to work with.
 		initialObject := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{

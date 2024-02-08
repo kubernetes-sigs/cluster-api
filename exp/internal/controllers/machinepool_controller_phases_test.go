@@ -1248,7 +1248,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 		cluster := builder.Cluster(ns.Name, clusterName).Build()
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 
-		t.Run("Should do nothing if machines already exist", func(t *testing.T) {
+		t.Run("Should do nothing if machines already exist", func(*testing.T) {
 			machinePool := getMachinePool(2, "machinepool-test-1", clusterName, ns.Name)
 			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
 
@@ -1314,7 +1314,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			}
 		})
 
-		t.Run("Should create two machines if two infra machines exist", func(t *testing.T) {
+		t.Run("Should create two machines if two infra machines exist", func(*testing.T) {
 			machinePool := getMachinePool(2, "machinepool-test-2", clusterName, ns.Name)
 			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
 
@@ -1375,7 +1375,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			}
 		})
 
-		t.Run("Should do nothing if machinepool does not support machinepool machines", func(t *testing.T) {
+		t.Run("Should do nothing if machinepool does not support machinepool machines", func(*testing.T) {
 			machinePool := getMachinePool(2, "machinepool-test-3", clusterName, ns.Name)
 			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
 

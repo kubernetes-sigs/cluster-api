@@ -178,7 +178,7 @@ func TestAddAnnotations(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			res := AddAnnotations(tc.obj, tc.input)
 			g.Expect(res).To(Equal(tc.changed))
 			g.Expect(tc.obj.GetAnnotations()).To(Equal(tc.expected))

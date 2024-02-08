@@ -36,7 +36,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+	setupReconcilers := func(_ context.Context, mgr ctrl.Manager) {
 		var err error
 		secretCachingClient, err = client.New(mgr.GetConfig(), client.Options{
 			HTTPClient: mgr.GetHTTPClient(),

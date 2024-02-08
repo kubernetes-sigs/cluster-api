@@ -64,7 +64,7 @@ func (c *cache) startGarbageCollector(ctx context.Context) error {
 		wg.Wait()
 	}()
 
-	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(ctx context.Context) (done bool, err error) {
+	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (done bool, err error) {
 		if atomic.LoadInt64(&workers) < int64(c.garbageCollectorConcurrency) {
 			return false, nil
 		}

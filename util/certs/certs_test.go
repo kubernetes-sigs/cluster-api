@@ -133,7 +133,7 @@ func TestDecodeCertPEM(t *testing.T) {
 
 	for _, tc := range cases {
 		g := NewWithT(t)
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			_, err := DecodeCertPEM(tc.key)
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())

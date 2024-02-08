@@ -84,7 +84,7 @@ var topologyPlanCmd = &cobra.Command{
 		clusterctl alpha topology plan -f modified-template.yaml -o output/
 	`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runTopologyPlan()
 	},
 }

@@ -884,7 +884,7 @@ func newFakeClientWithoutCluster(configClient config.Client) *fakeClient {
 	var err error
 	fake.internalClient, err = newClusterctlClient(context.Background(), "fake-config",
 		InjectConfig(fake.configClient),
-		InjectRepositoryFactory(func(ctx context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
+		InjectRepositoryFactory(func(_ context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
 			if _, ok := fake.repositories[input.Provider.ManifestLabel()]; !ok {
 				return nil, errors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
 			}
@@ -1067,7 +1067,7 @@ v3: default3`,
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			config1 := newFakeConfig(ctx).
 				WithProvider(infraProviderConfig)
 			cluster1 := newFakeCluster(cluster.Kubeconfig{}, config1)

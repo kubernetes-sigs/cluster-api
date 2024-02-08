@@ -51,7 +51,7 @@ func Test_WalkTemplates(t *testing.T) {
 		controlplanev1.GroupVersion,
 		bootstrapv1.GroupVersion,
 	)
-	mutatingFunc := func(ctx context.Context, obj runtime.Object, variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error {
+	mutatingFunc := func(_ context.Context, obj runtime.Object, _ map[string]apiextensionsv1.JSON, _ runtimehooksv1.HolderReference) error {
 		switch obj := obj.(type) {
 		case *controlplanev1.KubeadmControlPlaneTemplate:
 			obj.Annotations = map[string]string{"a": "a"}
@@ -218,7 +218,7 @@ func Test_WalkTemplates(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			response := &runtimehooksv1.GeneratePatchesResponse{}
 			request := &runtimehooksv1.GeneratePatchesRequest{Variables: tt.globalVariables, Items: tt.requestItems}
 

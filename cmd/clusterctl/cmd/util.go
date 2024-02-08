@@ -63,7 +63,7 @@ func printVariablesOutput(template client.Template, options client.GetClusterTem
 		if variableMap[name] != nil {
 			v := *variableMap[name]
 			// Add quotes around any unquoted strings
-			if len(v) > 0 && !strings.HasPrefix(v, "\"") {
+			if v != "" && !strings.HasPrefix(v, "\"") {
 				v = fmt.Sprintf("%q", v)
 				variableMap[name] = &v
 			}

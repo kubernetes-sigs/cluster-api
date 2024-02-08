@@ -80,13 +80,13 @@ func TestIPAddressValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "a valid IPv4 Address should be accepted",
-			ip:        getAddress(false, func(addr *ipamv1.IPAddress) {}),
+			ip:        getAddress(false, func(*ipamv1.IPAddress) {}),
 			extraObjs: []client.Object{claim},
 			expectErr: false,
 		},
 		{
 			name:      "a valid IPv6 Address should be accepted",
-			ip:        getAddress(true, func(addr *ipamv1.IPAddress) {}),
+			ip:        getAddress(true, func(*ipamv1.IPAddress) {}),
 			extraObjs: []client.Object{claim},
 			expectErr: false,
 		},
@@ -201,13 +201,13 @@ func TestIPAddressValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:      "should accept objects with identical spec",
-			oldIP:     getAddress(func(addr *ipamv1.IPAddress) {}),
-			newIP:     getAddress(func(addr *ipamv1.IPAddress) {}),
+			oldIP:     getAddress(func(*ipamv1.IPAddress) {}),
+			newIP:     getAddress(func(*ipamv1.IPAddress) {}),
 			expectErr: false,
 		},
 		{
 			name:  "should reject objects with different spec",
-			oldIP: getAddress(func(addr *ipamv1.IPAddress) {}),
+			oldIP: getAddress(func(*ipamv1.IPAddress) {}),
 			newIP: getAddress(func(addr *ipamv1.IPAddress) {
 				addr.Spec.Address = "10.0.0.2"
 			}),

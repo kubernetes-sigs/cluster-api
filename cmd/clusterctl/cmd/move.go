@@ -58,7 +58,7 @@ var moveCmd = &cobra.Command{
 		clusterctl move --from-directory /tmp/backup-directory
 	`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runMove()
 	},
 }

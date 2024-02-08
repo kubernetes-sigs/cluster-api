@@ -53,9 +53,9 @@ func ClusterCreateInfraReady(logger logr.Logger) predicate.Funcs {
 			log.V(4).Info("Cluster infrastructure is not ready, blocking further processing")
 			return false
 		},
-		UpdateFunc:  func(e event.UpdateEvent) bool { return false },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-		GenericFunc: func(e event.GenericEvent) bool { return false },
+		UpdateFunc:  func(event.UpdateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 }
 
@@ -82,9 +82,9 @@ func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
 			log.V(4).Info("Cluster is paused, blocking further processing")
 			return false
 		},
-		UpdateFunc:  func(e event.UpdateEvent) bool { return false },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-		GenericFunc: func(e event.GenericEvent) bool { return false },
+		UpdateFunc:  func(event.UpdateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 }
 
@@ -112,9 +112,9 @@ func ClusterUpdateInfraReady(logger logr.Logger) predicate.Funcs {
 			log.V(4).Info("Cluster infrastructure did not become ready, blocking further processing")
 			return false
 		},
-		CreateFunc:  func(e event.CreateEvent) bool { return false },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-		GenericFunc: func(e event.GenericEvent) bool { return false },
+		CreateFunc:  func(event.CreateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 }
 
@@ -144,9 +144,9 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 			log.V(6).Info("Cluster was not unpaused, blocking further processing")
 			return false
 		},
-		CreateFunc:  func(e event.CreateEvent) bool { return false },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-		GenericFunc: func(e event.GenericEvent) bool { return false },
+		CreateFunc:  func(event.CreateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 }
 
@@ -200,9 +200,9 @@ func ClusterControlPlaneInitialized(logger logr.Logger) predicate.Funcs {
 			log.V(6).Info("Cluster ControlPlaneInitialized hasn't changed, blocking further processing")
 			return false
 		},
-		CreateFunc:  func(e event.CreateEvent) bool { return false },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-		GenericFunc: func(e event.GenericEvent) bool { return false },
+		CreateFunc:  func(event.CreateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 }
 

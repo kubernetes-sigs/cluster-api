@@ -89,7 +89,7 @@ var (
 		Short:   "Output shell completion code for the specified shell (bash, zsh or fish)",
 		Long:    LongDesc(completionLong),
 		Example: completionExample,
-		Args: func(cmd *cobra.Command, args []string) error {
+		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
 				return errors.New("please specify a shell")
 			}
@@ -164,7 +164,7 @@ func runCompletionZsh(out io.Writer, cmd *cobra.Command) error {
 }
 
 func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		configClient, err := config.New(context.Background(), cfgFile)
 		if err != nil {
 			return completionError(err)
@@ -181,7 +181,7 @@ func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, 
 }
 
 func resourceNameCompletionFunc(kubeconfigFlag, contextFlag, namespaceFlag *pflag.Flag, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return func(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		ctx := context.Background()
 
 		configClient, err := config.New(ctx, cfgFile)

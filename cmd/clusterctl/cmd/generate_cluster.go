@@ -92,7 +92,7 @@ var generateClusterClusterCmd = &cobra.Command{
 		# Prints the list of variables required by the yaml file for creating workload cluster.
 		clusterctl generate cluster my-cluster --list-variables`),
 
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(_ *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			return errors.New("please specify a cluster name")
 		}

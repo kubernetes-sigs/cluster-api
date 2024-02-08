@@ -122,7 +122,7 @@ func TestUpgrading(t *testing.T) {
 
 	ctx := context.Background()
 
-	t.Run("should return the names of the upgrading MachineDeployments", func(t *testing.T) {
+	t.Run("should return the names of the upgrading MachineDeployments", func(*testing.T) {
 		stableMD := builder.MachineDeployment("ns", "stableMD").
 			WithClusterName("cluster1").
 			WithVersion("v1.2.3").

@@ -66,7 +66,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		t.Run("fails if unknown kind", func(t *testing.T) {
+		t.Run("fails if unknown kind", func(*testing.T) {
 			// TODO implement test case
 		})
 
@@ -226,7 +226,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		t.Run("fails if unknown kind", func(t *testing.T) {
+		t.Run("fails if unknown kind", func(*testing.T) {
 			// TODO implement test case
 		})
 
@@ -298,7 +298,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		t.Run("fails if unknown kind", func(t *testing.T) {
+		t.Run("fails if unknown kind", func(*testing.T) {
 			// TODO implement test case
 		})
 
@@ -364,7 +364,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		t.Run("fails if unknown kind", func(t *testing.T) {
+		t.Run("fails if unknown kind", func(*testing.T) {
 			// TODO implement test case
 		})
 
@@ -583,7 +583,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(apierrors.IsBadRequest(err)).To(BeTrue())
 		})
 
-		t.Run("fails if unknown kind", func(t *testing.T) {
+		t.Run("fails if unknown kind", func(*testing.T) {
 			// TODO implement test case
 		})
 

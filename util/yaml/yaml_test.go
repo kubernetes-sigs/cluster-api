@@ -211,7 +211,7 @@ func TestParseClusterYaml(t *testing.T) {
 		},
 	}
 	for _, testcase := range testcases {
-		t.Run(testcase.name, func(t *testing.T) {
+		t.Run(testcase.name, func(*testing.T) {
 			file, err := createTempFile(testcase.contents)
 			g.Expect(err).ToNot(HaveOccurred())
 			defer os.Remove(file)
@@ -285,7 +285,7 @@ func TestParseMachineYaml(t *testing.T) {
 		},
 	}
 	for _, testcase := range testcases {
-		t.Run(testcase.name, func(t *testing.T) {
+		t.Run(testcase.name, func(*testing.T) {
 			file, err := createTempFile(testcase.contents)
 			g.Expect(err).ToNot(HaveOccurred())
 			defer os.Remove(file)

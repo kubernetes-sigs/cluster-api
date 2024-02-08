@@ -57,7 +57,7 @@ func NewCmdRolloutResume(cfgFile string) *cobra.Command {
 		Short:                 "Resume a cluster-api resource",
 		Long:                  resumeLong,
 		Example:               resumeExample,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runResume(cfgFile, args)
 		},
 	}

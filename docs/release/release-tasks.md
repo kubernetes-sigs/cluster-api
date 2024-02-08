@@ -337,16 +337,26 @@ The goal of this task to make the book for the current release available under e
 
 #### Generate weekly PR updates to post in Slack
 The goal of this task is to keep the CAPI community updated on recent PRs that have been merged. This is done by using the weekly update tool in `hack/tools/release/weekly/main.go`. Here is how to use it:
-1. Checkout the latest commit on the release branch, e.g. `release-1.6`, or the main branch if the release branch doesn't yet exist (e.g. beta release).
-2. Build the release weekly update tools binary.
+1. Build the release weekly update tools binary.
    ```bash
    make release-weekly-update-tool
    ```
-3. Generate the weekly update with the following command:
+2. Generate the weekly update with the following command for desired branches:
    ```bash
-   ./bin/weekly --from YYYY-MM-DD --to YYYY-MM-DD --milestone v1.x
+   ./bin/weekly --since <YYYY-MM-DD> --until <YYYY-MM-DD> --branch <branch_name>
    ```
-4. Paste the output into a new Slack message in the [`#cluster-api`](https://kubernetes.slack.com/archives/C8TSNPY4T) channel. Currently, we post separate messages in a thread for `main` and the two most recent release branches (e.g. `release-1.5` and `release-1.4`).
+   **Note:** the `GITHUB_TOKEN` environment variable can be set to prevent/reduce GitHub rate limiting issues.
+3. Paste the output into a new Slack message in the [`#cluster-api`](https://kubernetes.slack.com/archives/C8TSNPY4T) channel. Currently, we post separate messages in a thread for the branch `main` - which corresponds to the active milestone - as well as the two most recent release branches (e.g. `release-1.6` and `release-1.5`).
+
+   Example commands to run for the weekly update during ongoing development towards release 1.7:
+   ```bash
+   # Main branch changes, which correspond to actively worked on release 1.7
+   ./bin/weekly --since 2024-01-22 --until 2024-01-28 --branch main
+
+   # Previous 2 release branches
+   ./bin/weekly --since 2024-01-22 --until 2024-01-28 --branch release-1.6
+   ./bin/weekly --since 2024-01-22 --until 2024-01-28 --branch release-1.5
+   ```
 
 #### Create PR for release notes
 1. Checkout the `main` branch.

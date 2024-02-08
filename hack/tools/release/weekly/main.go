@@ -21,13 +21,17 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 
 	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"
 )
@@ -50,47 +54,62 @@ var (
 		release.Unknown,
 	}
 
-	from = flag.String("from", "", "Include commits starting from and including this date. Accepts format: YYYY-MM-DD")
-	to   = flag.String("to", "", "Include commits up to and including this date. Accepts format: YYYY-MM-DD")
+	since  string
+	until  string
+	branch string
 
-	milestone = flag.String("milestone", "v1.4", "Milestone. Accepts format: v1.4")
+	timeLayout = "2006-01-02"
+	repo       = "cluster-api"
+	owner      = "kubernetes-sigs"
 
 	tagRegex = regexp.MustCompile(`^\[release-[\w-\.]*\]`)
 )
 
 func main() {
+	flag.StringVar(&since, "since", "", "Include commits starting from and including this date. Accepts format: YYYY-MM-DD")
+	flag.StringVar(&until, "until", "", "Include commits up to and including this date. Accepts format: YYYY-MM-DD")
+	flag.StringVar(&branch, "branch", "release-1.6", "Release branch. Accepts formats: main, release-1.6")
 	flag.Parse()
 	os.Exit(run())
 }
 
-// Since git doesn't include the last day in rev-list we want to increase 1 day to include it in the interval.
-func increaseDateByOneDay(date string) (string, error) {
-	layout := "2006-01-02"
-	datetime, err := time.Parse(layout, date)
-	if err != nil {
-		return "", err
-	}
-	datetime = datetime.Add(time.Hour * 24)
-	return datetime.Format(layout), nil
-}
-
 func run() int {
-	var commitRange string
-	var cmd *exec.Cmd
-
-	if *from == "" && *to == "" {
-		fmt.Println("--from and --to are required together or both unset")
+	if since == "" && until == "" {
+		fmt.Println("--since and --until are required together or both unset")
 		return 1
 	}
 
-	commitRange = fmt.Sprintf("%s to %s", *from, *to)
-	lastDay, err := increaseDateByOneDay(*to)
+	ghToken := os.Getenv("GITHUB_TOKEN")
+	client := createGitHubClient(ghToken)
+
+	branchValid, err := isValidBranch(branch, owner, repo, client)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Unable to verify if branch '%s' is valid: %s\n", branch, err.Error())
 		return 1
 	}
 
-	cmd = exec.Command("git", "rev-list", "HEAD", "--since=\""+*from+" 00:00:01\"", "--until=\""+lastDay+" 23:59:59\"", "--merges", "--pretty=format:%B") //nolint:gosec
+	if !branchValid {
+		fmt.Printf("Invalid branch '%s': branch does not exist. Example of valid branches: main, release-1.5.\n", branch)
+		return 1
+	}
+
+	sinceTime, err := parseTime(since)
+	if err != nil {
+		fmt.Printf("Unable to parse time for 'since' parameter: %s\n", since)
+		return 1
+	}
+
+	untilTime, err := parseTime(until)
+	if err != nil {
+		fmt.Printf("Unable to parse time for 'until' parameter: %s\n", until)
+		return 1
+	}
+
+	pullRequests, err := getMergedPullRequests(client, owner, repo, branch, sinceTime, untilTime)
+	if err != nil {
+		fmt.Println("Unable to get merged pull requests:", err.Error())
+		return 1
+	}
 
 	merges := map[string][]string{
 		release.Features:      {},
@@ -100,93 +119,53 @@ func run() int {
 		release.Other:         {},
 		release.Unknown:       {},
 	}
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		fmt.Println("Error")
-		fmt.Println(err)
-		fmt.Println(string(out))
-		return 1
-	}
 
-	commits := []*commit{}
-	outLines := strings.Split(string(out), "\n")
-	for _, line := range outLines {
-		line = strings.TrimSpace(line)
-		last := len(commits) - 1
+	for _, pr := range pullRequests {
+		prTitle := trimTitle(pr.GetTitle())
+		var key, prNumber string
 		switch {
-		case strings.HasPrefix(line, "commit"):
-			commits = append(commits, &commit{})
-		case strings.HasPrefix(line, "Merge"):
-			commits[last].merge = line
-			continue
-		case line == "":
-		default:
-			commits[last].body = line
-		}
-	}
-
-	for _, c := range commits {
-		body := trimTitle(c.body)
-		var key, prNumber, fork string
-		switch {
-		case strings.HasPrefix(body, ":sparkles:"), strings.HasPrefix(body, "✨"):
+		case strings.HasPrefix(prTitle, ":sparkles:"), strings.HasPrefix(prTitle, "✨"):
 			key = release.Features
-			body = strings.TrimPrefix(body, ":sparkles:")
-			body = strings.TrimPrefix(body, "✨")
-		case strings.HasPrefix(body, ":bug:"), strings.HasPrefix(body, "🐛"):
+			prTitle = strings.TrimPrefix(prTitle, ":sparkles:")
+			prTitle = strings.TrimPrefix(prTitle, "✨")
+		case strings.HasPrefix(prTitle, ":bug:"), strings.HasPrefix(prTitle, "🐛"):
 			key = release.Bugs
-			body = strings.TrimPrefix(body, ":bug:")
-			body = strings.TrimPrefix(body, "🐛")
-		case strings.HasPrefix(body, ":book:"), strings.HasPrefix(body, "📖"):
+			prTitle = strings.TrimPrefix(prTitle, ":bug:")
+			prTitle = strings.TrimPrefix(prTitle, "🐛")
+		case strings.HasPrefix(prTitle, ":book:"), strings.HasPrefix(prTitle, "📖"):
 			key = release.Documentation
-			body = strings.TrimPrefix(body, ":book:")
-			body = strings.TrimPrefix(body, "📖")
-			if strings.Contains(body, "CAEP") || strings.Contains(body, "proposal") {
+			prTitle = strings.TrimPrefix(prTitle, ":book:")
+			prTitle = strings.TrimPrefix(prTitle, "📖")
+			if strings.Contains(prTitle, "CAEP") || strings.Contains(prTitle, "proposal") {
 				key = release.Proposals
 			}
-		case strings.HasPrefix(body, ":seedling:"), strings.HasPrefix(body, "🌱"):
+		case strings.HasPrefix(prTitle, ":seedling:"), strings.HasPrefix(prTitle, "🌱"):
 			key = release.Other
-			body = strings.TrimPrefix(body, ":seedling:")
-			body = strings.TrimPrefix(body, "🌱")
-		case strings.HasPrefix(body, ":warning:"), strings.HasPrefix(body, "⚠️"):
+			prTitle = strings.TrimPrefix(prTitle, ":seedling:")
+			prTitle = strings.TrimPrefix(prTitle, "🌱")
+		case strings.HasPrefix(prTitle, ":warning:"), strings.HasPrefix(prTitle, "⚠️"):
 			key = release.Warning
-			body = strings.TrimPrefix(body, ":warning:")
-			body = strings.TrimPrefix(body, "⚠️")
+			prTitle = strings.TrimPrefix(prTitle, ":warning:")
+			prTitle = strings.TrimPrefix(prTitle, "⚠️")
 		default:
 			key = release.Unknown
 		}
 
-		body = strings.TrimSpace(body)
-		if body == "" {
+		prTitle = strings.TrimSpace(prTitle)
+		if prTitle == "" {
 			continue
 		}
-		body = fmt.Sprintf("\t - %s", body)
-		_, _ = fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
+		prTitle = fmt.Sprintf("\t - %s", prTitle)
 		if key == release.Documentation {
 			merges[key] = append(merges[key], prNumber)
 			continue
 		}
-		merges[key] = append(merges[key], formatMerge(body, prNumber))
+		merges[key] = append(merges[key], formatMerge(prTitle, strconv.Itoa(pr.GetNumber())))
 	}
 
-	// fetch the current branch
-	out, err = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD").CombinedOutput()
-	if err != nil {
-		fmt.Println("Error")
-		fmt.Println(err)
-		fmt.Println(string(out))
-		return 1
-	}
-
-	branch := strings.TrimSpace(string(out))
-	if branch == "" {
-		fmt.Println("Error: failed to get current branch!!!")
-		return 1
-	}
-
-	// TODO Turn this into a link (requires knowing the project name + organization)
+	// TODO Turn this into a link (requires knowing the project name + organization).
 	fmt.Println("Weekly update :rotating_light:")
-	fmt.Printf("Changes from %v a total of %d new commits were merged into %s.\n\n", commitRange, len(commits), branch)
+	fmt.Printf("From %s to %s a total of %d changes merged into %s.\n\n", sinceTime.Format(timeLayout), untilTime.Format(timeLayout), len(pullRequests), branch)
 
 	for _, key := range outputOrder {
 		mergeslice := merges[key]
@@ -209,9 +188,9 @@ func run() int {
 	}
 
 	fmt.Println("All merged PRs can be viewed in GitHub:")
-	fmt.Println("https://github.com/kubernetes-sigs/cluster-api/pulls?q=is%3Apr+closed%3A" + *from + ".." + lastDay + "+is%3Amerged+milestone%3A" + *milestone + "+\n")
+	fmt.Println("https://github.com/kubernetes-sigs/cluster-api/pulls?q=is%3Apr+closed%3A" + sinceTime.Format(timeLayout) + ".." + untilTime.Format(timeLayout) + "+is%3Amerged+base%3A" + branch + "+\n")
 
-	fmt.Println("_Thanks to all our contributors!_ 😊")
+	fmt.Println("*Thanks to all our contributors!* 😊")
 	fmt.Println("/Your friendly comms release team")
 
 	return 0
@@ -224,14 +203,93 @@ func trimTitle(title string) string {
 	return strings.TrimSpace(title)
 }
 
-type commit struct {
-	merge string
-	body  string
-}
-
 func formatMerge(line, prNumber string) string {
 	if prNumber == "" {
 		return line
 	}
-	return fmt.Sprintf("%s (%s)", line, prNumber)
+	return fmt.Sprintf("%s (#%s)", line, prNumber)
+}
+
+// Parse the time from string to time.Time format.
+func parseTime(date string) (time.Time, error) {
+	datetime, err := time.Parse(timeLayout, date)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return datetime, nil
+}
+
+func getMergedPullRequests(client *github.Client, owner string, repo string, branch string, since time.Time, until time.Time) ([]*github.PullRequest, error) {
+	var allPullRequests []*github.PullRequest
+
+	listOptions := &github.ListOptions{PerPage: 100}
+
+	for {
+		pullRequests, resp, err := client.PullRequests.List(context.Background(), owner, repo, &github.PullRequestListOptions{
+			State:       "closed",
+			Sort:        "updated",
+			Direction:   "desc",
+			ListOptions: *listOptions,
+			Base:        branch,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// Include PRs until EOD.
+		until = until.Add(time.Hour * 24)
+		for _, pr := range pullRequests {
+			// Our query returned PRs sorted by most recently _updated_.
+			// The moment we get a PR that is updated before our `since` timestamp,
+			// we have seen all _merged_ PRs since `since`.
+			if pr.UpdatedAt.Before(since) {
+				return allPullRequests, nil
+			}
+
+			if pr.MergedAt != nil && pr.MergedAt.After(since) && pr.MergedAt.Before(until) {
+				allPullRequests = append(allPullRequests, pr)
+			}
+		}
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		listOptions.Page = resp.NextPage
+	}
+
+	return allPullRequests, nil
+}
+
+// Checks if the branch exists.
+func isValidBranch(branchName string, owner string, repo string, client *github.Client) (bool, error) {
+	branches, _, err := client.Repositories.ListBranches(context.Background(), owner, repo, nil)
+	if err != nil {
+		return false, err
+	}
+	for _, branch := range branches {
+		if branchName == branch.GetName() {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// If the token is empty, we create a GitHub client without authentication
+// Using a token enables more api requests until we run into rate limitation
+// This is not necessary, but a nice to have when extending this script and going beyond
+// normal usage.
+func createGitHubClient(ghToken string) *github.Client {
+	if ghToken != "" {
+		ts := oauth2.StaticTokenSource(
+			&oauth2.Token{AccessToken: ghToken},
+		)
+
+		tc := oauth2.NewClient(context.Background(), ts)
+
+		return github.NewClient(tc)
+	}
+
+	return github.NewClient(nil)
 }

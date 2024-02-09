@@ -26,9 +26,9 @@ import (
 // ResourceCreateOrUpdate returns a predicate that returns true for create and update events.
 func ResourceCreateOrUpdate(_ logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
-		CreateFunc:  func(e event.CreateEvent) bool { return true },
-		UpdateFunc:  func(e event.UpdateEvent) bool { return true },
-		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-		GenericFunc: func(e event.GenericEvent) bool { return false },
+		CreateFunc:  func(event.CreateEvent) bool { return true },
+		UpdateFunc:  func(event.UpdateEvent) bool { return true },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
 }

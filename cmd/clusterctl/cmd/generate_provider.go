@@ -74,7 +74,7 @@ var generateProviderCmd = &cobra.Command{
 		# No variables will be processed and substituted using this flag
 		clusterctl generate provider --infrastructure aws:v0.4.1 --raw`),
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runGenerateProviderComponents()
 	},
 }

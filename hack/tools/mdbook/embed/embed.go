@@ -41,7 +41,7 @@ func (Embed) SupportsOutput(_ string) bool { return true }
 
 // Process modifies the book in the input, which gets returned as the result of the plugin.
 func (l Embed) Process(input *plugin.Input) error {
-	return plugin.EachCommand(&input.Book, "embed-github", func(chapter *plugin.BookChapter, args string) (string, error) {
+	return plugin.EachCommand(&input.Book, "embed-github", func(_ *plugin.BookChapter, args string) (string, error) {
 		tags := reflect.StructTag(strings.TrimSpace(args))
 
 		repository := tags.Get("repo")

@@ -1274,7 +1274,7 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 		return nil, errors.Wrapf(err, "failed to generate name for %s", object.GetKind())
 	}
 	object.SetName(name)
-	if in.currentObjectRef != nil && len(in.currentObjectRef.Name) > 0 {
+	if in.currentObjectRef != nil && in.currentObjectRef.Name != "" {
 		object.SetName(in.currentObjectRef.Name)
 	}
 
@@ -1338,7 +1338,7 @@ func templateToTemplate(in templateToInput) (*unstructured.Unstructured, error) 
 		return nil, errors.Wrapf(err, "failed to generate name for %s", template.GetKind())
 	}
 	template.SetName(name)
-	if in.currentObjectRef != nil && len(in.currentObjectRef.Name) > 0 {
+	if in.currentObjectRef != nil && in.currentObjectRef.Name != "" {
 		template.SetName(in.currentObjectRef.Name)
 	}
 

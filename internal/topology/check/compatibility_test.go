@@ -591,7 +591,7 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 	}
 	for _, tt := range tests {
 		g := NewWithT(t)
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			allErrs := ClusterClassesAreCompatible(tt.current, tt.desired)
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())

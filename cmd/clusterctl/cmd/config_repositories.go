@@ -66,7 +66,7 @@ var configRepositoryCmd = &cobra.Command{
 		# Print the list of available providers in yaml format.
 		clusterctl config repositories -o yaml`),
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runGetRepositories(cfgFile, os.Stdout)
 	},
 }

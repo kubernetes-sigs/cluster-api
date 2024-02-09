@@ -87,7 +87,7 @@ func TestClusterControlplaneInitializedPredicate(t *testing.T) {
 
 	for i := range testcases {
 		tc := testcases[i]
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			ev := event.UpdateEvent{
 				ObjectOld: &tc.oldCluster,
 				ObjectNew: &tc.newCluster,

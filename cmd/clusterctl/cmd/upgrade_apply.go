@@ -62,7 +62,7 @@ var upgradeApplyCmd = &cobra.Command{
 		# Upgrades only the aws provider to the v2.0.1 version.
 		clusterctl upgrade apply --infrastructure aws:v2.0.1`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runUpgradeApply()
 	},
 }

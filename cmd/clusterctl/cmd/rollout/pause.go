@@ -58,7 +58,7 @@ func NewCmdRolloutPause(cfgFile string) *cobra.Command {
 		Short:                 "Pause a cluster-api resource",
 		Long:                  pauseLong,
 		Example:               pauseExample,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runPause(cfgFile, args)
 		},
 	}

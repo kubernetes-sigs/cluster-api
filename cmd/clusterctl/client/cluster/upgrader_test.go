@@ -315,7 +315,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
@@ -786,7 +786,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.Name()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
@@ -905,7 +905,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
@@ -1046,7 +1046,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),

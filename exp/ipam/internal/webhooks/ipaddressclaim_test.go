@@ -49,7 +49,7 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "should accept a valid claim",
-			claim:     getClaim(func(addr *ipamv1.IPAddressClaim) {}),
+			claim:     getClaim(func(*ipamv1.IPAddressClaim) {}),
 			expectErr: false,
 		},
 		{
@@ -98,13 +98,13 @@ func TestIPAddressClaimValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:      "should accept objects with identical spec",
-			oldClaim:  getClaim(func(addr *ipamv1.IPAddressClaim) {}),
-			newClaim:  getClaim(func(addr *ipamv1.IPAddressClaim) {}),
+			oldClaim:  getClaim(func(*ipamv1.IPAddressClaim) {}),
+			newClaim:  getClaim(func(*ipamv1.IPAddressClaim) {}),
 			expectErr: false,
 		},
 		{
 			name:     "should reject objects with different spec",
-			oldClaim: getClaim(func(addr *ipamv1.IPAddressClaim) {}),
+			oldClaim: getClaim(func(*ipamv1.IPAddressClaim) {}),
 			newClaim: getClaim(func(addr *ipamv1.IPAddressClaim) {
 				addr.Spec.PoolRef.Name = "different"
 			}),

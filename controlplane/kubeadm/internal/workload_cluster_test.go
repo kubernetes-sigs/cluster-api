@@ -583,7 +583,7 @@ func TestUpdateUpdateClusterConfigurationInKubeadmConfigMap(t *testing.T) {
 						`),
 				},
 			}},
-			mutator: func(c *bootstrapv1.ClusterConfiguration) {},
+			mutator: func(*bootstrapv1.ClusterConfiguration) {},
 			wantConfigMap: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,
@@ -764,7 +764,7 @@ func TestUpdateUpdateClusterStatusInKubeadmConfigMap(t *testing.T) {
 						`),
 				},
 			}},
-			mutator: func(status *bootstrapv1.ClusterStatus) {},
+			mutator: func(*bootstrapv1.ClusterStatus) {},
 			wantConfigMap: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      kubeadmConfigKey,

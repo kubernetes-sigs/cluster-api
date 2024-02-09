@@ -281,7 +281,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		},
 	}
 
-	t.Run("no-op for worker machines", func(t *testing.T) {
+	t.Run("no-op for worker machines", func(*testing.T) {
 		// TODO: implement test
 	})
 
@@ -488,7 +488,7 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		},
 	}
 
-	t.Run("no-op for worker machines", func(t *testing.T) {
+	t.Run("no-op for worker machines", func(*testing.T) {
 		// TODO: implement test
 	})
 

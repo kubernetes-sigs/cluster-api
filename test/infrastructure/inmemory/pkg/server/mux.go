@@ -451,7 +451,7 @@ func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509
 
 	// Wait until the sever is working.
 	var pollErr error
-	err = wait.PollUntilContextTimeout(context.TODO(), 10*time.Millisecond, 1*time.Second, true, func(ctx context.Context) (done bool, err error) {
+	err = wait.PollUntilContextTimeout(context.TODO(), 10*time.Millisecond, 1*time.Second, true, func(context.Context) (done bool, err error) {
 		d := &net.Dialer{Timeout: 50 * time.Millisecond}
 		conn, err := tls.DialWithDialer(d, "tcp", wcl.HostPort(), &tls.Config{
 			InsecureSkipVerify: true, //nolint:gosec // config is used to connect to our own port.

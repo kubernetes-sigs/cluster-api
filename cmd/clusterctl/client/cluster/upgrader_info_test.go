@@ -233,7 +233,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repo))
 				},
 			}

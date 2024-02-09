@@ -96,7 +96,7 @@ var describeClusterClusterCmd = &cobra.Command{
 		# also when their status is the same as the status of the corresponding machine object.
 		clusterctl describe cluster test-1 --echo`),
 
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(_ *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			return errors.New("please specify a cluster name")
 		}

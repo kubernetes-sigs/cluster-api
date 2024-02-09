@@ -183,7 +183,7 @@ backend rke2-servers
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			config, err := Config(tc.data, tc.configTemplate)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(config).To(Equal(tc.expectedConfig))

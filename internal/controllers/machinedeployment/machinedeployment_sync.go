@@ -114,7 +114,7 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.Machine
 		}
 
 		// Ensure MachineDeployment has the latest MachineSet revision in its revision annotation.
-		err = r.updateMachineDeployment(ctx, md, func(innerDeployment *clusterv1.MachineDeployment) {
+		err = r.updateMachineDeployment(ctx, md, func(*clusterv1.MachineDeployment) {
 			mdutil.SetDeploymentRevision(md, updatedMS.Annotations[clusterv1.RevisionAnnotation])
 		})
 		if err != nil {
@@ -134,7 +134,7 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.Machine
 	}
 
 	// Ensure MachineDeployment has the latest MachineSet revision in its revision annotation.
-	err = r.updateMachineDeployment(ctx, md, func(innerDeployment *clusterv1.MachineDeployment) {
+	err = r.updateMachineDeployment(ctx, md, func(*clusterv1.MachineDeployment) {
 		mdutil.SetDeploymentRevision(md, newMS.Annotations[clusterv1.RevisionAnnotation])
 	})
 	if err != nil {

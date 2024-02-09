@@ -64,7 +64,7 @@ func Test_GetRawTemplateVariable(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			value, err := GetVariable(tt.variables, tt.variableName)
 
 			g.Expect(value).To(BeComparableTo(tt.expectedValue))
@@ -121,7 +121,7 @@ func Test_GetStringTemplateVariable(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			value, err := GetStringVariable(tt.variables, tt.variableName)
 
 			g.Expect(value).To(Equal(tt.expectedValue))
@@ -178,7 +178,7 @@ func Test_GetBoolVariable(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			value, err := GetBoolVariable(tt.variables, tt.variableName)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
@@ -266,7 +266,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := GetObjectVariableInto(tt.variables, tt.variableName, tt.object)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())

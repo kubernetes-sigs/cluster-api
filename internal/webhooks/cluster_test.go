@@ -1573,7 +1573,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			if tt.classReconciled {
 				conditions.MarkTrue(tt.class, clusterv1.ClusterClassVariablesReconciledCondition)
@@ -1996,7 +1996,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			conditions.MarkTrue(tt.firstClass, clusterv1.ClusterClassVariablesReconciledCondition)
 			conditions.MarkTrue(tt.secondClass, clusterv1.ClusterClassVariablesReconciledCondition)
@@ -2121,7 +2121,7 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 			// Sets up the fakeClient for the test case.
@@ -2261,7 +2261,7 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled, secondFullyReconciled},
 			injectedErr: interceptor.Funcs{
-				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 					// Throw an error if the second ClusterClass `class2` used as the new ClusterClass is being retrieved.
 					if key.Name == secondTopology.Class {
 						return errors.New("connection error")
@@ -2278,7 +2278,7 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled, secondFullyReconciled},
 			injectedErr: interceptor.Funcs{
-				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
 					// Throw an error if the ClusterClass `class1` used as the old ClusterClass is being retrieved.
 					if key.Name == topology.Class {
 						return errors.New("connection error")
@@ -2292,7 +2292,7 @@ func TestClusterClassPollingErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Sets up a reconcile with a fakeClient for the test case.
 			objs := []client.Object{}
 			for _, cc := range tt.clusterClasses {

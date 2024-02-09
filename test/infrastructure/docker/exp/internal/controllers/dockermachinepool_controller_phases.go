@@ -333,7 +333,7 @@ func (r *DockerMachinePoolReconciler) propagateMachineDeleteAnnotation(ctx conte
 // orderByDeleteMachineAnnotation will sort DockerMachines with the clusterv1.DeleteMachineAnnotation to the front of the list.
 // It will preserve the existing order of the list otherwise so that it respects the existing delete priority otherwise.
 func orderByDeleteMachineAnnotation(machines []infrav1.DockerMachine) []infrav1.DockerMachine {
-	sort.SliceStable(machines, func(i, j int) bool {
+	sort.SliceStable(machines, func(i, _ int) bool {
 		_, iHasAnnotation := machines[i].Annotations[clusterv1.DeleteMachineAnnotation]
 
 		return iHasAnnotation

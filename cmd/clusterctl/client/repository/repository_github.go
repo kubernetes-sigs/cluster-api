@@ -406,7 +406,7 @@ func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version,
 	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", g.owner, g.repository, version, fileName)
 	var retryError error
 	var content []byte
-	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
+	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
 		resp, err := http.Get(downloadURL) //nolint:gosec,noctx
 		if err != nil {
 			retryError = errors.Wrap(err, "error sending request")

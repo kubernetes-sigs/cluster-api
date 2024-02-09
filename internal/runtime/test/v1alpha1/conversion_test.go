@@ -35,7 +35,7 @@ func TestConversion(t *testing.T) {
 	_ = AddToCatalog(c)
 	_ = v1alpha2.AddToCatalog(c)
 
-	t.Run("down-convert FakeRequest v1alpha2 to v1alpha1", func(t *testing.T) {
+	t.Run("down-convert FakeRequest v1alpha2 to v1alpha1", func(*testing.T) {
 		request := &v1alpha2.FakeRequest{Cluster: clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		}}}
@@ -45,7 +45,7 @@ func TestConversion(t *testing.T) {
 		g.Expect(requestLocal.Cluster.GetName()).To(Equal(request.Cluster.Name))
 	})
 
-	t.Run("up-convert FakeResponse v1alpha1 to v1alpha2", func(t *testing.T) {
+	t.Run("up-convert FakeResponse v1alpha1 to v1alpha2", func(*testing.T) {
 		responseLocal := &FakeResponse{
 			First:  1,
 			Second: "foo",

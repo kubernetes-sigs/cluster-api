@@ -585,8 +585,8 @@ type chartFile struct {
 // outdated charts below the given path. This is necessary because kustomize just
 // uses a local Chart if it exists, no matter if it matches the required version or not.
 func cleanupChartTask(path string) taskFunction {
-	return func(ctx context.Context, prefix string, errCh chan error) {
-		err := filepath.WalkDir(path, func(path string, d fs.DirEntry, _ error) error {
+	return func(_ context.Context, prefix string, errCh chan error) {
+		err := filepath.WalkDir(path, func(path string, _ fs.DirEntry, _ error) error {
 			if !strings.HasSuffix(path, "kustomization.yaml") {
 				return nil
 			}

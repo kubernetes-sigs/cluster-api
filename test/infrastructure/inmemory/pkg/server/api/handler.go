@@ -606,7 +606,7 @@ func (h *apiServerHandler) apiV1PortForward(req *restful.Request, resp *restful.
 		streamChan,
 		podName,
 		podNamespace,
-		func(ctx context.Context, podName, podNamespace, _ string, stream io.ReadWriteCloser) error {
+		func(ctx context.Context, _, _, _ string, stream io.ReadWriteCloser) error {
 			// Given that in the in-memory provider there is no real infrastructure, and thus no real workload cluster,
 			// we are going to forward all the connection back to the same server (the CAPIM controller pod).
 			return h.doPortForward(ctx, req.Request.Host, stream)

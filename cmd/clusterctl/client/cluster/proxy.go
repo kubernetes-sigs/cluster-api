@@ -224,7 +224,7 @@ func (k *proxy) ListResources(ctx context.Context, labels map[string]string, nam
 	// Get all the API resources in the cluster.
 	resourceListBackoff := newReadBackoff()
 	var resourceList []*metav1.APIResourceList
-	if err := retryWithExponentialBackoff(ctx, resourceListBackoff, func(ctx context.Context) error {
+	if err := retryWithExponentialBackoff(ctx, resourceListBackoff, func(context.Context) error {
 		resourceList, err = cs.Discovery().ServerPreferredResources()
 		return err
 	}); err != nil {

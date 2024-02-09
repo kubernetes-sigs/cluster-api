@@ -1271,7 +1271,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 
 func Test_getAllVariables(t *testing.T) {
 	g := NewWithT(t)
-	t.Run("Expect values to be correctly consolidated in allVariables", func(t *testing.T) {
+	t.Run("Expect values to be correctly consolidated in allVariables", func(*testing.T) {
 		expectedValues := []clusterv1.ClusterVariable{
 			// var1 has a value with no DefinitionFrom set and only one definition. It should be retained as is.
 			{

@@ -818,7 +818,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 
 	kcpOwner := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 
-	t.Run("add KCP owner for secrets with no controller reference", func(t *testing.T) {
+	t.Run("add KCP owner for secrets with no controller reference", func(*testing.T) {
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		certificates := secret.Certificates{
 			{Purpose: secret.ClusterCA},
@@ -855,7 +855,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 		}
 	})
 
-	t.Run("replace non-KCP controller with KCP controller reference", func(t *testing.T) {
+	t.Run("replace non-KCP controller with KCP controller reference", func(*testing.T) {
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		certificates := secret.Certificates{
 			{Purpose: secret.ClusterCA},

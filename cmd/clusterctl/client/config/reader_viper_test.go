@@ -49,7 +49,7 @@ func Test_viperReader_Init(t *testing.T) {
 	g.Expect(os.WriteFile(configFileBadContents, []byte("bad-contents"), 0600)).To(Succeed())
 
 	// To test the remote config file
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		_, err := w.Write([]byte("bar: bar"))
 		g.Expect(err).ToNot(HaveOccurred())
@@ -57,7 +57,7 @@ func Test_viperReader_Init(t *testing.T) {
 	defer ts.Close()
 
 	// To test the remote config file when fails to fetch
-	tsFail := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	tsFail := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer tsFail.Close()

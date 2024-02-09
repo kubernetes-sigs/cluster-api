@@ -53,7 +53,7 @@ var upgradePlanCmd = &cobra.Command{
 		# Gets the recommended target versions for upgrading Cluster API providers.
 		clusterctl upgrade plan`),
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runUpgradePlan()
 	},
 }

@@ -182,7 +182,7 @@ func TestClient_httpCall(t *testing.T) {
 		},
 	}
 	for _, tt := range tableTests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// a http server is only required if we have a valid catalog, otherwise httpCall will not reach out to the server
 			if tt.opts != nil && tt.opts.catalog != nil {
 				// create http server with fakeHookHandler

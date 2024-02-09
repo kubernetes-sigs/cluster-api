@@ -340,7 +340,7 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	fakeGithubClient2, mux2, cleanup2 := test.NewFakeGitHub()
 	mux2.HandleFunc(
 		"/repos/kubernetes-sigs/cluster-api/releases/latest",
-		func(w http.ResponseWriter, r *http.Request) {
+		func(w http.ResponseWriter, _ *http.Request) {
 			githubCalled = true
 			fmt.Fprint(w, `{"tag_name": "v0.3.99", "html_url": "https://github.com/foo/bar/releases/v0.3.99"}`)
 		},

@@ -129,7 +129,7 @@ func Test_getManifestObjs(t *testing.T) {
 
 			cm := &certManagerClient{
 				configClient: defaultConfigClient,
-				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
 					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository))
 				},
 			}
@@ -168,7 +168,7 @@ func Test_getManifestObjs(t *testing.T) {
 }
 
 func Test_GetTimeout(t *testing.T) {
-	pollImmediateWaiter := func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
+	pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 		return nil
 	}
 
@@ -426,7 +426,7 @@ func Test_shouldUpgrade(t *testing.T) {
 
 			proxy := test.NewFakeProxy()
 			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "")
-			pollImmediateWaiter := func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
+			pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 				return nil
 			}
 			cm := newCertManagerClient(fakeConfigClient, nil, proxy, pollImmediateWaiter)
@@ -715,7 +715,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 
 			proxy := test.NewFakeProxy().WithObjs(tt.objs...)
 			fakeConfigClient := newFakeConfig()
-			pollImmediateWaiter := func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
+			pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 				return nil
 			}
 			cm := newCertManagerClient(fakeConfigClient, nil, proxy, pollImmediateWaiter)

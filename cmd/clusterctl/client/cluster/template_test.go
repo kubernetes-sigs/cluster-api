@@ -168,7 +168,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 	configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader()))
 	g.Expect(err).ToNot(HaveOccurred())
 
-	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, `{
 		  "type": "file",
 		  "encoding": "base64",
@@ -214,7 +214,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 
 			c := &templateClient{
 				configClient: configClient,
-				gitHubClientFactory: func(ctx context.Context, configVariablesClient config.VariablesClient) (*github.Client, error) {
+				gitHubClientFactory: func(context.Context, config.VariablesClient) (*github.Client, error) {
 					return client, nil
 				},
 			}
@@ -232,7 +232,7 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 }
 
 func Test_templateClient_getRawUrlFileContent(t *testing.T) {
-	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, template)
 	}))
 
@@ -343,7 +343,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	fakeGithubClient, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/kubernetes-sigs/cluster-api/contents/config/default/cluster-template.yaml", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, `{
 		  "type": "file",
 		  "encoding": "base64",
@@ -355,7 +355,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		}`)
 	})
 
-	mux.HandleFunc("/repos/some-owner/some-repo/releases/tags/v1.0.0", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/tags/v1.0.0", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, `{
 		  "tag_name": "v1.0.0",
 		  "name": "v1.0.0",
@@ -370,11 +370,11 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		}`)
 	})
 
-	mux.HandleFunc("/repos/some-owner/some-repo/releases/assets/87654321", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/assets/87654321", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, template)
 	})
 
-	mux.HandleFunc("/repos/some-owner/some-repo/releases/tags/v2.0.0", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/tags/v2.0.0", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, `{
 		  "tag_name": "v2.0.0",
 		  "name": "v2.0.0",
@@ -390,14 +390,14 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	})
 
 	// redirect asset
-	mux.HandleFunc("/repos/some-owner/some-repo/releases/assets/22222222", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/assets/22222222", func(w http.ResponseWriter, _ *http.Request) {
 		// add the "/api-v3" prefix to match the prefix of the fake github server
 		w.Header().Add("Location", "/api-v3/redirected/22222222")
 		w.WriteHeader(http.StatusFound)
 	})
 
 	// redirect location
-	mux.HandleFunc("/redirected/22222222", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/redirected/22222222", func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, template)
 	})
 
@@ -488,7 +488,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 
 			ctx := context.Background()
 
-			gitHubClientFactory := func(ctx context.Context, configVariablesClient config.VariablesClient) (*github.Client, error) {
+			gitHubClientFactory := func(context.Context, config.VariablesClient) (*github.Client, error) {
 				return fakeGithubClient, nil
 			}
 			processor := yaml.NewSimpleProcessor()

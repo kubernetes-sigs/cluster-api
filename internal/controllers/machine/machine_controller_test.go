@@ -855,7 +855,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "all conditions true",
 			infraReady:     true,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				// since these conditions are set by an external controller
 				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededCondition)
 				conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
@@ -872,7 +872,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "infra condition consumes reason from the infra config",
 			infraReady:     false,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, infra *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -899,7 +899,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "bootstrap condition consumes reason from the bootstrap config",
 			infraReady:     true,
 			bootstrapReady: false,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -936,7 +936,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "ready condition summary consumes reason from the machine owner remediated condition",
 			infraReady:     true,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MHC failed")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
@@ -947,7 +947,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "ready condition summary consumes reason from the MHC succeeded condition",
 			infraReady:     true,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
@@ -978,7 +978,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "ready condition summary consumes reason from the draining succeeded condition",
 			infraReady:     true,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, "")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
@@ -2204,7 +2204,7 @@ func TestNodeDeletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			m := testMachine.DeepCopy()
 			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
 

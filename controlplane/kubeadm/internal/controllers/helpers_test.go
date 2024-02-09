@@ -787,7 +787,7 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			fakeClient := newFakeClient(kcp, tt.configSecret)
 			r := &KubeadmControlPlaneReconciler{
 				Client:              fakeClient,

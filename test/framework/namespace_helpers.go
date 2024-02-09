@@ -166,7 +166,7 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 			_, _ = fmt.Fprintf(f, "[Updated Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
 				klog.KObj(e), e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e)
 		},
-		DeleteFunc: func(obj interface{}) {},
+		DeleteFunc: func(interface{}) {},
 	})
 	Expect(err).ToNot(HaveOccurred())
 

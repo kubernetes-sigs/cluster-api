@@ -709,7 +709,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "all conditions true",
 			bootstrapReady:      true,
 			infrastructureReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
 				mp.Status = expv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
@@ -734,7 +734,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "boostrap not ready",
 			bootstrapReady:      false,
 			infrastructureReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -775,7 +775,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "infrastructure not ready",
 			bootstrapReady:      true,
 			infrastructureReady: false,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(_, infra *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -817,7 +817,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:           "incorrect infrastructure reference",
 			bootstrapReady: true,
 			expectError:    true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Kind:       builder.TestInfrastructureMachineTemplateKind,

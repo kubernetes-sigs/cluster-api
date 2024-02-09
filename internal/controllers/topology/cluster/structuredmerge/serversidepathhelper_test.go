@@ -484,7 +484,7 @@ func TestServerSideApply(t *testing.T) {
 		_, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache())
 		g.Expect(err).To(HaveOccurred())
 	})
-	t.Run("Error on object which does not exist (anymore) but was expected to get updated", func(t *testing.T) {
+	t.Run("Error on object which does not exist (anymore) but was expected to get updated", func(*testing.T) {
 		original := builder.TestInfrastructureCluster(ns.Name, "obj3").WithSpecFields(map[string]interface{}{
 			"spec.controlPlaneEndpoint.host": "1.2.3.4",
 			"spec.controlPlaneEndpoint.port": int64(1234),

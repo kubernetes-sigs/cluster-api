@@ -272,7 +272,7 @@ func TestAPI_PortForward(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// InfraCluster controller >> when "creating the load balancer"
-	wcl1 := "workload-cluster1"
+	wcl1 := "workload-cluster1-controlPlaneEndpoint"
 	listener, err := wcmux.InitWorkloadClusterListener(wcl1)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
@@ -295,7 +295,10 @@ func TestAPI_PortForward(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Setup resource group
-	manager.AddResourceGroup(wcl1)
+	resourceGroup := "workload-cluster1-resourceGroup"
+	manager.AddResourceGroup(resourceGroup)
+	err = wcmux.RegisterResourceGroup(wcl1, resourceGroup)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	etcdPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -312,7 +315,7 @@ func TestAPI_PortForward(t *testing.T) {
 			},
 		},
 	}
-	err = manager.GetResourceGroup(wcl1).GetClient().Create(ctx, etcdPod)
+	err = manager.GetResourceGroup(resourceGroup).GetClient().Create(ctx, etcdPod)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Test API server TLS handshake via port forward.
@@ -495,13 +498,17 @@ func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadCluster
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// InfraCluster controller >> when "creating the load balancer"
-	wcl1 := "workload-cluster1"
-	manager.AddResourceGroup(wcl1)
+	wcl1 := "workload-cluster1-controlPlaneEndpoint"
 
 	listener, err := wcmux.InitWorkloadClusterListener(wcl1)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(listener.Host()).To(Equal(host))
 	g.Expect(listener.Port()).ToNot(BeZero())
+
+	resourceGroup := "workload-cluster1-resourceGroup"
+	manager.AddResourceGroup(resourceGroup)
+	err = wcmux.RegisterResourceGroup(wcl1, resourceGroup)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	caCert, caKey, err := newCertificateAuthority()
 	g.Expect(err).ToNot(HaveOccurred())

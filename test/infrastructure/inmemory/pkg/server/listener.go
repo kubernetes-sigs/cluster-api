@@ -39,6 +39,8 @@ type WorkloadClusterListener struct {
 	host string
 	port int
 
+	resourceGroup string
+
 	scheme *runtime.Scheme
 
 	apiServers                  sets.Set[string]
@@ -63,6 +65,11 @@ func (s *WorkloadClusterListener) Host() string {
 // Port returns the port of a WorkloadClusterListener.
 func (s *WorkloadClusterListener) Port() int {
 	return s.port
+}
+
+// ResourceGroup returns the resource group that hosts in memory resources for a WorkloadClusterListener.
+func (s *WorkloadClusterListener) ResourceGroup() string {
+	return s.resourceGroup
 }
 
 // Address returns the address of a WorkloadClusterListener.

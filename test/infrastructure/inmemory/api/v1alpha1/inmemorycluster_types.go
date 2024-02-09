@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	// ResourceGroupAnnotationName tracks the name of a resource group a InMemoryCluster cluster is linked to.
-	ResourceGroupAnnotationName = "inmemorycluster.infrastructure.cluster.x-k8s.io/resource-group"
+	// ListenerAnnotationName tracks the name of the listener a cluster is linked to.
+	// NOTE: the annotation must be added by the components that creates the listener only if using the HotRestart feature.
+	ListenerAnnotationName = "inmemorycluster.infrastructure.cluster.x-k8s.io/listener"
 
 	// ClusterFinalizer allows InMemoryClusterReconciler to clean up resources associated with InMemoryCluster before
 	// removing it from the API server.

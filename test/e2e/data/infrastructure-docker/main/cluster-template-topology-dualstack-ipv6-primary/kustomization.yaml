@@ -3,9 +3,4 @@ resources:
 - ../bases/crs.yaml
 
 patches:
-- path: ./drop-machinepools.yaml
-  target:
-    group: cluster.x-k8s.io
-    kind: Cluster
-    version: v1beta1
 - path: cluster.yaml

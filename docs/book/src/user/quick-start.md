@@ -12,8 +12,8 @@ If using a [provider] that does not support v1beta1 or v1alpha4 yet, please foll
 
 ## Installation
 
-There are two major quickstart paths:  Using clusterctl or the Cluster API Operator.  
- 
+There are two major quickstart paths:  Using clusterctl or the Cluster API Operator.
+
  This article describes a path that uses the `clusterctl` CLI tool to handle the lifecycle of a Cluster API [management cluster](https://cluster-api.sigs.k8s.io/reference/glossary#management-cluster).
 
 The clusterctl command line interface is specifically designed for providing a simple “day 1 experience” and a quick start with Cluster API. It automates fetching the YAML files defining [provider components](https://cluster-api.sigs.k8s.io/reference/glossary#provider-components) and installing them.
@@ -1459,7 +1459,7 @@ Note: To use the default clusterctl method to retrieve kubeconfig for a workload
 
 The Kubernetes in-tree cloud provider implementations are being [removed](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cloud-provider/2395-removing-in-tree-cloud-providers) in favor of external cloud providers (also referred to as "out-of-tree"). This requires deploying a new component called the cloud-controller-manager which is responsible for running all the cloud specific controllers that were previously run in the kube-controller-manager. To learn more, see [this blog post](https://kubernetes.io/blog/2019/04/17/the-future-of-cloud-providers-in-kubernetes/).
 
-{{#tabs name:"tab-install-cloud-provider" tabs:"Azure"}}
+{{#tabs name:"tab-install-cloud-provider" tabs:"Azure,OpenStack"}}
 {{#tab Azure}}
 
 Install the official cloud-provider-azure Helm chart on the workload cluster:
@@ -1469,6 +1469,41 @@ helm install --kubeconfig=./capi-quickstart.kubeconfig --repo https://raw.github
 ```
 
 For more information, see the [CAPZ book](https://capz.sigs.k8s.io/topics/addons.html).
+
+{{#/tab }}
+{{#tab OpenStack}}
+
+Before deploying the OpenStack external cloud provider, configure the `cloud.conf` file for integration with your OpenStack environment:
+
+```bash
+cat > cloud.conf <<EOF
+[Global]
+auth-url=<your_auth_url>
+application-credential-id=<your_credential_id>
+application-credential-secret=<your_credential_secret>
+region=<your_region>
+domain-name=<your_domain_name>
+EOF
+```
+
+For more detailed information on configuring the `cloud.conf` file, see the [OpenStack Cloud Controller Manager documentation](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/openstack-cloud-controller-manager/using-openstack-cloud-controller-manager.md#config-openstack-cloud-controller-manager).
+
+Next, create a Kubernetes secret using this configuration to securely store your cloud environment details.
+You can create this secret for example with:
+
+```bash
+kubectl -n kube-system create secret generic cloud-config --from-file=cloud.conf
+```
+
+Now, you are ready to deploy the external cloud provider!
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-roles.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-role-bindings.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/openstack-cloud-controller-manager-ds.yaml
+```
+
+Alternatively, refer to the [helm chart](https://github.com/kubernetes/cloud-provider-openstack/tree/master/charts/openstack-cloud-controller-manager).
 
 {{#/tab }}
 {{#/tabs }}

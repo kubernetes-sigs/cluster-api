@@ -140,7 +140,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 
 		// Doing both defaulting and validating here prevents a race condition where the ClusterClass could be
 		// different in the defaulting and validating webhook.
-		allErrs = append(allErrs, DefaultAndValidateVariables(cluster, oldCluster, clusterClass)...)
+		allErrs = append(allErrs, DefaultAndValidateVariables(ctx, cluster, oldCluster, clusterClass)...)
 		if len(allErrs) > 0 {
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
 		}
@@ -733,7 +733,7 @@ func validateCIDRBlocks(fldPath *field.Path, cidrs []string) field.ErrorList {
 
 // DefaultAndValidateVariables defaults and validates variables in the Cluster and MachineDeployment/MachinePool topologies based
 // on the definitions in the ClusterClass.
-func DefaultAndValidateVariables(cluster, oldCluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, DefaultVariables(cluster, clusterClass)...)
 
@@ -770,6 +770,7 @@ func DefaultAndValidateVariables(cluster, oldCluster *clusterv1.Cluster, cluster
 
 	// Validate cluster-wide variables.
 	allErrs = append(allErrs, variables.ValidateClusterVariables(
+		ctx,
 		cluster.Spec.Topology.Variables,
 		oldClusterVariables,
 		clusterClass.Status.Variables,
@@ -793,6 +794,7 @@ func DefaultAndValidateVariables(cluster, oldCluster *clusterv1.Cluster, cluster
 				continue
 			}
 			allErrs = append(allErrs, variables.ValidateMachineVariables(
+				ctx,
 				md.Variables.Overrides,
 				oldMDVariables[md.Name],
 				clusterClass.Status.Variables,
@@ -807,6 +809,7 @@ func DefaultAndValidateVariables(cluster, oldCluster *clusterv1.Cluster, cluster
 				continue
 			}
 			allErrs = append(allErrs, variables.ValidateMachineVariables(
+				ctx,
 				mp.Variables.Overrides,
 				oldMPVariables[mp.Name],
 				clusterClass.Status.Variables,

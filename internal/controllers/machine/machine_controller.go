@@ -338,7 +338,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			if m.Status.NodeRef != nil {
 				nodeName = m.Status.NodeRef.Name
 			}
-			log.Info("Deleting Kubernetes Node associated with Machine is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
+			log.Info("Skipping deletion of Kubernetes Node associated with Machine as it is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
 		default:
 			return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
 		}

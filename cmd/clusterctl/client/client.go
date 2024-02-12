@@ -87,6 +87,8 @@ type AlphaClient interface {
 	// RolloutUndo provides rollout rollback of cluster-api resources
 	RolloutUndo(ctx context.Context, options RolloutUndoOptions) error
 	// TopologyPlan dry runs the topology reconciler
+	//
+	// Deprecated: TopologyPlan is deprecated and will be removed in one of the upcoming releases.
 	TopologyPlan(ctx context.Context, options TopologyPlanOptions) (*TopologyPlanOutput, error)
 }
 

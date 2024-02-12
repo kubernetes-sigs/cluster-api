@@ -34,8 +34,8 @@ import (
 )
 
 // ValidateClusterVariables validates ClusterVariables based on the definitions in ClusterClass `.status.variables`.
-func ValidateClusterVariables(values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
-	return validateClusterVariables(values, oldValues, definitions, true, fldPath)
+func ValidateClusterVariables(ctx context.Context, values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(ctx, values, oldValues, definitions, true, fldPath)
 }
 
 // ValidateControlPlaneVariables validates ControlPLane variables.
@@ -44,12 +44,12 @@ func ValidateControlPlaneVariables(values, oldValues []clusterv1.ClusterVariable
 }
 
 // ValidateMachineVariables validates MachineDeployment and MachinePool variables.
-func ValidateMachineVariables(values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
-	return validateClusterVariables(values, oldValues, definitions, false, fldPath)
+func ValidateMachineVariables(ctx context.Context, values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(ctx, values, oldValues, definitions, false, fldPath)
 }
 
 // validateClusterVariables validates variable values according to the corresponding definition.
-func validateClusterVariables(values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, validateRequired bool, fldPath *field.Path) field.ErrorList {
+func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, validateRequired bool, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Get a map of ClusterVariable values. This function validates that:
@@ -88,11 +88,15 @@ func validateClusterVariables(values, oldValues []clusterv1.ClusterVariable, def
 		}
 
 		// Values must be valid according to the schema in their definition.
-		allErrs = append(allErrs, ValidateClusterVariable(value.DeepCopy(), oldValuesMap[value.Name], &clusterv1.ClusterClassVariable{
-			Name:     value.Name,
-			Required: definition.Required,
-			Schema:   definition.Schema,
-		}, fldPath)...)
+		allErrs = append(allErrs, ValidateClusterVariable(
+			ctx,
+			value.DeepCopy(),
+			oldValuesMap[value.Name],
+			&clusterv1.ClusterClassVariable{
+				Name:     value.Name,
+				Required: definition.Required,
+				Schema:   definition.Schema,
+			}, fldPath)...)
 	}
 
 	return allErrs
@@ -134,7 +138,7 @@ func validateRequiredVariables(values map[string]map[string]clusterv1.ClusterVar
 }
 
 // ValidateClusterVariable validates a clusterVariable.
-func ValidateClusterVariable(value, oldValue *clusterv1.ClusterVariable, definition *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.ClusterVariable, definition *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	// Parse JSON value.
 	var variableValue interface{}
 
@@ -194,26 +198,28 @@ func ValidateClusterVariable(value, oldValue *clusterv1.ClusterVariable, definit
 	}
 
 	celValidator := cel.NewValidator(ss, false, celconfig.PerCallLimit)
-	if celValidator != nil {
-		// Only extract old variable value if there are CEL validations and if the old variable is not nil.
-		var oldWrappedVariable map[string]interface{}
+	if celValidator == nil {
+		return nil
+	}
 
-		if oldValue != nil && oldValue.Value.Raw != nil {
-			var oldVariableValue interface{}
+	// Only extract old variable value if there are CEL validations and if the old variable is not nil.
+	var oldWrappedVariable map[string]interface{}
 
-			if err := json.Unmarshal(oldValue.Value.Raw, &oldVariableValue); err != nil {
-				return field.ErrorList{field.Invalid(fldPath.Child("value"), string(oldValue.Value.Raw),
-					fmt.Sprintf("old value of variable %q could not be parsed: %v", value.Name, err))}
-			}
+	if oldValue != nil && oldValue.Value.Raw != nil {
+		var oldVariableValue interface{}
 
-			oldWrappedVariable = map[string]interface{}{
-				definition.Name: oldVariableValue,
-			}
+		if err := json.Unmarshal(oldValue.Value.Raw, &oldVariableValue); err != nil {
+			return field.ErrorList{field.Invalid(fldPath.Child("value"), string(oldValue.Value.Raw),
+				fmt.Sprintf("old value of variable %q could not be parsed: %v", value.Name, err))}
 		}
 
-		if err, _ := celValidator.Validate(context.TODO(), fldPath, ss, wrappedVariable, oldWrappedVariable, celconfig.RuntimeCELCostBudget); err != nil {
-			return err
+		oldWrappedVariable = map[string]interface{}{
+			definition.Name: oldVariableValue,
 		}
+	}
+
+	if err, _ := celValidator.Validate(ctx, fldPath, ss, wrappedVariable, oldWrappedVariable, celconfig.RuntimeCELCostBudget); err != nil {
+		return err
 	}
 
 	return nil

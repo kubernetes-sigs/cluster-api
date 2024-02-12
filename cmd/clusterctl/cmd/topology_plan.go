@@ -107,6 +107,8 @@ func init() {
 		panic(err)
 	}
 
+	topologyPlanCmd.Deprecated = "it will be removed in one of the upcoming releases.\n"
+
 	topologyCmd.AddCommand(topologyPlanCmd)
 }
 

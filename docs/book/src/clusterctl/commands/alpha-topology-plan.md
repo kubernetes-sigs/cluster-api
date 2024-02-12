@@ -1,5 +1,13 @@
 # clusterctl alpha topology plan
 
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+"clusterctl alpha topology plan" is deprecated and will be removed in one of the upcoming releases. For more details, please see [#10138](https://github.com/kubernetes-sigs/cluster-api/issues/10138). 
+
+</aside>
+
 The `clusterctl alpha topology plan` command can be used to get a plan of how a Cluster topology evolves given
 file(s) containing resources to be applied to a Cluster.
 

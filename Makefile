@@ -147,7 +147,7 @@ SHELLCHECK_VER := v0.9.0
 
 TRIVY_VER := 0.47.0
 
-KPROMO_VER := v4.0.4
+KPROMO_VER := v4.0.5
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
 # KPROMO_PKG may have to be changed if KPROMO_VER increases its major version.

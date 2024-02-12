@@ -508,7 +508,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}
 
@@ -570,7 +570,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}
 
@@ -693,7 +693,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 			k := &KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -771,7 +771,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			k := &KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -872,7 +872,7 @@ func TestBootstrapDataFormat(t *testing.T) {
 			k := &KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 			request := ctrl.Request{
@@ -953,7 +953,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}
 	request := ctrl.Request{
@@ -1028,12 +1028,13 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &clusterv1.Machine{}).Build()
+	remoteClient := fake.NewClientBuilder().Build()
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 		TokenTTL:            DefaultTokenTTL,
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, remoteClient, remoteClient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1043,8 +1044,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
-	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 
 	cfg, err := getKubeadmConfig(myclient, "worker-join-cfg", metav1.NamespaceDefault)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1060,8 +1060,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
-	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 
 	cfg, err = getKubeadmConfig(myclient, "control-plane-join-cfg", metav1.NamespaceDefault)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1070,18 +1069,15 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 
 	l := &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(l.Items).To(HaveLen(2))
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+	g.Expect(l.Items).To(HaveLen(2)) // control plane vs. worker
 
-	// ensure that the token is refreshed...
+	t.Log("Ensure that the token secret is not updated while it's still fresh")
 	tokenExpires := make([][]byte, len(l.Items))
 
 	for i, item := range l.Items {
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
-
-	<-time.After(1 * time.Second)
 
 	for _, req := range []ctrl.Request{
 		{
@@ -1099,20 +1095,65 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	} {
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
+		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 	}
 
 	l = &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
 	g.Expect(l.Items).To(HaveLen(2))
 
 	for i, item := range l.Items {
+		// No refresh should have happened since no time passed and the token is therefore still fresh
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
+	}
+
+	t.Log("Ensure that the token secret is updated if expiration time is soon")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL/2 from now. This should trigger a refresh.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL / 2).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	for _, req := range []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      "worker-join-cfg",
+			},
+		},
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      "control-plane-join-cfg",
+			},
+		},
+	} {
+		result, err := k.Reconcile(ctx, req)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
+	}
+
+	l = &corev1.SecretList{}
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+	g.Expect(l.Items).To(HaveLen(2))
+
+	for i, item := range l.Items {
+		// Refresh should have happened since expiration is soon
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
-	// ...the infrastructure is marked "ready", but token should still be refreshed...
+	t.Log("If infrastructure is marked ready, the token should still be refreshed")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL/2 from now. This should trigger a refresh.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL / 2).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
 	patchHelper, err := patch.NewHelper(workerMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	workerMachine.Status.InfrastructureReady = true
@@ -1123,8 +1164,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	controlPlaneJoinMachine.Status.InfrastructureReady = true
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
 
-	<-time.After(1 * time.Second)
-
 	for _, req := range []ctrl.Request{
 		{
 			NamespacedName: client.ObjectKey{
@@ -1141,20 +1180,28 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	} {
 		result, err := k.Reconcile(ctx, req)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
+		g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 	}
 
 	l = &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
 	g.Expect(l.Items).To(HaveLen(2))
 
 	for i, item := range l.Items {
+		// Refresh should have happened since expiration is soon, even if infrastructure is ready
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
-	// ...until the Nodes have actually joined the cluster and we get a nodeRef
+	t.Log("When the Nodes have actually joined the cluster and we get a nodeRef, no more refresh should happen")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL/2 from now. This would normally trigger a refresh.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL / 2).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
 	patchHelper, err = patch.NewHelper(workerMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	workerMachine.Status.NodeRef = &corev1.ObjectReference{
@@ -1172,8 +1219,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		Name:       "control-plane-node",
 	}
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
-
-	<-time.After(1 * time.Second)
 
 	for _, req := range []ctrl.Request{
 		{
@@ -1196,8 +1241,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	l = &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
 	g.Expect(l.Items).To(HaveLen(2))
 
 	for i, item := range l.Items {
@@ -1230,12 +1274,13 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &expv1.MachinePool{}).Build()
+	remoteClient := fake.NewClientBuilder().Build()
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 		TokenTTL:            DefaultTokenTTL,
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, remoteClient, remoteClient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1245,8 +1290,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.Requeue).To(BeFalse())
-	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 
 	cfg, err := getKubeadmConfig(myclient, "workerpool-join-cfg", metav1.NamespaceDefault)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1255,71 +1299,89 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	g.Expect(cfg.Status.ObservedGeneration).NotTo(BeNil())
 
 	l := &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
 	g.Expect(l.Items).To(HaveLen(1))
 
-	// ensure that the token is refreshed...
+	t.Log("Ensure that the token secret is not updated while it's still fresh")
 	tokenExpires := make([][]byte, len(l.Items))
 
 	for i, item := range l.Items {
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
-	<-time.After(1 * time.Second)
-
-	for _, req := range []ctrl.Request{
-		{
-			NamespacedName: client.ObjectKey{
-				Namespace: metav1.NamespaceDefault,
-				Name:      "workerpool-join-cfg",
-			},
-		},
-	} {
-		result, err := k.Reconcile(ctx, req)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
-	}
+	result, err = k.Reconcile(ctx, request)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 
 	l = &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
 	g.Expect(l.Items).To(HaveLen(1))
 
 	for i, item := range l.Items {
+		// No refresh should have happened since no time passed and the token is therefore still fresh
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
+	}
+
+	t.Log("Ensure that the token secret is updated if expiration time is soon")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL*3/4 from now. This should trigger a refresh.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL * 3 / 4).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	result, err = k.Reconcile(ctx, request)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
+
+	l = &corev1.SecretList{}
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+	g.Expect(l.Items).To(HaveLen(1))
+
+	for i, item := range l.Items {
+		// Refresh should have happened since expiration is soon
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
-	// ...the infrastructure is marked "ready", but token should still be refreshed...
+	t.Log("If infrastructure is marked ready, the token should still be refreshed")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL*3/4 from now. This should trigger a refresh.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL * 3 / 4).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
 	patchHelper, err := patch.NewHelper(workerMachinePool, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	workerMachinePool.Status.InfrastructureReady = true
 	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
 
-	<-time.After(1 * time.Second)
-
-	request = ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "workerpool-join-cfg",
-		},
-	}
 	result, err = k.Reconcile(ctx, request)
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 
 	l = &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
 	g.Expect(l.Items).To(HaveLen(1))
 
 	for i, item := range l.Items {
+		// Refresh should have happened since expiration is soon, even if infrastructure is ready
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
-	// ...until all nodes have joined
+	t.Log("When the Nodes have actually joined the cluster and we get a nodeRef, no more refresh should happen")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL*3/4 from now. This would normally trigger a refresh.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL * 3 / 4).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
 	workerMachinePool.Status.NodeRefs = []corev1.ObjectReference{
 		{
 			Kind:      "Node",
@@ -1329,7 +1391,26 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
 
-	<-time.After(1 * time.Second)
+	result, err = k.Reconcile(ctx, request)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
+
+	l = &corev1.SecretList{}
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+	g.Expect(l.Items).To(HaveLen(1))
+
+	for i, item := range l.Items {
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
+	}
+
+	t.Log("Token must be rotated before it expires")
+
+	for i, item := range l.Items {
+		// Simulate that expiry time is only TTL*4/10 from now. This should trigger rotation.
+		item.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(k.TokenTTL * 4 / 10).Format(time.RFC3339))
+		g.Expect(remoteClient.Update(ctx, &l.Items[i])).To(Succeed())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
 
 	request = ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1342,34 +1423,8 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	g.Expect(result.RequeueAfter).To(Equal(k.TokenTTL / 3))
 
 	l = &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(l.Items).To(HaveLen(1))
-
-	for i, item := range l.Items {
-		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
-	}
-
-	// before token expires, it should rotate it
-	tokenExpires[0] = []byte(time.Now().UTC().Add(k.TokenTTL / 5).Format(time.RFC3339))
-	l.Items[0].Data[bootstrapapi.BootstrapTokenExpirationKey] = tokenExpires[0]
-	err = myclient.Update(ctx, &l.Items[0])
-	g.Expect(err).ToNot(HaveOccurred())
-
-	request = ctrl.Request{
-		NamespacedName: client.ObjectKey{
-			Namespace: metav1.NamespaceDefault,
-			Name:      "workerpool-join-cfg",
-		},
-	}
-	result, err = k.Reconcile(ctx, request)
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
-
-	l = &corev1.SecretList{}
-	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(l.Items).To(HaveLen(2))
+	g.Expect(remoteClient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))).To(Succeed())
+	g.Expect(l.Items).To(HaveLen(2)) // old and new token
 	foundOld := false
 	foundNew := true
 	for _, item := range l.Items {
@@ -1517,7 +1572,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			k := &KubeadmConfigReconciler{
 				Client:              fakeClient,
 				SecretCachingClient: fakeClient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), fakeClient, fakeClient.Scheme(), client.ObjectKey{Name: tc.cluster.Name, Namespace: tc.cluster.Namespace}),
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), fakeClient, fakeClient, fakeClient.Scheme(), client.ObjectKey{Name: tc.cluster.Name, Namespace: tc.cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -1734,7 +1789,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			reconciler := KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -1927,7 +1982,7 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 		objects = append(objects, s)
 	}
 
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,

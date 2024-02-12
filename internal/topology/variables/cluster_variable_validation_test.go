@@ -17,6 +17,7 @@ limitations under the License.
 package variables
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -629,7 +630,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterVariables(tt.values, nil, tt.definitions,
+			errList := validateClusterVariables(context.TODO(), tt.values, nil, tt.definitions,
 				tt.validateRequired, field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -1593,7 +1594,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariable(tt.clusterVariable, nil, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(context.TODO(), tt.clusterVariable, nil, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -1694,7 +1695,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariable(tt.clusterVariable, tt.oldClusterVariable, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(context.TODO(), tt.clusterVariable, tt.oldClusterVariable, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -2049,7 +2050,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateMachineVariables(tt.values, tt.oldValues, tt.definitions,
+			errList := ValidateMachineVariables(context.TODO(), tt.values, tt.oldValues, tt.definitions,
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(0).Child("variables", "overrides"))
 
 			if tt.wantErr {

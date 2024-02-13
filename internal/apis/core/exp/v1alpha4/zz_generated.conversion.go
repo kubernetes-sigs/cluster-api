@@ -27,10 +27,10 @@ import (
 	v1 "k8s.io/api/core/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 	v1beta1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 )
 
 func init() {
@@ -160,7 +160,7 @@ func Convert_v1beta1_MachinePoolList_To_v1alpha4_MachinePoolList(in *v1beta1.Mac
 func autoConvert_v1alpha4_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in *MachinePoolSpec, out *v1beta1.MachinePoolSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	if err := apiv1alpha4.Convert_v1alpha4_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := corev1alpha4.Convert_v1alpha4_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
@@ -177,7 +177,7 @@ func Convert_v1alpha4_MachinePoolSpec_To_v1beta1_MachinePoolSpec(in *MachinePool
 func autoConvert_v1beta1_MachinePoolSpec_To_v1alpha4_MachinePoolSpec(in *v1beta1.MachinePoolSpec, out *MachinePoolSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
-	if err := apiv1alpha4.Convert_v1beta1_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
+	if err := corev1alpha4.Convert_v1beta1_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(&in.Template, &out.Template, s); err != nil {
 		return err
 	}
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
@@ -207,7 +207,7 @@ func autoConvert_v1alpha4_MachinePoolStatus_To_v1beta1_MachinePoolStatus(in *Mac
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1alpha4_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1alpha4_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -236,9 +236,9 @@ func autoConvert_v1beta1_MachinePoolStatus_To_v1alpha4_MachinePoolStatus(in *v1b
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1alpha4.Conditions, len(*in))
+		*out = make(corev1alpha4.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1beta1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1beta1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

@@ -22,7 +22,7 @@ package v1alpha3
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	cluster_apiapiv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
+	corev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	apiv1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 )
 
@@ -58,7 +58,7 @@ func (in *DockerMachinePoolInstanceStatus) DeepCopyInto(out *DockerMachinePoolIn
 	*out = *in
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]cluster_apiapiv1alpha3.MachineAddress, len(*in))
+		*out = make([]corev1alpha3.MachineAddress, len(*in))
 		copy(*out, *in)
 	}
 	if in.ProviderID != nil {
@@ -173,7 +173,7 @@ func (in *DockerMachinePoolStatus) DeepCopyInto(out *DockerMachinePoolStatus) {
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(cluster_apiapiv1alpha3.Conditions, len(*in))
+		*out = make(corev1alpha3.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

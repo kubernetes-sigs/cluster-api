@@ -27,9 +27,9 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	v1beta1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	corev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 )
 
 func init() {
@@ -330,7 +330,7 @@ func autoConvert_v1alpha3_ClusterResourceSetStatus_To_v1beta1_ClusterResourceSet
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -349,9 +349,9 @@ func autoConvert_v1beta1_ClusterResourceSetStatus_To_v1alpha3_ClusterResourceSet
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1alpha3.Conditions, len(*in))
+		*out = make(corev1alpha3.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

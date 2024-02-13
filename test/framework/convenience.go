@@ -20,6 +20,7 @@ import (
 	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
+	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -75,6 +76,10 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 
 	// Add rbac to the scheme.
 	_ = rbacv1.AddToScheme(scheme)
+
+	// Add coordination to the schema
+	// Note: This is e.g. used to trigger kube-controller-manager restarts by stealing its lease.
+	_ = coordinationv1.AddToScheme(scheme)
 }
 
 // ObjectToKind returns the Kind without the package prefix. Pass in a pointer to a struct

@@ -1,0 +1,57 @@
+---
+# DockerMachineTemplate referenced by the MachineDeployment and with
+# - extraMounts for the docker sock, thus allowing self-hosting test
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: DockerMachineTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      # NOTE: If the Kubernetes version is changed in `clusterctl_upgrade_test.go` the image and SHA must be updated here.
+      customImage: "kindest/node:v1.23.17@sha256:f77f8cf0b30430ca4128cc7cfafece0c274a118cd0cdb251049664ace0dee4ff"
+      extraMounts:
+        - containerPath: "/var/run/docker.sock"
+          hostPath: "/var/run/docker.sock"
+---
+# KubeadmConfigTemplate referenced by the MachineDeployment
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+kind: KubeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: unix:///var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            # We have to pin the cgroupDriver to cgroupfs for Kubernetes < v1.24 because kind does not support systemd for those versions, but kubeadm >= 1.21 defaults to systemd.
+            # This cluster is used in tests where the Kubernetes version is < 1.24
+            cgroup-driver: cgroupfs
+            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+            fail-swap-on: "false"
+---
+# MachineDeployment object
+apiVersion: cluster.x-k8s.io/v1alpha4
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels:
+  template:
+    spec:
+      clusterName: "${CLUSTER_NAME}"
+      version: "${KUBERNETES_VERSION}"
+      bootstrap:
+        configRef:
+          name: "${CLUSTER_NAME}-md-0"
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: "${CLUSTER_NAME}-md-0"
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        kind: DockerMachineTemplate

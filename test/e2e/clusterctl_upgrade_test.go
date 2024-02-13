@@ -22,7 +22,58 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/pointer"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.5=>current)", func() {
+	// We are testing v0.4=>v1.5=>current to ensure that old entries with v1alpha4 in managed files do not cause issues
+	// as described in https://github.com/kubernetes-sigs/cluster-api/issues/10051.
+	// NOTE: The combination of v0.4=>v1.5=>current allows us to verify this without being forced to upgrade
+	// the management cluster in the middle of the test as all 3 versions are ~ compatible with the same mgmt and workload Kubernetes versions.
+	// Additionally, clusterctl v1.5 still allows the upgrade of management clusters from v1alpha4 (v1.6 does as well, but v1.7 doesn't).
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
+			// Configuration for the initial provider deployment.
+			InitWithBinary: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract.
+			InitWithCoreProvider:            "cluster-api:v0.4.8",
+			InitWithBootstrapProviders:      []string{"kubeadm:v0.4.8"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v0.4.8"},
+			InitWithInfrastructureProviders: []string{"docker:v0.4.8"},
+			// We have to set this to an empty array as clusterctl v0.4 doesn't support
+			// runtime extension providers. If we don't do this the test will automatically
+			// try to deploy the latest version of our test-extension from docker.yaml.
+			InitWithRuntimeExtensionProviders: []string{},
+			// Configuration for the provider upgrades.
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to 1.5.
+					WithBinary:              "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.5/clusterctl-{OS}-{ARCH}",
+					CoreProvider:            "cluster-api:v1.5.5",
+					BootstrapProviders:      []string{"kubeadm:v1.5.5"},
+					ControlPlaneProviders:   []string{"kubeadm:v1.5.5"},
+					InfrastructureProviders: []string{"docker:v1.5.5"},
+				},
+				{ // Upgrade to latest v1beta1.
+					Contract: clusterv1.GroupVersion.Version,
+				},
+			},
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
+			//  Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			InitWithKubernetesVersion: "v1.23.17",
+			WorkloadKubernetesVersion: "v1.23.17",
+			MgmtFlavor:                "topology",
+			WorkloadFlavor:            "",
+		}
+	})
+})
 
 var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {

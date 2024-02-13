@@ -109,7 +109,7 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 }
 
 func calculateClusterCtlInitArgs(input InitInput) []string {
-	args := []string{"init", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath}
+	args := []string{"init", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath, "--wait-providers"}
 	if input.CoreProvider != "" {
 		args = append(args, "--core", input.CoreProvider)
 	}

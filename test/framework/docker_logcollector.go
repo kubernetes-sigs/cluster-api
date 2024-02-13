@@ -171,6 +171,10 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 			"crictl", "info",
 		),
 		execToPathFn(
+			"containerd-images.txt",
+			"crictl", "images",
+		),
+		execToPathFn(
 			"containerd.log",
 			"journalctl", "--no-pager", "--output=short-precise", "-u", "containerd.service",
 		),

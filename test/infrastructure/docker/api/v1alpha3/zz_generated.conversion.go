@@ -26,8 +26,8 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	corev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	v1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
@@ -108,11 +108,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.DockerMachineSpec)(nil), (*DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(a.(*v1beta1.DockerMachineSpec), b.(*DockerMachineSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*DockerMachineStatus)(nil), (*v1beta1.DockerMachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha3_DockerMachineStatus_To_v1beta1_DockerMachineStatus(a.(*DockerMachineStatus), b.(*v1beta1.DockerMachineStatus), scope)
 	}); err != nil {
@@ -170,6 +165,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta1.DockerClusterSpec)(nil), (*DockerClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_DockerClusterSpec_To_v1alpha3_DockerClusterSpec(a.(*v1beta1.DockerClusterSpec), b.(*DockerClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta1.DockerMachineSpec)(nil), (*DockerMachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(a.(*v1beta1.DockerMachineSpec), b.(*DockerMachineSpec), scope)
 	}); err != nil {
 		return err
 	}
@@ -286,7 +286,7 @@ func autoConvert_v1alpha3_DockerClusterSpec_To_v1beta1_DockerClusterSpec(in *Doc
 		*out = make(apiv1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			newVal := new(apiv1beta1.FailureDomainSpec)
-			if err := apiv1alpha3.Convert_v1alpha3_FailureDomainSpec_To_v1beta1_FailureDomainSpec(&val, newVal, s); err != nil {
+			if err := corev1alpha3.Convert_v1alpha3_FailureDomainSpec_To_v1beta1_FailureDomainSpec(&val, newVal, s); err != nil {
 				return err
 			}
 			(*out)[key] = *newVal
@@ -308,10 +308,10 @@ func autoConvert_v1beta1_DockerClusterSpec_To_v1alpha3_DockerClusterSpec(in *v1b
 	}
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(apiv1alpha3.FailureDomains, len(*in))
+		*out = make(corev1alpha3.FailureDomains, len(*in))
 		for key, val := range *in {
-			newVal := new(apiv1alpha3.FailureDomainSpec)
-			if err := apiv1alpha3.Convert_v1beta1_FailureDomainSpec_To_v1alpha3_FailureDomainSpec(&val, newVal, s); err != nil {
+			newVal := new(corev1alpha3.FailureDomainSpec)
+			if err := corev1alpha3.Convert_v1beta1_FailureDomainSpec_To_v1alpha3_FailureDomainSpec(&val, newVal, s); err != nil {
 				return err
 			}
 			(*out)[key] = *newVal
@@ -330,7 +330,7 @@ func autoConvert_v1alpha3_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in 
 		*out = make(apiv1beta1.FailureDomains, len(*in))
 		for key, val := range *in {
 			newVal := new(apiv1beta1.FailureDomainSpec)
-			if err := apiv1alpha3.Convert_v1alpha3_FailureDomainSpec_To_v1beta1_FailureDomainSpec(&val, newVal, s); err != nil {
+			if err := corev1alpha3.Convert_v1alpha3_FailureDomainSpec_To_v1beta1_FailureDomainSpec(&val, newVal, s); err != nil {
 				return err
 			}
 			(*out)[key] = *newVal
@@ -342,7 +342,7 @@ func autoConvert_v1alpha3_DockerClusterStatus_To_v1beta1_DockerClusterStatus(in 
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -361,10 +361,10 @@ func autoConvert_v1beta1_DockerClusterStatus_To_v1alpha3_DockerClusterStatus(in 
 	out.Ready = in.Ready
 	if in.FailureDomains != nil {
 		in, out := &in.FailureDomains, &out.FailureDomains
-		*out = make(apiv1alpha3.FailureDomains, len(*in))
+		*out = make(corev1alpha3.FailureDomains, len(*in))
 		for key, val := range *in {
-			newVal := new(apiv1alpha3.FailureDomainSpec)
-			if err := apiv1alpha3.Convert_v1beta1_FailureDomainSpec_To_v1alpha3_FailureDomainSpec(&val, newVal, s); err != nil {
+			newVal := new(corev1alpha3.FailureDomainSpec)
+			if err := corev1alpha3.Convert_v1beta1_FailureDomainSpec_To_v1alpha3_FailureDomainSpec(&val, newVal, s); err != nil {
 				return err
 			}
 			(*out)[key] = *newVal
@@ -374,9 +374,9 @@ func autoConvert_v1beta1_DockerClusterStatus_To_v1alpha3_DockerClusterStatus(in 
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1alpha3.Conditions, len(*in))
+		*out = make(corev1alpha3.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -485,12 +485,8 @@ func autoConvert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in *v1b
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
 	out.ExtraMounts = *(*[]Mount)(unsafe.Pointer(&in.ExtraMounts))
 	out.Bootstrapped = in.Bootstrapped
+	// WARNING: in.BootstrapTimeout requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec is an autogenerated conversion function.
-func Convert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in *v1beta1.DockerMachineSpec, out *DockerMachineSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_DockerMachineSpec_To_v1alpha3_DockerMachineSpec(in, out, s)
 }
 
 func autoConvert_v1alpha3_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in *DockerMachineStatus, out *v1beta1.DockerMachineStatus, s conversion.Scope) error {
@@ -500,7 +496,7 @@ func autoConvert_v1alpha3_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in 
 		in, out := &in.Addresses, &out.Addresses
 		*out = make([]apiv1beta1.MachineAddress, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1alpha3_MachineAddress_To_v1beta1_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1alpha3_MachineAddress_To_v1beta1_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -511,7 +507,7 @@ func autoConvert_v1alpha3_DockerMachineStatus_To_v1beta1_DockerMachineStatus(in 
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -531,9 +527,9 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1alpha3_DockerMachineStatus(in 
 	out.LoadBalancerConfigured = in.LoadBalancerConfigured
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]apiv1alpha3.MachineAddress, len(*in))
+		*out = make([]corev1alpha3.MachineAddress, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1beta1_MachineAddress_To_v1alpha3_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1beta1_MachineAddress_To_v1alpha3_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -542,9 +538,9 @@ func autoConvert_v1beta1_DockerMachineStatus_To_v1alpha3_DockerMachineStatus(in 
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1alpha3.Conditions, len(*in))
+		*out = make(corev1alpha3.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

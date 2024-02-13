@@ -26,9 +26,9 @@ import (
 
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	apiv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	dockerapiv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
+	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
+	apiv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 	dockerapiv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	v1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
@@ -140,7 +140,7 @@ func autoConvert_v1alpha4_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachi
 		in, out := &in.Addresses, &out.Addresses
 		*out = make([]apiv1beta1.MachineAddress, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1alpha4_MachineAddress_To_v1beta1_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1alpha4_MachineAddress_To_v1beta1_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -163,9 +163,9 @@ func Convert_v1alpha4_DockerMachinePoolInstanceStatus_To_v1beta1_DockerMachinePo
 func autoConvert_v1beta1_DockerMachinePoolInstanceStatus_To_v1alpha4_DockerMachinePoolInstanceStatus(in *v1beta1.DockerMachinePoolInstanceStatus, out *DockerMachinePoolInstanceStatus, s conversion.Scope) error {
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make([]apiv1alpha4.MachineAddress, len(*in))
+		*out = make([]corev1alpha4.MachineAddress, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1beta1_MachineAddress_To_v1alpha4_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1beta1_MachineAddress_To_v1alpha4_MachineAddress(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -242,7 +242,7 @@ func Convert_v1alpha4_DockerMachinePoolMachineTemplate_To_v1beta1_DockerMachineP
 func autoConvert_v1beta1_DockerMachinePoolMachineTemplate_To_v1alpha4_DockerMachinePoolMachineTemplate(in *v1beta1.DockerMachinePoolMachineTemplate, out *DockerMachinePoolMachineTemplate, s conversion.Scope) error {
 	out.CustomImage = in.CustomImage
 	out.PreLoadImages = *(*[]string)(unsafe.Pointer(&in.PreLoadImages))
-	out.ExtraMounts = *(*[]dockerapiv1alpha4.Mount)(unsafe.Pointer(&in.ExtraMounts))
+	out.ExtraMounts = *(*[]apiv1alpha4.Mount)(unsafe.Pointer(&in.ExtraMounts))
 	return nil
 }
 
@@ -298,7 +298,7 @@ func autoConvert_v1alpha4_DockerMachinePoolStatus_To_v1beta1_DockerMachinePoolSt
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1alpha4_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1alpha4_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -330,9 +330,9 @@ func autoConvert_v1beta1_DockerMachinePoolStatus_To_v1alpha4_DockerMachinePoolSt
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1alpha4.Conditions, len(*in))
+		*out = make(corev1alpha4.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1beta1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1beta1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

@@ -28,11 +28,11 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	apiv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	kubeadmapiv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4"
 	v1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
+	kubeadmv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4"
+	corev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 )
 
 func init() {
@@ -240,7 +240,7 @@ func Convert_v1beta1_KubeadmControlPlaneList_To_v1alpha4_KubeadmControlPlaneList
 }
 
 func autoConvert_v1alpha4_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmControlPlaneMachineTemplate(in *KubeadmControlPlaneMachineTemplate, out *v1beta1.KubeadmControlPlaneMachineTemplate, s conversion.Scope) error {
-	if err := apiv1alpha4.Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+	if err := corev1alpha4.Convert_v1alpha4_ObjectMeta_To_v1beta1_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
@@ -254,7 +254,7 @@ func Convert_v1alpha4_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmContr
 }
 
 func autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in *v1beta1.KubeadmControlPlaneMachineTemplate, out *KubeadmControlPlaneMachineTemplate, s conversion.Scope) error {
-	if err := apiv1alpha4.Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
+	if err := corev1alpha4.Convert_v1beta1_ObjectMeta_To_v1alpha4_ObjectMeta(&in.ObjectMeta, &out.ObjectMeta, s); err != nil {
 		return err
 	}
 	out.InfrastructureRef = in.InfrastructureRef
@@ -270,7 +270,7 @@ func autoConvert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlane
 	if err := Convert_v1alpha4_KubeadmControlPlaneMachineTemplate_To_v1beta1_KubeadmControlPlaneMachineTemplate(&in.MachineTemplate, &out.MachineTemplate, s); err != nil {
 		return err
 	}
-	if err := kubeadmapiv1alpha4.Convert_v1alpha4_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
+	if err := kubeadmv1alpha4.Convert_v1alpha4_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
 	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
@@ -289,7 +289,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlane
 	if err := Convert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(&in.MachineTemplate, &out.MachineTemplate, s); err != nil {
 		return err
 	}
-	if err := kubeadmapiv1alpha4.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
+	if err := kubeadmv1alpha4.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
 	// WARNING: in.RolloutBefore requires manual conversion: does not exist in peer-type
@@ -315,7 +315,7 @@ func autoConvert_v1alpha4_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPla
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1alpha4_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1alpha4_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -344,9 +344,9 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPla
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1alpha4.Conditions, len(*in))
+		*out = make(corev1alpha4.Conditions, len(*in))
 		for i := range *in {
-			if err := apiv1alpha4.Convert_v1beta1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha4.Convert_v1beta1_Condition_To_v1alpha4_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

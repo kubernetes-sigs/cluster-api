@@ -144,6 +144,7 @@ type UpgradeManagementClusterAndWaitInput struct {
 	RuntimeExtensionProviders []string
 	AddonProviders            []string
 	LogFolder                 string
+	ClusterctlBinaryPath      string
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
@@ -165,7 +166,7 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
-	Upgrade(ctx, UpgradeInput{
+	upgradeInput := UpgradeInput{
 		ClusterctlConfigPath:      input.ClusterctlConfigPath,
 		ClusterctlVariables:       input.ClusterctlVariables,
 		ClusterName:               input.ClusterProxy.GetName(),
@@ -179,7 +180,13 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
 		AddonProviders:            input.AddonProviders,
 		LogFolder:                 input.LogFolder,
-	})
+	}
+
+	if input.ClusterctlBinaryPath != "" {
+		UpgradeWithBinary(ctx, input.ClusterctlBinaryPath, upgradeInput)
+	} else {
+		Upgrade(ctx, upgradeInput)
+	}
 
 	client := input.ClusterProxy.GetClient()
 

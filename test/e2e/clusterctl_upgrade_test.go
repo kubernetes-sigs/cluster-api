@@ -25,6 +25,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
@@ -33,6 +35,60 @@ var (
 	providerKubeadmPrefix = "kubeadm:v%s"
 	providerDockerPrefix  = "docker:v%s"
 )
+
+var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", func() {
+	// Get v0.4 latest stable release
+	version04 := "0.4"
+	stableRelease04, err := GetStableReleaseOfMinor(ctx, version04)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version04)
+
+	// Get v1.6 latest stable release
+	version16 := "1.6"
+	stableRelease16, err := GetStableReleaseOfMinor(ctx, version16)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for minor release : %s", version16)
+
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: ptr.To("docker"),
+			// Configuration for the initial provider deployment.
+			InitWithBinary: fmt.Sprintf(clusterctlDownloadURL, stableRelease04),
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is v1.3.X for v1beta1).
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, stableRelease04),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease04)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease04)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease04)},
+			// We have to set this to an empty array as clusterctl v0.4 doesn't support
+			// runtime extension providers. If we don't do this the test will automatically
+			// try to deploy the latest version of our test-extension from docker.yaml.
+			InitWithRuntimeExtensionProviders: []string{},
+			// Configuration for the provider upgrades.
+			Upgrades: []ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to 1.6.
+					WithBinary:              fmt.Sprintf(clusterctlDownloadURL, stableRelease16),
+					CoreProvider:            fmt.Sprintf(providerCAPIPrefix, stableRelease16),
+					BootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease16)},
+					ControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, stableRelease16)},
+					InfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease16)},
+				},
+				{ // Upgrade to latest v1beta1.
+					Contract: clusterv1.GroupVersion.Version,
+				},
+			},
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
+			//  Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
+			InitWithKubernetesVersion: "v1.23.17",
+			WorkloadKubernetesVersion: "v1.23.17",
+			MgmtFlavor:                "topology",
+			WorkloadFlavor:            "",
+		}
+	})
+})
 
 var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 	// Get v1.0 latest stable release

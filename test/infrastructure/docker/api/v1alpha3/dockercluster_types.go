@@ -107,5 +107,5 @@ type DockerClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerCluster{}, &DockerClusterList{})
+	objectTypes = append(objectTypes, &DockerCluster{}, &DockerClusterList{})
 }

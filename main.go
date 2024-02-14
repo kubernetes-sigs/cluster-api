@@ -65,6 +65,9 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	expwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
+	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha3"
+	expv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
@@ -116,12 +119,15 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 
+	_ = clusterv1alpha3.AddToScheme(scheme)
 	_ = clusterv1alpha4.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 
+	_ = expv1alpha3.AddToScheme(scheme)
 	_ = expv1alpha4.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
 
+	_ = addonsv1alpha3.AddToScheme(scheme)
 	_ = addonsv1alpha4.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
 

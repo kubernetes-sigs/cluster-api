@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -89,6 +90,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
+	_ = bootstrapv1alpha3.AddToScheme(scheme)
 	_ = bootstrapv1alpha4.AddToScheme(scheme)
 	_ = bootstrapv1.AddToScheme(scheme)
 }

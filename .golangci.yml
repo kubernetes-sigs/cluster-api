@@ -7,6 +7,8 @@ run:
   skip-files:
     - "zz_generated.*\\.go$"
     - "vendored_openapi\\.go$"
+    # We don't want to invest time to fix new linter findings in old API types.
+    - "internal/apis/.*"
   allow-parallel-runners: true
 
 linters:
@@ -115,26 +117,36 @@ linters-settings:
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
       # CABPK
+      - pkg: sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3
+        alias: bootstrapv1alpha3
       - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4
         alias: bootstrapv1alpha4
       - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
         alias: bootstrapv1
       # KCP
+      - pkg: sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha3
+        alias: controlplanev1alpha3
       - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4
         alias: controlplanev1alpha4
       - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
         alias: controlplanev1
       # CAPI
+      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3
+        alias: clusterv1alpha3
       - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
         alias: clusterv1alpha4
       - pkg: sigs.k8s.io/cluster-api/api/v1beta1
         alias: clusterv1
       # CAPI exp
+      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/v1alpha3
+        alias: expv1alpha3
       - pkg: sigs.k8s.io/cluster-api/exp/api/v1alpha4
         alias: expv1alpha4
       - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
         alias: expv1
       # CAPI exp addons
+      - pkg: sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha3
+        alias: addonsv1alpha3
       - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4
         alias: addonsv1alpha4
       - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1beta1
@@ -158,11 +170,15 @@ linters-settings:
       - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
         alias: runtimewebhooks
       # CAPD
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
+        alias: infrav1alpha3
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4
         alias: infrav1alpha4
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
         alias: infrav1
       # CAPD exp
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3
+        alias: infraexpv1alpha3
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4
         alias: infraexpv1alpha4
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1
@@ -226,7 +242,7 @@ issues:
   # should be removed as the referenced deprecated types are removed from the project.
   - linters:
     - staticcheck
-    text: "SA1019: (clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
+    text: "SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"

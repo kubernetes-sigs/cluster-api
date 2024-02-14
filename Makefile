@@ -561,7 +561,7 @@ generate-doctoc:
 	TRACE=$(TRACE) ./hack/generate-doctoc.sh
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.0 v1.5 main) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.0 v1.4 v1.5 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
 INMEMORY_TEMPLATES := test/e2e/data/infrastructure-inmemory

@@ -20,6 +20,8 @@ limitations under the License.
 package e2e
 
 import (
+	"runtime"
+
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/pointer"
 
@@ -32,6 +34,11 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func(
 	// NOTE: The combination of v0.3=>v1.5=>current allows us to verify this without being forced to upgrade
 	// the management cluster in the middle of the test as all 3 versions are ~ compatible with the same mgmt and workload Kubernetes versions.
 	// Additionally, clusterctl v1.5 still allows the upgrade of management clusters from v1alpha3 (v1.6 doesn't).
+	clusterctlDownloadURL03 := "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}"
+	if runtime.GOOS == "darwin" {
+		// There is no arm64 binary for v0.3.x, so we'll use the amd64 one.
+		clusterctlDownloadURL03 = "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-darwin-amd64"
+	}
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:              e2eConfig,
@@ -41,7 +48,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func(
 			SkipCleanup:            skipCleanup,
 			InfrastructureProvider: pointer.String("docker"),
 			// Configuration for the initial provider deployment.
-			InitWithBinary: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}",
+			InitWithBinary: clusterctlDownloadURL03,
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
 			// use the latest version for the contract.
 			InitWithCoreProvider:            "cluster-api:v0.3.25",
@@ -58,11 +65,11 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func(
 					// Upgrade to v1.5.
 					// Note: v1.5 is the highest version we can use as it's the last one
 					// that is able to upgrade from a v1alpha3 management cluster.
-					WithBinary:              "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.5/clusterctl-{OS}-{ARCH}",
-					CoreProvider:            "cluster-api:v1.5.5",
-					BootstrapProviders:      []string{"kubeadm:v1.5.5"},
-					ControlPlaneProviders:   []string{"kubeadm:v1.5.5"},
-					InfrastructureProviders: []string{"docker:v1.5.5"},
+					WithBinary:              "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/clusterctl-{OS}-{ARCH}",
+					CoreProvider:            "cluster-api:v1.5.0",
+					BootstrapProviders:      []string{"kubeadm:v1.5.0"},
+					ControlPlaneProviders:   []string{"kubeadm:v1.5.0"},
+					InfrastructureProviders: []string{"docker:v1.5.0"},
 				},
 				{ // Upgrade to latest v1beta1.
 					Contract: clusterv1.GroupVersion.Version,
@@ -115,11 +122,11 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.5=>current)", func(
 					// Upgrade to v1.5.
 					// Note: v1.5 is a version we can use as it's
 					// able to upgrade from a v1alpha4 management cluster (v1.6 would be able to as well)
-					WithBinary:              "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.5/clusterctl-{OS}-{ARCH}",
-					CoreProvider:            "cluster-api:v1.5.5",
-					BootstrapProviders:      []string{"kubeadm:v1.5.5"},
-					ControlPlaneProviders:   []string{"kubeadm:v1.5.5"},
-					InfrastructureProviders: []string{"docker:v1.5.5"},
+					WithBinary:              "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/clusterctl-{OS}-{ARCH}",
+					CoreProvider:            "cluster-api:v1.5.0",
+					BootstrapProviders:      []string{"kubeadm:v1.5.0"},
+					ControlPlaneProviders:   []string{"kubeadm:v1.5.0"},
+					InfrastructureProviders: []string{"docker:v1.5.0"},
 				},
 				{ // Upgrade to latest v1beta1.
 					Contract: clusterv1.GroupVersion.Version,

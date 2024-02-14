@@ -189,9 +189,19 @@ func copyAndAmendClusterctlConfig(_ context.Context, input copyAndAmendClusterct
 }
 
 // AdjustConfigPathForBinary adjusts the clusterctlConfigPath in case the clusterctl version v1.3.
-func AdjustConfigPathForBinary(clusterctPath, clusterctlConfigPath string) string {
+func AdjustConfigPathForBinary(clusterctlBinaryPath, clusterctlConfigPath string) string {
+	version, err := getClusterCtlVersion(clusterctlBinaryPath)
+	Expect(err).ToNot(HaveOccurred())
+
+	if version.LT(semver.MustParse("1.3.0")) {
+		return strings.Replace(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName, -1)
+	}
+	return clusterctlConfigPath
+}
+
+func getClusterCtlVersion(clusterctlBinaryPath string) (*semver.Version, error) {
 	clusterctl := exec.NewCommand(
-		exec.WithCommand(clusterctPath),
+		exec.WithCommand(clusterctlBinaryPath),
 		exec.WithArgs("version", "--output", "short"),
 	)
 	stdout, stderr, err := clusterctl.Run(context.Background())
@@ -201,13 +211,9 @@ func AdjustConfigPathForBinary(clusterctPath, clusterctlConfigPath string) strin
 	data := stdout
 	version, err := semver.ParseTolerant(string(data))
 	if err != nil {
-		Expect(err).ToNot(HaveOccurred(), "clusterctl version returned an invalid version: %s", string(data))
+		return nil, fmt.Errorf("clusterctl version returned an invalid version: %s", string(data))
 	}
-
-	if version.LT(semver.MustParse("1.3.0")) {
-		return strings.Replace(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName, -1)
-	}
-	return clusterctlConfigPath
+	return &version, nil
 }
 
 // YAMLForComponentSource returns the YAML for the provided component source.

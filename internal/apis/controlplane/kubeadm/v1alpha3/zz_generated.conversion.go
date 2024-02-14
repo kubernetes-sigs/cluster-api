@@ -27,11 +27,11 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	clusterapiapiv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	apiv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
 	v1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
+	kubeadmv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
+	corev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 )
 
 func init() {
@@ -182,7 +182,7 @@ func autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlane
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	out.Version = in.Version
 	// WARNING: in.InfrastructureTemplate requires manual conversion: does not exist in peer-type
-	if err := apiv1alpha3.Convert_v1alpha3_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
+	if err := kubeadmv1alpha3.Convert_v1alpha3_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
 	// WARNING: in.UpgradeAfter requires manual conversion: does not exist in peer-type
@@ -195,7 +195,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlane
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	out.Version = in.Version
 	// WARNING: in.MachineTemplate requires manual conversion: does not exist in peer-type
-	if err := apiv1alpha3.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
+	if err := kubeadmv1alpha3.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
 	// WARNING: in.RolloutBefore requires manual conversion: does not exist in peer-type
@@ -220,7 +220,7 @@ func autoConvert_v1alpha3_KubeadmControlPlaneStatus_To_v1beta1_KubeadmControlPla
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
 		for i := range *in {
-			if err := clusterapiapiv1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1alpha3_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}
@@ -249,9 +249,9 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPla
 	out.ObservedGeneration = in.ObservedGeneration
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(clusterapiapiv1alpha3.Conditions, len(*in))
+		*out = make(corev1alpha3.Conditions, len(*in))
 		for i := range *in {
-			if err := clusterapiapiv1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+			if err := corev1alpha3.Convert_v1beta1_Condition_To_v1alpha3_Condition(&(*in)[i], &(*out)[i], s); err != nil {
 				return err
 			}
 		}

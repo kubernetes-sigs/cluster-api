@@ -69,9 +69,9 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 		return c.toDirectory(options)
 	} else if options.FromDirectory != "" {
 		return c.fromDirectory(options)
-	} else {
-		return c.move(options)
 	}
+
+	return c.move(options)
 }
 
 func (c *clusterctlClient) move(options MoveOptions) error {

@@ -152,7 +152,8 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 		return input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineSets for Cluster %s", klog.KObj(input.Cluster))
 
-	for _, machineSet := range ms.Items {
+	for i := range ms.Items {
+		machineSet := ms.Items[i]
 		machineSetFD := pointer.StringDeref(machineSet.Spec.Template.Spec.FailureDomain, "<None>")
 		Expect(machineSetFD).To(Equal(machineDeploymentFD), "MachineSet %s is in the %q failure domain, expecting %q", machineSet.Name, machineSetFD, machineDeploymentFD)
 

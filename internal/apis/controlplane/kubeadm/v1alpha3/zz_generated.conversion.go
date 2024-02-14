@@ -27,9 +27,9 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
-	clusterapiapiv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterapiapiv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	apiv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	apiv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
 	v1beta1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 )

@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha3
 
-import clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+import clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 
 // Conditions and condition Reasons for the DockerMachine object.
 

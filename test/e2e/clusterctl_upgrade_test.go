@@ -37,7 +37,13 @@ var (
 	providerDockerPrefix  = "docker:v%s"
 )
 
-var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.6=>current)", func() {
+var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func() {
+	// We are testing v0.3=>v1.5=>current to ensure that old entries with v1alpha3 in managed files do not cause issues
+	// as described in https://github.com/kubernetes-sigs/cluster-api/issues/10051.
+	// NOTE: The combination of v0.3=>v1.5=>current allows us to verify this without being forced to upgrade
+	// the management cluster in the middle of the test as all 3 versions are ~ compatible with the same mgmt and workload Kubernetes versions.
+	// Additionally, clusterctl v1.5 still allows the upgrade of management clusters from v1alpha3 (v1.6 doesn't).
+
 	// Get v0.3 latest stable release
 	version03 := "0.3"
 	stableRelease03, err := GetStableReleaseOfMinor(ctx, version03)
@@ -105,6 +111,12 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.6=>current)", func(
 })
 
 var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", func() {
+	// We are testing v0.4=>v1.6=>current to ensure that old entries with v1alpha4 in managed files do not cause issues
+	// as described in https://github.com/kubernetes-sigs/cluster-api/issues/10051.
+	// NOTE: The combination of v0.4=>v1.6=>current allows us to verify this without being forced to upgrade
+	// the management cluster in the middle of the test as all 3 versions are ~ compatible with the same mgmt and workload Kubernetes versions.
+	// Additionally, clusterctl v1.6 still allows the upgrade of management clusters from v1alpha4 (v1.7 doesn't).
+
 	// Get v0.4 latest stable release
 	version04 := "0.4"
 	stableRelease04, err := GetStableReleaseOfMinor(ctx, version04)

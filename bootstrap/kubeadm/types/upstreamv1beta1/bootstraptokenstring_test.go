@@ -98,7 +98,7 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 	var err error
 	newbts := &BootstrapTokenString{}
 	// If string input was specified, roundtrip like this: string -> (unmarshal) -> object -> (marshal) -> string
-	if len(input) > 0 {
+	if input != "" {
 		if err := json.Unmarshal([]byte(input), newbts); err != nil {
 			return errors.Wrap(err, "expected no unmarshal error, got error")
 		}

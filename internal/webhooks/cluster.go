@@ -428,7 +428,8 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 	}
 
 	if cluster.Spec.Topology.Workers != nil {
-		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+		for i := range cluster.Spec.Topology.Workers.MachineDeployments {
+			md := cluster.Spec.Topology.Workers.MachineDeployments[i]
 			if md.MachineHealthCheck != nil {
 				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments", "machineHealthCheck").Index(i)
 

@@ -1547,6 +1547,7 @@ func Test_validateSelectors(t *testing.T) {
 					ControlPlane:           false,
 					InfrastructureCluster:  false,
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{},
+					MachinePoolClass:       &clusterv1.PatchSelectorMatchMachinePoolClass{},
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1692,12 +1693,15 @@ func Test_validateSelectors(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "pass if selector targets an existing MachineDeploymentClass BootstrapTemplate",
+			name: "pass if selector targets an existing MachineDeploymentClass and MachinePoolClass BootstrapTemplate",
 			selector: clusterv1.PatchSelector{
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
 					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"aa"},
+					},
+					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
 						Names: []string{"aa"},
 					},
 				},
@@ -1709,6 +1713,20 @@ func Test_validateSelectors(t *testing.T) {
 							refToUnstructured(&corev1.ObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
@@ -1737,6 +1755,34 @@ func Test_validateSelectors(t *testing.T) {
 							refToUnstructured(&corev1.ObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+		},
+		{
+			name: "pass if selector targets an existing MachinePoolClass InfrastructureTemplate",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachinePoolTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+						Names: []string{"aa"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
@@ -1777,6 +1823,47 @@ func Test_validateSelectors(t *testing.T) {
 							refToUnstructured(&corev1.ObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "NonMatchingInfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "error if selector targets a non-existing MachinePoolClass InfrastructureTemplate",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachinePoolTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+						Names: []string{"bb"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+					*builder.MachinePoolClass("bb").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "NonMatchingInfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
@@ -1849,6 +1936,43 @@ func Test_validateSelectors(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "error if selector targets an empty MachinePoolClass InfrastructureTemplate",
+			selector: clusterv1.PatchSelector{
+				APIVersion:     "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:           "InfrastructureMachinePoolTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+					*builder.MachinePoolClass("bb").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "NonMatchingInfrastructureMachinePoolTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
 			name: "error if selector targets a bad pattern for matching MachineDeploymentClass InfrastructureTemplate",
 			selector: clusterv1.PatchSelector{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -1866,6 +1990,35 @@ func Test_validateSelectors(t *testing.T) {
 							refToUnstructured(&corev1.ObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "error if selector targets a bad pattern for matching MachinePoolClass InfrastructureTemplate",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachinePoolTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+						Names: []string{"a*a"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{
@@ -1906,6 +2059,34 @@ func Test_validateSelectors(t *testing.T) {
 				Build(),
 		},
 		{
+			name: "pass if selector targets an existing MachinePoolClass InfrastructureTemplate with prefix *",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachinePoolTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+						Names: []string{"a-*"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+		},
+		{
 			name: "pass if selector targets an existing MachineDeploymentClass InfrastructureTemplate with suffix *",
 			selector: clusterv1.PatchSelector{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -1934,6 +2115,34 @@ func Test_validateSelectors(t *testing.T) {
 				Build(),
 		},
 		{
+			name: "pass if selector targets an existing MachinePoolClass InfrastructureTemplate with suffix *",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachinePoolTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+						Names: []string{"*-a"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+		},
+		{
 			name: "pass if selector targets all existing MachineDeploymentClass InfrastructureTemplate with *",
 			selector: clusterv1.PatchSelector{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -1951,6 +2160,34 @@ func Test_validateSelectors(t *testing.T) {
 							refToUnstructured(&corev1.ObjectReference{
 								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+		},
+		{
+			name: "pass if selector targets all existing MachinePoolClass InfrastructureTemplate with *",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachinePoolTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+						Names: []string{"*"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachinePoolTemplate",
 							})).
 						WithBootstrapTemplate(
 							refToUnstructured(&corev1.ObjectReference{

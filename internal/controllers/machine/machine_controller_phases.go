@@ -43,9 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var (
-	externalReadyWait = 30 * time.Second
-)
+var externalReadyWait = 30 * time.Second
 
 func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 	originalPhase := m.Status.Phase
@@ -89,11 +87,43 @@ func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		return external.ReconcileOutput{}, err
 	}
+
+	result, err := r.ensureExternalOwnershipAndWatch(ctx, cluster, m, ref)
+	if err != nil {
+		return external.ReconcileOutput{}, err
+	}
+	if result.RequeueAfter > 0 || result.Paused {
+		return result, nil
+	}
+
+	obj := result.Result
+
+	// Set failure reason and message, if any.
+	failureReason, failureMessage, err := external.FailuresFrom(obj)
+	if err != nil {
+		return external.ReconcileOutput{}, err
+	}
+	if failureReason != "" {
+		machineStatusError := capierrors.MachineStatusError(failureReason)
+		m.Status.FailureReason = &machineStatusError
+	}
+	if failureMessage != "" {
+		m.Status.FailureMessage = ptr.To(
+			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
+				obj.GroupVersionKind(), obj.GetName(), failureMessage),
+		)
+	}
+
+	return external.ReconcileOutput{Result: obj}, nil
+}
+
+// ensureExternalOwnershipAndWatch ensures that only the Machine owns the external object,
+// adds a watch to the external object if one does not already exist and adds the necessary labels.
+func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+	log := ctrl.LoggerFrom(ctx)
 
 	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, m.Namespace)
 	if err != nil {
@@ -144,22 +174,6 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
 		return external.ReconcileOutput{}, err
-	}
-
-	// Set failure reason and message, if any.
-	failureReason, failureMessage, err := external.FailuresFrom(obj)
-	if err != nil {
-		return external.ReconcileOutput{}, err
-	}
-	if failureReason != "" {
-		machineStatusError := capierrors.MachineStatusError(failureReason)
-		m.Status.FailureReason = &machineStatusError
-	}
-	if failureMessage != "" {
-		m.Status.FailureMessage = ptr.To(
-			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
-				obj.GroupVersionKind(), obj.GetName(), failureMessage),
-		)
 	}
 
 	return external.ReconcileOutput{Result: obj}, nil

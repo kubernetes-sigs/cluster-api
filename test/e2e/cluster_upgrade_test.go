@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade] [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [PR-Informing] [K8s-Upgrade] [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,

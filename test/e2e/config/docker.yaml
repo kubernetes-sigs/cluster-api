@@ -77,7 +77,8 @@ providers:
     files:
       - sourcePath: "../data/shared/v1.3/metadata.yaml"
   - name: v1.4.99 # next; use manifest from source files
-    value: ../../../config/default
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/core-components.yaml"
+    type: "url"
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
@@ -133,7 +134,8 @@ providers:
     files:
     - sourcePath: "../data/shared/v1.3/metadata.yaml"
   - name: v1.4.99 # next; use manifest from source files
-    value: ../../../bootstrap/kubeadm/config/default
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/bootstrap-components.yaml"
+    type: "url"
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
@@ -189,7 +191,8 @@ providers:
     files:
     - sourcePath: "../data/shared/v1.3/metadata.yaml"
   - name: v1.4.99 # next; use manifest from source files
-    value: ../../../controlplane/kubeadm/config/default
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/control-plane-components.yaml"
+    type: "url"
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
@@ -254,7 +257,8 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1.3/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.3/clusterclass-quick-start.yaml"
   - name: v1.4.99 # next; use manifest from source files
-    value: ../../../test/infrastructure/docker/config/default
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.5/infrastructure-components-development.yaml"
+    type: "url"
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
@@ -290,11 +294,11 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.27.3"
-  KUBERNETES_VERSION: "v1.27.3"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.26.6"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.27.3"
-  ETCD_VERSION_UPGRADE_TO: "3.5.7-0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.28.7"
+  KUBERNETES_VERSION: "v1.28.7"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.27.10"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.28.7"
+  ETCD_VERSION_UPGRADE_TO: "3.5.10-0"
   COREDNS_VERSION_UPGRADE_TO: "v1.10.1"
   DOCKER_SERVICE_DOMAIN: "cluster.local"
   IP_FAMILY: "IPv4"

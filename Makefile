@@ -543,7 +543,7 @@ generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversion
 generate-go-openapi: $(OPENAPI_GEN) $(CONTROLLER_GEN) ## Generate openapi go code for runtime SDK
 	@mkdir -p ./tmp/sigs.k8s.io; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/; cd ./tmp; \
 	for pkg in "api/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
-		$(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"; \
+		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \
 			--input-dirs=sigs.k8s.io/cluster-api/$${pkg} \

@@ -103,7 +103,7 @@ func init() {
 	initCmd.PersistentFlags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
 		"Control plane providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.ipamProviders, "ipam", nil,
-		"IPAM providers and versions (e.g. infoblox:v0.0.1) to add to the management cluster.")
+		"IPAM providers and versions (e.g. in-cluster:v0.1.0) to add to the management cluster.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.runtimeExtensionProviders, "runtime-extension", nil,
 		"Runtime extension providers and versions to add to the management cluster; please note that clusterctl doesn't include any default runtime extensions and thus it is required to use custom configuration files to register runtime extensions.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.addonProviders, "addon", nil,

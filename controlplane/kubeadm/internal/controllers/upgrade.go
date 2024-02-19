@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util"
@@ -73,9 +74,8 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		return ctrl.Result{}, errors.Wrap(err, "failed to set cluster-admin ClusterRoleBinding for kubeadm")
 	}
 
-	if err := workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(ctx, parsedVersion); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to update the kubernetes version in the kubeadm config map")
-	}
+	kubeadmCMMutators := make([]func(*bootstrapv1.ClusterConfiguration), 0)
+	kubeadmCMMutators = append(kubeadmCMMutators, workloadCluster.UpdateKubernetesVersionInKubeadmConfigMap(parsedVersion))
 
 	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
 		// We intentionally only parse major/minor/patch so that the subsequent code
@@ -84,38 +84,30 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
 		}
+
 		// Get the imageRepository or the correct value if nothing is set and a migration is necessary.
 		imageRepository := internal.ImageRepositoryFromClusterConfig(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration, parsedVersionTolerant)
 
-		if err := workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(ctx, imageRepository, parsedVersion); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update the image repository in the kubeadm config map")
+		kubeadmCMMutators = append(kubeadmCMMutators,
+			workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(imageRepository),
+			workloadCluster.UpdateFeatureGatesInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.FeatureGates),
+			workloadCluster.UpdateAPIServerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer),
+			workloadCluster.UpdateControllerManagerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager),
+			workloadCluster.UpdateSchedulerInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler))
+
+		// Etcd local and external are mutually exclusive and they cannot be switched, once set.
+		if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
+			kubeadmCMMutators = append(kubeadmCMMutators,
+				workloadCluster.UpdateEtcdLocalInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local))
+		} else {
+			kubeadmCMMutators = append(kubeadmCMMutators,
+				workloadCluster.UpdateEtcdExternalInKubeadmConfigMap(controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External))
 		}
 	}
 
-	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration != nil && controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
-		meta := controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta
-		if err := workloadCluster.UpdateEtcdVersionInKubeadmConfigMap(ctx, meta.ImageRepository, meta.ImageTag, parsedVersion); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update the etcd version in the kubeadm config map")
-		}
-
-		extraArgs := controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ExtraArgs
-		if err := workloadCluster.UpdateEtcdExtraArgsInKubeadmConfigMap(ctx, extraArgs, parsedVersion); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update the etcd extra args in the kubeadm config map")
-		}
-	}
-
-	if controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
-		if err := workloadCluster.UpdateAPIServerInKubeadmConfigMap(ctx, controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.APIServer, parsedVersion); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update api server in the kubeadm config map")
-		}
-
-		if err := workloadCluster.UpdateControllerManagerInKubeadmConfigMap(ctx, controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.ControllerManager, parsedVersion); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update controller manager in the kubeadm config map")
-		}
-
-		if err := workloadCluster.UpdateSchedulerInKubeadmConfigMap(ctx, controlPlane.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Scheduler, parsedVersion); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update scheduler in the kubeadm config map")
-		}
+	// collectively update Kubeadm config map
+	if err = workloadCluster.UpdateClusterConfiguration(ctx, parsedVersion, kubeadmCMMutators...); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if err := workloadCluster.UpdateKubeletConfigMap(ctx, parsedVersion); err != nil {

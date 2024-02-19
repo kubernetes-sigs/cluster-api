@@ -1716,7 +1716,7 @@ kind delete cluster
 [clusterctl get kubeconfig]: ../clusterctl/commands/get-kubeconfig.md
 [clusterctl]: ../clusterctl/overview.md
 [Docker]: https://www.docker.com/
-[GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+[GCP provider]: https://cluster-api-gcp.sigs.k8s.io/
 [Helm]: https://helm.sh/docs/intro/install/
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud

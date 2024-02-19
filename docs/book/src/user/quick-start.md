@@ -417,7 +417,7 @@ clusterctl init --infrastructure aws
 
 Download the latest release; on Windows, type:
 ```
-curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-windows-amd64" version:">=2.0.0"}} -o clusterawsadm.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api-provider-aws" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-windows-amd64.exe" version:">=2.0.0"}} -o clusterawsadm.exe
 ```
 
 Append or prepend the path of that directory to the `PATH` environment variable.

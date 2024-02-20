@@ -45,7 +45,7 @@ const (
 	DOProviderName             = "digitalocean"
 	GCPProviderName            = "gcp"
 	HetznerProviderName        = "hetzner"
-	HivelocityProviderName     = "hivelocity"
+	HivelocityProviderName     = "hivelocity-hivelocity"
 	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
 	InMemoryProviderName       = "in-memory"

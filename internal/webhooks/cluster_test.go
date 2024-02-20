@@ -1668,7 +1668,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         true,
 		},
 		{
-			name: "Accept a cluster that MHC override defined for control plane and does not set unhealthy conditions",
+			name: "Accept a cluster that has MHC override defined for control plane and does not set unhealthy conditions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().

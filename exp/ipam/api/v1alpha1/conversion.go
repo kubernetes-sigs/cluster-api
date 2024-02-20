@@ -54,7 +54,13 @@ func (src *IPAddressClaim) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.ClusterName = src.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"]
+	if src.ObjectMeta.Labels != nil {
+		dst.Spec.ClusterName = src.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"]
+		if dst.ObjectMeta.Annotations != nil && dst.ObjectMeta.Annotations["conversion.cluster.x-k8s.io/cluster-name-label-set"] != "" {
+			delete(src.ObjectMeta.Labels, "cluster.x-k8s.io/cluster-name")
+			delete(src.ObjectMeta.Annotations, "conversion.cluster.x-k8s.io/cluster-name-label-set")
+		}
+	}
 
 	return nil
 }
@@ -67,6 +73,15 @@ func (dst *IPAddressClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	if src.Spec.ClusterName != "" {
+		if dst.ObjectMeta.Labels == nil {
+			dst.ObjectMeta.Labels = map[string]string{}
+		}
+		if _, ok := dst.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"]; !ok {
+			if dst.ObjectMeta.Annotations == nil {
+				dst.ObjectMeta.Annotations = map[string]string{}
+			}
+			dst.ObjectMeta.Annotations["conversion.cluster.x-k8s.io/cluster-name-label-set"] = "false"
+		}
 		dst.ObjectMeta.Labels["cluster.x-k8s.io/cluster-name"] = src.Spec.ClusterName
 	}
 

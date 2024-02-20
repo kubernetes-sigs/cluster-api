@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -363,8 +364,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			log.Info(warningMsg)
 			allWarnings = append(allWarnings, warningMsg)
 		} else {
-			if errs := webhook.validateTopologyVersion(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster); len(errs) > 0 {
-				allErrs = append(allErrs, errs...)
+			if err := webhook.validateTopologyVersion(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster); err != nil {
+				allErrs = append(allErrs, err)
 			}
 		}
 
@@ -390,14 +391,14 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	return allWarnings, allErrs
 }
 
-func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster) field.ErrorList {
+func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster) *field.Error {
 	// Version could only be increased.
 	if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.Compare(inVersion, oldVersion, version.WithBuildTags()) == -1 {
-		return field.ErrorList{field.Invalid(
+		return field.Invalid(
 			fldPath,
 			fldValue,
 			fmt.Sprintf("version cannot be decreased from %q to %q", oldVersion, inVersion),
-		)}
+		)
 	}
 
 	// A +2 minor version upgrade is not allowed.
@@ -407,12 +408,11 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 		Patch: 0,
 	}
 	if inVersion.GTE(ceilVersion) {
-		return field.ErrorList{field.Invalid(
+		return field.Invalid(
 			fldPath,
 			fldValue,
 			fmt.Sprintf("version cannot be increased from %q to %q", oldVersion, inVersion),
-		),
-		}
+		)
 	}
 
 	// Only check the following cases if the minor version increases by 1 (we already return above for >= 2).
@@ -427,36 +427,28 @@ func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *fi
 		return nil
 	}
 
-	allErrs := field.ErrorList{}
+	allErrs := []error{}
 	// minor version cannot be increased if control plane is upgrading or not yet on the current version
 	if err := validateTopologyControlPlaneVersion(ctx, webhook.Client, oldCluster, oldVersion); err != nil {
-		allErrs = append(allErrs, field.Invalid(
-			fldPath,
-			fldValue,
-			fmt.Sprintf("blocking version update due to ControlPlane version check: %v", err),
-		))
+		allErrs = append(allErrs, fmt.Errorf("blocking version update due to ControlPlane version check: %v", err))
 	}
 
 	// minor version cannot be increased if MachineDeployments are upgrading or not yet on the current version
 	if err := validateTopologyMachineDeploymentVersions(ctx, webhook.Client, oldCluster, oldVersion); err != nil {
-		allErrs = append(allErrs, field.Invalid(
-			fldPath,
-			fldValue,
-			fmt.Sprintf("blocking version update due to MachineDeployment version check: %v", err),
-		))
+		allErrs = append(allErrs, fmt.Errorf("blocking version update due to MachineDeployment version check: %v", err))
 	}
 
 	// minor version cannot be increased if MachinePools are upgrading or not yet on the current version
 	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.Tracker, oldCluster, oldVersion); err != nil {
-		allErrs = append(allErrs, field.Invalid(
-			fldPath,
-			fldValue,
-			fmt.Sprintf("blocking version update due to MachinePool version check: %v", err),
-		))
+		allErrs = append(allErrs, fmt.Errorf("blocking version update due to MachinePool version check: %v", err))
 	}
 
 	if len(allErrs) > 0 {
-		return allErrs
+		return field.Invalid(
+			fldPath,
+			fldValue,
+			fmt.Sprintf("minor version update cannot happen at this time: %v", kerrors.NewAggregate(allErrs)),
+		)
 	}
 
 	return nil
@@ -497,7 +489,7 @@ func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.
 	}
 
 	if upgrading {
-		return errors.New("ControlPlane is currently upgrading")
+		return errors.New("ControlPlane is still completing a previous upgrade")
 	}
 
 	return nil
@@ -548,7 +540,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 	}
 
 	if len(mdUpgradingNames) > 0 {
-		return fmt.Errorf("upgrading MachineDeployments: [%s]", strings.Join(mdUpgradingNames, ", "))
+		return fmt.Errorf("there are MachineDeployments still completing a previous upgrade: [%s]", strings.Join(mdUpgradingNames, ", "))
 	}
 
 	return nil
@@ -605,7 +597,7 @@ func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.
 	}
 
 	if len(mpUpgradingNames) > 0 {
-		return fmt.Errorf("upgrading MachinePools: [%s]", strings.Join(mpUpgradingNames, ", "))
+		return fmt.Errorf("there are MachinePools still completing a previous upgrade: [%s]", strings.Join(mpUpgradingNames, ", "))
 	}
 
 	return nil

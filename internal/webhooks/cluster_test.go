@@ -1276,6 +1276,16 @@ func TestClusterTopologyValidation(t *testing.T) {
 				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
 					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
 					Build(),
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.19.1").Build(),
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.19.1").Build(),
 			},
 		},
 		{
@@ -1309,6 +1319,14 @@ func TestClusterTopologyValidation(t *testing.T) {
 				WithTopology(builder.ClusterTopology().
 					WithClass("foo").
 					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							Build()).
 					Build()).
 				Build(),
 			in: builder.Cluster("fooboo", "cluster1").

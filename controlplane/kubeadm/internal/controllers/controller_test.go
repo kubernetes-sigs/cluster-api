@@ -1279,7 +1279,8 @@ dns:
   type: CoreDNS
 imageRepository: registry.k8s.io
 kind: ClusterConfiguration
-kubernetesVersion: metav1.16.1`,
+kubernetesVersion: metav1.16.1
+`,
 		},
 	}
 	g.Expect(env.Create(ctx, kubeadmCM)).To(Succeed())

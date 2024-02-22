@@ -108,11 +108,11 @@ func (f fakeWorkloadCluster) ReconcileKubeletRBACBinding(_ context.Context, _ se
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateKubernetesVersionInKubeadmConfigMap(_ context.Context, _ semver.Version) error {
+func (f fakeWorkloadCluster) UpdateKubernetesVersionInKubeadmConfigMap(semver.Version) func(*bootstrapv1.ClusterConfiguration) {
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(_ context.Context, _, _ string, _ semver.Version) error {
+func (f fakeWorkloadCluster) UpdateEtcdLocalInKubeadmConfigMap(*bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
 	return nil
 }
 
@@ -132,13 +132,17 @@ func (f fakeWorkloadCluster) EtcdMembers(_ context.Context) ([]string, error) {
 	return f.EtcdMembersResult, nil
 }
 
+func (f fakeWorkloadCluster) UpdateClusterConfiguration(context.Context, semver.Version, ...func(*bootstrapv1.ClusterConfiguration)) error {
+	return nil
+}
+
 type fakeMigrator struct {
 	migrateCalled    bool
 	migrateErr       error
 	migratedCorefile string
 }
 
-func (m *fakeMigrator) Migrate(_, _, _ string, _ bool) (string, error) {
+func (m *fakeMigrator) Migrate(string, string, string, bool) (string, error) {
 	m.migrateCalled = true
 	if m.migrateErr != nil {
 		return "", m.migrateErr

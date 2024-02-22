@@ -32,7 +32,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/yaml"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 func TestUpdateCoreDNS(t *testing.T) {
@@ -124,7 +124,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			"ClusterConfiguration": yaml.Raw(`
+			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
 				apiVersion: kubeadm.k8s.io/v1beta2
 				dns:
@@ -140,7 +140,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			"ClusterConfiguration": yaml.Raw(`
+			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
 				apiVersion: kubeadm.k8s.io/v1beta2
 				dns:
@@ -1410,7 +1410,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the DNS image config",
-			clusterConfigurationData: yaml.Raw(`
+			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta2
 				kind: ClusterConfiguration
 				`),
@@ -1420,7 +1420,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 					ImageTag:        "v1.2.3",
 				},
 			},
-			wantClusterConfiguration: yaml.Raw(`
+			wantClusterConfiguration: utilyaml.Raw(`
 				apiServer: {}
 				apiVersion: kubeadm.k8s.io/v1beta2
 				controllerManager: {}
@@ -1451,7 +1451,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.updateCoreDNSImageInfoInKubeadmConfigMap(ctx, &tt.newDNS, semver.MustParse("1.19.1"))
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.19.1"), w.updateCoreDNSImageInfoInKubeadmConfigMap(&tt.newDNS))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap

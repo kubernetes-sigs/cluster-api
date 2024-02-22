@@ -150,6 +150,7 @@ const (
 	ntp                  = "ntp"
 	ignition             = "ignition"
 	diskSetup            = "diskSetup"
+	featureGates         = "featureGates"
 )
 
 const minimumCertificatesExpiryDays = 7
@@ -176,6 +177,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "imageRepository"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, featureGates},
+		{spec, kubeadmConfigSpec, clusterConfiguration, featureGates, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, apiServer},
 		{spec, kubeadmConfigSpec, clusterConfiguration, apiServer, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, controllerManager},

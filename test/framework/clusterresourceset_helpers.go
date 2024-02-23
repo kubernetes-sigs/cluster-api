@@ -152,8 +152,8 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 
 			// Check relevant ResourceSetBinding to see if the resource is applied. If no ResourceSetBinding is found for
 			// the specified ClusterResourceSet, the resource has not applied.
-			resourceSetBinding, found := getResourceSetBindingForClusterResourceSet(binding, input.ClusterResourceSet)
-			if !found || !resourceSetBinding.IsApplied(resource) {
+			resourceSetBinding := getResourceSetBindingForClusterResourceSet(binding, input.ClusterResourceSet)
+			if resourceSetBinding == nil || !resourceSetBinding.IsApplied(resource) {
 				return false
 			}
 		}
@@ -163,11 +163,11 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 
 func getResourceSetBindingForClusterResourceSet(
 	clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet,
-) (*addonsv1.ResourceSetBinding, bool) {
+) *addonsv1.ResourceSetBinding {
 	for _, binding := range clusterResourceSetBinding.Spec.Bindings {
 		if binding.ClusterResourceSetName == clusterResourceSet.Name {
-			return binding, true
+			return binding
 		}
 	}
-	return nil, false
+	return nil
 }

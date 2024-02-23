@@ -115,6 +115,14 @@ docker events > "${ARTIFACTS_LOCAL}/docker-events.txt" 2>&1 &
 ctr -n moby events > "${ARTIFACTS_LOCAL}/containerd-events.txt" 2>&1 &
 
 # Run e2e tests
-mkdir -p "$ARTIFACTS"
-echo "+ run tests!"
-make test-e2e
+
+ORIGINAL_ARTIFACTS="${ARTIFACTS}"
+
+for i in {1..9}; do
+  ARTIFACTS="${ORIGINAL_ARTIFACTS}/${i}"
+  echo "Using artifacts location: $ARTIFACTS"
+  mkdir -p "$ARTIFACTS"
+  echo "+ run tests!"
+
+  make test-e2e
+done

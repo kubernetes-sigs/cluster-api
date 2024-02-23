@@ -18,6 +18,7 @@ package clusterctl
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -128,6 +129,35 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			})
 		}
 	}
+
+	certManagerDeployments := framework.GetCertManagerDeployments(ctx, framework.GetControllerDeploymentsInput{
+		Lister: client,
+	})
+	for _, deployment := range certManagerDeployments {
+		fmt.Printf("Pod status of %s/%s:\n%++v\n", deployment.Namespace, deployment.Name, deployment.Status)
+		// framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
+		// 	Getter:     client,
+		// 	Deployment: deployment,
+		// }, intervals...)
+
+		// Start streaming logs from all controller providers
+		framework.WatchDeploymentLogsByName(ctx, framework.WatchDeploymentLogsByNameInput{
+			GetLister:  client,
+			Cache:      input.ClusterProxy.GetCache(ctx),
+			ClientSet:  input.ClusterProxy.GetClientSet(),
+			Deployment: deployment,
+			LogPath:    filepath.Join(input.LogFolder, "logs", deployment.GetNamespace()),
+		})
+
+		// if !input.DisableMetricsCollection {
+		// 	framework.WatchPodMetrics(ctx, framework.WatchPodMetricsInput{
+		// 		GetLister:   client,
+		// 		ClientSet:   input.ClusterProxy.GetClientSet(),
+		// 		Deployment:  deployment,
+		// 		MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
+		// 	})
+		// }
+	}
 }
 
 // UpgradeManagementClusterAndWaitInput is the input type for UpgradeManagementClusterAndWait.
@@ -145,6 +175,29 @@ type UpgradeManagementClusterAndWaitInput struct {
 	AddonProviders            []string
 	LogFolder                 string
 	ClusterctlBinaryPath      string
+}
+
+func (i *UpgradeManagementClusterAndWaitInput) allProviders() []string {
+	providers := []string{i.CoreProvider}
+	for _, p := range i.BootstrapProviders {
+		providers = append(providers, "bootstrap"+p)
+	}
+	for _, p := range i.ControlPlaneProviders {
+		providers = append(providers, "control-plane-"+p)
+	}
+	for _, p := range i.InfrastructureProviders {
+		providers = append(providers, "infrastructure-"+p)
+	}
+	for _, p := range i.IPAMProviders {
+		providers = append(providers, "ipam-"+p)
+	}
+	for _, p := range i.RuntimeExtensionProviders {
+		providers = append(providers, "runtime-extension-"+p)
+	}
+	for _, p := range i.AddonProviders {
+		providers = append(providers, "addon-"+p)
+	}
+	return providers
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
@@ -213,6 +266,10 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 			MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
 		})
 	}
+
+	log.Logf("Waiting for cert-manager to inject the new certificates to webhook relevant objects")
+	framework.WaitForProviderCAInjection(ctx, client, filepath.Join(input.LogFolder, "foo", "crds"))
+
 }
 
 // ApplyClusterTemplateAndWaitInput is the input type for ApplyClusterTemplateAndWait.

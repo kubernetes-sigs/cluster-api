@@ -43,6 +43,42 @@ import (
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 )
 
+// GetGlobalCAPIResourcesInput is the input for GetCAPIResources.
+type GetGlobalCAPIResourcesInput struct {
+	Lister    Lister
+	Namespace string
+}
+
+// GetGlobalCAPIResources reads all the CAPI resources in a namespace.
+// This list includes all the types belonging to CAPI providers.
+func GetGlobalCAPIResources(ctx context.Context, input GetGlobalCAPIResourcesInput) []*unstructured.Unstructured {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetGlobalCAPIResources")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for GetGlobalCAPIResources")
+
+	types := getGlobalClusterAPITypes(ctx, input.Lister)
+
+	objList := []*unstructured.Unstructured{}
+	for i := range types {
+		typeMeta := types[i]
+		typeList := new(unstructured.UnstructuredList)
+		typeList.SetAPIVersion(typeMeta.APIVersion)
+		typeList.SetKind(typeMeta.Kind)
+
+		if err := input.Lister.List(ctx, typeList); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			Fail(fmt.Sprintf("failed to list %q resources: %v", typeList.GroupVersionKind(), err))
+		}
+		for i := range typeList.Items {
+			obj := typeList.Items[i]
+			objList = append(objList, &obj)
+		}
+	}
+
+	return objList
+}
+
 // GetCAPIResourcesInput is the input for GetCAPIResources.
 type GetCAPIResourcesInput struct {
 	Lister    Lister
@@ -80,6 +116,35 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 	return objList
 }
 
+// getGlobalClusterAPITypes returns the list of TypeMeta to be considered for the move discovery phase.
+// This list includes all the types belonging to CAPI providers.
+func getGlobalClusterAPITypes(ctx context.Context, lister Lister) []metav1.TypeMeta {
+	discoveredTypes := []metav1.TypeMeta{}
+
+	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
+	Eventually(func() error {
+		return lister.List(ctx, crdList, client.HasLabels{"clusterctl.cluster.x-k8s.io/core"})
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "failed to list CRDs for CAPI providers")
+
+	for _, crd := range crdList.Items {
+		for _, version := range crd.Spec.Versions {
+			if !version.Storage {
+				continue
+			}
+
+			discoveredTypes = append(discoveredTypes, metav1.TypeMeta{
+				Kind: crd.Spec.Names.Kind,
+				APIVersion: metav1.GroupVersion{
+					Group:   crd.Spec.Group,
+					Version: version.Name,
+				}.String(),
+			})
+		}
+	}
+
+	return discoveredTypes
+}
+
 // getClusterAPITypes returns the list of TypeMeta to be considered for the move discovery phase.
 // This list includes all the types belonging to CAPI providers.
 func getClusterAPITypes(ctx context.Context, lister Lister) []metav1.TypeMeta {
@@ -105,6 +170,7 @@ func getClusterAPITypes(ctx context.Context, lister Lister) []metav1.TypeMeta {
 			})
 		}
 	}
+
 	return discoveredTypes
 }
 
@@ -122,7 +188,16 @@ func DumpAllResources(ctx context.Context, input DumpAllResourcesInput) {
 	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpAllResources")
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for DumpAllResources")
 
-	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
+	resources := GetGlobalCAPIResources(ctx, GetGlobalCAPIResourcesInput{
+		Lister: input.Lister,
+	})
+
+	for i := range resources {
+		r := resources[i]
+		dumpObject(r, input.LogPath)
+	}
+
+	resources = GetCAPIResources(ctx, GetCAPIResourcesInput{
 		Lister:    input.Lister,
 		Namespace: input.Namespace,
 	})

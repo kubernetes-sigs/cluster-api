@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetControllerDeploymentsInput is the input for GetControllerDeployments.
@@ -34,6 +35,23 @@ func GetControllerDeployments(ctx context.Context, input GetControllerDeployment
 	deploymentList := &appsv1.DeploymentList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, deploymentList, capiProviderOptions()...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list deployments for the cluster API controllers")
+
+	deployments := make([]*appsv1.Deployment, 0, len(deploymentList.Items))
+	for i := range deploymentList.Items {
+		d := &deploymentList.Items[i]
+		if !skipDeployment(d, input.ExcludeNamespaces) {
+			deployments = append(deployments, d)
+		}
+	}
+	return deployments
+}
+
+// GetCertManagerDeployments returns all the deployment for the cluster API controllers existing in a management cluster.
+func GetCertManagerDeployments(ctx context.Context, input GetControllerDeploymentsInput) []*appsv1.Deployment {
+	deploymentList := &appsv1.DeploymentList{}
+	Eventually(func() error {
+		return input.Lister.List(ctx, deploymentList, client.InNamespace("cert-manager"))
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list deployments for the cluster API controllers")
 
 	deployments := make([]*appsv1.Deployment, 0, len(deploymentList.Items))

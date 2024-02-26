@@ -31,7 +31,6 @@ import (
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -41,7 +40,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/hash"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -114,12 +112,7 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.Machine
 		}
 
 		// Ensure MachineDeployment has the latest MachineSet revision in its revision annotation.
-		err = r.updateMachineDeployment(ctx, md, func(*clusterv1.MachineDeployment) {
-			mdutil.SetDeploymentRevision(md, updatedMS.Annotations[clusterv1.RevisionAnnotation])
-		})
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to update revision annotation on MachineDeployment")
-		}
+		mdutil.SetDeploymentRevision(md, updatedMS.Annotations[clusterv1.RevisionAnnotation])
 		return updatedMS, nil
 	}
 
@@ -133,13 +126,7 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.Machine
 		return nil, err
 	}
 
-	// Ensure MachineDeployment has the latest MachineSet revision in its revision annotation.
-	err = r.updateMachineDeployment(ctx, md, func(*clusterv1.MachineDeployment) {
-		mdutil.SetDeploymentRevision(md, newMS.Annotations[clusterv1.RevisionAnnotation])
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to update revision annotation on MachineDeployment")
-	}
+	mdutil.SetDeploymentRevision(md, newMS.Annotations[clusterv1.RevisionAnnotation])
 
 	return newMS, nil
 }
@@ -654,28 +641,4 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 	}
 
 	return nil
-}
-
-func (r *Reconciler) updateMachineDeployment(ctx context.Context, md *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
-	return updateMachineDeployment(ctx, r.Client, md, modify)
-}
-
-// We have this as standalone variant to be able to use it from the tests.
-func updateMachineDeployment(ctx context.Context, c client.Client, md *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
-	mdObjectKey := util.ObjectKey(md)
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		// Note: We intentionally don't re-use the passed in MachineDeployment md here as that would
-		// overwrite any local changes we might have previously made to the MachineDeployment with the version
-		// we get here from the apiserver.
-		md := &clusterv1.MachineDeployment{}
-		if err := c.Get(ctx, mdObjectKey, md); err != nil {
-			return err
-		}
-		patchHelper, err := patch.NewHelper(md, c)
-		if err != nil {
-			return err
-		}
-		modify(md)
-		return patchHelper.Patch(ctx, md)
-	})
 }

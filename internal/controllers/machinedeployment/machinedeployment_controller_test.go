@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -35,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 const (
@@ -969,4 +972,24 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			}
 		})
 	}
+}
+
+// We have this as standalone variant to be able to use it from the tests.
+func updateMachineDeployment(ctx context.Context, c client.Client, md *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
+	mdObjectKey := util.ObjectKey(md)
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		// Note: We intentionally don't re-use the passed in MachineDeployment md here as that would
+		// overwrite any local changes we might have previously made to the MachineDeployment with the version
+		// we get here from the apiserver.
+		md := &clusterv1.MachineDeployment{}
+		if err := c.Get(ctx, mdObjectKey, md); err != nil {
+			return err
+		}
+		patchHelper, err := patch.NewHelper(md, c)
+		if err != nil {
+			return err
+		}
+		modify(md)
+		return patchHelper.Patch(ctx, md)
+	})
 }

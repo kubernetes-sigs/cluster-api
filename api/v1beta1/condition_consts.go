@@ -152,6 +152,10 @@ const (
 	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
 	MachineHasFailureReason = "MachineHasFailure"
 
+	// HasRemediateMachineAnnotationReason is the reason that get's set at the MachineHealthCheckSucceededCondition when a machine
+	// has the RemediateMachineAnnotation set.
+	HasRemediateMachineAnnotationReason = "HasRemediateMachineAnnotation"
+
 	// NodeStartupTimeoutReason is the reason used when a machine's node does not appear within the specified timeout.
 	NodeStartupTimeoutReason = "NodeStartupTimeout"
 

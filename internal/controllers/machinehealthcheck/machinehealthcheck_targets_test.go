@@ -87,10 +87,10 @@ func TestGetTargetsFromMHC(t *testing.T) {
 	// machines for skip remediation
 	testNode5 := newTestNode("node5")
 	testMachine5 := newTestMachine("machine5", namespace, clusterName, testNode5.Name, mhcSelector)
-	testMachine5.Annotations = map[string]string{"cluster.x-k8s.io/skip-remediation": ""}
+	testMachine5.Annotations = map[string]string{clusterv1.MachineSkipRemediationAnnotation: ""}
 	testNode6 := newTestNode("node6")
 	testMachine6 := newTestMachine("machine6", namespace, clusterName, testNode6.Name, mhcSelector)
-	testMachine6.Annotations = map[string]string{"cluster.x-k8s.io/paused": ""}
+	testMachine6.Annotations = map[string]string{clusterv1.PausedAnnotation: ""}
 
 	testCases := []struct {
 		desc            string
@@ -340,6 +340,18 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 	machineFailureMsgCondition := newFailedHealthCheckCondition(clusterv1.MachineHasFailureReason, "FailureMessage: %s", failureMsg)
 
+	// Target for when the machine has the remediate machine annotation
+	annotationRemediationMsg := "Marked for remediation via remediate-machine annotation"
+	testMachineAnnotationRemediation := testMachine.DeepCopy()
+	testMachineAnnotationRemediation.Annotations = map[string]string{clusterv1.RemediateMachineAnnotation: ""}
+	machineAnnotationRemediation := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachineAnnotationRemediation,
+		Node:    nil,
+	}
+	machineAnnotationRemediationCondition := newFailedHealthCheckCondition(clusterv1.HasRemediateMachineAnnotationReason, annotationRemediationMsg)
+
 	testCases := []struct {
 		desc                              string
 		targets                           []healthCheckTarget
@@ -424,6 +436,14 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedHealthy:                   []healthCheckTarget{},
 			expectedNeedsRemediation:          []healthCheckTarget{machineFailureMsg},
 			expectedNeedsRemediationCondition: []clusterv1.Condition{machineFailureMsgCondition},
+			expectedNextCheckTimes:            []time.Duration{},
+		},
+		{
+			desc:                              "when the machine is manually marked for remediation",
+			targets:                           []healthCheckTarget{machineAnnotationRemediation},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{machineAnnotationRemediation},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{machineAnnotationRemediationCondition},
 			expectedNextCheckTimes:            []time.Duration{},
 		},
 	}

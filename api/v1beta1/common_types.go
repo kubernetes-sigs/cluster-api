@@ -128,6 +128,9 @@ const (
 	// MachineSkipRemediationAnnotation is the annotation used to mark the machines that should not be considered for remediation by MachineHealthCheck reconciler.
 	MachineSkipRemediationAnnotation = "cluster.x-k8s.io/skip-remediation"
 
+	// RemediateMachineAnnotation is the annotation used to mark machines that should be remediated by MachineHealthCheck reconciler.
+	RemediateMachineAnnotation = "cluster.x-k8s.io/remediate-machine"
+
 	// MachineSetSkipPreflightChecksAnnotation is the annotation used to provide a comma-separated list of
 	// preflight checks that should be skipped during the MachineSet reconciliation.
 	// Supported items are:

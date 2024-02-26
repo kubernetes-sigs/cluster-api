@@ -48,6 +48,11 @@ func HasSkipRemediation(o metav1.Object) bool {
 	return hasAnnotation(o, clusterv1.MachineSkipRemediationAnnotation)
 }
 
+// HasRemediateMachine returns true if the object has the `remediate-machine` annotation.
+func HasRemediateMachine(o metav1.Object) bool {
+	return hasAnnotation(o, clusterv1.RemediateMachineAnnotation)
+}
+
 // HasWithPrefix returns true if at least one of the annotations has the prefix specified.
 func HasWithPrefix(prefix string, annotations map[string]string) bool {
 	for key := range annotations {

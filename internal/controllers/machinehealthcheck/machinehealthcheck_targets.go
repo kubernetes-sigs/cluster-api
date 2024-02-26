@@ -82,6 +82,7 @@ func (t *healthCheckTarget) nodeName() string {
 
 // Determine whether or not a given target needs remediation.
 // The node will need remediation if any of the following are true:
+// - The Machine has the remediate machine annotation
 // - The Machine has failed for some reason
 // - The Machine did not get a node before `timeoutForMachineToHaveNode` elapses
 // - The Node has gone away
@@ -92,6 +93,12 @@ func (t *healthCheckTarget) nodeName() string {
 func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) (bool, time.Duration) {
 	var nextCheckTimes []time.Duration
 	now := time.Now()
+
+	if annotations.HasRemediateMachine(t.Machine) {
+		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.HasRemediateMachineAnnotationReason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
+		logger.V(3).Info("Target is marked for remediation via remediate-machine annotation")
+		return true, time.Duration(0)
+	}
 
 	if t.Machine.Status.FailureReason != nil {
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "FailureReason: %v", *t.Machine.Status.FailureReason)

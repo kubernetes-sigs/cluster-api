@@ -130,7 +130,7 @@ digitalocean           InfrastructureProvider   https://github.com/kubernetes-si
 docker                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             infrastructure-components-development.yaml
 gcp                    InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                infrastructure-components.yaml
 hetzner                InfrastructureProvider   https://github.com/syself/cluster-api-provider-hetzner/releases/latest/                     infrastructure-components.yaml
-hivelocity             InfrastructureProvider   https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/              infrastructure-components.yaml
+hivelocity-hivelocity  InfrastructureProvider   https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/              infrastructure-components.yaml
 ibmcloud               InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/           infrastructure-components.yaml
 in-memory              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             infrastructure-components-in-memory-development.yaml
 k0sproject-k0smotron   InfrastructureProvider   https://github.com/k0sproject/k0smotron/releases/latest/                                    infrastructure-components.yaml
@@ -264,7 +264,7 @@ var expectedOutputYaml = `- File: core_components.yaml
   ProviderType: InfrastructureProvider
   URL: https://github.com/syself/cluster-api-provider-hetzner/releases/latest/
 - File: infrastructure-components.yaml
-  Name: hivelocity
+  Name: hivelocity-hivelocity
   ProviderType: InfrastructureProvider
   URL: https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/
 - File: infrastructure-components.yaml

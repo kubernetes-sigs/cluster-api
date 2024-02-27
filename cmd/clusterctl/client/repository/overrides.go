@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 const (
@@ -107,7 +108,11 @@ func (o *overrides) Path() (string, error) {
 // getLocalOverride return local override file from the config folder, if it exists.
 // This is required for development purposes, but it can be used also in production as a workaround for problems on the official repositories.
 func getLocalOverride(info *newOverrideInput) ([]byte, error) {
+	log := logf.Log
+
 	overridePath, err := newOverride(info).Path()
+	log.V(5).Info("Potential override file", "SearchFile", overridePath, "Provider", info.provider.ManifestLabel(), "Version", info.version)
+
 	if err != nil {
 		return nil, err
 	}

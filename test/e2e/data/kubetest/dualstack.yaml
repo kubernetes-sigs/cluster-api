@@ -1,9 +1,9 @@
 ginkgo.focus: \[Feature\:IPv6DualStack\]
 ginkgo.skip: \[Feature\:SCTPConnectivity\]
 disable-log-dump: true
-ginkgo.progress: true
-ginkgo.slowSpecThreshold: 120.0
-ginkgo.flakeAttempts: 3
+ginkgo.show-node-events: true
+ginkgo.slow-spec-threshold: 120s
+ginkgo.flake-attempts: 3
 ginkgo.trace: true
 ginkgo.v: true
 ginkgo.no-color: true

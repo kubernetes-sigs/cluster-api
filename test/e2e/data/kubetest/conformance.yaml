@@ -1,9 +1,9 @@
 ginkgo.focus: \[Conformance\]
 ginkgo.skip: \[Serial\]
 disable-log-dump: true
-ginkgo.progress: true
-ginkgo.slowSpecThreshold: 120.0
-ginkgo.flakeAttempts: 3
+ginkgo.show-node-events: true
+ginkgo.slow-spec-threshold: 120s
+ginkgo.flake-attempts: 3
 ginkgo.trace: true
 ginkgo.v: true
 # Use 5m instead of the default 10m to fail faster

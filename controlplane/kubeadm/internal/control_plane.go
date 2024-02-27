@@ -238,6 +238,13 @@ func (c *ControlPlane) IsEtcdManaged() bool {
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
 }
 
+// UnhealthyMachinesWithNonMHCUnhealthyCondition returns all unhealthy control plane machines that
+// does not have a Kubernetes node or have any control plane component condition set to False.
+// It is different from the UnhealthyMachines func which checks MachineHealthCheck conditions.
+func (c *ControlPlane) UnhealthyMachinesWithNonMHCUnhealthyCondition(machines collections.Machines) collections.Machines {
+	return machines.Filter(collections.HasUnhealthyControlPlaneComponentCondition(c.IsEtcdManaged()))
+}
+
 // UnhealthyMachines returns the list of control plane machines marked as unhealthy by MHC.
 func (c *ControlPlane) UnhealthyMachines() collections.Machines {
 	return c.Machines.Filter(collections.HasUnhealthyCondition)
@@ -313,10 +320,4 @@ func (c *ControlPlane) GetWorkloadCluster(ctx context.Context) (WorkloadCluster,
 func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementCluster) {
 	c.managementCluster = managementCluster
 	c.workloadCluster = nil
-}
-
-// ControlPlaneMachinesWithUnhealthyCondition returns all unhealthy control plane machines. Unlike the UnhealthyMachines function,
-// it checks if all health conditions on the control plane machines are true, not just marked by MHC.
-func (c *ControlPlane) ControlPlaneMachinesWithUnhealthyCondition(machines collections.Machines) collections.Machines {
-	return machines.Filter(collections.HasUnhealthyControlPlaneMachineCondition(c.IsEtcdManaged()))
 }

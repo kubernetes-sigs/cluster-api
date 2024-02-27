@@ -164,6 +164,9 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 func getResourceSetBindingForClusterResourceSet(
 	clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet,
 ) *addonsv1.ResourceSetBinding {
+	if clusterResourceSetBinding == nil || clusterResourceSet == nil {
+		return nil
+	}
 	for _, binding := range clusterResourceSetBinding.Spec.Bindings {
 		if binding.ClusterResourceSetName == clusterResourceSet.Name {
 			return binding

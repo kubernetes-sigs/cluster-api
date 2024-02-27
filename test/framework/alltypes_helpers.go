@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -158,7 +159,13 @@ func DumpResourcesForCluster(ctx context.Context, input DumpResourcesForClusterI
 		var listErr error
 		_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
 			if listErr = input.Lister.List(ctx, resourceList, client.InNamespace(resource.Namespace)); listErr != nil {
-				return false, nil //nolint:nilerr
+				// Fail fast for well known network errors that most likely won't recover.
+				// e.g This error happens when the control plane endpoint for the workload cluster can't be reached from
+				// the machine where the E2E test runs.
+				if strings.HasSuffix(listErr.Error(), "connect: no route to host") {
+					return true, nil
+				}
+				return false, nil
 			}
 			return true, nil
 		})

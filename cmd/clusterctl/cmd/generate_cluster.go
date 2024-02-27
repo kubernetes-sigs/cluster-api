@@ -116,8 +116,9 @@ func init() {
 		"The Kubernetes version to use for the workload cluster. If unspecified, the value from OS environment variables or the $XDG_CONFIG_HOME/cluster-api/clusterctl.yaml config file will be used.")
 	generateClusterClusterCmd.Flags().Int64Var(&gc.controlPlaneMachineCount, "control-plane-machine-count", 1,
 		"The number of control plane machines for the workload cluster.")
+	// Remove default from hard coded text if the default is ever changed from 0 since cobra would then add it
 	generateClusterClusterCmd.Flags().Int64Var(&gc.workerMachineCount, "worker-machine-count", 0,
-		"The number of worker machines for the workload cluster.")
+		"The number of worker machines for the workload cluster. (default 0)")
 
 	// flags for the repository source
 	generateClusterClusterCmd.Flags().StringVarP(&gc.infrastructureProvider, "infrastructure", "i", "",

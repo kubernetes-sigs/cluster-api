@@ -401,9 +401,9 @@ spec:
   - See [Preflight checks](#preflight-checks) below.
 - Scale down operations removes the oldest machine in the failure domain that has the most control-plane machines on it.
 - Allow scaling down of KCP with the possibility of marking specific control plane machine(s) to be deleted with delete annotation key. The presence of the annotation will affect the rollout strategy in a way that, it implements the following prioritization logic in descending order, while selecting machines for scale down:
-  - outdatedMachines with the delete annotation
+  - outdated machines with the delete annotation
   - machines with the delete annotation
-  - outdatedMachines with unhealthy conditions
+  - outdated machines with unhealthy control plane component pods
   - outdated machines
   - all machines
 

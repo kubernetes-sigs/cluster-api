@@ -1885,8 +1885,6 @@ func withUnhealthyEtcdMember() machineOption {
 
 func withUnhealthyAPIServerPod() machineOption {
 	return func(machine *clusterv1.Machine) {
-		newConditions := machine.Status.Conditions.DeepCopy()
-		machine.Status.Conditions = newConditions
 		conditions.MarkFalse(machine, controlplanev1.MachineAPIServerPodHealthyCondition, controlplanev1.ControlPlaneComponentsUnhealthyReason, clusterv1.ConditionSeverityError, "")
 	}
 }

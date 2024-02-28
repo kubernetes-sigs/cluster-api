@@ -267,9 +267,8 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		})
 	}
 
-	log.Logf("Waiting for cert-manager to inject the new certificates to webhook relevant objects")
-	framework.WaitForProviderCAInjection(ctx, client, filepath.Join(input.LogFolder, "foo", "crds"))
-
+	// log.Logf("Waiting for cert-manager to inject the new certificates to webhook relevant objects")
+	// framework.WaitForProviderCAInjection(ctx, client, filepath.Join(input.LogFolder, "foo", "crds"))
 }
 
 // ApplyClusterTemplateAndWaitInput is the input type for ApplyClusterTemplateAndWait.

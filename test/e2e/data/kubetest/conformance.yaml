@@ -1,7 +1,10 @@
 ginkgo.focus: \[Conformance\]
 ginkgo.skip: \[Serial\]
 disable-log-dump: true
-ginkgo.show-node-events: true
+# ginkgo.progress flag is deprecated but its still used in
+# k8s versions <= v1.26, we have to keep it as long as we
+# support these versions.
+ginkgo.progress: true
 ginkgo.slow-spec-threshold: 120s
 ginkgo.flake-attempts: 3
 ginkgo.trace: true

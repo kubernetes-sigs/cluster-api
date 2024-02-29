@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -112,6 +113,12 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 		ctx := context.Background()
 
 		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, kubeconfigPath)
+		// Sometimes the conversion-webhooks are not ready yet / cert-managers ca-injector
+		// may not yet have injected the new ca bundle after the upgrade.
+		// If this is the case we return an error to retry.
+		if err != nil && strings.Contains(err.Error(), "x509: certificate signed by unknown authority") {
+			return err
+		}
 		Expect(err).ToNot(HaveOccurred())
 		for _, v := range graph {
 			if _, ok := allAssertFuncs[v.Object.Kind]; !ok {

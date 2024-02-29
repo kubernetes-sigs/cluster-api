@@ -45,6 +45,7 @@ const (
 	DOProviderName             = "digitalocean"
 	GCPProviderName            = "gcp"
 	HetznerProviderName        = "hetzner"
+	HivelocityProviderName     = "hivelocity-hivelocity"
 	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
 	InMemoryProviderName       = "in-memory"
@@ -232,6 +233,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         HetznerProviderName,
 			url:          "https://github.com/syself/cluster-api-provider-hetzner/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         HivelocityProviderName,
+			url:          "https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

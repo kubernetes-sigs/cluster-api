@@ -106,6 +106,8 @@ var RootCmd = &cobra.Command{
 
 // Execute executes the root command.
 func Execute() {
+	handlePlugins()
+
 	if err := RootCmd.Execute(); err != nil {
 		if verbosity != nil && *verbosity >= 5 {
 			if err, ok := err.(stackTracer); ok {
@@ -146,8 +148,6 @@ func init() {
 	RootCmd.SetCompletionCommandGroupID(groupOther)
 
 	cobra.OnInitialize(initConfig, registerCompletionFuncForCommonFlags)
-
-	handlePlugins()
 }
 
 func initConfig() {

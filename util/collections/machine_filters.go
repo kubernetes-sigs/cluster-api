@@ -179,6 +179,9 @@ func HasUnhealthyControlPlaneComponentCondition(isEtcdManaged bool) Func {
 			return true
 		}
 		for _, condition := range controlPlaneMachineHealthConditions {
+			// Do not return true when the condition is not set or is set to Unknown because
+			// it means a transient state and can not be considered as unhealthy.
+			// preflightCheckCondition() can cover these two cases and skip the scaling up/down.
 			if conditions.IsFalse(machine, condition) {
 				return true
 			}

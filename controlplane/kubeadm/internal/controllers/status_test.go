@@ -331,6 +331,80 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 
+func TestKubeadmControlPlaneReconciler_updateStatusCannotGetWorkloadClusterStatus(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "KubeadmControlPlane",
+			APIVersion: controlplanev1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Version: "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "test/v1alpha1",
+					Kind:       "UnknownInfraMachine",
+					Name:       "foo",
+				},
+			},
+		},
+		Status: controlplanev1.KubeadmControlPlaneStatus{
+			Ready:               true,
+			Replicas:            3,
+			ReadyReplicas:       3,
+			UpdatedReplicas:     3,
+			UnavailableReplicas: 0,
+		},
+	}
+	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
+	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())
+	_, err := webhook.ValidateCreate(ctx, kcp)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	machines := map[string]*clusterv1.Machine{}
+	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
+	for i := 0; i < 3; i++ {
+		name := fmt.Sprintf("test-%d", i)
+		m, n := createMachineNodePair(name, cluster, kcp, true)
+		objs = append(objs, n, m)
+		machines[m.Name] = m
+	}
+
+	fakeClient := newFakeClient(objs...)
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:            fakeClient,
+		managementCluster: &fakeManagementClusterWithGetWorkloadClusterError{},
+		recorder:          record.NewFakeRecorder(32),
+	}
+
+	controlPlane := &internal.ControlPlane{
+		KCP:      kcp,
+		Cluster:  cluster,
+		Machines: machines,
+	}
+	controlPlane.InjectTestManagementCluster(r.managementCluster)
+
+	// When updateStatus() returns a non-nil error(e.g. unable to get workload cluster), the original kcp.Status should not be updated.
+	g.Expect(r.updateStatus(ctx, controlPlane)).To(HaveOccurred())
+	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(3))
+	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(3))
+	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.Ready).To(BeTrue())
+}
+
 func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAreNotReady(t *testing.T) {
 	g := NewWithT(t)
 

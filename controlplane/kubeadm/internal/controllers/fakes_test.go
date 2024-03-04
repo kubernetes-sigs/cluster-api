@@ -66,6 +66,14 @@ func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, clu
 	return f.MachinePools, nil
 }
 
+type fakeManagementClusterWithError struct {
+	fakeManagementCluster
+}
+
+func (f *fakeManagementClusterWithError) GetWorkloadCluster(_ context.Context, _ client.ObjectKey) (internal.WorkloadCluster, error) {
+	return nil, errors.New("failed to get workload cluster")
+}
+
 type fakeWorkloadCluster struct {
 	*internal.Workload
 	Status                     internal.ClusterStatus

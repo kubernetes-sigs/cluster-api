@@ -2,7 +2,7 @@
 // +build tools
 
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,8 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+
+	release "sigs.k8s.io/cluster-api/hack/tools/release/internal"
 )
 
 /*
@@ -109,6 +111,7 @@ func (cmd *notesCmd) run() error {
 		newGithubFromToPRLister(cmd.config.repo, from, to, cmd.config.branch),
 		newPREntryProcessor(cmd.config.prefixAreaLabel),
 		printer,
+		newDependenciesProcessor(cmd.config.repo, from.value, to.value),
 	)
 
 	return generator.run()
@@ -167,10 +170,10 @@ func computeConfigDefaults(config *notesCmdConfig) error {
 		if newTag.Patch == 0 {
 			// If patch = 0, this a new minor release
 			// Hence we want to read commits from
-			config.fromRef = "tags/" + fmt.Sprintf("v%d.%d.0", newTag.Major, newTag.Minor-1)
+			config.fromRef = release.TagsPrefix + fmt.Sprintf("v%d.%d.0", newTag.Major, newTag.Minor-1)
 		} else {
 			// if not new minor release, this is a new patch, just decrease the patch
-			config.fromRef = "tags/" + fmt.Sprintf("v%d.%d.%d", newTag.Major, newTag.Minor, newTag.Patch-1)
+			config.fromRef = release.TagsPrefix + fmt.Sprintf("v%d.%d.%d", newTag.Major, newTag.Minor, newTag.Patch-1)
 		}
 	}
 

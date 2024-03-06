@@ -24,16 +24,18 @@ package main
 // process them to generate one entry per PR and then
 // formats and prints the results.
 type notesGenerator struct {
-	lister    prLister
-	processor prProcessor
-	printer   entriesPrinter
+	lister                prLister
+	processor             prProcessor
+	printer               entriesPrinter
+	dependenciesProcessor dependenciesProcessor
 }
 
-func newNotesGenerator(lister prLister, processor prProcessor, printer entriesPrinter) *notesGenerator {
+func newNotesGenerator(lister prLister, processor prProcessor, printer entriesPrinter, dedependenciesProcessor dependenciesProcessor) *notesGenerator {
 	return &notesGenerator{
-		lister:    lister,
-		processor: processor,
-		printer:   printer,
+		lister:                lister,
+		processor:             processor,
+		printer:               printer,
+		dependenciesProcessor: dedependenciesProcessor,
 	}
 }
 
@@ -42,6 +44,7 @@ type pr struct {
 	number uint64
 	title  string
 	labels []string
+	user   string
 }
 
 // prLister returns a list of PRs.
@@ -64,7 +67,7 @@ type prProcessor interface {
 // entriesPrinter formats and outputs to stdout the notes
 // based on a list of entries.
 type entriesPrinter interface {
-	print([]notesEntry)
+	print([]notesEntry, int, string)
 }
 
 // run generates and prints the notes.
@@ -76,7 +79,13 @@ func (g *notesGenerator) run() error {
 
 	entries := g.processor.process(prs)
 
-	g.printer.print(entries)
+	dependencies, err := g.dependenciesProcessor.generateDependencies()
+	if err != nil {
+		return err
+	}
+
+	// Pass in length of PRs to printer as some PRs are excluded from the entries list
+	g.printer.print(entries, len(prs), dependencies)
 
 	return nil
 }

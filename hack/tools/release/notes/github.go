@@ -135,10 +135,15 @@ type githubPR struct {
 	Number uint64        `json:"number"`
 	Title  string        `json:"title"`
 	Labels []githubLabel `json:"labels"`
+	User   githubUser    `json:"user"`
 }
 
 type githubLabel struct {
 	Name string `json:"name"`
+}
+
+type githubUser struct {
+	Login string `json:"login"`
 }
 
 // listMergedPRs calls the `search` endpoint and queries for PRs.

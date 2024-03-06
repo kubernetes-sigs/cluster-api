@@ -118,6 +118,7 @@ func (l *githubFromToPRLister) listPRs() ([]pr, error) {
 			number: p.Number,
 			title:  p.Title,
 			labels: labels,
+			user:   p.User.Login,
 		})
 	}
 

@@ -57,7 +57,7 @@ func newReleaseNotesPrinter(repo, fromTag string) *releaseNotesPrinter {
 }
 
 // print outputs to stdout the release notes.
-func (p *releaseNotesPrinter) print(entries []notesEntry) {
+func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, dependencies string) {
 	merges := map[string][]string{
 		release.Features:      {},
 		release.Bugs:          {},
@@ -109,10 +109,10 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 	fmt.Printf("## Changes since %s\n", p.fromTag)
 
 	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
-	if count := len(entries); count == 1 {
+	if commitsInRelease == 1 {
 		fmt.Println("- 1 new commit merged")
-	} else if count > 1 {
-		fmt.Printf("- %d new commits merged\n", count)
+	} else if commitsInRelease > 1 {
+		fmt.Printf("- %d new commits merged\n", commitsInRelease)
 	}
 	if count := len(merges[release.Warning]); count == 1 {
 		fmt.Println("- 1 breaking change :warning:")
@@ -166,6 +166,8 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 			fmt.Println()
 		}
 	}
+
+	fmt.Print(dependencies)
 
 	fmt.Println("")
 	fmt.Println("_Thanks to all our contributors!_ 😊")

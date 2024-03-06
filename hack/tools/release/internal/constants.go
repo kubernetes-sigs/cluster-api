@@ -40,3 +40,6 @@ const (
 	// Unknown is the tag used for PRs that need to be sorted by hand.
 	Unknown = ":question: Sort these by hand"
 )
+
+// TagsPrefix is the prefix used for from/to refs.
+const TagsPrefix = "tags/"

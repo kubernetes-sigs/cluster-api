@@ -238,31 +238,32 @@ func (c *ControlPlane) IsEtcdManaged() bool {
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
 }
 
-// UnhealthyMachinesWithNonMHCUnhealthyCondition returns all unhealthy control plane machines that
-// does not have a Kubernetes node or have any control plane component condition set to False.
-// It is different from the UnhealthyMachines func which checks MachineHealthCheck conditions.
-func (c *ControlPlane) UnhealthyMachinesWithNonMHCUnhealthyCondition(machines collections.Machines) collections.Machines {
-	return machines.Filter(collections.HasUnhealthyControlPlaneComponentCondition(c.IsEtcdManaged()))
+// UnhealthyControlPlaneOrNodeMissingMachines returns all unhealthy control plane machines that
+// do not have a Kubernetes node, or have unhealthy control plane components.
+//
+// It differs from UnhealthyMachinesByHealthCheck which checks `MachineHealthCheck` conditions.
+func (c *ControlPlane) UnhealthyControlPlaneOrNodeMissingMachines(machines collections.Machines) collections.Machines {
+	return machines.Filter(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(c.IsEtcdManaged()))
 }
 
-// UnhealthyMachines returns the list of control plane machines marked as unhealthy by MHC.
-func (c *ControlPlane) UnhealthyMachines() collections.Machines {
+// UnhealthyMachinesByHealthCheck returns the list of control plane machines marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) UnhealthyMachinesByHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.HasUnhealthyCondition)
 }
 
-// HealthyMachines returns the list of control plane machines not marked as unhealthy by MHC.
-func (c *ControlPlane) HealthyMachines() collections.Machines {
+// HealthyMachinesByHealthCheck returns the list of control plane machines not marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HealthyMachinesByHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.Not(collections.HasUnhealthyCondition))
 }
 
-// HasUnhealthyMachine returns true if any machine in the control plane is marked as unhealthy by MHC.
-func (c *ControlPlane) HasUnhealthyMachine() bool {
-	return len(c.UnhealthyMachines()) > 0
+// HasUnhealthyMachineByHealthCheck returns true if any machine in the control plane is marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HasUnhealthyMachineByHealthCheck() bool {
+	return len(c.UnhealthyMachinesByHealthCheck()) > 0
 }
 
 // HasHealthyMachineStillProvisioning returns true if any healthy machine in the control plane is still in the process of being provisioned.
 func (c *ControlPlane) HasHealthyMachineStillProvisioning() bool {
-	return len(c.HealthyMachines().Filter(collections.Not(collections.HasNode()))) > 0
+	return len(c.HealthyMachinesByHealthCheck().Filter(collections.Not(collections.HasNode()))) > 0
 }
 
 // PatchMachines patches all the machines conditions.

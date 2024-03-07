@@ -546,10 +546,11 @@ generate-go-openapi: $(OPENAPI_GEN) $(CONTROLLER_GEN) ## Generate openapi go cod
 		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \
-			--input-dirs=sigs.k8s.io/cluster-api/$${pkg} \
-			--output-file-base=zz_generated.openapi \
-			--output-package=sigs.k8s.io/cluster-api/$${pkg} \
-			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt; \
+			--output-dir=../$${pkg} \
+			--output-file=zz_generated.openapi.go \
+			--output-pkg=sigs.k8s.io/cluster-api/$${pkg} \
+			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt \
+			sigs.k8s.io/cluster-api/$${pkg}; \
 	done; \
 	rm sigs.k8s.io/cluster-api
 

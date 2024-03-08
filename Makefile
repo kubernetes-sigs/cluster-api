@@ -108,7 +108,7 @@ KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
 KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
 
-SETUP_ENVTEST_VER := v0.0.0-20231012212722-e25aeebc7846
+SETUP_ENVTEST_VER := v0.0.0-20240215143116-d0396a3d6f9f
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
@@ -123,7 +123,7 @@ GOTESTSUM_BIN := gotestsum
 GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
 GOTESTSUM_PKG := gotest.tools/gotestsum
 
-CONVERSION_GEN_VER := v0.29.0
+CONVERSION_GEN_VER := v0.29.2
 CONVERSION_GEN_BIN := conversion-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -145,7 +145,7 @@ HADOLINT_FAILURE_THRESHOLD = warning
 
 SHELLCHECK_VER := v0.9.0
 
-TRIVY_VER := 0.47.0
+TRIVY_VER := 0.49.1
 
 KPROMO_VER := v4.0.5
 KPROMO_BIN := kpromo
@@ -158,7 +158,7 @@ YQ_BIN := yq
 YQ :=  $(abspath $(TOOLS_BIN_DIR)/$(YQ_BIN)-$(YQ_VER))
 YQ_PKG := github.com/mikefarah/yq/v4
 
-PLANTUML_VER := 1.2023.10
+PLANTUML_VER := 1.2024.3
 
 GINKGO_BIN := ginkgo
 GINKGO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
@@ -183,7 +183,7 @@ IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
-OPENAPI_GEN_VER := 5e7f5fd
+OPENAPI_GEN_VER := 70dd376
 OPENAPI_GEN_BIN := openapi-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -546,10 +546,11 @@ generate-go-openapi: $(OPENAPI_GEN) $(CONTROLLER_GEN) ## Generate openapi go cod
 		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \
-			--input-dirs=sigs.k8s.io/cluster-api/$${pkg} \
-			--output-file-base=zz_generated.openapi \
-			--output-package=sigs.k8s.io/cluster-api/$${pkg} \
-			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt; \
+			--output-dir=../$${pkg} \
+			--output-file=zz_generated.openapi.go \
+			--output-pkg=sigs.k8s.io/cluster-api/$${pkg} \
+			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt \
+			sigs.k8s.io/cluster-api/$${pkg}; \
 	done; \
 	rm sigs.k8s.io/cluster-api
 

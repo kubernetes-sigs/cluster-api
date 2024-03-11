@@ -156,6 +156,8 @@ func DumpResourcesForCluster(ctx context.Context, input DumpResourcesForClusterI
 	for _, resource := range input.Resources {
 		resourceList := new(unstructured.UnstructuredList)
 		resourceList.SetGroupVersionKind(resource.GVK)
+
+		var i int
 		var listErr error
 		_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
 			if listErr = input.Lister.List(ctx, resourceList, client.InNamespace(resource.Namespace)); listErr != nil {
@@ -165,6 +167,18 @@ func DumpResourcesForCluster(ctx context.Context, input DumpResourcesForClusterI
 				if strings.HasSuffix(listErr.Error(), "connect: no route to host") {
 					return true, nil
 				}
+				// e.g This error happens when the API server for the workload cluster is down or the control plane endpoint
+				// can't be reached from the machine where the E2E test runs.
+				// NOTE: we consider this error won't recover after it happens at least 3 times in a row
+				if strings.HasSuffix(listErr.Error(), "i/o timeout") {
+					i++
+					if i >= 3 {
+						return true, nil
+					}
+					return false, nil
+				}
+
+				i = 0
 				return false, nil
 			}
 			return true, nil

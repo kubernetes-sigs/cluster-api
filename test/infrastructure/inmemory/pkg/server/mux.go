@@ -108,8 +108,8 @@ type WorkloadClustersMux struct {
 	debugServer              http.Server
 	muxServer                http.Server
 	workloadClusterListeners map[string]*WorkloadClusterListener
-	// workloadClusterNameByHost maps from Host to workload cluster name.
-	workloadClusterNameByHost map[string]string
+	// workloadClusterNameByPort maps from Port to workload cluster name.
+	workloadClusterNameByPort map[string]string
 
 	lock sync.RWMutex
 	log  logr.Logger
@@ -131,7 +131,7 @@ func NewWorkloadClustersMux(manager inmemoryruntime.Manager, host string, opts .
 		portIndex:                 options.MinPort,
 		manager:                   manager,
 		workloadClusterListeners:  map[string]*WorkloadClusterListener{},
-		workloadClusterNameByHost: map[string]string{},
+		workloadClusterNameByPort: map[string]string{},
 		log:                       log.Log,
 	}
 
@@ -169,7 +169,12 @@ func (m *WorkloadClustersMux) mixedHandler() http.Handler {
 	resourceGroupResolver := func(host string) (string, error) {
 		m.lock.RLock()
 		defer m.lock.RUnlock()
-		wclName, ok := m.workloadClusterNameByHost[host]
+
+		_, port, err := net.SplitHostPort(host)
+		if err != nil {
+			return "", err
+		}
+		wclName, ok := m.workloadClusterNameByPort[port]
 		if !ok {
 			return "", errors.Errorf("failed to get workloadClusterListener for host %s", host)
 		}
@@ -211,10 +216,14 @@ func (m *WorkloadClustersMux) getCertificate(info *tls.ClientHelloInfo) (*tls.Ce
 	defer m.lock.RUnlock()
 
 	// Identify which workloadCluster/resourceGroup a request targets to.
-	hostPort := info.Conn.LocalAddr().String()
-	wclName, ok := m.workloadClusterNameByHost[hostPort]
+	_, port, err := net.SplitHostPort(info.Conn.LocalAddr().String())
+	if err != nil {
+		return nil, err
+	}
+
+	wclName, ok := m.workloadClusterNameByPort[port]
 	if !ok {
-		err := errors.Errorf("failed to get listener name for workload cluster serving on %s", hostPort)
+		err := errors.Errorf("failed to get listener name for workload cluster serving on %s", port)
 		m.log.Error(err, "Error resolving certificates")
 		return nil, err
 	}
@@ -222,7 +231,7 @@ func (m *WorkloadClustersMux) getCertificate(info *tls.ClientHelloInfo) (*tls.Ce
 	// Gets the listener config for the target workloadCluster.
 	wcl, ok := m.workloadClusterListeners[wclName]
 	if !ok {
-		err := errors.Errorf("failed to get listener with name %s for workload cluster serving on %s", wclName, hostPort)
+		err := errors.Errorf("failed to get listener with name %s for workload cluster serving on %s", wclName, port)
 		m.log.Error(err, "Error resolving certificates")
 		return nil, err
 	}
@@ -231,12 +240,12 @@ func (m *WorkloadClustersMux) getCertificate(info *tls.ClientHelloInfo) (*tls.Ce
 	// NOTE: the port forward call to etcd sets the server name to the name of the targeted etcd pod,
 	// which is also the name of the corresponding etcd member.
 	if wcl.etcdMembers.Has(info.ServerName) {
-		m.log.V(4).Info("Using etcd serving certificate", "listenerName", wcl, "host", hostPort, "etcdPod", info.ServerName)
+		m.log.V(4).Info("Using etcd serving certificate", "listenerName", wcl, "host", port, "etcdPod", info.ServerName)
 		return wcl.etcdServingCertificates[info.ServerName], nil
 	}
 
 	// Otherwise we assume the request targets the API server.
-	m.log.V(4).Info("Using API server serving certificate", "listenerName", wcl, "host", hostPort)
+	m.log.V(4).Info("Using API server serving certificate", "listenerName", wcl, "host", port)
 	return wcl.apiServerServingCertificate, nil
 }
 
@@ -320,7 +329,7 @@ func (m *WorkloadClustersMux) initWorkloadClusterListenerWithPortLocked(wclName 
 	// NOTE: it is required to add on both maps and keep them in sync
 	// In order to get the resourceGroupResolver to work.
 	m.workloadClusterListeners[wclName] = wcl
-	m.workloadClusterNameByHost[wcl.HostPort()] = wclName
+	m.workloadClusterNameByPort[fmt.Sprintf("%d", wcl.Port())] = wclName
 
 	m.log.Info("Workload cluster listener created", "listenerName", wclName, "address", wcl.Address())
 	return wcl
@@ -432,9 +441,9 @@ func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509
 			return nil
 		}
 
-		l, err := net.Listen("tcp", wcl.HostPort())
+		l, err := net.Listen("tcp", fmt.Sprintf(":%d", wcl.Port()))
 		if err != nil {
-			return errors.Wrapf(err, "failed to start WorkloadClusterListener %s, %s", wclName, wcl.HostPort())
+			return errors.Wrapf(err, "failed to start WorkloadClusterListener %s, %s", wclName, fmt.Sprintf(":%d", wcl.Port()))
 		}
 		wcl.listener = l
 
@@ -603,7 +612,7 @@ func (m *WorkloadClustersMux) DeleteWorkloadClusterListener(wclName string) erro
 	}
 
 	delete(m.workloadClusterListeners, wclName)
-	delete(m.workloadClusterNameByHost, wcl.HostPort())
+	delete(m.workloadClusterNameByPort, fmt.Sprintf("%d", wcl.Port()))
 
 	m.log.Info("Workload cluster listener deleted", "listenerName", wclName, "address", wcl.Address())
 	return nil

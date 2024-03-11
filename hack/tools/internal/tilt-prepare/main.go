@@ -133,6 +133,7 @@ type tiltProvider struct {
 type tiltProviderConfig struct {
 	Context           *string  `json:"context,omitempty"`
 	Version           *string  `json:"version,omitempty"`
+	LiveReloadDeps    []string `json:"live_reload_deps,omitempty"`
 	ApplyProviderYaml *bool    `json:"apply_provider_yaml,omitempty"`
 	KustomizeFolder   *string  `json:"kustomize_folder,omitempty"`
 	KustomizeOptions  []string `json:"kustomize_options,omitempty"`
@@ -347,7 +348,13 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		if ptr.Deref(config.ApplyProviderYaml, true) {
 			kustomizeFolder := path.Join(*config.Context, ptr.Deref(config.KustomizeFolder, "config/default"))
 			kustomizeOptions := config.KustomizeOptions
-			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, kustomizeFolder, kustomizeOptions, getProviderObj(config.Version))
+			liveReloadDeps := config.LiveReloadDeps
+			var debugConfig *tiltSettingsDebugConfig
+			if d, ok := ts.Debug[providerName]; ok {
+				debugConfig = &d
+			}
+			extraArgs := ts.ExtraArgs[providerName]
+			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", liveReloadDeps, debugConfig, extraArgs, kustomizeFolder, kustomizeOptions, getProviderObj(config.Version))
 		}
 	}
 
@@ -686,7 +693,7 @@ func kustomizeTask(path, out string) taskFunction {
 // workloadTask generates a task for creating the component yaml for a workload and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
 // and adding the workload resource mimicking what clusterctl init does.
-func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, options []string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
+func workloadTask(name, workloadType, binaryName, containerName string, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs, path string, options []string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
 		args := []string{"build"}
 		args = append(args, options...)
@@ -718,7 +725,7 @@ func workloadTask(name, workloadType, binaryName, containerName string, ts *tilt
 			return
 		}
 
-		if err := prepareWorkload(name, prefix, binaryName, containerName, objs, ts); err != nil {
+		if err := prepareWorkload(prefix, binaryName, containerName, objs, liveReloadDeps, debugConfig, extraArgs); err != nil {
 			errCh <- err
 			return
 		}
@@ -787,14 +794,18 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 // If there are extra_args given for the workload, we append those to the ones that already exist in the deployment.
 // This has the affect that the appended ones will take precedence, as those are read last.
 // Finally, we modify the deployment to enable prometheus metrics scraping.
-func prepareWorkload(name, prefix, binaryName, containerName string, objs []unstructured.Unstructured, ts *tiltSettings) error {
+func prepareWorkload(prefix, binaryName, containerName string, objs []unstructured.Unstructured, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs) error {
 	return updateDeployment(prefix, objs, func(deployment *appsv1.Deployment) {
 		for j, container := range deployment.Spec.Template.Spec.Containers {
 			if container.Name != containerName {
 				continue
 			}
-			cmd := []string{"sh", "/start.sh", "/" + binaryName}
-			args := append(container.Args, []string(ts.ExtraArgs[name])...)
+
+			cmd := []string{"/" + binaryName}
+			if len(liveReloadDeps) > 0 || debugConfig != nil {
+				cmd = []string{"sh", "/start.sh", "/" + binaryName}
+			}
+			args := append(container.Args, []string(extraArgs)...)
 
 			// remove securityContext for tilt live_update, see https://github.com/tilt-dev/tilt/issues/3060
 			container.SecurityContext = nil
@@ -805,19 +816,19 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 			// alter deployment for working nicely with delve debugger;
 			// most specifically, configuring delve, starting the manager with profiling enabled, dropping liveness and
 			// readiness probes and disabling leader election.
-			if d, ok := ts.Debug[name]; ok {
+			if debugConfig != nil {
 				cmd = []string{"sh", "/start.sh", "/dlv", "--accept-multiclient", "--api-version=2", "--headless=true", "exec"}
 
-				if d.Port != nil && *d.Port > 0 {
+				if debugConfig.Port != nil && *debugConfig.Port > 0 {
 					cmd = append(cmd, "--listen=:30000")
 				}
-				if d.Continue != nil && *d.Continue {
+				if debugConfig.Continue != nil && *debugConfig.Continue {
 					cmd = append(cmd, "--continue")
 				}
 
 				cmd = append(cmd, []string{"--", "/" + binaryName}...)
 
-				if d.ProfilerPort != nil && *d.ProfilerPort > 0 {
+				if debugConfig.ProfilerPort != nil && *debugConfig.ProfilerPort > 0 {
 					args = append(args, []string{"--profiler-address=:6060"}...)
 				}
 

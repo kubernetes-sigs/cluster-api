@@ -342,23 +342,24 @@ def enable_provider(name, debug):
 
     port_forwards, links = get_port_forwards(debug)
 
-    build_go_binary(
-        context = p.get("context"),
-        reload_deps = p.get("live_reload_deps"),
-        debug = debug,
-        go_main = p.get("go_main", "main.go"),
-        binary_name = "manager",
-        label = label,
-    )
+    if p.get("image"):
+        build_go_binary(
+            context = p.get("context"),
+            reload_deps = p.get("live_reload_deps"),
+            debug = debug,
+            go_main = p.get("go_main", "main.go"),
+            binary_name = "manager",
+            label = label,
+        )
 
-    build_docker_image(
-        image = p.get("image"),
-        context = p.get("context"),
-        binary_name = "manager",
-        additional_docker_helper_commands = p.get("additional_docker_helper_commands", ""),
-        additional_docker_build_commands = p.get("additional_docker_build_commands", ""),
-        port_forwards = port_forwards,
-    )
+        build_docker_image(
+            image = p.get("image"),
+            context = p.get("context"),
+            binary_name = "manager",
+            additional_docker_helper_commands = p.get("additional_docker_helper_commands", ""),
+            additional_docker_build_commands = p.get("additional_docker_build_commands", ""),
+            port_forwards = port_forwards,
+        )
 
     additional_objs = []
     p_resources = p.get("additional_resources", [])

@@ -32,6 +32,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -72,15 +74,16 @@ type IssueResponse struct {
 
 // releaseDetails is the struct for the release details.
 type releaseDetails struct {
-	ReleaseTag  string
-	BetaTag     string
-	ReleaseLink string
-	ReleaseDate string
+	ReleaseTag       string
+	BetaTag          string
+	ReleaseLink      string
+	ReleaseDate      string
+	ReleaseNotesLink string
 }
 
 // Example command:
 //
-//	GITHUB_ISSUE_OPENER_TOKEN="fake" RELEASE_TAG="1.6.0" RELEASE_DATE="2023-11-28" PROVIDER_ISSUES_DRY_RUN="true" make release-provider-issues-tool
+//	GITHUB_ISSUE_OPENER_TOKEN="fake" RELEASE_TAG="v1.6.0-beta.0" RELEASE_DATE="2023-11-28" PROVIDER_ISSUES_DRY_RUN="true" make release-provider-issues-tool
 func main() {
 	githubToken, keySet := os.LookupEnv("GITHUB_ISSUE_OPENER_TOKEN")
 	if !keySet || githubToken == "" {
@@ -108,7 +111,12 @@ func main() {
 	fmt.Println("-", strings.Join(repoList, "\n- "))
 	fmt.Printf("\n")
 
-	details := getReleaseDetails()
+	// get release details
+	details, releaseDetailsErr := getReleaseDetails()
+	if releaseDetailsErr != nil {
+		fmt.Println(releaseDetailsErr.Error())
+		os.Exit(1)
+	}
 
 	// generate title
 	titleBuffer := bytes.NewBuffer([]byte{})
@@ -249,43 +257,56 @@ func continueOrAbort() {
 }
 
 // getReleaseDetails returns the release details from the environment variables.
-func getReleaseDetails() releaseDetails {
+func getReleaseDetails() (releaseDetails, error) {
+	// Parse the release tag
 	releaseSemVer, keySet := os.LookupEnv("RELEASE_TAG")
 	if !keySet || releaseSemVer == "" {
-		fmt.Println("RELEASE_TAG is a required environmental variable.")
-		fmt.Println("Refer to README.md in folder for more information.")
-		os.Exit(1)
+		return releaseDetails{}, errors.New("release tag is a required. Refer to README.md in folder for more information")
 	}
 
-	match, err := regexp.Match("\\d\\.\\d\\.\\d", []byte(releaseSemVer))
+	// allow patterns like v1.7.0-beta.0
+	pattern := `^v\d+\.\d+\.\d+-beta\.\d+$`
+	match, err := regexp.MatchString(pattern, releaseSemVer)
 	if err != nil || !match {
-		fmt.Println("RELEASE_TAG must be in format `\\d\\.\\d\\.\\d` e.g. 1.5")
-		os.Exit(1)
+		return releaseDetails{}, errors.New("release tag must be in format `^v\\d+\\.\\d+\\.\\d+-beta\\.\\d+$` e.g. v1.7.0-beta.0")
 	}
 
+	major, minor, patch := "", "", ""
+	majorMinorPatchPattern := `v(\d+)\.(\d+)\.(\d+)`
+	re := regexp.MustCompile(majorMinorPatchPattern)
+	releaseSemVerMatch := re.FindStringSubmatch(releaseSemVer)
+	if len(releaseSemVerMatch) > 3 {
+		major = releaseSemVerMatch[1]
+		minor = releaseSemVerMatch[2]
+		patch = releaseSemVerMatch[3]
+	} else {
+		return releaseDetails{}, errors.New("release tag contains invalid Major.Minor.Patch SemVer. It must be in format v(\\d+)\\.(\\d+)\\.(\\d+) e.g. v1.7.0")
+	}
+
+	// Parse the release date
 	releaseDate, keySet := os.LookupEnv("RELEASE_DATE")
 	if !keySet || releaseDate == "" {
-		fmt.Println("RELEASE_DATE is a required environmental variable.")
-		fmt.Println("Refer to README.md in folder for more information.")
-		os.Exit(1)
+		return releaseDetails{}, errors.New("release date is a required environmental variable. Refer to README.md in folder for more information")
 	}
 
 	formattedReleaseDate, err := formatDate(releaseDate)
 	if err != nil {
-		fmt.Println("Unable to parse the date.", err)
-		fmt.Println("Refer to README.md in folder for more information.")
+		return releaseDetails{}, errors.New("unable to parse the date")
 	}
 
-	releaseTag := fmt.Sprintf("v%s", releaseSemVer)
-	betaTag := fmt.Sprintf("v%s%s", releaseSemVer, "-beta.0")
-	releaseLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-%s.md#timeline", releaseSemVer)
+	majorMinorWithoutPrefixV := fmt.Sprintf("%s.%s", major, minor) // e.g. 1.7 . Note that there is no "v" in the majorMinor
+	releaseTag := fmt.Sprintf("v%s.%s.%s", major, minor, patch)    // e.g. v1.7.0
+	betaTag := fmt.Sprintf("%s%s", releaseTag, "-beta.0")          // e.g. v1.7.0-beta.0
+	releaseLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases/release-%s.md#timeline", majorMinorWithoutPrefixV)
+	releaseNotesLink := fmt.Sprintf("https://github.com/kubernetes-sigs/cluster-api/releases/tag/%s", betaTag)
 
 	return releaseDetails{
-		ReleaseDate: formattedReleaseDate,
-		ReleaseTag:  releaseTag,
-		BetaTag:     betaTag,
-		ReleaseLink: releaseLink,
-	}
+		ReleaseDate:      formattedReleaseDate,
+		ReleaseTag:       releaseTag,
+		BetaTag:          betaTag,
+		ReleaseLink:      releaseLink,
+		ReleaseNotesLink: releaseNotesLink,
+	}, nil
 }
 
 // formatDate takes a date in ISO format i.e "2006-01-02" and returns it in the format "Monday 2nd January 2006".
@@ -324,7 +345,7 @@ Looking forward to your feedback before {{.ReleaseTag}} release!
 ## For quick reference
 
 <!-- body -->
-- [CAPI {{.BetaTag}} release notes](https://github.com/kubernetes-sigs/cluster-api/releases/tag/{{.BetaTag}})
+- [CAPI {{.BetaTag}} release notes]({{.ReleaseNotesLink}})
 - [Shortcut to CAPI git issues](https://github.com/kubernetes-sigs/cluster-api/issues)
 
 ## Following are the planned dates for the upcoming releases

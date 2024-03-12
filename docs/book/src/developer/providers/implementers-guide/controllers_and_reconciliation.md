@@ -175,7 +175,7 @@ if err != nil {
 But wait, this isn't quite right.
 `Reconcile()` gets called periodically for updates, and any time any updates are made.
 That would mean we're potentially sending an email every few minutes!
-This is an important thing about controllers: they need to be [*idempotent*][idempotent].
+This is an important thing about controllers: they need to be idempotent. This means a controller must be able to repeat actions on the same inputs without changing the effect of those actions.
 
 So in our case, we'll store the result of sending a message, and then check to see if we've sent one before.
 
@@ -209,7 +209,6 @@ return ctrl.Result{}, nil
 
 [cluster]: https://godoc.org/sigs.k8s.io/cluster-api/api/v1beta1#Cluster
 [getowner]: https://godoc.org/sigs.k8s.io/cluster-api/util#GetOwnerMachine
-[idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
 
 #### A note about the status
 

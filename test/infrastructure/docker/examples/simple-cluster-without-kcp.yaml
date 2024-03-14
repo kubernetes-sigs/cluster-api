@@ -52,10 +52,6 @@ metadata:
   name: controlplane-0-config
   namespace: default
 spec:
-  clusterConfiguration:
-    controllerManager:
-      extraArgs:
-        enable-hostpath-provisioner: "true"
   initConfiguration:
     nodeRegistration:
       kubeletExtraArgs:

@@ -79,9 +79,6 @@ spec:
         certSANs:
           - localhost
           - 127.0.0.1
-      controllerManager:
-        extraArgs:
-          enable-hostpath-provisioner: "true"
       dns: {}
       etcd: {}
       networking: {}

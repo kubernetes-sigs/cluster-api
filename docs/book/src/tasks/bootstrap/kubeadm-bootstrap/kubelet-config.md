@@ -2,9 +2,16 @@
 
 CAPBK has several ways to configure kubelet.
 
-- [Pass `KubeletConfiguration` file via `KubeadmConfigSpec.files`](#pass-kubeletconfiguration-file-via-kubeadmconfigspecfiles)
-- [Set kubelet flags via `KubeadmConfigSpec.kubeletExtraArgs`](#set-kubelet-flags-via-kubeadmconfigspeckubeletextraargs)
-- [`kubeletconfiguration` patch target](#use-the-kubeletconfiguration-patch-target)
+- [Kubelet Configuration](#kubelet-configuration)
+  - [Pass `KubeletConfiguration` file via `KubeadmConfigSpec.files`](#pass-kubeletconfiguration-file-via-kubeadmconfigspecfiles)
+    - [KubeadmControlPlaneTemplate](#kubeadmcontrolplanetemplate)
+    - [KubeadmConfigTemplate](#kubeadmconfigtemplate)
+  - [Set kubelet flags via `KubeadmConfigSpec.kubeletExtraArgs`](#set-kubelet-flags-via-kubeadmconfigspeckubeletextraargs)
+    - [KubeadmControlPlaneTemplate](#kubeadmcontrolplanetemplate-1)
+    - [KubeadmConfigTemplate](#kubeadmconfigtemplate-1)
+  - [Use kubeadm's `kubeletconfiguration` patch target](#use-kubeadms-kubeletconfiguration-patch-target)
+    - [KubeadmControlPlaneTemplate](#kubeadmcontrolplanetemplate-2)
+    - [KubeadmConfigTemplate](#kubeadmconfigtemplate-2)
 
 ## Pass `KubeletConfiguration` file via `KubeadmConfigSpec.files`
 
@@ -86,10 +93,6 @@ spec:
             streamingConnectionIdleTimeout: 0s
             syncFrequency: 0s
             volumeStatsAggPeriod: 0s
-        clusterConfiguration:
-          controllerManager:
-            extraArgs:
-              enable-hostpath-provisioner: "true"
         initConfiguration:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
@@ -203,10 +206,6 @@ spec:
   template:
     spec:
       kubeadmConfigSpec:
-        clusterConfiguration:
-          controllerManager:
-            extraArgs:
-              enable-hostpath-provisioner: "true"
         initConfiguration:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock
@@ -290,10 +289,6 @@ spec:
                 "nodefs.available": "10%",
               },
             }
-        clusterConfiguration:
-          controllerManager:
-            extraArgs:
-              enable-hostpath-provisioner: "true"
         initConfiguration:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock

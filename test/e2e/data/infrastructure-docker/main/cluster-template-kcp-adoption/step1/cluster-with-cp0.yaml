@@ -40,8 +40,6 @@ metadata:
   name: "${CLUSTER_NAME}-control-plane-0"
 spec:
   clusterConfiguration:
-    controllerManager:
-      extraArgs: {enable-hostpath-provisioner: 'true'}
     apiServer:
       certSANs: [localhost, 127.0.0.1]
   initConfiguration:

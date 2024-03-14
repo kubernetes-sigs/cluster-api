@@ -2575,7 +2575,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 								"clusterConfiguration": map[string]interface{}{
 									"controllerManager": map[string]interface{}{
 										"extraArgs": map[string]interface{}{
-											"enable-hostpath-provisioner": "true",
+											"v": "4",
 										},
 									},
 								},
@@ -2588,7 +2588,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 								"clusterConfiguration": map[string]interface{}{
 									"controllerManager": map[string]interface{}{
 										"extraArgs": map[string]interface{}{
-											"enable-hostpath-provisioner": "true",
+											"v": "4",
 										},
 									},
 								},
@@ -2597,7 +2597,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					},
 				},
 				reconcileStep{
-					name: "Drop enable-hostpath-provisioner",
+					name: "Drop v",
 					desired: object{
 						spec: nil,
 					},
@@ -2725,7 +2725,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 								"clusterConfiguration": map[string]interface{}{
 									"controllerManager": map[string]interface{}{
 										"extraArgs": map[string]interface{}{
-											"enable-hostpath-provisioner": "true",
+											"v": "4",
 										},
 									},
 								},
@@ -2738,7 +2738,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 								"clusterConfiguration": map[string]interface{}{
 									"controllerManager": map[string]interface{}{
 										"extraArgs": map[string]interface{}{
-											"enable-hostpath-provisioner": "true",
+											"v": "4",
 										},
 									},
 								},
@@ -2778,7 +2778,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 								"clusterConfiguration": map[string]interface{}{
 									"controllerManager": map[string]interface{}{
 										"extraArgs": map[string]interface{}{
-											// Reconcile to drop enable-hostpath-provisioner,
+											// Reconcile to drop v field,
 											// while preserving user-defined enable-garbage-collector field.
 											"enable-garbage-collector": "true",
 										},

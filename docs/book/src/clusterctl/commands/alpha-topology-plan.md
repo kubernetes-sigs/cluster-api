@@ -135,8 +135,6 @@ spec:
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:
         clusterConfiguration:
-          controllerManager:
-            extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:
             certSANs: [ localhost, 127.0.0.1 ]
         initConfiguration:

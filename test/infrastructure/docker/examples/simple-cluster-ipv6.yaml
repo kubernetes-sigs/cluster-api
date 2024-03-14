@@ -51,9 +51,6 @@ spec:
         - 0.0.0.0
         - "::"
         - "::1"
-      controllerManager:
-        extraArgs:
-          enable-hostpath-provisioner: "true"
     initConfiguration:
       localAPIEndpoint:
         advertiseAddress: '::'

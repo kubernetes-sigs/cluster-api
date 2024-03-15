@@ -15,14 +15,14 @@
   export PROVIDER_ISSUES_DRY_RUN="true"
   ```
 
-- Export `RELEASE_TAG` environment variable to the CAPI release version e.g. `1.6.0`. The suffix `-beta.0` is appended by the utility.  
+- Export `RELEASE_TAG` environment variable to the CAPI release version e.g. `v1.7.0-beta.0`. 
   Example:
 
   ```sh
-  export RELEASE_TAG="1.6.0"
+  export RELEASE_TAG="v1.7.0-beta.0"
   ```
 
-- Export `RELEASE_DATE` to the targeted CAPI release version date. Fetch the target date from latest [release file](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases).
+- Export `RELEASE_DATE` to the targeted CAPI release version date. Fetch the target date from latest [release file](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases). The `RELEASE_DATE` should be in the format `YYYY-MM-DD`.
   Example:
 
   ```sh

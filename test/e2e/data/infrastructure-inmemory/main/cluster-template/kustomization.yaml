@@ -1,3 +1,2 @@
-bases:
+resources:
 - ../bases/cluster-with-topology.yaml
-

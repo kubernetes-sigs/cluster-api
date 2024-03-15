@@ -41,9 +41,9 @@ spec:
 And then, we have to add that patch to [`config/kustomization.yaml`][kustomizeyaml]:
 
 ```yaml
-patchesStrategicMerge
-- manager_image_patch.yaml
-- manager_config.yaml
+patches:
+- path: manager_image_patch.yaml
+- path: manager_config.yaml
 ```
 
 [kustomizeyaml]: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization

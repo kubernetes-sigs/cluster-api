@@ -19,4 +19,4 @@ spec:
       volumes:
       - name: cert
         secret:
-          secretName: $(SERVICE_NAME)-cert
+          secretName: capi-webhook-service-cert

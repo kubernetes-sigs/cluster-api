@@ -15,5 +15,5 @@ spec:
         caBundle: Cg==
         service:
           namespace: system
-          name: webhook-service
+          name: capi-kubeadm-bootstrap-webhook-service
           path: /convert

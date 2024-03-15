@@ -1,6 +1,7 @@
-commonLabels:
-  kcp-adoption.step2: ""
+labels:
+- includeSelectors: true
+  pairs:
+    kcp-adoption.step2: ""
 
-bases:
-  - ../../bases/cluster-with-kcp.yaml
-
+resources:
+- ../../bases/cluster-with-kcp.yaml

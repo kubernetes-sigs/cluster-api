@@ -14,5 +14,3 @@ namespace:
   path: webhooks/clientConfig/service/namespace
   create: true
 
-varReference:
-- path: metadata/annotations

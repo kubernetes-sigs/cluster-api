@@ -48,6 +48,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/contract"
+	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
 const (
@@ -486,7 +487,7 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 	}
 	objectList, ok := obj.(client.ObjectList)
 	if !ok {
-		return nil, errors.Errorf("expected objject to be a client.ObjectList, is actually %T", obj)
+		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
 	}
 
 	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
@@ -508,6 +509,134 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 
 		if isNamespaced {
 			listOpts = append(listOpts, client.InNamespace(cluster.Namespace))
+		}
+
+		objectList = objectList.DeepCopyObject().(client.ObjectList)
+		if err := c.List(ctx, objectList, listOpts...); err != nil {
+			return nil
+		}
+
+		objects, err := meta.ExtractList(objectList)
+		if err != nil {
+			return nil
+		}
+
+		results := []ctrl.Request{}
+		for _, obj := range objects {
+			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// are client.Objects.
+			o := obj.(client.Object)
+			results = append(results, ctrl.Request{
+				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
+			})
+		}
+		return results
+	}, nil
+}
+
+// MachineDeploymentToObjectsMapper returns a mapper function that gets a machinedeployment
+// and lists all objects for the object passed in and returns a list of requests.
+// NB: The objects are required to have `clusterv1.MachineDeploymentNameLabel` applied.
+func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+	gvk, err := apiutil.GVKForObject(ro, scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	// Note: we create the typed ObjectList once here, so we don't have to use
+	// reflection in every execution of the actual event handler.
+	obj, err := scheme.New(gvk)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+	}
+	objectList, ok := obj.(client.ObjectList)
+	if !ok {
+		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
+	}
+
+	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
+	if err != nil {
+		return nil, err
+	}
+
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
+		md, ok := o.(*clusterv1.MachineDeployment)
+		if !ok {
+			return nil
+		}
+
+		listOpts := []client.ListOption{
+			client.MatchingLabels{
+				clusterv1.MachineDeploymentNameLabel: md.Name,
+			},
+		}
+
+		if isNamespaced {
+			listOpts = append(listOpts, client.InNamespace(md.Namespace))
+		}
+
+		objectList = objectList.DeepCopyObject().(client.ObjectList)
+		if err := c.List(ctx, objectList, listOpts...); err != nil {
+			return nil
+		}
+
+		objects, err := meta.ExtractList(objectList)
+		if err != nil {
+			return nil
+		}
+
+		results := []ctrl.Request{}
+		for _, obj := range objects {
+			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// are client.Objects.
+			o := obj.(client.Object)
+			results = append(results, ctrl.Request{
+				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
+			})
+		}
+		return results
+	}, nil
+}
+
+// MachineSetToObjectsMapper returns a mapper function that gets a machineset
+// and lists all objects for the object passed in and returns a list of requests.
+// NB: The objects are required to have `clusterv1.MachineSetNameLabel` applied.
+func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+	gvk, err := apiutil.GVKForObject(ro, scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	// Note: we create the typed ObjectList once here, so we don't have to use
+	// reflection in every execution of the actual event handler.
+	obj, err := scheme.New(gvk)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+	}
+	objectList, ok := obj.(client.ObjectList)
+	if !ok {
+		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
+	}
+
+	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
+	if err != nil {
+		return nil, err
+	}
+
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
+		ms, ok := o.(*clusterv1.MachineSet)
+		if !ok {
+			return nil
+		}
+
+		listOpts := []client.ListOption{
+			client.MatchingLabels{
+				clusterv1.MachineSetNameLabel: format.MustFormatValue(ms.Name),
+			},
+		}
+
+		if isNamespaced {
+			listOpts = append(listOpts, client.InNamespace(ms.Namespace))
 		}
 
 		objectList = objectList.DeepCopyObject().(client.ObjectList)

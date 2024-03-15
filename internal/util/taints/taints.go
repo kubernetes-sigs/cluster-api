@@ -46,3 +46,13 @@ func HasTaint(taints []corev1.Taint, targetTaint corev1.Taint) bool {
 	}
 	return false
 }
+
+// EnsureNodeTaint makes sure the node has the Taint.
+// It returns true if the taints are modified, false otherwise.
+func EnsureNodeTaint(node *corev1.Node, taint corev1.Taint) bool {
+	if !HasTaint(node.Spec.Taints, taint) {
+		node.Spec.Taints = append(node.Spec.Taints, taint)
+		return true
+	}
+	return false
+}

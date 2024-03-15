@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Deprecated: errors returns pointer of type received as input, but it can be satisfied by using ptr package.
+// It keeps these functions for backward compatibility.
+//
+// cluster-api no longer uses this package, and it will be removed in the future, so please use the ptr package instead.
 package errors
 
 // MachineStatusErrorPtr converts a MachineStatusError to a pointer.

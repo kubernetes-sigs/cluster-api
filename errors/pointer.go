@@ -14,23 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Deprecated: errors returns pointer of type received as input, but it can be satisfied by using ptr package.
-// It keeps these functions for backward compatibility.
-//
-// cluster-api no longer uses this package, and it will be removed in the future, so please use the ptr package instead.
 package errors
 
 // MachineStatusErrorPtr converts a MachineStatusError to a pointer.
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API.
 func MachineStatusErrorPtr(v MachineStatusError) *MachineStatusError {
 	return &v
 }
 
 // MachinePoolStatusErrorPtr converts a MachinePoolStatusError to a pointer.
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API.
 func MachinePoolStatusErrorPtr(v MachinePoolStatusFailure) *MachinePoolStatusFailure {
 	return &v
 }
 
 // ClusterStatusErrorPtr converts a MachineStatusError to a pointer.
+//
+// Deprecated: This function is deprecated and will be removed in an upcoming release of Cluster API.
 func ClusterStatusErrorPtr(v ClusterStatusError) *ClusterStatusError {
 	return &v
 }

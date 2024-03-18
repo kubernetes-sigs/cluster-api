@@ -1046,14 +1046,16 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 		externalChanges string
 		desired         *unstructured.Unstructured
 		want            *unstructured.Unstructured
+		wantCreated     bool
 		wantErr         bool
 	}{
 		{
-			name:     "Should create desired InfrastructureCluster if the current does not exists yet",
-			original: nil,
-			desired:  clusterInfrastructure1,
-			want:     clusterInfrastructure1,
-			wantErr:  false,
+			name:        "Should create desired InfrastructureCluster if the current does not exists yet",
+			original:    nil,
+			desired:     clusterInfrastructure1,
+			want:        clusterInfrastructure1,
+			wantCreated: true,
+			wantErr:     false,
 		},
 		{
 			name:     "No-op if current InfrastructureCluster is equal to desired",
@@ -1124,12 +1126,13 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 				patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
-			err = r.reconcileInfrastructureCluster(ctx, s)
+			created, err := r.reconcileInfrastructureCluster(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(created).To(Equal(tt.wantCreated))
 
 			got := tt.want.DeepCopy() // this is required otherwise Get will modify tt.want
 			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want), got)
@@ -1227,17 +1230,19 @@ func TestReconcileControlPlane(t *testing.T) {
 		upgradeTracker                       *scope.UpgradeTracker
 		desired                              *scope.ControlPlaneState
 		want                                 *scope.ControlPlaneState
+		wantCreated                          bool
 		wantRotation                         bool
 		wantErr                              bool
 	}{
 		// Testing reconciliation of a control plane without machines.
 		{
-			name:     "Should create desired ControlPlane without machine infrastructure if the current does not exist",
-			class:    ccWithoutControlPlaneInfrastructure,
-			original: nil,
-			desired:  &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
-			want:     &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
-			wantErr:  false,
+			name:        "Should create desired ControlPlane without machine infrastructure if the current does not exist",
+			class:       ccWithoutControlPlaneInfrastructure,
+			original:    nil,
+			desired:     &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			want:        &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			wantCreated: true,
+			wantErr:     false,
 		},
 		{
 			name:     "Should update the ControlPlane without machine infrastructure",
@@ -1284,12 +1289,13 @@ func TestReconcileControlPlane(t *testing.T) {
 
 		// Testing reconciliation of a control plane with machines.
 		{
-			name:     "Should create desired ControlPlane with machine infrastructure if the current does not exist",
-			class:    ccWithControlPlaneInfrastructure,
-			original: nil,
-			desired:  &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:     &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr:  false,
+			name:        "Should create desired ControlPlane with machine infrastructure if the current does not exist",
+			class:       ccWithControlPlaneInfrastructure,
+			original:    nil,
+			desired:     &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:        &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			wantCreated: true,
+			wantErr:     false,
 		},
 		{
 			name:         "Should rotate machine infrastructure in case of changes to the desired template",
@@ -1403,12 +1409,13 @@ func TestReconcileControlPlane(t *testing.T) {
 			}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
-			err = r.reconcileControlPlane(ctx, s)
+			created, err := r.reconcileControlPlane(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(created).To(Equal(tt.wantCreated))
 
 			// Create ControlPlane object for fetching data into
 			gotControlPlaneObject := builder.TestControlPlane("", "").Build()
@@ -1660,7 +1667,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
-			err = r.reconcileControlPlane(ctx, s)
+			_, err = r.reconcileControlPlane(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			gotCP := s.Desired.ControlPlane.Object.DeepCopy()
@@ -2063,7 +2070,8 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 		// desired is the desired control-plane object handed over to reconcileReferencedObject.
 		desired object
 		// want is the expected control-plane object after calling reconcileReferencedObject.
-		want object
+		want        object
+		wantCreated bool
 	}
 
 	tests := []struct {
@@ -2104,6 +2112,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 							},
 						},
 					},
+					wantCreated: true,
 				},
 				reconcileStep{
 					name: "Drop enable-hostpath-provisioner",
@@ -2148,6 +2157,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 							},
 						},
 					},
+					wantCreated: true,
 				},
 				reconcileStep{
 					name: "Drop the label with dots",
@@ -2195,6 +2205,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 							"foo": "ccValue",
 						},
 					},
+					wantCreated: true,
 				},
 				externalStep{
 					name: "User changes value",
@@ -2254,6 +2265,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 							},
 						},
 					},
+					wantCreated: true,
 				},
 				externalStep{
 					name: "User adds an additional extraArg",
@@ -2316,6 +2328,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 							"machineTemplate": map[string]interface{}{},
 						},
 					},
+					wantCreated: true,
 				},
 				externalStep{
 					name: "User adds an additional object",
@@ -2498,12 +2511,14 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						s.Desired.ControlPlane.Object.Object["spec"] = step.desired.spec
 					}
 
-					// Execute a reconcile.0
-					g.Expect(r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
+					// Execute a reconcile
+					created, err := r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
 						cluster: s.Current.Cluster,
 						current: s.Current.ControlPlane.Object,
 						desired: s.Desired.ControlPlane.Object,
-					})).To(Succeed())
+					})
+					g.Expect(err).To(Succeed())
+					g.Expect(created).To(Equal(step.wantCreated))
 
 					// Build the object for comparison.
 					want := &unstructured.Unstructured{
@@ -2726,6 +2741,159 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcileState(t *testing.T) {
+	t.Run("Cluster get reconciled with infrastructure Ref only when reconcileInfrastructureCluster pass and reconcileControlPlane fails ", func(t *testing.T) {
+		g := NewWithT(t)
+
+		currentdCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+
+		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
+		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
+		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithInfrastructureCluster(infrastructureCluster).
+			WithControlPlane(controlPlane).
+			Build()
+
+		// cluster requires a UID because reconcileClusterShim will create a cluster shim
+		// which has the cluster set as Owner in an OwnerReference.
+		// A valid OwnerReferences requires a uid.
+		currentdCluster.SetUID("foo")
+
+		// NOTE: it is ok to use create given that the Cluster are created by user.
+		g.Expect(env.CreateAndWait(ctx, currentdCluster)).To(Succeed())
+
+		s := scope.New(currentdCluster)
+		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
+		s.Desired = &scope.ClusterState{Cluster: desiredCluster, InfrastructureCluster: infrastructureCluster, ControlPlane: &scope.ControlPlaneState{Object: controlPlane}}
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster")
+		g.Expect(err).ToNot(HaveOccurred())
+		prepareControlPlaneState(g, s.Desired.ControlPlane, namespace.GetName())
+
+		// Force reconcile control plane to fail
+		controlPlane.SetNamespace("do-not-exist")
+
+		r := Reconciler{
+			Client:             env,
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			recorder:           env.GetEventRecorderFor("test"),
+		}
+		err = r.reconcileState(ctx, s)
+		g.Expect(err).To(HaveOccurred())
+
+		got := currentdCluster.DeepCopy()
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentdCluster), got)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
+		g.Expect(got.Spec.ControlPlaneRef).To(BeNil())
+
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, currentdCluster)).To(Succeed())
+	})
+	t.Run("Cluster get reconciled with both infrastructure Ref and control plane ref when both reconcileInfrastructureCluster and reconcileControlPlane pass", func(t *testing.T) {
+		g := NewWithT(t)
+
+		currentdCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+
+		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
+		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
+		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithInfrastructureCluster(infrastructureCluster).
+			WithControlPlane(controlPlane).
+			Build()
+
+		// cluster requires a UID because reconcileClusterShim will create a cluster shim
+		// which has the cluster set as Owner in an OwnerReference.
+		// A valid OwnerReferences requires a uid.
+		currentdCluster.SetUID("foo")
+
+		// NOTE: it is ok to use create given that the Cluster are created by user.
+		g.Expect(env.CreateAndWait(ctx, currentdCluster)).To(Succeed())
+
+		s := scope.New(currentdCluster)
+		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
+		s.Desired = &scope.ClusterState{Cluster: desiredCluster, InfrastructureCluster: infrastructureCluster, ControlPlane: &scope.ControlPlaneState{Object: controlPlane}}
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster")
+		g.Expect(err).ToNot(HaveOccurred())
+		prepareControlPlaneState(g, s.Desired.ControlPlane, namespace.GetName())
+
+		r := Reconciler{
+			Client:             env,
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			recorder:           env.GetEventRecorderFor("test"),
+		}
+		err = r.reconcileState(ctx, s)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got := currentdCluster.DeepCopy()
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentdCluster), got)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
+		g.Expect(got.Spec.ControlPlaneRef).ToNot(BeNil())
+
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentdCluster)).To(Succeed())
+	})
+	t.Run("Cluster does not get reconciled when reconcileControlPlane fails and infrastructure Ref is set", func(t *testing.T) {
+		g := NewWithT(t)
+
+		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
+		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
+
+		currentdCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithInfrastructureCluster(infrastructureCluster).
+			Build()
+
+		desiredCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+			WithInfrastructureCluster(infrastructureCluster).
+			WithControlPlane(controlPlane).
+			Build()
+
+		// cluster requires a UID because reconcileClusterShim will create a cluster shim
+		// which has the cluster set as Owner in an OwnerReference.
+		// A valid OwnerReferences requires a uid.
+		currentdCluster.SetUID("foo")
+
+		// NOTE: it is ok to use create given that the Cluster are created by user.
+		g.Expect(env.CreateAndWait(ctx, currentdCluster)).To(Succeed())
+
+		s := scope.New(currentdCluster)
+		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
+		s.Desired = &scope.ClusterState{Cluster: desiredCluster, InfrastructureCluster: infrastructureCluster, ControlPlane: &scope.ControlPlaneState{Object: controlPlane}}
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster")
+		g.Expect(err).ToNot(HaveOccurred())
+		prepareControlPlaneState(g, s.Desired.ControlPlane, namespace.GetName())
+
+		// Force reconcile control plane to fail
+		controlPlane.SetNamespace("do-not-exist")
+
+		r := Reconciler{
+			Client:             env,
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			recorder:           env.GetEventRecorderFor("test"),
+		}
+		err = r.reconcileState(ctx, s)
+		g.Expect(err).To(HaveOccurred())
+
+		got := currentdCluster.DeepCopy()
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentdCluster), got)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
+		g.Expect(got.Spec.ControlPlaneRef).To(BeNil())
+
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentdCluster)).To(Succeed())
+	})
 }
 
 func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured, machineHealthCheck *clusterv1.MachineHealthCheck) *scope.MachineDeploymentState {

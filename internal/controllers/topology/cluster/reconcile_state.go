@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -74,17 +75,30 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	}
 
 	// Reconcile desired state of the InfrastructureCluster object.
-	if err := r.reconcileInfrastructureCluster(ctx, s); err != nil {
-		return err
+	createdInfraCluster, errInfraCluster := r.reconcileInfrastructureCluster(ctx, s)
+	if errInfraCluster != nil {
+		return errInfraCluster
 	}
 
 	// Reconcile desired state of the ControlPlane object.
-	if err := r.reconcileControlPlane(ctx, s); err != nil {
-		return err
+	createdControlPlane, errControlPlane := r.reconcileControlPlane(ctx, s)
+	if errControlPlane != nil {
+		// NOTE: report control plane error immediately only if we did not just create the infrastructure cluster; otherwise attempt reconcile cluster before returning.
+		if !createdInfraCluster {
+			return errControlPlane
+		}
+
+		// In this case (reconcileInfrastructureCluster passed reporting creation of the infrastructure cluster object, reconcileControlPlane - which is expected to create the control plane object - failed),
+		// if the creation of the control plane actually did not happen, blank out ControlPlaneRef from desired cluster.
+		if s.Current.Cluster.Spec.ControlPlaneRef == nil && !createdControlPlane {
+			s.Desired.Cluster.Spec.ControlPlaneRef = nil
+		}
 	}
 
 	// Reconcile desired state of the Cluster object.
-	if err := r.reconcileCluster(ctx, s); err != nil {
+	errCluster := r.reconcileCluster(ctx, s)
+	err := kerrors.NewAggregate([]error{errControlPlane, errCluster})
+	if err != nil {
 		return err
 	}
 
@@ -273,12 +287,12 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 }
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
-func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
+func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) (bool, error) {
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.InfrastructureCluster).Into(ctx)
 
 	ignorePaths, err := contract.InfrastructureCluster().IgnorePaths(s.Desired.InfrastructureCluster)
 	if err != nil {
-		return errors.Wrap(err, "failed to calculate ignore paths")
+		return false, errors.Wrap(err, "failed to calculate ignore paths")
 	}
 
 	return r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
@@ -291,14 +305,14 @@ func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scop
 
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
 // updating the cluster where needed.
-func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) error {
+func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) (bool, error) {
 	// If the ControlPlane has defined a current or desired MachineHealthCheck attempt to reconcile it.
 	// MHC changes are not Kubernetes version dependent, therefore proceed with MHC reconciliation
 	// even if the Control Plane is pending an upgrade.
 	if s.Desired.ControlPlane.MachineHealthCheck != nil || s.Current.ControlPlane.MachineHealthCheck != nil {
 		// Reconcile the current and desired state of the MachineHealthCheck.
 		if err := r.reconcileMachineHealthCheck(ctx, s.Current.ControlPlane.MachineHealthCheck, s.Desired.ControlPlane.MachineHealthCheck); err != nil {
-			return err
+			return false, err
 		}
 	}
 
@@ -306,7 +320,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 	// Do not reconcile the control plane yet to avoid updating the control plane while it is still pending a
 	// version upgrade. This will prevent the control plane from performing a double rollout.
 	if s.UpgradeTracker.ControlPlane.IsPendingUpgrade {
-		return nil
+		return false, nil
 	}
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, reconcile it.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
@@ -314,7 +328,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 
 		cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Desired.ControlPlane.Object)
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.InfrastructureMachineTemplate})
+			return false, errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.InfrastructureMachineTemplate})
 		}
 
 		// Create or update the MachineInfrastructureTemplate of the control plane.
@@ -327,25 +341,26 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 			templateNamePrefix:   controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name),
 		},
 		); err != nil {
-			return err
+			return false, err
 		}
 
 		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
 		err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef))
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
+			return false, errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
 		}
 	}
 
 	// Create or update the ControlPlaneObject for the ControlPlaneState.
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.ControlPlane.Object).Into(ctx)
-	if err := r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
+	created, err := r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
 		cluster:       s.Current.Cluster,
 		current:       s.Current.ControlPlane.Object,
 		desired:       s.Desired.ControlPlane.Object,
 		versionGetter: contract.ControlPlane().Version().Get,
-	}); err != nil {
-		return err
+	})
+	if err != nil {
+		return created, err
 	}
 
 	// If the controlPlane has infrastructureMachines and the InfrastructureMachineTemplate has changed on this reconcile
@@ -354,7 +369,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() && s.Current.ControlPlane.InfrastructureMachineTemplate != nil {
 		if s.Current.ControlPlane.InfrastructureMachineTemplate.GetName() != s.Desired.ControlPlane.InfrastructureMachineTemplate.GetName() {
 			if err := r.Client.Delete(ctx, s.Current.ControlPlane.InfrastructureMachineTemplate); err != nil {
-				return errors.Wrapf(err, "failed to delete oldinfrastructure machine template %s of control plane %s",
+				return created, errors.Wrapf(err, "failed to delete oldinfrastructure machine template %s of control plane %s",
 					tlog.KObj{Obj: s.Current.ControlPlane.InfrastructureMachineTemplate},
 					tlog.KObj{Obj: s.Current.ControlPlane.Object},
 				)
@@ -362,7 +377,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		}
 	}
 
-	return nil
+	return created, nil
 }
 
 // reconcileMachineHealthCheck creates, updates, deletes or leaves untouched a MachineHealthCheck depending on the difference between the
@@ -760,7 +775,7 @@ type reconcileReferencedObjectInput struct {
 // reconcileReferencedObject reconciles the desired state of the referenced object.
 // NOTE: After a referenced object is created it is assumed that the reference should
 // never change (only the content of the object can eventually change). Thus, we are checking for strict compatibility.
-func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcileReferencedObjectInput) error {
+func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcileReferencedObjectInput) (bool, error) {
 	log := tlog.LoggerFrom(ctx)
 
 	// If there is no current object, create it.
@@ -768,36 +783,36 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
 		helper, err := r.patchHelperFactory(ctx, nil, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
 		if err != nil {
-			return errors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
+			return false, errors.Wrap(createErrorWithoutObjectName(ctx, err, in.desired), "failed to create patch helper")
 		}
 		if err := helper.Patch(ctx); err != nil {
-			return createErrorWithoutObjectName(ctx, err, in.desired)
+			return false, createErrorWithoutObjectName(ctx, err, in.desired)
 		}
 		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
-		return nil
+		return true, nil
 	}
 
 	// Check if the current and desired referenced object are compatible.
 	if allErrs := check.ObjectsAreStrictlyCompatible(in.current, in.desired); len(allErrs) > 0 {
-		return allErrs.ToAggregate()
+		return false, allErrs.ToAggregate()
 	}
 
 	// Check differences between current and desired state, and eventually patch the current object.
 	patchHelper, err := r.patchHelperFactory(ctx, in.current, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
+		return false, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
 	}
 	if !patchHelper.HasChanges() {
 		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: in.desired})
-		return nil
+		return false, nil
 	}
 
 	log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
 	if err := patchHelper.Patch(ctx); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: in.current})
+		return false, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: in.current})
 	}
 	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", tlog.KObj{Obj: in.desired}, logUnstructuredVersionChange(in.current, in.desired, in.versionGetter))
-	return nil
+	return false, nil
 }
 
 func logUnstructuredVersionChange(current, desired *unstructured.Unstructured, versionGetter unstructuredVersionGetter) string {

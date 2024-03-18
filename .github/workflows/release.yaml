@@ -105,7 +105,7 @@ jobs:
           curl -L "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG/${{ env.RELEASE_TAG }}.md" \
           -o "${{ env.RELEASE_TAG }}.md"
       - name: Release
-        uses: softprops/action-gh-release@3198ee18f814cdf787321b4a32a26ddbf37acc52 # tag=v2.0.3
+        uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564 # tag=v2.0.4
         with:
           draft: true
           files: out/*

@@ -50,6 +50,12 @@ rules:
 - apiGroups:
   - cluster.x-k8s.io
   resources:
+  - machinepools
+  verbs:
+  - list
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
   - machines
   - machines/status
   verbs:

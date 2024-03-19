@@ -31,7 +31,6 @@ One way is to set experimental variables on the clusterctl config file. For CAPI
 ```yaml
 variables:
   EXP_CLUSTER_RESOURCE_SET: "true"
-  EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
@@ -46,7 +45,6 @@ On development environments started with `Tilt`, features can be enabled by sett
 ```yaml
 kustomize_substitutions:
   EXP_CLUSTER_RESOURCE_SET: 'true'
-  EXP_MACHINE_POOL: 'true'
   CLUSTER_TOPOLOGY: 'true'
   EXP_RUNTIME_SDK: 'true'
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: 'true'

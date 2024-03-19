@@ -913,12 +913,12 @@ func TestPatchNode(t *testing.T) {
 			ms := tc.ms.DeepCopy()
 			md := tc.md.DeepCopy()
 
-			g.Expect(env.Create(ctx, oldNode)).To(Succeed())
-			g.Expect(env.Create(ctx, machine)).To(Succeed())
-			g.Expect(env.Create(ctx, ms)).To(Succeed())
-			g.Expect(env.Create(ctx, md)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, oldNode)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
 			t.Cleanup(func() {
-				_ = env.Cleanup(ctx, oldNode, machine, ms, md)
+				_ = env.CleanupAndWait(ctx, oldNode, machine, ms, md)
 			})
 
 			err := r.patchNode(ctx, env, oldNode, tc.newLabels, tc.newAnnotations, tc.machine)

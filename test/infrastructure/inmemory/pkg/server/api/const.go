@@ -142,6 +142,25 @@ var (
 				},
 				StorageVersionHash: "",
 			},
+			{
+				Name:         "namespaces",
+				SingularName: "namespace",
+				Namespaced:   false,
+				Kind:         "Namespace",
+				Verbs: []string{
+					"create",
+					"delete",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames: []string{
+					"ns",
+				},
+				StorageVersionHash: "",
+			},
 		},
 	}
 

@@ -527,7 +527,6 @@ spec:
           # extraArgs must be non-empty for control plane components to enable patches from ClusterClass to work.
           controllerManager:
             extraArgs:
-              enable-hostpath-provisioner: 'true'
               v: "0"
           scheduler:
             extraArgs:

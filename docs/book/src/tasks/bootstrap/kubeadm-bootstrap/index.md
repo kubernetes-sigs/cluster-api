@@ -43,10 +43,6 @@ metadata:
 spec:
   initConfiguration:
     nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-  clusterConfiguration:
-    controllerManager:
-      extraArgs:
-        enable-hostpath-provisioner: "true"
 ---
 kind: DockerMachine
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -118,10 +114,6 @@ spec:
   initConfiguration:
     nodeRegistration:
       nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-  clusterConfiguration:
-    controllerManager:
-      extraArgs:
-        enable-hostpath-provisioner: "true"
 ```
 
 Additional control plane nodes:

@@ -74,9 +74,6 @@ spec:
               - 127.0.0.1
               - 0.0.0.0
               - host.docker.internal
-          controllerManager:
-            extraArgs:
-              enable-hostpath-provisioner: "true"
         initConfiguration:
           nodeRegistration:
             criSocket: unix:///var/run/containerd/containerd.sock

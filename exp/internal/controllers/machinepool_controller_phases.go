@@ -252,7 +252,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 			if mp.Status.InfrastructureReady {
 				// Infra object went missing after the machine pool was up and running
 				log.Error(err, "infrastructure reference has been deleted after being ready, setting failure state")
-				mp.Status.FailureReason = capierrors.MachinePoolStatusErrorPtr(capierrors.InvalidConfigurationMachinePoolError)
+				mp.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachinePoolError)
 				mp.Status.FailureMessage = ptr.To(fmt.Sprintf("MachinePool infrastructure resource %v with name %q has been deleted after being ready",
 					mp.Spec.Template.Spec.InfrastructureRef.GroupVersionKind(), mp.Spec.Template.Spec.InfrastructureRef.Name))
 			}

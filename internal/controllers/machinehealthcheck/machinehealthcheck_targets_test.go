@@ -290,10 +290,19 @@ func TestHealthCheckTargets(t *testing.T) {
 	// Target for when the Node has been seen, but has now gone
 	// using MHC without unhealthyConditions
 	nodeGoneAwayEmptyConditions := healthCheckTarget{
-		Cluster:     cluster,
-		MHC:         testMHCEmptyConditions,
-		Machine:     testMachine.DeepCopy(),
-		Node:        &corev1.Node{},
+		Cluster: cluster,
+		MHC:     testMHCEmptyConditions,
+		Machine: testMachine.DeepCopy(),
+		Node: &corev1.Node{
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					corev1.NodeCondition{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
+				},
+			},
+		},
 		nodeMissing: true,
 	}
 

@@ -795,6 +795,9 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 // This has the affect that the appended ones will take precedence, as those are read last.
 // Finally, we modify the deployment to enable prometheus metrics scraping.
 func prepareWorkload(prefix, binaryName, containerName string, objs []unstructured.Unstructured, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs) error {
+	// Update provider namespaces to have the pod security standard enforce label set to privileged.
+	// This is required because we remove the SecurityContext from provider deployments below to make tilt work.
+	updateNamespacePodSecurityStandard(objs)
 	return updateDeployment(prefix, objs, func(deployment *appsv1.Deployment) {
 		for j, container := range deployment.Spec.Template.Spec.Containers {
 			if container.Name != containerName {
@@ -966,5 +969,21 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 			return nil, errors.Wrapf(err, "[%s] failed to convert Provider to unstructured", prefix)
 		}
 		return providerObj, nil
+	}
+}
+
+func updateNamespacePodSecurityStandard(objs []unstructured.Unstructured) {
+	for i, obj := range objs {
+		if obj.GetKind() != "Namespace" {
+			continue
+		}
+		// Ignore Deployments that are not part of the provider, eg. ASO in CAPZ.
+		if _, exists := obj.GetLabels()[clusterv1.ProviderNameLabel]; !exists {
+			continue
+		}
+		labels := obj.GetLabels()
+		labels["pod-security.kubernetes.io/enforce"] = "privileged"
+		obj.SetLabels(labels)
+		objs[i] = obj
 	}
 }

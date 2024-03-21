@@ -296,7 +296,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node: &corev1.Node{
 			Status: corev1.NodeStatus{
 				Conditions: []corev1.NodeCondition{
-					corev1.NodeCondition{
+					{
 						Type:   corev1.NodeReady,
 						Status: corev1.ConditionFalse,
 					},

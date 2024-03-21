@@ -1092,7 +1092,6 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		)
 		defer cleanup1()
 
-		//machines = append(machines)
 		targetMachines := make([]string, len(machines))
 		for i, m := range machines {
 			targetMachines[i] = m.Name

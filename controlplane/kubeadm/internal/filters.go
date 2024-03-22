@@ -189,10 +189,14 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 	if machineClusterConfig == nil {
 		machineClusterConfig = &bootstrapv1.ClusterConfiguration{}
 	}
+
 	kcpLocalClusterConfiguration := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 	if kcpLocalClusterConfiguration == nil {
 		kcpLocalClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
+
+	// Skip checking DNS fields because we can update the configuration of the working cluster in place.
+	machineClusterConfig.DNS = kcpLocalClusterConfiguration.DNS
 
 	// Compare and return.
 	return reflect.DeepEqual(machineClusterConfig, kcpLocalClusterConfiguration)

@@ -651,6 +651,11 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 				g.Expect(env.CleanupAndWait(ctx, kct.DeepCopy())).To(Succeed())
 			}()
 
+			// Wait until the initial KubeadmConfigTemplate is visible in the local cache. Otherwise the test fails below.
+			g.Eventually(ctx, func(g Gomega) {
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), &bootstrapv1.KubeadmConfigTemplate{})).To(Succeed())
+			}, 5*time.Second).Should(Succeed())
+
 			// Enable the new defaulting logic (i.e. simulate the Cluster API update).
 			// The webhook will default the users field to `[{Name: "default-user"}]`.
 			g.Expect(env.Create(ctx, mutatingWebhookConfiguration)).To(Succeed())

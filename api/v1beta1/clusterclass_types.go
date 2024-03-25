@@ -382,8 +382,29 @@ type ClusterClassVariable struct {
 	// required, this will be specified inside the schema.
 	Required bool `json:"required"`
 
+	// Metadata is the metadata of a variable.
+	// It can be used to add additional data for higher level tools to
+	// a ClusterClassVariable.
+	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
+
 	// Schema defines the schema of the variable.
 	Schema VariableSchema `json:"schema"`
+}
+
+// ClusterClassVariableMetadata is the metadata of a variable.
+// It can be used to add additional data for higher level tools to
+// a ClusterClassVariable.
+type ClusterClassVariableMetadata struct {
+	// Map of string keys and values that can be used to organize and categorize
+	// (scope and select) variables.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Annotations is an unstructured key value map that can be used to store and
+	// retrieve arbitrary metadata.
+	// They are not queryable.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // VariableSchema defines the schema of a variable.

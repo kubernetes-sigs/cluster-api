@@ -81,6 +81,12 @@ spec:
         default: kindest
   - name: etcdImageTag
     required: true
+    # This metadata has just been added to verify that we can set metadata.
+    metadata:
+      labels:
+        testLabelKey: testLabelValue
+      annotations:
+        testAnnotationKey: testAnnotationValue
     schema:
       openAPIV3Schema:
         type: string

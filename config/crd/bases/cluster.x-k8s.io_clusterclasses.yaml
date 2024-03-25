@@ -979,6 +979,28 @@ spec:
                     ClusterClassVariable defines a variable which can
                     be configured in the Cluster topology and used in patches.
                   properties:
+                    metadata:
+                      description: |-
+                        Metadata is the metadata of a variable.
+                        It can be used to add additional data for higher level tools to
+                        a ClusterClassVariable.
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            Annotations is an unstructured key value map that can be used to store and
+                            retrieve arbitrary metadata.
+                            They are not queryable.
+                          type: object
+                        labels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            Map of string keys and values that can be used to organize and categorize
+                            (scope and select) variables.
+                          type: object
+                      type: object
                     name:
                       description: Name of the variable.
                       type: string

@@ -26,7 +26,7 @@ import (
 // Cluster implements a validating and defaulting webhook for Cluster.
 type Cluster struct {
 	Client                    client.Reader
-	ClusterCacheTrackerReader webhooks.ClusterCacheTrackerReader
+	ClusterCacheTrackerReader ClusterCacheTrackerReader
 }
 
 // ClusterCacheTrackerReader is a read-only ClusterCacheTracker useful to gather information

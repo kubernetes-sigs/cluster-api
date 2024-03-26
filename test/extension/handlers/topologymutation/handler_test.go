@@ -33,7 +33,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
@@ -118,8 +117,8 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			name:     "sets KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.23.0",
 					},
 				})},
@@ -149,8 +148,8 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.24.0",
 					},
 				})},
@@ -161,8 +160,8 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			name:     "sets RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.24.0",
 					},
 				})},
@@ -215,8 +214,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "no op for MachineDeployment class != default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 						Class: "another-class",
 					},
 				})},
@@ -227,8 +226,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "fails if builtin.machineDeployment.version is not set for MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 						Class: "default-worker",
 					},
 				})},
@@ -240,8 +239,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24 and MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 						Class:   "default-worker",
 						Version: "v1.23.0",
 					},
@@ -265,8 +264,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24 and MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 						Class:   "default-worker",
 						Version: "v1.24.0",
 					},
@@ -309,8 +308,8 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 			name:     "sets customImage for templates linked to ControlPlane",
 			template: &infrav1.DockerMachineTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.23.0",
 					},
 				})},
@@ -346,8 +345,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 	g := NewWithT(t)
 	h := NewExtensionHandlers(testScheme)
 	controlPlaneVarsV123WithMaxSurge := []runtimehooksv1.Variable{
-		newVariable(variables.BuiltinsName, variables.Builtins{
-			ControlPlane: &variables.ControlPlaneBuiltins{
+		newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
+			ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 				Version: "v1.23.0",
 			},
 		}),
@@ -357,8 +356,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 		newVariable("imageRepository", "docker.io"),
 	}
 	machineDeploymentVars123 := []runtimehooksv1.Variable{
-		newVariable(variables.BuiltinsName, variables.Builtins{
-			MachineDeployment: &variables.MachineDeploymentBuiltins{
+		newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
+			MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 				Class:   "default-worker",
 				Version: "v1.23.0",
 			},

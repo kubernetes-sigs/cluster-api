@@ -95,7 +95,7 @@ func TestGlobal(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"cluster":{
 						"name": "cluster1",
@@ -176,7 +176,7 @@ func TestGlobal(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"cluster":{
 						"name": "cluster1",
@@ -247,7 +247,7 @@ func TestGlobal(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"cluster":{
 						"name": "cluster1",
@@ -314,7 +314,7 @@ func TestGlobal(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"cluster":{
   						"name": "cluster1",
@@ -376,7 +376,7 @@ func TestGlobal(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"cluster":{
   						"name": "cluster1",
@@ -420,7 +420,7 @@ func TestControlPlane(t *testing.T) {
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
@@ -438,7 +438,7 @@ func TestControlPlane(t *testing.T) {
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
@@ -460,7 +460,7 @@ func TestControlPlane(t *testing.T) {
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
@@ -533,7 +533,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
@@ -598,7 +598,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
@@ -625,7 +625,7 @@ func TestMachineDeployment(t *testing.T) {
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
@@ -670,7 +670,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
@@ -717,7 +717,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
@@ -770,7 +770,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
@@ -822,7 +822,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
@@ -900,7 +900,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
@@ -965,7 +965,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
@@ -992,7 +992,7 @@ func TestMachinePool(t *testing.T) {
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
@@ -1037,7 +1037,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
@@ -1084,7 +1084,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
@@ -1137,7 +1137,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
@@ -1189,7 +1189,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSON("8"),
 				},
 				{
-					Name: BuiltinsName,
+					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",

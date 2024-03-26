@@ -41,7 +41,7 @@ var defaultOutputOrder = []string{
 // the right format for the release notes.
 type releaseNotesPrinter struct {
 	outputOrder            []string
-	isPreRelease           bool
+	releaseType            string
 	printKubernetesSupport bool
 	printDeprecation       bool
 	fromTag                string
@@ -75,8 +75,8 @@ func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, 
 		}
 	}
 
-	if p.isPreRelease {
-		fmt.Printf("🚨 This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/%s/issues/new).\n", p.repo)
+	if p.releaseType != "" {
+		fmt.Printf("🚨 This is a %s. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/%s/issues/new).\n", p.releaseType, p.repo)
 	}
 
 	if p.printKubernetesSupport {

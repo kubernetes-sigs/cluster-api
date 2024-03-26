@@ -52,7 +52,6 @@ type notesCmdConfig struct {
 	newTag                      string
 	branch                      string
 	prefixAreaLabel             bool
-	preReleaseVersion           bool
 	deprecation                 bool
 	addKubernetesVersionSupport bool
 }
@@ -67,7 +66,6 @@ func readCmdConfig() *notesCmdConfig {
 	flag.StringVar(&config.newTag, "release", "", "The tag for the new release.")
 
 	flag.BoolVar(&config.prefixAreaLabel, "prefix-area-label", true, "If enabled, will prefix the area label.")
-	flag.BoolVar(&config.preReleaseVersion, "pre-release-version", false, "If enabled, will add a pre-release warning header. (default false)")
 	flag.BoolVar(&config.deprecation, "deprecation", true, "If enabled, will add a templated deprecation warning header.")
 	flag.BoolVar(&config.addKubernetesVersionSupport, "add-kubernetes-version-support", true, "If enabled, will add the Kubernetes version support header.")
 
@@ -103,7 +101,7 @@ func (cmd *notesCmd) run() error {
 	from, to := parseRef(cmd.config.fromRef), parseRef(cmd.config.toRef)
 
 	printer := newReleaseNotesPrinter(cmd.config.repo, from.value)
-	printer.isPreRelease = cmd.config.preReleaseVersion
+	printer.releaseType = releaseTypeFromNewTag(cmd.config.newTag)
 	printer.printDeprecation = cmd.config.deprecation
 	printer.printKubernetesSupport = cmd.config.addKubernetesVersionSupport
 
@@ -115,6 +113,28 @@ func (cmd *notesCmd) run() error {
 	)
 
 	return generator.run()
+}
+
+func releaseTypeFromNewTag(newTagConfig string) string {
+	// Error handling can be ignored as the version has been validated in computeConfigDefaults already.
+	newTag, _ := semver.ParseTolerant(newTagConfig)
+
+	// Ensures version format includes exactly two dot-separated pre-release identifiers (e.g., v1.7.0-beta.1).
+	// Versions with a single pre-release identifier (e.g., v1.7.0-beta or v1.7.0-beta1) are NOT supported.
+	// Return early if the count of pre-release identifiers is not 2.
+	if len(newTag.Pre) != 2 {
+		return ""
+	}
+
+	// Only allow RC and beta releases. More types must be defined here.
+	// If a new type is not defined, no warning banner will be printed.
+	switch newTag.Pre[0].VersionStr {
+	case "rc":
+		return "RELEASE CANDIDATE"
+	case "beta":
+		return "BETA RELEASE"
+	}
+	return ""
 }
 
 func ensureInstalledDependencies() error {

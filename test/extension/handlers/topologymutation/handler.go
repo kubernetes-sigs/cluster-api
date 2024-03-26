@@ -439,6 +439,14 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 					Example: &apiextensionsv1.JSON{Raw: []byte(`"kindest"`)},
 				},
 			},
+			Metadata: clusterv1.ClusterClassVariableMetadata{
+				Labels: map[string]string{
+					"objects": "DockerCluster",
+				},
+				Annotations: map[string]string{
+					"description": "Gets set at DockerCluster.Spec.Template.Spec.LoadBalancer.ImageRepository",
+				},
+			},
 		},
 	}
 }

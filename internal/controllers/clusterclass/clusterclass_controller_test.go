@@ -105,6 +105,14 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 						Type: "integer",
 					},
 				},
+				Metadata: clusterv1.ClusterClassVariableMetadata{
+					Labels: map[string]string{
+						"some-label": "some-label-value",
+					},
+					Annotations: map[string]string{
+						"some-annotation": "some-annotation-value",
+					},
+				},
 			}).
 		Build()
 
@@ -119,7 +127,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	}
 
 	for _, obj := range initObjs {
-		g.Expect(env.Create(ctx, obj)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, obj)).To(Succeed())
 	}
 	defer func() {
 		for _, obj := range initObjs {
@@ -167,6 +175,9 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 			}
 			if !reflect.DeepEqual(specVar.Schema, statusVarDefinition.Schema) {
 				return errors.Errorf("ClusterClass status variable %s schema does not match. Expected %v. Got %v", specVar.Name, specVar.Schema, statusVarDefinition.Schema)
+			}
+			if !reflect.DeepEqual(specVar.Metadata, statusVarDefinition.Metadata) {
+				return errors.Errorf("ClusterClass status variable %s metadata does not match. Expected %v. Got %v", specVar.Name, specVar.Metadata, statusVarDefinition.Metadata)
 			}
 		}
 		if !found {
@@ -323,7 +334,6 @@ func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {
 func TestReconciler_reconcileVariables(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
 
-	g := NewWithT(t)
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
 
@@ -335,6 +345,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "integer",
+						},
+					},
+					Metadata: clusterv1.ClusterClassVariableMetadata{
+						Labels: map[string]string{
+							"some-label": "some-label-value",
+						},
+						Annotations: map[string]string{
+							"some-annotation": "some-annotation-value",
 						},
 					},
 				},
@@ -367,6 +385,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
+								},
+							},
+							Metadata: clusterv1.ClusterClassVariableMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
 								},
 							},
 						},
@@ -425,6 +451,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 								Type: "string",
 							},
 						},
+						Metadata: clusterv1.ClusterClassVariableMetadata{
+							Labels: map[string]string{
+								"some-label": "some-label-value",
+							},
+							Annotations: map[string]string{
+								"some-annotation": "some-annotation-value",
+							},
+						},
 					},
 				},
 			},
@@ -438,6 +472,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
+								},
+							},
+							Metadata: clusterv1.ClusterClassVariableMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
 								},
 							},
 						},
@@ -460,6 +502,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
+								},
+							},
+							Metadata: clusterv1.ClusterClassVariableMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
 								},
 							},
 						},
@@ -527,6 +577,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallExtensionResponses(
 					map[string]runtimehooksv1.ResponseObject{

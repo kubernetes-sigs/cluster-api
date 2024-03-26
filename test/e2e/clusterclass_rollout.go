@@ -418,7 +418,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref.Name,
 			},
 			clusterClassObjects.ControlPlaneInfrastructureMachineTemplate.GetAnnotations(),
-		).without(g, corev1.LastAppliedConfigAnnotation),
+		),
 	))
 
 	// ControlPlane InfrastructureMachineTemplate.spec.template.metadata
@@ -590,7 +590,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Infrastructure.Ref.Name,
 				},
 				ccInfrastructureMachineTemplate.GetAnnotations(),
-			).without(g, corev1.LastAppliedConfigAnnotation),
+			),
 		))
 		// MachineDeployment InfrastructureMachineTemplate.spec.template.metadata
 		g.Expect(infrastructureMachineTemplateTemplateMetadata.Labels).To(BeEquivalentTo(
@@ -622,7 +622,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Bootstrap.Ref.Name,
 				},
 				ccBootstrapConfigTemplate.GetAnnotations(),
-			).without(g, corev1.LastAppliedConfigAnnotation),
+			),
 		))
 		// MachineDeployment BootstrapConfigTemplate.spec.template.metadata
 		g.Expect(bootstrapConfigTemplateTemplateMetadata.Labels).To(BeEquivalentTo(

@@ -108,7 +108,6 @@ provider's yaml. These substitutions are also used when deploying cluster templa
 ```yaml
 kustomize_substitutions:
   CLUSTER_TOPOLOGY: "true"
-  EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_RUNTIME_SDK: "true"

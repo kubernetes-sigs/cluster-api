@@ -52,6 +52,7 @@ import (
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	controlplanev1alpha3 "sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha3"
 	controlplanev1alpha4 "sigs.k8s.io/cluster-api/internal/apis/controlplane/kubeadm/v1alpha4"
@@ -92,6 +93,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
+	_ = expv1.AddToScheme(scheme)
 	_ = controlplanev1alpha3.AddToScheme(scheme)
 	_ = controlplanev1alpha4.AddToScheme(scheme)
 	_ = controlplanev1.AddToScheme(scheme)

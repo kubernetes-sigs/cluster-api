@@ -263,7 +263,6 @@ via [Create the local repository](http://localhost:3000/clusterctl/developers.ht
 ```yaml
 kustomize_substitutions:
   CLUSTER_TOPOLOGY: "true"
-  EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_RUNTIME_SDK: "true"

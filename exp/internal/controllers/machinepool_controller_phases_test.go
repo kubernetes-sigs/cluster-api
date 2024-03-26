@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,7 +39,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -1236,10 +1234,6 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 
 func TestReconcileMachinePoolMachines(t *testing.T) {
 	t.Run("Reconcile MachinePool Machines", func(t *testing.T) {
-		// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
-		// Enabling the feature flag temporarily for this test.
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
-
 		g := NewWithT(t)
 
 		ns, err := env.CreateNamespace(ctx, "test-machinepool-machines")

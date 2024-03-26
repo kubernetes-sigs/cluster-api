@@ -1,4 +1,4 @@
-# Experimental Feature: MachinePool (alpha)
+# Experimental Feature: MachinePool (beta)
 
 The `MachinePool` feature provides a way to manage a set of machines by defining a common configuration, number of desired machine replicas etc. similar to `MachineDeployment`,
 except `MachineSet` controllers are responsible for the lifecycle management of the machines for `MachineDeployment`, whereas in `MachinePools`,

@@ -539,9 +539,6 @@ for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers de
 # Enable the experimental Cluster topology feature.
 export CLUSTER_TOPOLOGY=true
 
-# Enable the experimental Machine Pool feature
-export EXP_MACHINE_POOL=true
-
 # Initialize the management cluster
 clusterctl init --infrastructure docker
 ```

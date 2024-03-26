@@ -68,6 +68,10 @@ const (
 	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
 	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"
 
+	// ClusterTopologyUnsafeUpdateVersionAnnotation can be used to disable the webhook checks on
+	// update that disallows updating the .topology.spec.version on certain conditions.
+	ClusterTopologyUnsafeUpdateVersionAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-version-check"
+
 	// ProviderNameLabel is the label set on components in the provider manifest.
 	// This label allows to easily identify all the components belonging to a provider; the clusterctl
 	// tool uses this label for implementing provider's lifecycle operations.

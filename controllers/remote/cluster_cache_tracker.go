@@ -189,6 +189,11 @@ func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.Obje
 	return accessor.client, nil
 }
 
+// GetReader returns a cached read-only client for the given cluster.
+func (t *ClusterCacheTracker) GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error) {
+	return t.GetClient(ctx, cluster)
+}
+
 // GetRESTConfig returns a cached REST config for the given cluster.
 func (t *ClusterCacheTracker) GetRESTConfig(ctc context.Context, cluster client.ObjectKey) (*rest.Config, error) {
 	accessor, err := t.getClusterAccessor(ctc, cluster, t.indexes...)

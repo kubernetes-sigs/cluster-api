@@ -18,16 +18,14 @@ package scope
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/topology/check"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.
@@ -68,7 +66,7 @@ type MachineDeploymentsStateMap map[string]*MachineDeploymentState
 
 // Upgrading returns the list of the machine deployments
 // that are upgrading.
-func (mds MachineDeploymentsStateMap) Upgrading(ctx context.Context, c client.Client) ([]string, error) {
+func (mds MachineDeploymentsStateMap) Upgrading(ctx context.Context, c client.Reader) ([]string, error) {
 	names := []string{}
 	for _, md := range mds {
 		upgrading, err := md.IsUpgrading(ctx, c)
@@ -101,32 +99,8 @@ type MachineDeploymentState struct {
 // IsUpgrading determines if the MachineDeployment is upgrading.
 // A machine deployment is considered upgrading if at least one of the Machines of this
 // MachineDeployment has a different version.
-func (md *MachineDeploymentState) IsUpgrading(ctx context.Context, c client.Client) (bool, error) {
-	// If the MachineDeployment has no version there is no definitive way to check if it is upgrading. Therefore, return false.
-	// Note: This case should not happen.
-	if md.Object.Spec.Template.Spec.Version == nil {
-		return false, nil
-	}
-	selectorMap, err := metav1.LabelSelectorAsMap(&md.Object.Spec.Selector)
-	if err != nil {
-		return false, errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to convert label selector to map", md.Object.Name)
-	}
-	machines := &clusterv1.MachineList{}
-	if err := c.List(ctx, machines, client.InNamespace(md.Object.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-		return false, errors.Wrapf(err, "failed to check if MachineDeployment %s is upgrading: failed to list Machines", md.Object.Name)
-	}
-	mdVersion := *md.Object.Spec.Template.Spec.Version
-	// Check if the versions of the all the Machines match the MachineDeployment version.
-	for i := range machines.Items {
-		machine := machines.Items[i]
-		if machine.Spec.Version == nil {
-			return false, fmt.Errorf("failed to check if MachineDeployment %s is upgrading: Machine %s has no version", md.Object.Name, machine.Name)
-		}
-		if *machine.Spec.Version != mdVersion {
-			return true, nil
-		}
-	}
-	return false, nil
+func (md *MachineDeploymentState) IsUpgrading(ctx context.Context, c client.Reader) (bool, error) {
+	return check.IsMachineDeploymentUpgrading(ctx, c, md.Object)
 }
 
 // MachinePoolsStateMap holds a collection of MachinePool states.
@@ -134,7 +108,7 @@ type MachinePoolsStateMap map[string]*MachinePoolState
 
 // Upgrading returns the list of the machine pools
 // that are upgrading.
-func (mps MachinePoolsStateMap) Upgrading(ctx context.Context, c client.Client) ([]string, error) {
+func (mps MachinePoolsStateMap) Upgrading(ctx context.Context, c client.Reader) ([]string, error) {
 	names := []string{}
 	for _, mp := range mps {
 		upgrading, err := mp.IsUpgrading(ctx, c)
@@ -163,22 +137,6 @@ type MachinePoolState struct {
 // IsUpgrading determines if the MachinePool is upgrading.
 // A machine pool is considered upgrading if at least one of the Machines of this
 // MachinePool has a different version.
-func (mp *MachinePoolState) IsUpgrading(ctx context.Context, c client.Client) (bool, error) {
-	// If the MachinePool has no version there is no definitive way to check if it is upgrading. Therefore, return false.
-	// Note: This case should not happen.
-	if mp.Object.Spec.Template.Spec.Version == nil {
-		return false, nil
-	}
-	mpVersion := *mp.Object.Spec.Template.Spec.Version
-	// Check if the kubelet versions of the MachinePool noderefs match the MachinePool version.
-	for _, nodeRef := range mp.Object.Status.NodeRefs {
-		node := &corev1.Node{}
-		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			return false, fmt.Errorf("failed to check if MachinePool %s is upgrading: failed to get Node %s", mp.Object.Name, nodeRef.Name)
-		}
-		if mpVersion != node.Status.NodeInfo.KubeletVersion {
-			return true, nil
-		}
-	}
-	return false, nil
+func (mp *MachinePoolState) IsUpgrading(ctx context.Context, c client.Reader) (bool, error) {
+	return check.IsMachinePoolUpgrading(ctx, c, mp.Object)
 }

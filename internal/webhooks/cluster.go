@@ -28,16 +28,21 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -56,9 +61,15 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update;delete,path=/validate-cluster-x-k8s-io-v1beta1-cluster,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusters,versions=v1beta1,name=validation.cluster.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-cluster,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=clusters,versions=v1beta1,name=default.cluster.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
+// ClusterCacheTrackerReader is a scoped-down interface from ClusterCacheTracker that only allows to get a reader client.
+type ClusterCacheTrackerReader interface {
+	GetReader(ctx context.Context, cluster client.ObjectKey) (client.Reader, error)
+}
+
 // Cluster implements a validating and defaulting webhook for Cluster.
 type Cluster struct {
-	Client client.Reader
+	Client  client.Reader
+	Tracker ClusterCacheTrackerReader
 }
 
 var _ webhook.CustomDefaulter = &Cluster{}
@@ -323,7 +334,6 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			return allWarnings, allErrs
 		}
 
-		// Version could only be increased.
 		inVersion, err := semver.ParseTolerant(newCluster.Spec.Topology.Version)
 		if err != nil {
 			allErrs = append(
@@ -343,34 +353,20 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 				field.Invalid(
 					fldPath.Child("version"),
 					oldCluster.Spec.Topology.Version,
-					fmt.Sprintf("old version %q cannot be compared with %q", oldVersion, inVersion),
+					"old version must be a valid semantic version",
 				),
 			)
 		}
-		if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.Compare(inVersion, oldVersion, version.WithBuildTags()) == -1 {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					fldPath.Child("version"),
-					newCluster.Spec.Topology.Version,
-					fmt.Sprintf("version cannot be decreased from %q to %q", oldVersion, inVersion),
-				),
-			)
-		}
-		// A +2 minor version upgrade is not allowed.
-		ceilVersion := semver.Version{
-			Major: oldVersion.Major,
-			Minor: oldVersion.Minor + 2,
-			Patch: 0,
-		}
-		if inVersion.GTE(ceilVersion) {
-			allErrs = append(
-				allErrs,
-				field.Forbidden(
-					fldPath.Child("version"),
-					fmt.Sprintf("version cannot be increased from %q to %q", oldVersion, inVersion),
-				),
-			)
+
+		if _, ok := newCluster.GetAnnotations()[clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation]; ok {
+			log := ctrl.LoggerFrom(ctx)
+			warningMsg := fmt.Sprintf("Skipping version validation for Cluster because annotation %q is set.", clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation)
+			log.Info(warningMsg)
+			allWarnings = append(allWarnings, warningMsg)
+		} else {
+			if err := webhook.validateTopologyVersion(ctx, fldPath.Child("version"), newCluster.Spec.Topology.Version, inVersion, oldVersion, oldCluster); err != nil {
+				allErrs = append(allErrs, err)
+			}
 		}
 
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
@@ -393,6 +389,218 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		}
 	}
 	return allWarnings, allErrs
+}
+
+func (webhook *Cluster) validateTopologyVersion(ctx context.Context, fldPath *field.Path, fldValue string, inVersion, oldVersion semver.Version, oldCluster *clusterv1.Cluster) *field.Error {
+	// Version could only be increased.
+	if inVersion.NE(semver.Version{}) && oldVersion.NE(semver.Version{}) && version.Compare(inVersion, oldVersion, version.WithBuildTags()) == -1 {
+		return field.Invalid(
+			fldPath,
+			fldValue,
+			fmt.Sprintf("version cannot be decreased from %q to %q", oldVersion, inVersion),
+		)
+	}
+
+	// A +2 minor version upgrade is not allowed.
+	ceilVersion := semver.Version{
+		Major: oldVersion.Major,
+		Minor: oldVersion.Minor + 2,
+		Patch: 0,
+	}
+	if inVersion.GTE(ceilVersion) {
+		return field.Invalid(
+			fldPath,
+			fldValue,
+			fmt.Sprintf("version cannot be increased from %q to %q", oldVersion, inVersion),
+		)
+	}
+
+	// Only check the following cases if the minor version increases by 1 (we already return above for >= 2).
+	ceilVersion = semver.Version{
+		Major: oldVersion.Major,
+		Minor: oldVersion.Minor + 1,
+		Patch: 0,
+	}
+
+	// Return early if its not a minor version upgrade.
+	if !inVersion.GTE(ceilVersion) {
+		return nil
+	}
+
+	allErrs := []error{}
+	// minor version cannot be increased if control plane is upgrading or not yet on the current version
+	if err := validateTopologyControlPlaneVersion(ctx, webhook.Client, oldCluster, oldVersion); err != nil {
+		allErrs = append(allErrs, fmt.Errorf("blocking version update due to ControlPlane version check: %v", err))
+	}
+
+	// minor version cannot be increased if MachineDeployments are upgrading or not yet on the current version
+	if err := validateTopologyMachineDeploymentVersions(ctx, webhook.Client, oldCluster, oldVersion); err != nil {
+		allErrs = append(allErrs, fmt.Errorf("blocking version update due to MachineDeployment version check: %v", err))
+	}
+
+	// minor version cannot be increased if MachinePools are upgrading or not yet on the current version
+	if err := validateTopologyMachinePoolVersions(ctx, webhook.Client, webhook.Tracker, oldCluster, oldVersion); err != nil {
+		allErrs = append(allErrs, fmt.Errorf("blocking version update due to MachinePool version check: %v", err))
+	}
+
+	if len(allErrs) > 0 {
+		return field.Invalid(
+			fldPath,
+			fldValue,
+			fmt.Sprintf("minor version update cannot happen at this time: %v", kerrors.NewAggregate(allErrs)),
+		)
+	}
+
+	return nil
+}
+
+func validateTopologyControlPlaneVersion(ctx context.Context, ctrlClient client.Reader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
+	cp, err := external.Get(ctx, ctrlClient, oldCluster.Spec.ControlPlaneRef, oldCluster.Namespace)
+	if err != nil {
+		return errors.Wrap(err, "failed to get ControlPlane object")
+	}
+
+	cpVersionString, err := contract.ControlPlane().Version().Get(cp)
+	if err != nil {
+		return errors.Wrap(err, "failed to get ControlPlane version")
+	}
+
+	cpVersion, err := semver.ParseTolerant(*cpVersionString)
+	if err != nil {
+		// NOTE: this should never happen. Nevertheless, handling this for extra caution.
+		return errors.New("failed to parse version of ControlPlane")
+	}
+	if cpVersion.NE(oldVersion) {
+		return fmt.Errorf("ControlPlane version %q does not match the current version %q", cpVersion, oldVersion)
+	}
+
+	provisioning, err := contract.ControlPlane().IsProvisioning(cp)
+	if err != nil {
+		return errors.Wrap(err, "failed to check if ControlPlane is provisioning")
+	}
+
+	if provisioning {
+		return errors.New("ControlPlane is currently provisioning")
+	}
+
+	upgrading, err := contract.ControlPlane().IsUpgrading(cp)
+	if err != nil {
+		return errors.Wrap(err, "failed to check if ControlPlane is upgrading")
+	}
+
+	if upgrading {
+		return errors.New("ControlPlane is still completing a previous upgrade")
+	}
+
+	return nil
+}
+
+func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient client.Reader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
+	// List all the machine deployments in the current cluster and in a managed topology.
+	// FROM: current_state.go getCurrentMachineDeploymentState
+	mds := &clusterv1.MachineDeploymentList{}
+	err := ctrlClient.List(ctx, mds,
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel:          oldCluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		client.InNamespace(oldCluster.Namespace),
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to read MachineDeployments for managed topology")
+	}
+
+	if len(mds.Items) == 0 {
+		return nil
+	}
+
+	mdUpgradingNames := []string{}
+
+	for i := range mds.Items {
+		md := &mds.Items[i]
+
+		mdVersion, err := semver.ParseTolerant(*md.Spec.Template.Spec.Version)
+		if err != nil {
+			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
+			return errors.Wrapf(err, "failed to parse MachineDeployment's %q version %q", klog.KObj(md), *md.Spec.Template.Spec.Version)
+		}
+
+		if mdVersion.NE(oldVersion) {
+			mdUpgradingNames = append(mdUpgradingNames, md.Name)
+			continue
+		}
+
+		upgrading, err := check.IsMachineDeploymentUpgrading(ctx, ctrlClient, md)
+		if err != nil {
+			return errors.Wrap(err, "failed to check if MachineDeployment is upgrading")
+		}
+		if upgrading {
+			mdUpgradingNames = append(mdUpgradingNames, md.Name)
+		}
+	}
+
+	if len(mdUpgradingNames) > 0 {
+		return fmt.Errorf("there are MachineDeployments still completing a previous upgrade: [%s]", strings.Join(mdUpgradingNames, ", "))
+	}
+
+	return nil
+}
+
+func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.Reader, tracker ClusterCacheTrackerReader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
+	// List all the machine pools in the current cluster and in a managed topology.
+	// FROM: current_state.go getCurrentMachinePoolState
+	mps := &expv1.MachinePoolList{}
+	err := ctrlClient.List(ctx, mps,
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel:          oldCluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		client.InNamespace(oldCluster.Namespace),
+	)
+	if err != nil {
+		return errors.Wrap(err, "failed to read MachinePools for managed topology")
+	}
+
+	// Return early
+	if len(mps.Items) == 0 {
+		return nil
+	}
+
+	wlClient, err := tracker.GetReader(ctx, client.ObjectKeyFromObject(oldCluster))
+	if err != nil {
+		return errors.Wrap(err, "unable to get client for workload cluster")
+	}
+
+	mpUpgradingNames := []string{}
+
+	for i := range mps.Items {
+		mp := &mps.Items[i]
+
+		mpVersion, err := semver.ParseTolerant(*mp.Spec.Template.Spec.Version)
+		if err != nil {
+			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
+			return errors.Wrapf(err, "failed to parse MachinePool's %q version %q", klog.KObj(mp), *mp.Spec.Template.Spec.Version)
+		}
+
+		if mpVersion.NE(oldVersion) {
+			mpUpgradingNames = append(mpUpgradingNames, mp.Name)
+			continue
+		}
+
+		upgrading, err := check.IsMachinePoolUpgrading(ctx, wlClient, mp)
+		if err != nil {
+			return errors.Wrap(err, "failed to check if MachinePool is upgrading")
+		}
+		if upgrading {
+			mpUpgradingNames = append(mpUpgradingNames, mp.Name)
+		}
+	}
+
+	if len(mpUpgradingNames) > 0 {
+		return fmt.Errorf("there are MachinePools still completing a previous upgrade: [%s]", strings.Join(mpUpgradingNames, ", "))
+	}
+
+	return nil
 }
 
 func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {

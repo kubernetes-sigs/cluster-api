@@ -371,6 +371,10 @@ func (c *Certificate) AsSecret(clusterName client.ObjectKey, owner metav1.OwnerR
 // AsFiles converts the certificate to a slice of Files that may have 0, 1 or 2 Files.
 func (c *Certificate) AsFiles() []bootstrapv1.File {
 	out := make([]bootstrapv1.File, 0)
+	if c.KeyPair == nil {
+		return out
+	}
+
 	if len(c.KeyPair.Cert) > 0 {
 		out = append(out, bootstrapv1.File{
 			Path:        c.CertFile,

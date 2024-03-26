@@ -201,6 +201,62 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Valid variable metadata",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "validVariable",
+				Metadata: clusterv1.ClusterClassVariableMetadata{
+					Labels: map[string]string{
+						"label-key": "label-value",
+					},
+					Annotations: map[string]string{
+						"annotation-key": "annotation-value",
+					},
+				},
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MinLength: ptr.To[int64](1),
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid variable label: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "path.tovariable",
+				Metadata: clusterv1.ClusterClassVariableMetadata{
+					Labels: map[string]string{
+						".label-key": "label-value",
+					},
+				},
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MinLength: ptr.To[int64](1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail on invalid variable annotation: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "path.tovariable",
+				Metadata: clusterv1.ClusterClassVariableMetadata{
+					Annotations: map[string]string{
+						".annotation-key": "annotation-value",
+					},
+				},
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MinLength: ptr.To[int64](1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "Valid default value regular string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",

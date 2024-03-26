@@ -39,6 +39,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassStatusVariable":               schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassStatusVariable(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassStatusVariableDefinition":     schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassStatusVariableDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariable":                     schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariableMetadata":             schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariableMetadata(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterList":                              schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterNetwork":                           schema_sigsk8sio_cluster_api_api_v1beta1_ClusterNetwork(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterSpec":                              schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref),
@@ -582,6 +583,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref common.Re
 							Format:      "",
 						},
 					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariableMetadata"),
+						},
+					},
 					"schema": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Schema defines the schema of the variable.",
@@ -594,7 +602,52 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariableMetadata", "sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariableMetadata(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClassVariableMetadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"labels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Map of string keys and values that can be used to organize and categorize (scope and select) variables.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"annotations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Annotations is an unstructured key value map that can be used to store and retrieve arbitrary metadata. They are not queryable.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
 

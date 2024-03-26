@@ -18,7 +18,9 @@ package repository
 
 import (
 	"context"
+	"os"
 	"sort"
+	"strconv"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -129,8 +131,17 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *uint
 		return versionCandidates[j].LessThan(versionCandidates[i])
 	})
 
-	// Limit the number of searchable versions by 5.
-	versionCandidates = versionCandidates[:min(5, len(versionCandidates))]
+	// By default, limit the number of searchable versions by 5.
+	maxVersionCandidates := 5
+	if v := os.Getenv("CAPI_CLUSTERCTL_MAX_VERSION_CANDIDATES"); v != "" {
+		// Allow to override this value by setting the CAPI_CLUSTERCTL_MAX_VERSION_CANDIDATES environment variable.
+		maxVersionCandidates, err = strconv.Atoi(v)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to parse CAPI_CLUSTERCTL_MAX_VERSION_CANDIDATES")
+		}
+	}
+
+	versionCandidates = versionCandidates[:min(maxVersionCandidates, len(versionCandidates))]
 
 	for _, v := range versionCandidates {
 		// Iterate through sorted versions and try to fetch a file from that release.

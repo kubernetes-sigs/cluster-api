@@ -1509,6 +1509,64 @@ func TestReconcileControlPlane(t *testing.T) {
 	}
 }
 
+func TestReconcileControlPlaneCleanup(t *testing.T) {
+	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1-cluster-class").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.foo": "foo"}).
+		Build()
+	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{InfrastructureMachineTemplate: infrastructureMachineTemplate}
+
+	infrastructureMachineTemplateCopy := infrastructureMachineTemplate.DeepCopy()
+	infrastructureMachineTemplateCopy.SetName("infrav1-cluster")
+	controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(infrastructureMachineTemplateCopy).
+		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
+		Build()
+
+	t.Run("cleanup InfrastructureMachineTemplate in case of errors", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-control-plane")
+		g.Expect(err).ToNot(HaveOccurred())
+		ccWithControlPlaneInfrastructure = prepareControlPlaneBluePrint(ccWithControlPlaneInfrastructure, namespace.GetName())
+
+		s := scope.New(builder.Cluster(namespace.GetName(), "cluster1").Build())
+		s.Blueprint = &scope.ClusterBlueprint{
+			ClusterClass: &clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						MachineInfrastructure: &clusterv1.LocalObjectTemplate{
+							Ref: contract.ObjToRef(infrastructureMachineTemplate),
+						},
+					},
+				},
+			},
+		}
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
+		s.Desired = &scope.ClusterState{
+			ControlPlane: &scope.ControlPlaneState{Object: controlPlane, InfrastructureMachineTemplate: infrastructureMachineTemplateCopy},
+		}
+		s.Desired.ControlPlane = prepareControlPlaneState(g, s.Desired.ControlPlane, namespace.GetName())
+
+		// Force control plane creation to fail
+		s.Desired.ControlPlane.Object.SetNamespace("do-not-exist")
+
+		r := Reconciler{
+			Client:             env,
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			recorder:           env.GetEventRecorderFor("test"),
+		}
+		created, err := r.reconcileControlPlane(ctx, s)
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(created).To(BeFalse())
+
+		gotInfrastructureMachineTemplate := infrastructureMachineTemplateCopy.DeepCopy()
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(infrastructureMachineTemplateCopy), gotInfrastructureMachineTemplate)
+
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+}
+
 func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	// Create InfrastructureMachineTemplates for test cases
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
@@ -2045,6 +2103,130 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	}
 }
 
+func TestReconcileMachineDeploymentsCleanup(t *testing.T) {
+	t.Run("cleanup InfrastructureMachineTemplate and BootstrapTemplate in case of errors on creation", func(t *testing.T) {
+		g := NewWithT(t)
+
+		infrastructureMachineTemplate1 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
+		bootstrapTemplate1 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
+		md1 := newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate1, bootstrapTemplate1, nil)
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-machine-deployments")
+		g.Expect(err).ToNot(HaveOccurred())
+		md1 = prepareMachineDeploymentState(md1, namespace.GetName())
+
+		s := scope.New(builder.Cluster(namespace.GetName(), "cluster-1").Build())
+		s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{}
+		s.Desired = &scope.ClusterState{
+			MachineDeployments: map[string]*scope.MachineDeploymentState{
+				md1.Object.Name: md1,
+			},
+		}
+
+		// Force md creation to fail
+		s.Desired.MachineDeployments[md1.Object.Name].Object.Namespace = "do-not-exist"
+
+		r := Reconciler{
+			Client:             env.GetClient(),
+			APIReader:          env.GetAPIReader(),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			recorder:           env.GetEventRecorderFor("test"),
+		}
+		err = r.reconcileMachineDeployments(ctx, s)
+		g.Expect(err).To(HaveOccurred())
+
+		gotBootstrapTemplateRef := md1.Object.Spec.Template.Spec.Bootstrap.ConfigRef
+		gotBootstrapTemplate := unstructured.Unstructured{}
+		gotBootstrapTemplate.SetKind(gotBootstrapTemplateRef.Kind)
+		gotBootstrapTemplate.SetAPIVersion(gotBootstrapTemplateRef.APIVersion)
+
+		err = env.GetAPIReader().Get(ctx, client.ObjectKey{
+			Namespace: gotBootstrapTemplateRef.Namespace,
+			Name:      gotBootstrapTemplateRef.Name,
+		}, &gotBootstrapTemplate)
+
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+		gotInfrastructureMachineTemplateRef := md1.Object.Spec.Template.Spec.InfrastructureRef
+		gotInfrastructureMachineTemplate := unstructured.Unstructured{}
+		gotInfrastructureMachineTemplate.SetKind(gotInfrastructureMachineTemplateRef.Kind)
+		gotInfrastructureMachineTemplate.SetAPIVersion(gotInfrastructureMachineTemplateRef.APIVersion)
+
+		err = env.GetAPIReader().Get(ctx, client.ObjectKey{
+			Namespace: gotInfrastructureMachineTemplateRef.Namespace,
+			Name:      gotInfrastructureMachineTemplateRef.Name,
+		}, &gotInfrastructureMachineTemplate)
+
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+	t.Run("cleanup InfrastructureMachineTemplate and BootstrapTemplate in case of errors on upgrade", func(t *testing.T) {
+		g := NewWithT(t)
+
+		infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-2").Build()
+		bootstrapTemplate2 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-2").Build()
+		md2 := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2, bootstrapTemplate2, nil)
+
+		bootstrapTemplate2WithChanges := bootstrapTemplate2.DeepCopy()
+		g.Expect(unstructured.SetNestedField(bootstrapTemplate2WithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
+		infrastructureMachineTemplate2WithChanges := infrastructureMachineTemplate2.DeepCopy()
+		g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate2WithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
+		md2WithTemplateChanges := newFakeMachineDeploymentTopologyState(md2.Object.Name, infrastructureMachineTemplate2WithChanges, bootstrapTemplate2WithChanges, nil)
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-machine-deployments")
+		g.Expect(err).ToNot(HaveOccurred())
+		md2 = prepareMachineDeploymentState(md2, namespace.GetName())
+		md2WithTemplateChanges = prepareMachineDeploymentState(md2WithTemplateChanges, namespace.GetName())
+
+		s := scope.New(builder.Cluster(namespace.GetName(), "cluster-1").Build())
+		s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{
+			md2.Object.Name: md2,
+		}
+		s.Desired = &scope.ClusterState{
+			MachineDeployments: map[string]*scope.MachineDeploymentState{
+				md2WithTemplateChanges.Object.Name: md2WithTemplateChanges,
+			},
+		}
+
+		// Force md upgrade to fail
+		s.Desired.MachineDeployments[md2WithTemplateChanges.Object.Name].Object.Namespace = "do-not-exist"
+
+		r := Reconciler{
+			Client:             env.GetClient(),
+			APIReader:          env.GetAPIReader(),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, ssa.NewCache()),
+			recorder:           env.GetEventRecorderFor("test"),
+		}
+		err = r.reconcileMachineDeployments(ctx, s)
+		g.Expect(err).To(HaveOccurred())
+
+		newBootstrapTemplateRef := md2WithTemplateChanges.Object.Spec.Template.Spec.Bootstrap.ConfigRef
+		newBootstrapTemplate := unstructured.Unstructured{}
+		newBootstrapTemplate.SetKind(newBootstrapTemplateRef.Kind)
+		newBootstrapTemplate.SetAPIVersion(newBootstrapTemplateRef.APIVersion)
+
+		err = env.GetAPIReader().Get(ctx, client.ObjectKey{
+			Namespace: newBootstrapTemplateRef.Namespace,
+			Name:      newBootstrapTemplateRef.Name,
+		}, &newBootstrapTemplate)
+
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+		newInfrastructureMachineTemplateRef := md2WithTemplateChanges.Object.Spec.Template.Spec.InfrastructureRef
+		newInfrastructureMachineTemplate := unstructured.Unstructured{}
+		newInfrastructureMachineTemplate.SetKind(newInfrastructureMachineTemplateRef.Kind)
+		newInfrastructureMachineTemplate.SetAPIVersion(newInfrastructureMachineTemplateRef.APIVersion)
+
+		err = env.GetAPIReader().Get(ctx, client.ObjectKey{
+			Namespace: newInfrastructureMachineTemplateRef.Namespace,
+			Name:      newInfrastructureMachineTemplateRef.Name,
+		}, &newInfrastructureMachineTemplate)
+
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+}
+
 // TestReconcileReferencedObjectSequences tests multiple subsequent calls to reconcileReferencedObject
 // for a control-plane object to verify that the objects are reconciled as expected by tracking managed fields correctly.
 // NOTE: by Extension this tests validates managed field handling in mergePatches, and thus its usage in other parts of the
@@ -2517,7 +2699,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						current: s.Current.ControlPlane.Object,
 						desired: s.Desired.ControlPlane.Object,
 					})
-					g.Expect(err).To(Succeed())
+					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(created).To(Equal(step.wantCreated))
 
 					// Build the object for comparison.
@@ -2747,7 +2929,7 @@ func TestReconcileState(t *testing.T) {
 	t.Run("Cluster get reconciled with infrastructure Ref only when reconcileInfrastructureCluster pass and reconcileControlPlane fails ", func(t *testing.T) {
 		g := NewWithT(t)
 
-		currentdCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -2759,12 +2941,12 @@ func TestReconcileState(t *testing.T) {
 		// cluster requires a UID because reconcileClusterShim will create a cluster shim
 		// which has the cluster set as Owner in an OwnerReference.
 		// A valid OwnerReferences requires a uid.
-		currentdCluster.SetUID("foo")
+		currentCluster.SetUID("foo")
 
 		// NOTE: it is ok to use create given that the Cluster are created by user.
-		g.Expect(env.CreateAndWait(ctx, currentdCluster)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, currentCluster)).To(Succeed())
 
-		s := scope.New(currentdCluster)
+		s := scope.New(currentCluster)
 		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
 		s.Current.ControlPlane = &scope.ControlPlaneState{}
 		s.Desired = &scope.ClusterState{Cluster: desiredCluster, InfrastructureCluster: infrastructureCluster, ControlPlane: &scope.ControlPlaneState{Object: controlPlane}}
@@ -2785,19 +2967,19 @@ func TestReconcileState(t *testing.T) {
 		err = r.reconcileState(ctx, s)
 		g.Expect(err).To(HaveOccurred())
 
-		got := currentdCluster.DeepCopy()
-		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentdCluster), got)
+		got := currentCluster.DeepCopy()
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentCluster), got)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
 		g.Expect(got.Spec.ControlPlaneRef).To(BeNil())
 
-		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, currentdCluster)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, currentCluster)).To(Succeed())
 	})
 	t.Run("Cluster get reconciled with both infrastructure Ref and control plane ref when both reconcileInfrastructureCluster and reconcileControlPlane pass", func(t *testing.T) {
 		g := NewWithT(t)
 
-		currentdCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
 
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
@@ -2809,12 +2991,12 @@ func TestReconcileState(t *testing.T) {
 		// cluster requires a UID because reconcileClusterShim will create a cluster shim
 		// which has the cluster set as Owner in an OwnerReference.
 		// A valid OwnerReferences requires a uid.
-		currentdCluster.SetUID("foo")
+		currentCluster.SetUID("foo")
 
 		// NOTE: it is ok to use create given that the Cluster are created by user.
-		g.Expect(env.CreateAndWait(ctx, currentdCluster)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, currentCluster)).To(Succeed())
 
-		s := scope.New(currentdCluster)
+		s := scope.New(currentCluster)
 		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
 		s.Current.ControlPlane = &scope.ControlPlaneState{}
 		s.Desired = &scope.ClusterState{Cluster: desiredCluster, InfrastructureCluster: infrastructureCluster, ControlPlane: &scope.ControlPlaneState{Object: controlPlane}}
@@ -2832,14 +3014,14 @@ func TestReconcileState(t *testing.T) {
 		err = r.reconcileState(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		got := currentdCluster.DeepCopy()
-		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentdCluster), got)
+		got := currentCluster.DeepCopy()
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentCluster), got)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
 		g.Expect(got.Spec.ControlPlaneRef).ToNot(BeNil())
 
-		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentdCluster)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentCluster)).To(Succeed())
 	})
 	t.Run("Cluster does not get reconciled when reconcileControlPlane fails and infrastructure Ref is set", func(t *testing.T) {
 		g := NewWithT(t)
@@ -2847,7 +3029,7 @@ func TestReconcileState(t *testing.T) {
 		infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 		controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
 
-		currentdCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+		currentCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 			WithInfrastructureCluster(infrastructureCluster).
 			Build()
 
@@ -2859,12 +3041,12 @@ func TestReconcileState(t *testing.T) {
 		// cluster requires a UID because reconcileClusterShim will create a cluster shim
 		// which has the cluster set as Owner in an OwnerReference.
 		// A valid OwnerReferences requires a uid.
-		currentdCluster.SetUID("foo")
+		currentCluster.SetUID("foo")
 
 		// NOTE: it is ok to use create given that the Cluster are created by user.
-		g.Expect(env.CreateAndWait(ctx, currentdCluster)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, currentCluster)).To(Succeed())
 
-		s := scope.New(currentdCluster)
+		s := scope.New(currentCluster)
 		s.Blueprint = &scope.ClusterBlueprint{ClusterClass: &clusterv1.ClusterClass{}}
 		s.Current.ControlPlane = &scope.ControlPlaneState{}
 		s.Desired = &scope.ClusterState{Cluster: desiredCluster, InfrastructureCluster: infrastructureCluster, ControlPlane: &scope.ControlPlaneState{Object: controlPlane}}
@@ -2885,14 +3067,14 @@ func TestReconcileState(t *testing.T) {
 		err = r.reconcileState(ctx, s)
 		g.Expect(err).To(HaveOccurred())
 
-		got := currentdCluster.DeepCopy()
-		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentdCluster), got)
+		got := currentCluster.DeepCopy()
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(currentCluster), got)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(got.Spec.InfrastructureRef).ToNot(BeNil())
 		g.Expect(got.Spec.ControlPlaneRef).To(BeNil())
 
-		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentdCluster)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infrastructureCluster, controlPlane, currentCluster)).To(Succeed())
 	})
 }
 

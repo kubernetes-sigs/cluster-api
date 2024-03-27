@@ -107,7 +107,7 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 			ctx,
 			desiredState.ControlPlane.Object,
 			selectorForControlPlaneMHC(),
-			s.Current.Cluster.Name,
+			s.Current.Cluster,
 			s.Blueprint.ControlPlaneMachineHealthCheckClass())
 	}
 
@@ -796,7 +796,7 @@ func computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploy
 			ctx,
 			desiredMachineDeploymentObj,
 			selectorForMachineDeploymentMHC(desiredMachineDeploymentObj),
-			s.Current.Cluster.Name,
+			s.Current.Cluster,
 			s.Blueprint.MachineDeploymentMachineHealthCheckClass(&machineDeploymentTopology))
 	}
 	return desiredMachineDeployment, nil
@@ -1354,7 +1354,7 @@ func ownerReferenceTo(obj client.Object) *metav1.OwnerReference {
 	}
 }
 
-func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, clusterName string, check *clusterv1.MachineHealthCheckClass) *clusterv1.MachineHealthCheck {
+func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Object, selector *metav1.LabelSelector, cluster *clusterv1.Cluster, check *clusterv1.MachineHealthCheckClass) *clusterv1.MachineHealthCheck {
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
 	mhc := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
@@ -1367,9 +1367,14 @@ func computeMachineHealthCheck(ctx context.Context, healthCheckTarget client.Obj
 			Labels: map[string]string{
 				clusterv1.ClusterTopologyOwnedLabel: "",
 			},
+			// Note: we are adding an ownerRef to Cluster so the MHC will be automatically garbage collected
+			// in case deletion is triggered before an object reconcile happens.
+			OwnerReferences: []metav1.OwnerReference{
+				*ownerReferenceTo(cluster),
+			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
-			ClusterName:         clusterName,
+			ClusterName:         cluster.Name,
 			Selector:            *selector,
 			UnhealthyConditions: check.UnhealthyConditions,
 			MaxUnhealthy:        check.MaxUnhealthy,

@@ -30,7 +30,7 @@ import (
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	"sigs.k8s.io/cluster-api/exp/util/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 )

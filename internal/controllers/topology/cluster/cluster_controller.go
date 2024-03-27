@@ -40,8 +40,8 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/exp/util/topology"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/hooks"
@@ -84,8 +84,8 @@ type Reconciler struct {
 	externalTracker external.ObjectTracker
 	recorder        record.EventRecorder
 
-	// patchEngine is used to apply patches during computeDesiredState.
-	patchEngine patches.Engine
+	// desiredStateEngine is used to apply patches during computeDesiredState.
+	desiredStateEngine topology.DesiredStateEngine
 
 	patchHelperFactory structuredmerge.PatchHelperFactoryFunc
 }
@@ -125,7 +125,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Controller: c,
 		Cache:      mgr.GetCache(),
 	}
-	r.patchEngine = patches.NewEngine(r.RuntimeClient)
+	r.desiredStateEngine = topology.NewDesiredStateEngine(r.Client, r.Tracker, r.RuntimeClient)
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster-controller")
 	if r.patchHelperFactory == nil {
 		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, ssa.NewCache())
@@ -135,7 +135,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // SetupForDryRun prepares the Reconciler for a dry run execution.
 func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
-	r.patchEngine = patches.NewEngine(r.RuntimeClient)
+	r.desiredStateEngine = topology.NewDesiredStateEngine(r.Client, r.Tracker, r.RuntimeClient)
 	r.recorder = recorder
 	r.patchHelperFactory = dryRunPatchHelperFactory(r.Client)
 }
@@ -272,7 +272,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	}
 
 	// Computes the desired state of the Cluster and store it in the request scope.
-	s.Desired, err = r.computeDesiredState(ctx, s)
+	s.Desired, err = r.desiredStateEngine.ComputeDesiredState(ctx, s)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error computing the desired state of the Cluster topology")
 	}

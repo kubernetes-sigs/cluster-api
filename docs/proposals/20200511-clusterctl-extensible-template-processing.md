@@ -270,7 +270,7 @@ manage their template variations.
 ## Implementation History
 
 - 04/22/2020: Proposed idea in an issue or [community meeting]
-- 04/27/2020: Compile a [CAEP Google Doc] following the CAEP template
+- 04/27/2020: Compile a CAEP Google Doc following the CAEP template
 - 05/06/2020: First round of feedback from community
 - 05/11/2020: Open proposal PR
 - 05/13/2020: Present proposal at a [community meeting]
@@ -280,5 +280,4 @@ manage their template variations.
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1fQNlqsDkvEggWFi51GVxOglL2P1Bvo2JhZlMhm2d-Co/edit#heading=h.3wfmgc28aou3
-[CAEP Google Doc]: https://docs.google.com/document/d/1GByR9Dm0igw7FaDDwIM7OldhB5TMuixHswq7TAO1bQg/edit?usp=sharing
 [issue 540]: https://github.com/kubernetes-sigs/cluster-api-provider-azure/pull/540

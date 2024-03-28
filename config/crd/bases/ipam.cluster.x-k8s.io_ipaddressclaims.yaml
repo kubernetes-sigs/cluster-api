@@ -182,6 +182,10 @@ spec:
           spec:
             description: IPAddressClaimSpec is the desired state of an IPAddressClaim.
             properties:
+              clusterName:
+                description: ClusterName is the name of the Cluster this object belongs
+                  to.
+                type: string
               poolRef:
                 description: PoolRef is a reference to the pool from which an IP address
                   should be created.

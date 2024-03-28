@@ -640,7 +640,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(*testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallExtensionResponses(

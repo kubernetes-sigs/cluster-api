@@ -17,9 +17,11 @@ limitations under the License.
 package webhooks
 
 import (
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 )
 
@@ -39,6 +41,19 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Client:  webhook.Client,
 		Tracker: webhook.ClusterCacheTrackerReader,
 	}).SetupWebhookWithManager(mgr)
+}
+
+// DefaultAndValidateVariables can be used to default and validate variables of a Cluster
+// based on the corresponding ClusterClass.
+// Before it can be used, all fields of the webhooks.Cluster have to be set
+// and SetupWithManager has to be called.
+// This method can be used when testing the behavior of the desired state computation of
+// the Cluster topology controller (because variables are always defaulted and validated
+// before the desired state is computed).
+func (webhook *Cluster) DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	// As of today this func is not a method on internal/webhooks.Cluster because it doesn't use
+	// any of its fields. But it seems more consistent and future-proof to expose it as a method.
+	return webhooks.DefaultAndValidateVariables(cluster, clusterClass)
 }
 
 // ClusterClass implements a validation and defaulting webhook for ClusterClass.

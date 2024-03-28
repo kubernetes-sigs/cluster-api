@@ -126,3 +126,28 @@ func (g *templateGenerator) GenerateName() (string, error) {
 
 	return name, nil
 }
+
+// BootstrapTemplateNamePrefix calculates the name prefix for a BootstrapTemplate.
+func BootstrapTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
+	return fmt.Sprintf("%s-%s-", clusterName, machineDeploymentTopologyName)
+}
+
+// InfrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
+func InfrastructureMachineTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
+	return fmt.Sprintf("%s-%s-", clusterName, machineDeploymentTopologyName)
+}
+
+// BootstrapConfigNamePrefix calculates the name prefix for a BootstrapConfig.
+func BootstrapConfigNamePrefix(clusterName, machinePoolTopologyName string) string {
+	return fmt.Sprintf("%s-%s-", clusterName, machinePoolTopologyName)
+}
+
+// InfrastructureMachinePoolNamePrefix calculates the name prefix for a InfrastructureMachinePool.
+func InfrastructureMachinePoolNamePrefix(clusterName, machinePoolTopologyName string) string {
+	return fmt.Sprintf("%s-%s-", clusterName, machinePoolTopologyName)
+}
+
+// ControlPlaneInfrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
+func ControlPlaneInfrastructureMachineTemplateNamePrefix(clusterName string) string {
+	return fmt.Sprintf("%s-", clusterName)
+}

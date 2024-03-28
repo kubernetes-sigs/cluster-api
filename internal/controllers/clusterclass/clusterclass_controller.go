@@ -58,8 +58,7 @@ import (
 
 // Reconciler reconciles the ClusterClass object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client client.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

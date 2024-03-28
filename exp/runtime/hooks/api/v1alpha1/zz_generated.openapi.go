@@ -28,36 +28,48 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeRequest":           schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeResponse":          schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedRequest":  schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedResponse": schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeRequest":      schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeResponse":     schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateRequest":           schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateResponse":          schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteRequest":           schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteResponse":          schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeRequest":          schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeResponse":         schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonRequest":                        schema_runtime_hooks_api_v1alpha1_CommonRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonResponse":                       schema_runtime_hooks_api_v1alpha1_CommonResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonRetryResponse":                  schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoverVariablesRequest":             schema_runtime_hooks_api_v1alpha1_DiscoverVariablesRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoverVariablesResponse":            schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":                     schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryResponse":                    schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler":                     schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequest":               schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem":           schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponse":              schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem":          schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponseItem(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook":                     schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference":                      schema_runtime_hooks_api_v1alpha1_HolderReference(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequest":              schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem":          schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyResponse":             schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable":                             schema_runtime_hooks_api_v1alpha1_Variable(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeRequest":                           schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeResponse":                          schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedRequest":                  schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedResponse":                 schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeRequest":                      schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeResponse":                     schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateRequest":                           schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateResponse":                          schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteRequest":                           schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteResponse":                          schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeRequest":                          schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeResponse":                         schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Builtins":                                             schema_runtime_hooks_api_v1alpha1_Builtins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterBuiltins":                                      schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins":                               schema_runtime_hooks_api_v1alpha1_ClusterNetworkBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins":                              schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonRequest":                                        schema_runtime_hooks_api_v1alpha1_CommonRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonResponse":                                       schema_runtime_hooks_api_v1alpha1_CommonResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonRetryResponse":                                  schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneBuiltins":                                 schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins":                  schema_runtime_hooks_api_v1alpha1_ControlPlaneMachineTemplateBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateInfrastructureRefBuiltins": schema_runtime_hooks_api_v1alpha1_ControlPlaneMachineTemplateInfrastructureRefBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoverVariablesRequest":                             schema_runtime_hooks_api_v1alpha1_DiscoverVariablesRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoverVariablesResponse":                            schema_runtime_hooks_api_v1alpha1_DiscoverVariablesResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":                                     schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryResponse":                                    schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler":                                     schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequest":                               schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem":                           schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponse":                              schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem":                          schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponseItem(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook":                                     schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference":                                      schema_runtime_hooks_api_v1alpha1_HolderReference(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins":                             schema_runtime_hooks_api_v1alpha1_MachineBootstrapBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapConfigRefBuiltins":                    schema_runtime_hooks_api_v1alpha1_MachineBootstrapConfigRefBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineDeploymentBuiltins":                            schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins":                     schema_runtime_hooks_api_v1alpha1_MachineInfrastructureRefBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachinePoolBuiltins":                                  schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequest":                              schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem":                          schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyResponse":                             schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable":                                             schema_runtime_hooks_api_v1alpha1_Variable(ref),
 	}
 }
 
@@ -713,6 +725,166 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 	}
 }
 
+func schema_runtime_hooks_api_v1alpha1_Builtins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Builtins represents builtin variables exposed through patches.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"cluster": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterBuiltins"),
+						},
+					},
+					"controlPlane": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneBuiltins"),
+						},
+					},
+					"machineDeployment": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineDeploymentBuiltins"),
+						},
+					},
+					"machinePool": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachinePoolBuiltins"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineDeploymentBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachinePoolBuiltins"},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterBuiltins represents builtin cluster variables.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace is the namespace of the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"topology": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Topology represents the cluster topology variables.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins"),
+						},
+					},
+					"network": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Network represents the cluster network variables.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterNetworkBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ClusterTopologyBuiltins"},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_ClusterNetworkBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterNetworkBuiltins represents builtin cluster network variables.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"serviceDomain": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServiceDomain is the domain name for services.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"services": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Services is the network ranges from which service VIPs are allocated.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"pods": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Pods is the network ranges from which Pod networks are allocated.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"ipFamily": {
+						SchemaProps: spec.SchemaProps{
+							Description: "IPFamily is the IPFamily the Cluster is operating in. One of Invalid, IPv4, IPv6, DualStack. Note: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD. IPFamily may be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_ClusterTopologyBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterTopologyBuiltins represents builtin cluster topology variables.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version is the Kubernetes version of the Cluster. NOTE: Please note that this version might temporarily differ from the version of the ControlPlane or workers while an upgrade process is being orchestrated.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"class": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Class is the name of the ClusterClass of the Cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_runtime_hooks_api_v1alpha1_CommonRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -807,6 +979,90 @@ func schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref common.ReferenceC
 					},
 				},
 				Required: []string{"status", "message", "retryAfterSeconds"},
+			},
+		},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneBuiltins represents builtin ControlPlane variables. NOTE: These variables are only set for templates belonging to the ControlPlane object.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version is the Kubernetes version of the ControlPlane object. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the ControlPlane while an upgrade process is being orchestrated.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the ControlPlane, to which the current template belongs to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Replicas is the value of the replicas field of the ControlPlane object.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"machineTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MachineTemplate is the value of the .spec.machineTemplate field of the ControlPlane object.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins"},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_ControlPlaneMachineTemplateBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneMachineTemplateBuiltins is the value of the .spec.machineTemplate field of the ControlPlane object.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"infrastructureRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "InfrastructureRef is the value of the infrastructureRef field of ControlPlane.spec.machineTemplate.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateInfrastructureRefBuiltins"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateInfrastructureRefBuiltins"},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_ControlPlaneMachineTemplateInfrastructureRefBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneMachineTemplateInfrastructureRefBuiltins is the value of the infrastructureRef field of ControlPlane.spec.machineTemplate.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the infrastructureRef.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -1362,6 +1618,191 @@ func schema_runtime_hooks_api_v1alpha1_HolderReference(ref common.ReferenceCallb
 				Required: []string{"apiVersion", "kind", "namespace", "name", "fieldPath"},
 			},
 		},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_MachineBootstrapBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineBootstrapBuiltins is the value of the .spec.template.spec.bootstrap field of the MachineDeployment or MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"configRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ConfigRef is the value of the .spec.template.spec.bootstrap.configRef field of the MachineDeployment.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapConfigRefBuiltins"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapConfigRefBuiltins"},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_MachineBootstrapConfigRefBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineBootstrapConfigRefBuiltins is the value of the .spec.template.spec.bootstrap.configRef field of the MachineDeployment or MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the bootstrap.configRef.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDeploymentBuiltins represents builtin MachineDeployment variables. NOTE: These variables are only set for templates belonging to a MachineDeployment.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version is the Kubernetes version of the MachineDeployment, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachineDeployment machines while an upgrade process is being orchestrated.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"class": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Class is the class name of the MachineDeployment, to which the current template belongs to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the MachineDeployment, to which the current template belongs to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"topologyName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TopologyName is the topology name of the MachineDeployment, to which the current template belongs to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Replicas is the value of the replicas field of the MachineDeployment, to which the current template belongs to.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"bootstrap": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Bootstrap is the value of the .spec.template.spec.bootstrap field of the MachineDeployment.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins"),
+						},
+					},
+					"infrastructureRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "InfrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachineDeployment.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_MachineInfrastructureRefBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineInfrastructureRefBuiltins is the value of the .spec.template.spec.infrastructureRef field of the MachineDeployment or MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the infrastructureRef.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachinePoolBuiltins represents builtin MachinePool variables. NOTE: These variables are only set for templates belonging to a MachinePool.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version is the Kubernetes version of the MachinePool, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachinePool machines while an upgrade process is being orchestrated.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"class": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Class is the class name of the MachinePool, to which the current template belongs to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the MachinePool, to which the current template belongs to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"topologyName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TopologyName is the topology name of the MachinePool, to which the current template belongs to.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Replicas is the value of the replicas field of the MachinePool, to which the current template belongs to.",
+							Type:        []string{"integer"},
+							Format:      "int64",
+						},
+					},
+					"bootstrap": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Bootstrap is the value of the .spec.template.spec.bootstrap field of the MachinePool.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins"),
+						},
+					},
+					"infrastructureRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "InfrastructureRef is the value of the .spec.template.spec.infrastructureRef field of the MachinePool.",
+							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
 	}
 }
 

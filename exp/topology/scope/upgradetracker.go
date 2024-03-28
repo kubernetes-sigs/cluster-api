@@ -162,6 +162,34 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 	}
 }
 
+// IsControlPlaneStable returns true is the ControlPlane is stable.
+func (t *ControlPlaneUpgradeTracker) IsControlPlaneStable() bool {
+	// If the current control plane is upgrading it is not considered stable.
+	if t.IsUpgrading {
+		return false
+	}
+
+	// If control plane supports replicas, check if the control plane is in the middle of a scale operation.
+	// If the current control plane is scaling then it is not considered stable.
+	if t.IsScaling {
+		return false
+	}
+
+	// Check if we are about to upgrade the control plane. Since the control plane is about to start its upgrade process
+	// it cannot be considered stable.
+	if t.IsStartingUpgrade {
+		return false
+	}
+
+	// If the ControlPlane is pending picking up an upgrade then it is not yet at the desired state and
+	// cannot be considered stable.
+	if t.IsPendingUpgrade {
+		return false
+	}
+
+	return true
+}
+
 // MarkUpgrading marks a MachineDeployment/MachinePool as currently upgrading or about to upgrade.
 func (m *WorkerUpgradeTracker) MarkUpgrading(names ...string) {
 	for _, name := range names {

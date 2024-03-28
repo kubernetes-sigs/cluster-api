@@ -516,7 +516,6 @@ func reconcileClusterClass(ctx context.Context, apiReader client.Reader, class c
 
 	clusterClassReconciler := &clusterclasscontroller.Reconciler{
 		Client:                    reconcilerClient,
-		APIReader:                 reconcilerClient,
 		UnstructuredCachingClient: reconcilerClient,
 	}
 

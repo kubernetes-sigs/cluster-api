@@ -29,7 +29,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
 
 // WalkTemplatesOption is some configuration that modifies WalkTemplates behavior.
@@ -82,7 +81,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 	resp *runtimehooksv1.GeneratePatchesResponse, mutateFunc func(ctx context.Context, obj runtime.Object,
 		variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error, opts ...WalkTemplatesOption) {
 	log := ctrl.LoggerFrom(ctx)
-	globalVariables := patchvariables.ToMap(req.Variables)
+	globalVariables := ToMap(req.Variables)
 
 	options := newWalkTemplatesOptions()
 	for _, o := range opts {
@@ -93,7 +92,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 	// TODO: add a notion of ordering the patch implementers can rely on. Ideally ordering could be pluggable via options.
 	for _, requestItem := range req.Items {
 		// Computes the variables that apply to the template, by merging global and template variables.
-		templateVariables, err := patchvariables.MergeVariableMaps(globalVariables, patchvariables.ToMap(requestItem.Variables))
+		templateVariables, err := MergeVariableMaps(globalVariables, ToMap(requestItem.Variables))
 		if err != nil {
 			resp.Status = runtimehooksv1.ResponseStatusFailure
 			resp.Message = err.Error()

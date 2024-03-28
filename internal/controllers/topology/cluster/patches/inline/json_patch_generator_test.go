@@ -31,7 +31,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
 
 func TestGenerate(t *testing.T) {
@@ -1525,7 +1524,7 @@ func TestCalculateValue(t *testing.T) {
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"controlPlane":{"replicas":3}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"controlPlane":{"replicas":3}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`3`)},
 		},
@@ -1537,7 +1536,7 @@ func TestCalculateValue(t *testing.T) {
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"v1.21.1"`)},
 		},
@@ -1549,7 +1548,7 @@ func TestCalculateValue(t *testing.T) {
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 		},
@@ -1561,7 +1560,7 @@ func TestCalculateValue(t *testing.T) {
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}`)},
 		},
@@ -1573,7 +1572,7 @@ func TestCalculateValue(t *testing.T) {
 				},
 			},
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`{"class":"clusterClass1","version":"v1.21.1"}`)},
 		},
@@ -1941,7 +1940,7 @@ func TestRenderValueTemplate(t *testing.T) {
 			name:     "Should render depending on variable existence: variable is set",
 			template: `{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}`,
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 				"vnetName":                  {Raw: []byte(`"custom-network"`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"custom-network"`)},
@@ -1950,7 +1949,7 @@ func TestRenderValueTemplate(t *testing.T) {
 			name:     "Should render depending on variable existence: variable is not set",
 			template: `{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}`,
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"cluster1-vnet"`)},
 		},
@@ -1965,7 +1964,7 @@ func TestRenderValueTemplate(t *testing.T) {
   owner: root:root
 `,
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`
 [{
@@ -1989,7 +1988,7 @@ contentFrom:
 owner: root:root
 `,
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`
 {
@@ -2017,7 +2016,7 @@ owner: root:root
 	"owner":"root:root"
 }]`,
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`
 [{
@@ -2044,7 +2043,7 @@ owner: root:root
 	"owner":"root:root"
 }`,
 			variables: map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`
 {
@@ -2166,7 +2165,7 @@ owner: root:root
 }
 }`)},
 				// Schema must either support complex objects with predefined keys/mdClasses or maps with additionalProperties.
-				patchvariables.BuiltinsName: {Raw: []byte(`{
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{
 "machineDeployment":{
 	"version":"v1.21.1",
 	"class":"mdClass2",
@@ -2191,7 +2190,7 @@ owner: root:root
 }
 }`)},
 				// Schema must either support complex objects with predefined keys/mdClasses or maps with additionalProperties.
-				patchvariables.BuiltinsName: {Raw: []byte(`{
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{
 "machinePool":{
 	"version":"v1.21.1",
 	"class":"mpClass2",
@@ -2216,7 +2215,7 @@ owner: root:root
 }
 }`)},
 				// Schema must either support complex objects with predefined keys/mdClasses or maps with additionalProperties.
-				patchvariables.BuiltinsName: {Raw: []byte(`{"machineDeployment":{"version":"v1.21.1","class":"mdClass2","name":"md1","topologyName":"md-topology","replicas":3}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"machineDeployment":{"version":"v1.21.1","class":"mdClass2","name":"md1","topologyName":"md-topology","replicas":3}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"configValue2"`)},
 		},
@@ -2233,7 +2232,7 @@ owner: root:root
 }
 }`)},
 				// Schema must either support complex objects with predefined keys/mpClasses or maps with additionalProperties.
-				patchvariables.BuiltinsName: {Raw: []byte(`{"machinePool":{"version":"v1.21.1","class":"mpClass2","name":"mp1","topologyName":"mp-topology","replicas":3}}`)},
+				runtimehooksv1.BuiltinsName: {Raw: []byte(`{"machinePool":{"version":"v1.21.1","class":"mpClass2","name":"mp1","topologyName":"mp-topology","replicas":3}}`)},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"configValue2"`)},
 		},

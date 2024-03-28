@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -39,13 +38,16 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
+	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -116,7 +118,7 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 // Reconcile the Cluster shim, a temporary object used a mean to collect objects/templates
 // that might be orphaned in case of errors during the remaining part of the reconcile process.
 func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) error {
-	shim := clusterShim(s.Current.Cluster)
+	shim := clustershim.New(s.Current.Cluster)
 
 	// If we are going to create the InfrastructureCluster or the ControlPlane object, then
 	// add a temporary cluster-shim object and use it as an additional owner.
@@ -142,14 +144,14 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 		// Add the shim as a temporary owner for the InfrastructureCluster.
 		s.Desired.InfrastructureCluster.SetOwnerReferences(
 			util.EnsureOwnerRef(s.Desired.InfrastructureCluster.GetOwnerReferences(),
-				*ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret")),
+				*ownerrefs.OwnerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret")),
 			),
 		)
 
 		// Add the shim as a temporary owner for the ControlPlane.
 		s.Desired.ControlPlane.Object.SetOwnerReferences(
 			util.EnsureOwnerRef(s.Desired.ControlPlane.Object.GetOwnerReferences(),
-				*ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret")),
+				*ownerrefs.OwnerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret")),
 			),
 		)
 	}
@@ -161,10 +163,10 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 	// When the Cluster and the shim object are both owners,
 	// it's safe for us to remove the shim and garbage collect any potential orphaned resource.
 	if s.Current.InfrastructureCluster != nil && s.Current.ControlPlane.Object != nil {
-		clusterOwnsAll := hasOwnerReferenceFrom(s.Current.InfrastructureCluster, s.Current.Cluster) &&
-			hasOwnerReferenceFrom(s.Current.ControlPlane.Object, s.Current.Cluster)
-		shimOwnsAtLeastOne := hasOwnerReferenceFrom(s.Current.InfrastructureCluster, shim) ||
-			hasOwnerReferenceFrom(s.Current.ControlPlane.Object, shim)
+		clusterOwnsAll := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, s.Current.Cluster) &&
+			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, s.Current.Cluster)
+		shimOwnsAtLeastOne := ownerrefs.HasOwnerReferenceFrom(s.Current.InfrastructureCluster, shim) ||
+			ownerrefs.HasOwnerReferenceFrom(s.Current.ControlPlane.Object, shim)
 
 		if clusterOwnsAll && shimOwnsAtLeastOne {
 			if err := r.Client.Delete(ctx, shim); err != nil {
@@ -172,42 +174,6 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 					return errors.Wrapf(err, "failed to delete the cluster shim object")
 				}
 			}
-		}
-	}
-	return nil
-}
-
-func clusterShim(c *clusterv1.Cluster) *corev1.Secret {
-	shim := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: corev1.SchemeGroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-shim", c.Name),
-			Namespace: c.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*ownerReferenceTo(c, clusterv1.GroupVersion.WithKind("Cluster")),
-			},
-		},
-		Type: clusterv1.ClusterSecretType,
-	}
-	return shim
-}
-
-func hasOwnerReferenceFrom(obj, owner client.Object) bool {
-	for _, o := range obj.GetOwnerReferences() {
-		if o.Kind == owner.GetObjectKind().GroupVersionKind().Kind && o.Name == owner.GetName() {
-			return true
-		}
-	}
-	return false
-}
-
-func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
-	for _, o := range obj.GetOwnerReferences() {
-		if o.Kind == owner.GetObjectKind().GroupVersionKind().Kind && o.Name == owner.GetName() {
-			return &o
 		}
 	}
 	return nil
@@ -272,7 +238,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 		// - MachineDeployments/MachinePools are not currently upgrading
 		// - MachineDeployments/MachinePools are not pending an upgrade
 		// - MachineDeployments/MachinePools are not pending create
-		if isControlPlaneStable(s) && // Control Plane stable checks
+		if s.UpgradeTracker.ControlPlane.IsControlPlaneStable() && // Control Plane stable checks
 			len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) == 0 && // Machine deployments are not upgrading or not about to upgrade
 			!s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() && // No MachineDeployments are pending create
 			!s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade() && // No MachineDeployments are pending an upgrade
@@ -354,7 +320,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 			current:              s.Current.ControlPlane.InfrastructureMachineTemplate,
 			desired:              s.Desired.ControlPlane.InfrastructureMachineTemplate,
 			compatibilityChecker: check.ObjectsAreCompatible,
-			templateNamePrefix:   controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name),
+			templateNamePrefix:   topologynames.ControlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name),
 		})
 		if err != nil {
 			return false, err
@@ -722,7 +688,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		ref:                  &desiredMD.Object.Spec.Template.Spec.InfrastructureRef,
 		current:              currentMD.InfrastructureMachineTemplate,
 		desired:              desiredMD.InfrastructureMachineTemplate,
-		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(cluster.Name, mdTopologyName),
+		templateNamePrefix:   topologynames.InfrastructureMachineTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreCompatible,
 	})
 	if err != nil {
@@ -749,7 +715,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		ref:                  desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
 		current:              currentMD.BootstrapTemplate,
 		desired:              desiredMD.BootstrapTemplate,
-		templateNamePrefix:   bootstrapTemplateNamePrefix(cluster.Name, mdTopologyName),
+		templateNamePrefix:   topologynames.BootstrapTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
 	})
 	if err != nil {

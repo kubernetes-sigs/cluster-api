@@ -163,5 +163,33 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 		}
 	}
 
+	if schema.XValidations != nil {
+		props.XValidations = convertToAPIExtensionsXValidations(schema.XValidations)
+	}
+
 	return props, allErrs
+}
+
+func convertToAPIExtensionsXValidations(validationRules clusterv1.ValidationRules) apiextensions.ValidationRules {
+	apiExtValidationRules := make(apiextensions.ValidationRules, 0, len(validationRules))
+
+	for _, validationRule := range validationRules {
+		var reason *apiextensions.FieldValueErrorReason
+		if validationRule.Reason != nil {
+			reason = ptr.To(apiextensions.FieldValueErrorReason(*validationRule.Reason))
+		}
+
+		apiExtValidationRules = append(
+			apiExtValidationRules,
+			apiextensions.ValidationRule{
+				Rule:              validationRule.Rule,
+				Message:           validationRule.Message,
+				MessageExpression: validationRule.MessageExpression,
+				Reason:            reason,
+				FieldPath:         validationRule.FieldPath,
+			},
+		)
+	}
+
+	return apiExtValidationRules
 }

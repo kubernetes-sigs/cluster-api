@@ -117,10 +117,18 @@ func (g prEntriesProcessor) process(prs []pr) []notesEntry {
 	return entries
 }
 
-func (d dependenciesProcessor) generateDependencies() (string, error) {
+func (d dependenciesProcessor) generateDependencies(previousRelease ref) (string, error) {
 	repoURL := fmt.Sprintf("https://github.com/%s", d.repo)
+
+	var fromTag string
+	if previousRelease.value != "" {
+		fromTag = previousRelease.value
+	} else {
+		fromTag = d.fromTag
+	}
+
 	deps, err := notes.NewDependencies().ChangesForURL(
-		repoURL, d.fromTag, d.toTag,
+		repoURL, fromTag, d.toTag,
 	)
 	if err != nil {
 		return "", err

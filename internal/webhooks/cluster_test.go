@@ -1668,7 +1668,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         true,
 		},
 		{
-			name: "Reject a cluster that MHC override defined for control plane but is missing unhealthy conditions",
+			name: "Accept a cluster that has MHC override defined for control plane and does not set unhealthy conditions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1683,9 +1683,10 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						Build()).
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
 				Build(),
 			classReconciled: true,
-			wantErr:         true,
+			wantErr:         false,
 		},
 		{
 			name: "Reject a cluster that MHC override defined for control plane but is set when control plane is missing machineInfrastructure",
@@ -1785,7 +1786,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr:         true,
 		},
 		{
-			name: "Reject a cluster that has MHC override defined for machine deployment but is missing unhealthy conditions",
+			name: "Accept a cluster that has MHC override defined for machine deployment and does not set unhealthy conditions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1810,7 +1811,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				).
 				Build(),
 			classReconciled: true,
-			wantErr:         true,
+			wantErr:         false,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in ClusterClass",

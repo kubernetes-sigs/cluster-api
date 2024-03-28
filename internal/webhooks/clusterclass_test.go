@@ -910,7 +910,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "create fail if ControlPlane MachineHealthCheck does not define UnhealthyConditions",
+			name: "create does not fail if ControlPlane MachineHealthCheck does not define UnhealthyConditions",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -924,7 +924,7 @@ func TestClusterClassValidation(t *testing.T) {
 					NodeStartupTimeout: &metav1.Duration{
 						Duration: time.Duration(6000000000000)}}).
 				Build(),
-			expectErr: true,
+			expectErr: false,
 		},
 		{
 			name: "create pass if MachineDeployment MachineHealthCheck is valid",
@@ -983,7 +983,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "create fail if MachineDeployment MachineHealthCheck does not define UnhealthyConditions",
+			name: "create does not fail if MachineDeployment MachineHealthCheck does not define UnhealthyConditions",
 			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
 					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
@@ -1001,7 +1001,7 @@ func TestClusterClassValidation(t *testing.T) {
 								Duration: time.Duration(6000000000000)}}).
 						Build()).
 				Build(),
-			expectErr: true,
+			expectErr: false,
 		},
 
 		/*

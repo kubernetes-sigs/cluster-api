@@ -136,6 +136,11 @@ kubectl -n capi-system port-forward deployments/capi-controller-manager 8443
 
 # Terminal 2
 TOKEN=$(kubectl create token default)
+
+# Get a goroutine dump
+curl "https://localhost:8443/debug/pprof/goroutine?debug=2" --header "Authorization: Bearer $TOKEN" -k > ./goroutine.txt
+
+# Get a profile
 curl "https://localhost:8443/debug/pprof/profile?seconds=10" --header "Authorization: Bearer $TOKEN" -k > ./profile.out
 go tool pprof -http=:8080 ./profile.out
 ```

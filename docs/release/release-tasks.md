@@ -364,13 +364,8 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
 
    ```bash
    # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
+   # Can be also used for pre-releases. The warning banner for RC and beta releases will be determined automatically.
    RELEASE_TAG=v1.6.x make release-notes
-   ```
-
-   If this is a beta or RC release, add the --pre-release-version flag
-   ```bash
-   make release-notes-tool
-   ./bin/notes --release=${RELEASE_TAG} --pre-release-version > CHANGELOG/${RELEASE_TAG}.md
    ```
 
 1. This will generate a new release notes file at `CHANGELOG/<RELEASE_TAG>.md`. Finalize the release notes:

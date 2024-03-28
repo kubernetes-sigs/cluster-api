@@ -743,7 +743,6 @@ project][Proxmox getting started guide].
 
 Please follow the Cluster API Provider for [Cloud Director Getting Started Guide](https://github.com/vmware/cluster-api-provider-cloud-director/blob/main/README.md)
 
-EXP_CLUSTER_RESOURCE_SET: "true"
 ```bash
 # Initialize the management cluster
 clusterctl init --infrastructure vcd

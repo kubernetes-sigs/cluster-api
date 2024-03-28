@@ -8,7 +8,7 @@ temporary location for features which will be moved to their permanent locations
 Users can enable/disable features by setting OS environment variables before running `clusterctl init`, e.g.:
 
 ```yaml
-export EXP_CLUSTER_RESOURCE_SET=true
+export EXP_SOME_FEATURE_NAME=true
 
 clusterctl init --infrastructure vsphere
 ```
@@ -16,7 +16,7 @@ clusterctl init --infrastructure vsphere
 As an alternative to environment variables, it is also possible to set variables in the clusterctl config file located at `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`, e.g.:
 ```yaml
 # Values for environment variable substitution
-EXP_CLUSTER_RESOURCE_SET: "true"
+EXP_SOME_FEATURE_NAME: "true"
 ```
 In case a variable is defined in both the config file and as an OS environment variable, the environment variable takes precedence.
 For more information on how to set variables for clusterctl, see [clusterctl Configuration File](../../clusterctl/configuration.md)
@@ -30,7 +30,6 @@ As an example, Cluster API Provider Azure (CAPZ) has support for MachinePool thr
 One way is to set experimental variables on the clusterctl config file. For CAPI, these configs are under ./test/e2e/config/... such as `docker.yaml`:
 ```yaml
 variables:
-  EXP_CLUSTER_RESOURCE_SET: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
@@ -44,7 +43,6 @@ On development environments started with `Tilt`, features can be enabled by sett
 
 ```yaml
 kustomize_substitutions:
-  EXP_CLUSTER_RESOURCE_SET: 'true'
   CLUSTER_TOPOLOGY: 'true'
   EXP_RUNTIME_SDK: 'true'
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: 'true'

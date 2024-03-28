@@ -332,8 +332,11 @@ variables:
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-workload-workload.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   # Enabling the feature flags by setting the env variables.
-  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
+  # Note: EXP_CLUSTER_RESOURCE_SET & EXP_MACHINE_POOL are enabled per default with CAPI v1.7.0.
+  # We still have to enable them here for clusterctl upgrade tests that use older versions.
+  EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_MACHINE_POOL: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"

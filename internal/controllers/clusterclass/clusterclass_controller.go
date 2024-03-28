@@ -325,6 +325,7 @@ func addNewStatusVariable(variable clusterv1.ClusterClassVariable, from string) 
 			{
 				From:     from,
 				Required: variable.Required,
+				Metadata: variable.Metadata,
 				Schema:   variable.Schema,
 			},
 		}}
@@ -335,6 +336,7 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 	newVariableDefinition := clusterv1.ClusterClassStatusVariableDefinition{
 		From:     from,
 		Required: variable.Required,
+		Metadata: variable.Metadata,
 		Schema:   variable.Schema,
 	}
 	combinedVariable.Definitions = append(existingVariable.Definitions, newVariableDefinition)
@@ -343,7 +345,7 @@ func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariab
 	// If definitions already conflict, no need to check.
 	if !combinedVariable.DefinitionsConflict {
 		currentDefinition := combinedVariable.Definitions[0]
-		if !(currentDefinition.Required == newVariableDefinition.Required && reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema)) {
+		if !(currentDefinition.Required == newVariableDefinition.Required && reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema) && reflect.DeepEqual(currentDefinition.Metadata, newVariableDefinition.Metadata)) {
 			combinedVariable.DefinitionsConflict = true
 		}
 	}

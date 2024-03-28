@@ -385,6 +385,7 @@ type ClusterClassVariable struct {
 	// Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
+	// +optional
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
 	// Schema defines the schema of the variable.
@@ -753,6 +754,12 @@ type ClusterClassStatusVariableDefinition struct {
 	// top-level object defined in the schema. If nested fields are
 	// required, this will be specified inside the schema.
 	Required bool `json:"required"`
+
+	// Metadata is the metadata of a variable.
+	// It can be used to add additional data for higher level tools to
+	// a ClusterClassVariable.
+	// +optional
+	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
 	// Schema defines the schema of the variable.
 	Schema VariableSchema `json:"schema"`

@@ -80,7 +80,7 @@ func TestCreateControlPlaneNode(t *testing.T) {
 
 	containerRuntime.ResetRunContainerCallLogs()
 	m := Manager{}
-	node, err := m.CreateControlPlaneNode(ctx, "TestName", "TestCluster", "100.100.100.100", 80, []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily, kind.Mapping{Image: "TestImage"})
+	node, err := m.CreateControlPlaneNode(ctx, "TestName", "TestCluster", "100.100.100.100", 80, []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily, kind.Mapping{Image: "TestImage"}, "")
 
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(node.Role()).Should(Equal(constants.ControlPlaneNodeRoleValue))
@@ -103,7 +103,7 @@ func TestCreateWorkerNode(t *testing.T) {
 
 	containerRuntime.ResetRunContainerCallLogs()
 	m := Manager{}
-	node, err := m.CreateWorkerNode(ctx, "TestName", "TestCluster", []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily, kind.Mapping{Image: "TestImage"})
+	node, err := m.CreateWorkerNode(ctx, "TestName", "TestCluster", []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily, kind.Mapping{Image: "TestImage"}, "")
 
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(node.Role()).Should(Equal(constants.WorkerNodeRoleValue))
@@ -126,7 +126,7 @@ func TestCreateExternalLoadBalancerNode(t *testing.T) {
 
 	containerRuntime.ResetRunContainerCallLogs()
 	m := Manager{}
-	node, err := m.CreateExternalLoadBalancerNode(ctx, "TestName", "TestImage", "TestCluster", "100.100.100.100", 0, clusterv1.IPv4IPFamily)
+	node, err := m.CreateExternalLoadBalancerNode(ctx, "TestName", "TestImage", "TestCluster", "100.100.100.100", 0, clusterv1.IPv4IPFamily, "")
 
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(node.Role()).Should(Equal(constants.ExternalLoadBalancerNodeRoleValue))
@@ -141,4 +141,28 @@ func TestCreateExternalLoadBalancerNode(t *testing.T) {
 	g.Expect(runConfig.Labels["io.x-k8s.kind.role"]).To(Equal(constants.ExternalLoadBalancerNodeRoleValue))
 	g.Expect(runConfig.PortMappings).To(HaveLen(1))
 	g.Expect(runConfig.PortMappings[0].ContainerPort).To(Equal(int32(ControlPlanePort)))
+}
+
+func TestCreateWorkerNodeCustomNetwork(t *testing.T) {
+	g := NewWithT(t)
+	containerRuntime := &container.FakeRuntime{}
+	ctx := container.RuntimeInto(context.Background(), containerRuntime)
+	containerRuntime.ResetRunContainerCallLogs()
+
+	network := "Test"
+
+	containerRuntime.ResetRunContainerCallLogs()
+	m := Manager{}
+	node, err := m.CreateWorkerNode(ctx, "TestName", "TestCluster", []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily, kind.Mapping{Image: "TestImage"}, network)
+
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(node.Role()).Should(Equal(constants.WorkerNodeRoleValue))
+
+	callLog := containerRuntime.RunContainerCalls()
+	g.Expect(callLog).To(HaveLen(1))
+	g.Expect(callLog[0].Output).To(BeNil())
+
+	runConfig := callLog[0].RunConfig
+	g.Expect(runConfig).ToNot(BeNil())
+	g.Expect(runConfig.Network).To(Equal(network))
 }

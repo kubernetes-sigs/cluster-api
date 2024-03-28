@@ -33,7 +33,7 @@ import (
 )
 
 type lbCreator interface {
-	CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error)
+	CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, ipFamily clusterv1.ClusterIPFamily, network string) (*types.Node, error)
 }
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
@@ -45,6 +45,7 @@ type LoadBalancer struct {
 	lbCreator                lbCreator
 	backendControlPlanePort  string
 	frontendControlPlanePort string
+	network                  string
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
@@ -80,6 +81,7 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 		lbCreator:                &Manager{},
 		frontendControlPlanePort: strconv.Itoa(dockerCluster.Spec.ControlPlaneEndpoint.Port),
 		backendControlPlanePort:  "6443",
+		network:                  dockerCluster.Spec.Network,
 	}, nil
 }
 
@@ -129,6 +131,7 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 			listenAddr,
 			0,
 			s.ipFamily,
+			s.network,
 		)
 		if err != nil {
 			return errors.WithStack(err)

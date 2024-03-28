@@ -295,7 +295,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	if !externalMachine.Exists() {
 		// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
 		// each container, so we can check placement.
-		if err := externalMachine.Create(ctx, dockerMachine.Spec.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts); err != nil {
+		if err := externalMachine.Create(ctx, dockerMachine.Spec.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts, dockerMachine.Spec.Network); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
 		}
 	}

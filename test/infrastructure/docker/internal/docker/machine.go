@@ -55,8 +55,8 @@ var (
 )
 
 type nodeCreator interface {
-	CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
-	CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
+	CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping, network string) (node *types.Node, err error)
+	CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping, network string) (node *types.Node, err error)
 }
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
@@ -201,7 +201,7 @@ func (m *Machine) ContainerImage() string {
 }
 
 // Create creates a docker container hosting a Kubernetes node.
-func (m *Machine) Create(ctx context.Context, image string, role string, version *string, labels map[string]string, mounts []infrav1.Mount) error {
+func (m *Machine) Create(ctx context.Context, image string, role string, version *string, labels map[string]string, mounts []infrav1.Mount, network string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create if not exists.
@@ -236,6 +236,7 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 				labels,
 				m.ipFamily,
 				kindMapping,
+				network,
 			)
 			if err != nil {
 				return errors.WithStack(err)
@@ -251,6 +252,7 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 				labels,
 				m.ipFamily,
 				kindMapping,
+				network,
 			)
 			if err != nil {
 				return errors.WithStack(err)

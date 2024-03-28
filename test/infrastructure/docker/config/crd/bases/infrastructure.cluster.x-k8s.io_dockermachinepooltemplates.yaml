@@ -122,6 +122,11 @@ spec:
                                   type: boolean
                               type: object
                             type: array
+                          network:
+                            description: |-
+                              Network describes the name of the network to use in Docker
+                              The default value is 'kind'
+                            type: string
                           preLoadImages:
                             description: |-
                               PreLoadImages allows to pre-load images in a newly created machine. This can be used to

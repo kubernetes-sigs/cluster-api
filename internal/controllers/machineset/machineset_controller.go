@@ -885,7 +885,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 
 		node, err := r.getMachineNode(ctx, cluster, machine)
 		if err != nil && machine.GetDeletionTimestamp().IsZero() {
-			return errors.Wrapf(err, "Unable to retrieve the status of Node %s", klog.KObj(node))
+			return errors.Wrapf(err, "unable to retrieve the status of Node %s", klog.KObj(node))
 		}
 
 		if noderefutil.IsNodeReady(node) {

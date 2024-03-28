@@ -163,7 +163,7 @@ const (
 	// only during a server side dry run apply operation. It is used for validating
 	// update webhooks for objects which get updated by template rotation (e.g. InfrastructureMachineTemplate).
 	// When the annotation is set and the admission request is a dry run, the webhook should
-	// deny validation due to immutability. By that the request will succeed (without
+	// skip validation due to immutability. By that the request will succeed (without
 	// any changes to the actual object because it is a dry run) and the topology controller
 	// will receive the resulting object.
 	TopologyDryRunAnnotation = "topology.cluster.x-k8s.io/dry-run"

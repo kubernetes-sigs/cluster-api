@@ -32,6 +32,7 @@ import (
 	"github.com/docker/docker/api/types"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	dockerfilters "github.com/docker/docker/api/types/filters"
+	dockerimage "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	dockersystem "github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
@@ -118,7 +119,7 @@ func (d *dockerRuntime) PullContainerImageIfNotExists(ctx context.Context, image
 
 // PullContainerImage triggers the Docker engine to pull an image.
 func (d *dockerRuntime) PullContainerImage(ctx context.Context, image string) error {
-	pullResp, err := d.dockerClient.ImagePull(ctx, image, types.ImagePullOptions{})
+	pullResp, err := d.dockerClient.ImagePull(ctx, image, dockerimage.PullOptions{})
 	if err != nil {
 		return fmt.Errorf("failure pulling container image: %v", err)
 	}
@@ -137,7 +138,7 @@ func (d *dockerRuntime) PullContainerImage(ctx context.Context, image string) er
 func (d *dockerRuntime) ImageExistsLocally(ctx context.Context, image string) (bool, error) {
 	filters := dockerfilters.NewArgs()
 	filters.Add("reference", image)
-	images, err := d.dockerClient.ImageList(ctx, types.ImageListOptions{
+	images, err := d.dockerClient.ImageList(ctx, dockerimage.ListOptions{
 		Filters: filters,
 	})
 	if err != nil {

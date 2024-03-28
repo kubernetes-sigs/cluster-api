@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package topology
+package desiredstate
 
 import (
 	"strings"
@@ -40,7 +40,7 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/exp/util/topology/scope"
+	"sigs.k8s.io/cluster-api/exp/topology/desiredstate/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
@@ -338,7 +338,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		r := &desiredStateEngine{}
+		r := &generator{}
 
 		obj, err := r.computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -399,7 +399,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		r := &desiredStateEngine{}
+		r := &generator{}
 
 		obj, err := r.computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -429,7 +429,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithoutReplicas)
 		scope.Blueprint = blueprint
 
-		r := &desiredStateEngine{}
+		r := &generator{}
 
 		obj, err := r.computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -474,7 +474,7 @@ func TestComputeControlPlane(t *testing.T) {
 		s.Blueprint = blueprint
 		s.Current.ControlPlane = &scope.ControlPlaneState{}
 
-		r := &desiredStateEngine{}
+		r := &generator{}
 
 		obj, err := r.computeControlPlane(ctx, s, infrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -535,7 +535,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithControlPlaneRef)
 		scope.Blueprint = blueprint
 
-		r := &desiredStateEngine{}
+		r := &generator{}
 
 		obj, err := r.computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -605,7 +605,7 @@ func TestComputeControlPlane(t *testing.T) {
 					Object: tt.currentControlPlane,
 				}
 
-				r := &desiredStateEngine{}
+				r := &generator{}
 
 				obj, err := r.computeControlPlane(ctx, s, nil)
 				g.Expect(err).ToNot(HaveOccurred())
@@ -645,7 +645,7 @@ func TestComputeControlPlane(t *testing.T) {
 		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
 		s.Blueprint = blueprint
 
-		r := &desiredStateEngine{}
+		r := &generator{}
 
 		obj, err := r.computeControlPlane(ctx, s, nil)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -883,7 +883,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 
 				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
-				r := &desiredStateEngine{
+				r := &generator{
 					Client:        fakeClient,
 					RuntimeClient: runtimeClient,
 				}
@@ -1186,7 +1186,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 
 				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(tt.s.Current.Cluster).Build()
 
-				r := &desiredStateEngine{
+				r := &generator{
 					Client:        fakeClient,
 					RuntimeClient: fakeRuntimeClient,
 				}
@@ -1262,7 +1262,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 
 		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
-		r := &desiredStateEngine{
+		r := &generator{
 			Client:        fakeClient,
 			RuntimeClient: runtimeClient,
 		}
@@ -1435,7 +1435,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1506,7 +1506,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
 		}
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1552,7 +1552,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			},
 		}
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		actual, err := e.computeMachineDeployment(ctx, s, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1602,7 +1602,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		_, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).To(HaveOccurred())
@@ -1717,7 +1717,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				}
 				s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
 
-				e := desiredStateEngine{}
+				e := generator{}
 
 				obj, err := e.computeMachineDeployment(ctx, s, mdTopology)
 				g.Expect(err).ToNot(HaveOccurred())
@@ -1735,7 +1735,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1846,7 +1846,7 @@ func TestComputeMachinePool(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		actual, err := e.computeMachinePool(ctx, scope, mpTopology)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1911,7 +1911,7 @@ func TestComputeMachinePool(t *testing.T) {
 			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
 		}
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		actual, err := e.computeMachinePool(ctx, scope, mpTopology)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1956,7 +1956,7 @@ func TestComputeMachinePool(t *testing.T) {
 			},
 		}
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		actual, err := e.computeMachinePool(ctx, s, mpTopology)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2001,7 +2001,7 @@ func TestComputeMachinePool(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		e := desiredStateEngine{}
+		e := generator{}
 
 		_, err := e.computeMachinePool(ctx, scope, mpTopology)
 		g.Expect(err).To(HaveOccurred())
@@ -2114,7 +2114,7 @@ func TestComputeMachinePool(t *testing.T) {
 				}
 				s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
 
-				e := desiredStateEngine{}
+				e := generator{}
 
 				obj, err := e.computeMachinePool(ctx, s, mpTopology)
 				g.Expect(err).ToNot(HaveOccurred())
@@ -2281,7 +2281,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
 			s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
 
-			e := desiredStateEngine{}
+			e := generator{}
 
 			version := e.computeMachineDeploymentVersion(s, tt.machineDeploymentTopology, tt.currentMachineDeploymentState)
 			g.Expect(version).To(Equal(tt.expectedVersion))
@@ -2462,7 +2462,7 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
 			s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
 
-			e := desiredStateEngine{}
+			e := generator{}
 
 			version := e.computeMachinePoolVersion(s, tt.machinePoolTopology, tt.currentMachinePoolState)
 			g.Expect(version).To(Equal(tt.expectedVersion))

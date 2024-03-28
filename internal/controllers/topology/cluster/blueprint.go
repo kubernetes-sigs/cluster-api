@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/exp/util/topology/scope"
+	"sigs.k8s.io/cluster-api/exp/topology/desiredstate/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 )
 

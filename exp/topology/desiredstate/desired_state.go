@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package topology contains cluster topology utils, e.g. to compute the desired state.
-package topology
+// Package desiredstate contains cluster topology utils, e.g. to compute the desired state.
+package desiredstate
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/exp/util/topology/scope"
+	"sigs.k8s.io/cluster-api/exp/topology/desiredstate/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
@@ -50,16 +50,14 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// DesiredStateEngine is an desiredStateEngine to compute the desired state.
-type DesiredStateEngine interface {
-	ComputeDesiredState(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error)
-
-	IsControlPlaneStable(s *scope.Scope) bool
+// Generator is a generator to generate the desired state.
+type Generator interface {
+	Generate(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error)
 }
 
-// NewDesiredStateEngine creates a new desired state desiredStateEngine.
-func NewDesiredStateEngine(client client.Client, tracker *remote.ClusterCacheTracker, runtimeClient runtimeclient.Client) DesiredStateEngine {
-	return &desiredStateEngine{
+// NewGenerator creates a new generator to generate desired state.
+func NewGenerator(client client.Client, tracker *remote.ClusterCacheTracker, runtimeClient runtimeclient.Client) Generator {
+	return &generator{
 		Client:        client,
 		Tracker:       tracker,
 		RuntimeClient: runtimeClient,
@@ -67,9 +65,9 @@ func NewDesiredStateEngine(client client.Client, tracker *remote.ClusterCacheTra
 	}
 }
 
-// desiredStateEngine is an desiredStateEngine to compute the desired state.
+// generator is a generator to generate desired state.
 // It is used in the cluster topology controller, but it can also be used for testing.
-type desiredStateEngine struct {
+type generator struct {
 	Client client.Client
 
 	Tracker *remote.ClusterCacheTracker
@@ -80,11 +78,11 @@ type desiredStateEngine struct {
 	patchEngine patches.Engine
 }
 
-// ComputeDesiredState computes the desired state of the cluster topology.
+// Generate computes the desired state of the cluster topology.
 // NOTE: We are assuming all the required objects are provided as input; also, in case of any error,
 // the entire compute operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
-func (e *desiredStateEngine) ComputeDesiredState(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error) {
+func (e *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error) {
 	var err error
 	desiredState := &scope.ClusterState{
 		ControlPlane: &scope.ControlPlaneState{},
@@ -251,7 +249,7 @@ func computeControlPlaneInfrastructureMachineTemplate(_ context.Context, s *scop
 
 // computeControlPlane computes the desired state for the ControlPlane object starting from the
 // corresponding template defined in the blueprint.
-func (e *desiredStateEngine) computeControlPlane(ctx context.Context, s *scope.Scope, infrastructureMachineTemplate *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func (e *generator) computeControlPlane(ctx context.Context, s *scope.Scope, infrastructureMachineTemplate *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.ControlPlane.Template
 	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.ControlPlane.Ref
 	cluster := s.Current.Cluster
@@ -400,7 +398,7 @@ func (e *desiredStateEngine) computeControlPlane(ctx context.Context, s *scope.S
 // computeControlPlaneVersion calculates the version of the desired control plane.
 // The version is calculated using the state of the current machine deployments, the current control plane
 // and the version defined in the topology.
-func (e *desiredStateEngine) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
+func (e *generator) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
 	log := tlog.LoggerFrom(ctx)
 	desiredVersion := s.Blueprint.Topology.Version
 	// If we are creating the control plane object (current control plane is nil), use version from topology.
@@ -607,7 +605,7 @@ func calculateRefDesiredAPIVersion(currentRef *corev1.ObjectReference, desiredRe
 }
 
 // computeMachineDeployments computes the desired state of the list of MachineDeployments.
-func (e *desiredStateEngine) computeMachineDeployments(ctx context.Context, s *scope.Scope) (scope.MachineDeploymentsStateMap, error) {
+func (e *generator) computeMachineDeployments(ctx context.Context, s *scope.Scope) (scope.MachineDeploymentsStateMap, error) {
 	machineDeploymentsStateMap := make(scope.MachineDeploymentsStateMap)
 	for _, mdTopology := range s.Blueprint.Topology.Workers.MachineDeployments {
 		desiredMachineDeployment, err := e.computeMachineDeployment(ctx, s, mdTopology)
@@ -622,7 +620,7 @@ func (e *desiredStateEngine) computeMachineDeployments(ctx context.Context, s *s
 // computeMachineDeployment computes the desired state for a MachineDeploymentTopology.
 // The generated machineDeployment object is calculated using the values from the machineDeploymentTopology and
 // the machineDeployment class.
-func (e *desiredStateEngine) computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
+func (e *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
 	desiredMachineDeployment := &scope.MachineDeploymentState{}
 
 	// Gets the blueprint for the MachineDeployment class.
@@ -842,14 +840,14 @@ func (e *desiredStateEngine) computeMachineDeployment(ctx context.Context, s *sc
 // computeMachineDeploymentVersion calculates the version of the desired machine deployment.
 // The version is calculated using the state of the current machine deployments,
 // the current control plane and the version defined in the topology.
-func (e *desiredStateEngine) computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) string {
+func (e *generator) computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) string {
 	desiredVersion := s.Blueprint.Topology.Version
 	// If creating a new machine deployment, mark it as pending if the control plane is not
 	// yet stable. Creating a new MD while the control plane is upgrading can lead to unexpected race conditions.
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
 	// being deleted.
 	if currentMDState == nil || currentMDState.Object == nil {
-		if !e.IsControlPlaneStable(s) || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
 			s.UpgradeTracker.MachineDeployments.MarkPendingCreate(machineDeploymentTopology.Name)
 		}
 		return desiredVersion
@@ -886,7 +884,7 @@ func (e *desiredStateEngine) computeMachineDeploymentVersion(s *scope.Scope, mac
 	// Return early if the Control Plane is not stable. Do not pick up the desiredVersion yet.
 	// Return the current version of the machine deployment. We will pick up the new version after the control
 	// plane is stable.
-	if !e.IsControlPlaneStable(s) {
+	if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() {
 		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion
 	}
@@ -895,34 +893,6 @@ func (e *desiredStateEngine) computeMachineDeploymentVersion(s *scope.Scope, mac
 	// Ready to pick up the topology version.
 	s.UpgradeTracker.MachineDeployments.MarkUpgrading(currentMDState.Object.Name)
 	return desiredVersion
-}
-
-// IsControlPlaneStable returns true is the ControlPlane is stable.
-func (e *desiredStateEngine) IsControlPlaneStable(s *scope.Scope) bool {
-	// If the current control plane is upgrading it is not considered stable.
-	if s.UpgradeTracker.ControlPlane.IsUpgrading {
-		return false
-	}
-
-	// If control plane supports replicas, check if the control plane is in the middle of a scale operation.
-	// If the current control plane is scaling then it is not considered stable.
-	if s.UpgradeTracker.ControlPlane.IsScaling {
-		return false
-	}
-
-	// Check if we are about to upgrade the control plane. Since the control plane is about to start its upgrade process
-	// it cannot be considered stable.
-	if s.UpgradeTracker.ControlPlane.IsStartingUpgrade {
-		return false
-	}
-
-	// If the ControlPlane is pending picking up an upgrade then it is not yet at the desired state and
-	// cannot be considered stable.
-	if s.UpgradeTracker.ControlPlane.IsPendingUpgrade {
-		return false
-	}
-
-	return true
 }
 
 // isMachineDeploymentDeferred returns true if the upgrade for the mdTopology is deferred.
@@ -961,7 +931,7 @@ func isMachineDeploymentDeferred(clusterTopology *clusterv1.Topology, mdTopology
 }
 
 // computeMachinePools computes the desired state of the list of MachinePools.
-func (e *desiredStateEngine) computeMachinePools(ctx context.Context, s *scope.Scope) (scope.MachinePoolsStateMap, error) {
+func (e *generator) computeMachinePools(ctx context.Context, s *scope.Scope) (scope.MachinePoolsStateMap, error) {
 	machinePoolsStateMap := make(scope.MachinePoolsStateMap)
 	for _, mpTopology := range s.Blueprint.Topology.Workers.MachinePools {
 		desiredMachinePool, err := e.computeMachinePool(ctx, s, mpTopology)
@@ -976,7 +946,7 @@ func (e *desiredStateEngine) computeMachinePools(ctx context.Context, s *scope.S
 // computeMachinePool computes the desired state for a MachinePoolTopology.
 // The generated machinePool object is calculated using the values from the machinePoolTopology and
 // the machinePool class.
-func (e *desiredStateEngine) computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology) (*scope.MachinePoolState, error) {
+func (e *generator) computeMachinePool(_ context.Context, s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology) (*scope.MachinePoolState, error) {
 	desiredMachinePool := &scope.MachinePoolState{}
 
 	// Gets the blueprint for the MachinePool class.
@@ -1172,14 +1142,14 @@ func (e *desiredStateEngine) computeMachinePool(_ context.Context, s *scope.Scop
 // computeMachinePoolVersion calculates the version of the desired machine pool.
 // The version is calculated using the state of the current machine pools,
 // the current control plane and the version defined in the topology.
-func (e *desiredStateEngine) computeMachinePoolVersion(s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology, currentMPState *scope.MachinePoolState) string {
+func (e *generator) computeMachinePoolVersion(s *scope.Scope, machinePoolTopology clusterv1.MachinePoolTopology, currentMPState *scope.MachinePoolState) string {
 	desiredVersion := s.Blueprint.Topology.Version
 	// If creating a new machine pool, mark it as pending if the control plane is not
 	// yet stable. Creating a new MP while the control plane is upgrading can lead to unexpected race conditions.
 	// Example: join could fail if the load balancers are slow in detecting when CP machines are
 	// being deleted.
 	if currentMPState == nil || currentMPState.Object == nil {
-		if !e.IsControlPlaneStable(s) || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+		if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
 			s.UpgradeTracker.MachinePools.MarkPendingCreate(machinePoolTopology.Name)
 		}
 		return desiredVersion
@@ -1216,7 +1186,7 @@ func (e *desiredStateEngine) computeMachinePoolVersion(s *scope.Scope, machinePo
 	// Return early if the Control Plane is not stable. Do not pick up the desiredVersion yet.
 	// Return the current version of the machine pool. We will pick up the new version after the control
 	// plane is stable.
-	if !e.IsControlPlaneStable(s) {
+	if !s.UpgradeTracker.ControlPlane.IsControlPlaneStable() {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
 		return currentVersion
 	}

@@ -51,8 +51,8 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/exp/util/topology"
-	"sigs.k8s.io/cluster-api/exp/util/topology/scope"
+	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
+	"sigs.k8s.io/cluster-api/exp/topology/desiredstate/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/webhooks"
@@ -98,8 +98,8 @@ func TestHandler(t *testing.T) {
 	err = clusterClassReconciler.SetupWithManager(ctx, mgr, controller.Options{})
 	g.Expect(err).ToNot(HaveOccurred())
 
-	// Create a DesiredStateEngine.
-	desiredStateEngine := topology.NewDesiredStateEngine(nil, nil, runtimeClient)
+	// Create a desired state generator.
+	desiredStateGenerator := desiredstate.NewGenerator(nil, nil, runtimeClient)
 
 	// Note: as of today we don't have to set any fields and also don't have to call
 	// SetupWebhookWithManager because DefaultAndValidateVariables doesn't need any of that.
@@ -122,7 +122,7 @@ func TestHandler(t *testing.T) {
 	g.Expect(errs.ToAggregate()).ToNot(HaveOccurred())
 
 	// Return the desired state.
-	desiredState, err := desiredStateEngine.ComputeDesiredState(ctx, s)
+	desiredState, err := desiredStateGenerator.Generate(ctx, s)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	dockerClusterImageRepository, found, err := unstructured.NestedString(desiredState.InfrastructureCluster.Object, "spec", "loadBalancer", "imageRepository")

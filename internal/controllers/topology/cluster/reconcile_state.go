@@ -38,7 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/exp/util/topology/scope"
+	"sigs.k8s.io/cluster-api/exp/topology/desiredstate/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
@@ -238,7 +238,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 		// - MachineDeployments/MachinePools are not currently upgrading
 		// - MachineDeployments/MachinePools are not pending an upgrade
 		// - MachineDeployments/MachinePools are not pending create
-		if r.desiredStateEngine.IsControlPlaneStable(s) && // Control Plane stable checks
+		if s.UpgradeTracker.ControlPlane.IsControlPlaneStable() && // Control Plane stable checks
 			len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) == 0 && // Machine deployments are not upgrading or not about to upgrade
 			!s.UpgradeTracker.MachineDeployments.IsAnyPendingCreate() && // No MachineDeployments are pending create
 			!s.UpgradeTracker.MachineDeployments.IsAnyPendingUpgrade() && // No MachineDeployments are pending an upgrade

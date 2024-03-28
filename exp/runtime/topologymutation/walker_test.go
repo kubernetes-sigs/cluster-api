@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -95,7 +96,7 @@ func Test_WalkTemplates(t *testing.T) {
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status:  runtimehooksv1.ResponseStatusFailure,
-					Message: "failed to merge builtin variables: failed to unmarshal builtin variable: json: cannot unmarshal string into Go value of type v1alpha1.Builtins",
+					Message: fmt.Sprintf("failed to merge builtin variables: failed to unmarshal builtin variable: json: cannot unmarshal string into Go value of type %s.Builtins", runtimehooksv1.GroupVersion.Version),
 				},
 			},
 		},

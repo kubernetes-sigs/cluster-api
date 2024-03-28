@@ -1,0 +1,14 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: "docker-worker-machinepooltemplate"
+  namespace: default
+spec:
+  template:
+    metadata:
+      labels:
+        docker-machinepool-template: test-template-worker
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"

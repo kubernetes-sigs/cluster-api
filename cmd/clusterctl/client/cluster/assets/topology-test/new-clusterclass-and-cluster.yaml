@@ -62,6 +62,31 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachineTemplate
             name: docker-worker-machinetemplate
+    machinePools:
+    - class: "default-worker"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: docker-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: docker-worker-machinepooltemplate
+    - class: "default-worker-2"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: docker-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: docker-worker-machinepooltemplate
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
@@ -123,6 +148,17 @@ spec:
       preLoadImages: 
       - gcr.io/kakaraparthy-devel/kindest/kindnetd:0.5.4
 ---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: "docker-worker-machinepooltemplate"
+  namespace: default
+spec:
+  template:
+    spec:
+      preLoadImages: 
+      - gcr.io/kakaraparthy-devel/kindest/kindnetd:0.5.4
+---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
@@ -162,4 +198,11 @@ spec:
         replicas: 1
       - class: "default-worker"
         name: "md-1"
+        replicas: 1
+      machinePools:
+      - class: "default-worker"
+        name: "mp-0"
+        replicas: 1
+      - class: "default-worker"
+        name: "mp-1"
         replicas: 1

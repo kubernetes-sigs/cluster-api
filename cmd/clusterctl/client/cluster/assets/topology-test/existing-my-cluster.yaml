@@ -31,6 +31,11 @@ spec:
     controlPlane:
       metadata: {}
       replicas: 1
+    workers:
+      machinePools:
+      - class: "default-worker"
+        name: "mp-0"
+        replicas: 1
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerCluster

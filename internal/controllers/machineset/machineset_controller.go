@@ -313,6 +313,10 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	// Always updates status as machines come up or die.
 	if err := r.updateStatus(ctx, cluster, machineSet, filteredMachines); err != nil {
+		if errors.Is(err, remote.ErrClusterLocked) {
+			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
+		}
 		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate([]error{err, syncErr}), "failed to update MachineSet's Status")
 	}
 
@@ -842,7 +846,8 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 }
 
 // updateStatus updates the Status field for the MachineSet
-// It checks for the current state of the replicas and updates the Status of the MachineSet.
+// It checks for the current state of the replicas and updates the Status field of the MachineSet.
+// When unable to retrieve the Node status, it returns error and won't update the Status field of the MachineSet.
 func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	newStatus := ms.Status.DeepCopy()
@@ -880,8 +885,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 
 		node, err := r.getMachineNode(ctx, cluster, machine)
 		if err != nil && machine.GetDeletionTimestamp().IsZero() {
-			log.Error(err, "Unable to retrieve Node status", "node", klog.KObj(node))
-			continue
+			return errors.Wrapf(err, "unable to retrieve the status of Node %s", klog.KObj(node))
 		}
 
 		if noderefutil.IsNodeReady(node) {

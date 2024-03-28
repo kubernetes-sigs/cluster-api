@@ -338,9 +338,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		r := &generator{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -399,9 +397,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		r := &generator{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -429,9 +425,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithoutReplicas)
 		scope.Blueprint = blueprint
 
-		r := &generator{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -474,9 +468,7 @@ func TestComputeControlPlane(t *testing.T) {
 		s.Blueprint = blueprint
 		s.Current.ControlPlane = &scope.ControlPlaneState{}
 
-		r := &generator{}
-
-		obj, err := r.computeControlPlane(ctx, s, infrastructureMachineTemplate)
+		obj, err := (&generator{}).computeControlPlane(ctx, s, infrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -535,9 +527,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithControlPlaneRef)
 		scope.Blueprint = blueprint
 
-		r := &generator{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -605,9 +595,7 @@ func TestComputeControlPlane(t *testing.T) {
 					Object: tt.currentControlPlane,
 				}
 
-				r := &generator{}
-
-				obj, err := r.computeControlPlane(ctx, s, nil)
+				obj, err := (&generator{}).computeControlPlane(ctx, s, nil)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(obj).NotTo(BeNil())
 				assertNestedField(g, obj, tt.expectedVersion, contract.ControlPlane().Version().Path()...)
@@ -645,9 +633,7 @@ func TestComputeControlPlane(t *testing.T) {
 		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
 		s.Blueprint = blueprint
 
-		r := &generator{}
-
-		obj, err := r.computeControlPlane(ctx, s, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, s, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim)).To(BeTrue())

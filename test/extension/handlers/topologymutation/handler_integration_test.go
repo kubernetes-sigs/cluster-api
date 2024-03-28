@@ -223,7 +223,6 @@ func generateCRDForUnstructured(u *unstructured.Unstructured) *apiextensionsv1.C
 }
 
 // getScope gets blueprint (ClusterClass) and current state based on cluster and clusterClassFile.
-// Note: MachinePools have not been implemented as they are not supported by CAPV.
 func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope, error) {
 	clusterClassYAML, err := os.ReadFile(clusterClassFile) //nolint:gosec // reading a file in tests is not a security issue.
 	if err != nil {

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cluster
+package desiredstate
 
 import (
 	"strings"
@@ -24,11 +24,15 @@ import (
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -36,15 +40,30 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	"sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 )
+
+var (
+	ctx        = ctrl.SetupSignalHandler()
+	fakeScheme = runtime.NewScheme()
+)
+
+func init() {
+	_ = clientgoscheme.AddToScheme(fakeScheme)
+	_ = clusterv1.AddToScheme(fakeScheme)
+	_ = apiextensionsv1.AddToScheme(fakeScheme)
+	_ = expv1.AddToScheme(fakeScheme)
+	_ = corev1.AddToScheme(fakeScheme)
+}
 
 var (
 	fakeRef1 = &corev1.ObjectReference{
@@ -135,7 +154,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 	})
 	t.Run("Carry over the owner reference to ClusterShim, if any", func(t *testing.T) {
 		g := NewWithT(t)
-		shim := clusterShim(cluster)
+		shim := clustershim.New(cluster)
 
 		// current cluster objects for the test scenario
 		clusterWithInfrastructureRef := cluster.DeepCopy()
@@ -144,13 +163,13 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
 		scope := scope.New(clusterWithInfrastructureRef)
 		scope.Current.InfrastructureCluster = infrastructureClusterTemplate.DeepCopy()
-		scope.Current.InfrastructureCluster.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
+		scope.Current.InfrastructureCluster.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
 		scope.Blueprint = blueprint
 
 		obj, err := computeInfrastructureCluster(ctx, scope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
-		g.Expect(hasOwnerReferenceFrom(obj, shim)).To(BeTrue())
+		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim)).To(BeTrue())
 	})
 }
 
@@ -319,9 +338,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		r := &Reconciler{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -380,9 +397,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		r := &Reconciler{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -410,9 +425,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithoutReplicas)
 		scope.Blueprint = blueprint
 
-		r := &Reconciler{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -455,9 +468,7 @@ func TestComputeControlPlane(t *testing.T) {
 		s.Blueprint = blueprint
 		s.Current.ControlPlane = &scope.ControlPlaneState{}
 
-		r := &Reconciler{}
-
-		obj, err := r.computeControlPlane(ctx, s, infrastructureMachineTemplate)
+		obj, err := (&generator{}).computeControlPlane(ctx, s, infrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -516,9 +527,7 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithControlPlaneRef)
 		scope.Blueprint = blueprint
 
-		r := &Reconciler{}
-
-		obj, err := r.computeControlPlane(ctx, scope, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -586,9 +595,7 @@ func TestComputeControlPlane(t *testing.T) {
 					Object: tt.currentControlPlane,
 				}
 
-				r := &Reconciler{}
-
-				obj, err := r.computeControlPlane(ctx, s, nil)
+				obj, err := (&generator{}).computeControlPlane(ctx, s, nil)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(obj).NotTo(BeNil())
 				assertNestedField(g, obj, tt.expectedVersion, contract.ControlPlane().Version().Path()...)
@@ -597,7 +604,7 @@ func TestComputeControlPlane(t *testing.T) {
 	})
 	t.Run("Carry over the owner reference to ClusterShim, if any", func(t *testing.T) {
 		g := NewWithT(t)
-		shim := clusterShim(cluster)
+		shim := clustershim.New(cluster)
 
 		// current cluster objects
 		clusterWithoutReplicas := cluster.DeepCopy()
@@ -623,15 +630,13 @@ func TestComputeControlPlane(t *testing.T) {
 				}).
 				Build(),
 		}
-		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
+		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(shim, corev1.SchemeGroupVersion.WithKind("Secret"))})
 		s.Blueprint = blueprint
 
-		r := &Reconciler{}
-
-		obj, err := r.computeControlPlane(ctx, s, nil)
+		obj, err := (&generator{}).computeControlPlane(ctx, s, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
-		g.Expect(hasOwnerReferenceFrom(obj, shim)).To(BeTrue())
+		g.Expect(ownerrefs.HasOwnerReferenceFrom(obj, shim)).To(BeTrue())
 	})
 }
 
@@ -862,11 +867,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					}).
 					Build()
 
-				fakeClient := fake.NewClientBuilder().WithObjects(s.Current.Cluster).Build()
+				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
-				r := &Reconciler{
+				r := &generator{
 					Client:        fakeClient,
-					APIReader:     fakeClient,
 					RuntimeClient: runtimeClient,
 				}
 				version, err := r.computeControlPlaneVersion(ctx, s)
@@ -1166,11 +1170,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					WithCatalog(catalog).
 					Build()
 
-				fakeClient := fake.NewClientBuilder().WithObjects(tt.s.Current.Cluster).Build()
+				fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(tt.s.Current.Cluster).Build()
 
-				r := &Reconciler{
+				r := &generator{
 					Client:        fakeClient,
-					APIReader:     fakeClient,
 					RuntimeClient: fakeRuntimeClient,
 				}
 
@@ -1243,11 +1246,10 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			}).
 			Build()
 
-		fakeClient := fake.NewClientBuilder().WithObjects(s.Current.Cluster).Build()
+		fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).WithObjects(s.Current.Cluster).Build()
 
-		r := &Reconciler{
+		r := &generator{
 			Client:        fakeClient,
-			APIReader:     fakeClient,
 			RuntimeClient: runtimeClient,
 		}
 
@@ -1419,7 +1421,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		actual, err := computeMachineDeployment(ctx, scope, mdTopology)
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(actual.BootstrapTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
@@ -1488,7 +1492,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
 		}
 
-		actual, err := computeMachineDeployment(ctx, scope, mdTopology)
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// checking only values from CC defaults
@@ -1532,7 +1538,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 			},
 		}
 
-		actual, err := computeMachineDeployment(ctx, s, mdTopology)
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, s, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		actualMd := actual.Object
@@ -1580,7 +1588,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		_, err := computeMachineDeployment(ctx, scope, mdTopology)
+		e := generator{}
+
+		_, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).To(HaveOccurred())
 	})
 
@@ -1692,7 +1702,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				}
 				s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
-				obj, err := computeMachineDeployment(ctx, s, mdTopology)
+
+				e := generator{}
+
+				obj, err := e.computeMachineDeployment(ctx, s, mdTopology)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
@@ -1708,7 +1721,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		actual, err := computeMachineDeployment(ctx, scope, mdTopology)
+		e := generator{}
+
+		actual, err := e.computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Check that the ClusterName and selector are set properly for the MachineHealthCheck.
 		g.Expect(actual.MachineHealthCheck.Spec.ClusterName).To(Equal(cluster.Name))
@@ -1817,7 +1832,9 @@ func TestComputeMachinePool(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		actual, err := computeMachinePool(ctx, scope, mpTopology)
+		e := generator{}
+
+		actual, err := e.computeMachinePool(ctx, scope, mpTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(actual.BootstrapObject.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachinePoolNameLabel, "big-pool-of-machines"))
@@ -1880,7 +1897,9 @@ func TestComputeMachinePool(t *testing.T) {
 			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
 		}
 
-		actual, err := computeMachinePool(ctx, scope, mpTopology)
+		e := generator{}
+
+		actual, err := e.computeMachinePool(ctx, scope, mpTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// checking only values from CC defaults
@@ -1923,7 +1942,9 @@ func TestComputeMachinePool(t *testing.T) {
 			},
 		}
 
-		actual, err := computeMachinePool(ctx, s, mpTopology)
+		e := generator{}
+
+		actual, err := e.computeMachinePool(ctx, s, mpTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		actualMp := actual.Object
@@ -1966,7 +1987,9 @@ func TestComputeMachinePool(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		_, err := computeMachinePool(ctx, scope, mpTopology)
+		e := generator{}
+
+		_, err := e.computeMachinePool(ctx, scope, mpTopology)
 		g.Expect(err).To(HaveOccurred())
 	})
 
@@ -2076,7 +2099,10 @@ func TestComputeMachinePool(t *testing.T) {
 					Replicas: ptr.To[int32](2),
 				}
 				s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
-				obj, err := computeMachinePool(ctx, s, mpTopology)
+
+				e := generator{}
+
+				obj, err := e.computeMachinePool(ctx, s, mpTopology)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
@@ -2240,7 +2266,10 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			s.UpgradeTracker.ControlPlane.IsScaling = tt.controlPlaneScaling
 			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
 			s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
-			version := computeMachineDeploymentVersion(s, tt.machineDeploymentTopology, tt.currentMachineDeploymentState)
+
+			e := generator{}
+
+			version := e.computeMachineDeploymentVersion(s, tt.machineDeploymentTopology, tt.currentMachineDeploymentState)
 			g.Expect(version).To(Equal(tt.expectedVersion))
 
 			if tt.currentMachineDeploymentState != nil {
@@ -2418,7 +2447,10 @@ func TestComputeMachinePoolVersion(t *testing.T) {
 			s.UpgradeTracker.ControlPlane.IsScaling = tt.controlPlaneScaling
 			s.UpgradeTracker.ControlPlane.IsProvisioning = tt.controlPlaneProvisioning
 			s.UpgradeTracker.MachinePools.MarkUpgrading(tt.upgradingMachinePools...)
-			version := computeMachinePoolVersion(s, tt.machinePoolTopology, tt.currentMachinePoolState)
+
+			e := generator{}
+
+			version := e.computeMachinePoolVersion(s, tt.machinePoolTopology, tt.currentMachinePoolState)
 			g.Expect(version).To(Equal(tt.expectedVersion))
 
 			if tt.currentMachinePoolState != nil {
@@ -2889,7 +2921,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				clusterv1.ClusterTopologyOwnedLabel: "",
 			},
 			OwnerReferences: []metav1.OwnerReference{
-				*ownerReferenceTo(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
+				*ownerrefs.OwnerReferenceTo(cluster, clusterv1.GroupVersion.WithKind("Cluster")),
 			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{

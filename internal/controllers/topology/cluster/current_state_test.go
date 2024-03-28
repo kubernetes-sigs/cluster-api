@@ -30,8 +30,9 @@ import (
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 )
 
 func TestGetCurrentState(t *testing.T) {
@@ -126,7 +127,7 @@ func TestGetCurrentState(t *testing.T) {
 
 	// MachineHealthChecks for the MachineDeployment and the ControlPlane.
 	machineHealthCheckForMachineDeployment := builder.MachineHealthCheck(machineDeployment.Namespace, machineDeployment.Name).
-		WithSelector(*selectorForMachineDeploymentMHC(machineDeployment)).
+		WithSelector(*selectors.ForMachineDeploymentMHC(machineDeployment)).
 		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
 			{
 				Type:    corev1.NodeReady,
@@ -143,7 +144,7 @@ func TestGetCurrentState(t *testing.T) {
 		Build()
 
 	machineHealthCheckForControlPlane := builder.MachineHealthCheck(controlPlane.GetNamespace(), controlPlane.GetName()).
-		WithSelector(*selectorForControlPlaneMHC()).
+		WithSelector(*selectors.ForControlPlaneMHC()).
 		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
 			{
 				Type:    corev1.NodeReady,

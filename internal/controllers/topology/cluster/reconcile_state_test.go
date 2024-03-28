@@ -44,12 +44,17 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
+	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
+	"sigs.k8s.io/cluster-api/internal/topology/names"
+	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
+	"sigs.k8s.io/cluster-api/internal/topology/selectors"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 )
@@ -77,7 +82,7 @@ func TestReconcileShim(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		cluster1 := cluster.DeepCopy()
 		cluster1.SetNamespace(namespace.GetName())
-		cluster1Shim := clusterShim(cluster1)
+		cluster1Shim := clustershim.New(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster yet to be created.
 		s := scope.New(cluster1)
@@ -117,7 +122,7 @@ func TestReconcileShim(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		cluster1 := cluster.DeepCopy()
 		cluster1.SetNamespace(namespace.GetName())
-		cluster1Shim := clusterShim(cluster1)
+		cluster1Shim := clustershim.New(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster yet to be created.
 		s := scope.New(cluster1)
@@ -161,7 +166,7 @@ func TestReconcileShim(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		cluster1 := cluster.DeepCopy()
 		cluster1.SetNamespace(namespace.GetName())
-		cluster1Shim := clusterShim(cluster1)
+		cluster1Shim := clustershim.New(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster created but not yet reconciled.
 		s := scope.New(cluster1)
@@ -172,10 +177,10 @@ func TestReconcileShim(t *testing.T) {
 
 		// Add the shim as a temporary owner for the InfrastructureCluster and ControlPlane.
 		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")))
+		ownerRefs = append(ownerRefs, *ownerrefs.OwnerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")))
 		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
 		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")))
+		ownerRefs = append(ownerRefs, *ownerrefs.OwnerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
@@ -205,7 +210,7 @@ func TestReconcileShim(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		cluster1 := cluster.DeepCopy()
 		cluster1.SetNamespace(namespace.GetName())
-		cluster1Shim := clusterShim(cluster1)
+		cluster1Shim := clustershim.New(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster created and reconciled.
 		s := scope.New(cluster1)
@@ -219,14 +224,14 @@ func TestReconcileShim(t *testing.T) {
 		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
 		ownerRefs = append(
 			ownerRefs,
-			*ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")),
-			*ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
+			*ownerrefs.OwnerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")),
+			*ownerrefs.OwnerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
 		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
 		ownerRefs = append(
 			ownerRefs,
-			*ownerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")),
-			*ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
+			*ownerrefs.OwnerReferenceTo(cluster1Shim, corev1.SchemeGroupVersion.WithKind("Secret")),
+			*ownerrefs.OwnerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Pre-create a shim
@@ -256,7 +261,7 @@ func TestReconcileShim(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		cluster1 := cluster.DeepCopy()
 		cluster1.SetNamespace(namespace.GetName())
-		cluster1Shim := clusterShim(cluster1)
+		cluster1Shim := clustershim.New(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster created and reconciled.
 		s := scope.New(cluster1)
@@ -267,10 +272,10 @@ func TestReconcileShim(t *testing.T) {
 
 		// Add the cluster as a final owner for the InfrastructureCluster and ControlPlane (reconciled).
 		ownerRefs := s.Current.InfrastructureCluster.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
+		ownerRefs = append(ownerRefs, *ownerrefs.OwnerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.InfrastructureCluster.SetOwnerReferences(ownerRefs)
 		ownerRefs = s.Current.ControlPlane.Object.GetOwnerReferences()
-		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
+		ownerRefs = append(ownerRefs, *ownerrefs.OwnerReferenceTo(cluster1, clusterv1.GroupVersion.WithKind("Cluster")))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
 		// Run reconcileClusterShim using a nil client, so an error will be triggered if any operation is attempted
@@ -1075,9 +1080,10 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.s.Current.Cluster).Build()
 
 			r := &Reconciler{
-				Client:        fakeClient,
-				APIReader:     fakeClient,
-				RuntimeClient: fakeRuntimeClient,
+				Client:                fakeClient,
+				APIReader:             fakeClient,
+				RuntimeClient:         fakeRuntimeClient,
+				desiredStateGenerator: desiredstate.NewGenerator(fakeClient, nil, fakeRuntimeClient),
 			}
 
 			err := r.callAfterClusterUpgrade(ctx, tt.s)
@@ -1615,7 +1621,7 @@ func TestReconcileControlPlane(t *testing.T) {
 				// This check is just for the naming format uses by generated templates - here it's templateName-*
 				// This check is only performed when we had an initial template that has been changed
 				if gotRotation {
-					pattern := fmt.Sprintf("%s.*", controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
+					pattern := fmt.Sprintf("%s.*", names.ControlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
 					ok, err := regexp.Match(pattern, []byte(gotInfrastructureMachineRef.Name))
 					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(ok).To(BeTrue())
@@ -1750,7 +1756,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 		Build()
 
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
-		WithSelector(*selectorForControlPlaneMHC()).
+		WithSelector(*selectors.ForControlPlaneMHC()).
 		WithUnhealthyConditions(mhcClass.UnhealthyConditions).
 		WithClusterName("cluster1")
 
@@ -3295,7 +3301,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 
 	maxUnhealthy := intstr.Parse("45%")
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-		WithSelector(*selectorForMachineDeploymentMHC(md)).
+		WithSelector(*selectors.ForMachineDeploymentMHC(md)).
 		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
 			{
 				Type:    corev1.NodeReady,
@@ -3693,7 +3699,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 	// create a controlPlane object with enough information to be used as an OwnerReference for the MachineHealthCheck.
 	cp := builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
-		WithSelector(*selectorForControlPlaneMHC()).
+		WithSelector(*selectors.ForControlPlaneMHC()).
 		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
 			{
 				Type:    corev1.NodeReady,

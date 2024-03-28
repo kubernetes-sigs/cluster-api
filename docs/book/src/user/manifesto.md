@@ -2,7 +2,7 @@
 
 ## Intro
 
-Taking inspiration from [Tim Hockin’s talk at KubeCon NA 2023](https://www.youtube.com/watch?v=WqeShpaztZY), also for
+Taking inspiration from [Tim Hockin’s talk at KubeCon NA 2023](https://www.youtube.com/watch?v=WqeShpaztZY), also for the
 Cluster API project is important to define the long term vision, the manifesto of “where we are going” and “why”.
 
 This document would hopefully provide valuable context for all users, contributors and companies investing in this project,
@@ -79,12 +79,13 @@ Also ensuring a predictable release calendar, clear support windows and compatib
 is a crucial part of this effort to “evolve responsibly”.
 
 ## The complexity budget
+
 Tim Hockins explains the idea of complexity budget very well in his talk:
 
 There is a finite amount of complexity that a project can absorb over a certain amount of time;
 when the complexity budget runs out, bad things happen, quality decreases, we can’t fix bugs timely etc.
 
-Since the beginning of the Cluster API project its maintainer’s intuitively handled the complexity budget by following
+Since the beginning of the Cluster API project, its maintainers intuitively handled the complexity budget by following
 this approach:
 
 “We’ve got to say no to things today, so we can afford to do interesting things tomorrow”.
@@ -116,5 +117,5 @@ It is important to continue and renew efforts to make it easier to bootstrap and
 components, to ensure consistent APIs and behaviors, to ensure quality across the board.
 
 This effort lays its foundation in all the provider maintainers being committed to this goal, while the Cluster API project
-will be the venue where common guidelines are discussed and documented, as well as the place of choice where common 
-omponents or utilities are developed and hosted.
+will be the venue where common guidelines are discussed and documented, as well as the place of choice where common
+components or utilities are developed and hosted.

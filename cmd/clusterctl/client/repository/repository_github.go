@@ -43,7 +43,8 @@ import (
 
 const (
 	httpsScheme                    = "https"
-	githubDomain                   = "github.com"
+	publicGithubDomain             = "github.com"
+	githubHostPrefix               = "github."
 	githubReleaseRepository        = "releases"
 	githubLatestReleaseLabel       = "latest"
 	githubListReleasesPerPageLimit = 100
@@ -70,6 +71,7 @@ type gitHubRepository struct {
 	providerConfig           config.Provider
 	configVariablesClient    config.VariablesClient
 	authenticatingHTTPClient *http.Client
+	host                     string
 	owner                    string
 	repository               string
 	defaultVersion           string
@@ -104,7 +106,7 @@ func (g *gitHubRepository) DefaultVersion() string {
 func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 	log := logf.Log
 
-	cacheID := fmt.Sprintf("%s/%s", g.owner, g.repository)
+	cacheID := fmt.Sprintf("%s/%s/%s", g.host, g.owner, g.repository)
 	if versions, ok := cacheVersions[cacheID]; ok {
 		return versions, nil
 	}
@@ -117,7 +119,7 @@ func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 	var versions []string
 	if goProxyClient != nil {
 		// A goproxy is also able to handle the github repository path instead of the actual go module name.
-		gomodulePath := path.Join(githubDomain, g.owner, g.repository)
+		gomodulePath := path.Join(g.host, g.owner, g.repository)
 
 		var parsedVersions semver.Versions
 		parsedVersions, err = goProxyClient.GetVersions(ctx, gomodulePath)
@@ -158,21 +160,27 @@ func (g *gitHubRepository) ComponentsPath() string {
 func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([]byte, error) {
 	log := logf.Log
 
-	cacheID := fmt.Sprintf("%s/%s:%s:%s", g.owner, g.repository, version, path)
+	cacheID := fmt.Sprintf("%s/%s/%s:%s:%s", g.host, g.owner, g.repository, version, path)
 	if content, ok := cacheFiles[cacheID]; ok {
 		return content, nil
 	}
 
-	// Try to get the file using http get.
-	// NOTE: this can be disabled by setting GORPOXY to `direct` or `off` (same knobs used for skipping goproxy requests).
-	if goProxyClient, _ := g.getGoproxyClient(ctx); goProxyClient != nil {
-		files, err := g.httpGetFilesFromRelease(ctx, version, path)
-		if err != nil {
-			log.V(5).Info("error using httpGet to get file from GitHub releases, falling back to github client", "owner", g.owner, "repository", g.repository, "version", version, "path", path, "error", err)
-		} else {
-			cacheFiles[cacheID] = files
-			return files, nil
+	if g.host == publicGithubDomain {
+		// Try to get the file using http get.
+		// NOTE: this can be disabled by setting GORPOXY to `direct` or `off` (same knobs used for skipping goproxy requests).
+		if goProxyClient, _ := g.getGoproxyClient(ctx); goProxyClient != nil {
+			files, err := g.httpGetFilesFromRelease(ctx, version, path)
+			if err != nil {
+				log.V(5).Info("error using httpGet to get file from GitHub releases, falling back to github client", "owner", g.owner, "repository", g.repository, "version", version, "path", path, "error", err)
+			} else {
+				cacheFiles[cacheID] = files
+				return files, nil
+			}
 		}
+	} else {
+		// Do not attempt http get for private Github Enterprise domains since https access is likely disabled
+		// and an unauthorized http get will return contents of a redirect to the sign in page without an error
+		log.V(5).Info("Private Github Enterprise domain used, skipping httpGet and using github client", "host", g.host, "owner", g.owner, "repository", g.repository, "version", version, "path", path)
 	}
 
 	// If the http get request failed (or it is disabled) falls back on using the GITHUB api to download the file
@@ -209,8 +217,8 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	}
 
 	// Check if the url is a github repository
-	if rURL.Scheme != httpsScheme || rURL.Host != githubDomain {
-		return nil, errors.New("invalid url: a GitHub repository url should start with https://github.com")
+	if rURL.Scheme != httpsScheme || !strings.HasPrefix(rURL.Host, githubHostPrefix) {
+		return nil, errors.New("invalid url: a GitHub repository url should start with \"https://github.\"")
 	}
 
 	// Check if the path is in the expected format,
@@ -218,7 +226,7 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	urlSplit := strings.Split(strings.TrimPrefix(rURL.Path, "/"), "/")
 	if len(urlSplit) < 5 || urlSplit[2] != githubReleaseRepository {
 		return nil, errors.Errorf(
-			"invalid url: a GitHub repository url should be in the form https://github.com/{owner}/{Repository}/%s/{latest|version-tag}/{componentsClient.yaml}",
+			"invalid url: a GitHub repository url should be in the form https://{host}/{owner}/{Repository}/%s/{latest|version-tag}/{componentsClient.yaml}",
 			githubReleaseRepository,
 		)
 	}
@@ -237,6 +245,7 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 	repo := &gitHubRepository{
 		providerConfig:        providerConfig,
 		configVariablesClient: configVariablesClient,
+		host:                  rURL.Host,
 		owner:                 owner,
 		repository:            repository,
 		defaultVersion:        defaultVersion,
@@ -249,7 +258,12 @@ func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, co
 		o(repo)
 	}
 
-	if token, err := configVariablesClient.Get(config.GitHubTokenVariable); err == nil {
+	// NOTE: tokens for private Github Enterprise domains must be of the format, github-token-{host}
+	tokenKey := config.GitHubTokenVariable
+	if repo.host != publicGithubDomain {
+		tokenKey = fmt.Sprintf("%s-%s", config.GitHubTokenVariable, repo.host)
+	}
+	if token, err := configVariablesClient.Get(tokenKey); err == nil {
 		repo.setClientToken(ctx, token)
 	}
 
@@ -271,11 +285,14 @@ func getComponentsPath(path string, rootPath string) string {
 }
 
 // getClient returns a github API client.
-func (g *gitHubRepository) getClient() *github.Client {
+func (g *gitHubRepository) getClient() (*github.Client, error) {
 	if g.injectClient != nil {
-		return g.injectClient
+		return g.injectClient, nil
 	}
-	return github.NewClient(g.authenticatingHTTPClient)
+	if g.host != publicGithubDomain {
+		return github.NewEnterpriseClient(fmt.Sprintf("https://%s/api/v3/", g.host), fmt.Sprintf("https://%s/api/uploads/", g.host), g.authenticatingHTTPClient)
+	}
+	return github.NewClient(g.authenticatingHTTPClient), nil
 }
 
 // getGoproxyClient returns a go proxy client.
@@ -306,7 +323,10 @@ func (g *gitHubRepository) setClientToken(ctx context.Context, token string) {
 
 // getVersions returns all the release versions for a github repository.
 func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
-	client := g.getClient()
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// Get all the releases.
 	// NB. currently Github API does not support result ordering, so it not possible to limit results
@@ -366,12 +386,15 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 
 // getReleaseByTag returns the github repository release with a specific tag name.
 func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*github.RepositoryRelease, error) {
-	cacheID := fmt.Sprintf("%s/%s:%s", g.owner, g.repository, tag)
+	cacheID := fmt.Sprintf("%s/%s/%s:%s", g.host, g.owner, g.repository, tag)
 	if release, ok := cacheReleases[cacheID]; ok {
 		return release, nil
 	}
 
-	client := g.getClient()
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	var release *github.RepositoryRelease
 	var retryError error
@@ -403,7 +426,7 @@ func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*gi
 
 // httpGetFilesFromRelease gets a file from github using http get.
 func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version, fileName string) ([]byte, error) {
-	downloadURL := fmt.Sprintf("https://github.com/%s/%s/releases/download/%s/%s", g.owner, g.repository, version, fileName)
+	downloadURL := fmt.Sprintf("https://%s/%s/%s/releases/download/%s/%s", g.host, g.owner, g.repository, version, fileName)
 	var retryError error
 	var content []byte
 	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
@@ -436,8 +459,11 @@ func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version,
 
 // downloadFilesFromRelease download a file from release.
 func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release *github.RepositoryRelease, fileName string) ([]byte, error) {
-	client := g.getClient()
 	absoluteFileName := filepath.Join(g.rootPath, fileName)
+	client, err := g.getClient()
+	if err != nil {
+		return nil, err
+	}
 
 	// Search for the file into the release assets, retrieving the asset id.
 	var assetID *int64

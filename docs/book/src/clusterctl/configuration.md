@@ -29,6 +29,11 @@ providers:
   - name: "cluster-api"
     url: "https://github.com/myorg/myforkofclusterapi/releases/latest/core-components.yaml"
     type: "CoreProvider"
+  # add a custom provider repository hosted on private Github Enterprise (host should start with "github.").
+  # A Github Enterprise hosted repository requires a  github access token in the configuration file with key: github-token-{host}
+  - name: "my-infra-provider"
+    url: "https://github.corp.co/myorg/myrepo/releases/latest/infrastructure-components.yaml"
+    type: "InfrastructureProvider"
   # add a custom provider on a self-hosted GitLab (host should start with "gitlab.")
   - name: "my-other-infra-provider"
     url: "https://gitlab.example.com/api/v4/projects/myorg%2Fmyrepo/packages/generic/myrepo/v1.2.3/infrastructure-components.yaml"
@@ -37,6 +42,9 @@ providers:
   - name: "kubeadm"
     url: "https://gitlab.example.com/api/v4/projects/external-packages%2Fcluster-api/packages/generic/cluster-api/v1.1.3/bootstrap-components.yaml"
     type: "BootstrapProvider"
+
+# github access token for private Github Enterprise repositories
+github-token-github.corp.co: ghp_78f9bygdg7by8vyf788dsv7f8fv789sas98s
 ```
 
 See [provider contract](provider-contract.md) for instructions about how to set up a provider repository.

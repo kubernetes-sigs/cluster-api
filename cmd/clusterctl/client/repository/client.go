@@ -177,7 +177,7 @@ func repositoryFactory(ctx context.Context, providerConfig config.Provider, conf
 
 	if rURL.Scheme == httpsScheme {
 		// if the url is a GitHub repository
-		if rURL.Host == githubDomain {
+		if strings.HasPrefix(rURL.Host, githubHostPrefix) {
 			repo, err := NewGitHubRepository(ctx, providerConfig, configVariablesClient)
 			if err != nil {
 				return nil, errors.Wrap(err, "error creating the GitHub repository client")

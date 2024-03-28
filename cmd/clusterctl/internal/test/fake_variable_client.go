@@ -17,7 +17,16 @@ limitations under the License.
 package test
 
 import (
+	"fmt"
+
 	"github.com/pkg/errors"
+)
+
+var (
+	// PrivateGithubDomain is the private github enterprise domain used int tests.
+	PrivateGithubDomain = "github.corp.co"
+	// PrivateGithubToken is the test token for github enterprise client.
+	PrivateGithubToken = "token"
 )
 
 // FakeVariableClient provides a VariableClient backed by a map.
@@ -43,6 +52,8 @@ func (f *FakeVariableClient) WithVar(key, value string) *FakeVariableClient {
 
 func NewFakeVariableClient() *FakeVariableClient {
 	return &FakeVariableClient{
-		variables: map[string]string{},
+		variables: map[string]string{
+			fmt.Sprintf("github-token-%s", PrivateGithubDomain): PrivateGithubToken,
+		},
 	}
 }

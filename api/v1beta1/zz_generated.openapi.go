@@ -544,6 +544,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassStatusVariableDefiniti
 							Format:      "",
 						},
 					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariableMetadata"),
+						},
+					},
 					"schema": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Schema defines the schema of the variable.",
@@ -556,7 +563,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassStatusVariableDefiniti
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariableMetadata", "sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema"},
 	}
 }
 

@@ -4,7 +4,6 @@
 [Quick Start](./user/quick-start.md)
 [Quick Start Operator](./user/quick-start-operator.md)
 [Concepts](./user/concepts.md)
-[Personas](./user/personas.md)
 - [Tasks](./tasks/index.md)
     - [Certificate Management](./tasks/certs/index.md)
         - [Using Custom Certificates](./tasks/certs/using-custom-certificates.md)

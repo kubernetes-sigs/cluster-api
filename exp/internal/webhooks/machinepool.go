@@ -19,8 +19,11 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -36,6 +39,10 @@ import (
 )
 
 func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	if webhook.decoder == nil {
+		webhook.decoder = admission.NewDecoder(mgr.GetScheme())
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&expv1.MachinePool{}).
 		WithDefaulter(webhook).
@@ -47,16 +54,34 @@ func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machinepool,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinepools,versions=v1beta1,name=default.machinepool.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // MachinePool implements a validation and defaulting webhook for MachinePool.
-type MachinePool struct{}
+type MachinePool struct {
+	decoder *admission.Decoder
+}
 
 var _ webhook.CustomValidator = &MachinePool{}
 var _ webhook.CustomDefaulter = &MachinePool{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *MachinePool) Default(_ context.Context, obj runtime.Object) error {
+func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) error {
 	m, ok := obj.(*expv1.MachinePool)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", obj))
+	}
+
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return err
+	}
+	dryRun := false
+	if req.DryRun != nil {
+		dryRun = *req.DryRun
+	}
+	var oldMP *expv1.MachinePool
+	if req.Operation == v1.Update {
+		oldMP = &expv1.MachinePool{}
+		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMP); err != nil {
+			return errors.Wrapf(err, "failed to decode oldObject to MachinePool")
+		}
 	}
 
 	if m.Labels == nil {
@@ -64,9 +89,12 @@ func (webhook *MachinePool) Default(_ context.Context, obj runtime.Object) error
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	if m.Spec.Replicas == nil {
-		m.Spec.Replicas = ptr.To[int32](1)
+	replicas, err := calculateMachinePoolReplicas(ctx, oldMP, m, dryRun)
+	if err != nil {
+		return err
 	}
+
+	m.Spec.Replicas = ptr.To[int32](replicas)
 
 	if m.Spec.MinReadySeconds == nil {
 		m.Spec.MinReadySeconds = ptr.To[int32](0)
@@ -186,4 +214,76 @@ func (webhook *MachinePool) validate(oldObj, newObj *expv1.MachinePool) error {
 		return nil
 	}
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachinePool").GroupKind(), newObj.Name, allErrs)
+}
+
+func calculateMachinePoolReplicas(ctx context.Context, oldMP *expv1.MachinePool, newMP *expv1.MachinePool, dryRun bool) (int32, error) {
+	// If replicas is already set => Keep the current value.
+	if newMP.Spec.Replicas != nil {
+		return *newMP.Spec.Replicas, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+
+	// If both autoscaler annotations are set, use them to calculate the default value.
+	minSizeString, hasMinSizeAnnotation := newMP.Annotations[clusterv1.AutoscalerMinSizeAnnotation]
+	maxSizeString, hasMaxSizeAnnotation := newMP.Annotations[clusterv1.AutoscalerMaxSizeAnnotation]
+	if hasMinSizeAnnotation && hasMaxSizeAnnotation {
+		minSize, err := strconv.ParseInt(minSizeString, 10, 32)
+		if err != nil {
+			return 0, errors.Wrapf(err, "failed to caculate MachinePool replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMinSizeAnnotation)
+		}
+		maxSize, err := strconv.ParseInt(maxSizeString, 10, 32)
+		if err != nil {
+			return 0, errors.Wrapf(err, "failed to caculate MachinePool replicas value: could not parse the value of the %q annotation", clusterv1.AutoscalerMaxSizeAnnotation)
+		}
+
+		// If it's a new MachinePool => Use the min size.
+		// Note: This will result in a scale up to get into the range where autoscaler takes over.
+		if oldMP == nil {
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (MP is a new MP)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
+			}
+			return int32(minSize), nil
+		}
+
+		// Otherwise we are handing over the control for the replicas field for an existing MachinePool
+		// to the autoscaler.
+
+		switch {
+		// If the old MachinePool doesn't have replicas set => Use the min size.
+		// Note: As defaulting always sets the replica field, this case should not be possible
+		// We only have this handling to be 100% safe against panics.
+		case oldMP.Spec.Replicas == nil:
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MP didn't have replicas set)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
+			}
+			return int32(minSize), nil
+		// If the old MachinePool replicas are lower than min size => Use the min size.
+		// Note: This will result in a scale up to get into the range where autoscaler takes over.
+		case *oldMP.Spec.Replicas < int32(minSize):
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MP had replicas below min size)", minSize, clusterv1.AutoscalerMinSizeAnnotation))
+			}
+			return int32(minSize), nil
+		// If the old MachinePool replicas are higher than max size => Use the max size.
+		// Note: This will result in a scale down to get into the range where autoscaler takes over.
+		case *oldMP.Spec.Replicas > int32(maxSize):
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MP had replicas above max size)", maxSize, clusterv1.AutoscalerMaxSizeAnnotation))
+			}
+			return int32(maxSize), nil
+		// If the old MachinePool replicas are between min and max size => Keep the current value.
+		default:
+			if !dryRun {
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on replicas of the old MachinePool (old MP had replicas within min size / max size range)", *oldMP.Spec.Replicas))
+			}
+			return *oldMP.Spec.Replicas, nil
+		}
+	}
+
+	// If neither the default nor the autoscaler annotations are set => Default to 1.
+	if !dryRun {
+		log.V(2).Info("Replica field has been defaulted to 1")
+	}
+	return 1, nil
 }

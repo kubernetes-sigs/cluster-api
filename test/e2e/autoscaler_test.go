@@ -27,15 +27,16 @@ import (
 var _ = Describe("When using the autoscaler with Cluster API using ClusterClass [ClusterClass]", func() {
 	AutoscalerSpec(ctx, func() AutoscalerSpecInput {
 		return AutoscalerSpecInput{
-			E2EConfig:                         e2eConfig,
-			ClusterctlConfigPath:              clusterctlConfigPath,
-			BootstrapClusterProxy:             bootstrapClusterProxy,
-			ArtifactFolder:                    artifactFolder,
-			SkipCleanup:                       skipCleanup,
-			InfrastructureProvider:            ptr.To("docker"),
-			InfrastructureMachineTemplateKind: "dockermachinetemplates",
-			Flavor:                            ptr.To("topology-autoscaler"),
-			AutoscalerVersion:                 "v1.29.0",
+			E2EConfig:                             e2eConfig,
+			ClusterctlConfigPath:                  clusterctlConfigPath,
+			BootstrapClusterProxy:                 bootstrapClusterProxy,
+			ArtifactFolder:                        artifactFolder,
+			SkipCleanup:                           skipCleanup,
+			InfrastructureProvider:                ptr.To("docker"),
+			InfrastructureMachineTemplateKind:     "dockermachinetemplates",
+			InfrastructureMachinePoolTemplateKind: "dockermachinepooltemplates",
+			Flavor:                                ptr.To("topology-autoscaler"),
+			AutoscalerVersion:                     "v1.29.0",
 		}
 	})
 })

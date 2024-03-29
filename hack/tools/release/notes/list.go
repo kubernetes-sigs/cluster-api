@@ -54,9 +54,18 @@ func newGithubFromToPRLister(repo string, fromRef, toRef ref, branch string) *gi
 // between fromRef and toRef, discarding any PR not seeing in the commits list.
 // This ensures we don't include any PR merged in the same date range that
 // doesn't belong to our git timeline.
-func (l *githubFromToPRLister) listPRs() ([]pr, error) {
-	log.Printf("Computing diff between %s and %s", l.fromRef, l.toRef)
-	diff, err := l.client.getDiffAllCommits(l.fromRef.value, l.toRef.value)
+func (l *githubFromToPRLister) listPRs(previousReleaseRef ref) ([]pr, error) {
+	var (
+		diff *githubDiff
+		err  error
+	)
+	if previousReleaseRef.value != "" {
+		log.Printf("Computing diff between %s and %s", previousReleaseRef.value, l.toRef)
+		diff, err = l.client.getDiffAllCommits(previousReleaseRef.value, l.toRef.value)
+	} else {
+		log.Printf("Computing diff between %s and %s", l.fromRef, l.toRef)
+		diff, err = l.client.getDiffAllCommits(l.fromRef.value, l.toRef.value)
+	}
 	if err != nil {
 		return nil, err
 	}

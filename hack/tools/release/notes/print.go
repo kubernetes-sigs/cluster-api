@@ -37,6 +37,9 @@ var defaultOutputOrder = []string{
 	release.Unknown,
 }
 
+var isExpanderAdded = false
+var isPreReleasePrinted = false
+
 // releaseNotesPrinter outputs the PR entries following
 // the right format for the release notes.
 type releaseNotesPrinter struct {
@@ -57,7 +60,7 @@ func newReleaseNotesPrinter(repo, fromTag string) *releaseNotesPrinter {
 }
 
 // print outputs to stdout the release notes.
-func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, dependencies string) {
+func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, dependencies string, previousReleaseRef ref) {
 	merges := map[string][]string{
 		release.Features:      {},
 		release.Bugs:          {},
@@ -75,11 +78,22 @@ func (p *releaseNotesPrinter) print(entries []notesEntry, commitsInRelease int, 
 		}
 	}
 
-	if p.releaseType != "" {
+	if p.releaseType != "" && !isPreReleasePrinted {
 		fmt.Printf("🚨 This is a %s. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/%s/issues/new).\n", p.releaseType, p.repo)
+		isPreReleasePrinted = true
 	}
 
-	if p.printKubernetesSupport {
+	if p.releaseType != "" && previousReleaseRef.value == "" {
+		// This will add the release notes expansion functionality for a pre-release version
+		fmt.Print(`<details>
+<summary>More details about the release</summary>
+`)
+		fmt.Printf("\n:warning: **%s NOTES** :warning:\n", p.releaseType)
+
+		isExpanderAdded = true
+	}
+
+	if p.printKubernetesSupport && previousReleaseRef.value == "" {
 		fmt.Print(`## 👌 Kubernetes version support
 
 - Management Cluster: v1.**X**.x -> v1.**X**.x
@@ -106,7 +120,11 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 `)
 	}
 
-	fmt.Printf("## Changes since %s\n", p.fromTag)
+	if previousReleaseRef.value != "" {
+		fmt.Printf("## Changes since %s\n", previousReleaseRef.value)
+	} else {
+		fmt.Printf("## Changes since %s\n", p.fromTag)
+	}
 
 	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
 	if commitsInRelease == 1 {
@@ -139,18 +157,20 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 
 		switch key {
 		case release.Documentation:
-			sort.Strings(mergeslice)
-			if len(mergeslice) == 1 {
-				fmt.Printf(
-					":book: Additionally, there has been 1 contribution to our documentation and book. (%s) \n\n",
-					mergeslice[0],
-				)
-			} else {
-				fmt.Printf(
-					":book: Additionally, there have been %d contributions to our documentation and book. (%s) \n\n",
-					len(mergeslice),
-					strings.Join(mergeslice, ", "),
-				)
+			if previousReleaseRef.value == "" {
+				sort.Strings(mergeslice)
+				if len(mergeslice) == 1 {
+					fmt.Printf(
+						":book: Additionally, there has been 1 contribution to our documentation and book. (%s) \n\n",
+						mergeslice[0],
+					)
+				} else {
+					fmt.Printf(
+						":book: Additionally, there have been %d contributions to our documentation and book. (%s) \n\n",
+						len(mergeslice),
+						strings.Join(mergeslice, ", "),
+					)
+				}
 			}
 		default:
 			fmt.Println("## " + key)
@@ -170,5 +190,10 @@ REPLACE ME: A couple sentences describing the deprecation, including links to do
 	fmt.Print(dependencies)
 
 	fmt.Println("")
-	fmt.Println("_Thanks to all our contributors!_ 😊")
+	if isExpanderAdded {
+		fmt.Print("</details>\n<br/>\n")
+	}
+	if previousReleaseRef.value == "" {
+		fmt.Println("_Thanks to all our contributors!_ 😊")
+	}
 }

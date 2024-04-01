@@ -29,7 +29,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.18.2
 	github.com/valyala/fastjson v1.6.4
-	go.etcd.io/etcd/api/v3 v3.5.12
+	go.etcd.io/etcd/api/v3 v3.5.13
 	go.etcd.io/etcd/client/v3 v3.5.12
 	golang.org/x/oauth2 v0.18.0
 	golang.org/x/text v0.14.0

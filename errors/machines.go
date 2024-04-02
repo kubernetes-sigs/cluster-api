@@ -45,6 +45,14 @@ func InvalidMachineConfiguration(msg string, args ...interface{}) *MachineError 
 	}
 }
 
+// BootstrapFailed creates a new error when a bootstrap failed for Machine.
+func BootstrapFailed(msg string, args ...interface{}) *MachineError {
+	return &MachineError{
+		Reason:  BootstrapFailedMachineError,
+		Message: fmt.Sprintf(msg, args...),
+	}
+}
+
 // CreateMachine creates a new error for when creating a Machine.
 func CreateMachine(msg string, args ...interface{}) *MachineError {
 	return &MachineError{

@@ -19,8 +19,8 @@ require (
 	github.com/prometheus/client_golang v1.18.0
 	github.com/spf13/pflag v1.0.5
 	github.com/vincent-petithory/dataurl v1.0.0
-	go.etcd.io/etcd/api/v3 v3.5.12
-	go.etcd.io/etcd/client/v3 v3.5.12
+	go.etcd.io/etcd/api/v3 v3.5.13
+	go.etcd.io/etcd/client/v3 v3.5.13
 	golang.org/x/net v0.22.0
 	google.golang.org/grpc v1.60.1
 	k8s.io/api v0.29.3
@@ -137,7 +137,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.12 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.13 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.46.0 // indirect
 	go.opentelemetry.io/otel v1.22.0 // indirect

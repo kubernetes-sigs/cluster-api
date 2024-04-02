@@ -168,6 +168,49 @@ func ClusterUnpaused(logger logr.Logger) predicate.Funcs {
 	return Any(log, ClusterCreateNotPaused(log), ClusterUpdateUnpaused(log))
 }
 
+func ClusterCreateUpdateEvent(logger logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			log := logger.WithValues("predicate", "ClusterUpdatePauseUnpause", "eventType", "update")
+
+			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
+			if !ok {
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
+				return false
+			}
+			log = log.WithValues("Cluster", klog.KObj(oldCluster))
+
+			newCluster := e.ObjectNew.(*clusterv1.Cluster)
+
+			if oldCluster.Spec.Paused && !newCluster.Spec.Paused {
+				log.V(4).Info("Cluster was unpaused, allowing further processing")
+				return true
+			}
+
+			if !oldCluster.Spec.Paused && newCluster.Spec.Paused {
+				log.V(4).Info("Cluster was paused, allowing further processing to update condition")
+				return true
+			}
+
+			return false
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			log := logger.WithValues("predicate", "ClusterCreate", "eventType", "create")
+
+			c, ok := e.Object.(*clusterv1.Cluster)
+			if !ok {
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
+				return false
+			}
+			log = log.WithValues("Cluster", klog.KObj(c))
+
+			return true
+		},
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
+	}
+}
+
 // ClusterControlPlaneInitialized returns a Predicate that returns true on Update events
 // when ControlPlaneInitializedCondition on a Cluster changes to true.
 // Example use:

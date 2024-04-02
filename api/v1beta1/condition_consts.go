@@ -22,6 +22,12 @@ package v1beta1
 const (
 	// ReadyCondition defines the Ready condition type that summarizes the operational state of a Cluster API object.
 	ReadyCondition ConditionType = "Ready"
+
+	// PausedCondition defines the Paused condition type that summarizes the operational state of a Cluster API object.
+
+	// TODO: I've noticed we have controller specific conditions. I'm not sure if
+	// I want to have a shared condition, or many controller specific conditions. 🤔
+	PausedCondition ConditionType = "Paused"
 )
 
 // Common ConditionReason used by Cluster API objects.
@@ -38,6 +44,12 @@ const (
 
 	// IncorrectExternalRefReason (Severity=Error) documents a CAPI object with an incorrect external object reference.
 	IncorrectExternalRefReason = "IncorrectExternalRef"
+
+	// ClusterPausedReason (Severity=Info) documents a CAPI object that is paused due to the cluster being paused (.Spec.Paused).
+	ClusterPausedReason = "ClusterPaused"
+
+	// AnnotationPausedReason (Severity=Info) documents a CAPI object that is paused due to the paused annotation being present.
+	AnnotationPausedReason = "PausedAnnotationSet"
 )
 
 const (

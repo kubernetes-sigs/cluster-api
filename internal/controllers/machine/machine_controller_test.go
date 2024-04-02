@@ -1048,6 +1048,19 @@ func TestMachineConditions(t *testing.T) {
 			},
 		},
 		{
+			name:           "paused initialises false",
+			infraReady:     true,
+			bootstrapReady: true,
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
+				// since these conditions are set by an external controller
+				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededCondition)
+				conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseConditionWithNegativePolarity(clusterv1.PausedCondition),
+			},
+		},
+		{
 			name:           "infra condition consumes reason from the infra config",
 			infraReady:     false,
 			bootstrapReady: true,
@@ -2520,6 +2533,146 @@ func TestNodeDeletion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPauseConditionReconcile(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "test-paused-condition-reconcile")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	infraMachine := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericInfrastructureMachine",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": ns.Name,
+			},
+			"spec": map[string]interface{}{
+				"providerID": "test://id-1",
+			},
+		},
+	}
+
+	defaultBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericBootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config-pausereconcile",
+				"namespace": ns.Name,
+			},
+			"spec":   map[string]interface{}{},
+			"status": map[string]interface{}{},
+		},
+	}
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "pause-condition-reconcile-",
+			Namespace:    ns.Name,
+		},
+		Spec: clusterv1.ClusterSpec{
+			// we create the cluster in paused state so we don't reconcile
+			// the machine immediately after creation.
+			// This avoids going through reconcileExternal, which adds watches
+			// for the provider machine and the bootstrap config objects.
+			Paused: true,
+		},
+	}
+
+	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
+
+	defer func(do ...client.Object) {
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+	}(ns, testCluster, defaultBootstrap, infraMachine)
+
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "machine-test-pause-reconcile-created-",
+			Namespace:    ns.Name,
+			Finalizers:   []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: testCluster.Name,
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericBootstrapConfig",
+					Name:       "bootstrap-config-machine-pausereconcile",
+				},
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "test",
+			},
+		},
+	}
+	g.Expect(env.Create(ctx, machine)).To(Succeed())
+
+	defer func(do ...client.Object) {
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+	}(machine)
+
+	key := client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
+
+	// Wait for reconciliation to happen when infra and bootstrap objects are not ready.
+	g.Eventually(func() bool {
+		if err := env.Get(ctx, key, machine); err != nil {
+			return false
+		}
+		return len(machine.Finalizers) > 0
+	}, timeout).Should(BeTrue())
+
+	// Set bootstrap ready.
+	bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).ToNot(HaveOccurred())
+	g.Expect(env.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
+
+	// Set infrastructure ready.
+	infraMachinePatch := client.MergeFrom(infraMachine.DeepCopy())
+	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(env.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
+
+	// The cluster starts paused, so the machine machine should have a Paused:
+	// true condition
+	g.Eventually(func() bool {
+		if err := env.Get(ctx, key, machine); err != nil {
+			return false
+		}
+		if !conditions.Has(machine, clusterv1.PausedCondition) {
+			return false
+		}
+		pausedCondition := conditions.Get(machine, clusterv1.PausedCondition)
+		return pausedCondition.Status == corev1.ConditionTrue
+	}, timeout).Should(BeTrue())
+
+	// We un-pause the machine by un-pausing the cluster, eventually the machine
+	// has a Paused: false condition
+
+	testCluster.Spec.Paused = false
+	g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+	// Eventually, machine has condition paused: true
+	g.Eventually(func() bool {
+		if err := env.Get(ctx, key, machine); err != nil {
+			return false
+		}
+		if !conditions.Has(machine, clusterv1.PausedCondition) {
+			return false
+		}
+		pausedCondition := conditions.Get(machine, clusterv1.PausedCondition)
+		return pausedCondition.Status == corev1.ConditionFalse
+	}, timeout).Should(BeTrue())
 }
 
 // adds a condition list to an external object.

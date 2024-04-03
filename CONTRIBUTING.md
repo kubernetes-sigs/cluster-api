@@ -260,6 +260,56 @@ The [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/pro
 - A proposal in a Google Doc MUST turn into a [Pull Request](https://github.com/kubernetes-sigs/cluster-api/pulls).
 - Proposals MUST be merged and in `implementable` state to be considered part of a major or minor release.
 
+## Triaging issues
+
+Cluster API maintainers will try to triage incoming issues as soon as possible, but the help of the community
+is crucial to ensure that this task is performed timely and sustainable long term.
+
+In order to reduce toil and to ensure our backlog is always curated and actionable for all the contributors,
+the Cluster API project follow the practices described below:
+
+- When an issue is triaged, maintainers should apply a `priority/*` label. Please note:
+  - Priority provides an indication to contributors looking for work to be done.
+  - When assigning priority several factors are taken into consideration, including impact on users, relevance
+    for the upcoming releases, maturity of the issue (consensus + completeness).
+  - `priority/awaiting-more-evidences` is used to mark issue where there is not enough info to take a decision for
+    one of the other priorities.
+  - Priority can change over time, and everyone is welcome to provide constructive feedback about updating issue's priority.
+  - Applying a priority label is not a commitment to execute within a certain time frame, because implementation
+    depends on contributors volunteering time to do the work and on reviewers/approvers bandwidth.
+  
+- In some cases, even if priority is applied, an issue could require some more discussion before being actually actionable;
+  this is usually evident from the discussion thread, but maintainers will try their bast to make this explicit.
+  Similarly, they will try to make it explicit when agreement is finally found. 
+
+- Stale issues will be automatically marked with the `lifecycle/stale` label, then `lifecycle/rotten` and finally closed;
+  this might seem un-polite but it is actually crucial to keep our backlog actionable. 
+  With this regard, it is important to notice that closed issue are and will always be an high valuable part of the
+  knowledge base about the Cluster API project, and they will never go away.
+
+- If for any reason you don't want your issue to go trough the stale/rotten/closed process, you can:
+  - Mark this issue as fresh by adding a comment with `/remove-lifecycle stale`, `/remove-lifecycle rotten`, or reopen
+    this issue with `/reopen`. However, you should be aware that this action usually doesn't solve the root causes
+    leading to an issue to become stale, e.g:
+    - Issue too generic / not actionable
+    - Lack of consensus / issue not relevant for other contributors
+    - Lack of contributors
+  - If you really care about a stale issue being done, usually it is much more productive to try to figure out what is
+    holding back the issue solution, engage with the community, find ways to help and free up maintainers time from
+    other tasks, or `/assign` the issue and send a PR. 
+   
+- Maintainers could apply the `lifecycle/frozen` label if they want to exclude an issue from the stale/rotten/closed process;
+  Frozen issues, will be re-triage periodically, but with a lower frequency (e.g yearly).
+  Note: Given that re-triage periodically is a manual effort, `lifecycle/frozen` must be applied selectively.
+
+- Maintainers could eventually schedule public schedule backlog grooming sessions
+
+- Contributors/users can use office hours to bring to the attention of the entire community specific issues, or discuss
+  them.
+
+Note: After testing it for some time, Cluster API maintainers decided to not use the triage process based on `trige/*`
+labels, because it interferes with the stale issue bot. Please don't use `trige/*` labels.
+
 ## Triaging E2E test failures
 
 When you submit a change to the Cluster API repository as set of validation jobs is automatically executed by

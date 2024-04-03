@@ -489,7 +489,11 @@ While we add test coverage for the new release branch we will also drop the test
             * Change intervals (let's use the same as for `release-1.5`).
 2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml` (`dashboard_groups` and `dashboards`).
 3. Remove old release branches and unused versions from the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/) according to our policy documented in [Support and guarantees](../../CONTRIBUTING.md#support-and-guarantees). For example, let's assume we just added `release-1.6`, then we can now drop test coverage for the `release-1.3` branch.
-4. Regenerate the probjob configuration using `make generate-test-infra-prowjobs`.
+4. Regenerate the prowjob configuration running `make generate-test-infra-prowjobs` command from cluster-api repository. Before running this command, ensure to export the `TEST_INFRA_DIR` variable, specifying the location of the [test-infra](https://github.com/kubernetes/test-infra/) repository in your environment. For further information, refer to this [link](https://github.com/kubernetes-sigs/cluster-api/pull/9937).
+
+ ```sh
+  TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs
+  ```
 5. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.6`
 6. Update `.github/workflows/weekly-security-scan.yaml` - to setup Trivy and govulncheck scanning - `.github/workflows/weekly-md-link-check.yaml` - to setup link checking in the CAPI book - and `.github/workflows/weekly-test-release.yaml` - to verify the release target is working - for the currently supported branches.
 7. Update the [PR markdown link checker](https://github.com/kubernetes-sigs/cluster-api/blob/main/.github/workflows/pr-md-link-check.yaml) accordingly (e.g. `main` -> `release-1.6`).

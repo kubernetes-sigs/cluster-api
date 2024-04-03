@@ -90,6 +90,39 @@ CAPIM.clusterclass `quick-start` and CAPIM.template `development` or use your ow
 
 See [Developing Cluster API with Tilt](https://cluster-api.sigs.k8s.io/developer/tilt) for more details.
 
+#### Accessing the workload cluster
+
+Even if the workload cluster running in memory machines is fake, it could be interesting to use kubectl to
+query the fake API server.
+
+It is required to setup connectivity to the pod where the fake API server in running first;
+this connection must be used when using kubectl.
+
+From terminal window #1:
+
+```shell
+# NOTE: use namespace and name of the cluster you want to connect to
+export NAMESPACE=default 
+export CLUSTER_NAME=in-memory-development-11461
+
+export CONTROL_PLANE_ENDPOINT_PORT=$(k get cluster -n $NAMESPACE $CLUSTER_NAME  -o=jsonpath='{.spec.controlPlaneEndpoint.port}')
+
+kubectl port-forward -n capim-system deployments/capim-controller-manager $CONTROL_PLANE_ENDPOINT_PORT
+```
+
+From terminal window #2:
+
+```shell
+# NOTE: use namespace and name of the cluster you want to connect to
+export NAMESPACE=default 
+export CLUSTER_NAME=in-memory-development-11461
+
+export CONTROL_PLANE_ENDPOINT_PORT=$(k get cluster -n $NAMESPACE $CLUSTER_NAME  -o=jsonpath='{.spec.controlPlaneEndpoint.port}')
+
+bin/clusterctl get kubeconfig -n $NAMESPACE $CLUSTER_NAME > /tmp/kubeconfig
+kubectl --kubeconfig=/tmp/kubeconfig --server=https://127.0.0.1:$CONTROL_PLANE_ENDPOINT_PORT get nodes
+```
+
 ### E2E tests
 
 CAPIM could be used to run a subset of CAPI E2E tests, but as of today we maintain only a smoke E2E scale test 

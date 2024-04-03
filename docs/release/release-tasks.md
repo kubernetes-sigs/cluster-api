@@ -170,7 +170,7 @@ From this point forward changes which should land in the release have to be cher
    <br>Prior art: [cluster-api: update milestone applier config for v1.5](https://github.com/kubernetes/test-infra/pull/30058)
 
 2. Update the GitHub Actions to work with the new release version.
-   <br>Prior art: [Update actions for v1.6](https://github.com/kubernetes-sigs/cluster-api/pull/9708)
+   <br>Prior art: [Update actions for v1.7](https://github.com/kubernetes-sigs/cluster-api/pull/10357)
 
 #### [Continuously] Maintain the GitHub release milestone
 
@@ -503,7 +503,6 @@ While we add test coverage for the new release branch we will also drop the test
 Prior art:
 
 * [Add jobs for CAPI release 1.6](https://github.com/kubernetes/test-infra/pull/31208)
-* [Update github workflows](https://github.com/kubernetes-sigs/cluster-api/pull/8398)
 
 #### [Continuously] Monitor CI signal
 

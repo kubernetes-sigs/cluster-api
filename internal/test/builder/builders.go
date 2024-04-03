@@ -187,11 +187,12 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 
 // MachineDeploymentTopologyBuilder holds the values needed to create a testable MachineDeploymentTopology.
 type MachineDeploymentTopologyBuilder struct {
-	class     string
-	name      string
-	replicas  *int32
-	mhc       *clusterv1.MachineHealthCheckTopology
-	variables []clusterv1.ClusterVariable
+	annotations map[string]string
+	class       string
+	name        string
+	replicas    *int32
+	mhc         *clusterv1.MachineHealthCheckTopology
+	variables   []clusterv1.ClusterVariable
 }
 
 // MachineDeploymentTopology returns a builder used to create a testable MachineDeploymentTopology.
@@ -199,6 +200,12 @@ func MachineDeploymentTopology(name string) *MachineDeploymentTopologyBuilder {
 	return &MachineDeploymentTopologyBuilder{
 		name: name,
 	}
+}
+
+// WithAnnotations adds annotations map used as the MachineDeploymentTopology annotations.
+func (m *MachineDeploymentTopologyBuilder) WithAnnotations(annotations map[string]string) *MachineDeploymentTopologyBuilder {
+	m.annotations = annotations
+	return m
 }
 
 // WithClass adds a class string used as the MachineDeploymentTopology class.
@@ -228,6 +235,9 @@ func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc *clusterv1
 // Build returns a testable MachineDeploymentTopology with any values passed to the builder.
 func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTopology {
 	md := clusterv1.MachineDeploymentTopology{
+		Metadata: clusterv1.ObjectMeta{
+			Annotations: m.annotations,
+		},
 		Class:              m.class,
 		Name:               m.name,
 		Replicas:           m.replicas,

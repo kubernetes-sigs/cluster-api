@@ -2429,6 +2429,88 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 	}
 }
 
+func TestValidateAutoscalerAnnotationsForClusterClass(t *testing.T) {
+	tests := []struct {
+		name         string
+		expectErr    bool
+		clusters     []clusterv1.Cluster
+		clusterClass *clusterv1.ClusterClass
+	}{
+		{
+			name:      "replicas is set in one cluster, there is an autoscaler annotation on the matching ClusterClass MDC",
+			expectErr: true,
+			clusters: []clusterv1.Cluster{
+				*builder.Cluster("ns", "cname1").Build(),
+				*builder.Cluster("ns", "cname2").WithTopology(
+					builder.ClusterTopology().
+						WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+							WithClass("mdc1").
+							WithReplicas(2).
+							Build(),
+						).
+						Build()).
+					Build(),
+			},
+			clusterClass: builder.ClusterClass("ns", "ccname1").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc1").
+					WithAnnotations(map[string]string{
+						clusterv1.AutoscalerMaxSizeAnnotation: "20",
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set in one cluster, there are no autoscaler annotation on the matching ClusterClass MDC",
+			expectErr: false,
+			clusters: []clusterv1.Cluster{
+				*builder.Cluster("ns", "cname1").Build(),
+				*builder.Cluster("ns", "cname2").WithTopology(
+					builder.ClusterTopology().
+						WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+							WithClass("mdc1").
+							WithReplicas(2).
+							Build(),
+						).
+						Build()).
+					Build(),
+			},
+			clusterClass: builder.ClusterClass("ns", "ccname1").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc1").
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set in one cluster, but the ClusterClass has no annotations",
+			expectErr: false,
+			clusters: []clusterv1.Cluster{
+				*builder.Cluster("ns", "cname1").Build(),
+				*builder.Cluster("ns", "cname2").WithTopology(
+					builder.ClusterTopology().
+						WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+							WithClass("mdc1").
+							WithReplicas(2).
+							Build(),
+						).
+						Build()).
+					Build(),
+			},
+			clusterClass: builder.ClusterClass("ns", "ccname1").Build(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := validateAutoscalerAnnotationsForClusterClass(tt.clusters, tt.clusterClass)
+			if tt.expectErr {
+				g.Expect(err).ToNot(BeEmpty())
+			} else {
+				g.Expect(err).To(BeEmpty())
+			}
+		})
+	}
+}
+
 func invalidLabels() map[string]string {
 	return map[string]string{
 		"foo":          "$invalid-key",

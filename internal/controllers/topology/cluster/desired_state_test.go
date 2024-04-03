@@ -2239,7 +2239,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 		"foo": "bar",
 	}}
 	healthCheckTarget := builder.MachineDeployment("ns1", "md1").Build()
-	clusterName := "cluster1"
+	cluster := builder.Cluster("ns1", "cluster1").Build()
 	want := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
@@ -2253,9 +2253,12 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				"cluster.x-k8s.io/cluster-name":     "cluster1",
 				clusterv1.ClusterTopologyOwnedLabel: "",
 			},
+			OwnerReferences: []metav1.OwnerReference{
+				*ownerReferenceTo(cluster),
+			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
-			ClusterName: "cluster1",
+			ClusterName: cluster.Name,
 			Selector: metav1.LabelSelector{MatchLabels: map[string]string{
 				"foo": "bar",
 			}},
@@ -2281,7 +2284,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	t.Run("set all fields correctly", func(t *testing.T) {
 		g := NewWithT(t)
 
-		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec)
+		got := computeMachineHealthCheck(healthCheckTarget, selector, cluster, mhcSpec)
 
 		g.Expect(got).To(Equal(want), cmp.Diff(got, want))
 	})

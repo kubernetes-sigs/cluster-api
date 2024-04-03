@@ -45,3 +45,11 @@ func TestNewControlPlaneJoinCertsExternal(t *testing.T) {
 	certs := secret.NewControlPlaneJoinCerts(config)
 	g.Expect(certs.GetByPurpose(secret.EtcdCA).KeyFile).To(BeEmpty())
 }
+
+func TestNewControlPlaneJoinCertsAsFilesNotPanicsWhenEmpty(t *testing.T) {
+	g := NewWithT(t)
+
+	config := &bootstrapv1.ClusterConfiguration{}
+	certs := secret.NewControlPlaneJoinCerts(config)
+	g.Expect(certs.AsFiles()).To(BeEmpty())
+}

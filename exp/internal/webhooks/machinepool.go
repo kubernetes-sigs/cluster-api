@@ -55,7 +55,7 @@ func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // MachinePool implements a validation and defaulting webhook for MachinePool.
 type MachinePool struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 var _ webhook.CustomValidator = &MachinePool{}

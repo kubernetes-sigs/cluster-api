@@ -39,6 +39,7 @@ Use these as the base of your release notes.
 */
 
 const (
+	alphaRelease     = "ALPHA RELEASE"
 	betaRelease      = "BETA RELEASE"
 	releaseCandidate = "RELEASE CANDIDATE"
 )
@@ -146,6 +147,8 @@ func releaseTypeFromNewTag(newTagConfig string) string {
 		return releaseCandidate
 	case "beta":
 		return betaRelease
+	case "alpha":
+		return alphaRelease
 	}
 	return ""
 }

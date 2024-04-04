@@ -315,9 +315,9 @@ variables:
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
   KUBERNETES_VERSION_MANAGEMENT: "v1.29.2"
-  KUBERNETES_VERSION: "v1.29.2"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.28.0"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.29.2"
+  KUBERNETES_VERSION: "v1.30.0-rc.1"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.29.2"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.30.0-rc.1"
   KUBERNETES_VERSION_LATEST_CI: "ci/latest-1.30"
   ETCD_VERSION_UPGRADE_TO: "3.5.10-0"
   COREDNS_VERSION_UPGRADE_TO: "v1.11.1"

@@ -273,7 +273,7 @@ the Cluster API project follow the practices described below:
   - When assigning priority several factors are taken into consideration, including impact on users, relevance
     for the upcoming releases, maturity of the issue (consensus + completeness).
   - `priority/awaiting-more-evidences` is used to mark issue where there is not enough info to take a decision for
-    one of the other priorities.
+    one of the other [priorities values](https://github.com/kubernetes-sigs/cluster-api/labels?q=priority).
   - Priority can change over time, and everyone is welcome to provide constructive feedback about updating issue's priority.
   - Applying a priority label is not a commitment to execute within a certain time frame, because implementation
     depends on contributors volunteering time to do the work and on reviewers/approvers bandwidth.
@@ -307,8 +307,9 @@ the Cluster API project follow the practices described below:
 - Contributors/users can use office hours to bring to the attention of the entire community specific issues, or discuss
   them.
 
-Note: After testing it for some time, Cluster API maintainers decided to not use the triage process based on `trige/*`
-labels, because it interferes with the stale issue bot. Please don't use `trige/*` labels.
+Note: After testing it for some time, Cluster API maintainers decided to not use the triage process based on
+[`trige/*` labels](https://github.com/kubernetes-sigs/cluster-api/labels?q=triage+), because it interferes with the stale issue bot.
+Please don't use [`trige/*` labels](https://github.com/kubernetes-sigs/cluster-api/labels?q=triage+).
 
 ## Triaging E2E test failures
 

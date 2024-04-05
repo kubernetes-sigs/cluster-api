@@ -18,6 +18,7 @@ package clusterctl
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -286,10 +287,15 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyClusterTemplateAndWait")
 	Expect(result).ToNot(BeNil(), "Invalid argument. result can't be nil when calling ApplyClusterTemplateAndWait")
 	Expect(input.ConfigCluster.ControlPlaneMachineCount).ToNot(BeNil())
-	Expect(input.ConfigCluster.WorkerMachineCount).ToNot(BeNil())
 
-	log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-		input.ConfigCluster.ClusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, *input.ConfigCluster.ControlPlaneMachineCount, *input.ConfigCluster.WorkerMachineCount)
+	var workerMachinesCount string
+	if input.ConfigCluster.WorkerMachineCount != nil {
+		workerMachinesCount = fmt.Sprintf("%d", *input.ConfigCluster.WorkerMachineCount)
+	} else {
+		workerMachinesCount = "(unset)"
+	}
+	log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %s worker machines)",
+		input.ConfigCluster.ClusterName, valueOrDefault(input.ConfigCluster.Flavor), input.ConfigCluster.KubernetesVersion, *input.ConfigCluster.ControlPlaneMachineCount, workerMachinesCount)
 
 	// Ensure we have a Cluster for dump and cleanup steps in AfterEach even if ApplyClusterTemplateAndWait fails.
 	result.Cluster = &clusterv1.Cluster{

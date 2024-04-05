@@ -318,12 +318,16 @@ type ConfigClusterInput struct {
 
 // ConfigCluster gets a workload cluster based on a template.
 func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
-	log.Logf("clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s",
+	var workerMachineCountArg string
+	if input.WorkerMachineCount != nil {
+		workerMachineCountArg = fmt.Sprintf("--worker-machine-count %d ", *input.WorkerMachineCount)
+	}
+	log.Logf("clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d %s--flavor %s",
 		input.ClusterName,
 		valueOrDefault(input.InfrastructureProvider),
 		input.KubernetesVersion,
 		*input.ControlPlaneMachineCount,
-		*input.WorkerMachineCount,
+		workerMachineCountArg,
 		valueOrDefault(input.Flavor),
 	)
 

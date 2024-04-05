@@ -186,13 +186,13 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 
 func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 	tests := []struct {
-		name               string
-		unhealthConditions []clusterv1.UnhealthyCondition
-		expectErr          bool
+		name                string
+		unhealthyConditions []clusterv1.UnhealthyCondition
+		expectErr           bool
 	}{
 		{
 			name: "pass with correctly defined unhealthyConditions",
-			unhealthConditions: []clusterv1.UnhealthyCondition{
+			unhealthyConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionFalse,
@@ -201,14 +201,14 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 			expectErr: false,
 		},
 		{
-			name:               "fail if the UnhealthCondition array is nil",
-			unhealthConditions: nil,
-			expectErr:          true,
+			name:                "do not fail if the UnhealthyCondition array is nil",
+			unhealthyConditions: nil,
+			expectErr:           false,
 		},
 		{
-			name:               "fail if the UnhealthCondition array is empty",
-			unhealthConditions: []clusterv1.UnhealthyCondition{},
-			expectErr:          true,
+			name:                "do not fail if the UnhealthyCondition array is nil",
+			unhealthyConditions: []clusterv1.UnhealthyCondition{},
+			expectErr:           false,
 		},
 	}
 
@@ -222,7 +222,7 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 							"test": "test",
 						},
 					},
-					UnhealthyConditions: tt.unhealthConditions,
+					UnhealthyConditions: tt.unhealthyConditions,
 				},
 			}
 			webhook := &MachineHealthCheck{}

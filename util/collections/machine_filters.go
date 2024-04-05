@@ -175,6 +175,9 @@ func HasMissingNodeOrUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 		)
 	}
 	return func(machine *clusterv1.Machine) bool {
+		if machine == nil {
+			return false
+		}
 		if !HasNode()(machine) {
 			return true
 		}

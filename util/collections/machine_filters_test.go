@@ -455,9 +455,9 @@ func TestHasNode(t *testing.T) {
 }
 
 func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
-	t.Run("nil machine returns true", func(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(false)(nil)).To(BeTrue())
+		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(false)(nil)).To(BeFalse())
 	})
 
 	t.Run("machine without node returns true", func(t *testing.T) {

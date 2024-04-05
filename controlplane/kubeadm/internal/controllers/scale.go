@@ -230,8 +230,8 @@ func selectMachineForScaleDown(ctx context.Context, controlPlane *internal.Contr
 		machines = controlPlane.MachineWithDeleteAnnotation(outdatedMachines)
 	case controlPlane.MachineWithDeleteAnnotation(machines).Len() > 0:
 		machines = controlPlane.MachineWithDeleteAnnotation(machines)
-	case controlPlane.UnhealthyControlPlaneOrNodeMissingMachines(outdatedMachines).Len() > 0:
-		machines = controlPlane.UnhealthyControlPlaneOrNodeMissingMachines(outdatedMachines)
+	case controlPlane.UnhealthyMachinesWithMissingNodeOrUnhealthyControlPlaneComponents(outdatedMachines).Len() > 0:
+		machines = controlPlane.UnhealthyMachinesWithMissingNodeOrUnhealthyControlPlaneComponents(outdatedMachines)
 	case outdatedMachines.Len() > 0:
 		machines = outdatedMachines
 	}

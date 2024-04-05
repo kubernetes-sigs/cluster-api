@@ -246,24 +246,24 @@ func (c *ControlPlane) UnhealthyMachinesWithMissingNodeOrUnhealthyControlPlaneCo
 	return machines.Filter(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(c.IsEtcdManaged()))
 }
 
-// UnhealthyMachinesByHealthCheck returns the list of control plane machines marked as unhealthy by Machine Health Check.
-func (c *ControlPlane) UnhealthyMachinesByHealthCheck() collections.Machines {
+// UnhealthyMachinesByMachineHealthCheck returns the list of control plane machines marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) UnhealthyMachinesByMachineHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.HasUnhealthyCondition)
 }
 
-// HealthyMachinesByHealthCheck returns the list of control plane machines not marked as unhealthy by Machine Health Check.
-func (c *ControlPlane) HealthyMachinesByHealthCheck() collections.Machines {
+// HealthyMachinesByMachineHealthCheck returns the list of control plane machines not marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HealthyMachinesByMachineHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.Not(collections.HasUnhealthyCondition))
 }
 
-// HasUnhealthyMachineByHealthCheck returns true if any machine in the control plane is marked as unhealthy by Machine Health Check.
-func (c *ControlPlane) HasUnhealthyMachineByHealthCheck() bool {
-	return len(c.UnhealthyMachinesByHealthCheck()) > 0
+// HasUnhealthyMachineByMachineHealthCheck returns true if any machine in the control plane is marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HasUnhealthyMachineByMachineHealthCheck() bool {
+	return len(c.UnhealthyMachinesByMachineHealthCheck()) > 0
 }
 
 // HasHealthyMachineStillProvisioning returns true if any healthy machine in the control plane is still in the process of being provisioned.
 func (c *ControlPlane) HasHealthyMachineStillProvisioning() bool {
-	return len(c.HealthyMachinesByHealthCheck().Filter(collections.Not(collections.HasNode()))) > 0
+	return len(c.HealthyMachinesByMachineHealthCheck().Filter(collections.Not(collections.HasNode()))) > 0
 }
 
 // PatchMachines patches all the machines conditions.

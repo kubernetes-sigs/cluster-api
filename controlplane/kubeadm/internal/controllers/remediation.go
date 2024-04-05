@@ -48,7 +48,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// Cleanup pending remediation actions not completed for any reasons (e.g. number of current replicas is less or equal to 1)
 	// if the underlying machine is now back to healthy / not deleting.
 	errList := []error{}
-	healthyMachines := controlPlane.HealthyMachinesByHealthCheck()
+	healthyMachines := controlPlane.HealthyMachinesByMachineHealthCheck()
 	for _, m := range healthyMachines {
 		if conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) &&
 			conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition) &&
@@ -74,7 +74,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	// Gets all machines that have `MachineHealthCheckSucceeded=False` (indicating a problem was detected on the machine)
 	// and `MachineOwnerRemediated` present, indicating that this controller is responsible for performing remediation.
-	unhealthyMachines := controlPlane.UnhealthyMachinesByHealthCheck()
+	unhealthyMachines := controlPlane.UnhealthyMachinesByMachineHealthCheck()
 
 	// If there are no unhealthy machines, return so KCP can proceed with other operations (ctrl.Result nil).
 	if len(unhealthyMachines) == 0 {
@@ -192,7 +192,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 		// If the machine that is about to be deleted is the etcd leader, move it to the newest member available.
 		if controlPlane.IsEtcdManaged() {
-			etcdLeaderCandidate := controlPlane.HealthyMachinesByHealthCheck().Newest()
+			etcdLeaderCandidate := controlPlane.HealthyMachinesByMachineHealthCheck().Newest()
 			if etcdLeaderCandidate == nil {
 				log.Info("A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to")
 				conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,

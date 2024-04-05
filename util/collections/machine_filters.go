@@ -160,7 +160,7 @@ func HasUnhealthyCondition(machine *clusterv1.Machine) bool {
 
 // HasMissingNodeOrUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that
 // does not have a Kubernetes node or have any of the following control plane component conditions set to False:
-// APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy(if using managed etcd).
+// APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy & EtcdMemberHealthy (if using managed etcd).
 // It is different from the HasUnhealthyCondition func which checks MachineHealthCheck conditions.
 func HasMissingNodeOrUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{

@@ -56,6 +56,8 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 	Expect(machineHealthChecks).NotTo(BeEmpty())
 
 	for _, mhc := range machineHealthChecks {
+		Expect(mhc.Spec.UnhealthyConditions).NotTo(BeEmpty())
+
 		fmt.Fprintln(GinkgoWriter, "Ensuring there is at least 1 Machine that MachineHealthCheck is matching")
 		machines := GetMachinesByMachineHealthCheck(ctx, GetMachinesByMachineHealthCheckInput{
 			Lister:             mgmtClient,
@@ -65,20 +67,18 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 
 		Expect(machines).NotTo(BeEmpty())
 
-		if len(mhc.Spec.UnhealthyConditions) > 0 {
-			fmt.Fprintln(GinkgoWriter, "Patching MachineHealthCheck unhealthy condition to one of the nodes")
-			unhealthyNodeCondition := corev1.NodeCondition{
-				Type:               mhc.Spec.UnhealthyConditions[0].Type,
-				Status:             mhc.Spec.UnhealthyConditions[0].Status,
-				LastTransitionTime: metav1.Time{Time: time.Now()},
-			}
-			PatchNodeCondition(ctx, PatchNodeConditionInput{
-				ClusterProxy:  input.ClusterProxy,
-				Cluster:       input.Cluster,
-				NodeCondition: unhealthyNodeCondition,
-				Machine:       machines[0],
-			})
+		fmt.Fprintln(GinkgoWriter, "Patching MachineHealthCheck unhealthy condition to one of the nodes")
+		unhealthyNodeCondition := corev1.NodeCondition{
+			Type:               mhc.Spec.UnhealthyConditions[0].Type,
+			Status:             mhc.Spec.UnhealthyConditions[0].Status,
+			LastTransitionTime: metav1.Time{Time: time.Now()},
 		}
+		PatchNodeCondition(ctx, PatchNodeConditionInput{
+			ClusterProxy:  input.ClusterProxy,
+			Cluster:       input.Cluster,
+			NodeCondition: unhealthyNodeCondition,
+			Machine:       machines[0],
+		})
 
 		fmt.Fprintln(GinkgoWriter, "Waiting for remediation")
 		WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx, WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput{

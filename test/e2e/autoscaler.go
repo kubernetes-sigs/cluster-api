@@ -61,6 +61,7 @@ type AutoscalerSpecInput struct {
 	// Example: dockermachinetemplates.
 	InfrastructureMachineTemplateKind     string
 	InfrastructureMachinePoolTemplateKind string
+	InfrastructureMachinePoolKind         string
 	AutoscalerVersion                     string
 
 	// Allows to inject a function to be run after test namespace is created.
@@ -72,7 +73,9 @@ type AutoscalerSpecInput struct {
 // being deployed in the workload cluster.
 func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput) {
 	var (
-		specName           = "autoscaler"
+		specName = "autoscaler"
+		// We need to set the min size to 1 because the MachinePool is initially created without the
+		// annotations and the replicas field set. The MachinePool webhook will then set 1 in that case.
 		mpNodeGroupMinSize = "1"
 		mpNodeGroupMaxSize = "5"
 		input              AutoscalerSpecInput
@@ -144,14 +147,19 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 
 		// Ensure the MachinePoolTopology does NOT have the autoscaler annotations so we can test MachineDeployments first.
 		mpTopology := clusterResources.Cluster.Spec.Topology.Workers.MachinePools[0]
-		Expect(mpTopology.Metadata.Annotations).To(BeNil(), "MachinePool is expected to have autoscaler annotations")
+		if mpTopology.Metadata.Annotations != nil {
+			_, ok = mpTopology.Metadata.Annotations[clusterv1.AutoscalerMinSizeAnnotation]
+			Expect(ok).To(BeFalse(), "MachinePoolTopology %s does have the %q autoscaler annotation", mpTopology.Name, clusterv1.AutoscalerMinSizeAnnotation)
+			_, ok = mpTopology.Metadata.Annotations[clusterv1.AutoscalerMaxSizeAnnotation]
+			Expect(ok).To(BeFalse(), "MachinePoolTopology %s does have the %q autoscaler annotation", mpTopology.Name, clusterv1.AutoscalerMaxSizeAnnotation)
+		}
 
 		// Get a ClusterProxy so we can interact with the workload cluster
 		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, clusterResources.Cluster.Namespace, clusterResources.Cluster.Name)
 		mdOriginalReplicas := *clusterResources.MachineDeployments[0].Spec.Replicas
 		Expect(strconv.Itoa(int(mdOriginalReplicas))).To(Equal(mdNodeGroupMinSize), "MachineDeployment should have replicas as defined in %s", clusterv1.AutoscalerMinSizeAnnotation)
 		mpOriginalReplicas := *clusterResources.MachinePools[0].Spec.Replicas
-		Expect(strconv.Itoa(int(mpOriginalReplicas))).To(Equal(mpNodeGroupMinSize), "MachinePool should have replicas as defined in %s", clusterv1.AutoscalerMinSizeAnnotation)
+		Expect(int(mpOriginalReplicas)).To(Equal(1), "MachinePool should default to 1 replica via the MachinePool webhook")
 
 		By("Installing the autoscaler on the workload cluster")
 		autoscalerWorkloadYAMLPath := input.E2EConfig.GetVariable(AutoscalerWorkloadYAMLPath)
@@ -159,6 +167,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 			ArtifactFolder:                        input.ArtifactFolder,
 			InfrastructureMachineTemplateKind:     input.InfrastructureMachineTemplateKind,
 			InfrastructureMachinePoolTemplateKind: input.InfrastructureMachinePoolTemplateKind,
+			InfrastructureMachinePoolKind:         input.InfrastructureMachinePoolKind,
 			WorkloadYamlPath:                      autoscalerWorkloadYAMLPath,
 			ManagementClusterProxy:                input.BootstrapClusterProxy,
 			WorkloadClusterProxy:                  workloadClusterProxy,
@@ -181,7 +190,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 		})
 
 		By("Disabling the autoscaler")
-		framework.DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx, framework.DisableAutoscalerForMachineTopologyAndWaitInput{
+		framework.DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx, framework.DisableAutoscalerForMachineDeploymentTopologyAndWaitInput{
 			ClusterProxy:                  input.BootstrapClusterProxy,
 			Cluster:                       clusterResources.Cluster,
 			WaitForAnnotationsToBeDropped: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
@@ -199,7 +208,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 
 		By("Checking enabling autoscaler will scale down the MachineDeployment to correct size")
 		// Enable autoscaler on the MachineDeployment.
-		framework.EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx, framework.EnableAutoscalerForMachineTopologyAndWaitInput{
+		framework.EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx, framework.EnableAutoscalerForMachineDeploymentTopologyAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
 			Cluster:                     clusterResources.Cluster,
 			NodeGroupMinSize:            mdNodeGroupMinSize,
@@ -218,7 +227,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 		})
 
 		By("Disabling the autoscaler for MachineDeployments to test MachinePools")
-		framework.DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx, framework.DisableAutoscalerForMachineTopologyAndWaitInput{
+		framework.DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx, framework.DisableAutoscalerForMachineDeploymentTopologyAndWaitInput{
 			ClusterProxy:                  input.BootstrapClusterProxy,
 			Cluster:                       clusterResources.Cluster,
 			WaitForAnnotationsToBeDropped: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
@@ -232,7 +241,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 
 		By("Enabling autoscaler for the MachinePool")
 		// Enable autoscaler on the MachinePool.
-		framework.EnableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.EnableAutoscalerForMachineTopologyAndWaitInput{
+		framework.EnableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.EnableAutoscalerForMachinePoolTopologyAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
 			Cluster:                     clusterResources.Cluster,
 			NodeGroupMinSize:            mpNodeGroupMinSize,
@@ -243,7 +252,6 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 		By("Creating workload that forces the system to scale up")
 		framework.AddScaleUpDeploymentAndWait(ctx, framework.AddScaleUpDeploymentAndWaitInput{
 			ClusterProxy: workloadClusterProxy,
-			Name:         "mp-scale-up",
 		}, input.E2EConfig.GetIntervals(specName, "wait-autoscaler")...)
 
 		By("Checking the MachinePool is scaled up")
@@ -256,7 +264,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 		})
 
 		By("Disabling the autoscaler")
-		framework.DisableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.DisableAutoscalerForMachineTopologyAndWaitInput{
+		framework.DisableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.DisableAutoscalerForMachinePoolTopologyAndWaitInput{
 			ClusterProxy:                  input.BootstrapClusterProxy,
 			Cluster:                       clusterResources.Cluster,
 			WaitForAnnotationsToBeDropped: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
@@ -270,11 +278,12 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 			Cluster:             clusterResources.Cluster,
 			Replicas:            mpExcessReplicas,
 			WaitForMachinePools: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			Getter:              input.BootstrapClusterProxy.GetClient(),
 		})
 
 		By("Checking enabling autoscaler will scale down the MachinePool to correct size")
 		// Enable autoscaler on the MachinePool.
-		framework.EnableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.EnableAutoscalerForMachineTopologyAndWaitInput{
+		framework.EnableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.EnableAutoscalerForMachinePoolTopologyAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,
 			Cluster:                     clusterResources.Cluster,
 			NodeGroupMinSize:            mpNodeGroupMinSize,

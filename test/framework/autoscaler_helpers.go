@@ -26,11 +26,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -51,6 +51,7 @@ type ApplyAutoscalerToWorkloadClusterInput struct {
 	ArtifactFolder                        string
 	InfrastructureMachineTemplateKind     string
 	InfrastructureMachinePoolTemplateKind string
+	InfrastructureMachinePoolKind         string
 	// WorkloadYamlPath should point the yaml that will be applied on the workload cluster.
 	// The YAML file should:
 	//  - Be creating the autoscaler deployment in the workload cluster
@@ -91,7 +92,7 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 	// This address should be accessible from the workload cluster.
 	serverAddr, mgtClusterCA := getServerAddrAndCA(ctx, input.ManagementClusterProxy)
 	// Generate a token with the required permission that can be used by the autoscaler.
-	token := getAuthenticationTokenForAutoscaler(ctx, input.ManagementClusterProxy, input.Cluster.Namespace, input.Cluster.Name, input.InfrastructureMachineTemplateKind, input.InfrastructureMachinePoolTemplateKind)
+	token := getAuthenticationTokenForAutoscaler(ctx, input.ManagementClusterProxy, input.Cluster.Namespace, input.Cluster.Name, input.InfrastructureMachineTemplateKind, input.InfrastructureMachinePoolTemplateKind, input.InfrastructureMachinePoolKind)
 
 	workloadYaml, err := ProcessYAML(&ProcessYAMLInput{
 		Template:             workloadYamlTemplate,
@@ -135,7 +136,6 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 // AddScaleUpDeploymentAndWaitInput is the input for AddScaleUpDeploymentAndWait.
 type AddScaleUpDeploymentAndWaitInput struct {
 	ClusterProxy ClusterProxy
-	Name         string
 }
 
 // AddScaleUpDeploymentAndWait create a deployment that will trigger the autoscaler to scale up and create a new machine.
@@ -166,30 +166,26 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 	replicas := workers + 1
 	memoryRequired := int64(float64(memory.Value()) * 0.6)
 	podMemory := resource.NewQuantity(memoryRequired, resource.BinarySI)
-	deploymentName := "scale-up"
-	if input.Name != "" {
-		deploymentName = input.Name
-	}
 
 	scaleUpDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      deploymentName,
+			Name:      "scale-up",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				"app": deploymentName,
+				"app": "scale-up",
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: ptr.To[int32](int32(replicas)),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": deploymentName,
+					"app": "scale-up",
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": deploymentName,
+						"app": "scale-up",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -235,20 +231,16 @@ func DeleteScaleUpDeploymentAndWait(ctx context.Context, input DeleteScaleUpDepl
 	if input.Name != "" {
 		deploymentName = input.Name
 	}
-	Expect(input.ClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: metav1.NamespaceDefault}, deployment)).To(Succeed(), "failed to get the scale up pod")
+	Expect(input.ClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: metav1.NamespaceDefault}, deployment)).To(Succeed(), "failed to get the scale up deployment")
 
 	By("Deleting the scale up deployment")
-	Expect(input.ClusterProxy.GetClient().Delete(ctx, deployment)).To(Succeed(), "failed to delete the scale up pod")
+	Expect(input.ClusterProxy.GetClient().Delete(ctx, deployment)).To(Succeed(), "failed to delete the scale up deployment")
 
 	By("Waiting for the scale up deployment to be deleted")
-	deploymentList := &appsv1.DeploymentList{}
-	Eventually(func() error {
-		Expect(input.ClusterProxy.GetClient().List(ctx, deploymentList, client.InNamespace(metav1.NamespaceDefault))).To(Succeed(), "failed to list deployments")
-		if len(deploymentList.Items) != 0 {
-			return errors.Errorf("expected no deployments for %s, found %d", deploymentName, len(deploymentList.Items))
-		}
-		return nil
-	}, input.WaitForDelete...).Should(BeNil())
+	Eventually(func(g Gomega) {
+		err := input.ClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: metav1.NamespaceDefault}, deployment)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	}, input.WaitForDelete...).Should(Succeed())
 }
 
 type ProcessYAMLInput struct {
@@ -287,7 +279,7 @@ func ProcessYAML(input *ProcessYAMLInput) ([]byte, error) {
 	return out, nil
 }
 
-type DisableAutoscalerForMachineTopologyAndWaitInput struct {
+type DisableAutoscalerForMachineDeploymentTopologyAndWaitInput struct {
 	ClusterProxy                  ClusterProxy
 	Cluster                       *clusterv1.Cluster
 	WaitForAnnotationsToBeDropped []interface{}
@@ -296,7 +288,7 @@ type DisableAutoscalerForMachineTopologyAndWaitInput struct {
 // DisableAutoscalerForMachineDeploymentTopologyAndWait drop the autoscaler annotations from the MachineDeploymentTopology
 // and waits till the annotations are dropped from the underlying MachineDeployment. It also verifies that the replicas
 // fields of the MachineDeployments are not affected after the annotations are dropped.
-func DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, input DisableAutoscalerForMachineTopologyAndWaitInput) {
+func DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, input DisableAutoscalerForMachineDeploymentTopologyAndWaitInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DisableAutoscalerForMachineDeploymentTopologyAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DisableAutoscalerForMachineDeploymentTopologyAndWait")
 
@@ -343,7 +335,7 @@ func DisableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, i
 	}, input.WaitForAnnotationsToBeDropped...).Should(Succeed(), "Auto scaler annotations are not dropped or replicas changed for the MachineDeployments")
 }
 
-type EnableAutoscalerForMachineTopologyAndWaitInput struct {
+type EnableAutoscalerForMachineDeploymentTopologyAndWaitInput struct {
 	ClusterProxy                ClusterProxy
 	Cluster                     *clusterv1.Cluster
 	NodeGroupMinSize            string
@@ -351,7 +343,7 @@ type EnableAutoscalerForMachineTopologyAndWaitInput struct {
 	WaitForAnnotationsToBeAdded []interface{}
 }
 
-func EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, input EnableAutoscalerForMachineTopologyAndWaitInput) {
+func EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, input EnableAutoscalerForMachineDeploymentTopologyAndWaitInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for EnableAutoscalerForMachineDeploymentTopologyAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling EnableAutoscalerForMachineDeploymentTopologyAndWait")
 
@@ -391,10 +383,16 @@ func EnableAutoscalerForMachineDeploymentTopologyAndWait(ctx context.Context, in
 	}, input.WaitForAnnotationsToBeAdded...).Should(Succeed(), "Auto scaler annotations are missing from the MachineDeployments")
 }
 
+type DisableAutoscalerForMachinePoolTopologyAndWaitInput struct {
+	ClusterProxy                  ClusterProxy
+	Cluster                       *clusterv1.Cluster
+	WaitForAnnotationsToBeDropped []interface{}
+}
+
 // DisableAutoscalerForMachinePoolTopologyAndWait drop the autoscaler annotations from the MachinePoolTopology
 // and waits till the annotations are dropped from the underlying MachinePool. It also verifies that the replicas
 // fields of the MachinePools are not affected after the annotations are dropped.
-func DisableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input DisableAutoscalerForMachineTopologyAndWaitInput) {
+func DisableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input DisableAutoscalerForMachinePoolTopologyAndWaitInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DisableAutoscalerForMachinePoolTopologyAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DisableAutoscalerForMachinePoolTopologyAndWait")
 
@@ -441,7 +439,15 @@ func DisableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input D
 	}, input.WaitForAnnotationsToBeDropped...).Should(Succeed(), "Auto scaler annotations are not dropped or replicas changed for the MachinePools")
 }
 
-func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input EnableAutoscalerForMachineTopologyAndWaitInput) {
+type EnableAutoscalerForMachinePoolTopologyAndWaitInput struct {
+	ClusterProxy                ClusterProxy
+	Cluster                     *clusterv1.Cluster
+	NodeGroupMinSize            string
+	NodeGroupMaxSize            string
+	WaitForAnnotationsToBeAdded []interface{}
+}
+
+func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input EnableAutoscalerForMachinePoolTopologyAndWaitInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for EnableAutoscalerForMachinePoolTopologyAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling EnableAutoscalerForMachinePoolTopologyAndWait")
 
@@ -483,7 +489,7 @@ func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input En
 
 // getAuthenticationTokenForAutoscaler returns a bearer authenticationToken with minimal RBAC permissions that will be used
 // by the autoscaler running on the workload cluster to access the management cluster.
-func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterProxy ClusterProxy, namespace string, cluster string, infraMachineTemplateKind string, infraMachinePoolTemplateKind string) string {
+func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterProxy ClusterProxy, namespace string, cluster string, infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind string) string {
 	name := fmt.Sprintf("cluster-%s", cluster)
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -507,7 +513,7 @@ func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterP
 			{
 				Verbs:     []string{"get", "list"},
 				APIGroups: []string{"infrastructure.cluster.x-k8s.io"},
-				Resources: []string{infraMachineTemplateKind, infraMachinePoolTemplateKind, "dockermachinepools"},
+				Resources: []string{infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind},
 			},
 		},
 	}

@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
-var ctx = admission.NewContextWithRequest(ctrl.SetupSignalHandler(), admission.Request{})
+var ctx = ctrl.SetupSignalHandler()
 
 func TestMachinePoolDefault(t *testing.T) {
 	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
@@ -58,6 +58,7 @@ func TestMachinePoolDefault(t *testing.T) {
 		},
 	}
 	webhook := &MachinePool{}
+	ctx = admission.NewContextWithRequest(ctx, admission.Request{})
 	t.Run("for MachinePool", util.CustomDefaultValidateTest(ctx, mp, webhook))
 	g.Expect(webhook.Default(ctx, mp)).To(Succeed())
 

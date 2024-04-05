@@ -207,13 +207,16 @@ type ScaleMachinePoolTopologyAndWaitInput struct {
 	Cluster             *clusterv1.Cluster
 	Replicas            int32
 	WaitForMachinePools []interface{}
+	Getter              Getter
 }
 
 // ScaleMachinePoolTopologyAndWait scales a machine pool and waits for its instances to scale up.
 func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePoolTopologyAndWaitInput) {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeMachinePoolAndWait")
-	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeMachinePoolAndWait")
-	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling UpgradeMachinePoolAndWait")
+	Expect(ctx).NotTo(BeNil(), "ctx is required for ScaleMachinePoolTopologyAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleMachinePoolTopologyAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleMachinePoolTopologyAndWait")
+	Expect(input.Cluster.Spec.Topology.Workers).ToNot(BeNil(), "Invalid argument. input.Cluster must have MachinePool topologies")
+	Expect(input.Cluster.Spec.Topology.Workers.MachinePools).NotTo(BeEmpty(), "Invalid argument. input.Cluster must have at least one MachinePool topology")
 
 	mpTopology := input.Cluster.Spec.Topology.Workers.MachinePools[0]
 	if mpTopology.Replicas != nil {
@@ -240,6 +243,13 @@ func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePool
 			},
 		)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+
+	Expect(mpList.Items).To(HaveLen(1))
+	mp := mpList.Items[0]
+	WaitForMachinePoolNodesToExist(ctx, WaitForMachinePoolNodesToExistInput{
+		Getter:      input.Getter,
+		MachinePool: &mp,
+	}, input.WaitForMachinePools...)
 }
 
 // WaitForMachinePoolInstancesToBeUpgradedInput is the input for WaitForMachinePoolInstancesToBeUpgraded.

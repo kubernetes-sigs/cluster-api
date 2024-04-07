@@ -54,7 +54,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 			Name:      "foo",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
+			Version:  "v1.16.6",
+			Replicas: ptr.To[int32](1),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
@@ -89,7 +90,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	g.Expect(r.updateStatus(ctx, controlPlane)).To(Succeed())
 	g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(0))
 	g.Expect(kcp.Status.ReadyReplicas).To(BeEquivalentTo(0))
-	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(0))
+	g.Expect(kcp.Status.UnavailableReplicas).To(BeEquivalentTo(1))
 	g.Expect(kcp.Status.Initialized).To(BeFalse())
 	g.Expect(kcp.Status.Ready).To(BeFalse())
 	g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
@@ -117,7 +118,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 			Name:      "foo",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
+			Version:  "v1.16.6",
+			Replicas: ptr.To[int32](3),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
@@ -190,7 +192,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 			Name:      "foo",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
+			Version:  "v1.16.6",
+			Replicas: ptr.To[int32](3),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
@@ -271,7 +274,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 			Name:      "foo",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
+			Version:  "v1.16.6",
+			Replicas: ptr.To[int32](5),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
@@ -351,7 +355,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusCannotGetWorkloadClusterStatu
 			Name:      "foo",
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
-			Version: "v1.16.6",
+			Version:  "v1.16.6",
+			Replicas: ptr.To[int32](3),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",

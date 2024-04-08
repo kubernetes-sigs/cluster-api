@@ -270,12 +270,12 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Initialized bool `json:"initialized"`
 
-	// Ready denotes that the KubeadmControlPlane API Server is ready to
-	// receive requests.
-	// +optional
+	// Ready denotes that the KubeadmControlPlane API Server became ready during initial provisioning
+	// to receive requests.
 	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
 	// The value of this field is never updated after provisioning is completed. Please use conditions
 	// to check the operational state of the control plane.
+	// +optional
 	Ready bool `json:"ready"`
 
 	// FailureReason indicates that there is a terminal problem reconciling the

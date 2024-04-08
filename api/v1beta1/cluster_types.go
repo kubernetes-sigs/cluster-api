@@ -412,7 +412,11 @@ type ClusterStatus struct {
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
 
-	// ControlPlaneReady defines if the control plane is ready.
+	// ControlPlaneReady denotes if the control plane became ready during initial provisioning
+	// to receive requests.
+	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed. Please use conditions
+	// to check the operational state of the control plane.
 	// +optional
 	ControlPlaneReady bool `json:"controlPlaneReady"`
 

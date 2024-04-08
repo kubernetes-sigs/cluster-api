@@ -2,59 +2,130 @@ namespace: capi-system
 
 namePrefix: capi-
 
-commonLabels:
-  cluster.x-k8s.io/provider: "cluster-api"
+labels:
+- includeSelectors: true
+  pairs:
+    cluster.x-k8s.io/provider: cluster-api
 
 resources:
 - namespace.yaml
-
-bases:
 - ../crd
 - ../rbac
 - ../manager
 - ../webhook
 - ../certmanager
 
-patchesStrategicMerge:
+patches:
 # Provide customizable hook for make targets.
-- manager_image_patch.yaml
-- manager_pull_policy.yaml
+- path: manager_image_patch.yaml
+- path: manager_pull_policy.yaml
 # Enable webhook.
-- manager_webhook_patch.yaml
+- path: manager_webhook_patch.yaml
 # Inject certificate in the webhook definition.
-- webhookcainjection_patch.yaml
+- path: webhookcainjection_patch.yaml
 # Ease the process of providing extra RBAC to the Cluster API manager for
 # non SIG Cluster Lifecycle-sponsored provider subprojects by using an
 # aggregated role
-- manager_role_aggregation_patch.yaml
+- path: manager_role_aggregation_patch.yaml
 
-vars:
-  - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
-    objref:
-      kind: Certificate
+replacements:
+- source:
+    fieldPath: .metadata.namespace
+    group: cert-manager.io
+    kind: Certificate
+    name: serving-cert
+    version: v1
+  targets:
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
+      kind: ValidatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
+      kind: MutatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+    select:
+      kind: CustomResourceDefinition
+    reject:
+    - name: ipaddressclaims.ipam.cluster.x-k8s.io
+    - name: ipaddresses.ipam.cluster.x-k8s.io
+    - name: extensionconfigs.runtime.cluster.x-k8s.io
+- source:
+    fieldPath: .metadata.name
+    group: cert-manager.io
+    kind: Certificate
+    name: serving-cert
+    version: v1
+  targets:
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
+      kind: ValidatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
+      kind: MutatingWebhookConfiguration
+  - fieldPaths:
+    - .metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      create: true
+      delimiter: /
+      index: 1
+    select:
+      kind: CustomResourceDefinition
+    reject:
+    - name: ipaddressclaims.ipam.cluster.x-k8s.io
+    - name: ipaddresses.ipam.cluster.x-k8s.io
+    - name: extensionconfigs.runtime.cluster.x-k8s.io
+- source:
+    fieldPath: .metadata.name
+    kind: Service
+    name: webhook-service
+    version: v1
+  targets:
+  - fieldPaths:
+    - .spec.dnsNames.0
+    - .spec.dnsNames.1
+    options:
+      create: true
+      delimiter: .
+    select:
       group: cert-manager.io
-      version: v1
-      name: serving-cert # this name should match the one in certificate.yaml
-    fieldref:
-      fieldpath: metadata.namespace
-  - name: CERTIFICATE_NAME
-    objref:
       kind: Certificate
+      version: v1
+- source:
+    fieldPath: .metadata.namespace
+    kind: Service
+    name: webhook-service
+    version: v1
+  targets:
+  - fieldPaths:
+    - .spec.dnsNames.0
+    - .spec.dnsNames.1
+    options:
+      create: true
+      delimiter: .
+      index: 1
+    select:
       group: cert-manager.io
+      kind: Certificate
       version: v1
-      name: serving-cert # this name should match the one in certificate.yaml
-  - name: SERVICE_NAMESPACE # namespace of the service
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
-    fieldref:
-      fieldpath: metadata.namespace
-  - name: SERVICE_NAME
-    objref:
-      kind: Service
-      version: v1
-      name: webhook-service
-
-configurations:
-  - kustomizeconfig.yaml

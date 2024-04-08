@@ -1,12 +1,11 @@
-bases:
-  - ../bases/cluster-with-topology.yaml
-  - ../bases/crs.yaml
+resources:
+- ../bases/cluster-with-topology.yaml
+- ../bases/crs.yaml
 
-patchesStrategicMerge:
-  -  cluster.yaml
 patches:
-  - path: ./drop-machinepools.yaml
-    target:
-      group: cluster.x-k8s.io
-      version: v1beta1
-      kind: Cluster
+- path: ./drop-machinepools.yaml
+  target:
+    group: cluster.x-k8s.io
+    kind: Cluster
+    version: v1beta1
+- path: cluster.yaml

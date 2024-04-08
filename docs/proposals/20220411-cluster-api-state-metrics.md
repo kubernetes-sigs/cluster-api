@@ -394,10 +394,10 @@ The initial plan is to add kube-state-metrics as to the `./hack/observability` d
 [OpenMetrics]: https://github.com/OpenObservability/OpenMetrics/blob/main/specification/OpenMetrics.md
 [metrics umbrella issue #1477]: https://github.com/kubernetes-sigs/cluster-api/issues/1477
 [corresponding section in the cluster-api docs]: https://cluster-api.sigs.k8s.io/developer/crd-relationships.html#worker-machines-relationships
-[Deployment]: https://github.com/kubernetes/kube-state-metrics/blob/master/docs/deployment-metrics.md
-[ReplicaSet]: https://github.com/kubernetes/kube-state-metrics/blob/master/docs/replicaset-metrics.md
-[Pod]: https://github.com/kubernetes/kube-state-metrics/blob/master/docs/pod-metrics.md
-[StatefulSet]: https://github.com/kubernetes/kube-state-metrics/blob/master/docs/statefulset-metrics.md
+[Deployment]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/deployment-metrics.md
+[ReplicaSet]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/replicaset-metrics.md
+[Pod]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/pod-metrics.md
+[StatefulSet]: https://github.com/kubernetes/kube-state-metrics/blob/main/docs/metrics/workload/statefulset-metrics.md
 [kube-state-metrics]: https://github.com/kubernetes/kube-state-metrics
 [1]: https://github.com/kubernetes/kube-state-metrics
 [2]: https://github.com/kubernetes/kube-state-metrics/blob/master/pkg/customresource/registry_factory.go#L29

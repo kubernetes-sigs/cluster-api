@@ -204,7 +204,7 @@ func init() {
 			"all the objects which are part of a Cluster's topology are going to be created.\n" +
 			"\n" +
 			"Notes:\n" +
-			"- This hook will be called only for Clusters with a managed topology\n" + //nolint:goconst
+			"- This hook will be called only for Clusters with a managed topology\n" +
 			"- The call's request contains the Cluster object\n" +
 			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute\n" +
 			"tasks before the objects which are part of a Cluster's topology are created",

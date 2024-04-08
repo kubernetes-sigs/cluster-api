@@ -175,7 +175,11 @@ func (g *generator) templateFunctions() template.FuncMap {
 	funcs["TrimPrefix"] = strings.TrimPrefix
 	funcs["TrimSuffix"] = strings.TrimSuffix
 	funcs["ReplaceAll"] = strings.ReplaceAll
+	// function cloned from sprig
 	funcs["last"] = last
+	funcs["list"] = list
+	funcs["has"] = has
+	funcs["trim"] = strings.TrimSpace
 	return funcs
 }
 
@@ -192,6 +196,42 @@ func last(list any) any {
 
 		return l2.Index(l - 1).Interface()
 	default:
-		panic(fmt.Sprintf("Cannot find last on type %s", tp))
+		panic(fmt.Sprintf("cannot find last on type %s", tp))
+	}
+}
+
+func list(v ...interface{}) []interface{} {
+	return v
+}
+
+func has(needle interface{}, haystack interface{}) bool {
+	l, err := mustHas(needle, haystack)
+	if err != nil {
+		panic(err)
+	}
+
+	return l
+}
+
+func mustHas(needle interface{}, haystack interface{}) (bool, error) {
+	if haystack == nil {
+		return false, nil
+	}
+	tp := reflect.TypeOf(haystack).Kind()
+	switch tp {
+	case reflect.Slice, reflect.Array:
+		l2 := reflect.ValueOf(haystack)
+		var item interface{}
+		l := l2.Len()
+		for i := 0; i < l; i++ {
+			item = l2.Index(i).Interface()
+			if reflect.DeepEqual(needle, item) {
+				return true, nil
+			}
+		}
+
+		return false, nil
+	default:
+		return false, fmt.Errorf("cannot find has on type %s", tp)
 	}
 }

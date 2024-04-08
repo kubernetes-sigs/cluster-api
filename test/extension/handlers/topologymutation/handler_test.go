@@ -34,6 +34,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
 
 var (
@@ -204,7 +205,7 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		expectedErr      bool
 	}{
 		{
-			name:             "fails if builtin.machineDeployment.class is not set",
+			name:             "fails if builtin variable is not set",
 			template:         &bootstrapv1.KubeadmConfigTemplate{},
 			variables:        nil,
 			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
@@ -266,6 +267,69 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			variables: map[string]apiextensionsv1.JSON{
 				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
 					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
+						Class:   "default-worker",
+						Version: "v1.24.0",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+		},
+		{
+			name:     "no op for MachinePool class != default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class: "another-class",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+		},
+		{
+			name:     "fails if builtin.machinePool.version is not set for MachinePool class == default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class: "default-worker",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedErr:      true,
+		},
+		{
+			name:     "set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24 and MachinePool class == default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class:   "default-worker",
+						Version: "v1.23.0",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{
+				Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+					Template: bootstrapv1.KubeadmConfigTemplateResource{
+						Spec: bootstrapv1.KubeadmConfigSpec{
+							JoinConfiguration: &bootstrapv1.JoinConfiguration{
+								NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+									KubeletExtraArgs: map[string]string{"cgroup-driver": "cgroupfs"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24 and MachinePool class == default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
 						Class:   "default-worker",
 						Version: "v1.24.0",
 					},
@@ -338,6 +402,63 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 	}
 }
 
+func Test_patchDockerMachinePoolTemplate(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name             string
+		template         *infraexpv1.DockerMachinePoolTemplate
+		variables        map[string]apiextensionsv1.JSON
+		expectedTemplate *infraexpv1.DockerMachinePoolTemplate
+		expectedErr      bool
+	}{
+		{
+			name:             "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
+			template:         &infraexpv1.DockerMachinePoolTemplate{},
+			variables:        nil,
+			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{},
+			expectedErr:      true,
+		},
+		{
+			name:     "sets customImage for templates linked to ControlPlane",
+			template: &infraexpv1.DockerMachinePoolTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
+						Version: "v1.23.0",
+					},
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class:   "default-worker",
+						Version: "v1.23.0",
+					},
+				})},
+			},
+			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{
+				Spec: infraexpv1.DockerMachinePoolTemplateSpec{
+					Template: infraexpv1.DockerMachinePoolTemplateResource{
+						Spec: infraexpv1.DockerMachinePoolSpec{
+							Template: infraexpv1.DockerMachinePoolMachineTemplate{
+								CustomImage: "kindest/node:v1.23.0",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(*testing.T) {
+			err := patchDockerMachinePoolTemplate(context.Background(), tt.template, tt.variables)
+			if tt.expectedErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
+		})
+	}
+}
+
 // Note: given that we are testing functions used for modifying templates inside GeneratePatches it is not
 // required to test GeneratePatches for all the sub-cases; we are only testing that everything comes together as expected.
 // NOTE: custom RuntimeExtension must test specif logic added to GeneratePatches, if any.
@@ -363,6 +484,14 @@ func TestHandler_GeneratePatches(t *testing.T) {
 			},
 		}),
 	}
+	machinePoolVars123 := []runtimehooksv1.Variable{
+		newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
+			MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+				Class:   "default-worker",
+				Version: "v1.23.0",
+			},
+		}),
+	}
 	kubeadmControlPlaneTemplate := controlplanev1.KubeadmControlPlaneTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KubeadmControlPlaneTemplate",
@@ -372,6 +501,12 @@ func TestHandler_GeneratePatches(t *testing.T) {
 	dockerMachineTemplate := infrav1.DockerMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DockerMachineTemplate",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+	}
+	dockerMachinePoolTemplate := infraexpv1.DockerMachinePoolTemplate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DockerMachinePoolTemplate",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 	}
@@ -400,6 +535,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				requestItem("3", dockerMachineTemplate, machineDeploymentVars123),
 				requestItem("4", dockerClusterTemplate, imageRepositoryVar),
 				requestItem("5", kubeadmConfigTemplate, machineDeploymentVars123),
+				requestItem("6", dockerMachinePoolTemplate, machinePoolVars123),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -423,6 +559,9 @@ func TestHandler_GeneratePatches(t *testing.T) {
 ]`),
 					responseItem("5", `[
 {"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}}
+]`),
+					responseItem("6", `[
+{"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}
 ]`),
 				},
 			},

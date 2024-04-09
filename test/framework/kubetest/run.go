@@ -243,9 +243,9 @@ func dockeriseKubeconfig(kubetestConfigDir string, kubeConfigPath string) (strin
 	}
 	newPath := path.Join(kubetestConfigDir, "kubeconfig")
 
-	// On CAPD, if not running on Linux, we need to use Docker's proxy to connect back to the host
+	// On CAPD, if not running on Linux or the environment is Windows Subsystem for Linux (WSL), we need to use Docker's proxy to connect back to the host
 	// to the CAPD cluster. Moby on Linux doesn't use the host.docker.internal DNS name.
-	if runtime.GOOS != "linux" {
+	if runtime.GOOS != "linux" || os.Getenv("WSL_DISTRO_NAME") != "" {
 		for i := range kubeConfig.Clusters {
 			kubeConfig.Clusters[i].Server = strings.ReplaceAll(kubeConfig.Clusters[i].Server, "127.0.0.1", "host.docker.internal")
 		}

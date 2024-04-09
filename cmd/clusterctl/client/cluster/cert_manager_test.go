@@ -211,16 +211,17 @@ func Test_shouldUpgrade(t *testing.T) {
 		objs []unstructured.Unstructured
 	}
 	tests := []struct {
-		name            string
-		configVersion   string
-		args            args
-		wantFromVersion string
-		wantToVersion   string
-		want            bool
-		wantErr         bool
+		name               string
+		configVersion      string
+		args               args
+		wantFromVersion    string
+		hasDiffInstallObjs bool
+		want               bool
+		wantErr            bool
 	}{
 		{
-			name: "Version is not defined (e.g. cluster created with clusterctl < v0.3.9), should upgrade",
+			name:          "Version is not defined (e.g. cluster created with clusterctl < v0.3.9), should upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -229,12 +230,12 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v0.11.0",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            true,
 			wantErr:         false,
 		},
 		{
-			name: "Version is equal, should not upgrade",
+			name:          "Version is equal, should not upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -249,7 +250,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: config.CertManagerDefaultVersion,
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            false,
 			wantErr:         false,
 		},
@@ -270,7 +270,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3",
-			wantToVersion:   "v1.5.3+h4fd4",
 			want:            true,
 			wantErr:         false,
 		},
@@ -291,7 +290,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+h4fd5",
-			wantToVersion:   "v1.5.3+h4fd4",
 			want:            true,
 			wantErr:         false,
 		},
@@ -312,7 +310,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+h4fd5",
-			wantToVersion:   "v1.5.3+h4fd5",
 			want:            false,
 			wantErr:         false,
 		},
@@ -333,7 +330,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+build.2",
-			wantToVersion:   "v1.5.3+build.1",
 			want:            false,
 			wantErr:         false,
 		},
@@ -354,12 +350,33 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+build.2",
-			wantToVersion:   "v1.5.3+build.3",
 			want:            true,
 			wantErr:         false,
 		},
 		{
-			name: "Version is older, should upgrade",
+			name:          "Version is equal, but should upgrade because objects to install are a different size",
+			configVersion: config.CertManagerDefaultVersion,
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantFromVersion:    config.CertManagerDefaultVersion,
+			hasDiffInstallObjs: true,
+			want:               true,
+			wantErr:            false,
+		},
+		{
+			name:          "Version is older, should upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -374,12 +391,12 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v0.11.0",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            true,
 			wantErr:         false,
 		},
 		{
-			name: "Version is newer, should not upgrade",
+			name:          "Version is newer, should not upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -394,12 +411,13 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v100.0.0",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            false,
 			wantErr:         false,
 		},
+
 		{
-			name: "Endpoint are ignored",
+			name:          "Endpoint are ignored",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -415,7 +433,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            false,
 			wantErr:         false,
 		},
@@ -431,7 +448,16 @@ func Test_shouldUpgrade(t *testing.T) {
 			}
 			cm := newCertManagerClient(fakeConfigClient, nil, proxy, pollImmediateWaiter)
 
-			fromVersion, toVersion, got, err := cm.shouldUpgrade(tt.args.objs)
+			// By default, make the installed and to-be-installed objects the same, but if hasDiffInstallObjs is set,
+			// just append an empty unstructured object at the end to make them different.
+			installObjs := tt.args.objs
+			if tt.hasDiffInstallObjs {
+				installObjs = make([]unstructured.Unstructured, len(tt.args.objs))
+				copy(installObjs, tt.args.objs)
+				installObjs = append(installObjs, unstructured.Unstructured{})
+			}
+
+			fromVersion, got, err := cm.shouldUpgrade(tt.configVersion, tt.args.objs, installObjs)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -440,7 +466,6 @@ func Test_shouldUpgrade(t *testing.T) {
 
 			g.Expect(got).To(Equal(tt.want))
 			g.Expect(fromVersion).To(Equal(tt.wantFromVersion))
-			g.Expect(toVersion).To(Equal(tt.wantToVersion))
 		})
 	}
 }
@@ -718,7 +743,17 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 			pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 				return nil
 			}
-			cm := newCertManagerClient(fakeConfigClient, nil, proxy, pollImmediateWaiter)
+
+			// Prepare a fake memory repo from which getManifestObjs(), called from PlanUpgrade() will fetch to-be-installed objects.
+			fakeRepositoryClientFactory := func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
+				repo := repository.NewMemoryRepository().
+					WithPaths("root", "components.yaml").
+					WithDefaultVersion(config.CertManagerDefaultVersion).
+					WithFile(config.CertManagerDefaultVersion, "components.yaml", certManagerDeploymentYaml)
+				return repository.New(ctx, provider, configClient, repository.InjectRepository(repo))
+			}
+
+			cm := newCertManagerClient(fakeConfigClient, fakeRepositoryClientFactory, proxy, pollImmediateWaiter)
 
 			actualPlan, err := cm.PlanUpgrade(ctx)
 			if tt.expectErr {

@@ -125,6 +125,8 @@ func TestPatch(t *testing.T) {
 		// 1. Create the object
 		createObject := initialObject.DeepCopy()
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, createObject)).To(Succeed())
+		// Verify that gvk is still set
+		g.Expect(createObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 		// Note: We have to patch the status here to explicitly set these two status fields.
 		// If we don't do it the Machine defaulting webhook will try to set the two fields to false.
 		// For an unknown reason this will happen with the 2nd update call (3.) below and not before.
@@ -154,6 +156,8 @@ func TestPatch(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		// Update the object
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
+		// Verify that gvk is still set
+		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 		// Verify that request was not cached (as it changed the object)
 		g.Expect(ssaCache.Has(requestIdentifier)).To(BeFalse())
 
@@ -173,5 +177,7 @@ func TestPatch(t *testing.T) {
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		// Verify that request was cached (as it did not change the object)
 		g.Expect(ssaCache.Has(requestIdentifier)).To(BeTrue())
+		// Verify that gvk is still set
+		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 	})
 }

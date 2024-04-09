@@ -22,6 +22,7 @@
         - [Kubeadm based control plane management](./tasks/control-plane/kubeadm-control-plane.md)
         - [MicroK8s based control plane management](./tasks/control-plane/microk8s-control-plane.md)
     - [Updating Machine Infrastructure and Bootstrap Templates](tasks/updating-machine-templates.md)
+    - [Workload bootstrap using GitOps](tasks/workload-bootstrap-gitops.md)
     - [Automated Machine management](./tasks/automated-machine-management/index.md)
       - [Scaling](./tasks/automated-machine-management/scaling.md)
       - [Autoscaling](./tasks/automated-machine-management/autoscaling.md)

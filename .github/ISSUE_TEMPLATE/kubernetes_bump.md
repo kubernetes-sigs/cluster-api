@@ -22,10 +22,10 @@ This section contains tasks to update our book, e2e testing and CI to use and te
 as well as changes to Cluster API that we might have to make to support the new Kubernetes version. All of these
 changes should be cherry-picked to all release series that will support the new Kubernetes version.
 
-* [ ] Modify CAPD to use a release candidate of the upcoming Kubernetes release:
-  * Bump the Kubernetes version in `test/*`.
+* [ ] Continuously modify CAPD to use early versions of the upcoming Kubernetes release (betas and rcs):
+  * Bump the Kubernetes version in `test/*` except for `test/infrastructure/kind/*`.
   * Prior art: TODO (previously #9160)
-* [ ] Modify CAPD to use the new Kubernetes release:
+* [ ] Modify CAPD to use the new Kubernetes release after it is GA:
   * Bump the Kubernetes version in `test/*`.
   * Prior art: TODO (previously #9160)
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
@@ -57,6 +57,11 @@ changes should be cherry-picked to all release series that will support the new 
     a new Kubernetes minor version. Please add these issues here when they are identified.
 
 ### Bump quickstart and kind image references in CAPD
+
+Prerequisites:
+
+* The target Kubernetes version is GA
+* There is a new [kind version with/or a new set of kind images](https://github.com/kubernetes-sigs/kind/releases) for the target Kubernetes version
 
 * [ ] Bump quickstart and kind image references in CAPD:
   * Bump the Kubernetes version in:
@@ -96,5 +101,3 @@ run the Cluster API controllers on the new Kubernetes version.
   * Prior art: #7118
 
 After release of CAPI v1.X.x (that supports Kubernetes v1.Y):
-
-* [ ] Bump WorkloadKubernetesVersion for test When testing clusterctl upgrades using ClusterClass (v1.X=>current) [ClusterClass]

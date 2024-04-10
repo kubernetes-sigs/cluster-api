@@ -246,7 +246,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		managementClusterNamespace, managementClusterCancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		managementClusterNamespace, managementClusterCancelWatches = SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		managementClusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
@@ -645,7 +645,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	AfterEach(func() {
 		if testNamespace != nil {
 			// Dump all the logs from the workload cluster before deleting them.
-			dumpAllResources(ctx, managementClusterProxy, input.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
+			DumpAllResources(ctx, managementClusterProxy, input.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
 
 			if !input.SkipCleanup {
 				Byf("Deleting all clusters in namespace %s in management cluster %s", testNamespace.Name, managementClusterName)
@@ -675,7 +675,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.PreCleanupManagementCluster(managementClusterProxy)
 		}
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }
 

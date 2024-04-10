@@ -54,6 +54,7 @@ export USE_EXISTING_CLUSTER=false
 # - KUBERNETES_VERSION_UPGRADE_TO
 # - KUBERNETES_VERSION_UPGRADE_FROM
 # - KUBERNETES_VERSION_LATEST_CI
+k8s::prepareKindestImagesVariables
 k8s::prepareKindestImages
 
 # pre-pull all the images that will be used in the e2e, thus making the actual test run

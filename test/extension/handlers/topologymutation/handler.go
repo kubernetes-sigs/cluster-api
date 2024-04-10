@@ -331,13 +331,13 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 
 	// if found
 	if err == nil {
-		semVer, err := version.ParseMajorMinorPatchTolerant(cpVersion)
+		semVer, err := semver.ParseTolerant(cpVersion)
 		if err != nil {
 			return errors.Wrap(err, "could not parse control plane version")
 		}
 		kindMapping := kind.GetMapping(semVer, "")
 
-		log.Info(fmt.Sprintf("Setting MachineDeployment custom image to %q", kindMapping.Image))
+		log.Info(fmt.Sprintf("Setting control plane custom image to %q", kindMapping.Image))
 		dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
 		// return early if we have successfully patched a control plane dockerMachineTemplate
 		return nil
@@ -357,7 +357,7 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 		return errors.Wrap(err, "could not set customImage to MachineDeployment DockerMachineTemplate")
 	}
 
-	semVer, err := version.ParseMajorMinorPatchTolerant(mdVersion)
+	semVer, err := semver.ParseTolerant(mdVersion)
 	if err != nil {
 		return errors.Wrap(err, "could not parse MachineDeployment version")
 	}

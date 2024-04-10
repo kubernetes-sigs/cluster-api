@@ -376,8 +376,8 @@ func GetMapping(k8sVersion semver.Version, customImage string) Mapping {
 			continue
 		}
 
-		// If the mapping is for the same patch version, return it
-		if k8sVersion.Patch == m.KubernetesVersion.Patch {
+		// If the mapping is for the same patch version and no pre version is defined, return it
+		if k8sVersion.Patch == m.KubernetesVersion.Patch && len(k8sVersion.Pre) == 0 {
 			return Mapping{
 				KubernetesVersion: m.KubernetesVersion,
 				Mode:              m.Mode,

@@ -26,7 +26,7 @@ changes should be cherry-picked to all release series that will support the new 
   * Bump the Kubernetes version in `test/*` except for `test/infrastructure/kind/*`.
   * Prior art: TODO (previously #9160)
 * [ ] Modify CAPD to use the new Kubernetes release after it is GA:
-  * Bump the Kubernetes version in `test/*`.
+  * Bump the Kubernetes version in `test/*` except for `test/infrastructure/kind/*`.
   * Prior art: TODO (previously #9160)
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
 

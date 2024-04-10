@@ -1633,7 +1633,12 @@ spec:
                   type: object
                 type: array
               controlPlaneReady:
-                description: ControlPlaneReady defines if the control plane is ready.
+                description: |-
+                  ControlPlaneReady denotes if the control plane became ready during initial provisioning
+                  to receive requests.
+                  NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+                  The value of this field is never updated after provisioning is completed. Please use conditions
+                  to check the operational state of the control plane.
                 type: boolean
               failureDomains:
                 additionalProperties:

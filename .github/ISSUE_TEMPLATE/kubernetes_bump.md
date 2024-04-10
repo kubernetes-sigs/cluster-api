@@ -12,6 +12,7 @@ This issue is tracking the tasks that should be implemented **after** the Kubern
 ## Tasks
 
 Prerequisites:
+
 * [ ] Decide which Cluster API release series will support the new Kubernetes version
   * If feasible we usually cherry-pick the changes back to the latest release series.
 
@@ -21,20 +22,12 @@ This section contains tasks to update our book, e2e testing and CI to use and te
 as well as changes to Cluster API that we might have to make to support the new Kubernetes version. All of these
 changes should be cherry-picked to all release series that will support the new Kubernetes version.
 
-* [ ] Modify quickstart and CAPD to use the new Kubernetes release:
-  * Bump the Kubernetes version in:
-    * `test/*`: search for occurrences of the previous Kubernetes version
-    * `Tiltfile`
-  * Ensure the latest available kind version is used (including the latest images for this kind release)
-    * Add new images in the [kind mapper.go](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/infrastructure/kind/mapper.go#L79).
-      * See the [kind releases page](https://github.com/kubernetes-sigs/kind/releases) for the list of released images.
-    * Set new default image for the [test framework](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/framework/bootstrap/kind_provider.go#L40)
-    * If code changes are required for CAPD to incorporate the new Kind version, update [kind latestMode](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/infrastructure/kind/mapper.go#L66)
-    * Prior art: #10094
-  * Verify the quickstart manually
-  * Bump `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` in `clusterctl_upgrade_test.go`
-    * Note: Only bump for Cluster API versions that will support the new Kubernetes release.
-  * Prior art: #9160
+* [ ] Modify CAPD to use a release candidate of the upcoming Kubernetes release:
+  * Bump the Kubernetes version in `test/*`.
+  * Prior art: TODO (previously #9160)
+* [ ] Modify CAPD to use the new Kubernetes release:
+  * Bump the Kubernetes version in `test/*`.
+  * Prior art: TODO (previously #9160)
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
 
   * At the `.versions`  section in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/):
@@ -58,9 +51,24 @@ changes should be cherry-picked to all release series that will support the new 
 * [ ] Update book:
   * Update supported versions in `versions.md`
   * Prior art: #9161
+
 * [ ] Issues specific to the Kubernetes minor release:
   * Sometimes there are adjustments that we have to make in Cluster API to be able to support
     a new Kubernetes minor version. Please add these issues here when they are identified.
+
+### Bump quickstart and kind image references in CAPD
+
+* [ ] Bump quickstart and kind image references in CAPD:
+  * Bump the Kubernetes version in:
+    * `docs/*`
+    * `Tiltfile`
+  * Bump kind image references in CAPD (and also kind if necessary, including the latest images for this kind release)
+    * Add new images in the [kind mapper.go](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/infrastructure/kind/mapper.go#L79).
+      * See the [kind releases page](https://github.com/kubernetes-sigs/kind/releases) for the list of released images.
+    * Set new default image for the [test framework](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/framework/bootstrap/kind_provider.go#L40)
+    * If code changes are required for CAPD to incorporate the new Kind version, update [kind latestMode](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/infrastructure/kind/mapper.go#L66)
+  * Verify the quickstart manually
+  * Prior art: TODO (previously #9160 and #10094)
 
 ### Using new Kubernetes dependencies
 
@@ -86,3 +94,7 @@ run the Cluster API controllers on the new Kubernetes version.
   * Prior art: #7193
 * [ ] Bump conversion-gen via `CONVERSION_GEN_VER` in `Makefile`
   * Prior art: #7118
+
+After release of CAPI v1.X.x (that supports Kubernetes v1.Y):
+
+* [ ] Bump WorkloadKubernetesVersion for test When testing clusterctl upgrades using ClusterClass (v1.X=>current) [ClusterClass]

@@ -219,7 +219,7 @@ func parseKubetestConfig(kubetestConfigFile string) (kubetestConfig, error) {
 }
 
 func isUsingCIArtifactsVersion(k8sVersion string) bool {
-	return strings.Contains(k8sVersion, "-")
+	return strings.Contains(k8sVersion, "+")
 }
 
 func discoverClusterKubernetesVersion(proxy framework.ClusterProxy) (string, error) {

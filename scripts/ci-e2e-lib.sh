@@ -34,6 +34,46 @@ capi:buildDockerImages () {
   fi
 }
 
+# k8s::prepareKindestImagesVariables defaults the environment variables KUBERNETES_VERSION,
+# KUBERNETES_VERSION_UPGRADE_TO and KUBERNETES_VERSION_LATEST_CI depending on what
+# is set in GINKGO_FOCUS.
+# Note: We do this to ensure that the kindest/node image gets built if it does
+# not already exist, e.g. for pre-releases, but only if necessary.
+k8s::prepareKindestImagesVariables() {
+  # Always default KUBERNETES_VERSION to the value in the e2e config.
+
+  if [[ ${GINKGO_FOCUS:-} == *"K8s-Install-ci-latest"* ]]; then
+    # If the test focuses on [K8s-Install-ci-latest], only default KUBERNETES_VERSION_LATEST_CI
+    # to the value in the e2e config and only if it is not set.
+    # Note: We do this because we want to specify KUBERNETES_VERSION_LATEST_CI *only* in the e2e config.
+    if [[ -z "${KUBERNETES_VERSION_LATEST_CI:-}" ]]; then
+      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
+    fi
+  elif [[ ${GINKGO_FOCUS:-} != *"K8s-Upgrade"* ]]; then
+    # In any other case which is not [K8s-Upgrade], default KUBERNETES_VERSION if it is not set to make sure
+    # the corresponding kindest/node image exists.
+    if [[ -z "${KUBERNETES_VERSION:-}" ]]; then
+      KUBERNETES_VERSION=$(grep KUBERNETES_VERSION: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION to ${KUBERNETES_VERSION} to trigger image build (because env var is not set)"
+    fi
+  fi
+
+  # Tests not focusing on [PR-Blocking], [K8s-Install] or [K8s-Install-ci-latest],
+  # also run upgrade tests so default KUBERNETES_VERSION_UPGRADE_TO to the value
+  # in the e2e config if it is not set.
+  if [[ ${GINKGO_FOCUS:-} != *"PR-Blocking"* ]] && [[ ${GINKGO_FOCUS:-} != *"K8s-Install"* ]]; then
+    if [[ -z "${KUBERNETES_VERSION_UPGRADE_TO:-}" ]]; then
+      KUBERNETES_VERSION_UPGRADE_TO=$(grep KUBERNETES_VERSION_UPGRADE_TO: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_UPGRADE_TO to ${KUBERNETES_VERSION_UPGRADE_TO} to trigger image build (because env var is not set)"
+    fi
+    if [[ -z "${KUBERNETES_VERSION_UPGRADE_FROM:-}" ]]; then
+      KUBERNETES_VERSION_UPGRADE_FROM=$(grep KUBERNETES_VERSION_UPGRADE_FROM: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+      echo "Defaulting KUBERNETES_VERSION_UPGRADE_FROM to ${KUBERNETES_VERSION_UPGRADE_FROM} to trigger image build (because env var is not set)"
+    fi
+  fi
+}
+
 # k8s::prepareKindestImages checks all the e2e test variables representing a Kubernetes version,
 # and makes sure a corresponding kindest/node image is available locally.
 k8s::prepareKindestImages() {
@@ -65,15 +105,6 @@ k8s::prepareKindestImages() {
     kind::prepareKindestImage "$resolveVersion"
   fi
 
-  # If the test focuses on [K8s-Install-ci-latest], default KUBERNETES_VERSION_LATEST_CI
-  # to the value in the e2e config if it is not set.
-  # Note: We do this because we want to specify KUBERNETES_VERSION_LATEST_CI *only* in the e2e config.
-  if [[ ${GINKGO_FOCUS:-} == *"K8s-Install-ci-latest"* ]]; then
-    if [[ -z "${KUBERNETES_VERSION_LATEST_CI:-}" ]]; then
-      KUBERNETES_VERSION_LATEST_CI=$(grep KUBERNETES_VERSION_LATEST_CI < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
-      echo "Defaulting KUBERNETES_VERSION_LATEST_CI to ${KUBERNETES_VERSION_LATEST_CI} to trigger image build (because env var is not set)"
-    fi
-  fi
   if [ -n "${KUBERNETES_VERSION_LATEST_CI:-}" ]; then
     k8s::resolveVersion "KUBERNETES_VERSION_LATEST_CI" "$KUBERNETES_VERSION_LATEST_CI"
     export KUBERNETES_VERSION_LATEST_CI=$resolveVersion

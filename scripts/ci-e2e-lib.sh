@@ -35,13 +35,11 @@ capi:buildDockerImages () {
 }
 
 # k8s::prepareKindestImagesVariables defaults the environment variables KUBERNETES_VERSION,
-# KUBERNETES_VERSION_UPGRADE_TO and KUBERNETES_VERSION_LATEST_CI depending on what
-# is set in GINKGO_FOCUS.
+# KUBERNETES_VERSION_UPGRADE_TO, KUBERNETES_VERSION_UPGRADE_FROM and KUBERNETES_VERSION_LATEST_CI
+# depending on what is set in GINKGO_FOCUS.
 # Note: We do this to ensure that the kindest/node image gets built if it does
 # not already exist, e.g. for pre-releases, but only if necessary.
 k8s::prepareKindestImagesVariables() {
-  # Always default KUBERNETES_VERSION to the value in the e2e config.
-
   if [[ ${GINKGO_FOCUS:-} == *"K8s-Install-ci-latest"* ]]; then
     # If the test focuses on [K8s-Install-ci-latest], only default KUBERNETES_VERSION_LATEST_CI
     # to the value in the e2e config and only if it is not set.
@@ -60,8 +58,8 @@ k8s::prepareKindestImagesVariables() {
   fi
 
   # Tests not focusing on [PR-Blocking], [K8s-Install] or [K8s-Install-ci-latest],
-  # also run upgrade tests so default KUBERNETES_VERSION_UPGRADE_TO to the value
-  # in the e2e config if it is not set.
+  # also run upgrade tests so default KUBERNETES_VERSION_UPGRADE_TO and KUBERNETES_VERSION_UPGRADE_FROM
+  # to the value in the e2e config if they are not set.
   if [[ ${GINKGO_FOCUS:-} != *"PR-Blocking"* ]] && [[ ${GINKGO_FOCUS:-} != *"K8s-Install"* ]]; then
     if [[ -z "${KUBERNETES_VERSION_UPGRADE_TO:-}" ]]; then
       KUBERNETES_VERSION_UPGRADE_TO=$(grep KUBERNETES_VERSION_UPGRADE_TO: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')

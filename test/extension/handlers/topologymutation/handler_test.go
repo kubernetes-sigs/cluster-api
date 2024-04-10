@@ -324,6 +324,26 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "sets customImage for templates linked to ControlPlane for pre versions",
+			template: &infrav1.DockerMachineTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
+						Version: "v1.23.0-rc.0",
+					},
+				})},
+			},
+			expectedTemplate: &infrav1.DockerMachineTemplate{
+				Spec: infrav1.DockerMachineTemplateSpec{
+					Template: infrav1.DockerMachineTemplateResource{
+						Spec: infrav1.DockerMachineSpec{
+							CustomImage: "kindest/node:v1.23.0-rc.0",
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(*testing.T) {
@@ -424,26 +444,6 @@ func TestHandler_GeneratePatches(t *testing.T) {
 					responseItem("5", `[
 {"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}}
 ]`),
-				},
-			},
-		},
-		{
-			name:     "sets customImage for templates linked to ControlPlane for pre versions",
-			template: &infrav1.DockerMachineTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
-					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
-						Version: "v1.23.0-rc.0",
-					},
-				})},
-			},
-			expectedTemplate: &infrav1.DockerMachineTemplate{
-				Spec: infrav1.DockerMachineTemplateSpec{
-					Template: infrav1.DockerMachineTemplateResource{
-						Spec: infrav1.DockerMachineSpec{
-							CustomImage: "kindest/node:v1.23.0-rc.0",
-						},
-					},
 				},
 			},
 		},

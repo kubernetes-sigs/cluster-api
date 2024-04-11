@@ -457,13 +457,13 @@ func TestHasNode(t *testing.T) {
 func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(false)(nil)).To(BeFalse())
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(nil)).To(BeFalse())
 	})
 
-	t.Run("machine without node returns true", func(t *testing.T) {
+	t.Run("machine without node returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{}
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
 	})
 
 	t.Run("machine with all healthy controlPlane component conditions returns false when the Etcd is not managed", func(t *testing.T) {
@@ -477,7 +477,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
 			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
 		}
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
 	})
 
 	t.Run("machine with unhealthy 'APIServerPodHealthy' condition returns true when the Etcd is not managed", func(t *testing.T) {
@@ -492,7 +492,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 			*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "",
 				clusterv1.ConditionSeverityWarning, ""),
 		}
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
 	})
 
 	t.Run("machine with unhealthy etcd component conditions returns false when Etcd is not managed", func(t *testing.T) {
@@ -510,7 +510,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
 				clusterv1.ConditionSeverityWarning, ""),
 		}
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
 	})
 
 	t.Run("machine with unhealthy etcd conditions returns true when Etcd is managed", func(t *testing.T) {
@@ -528,7 +528,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
 				clusterv1.ConditionSeverityWarning, ""),
 		}
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(true)(machine)).To(BeTrue())
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeTrue())
 	})
 
 	t.Run("machine with all healthy controlPlane and the Etcd component conditions returns false when Etcd is managed", func(t *testing.T) {
@@ -544,7 +544,7 @@ func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
 			*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
 			*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
 		}
-		g.Expect(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(true)(machine)).To(BeFalse())
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeFalse())
 	})
 }
 

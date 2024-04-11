@@ -158,11 +158,11 @@ func HasUnhealthyCondition(machine *clusterv1.Machine) bool {
 	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
 }
 
-// HasMissingNodeOrUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that
-// does not have a Kubernetes node or have any of the following control plane component conditions set to False:
+// HasUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that
+// have any of the following control plane component conditions set to False:
 // APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy & EtcdMemberHealthy (if using managed etcd).
 // It is different from the HasUnhealthyCondition func which checks MachineHealthCheck conditions.
-func HasMissingNodeOrUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
+func HasUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 	controlPlaneMachineHealthConditions := []clusterv1.ConditionType{
 		controlplanev1.MachineAPIServerPodHealthyCondition,
 		controlplanev1.MachineControllerManagerPodHealthyCondition,
@@ -178,9 +178,10 @@ func HasMissingNodeOrUnhealthyControlPlaneComponents(isEtcdManaged bool) Func {
 		if machine == nil {
 			return false
 		}
-		if !HasNode()(machine) {
-			return true
-		}
+
+		// The machine without a node could be in failure status due to the kubelet config error, or still provisioning components (including etcd).
+		// So do not treat it as unhealthy.
+
 		for _, condition := range controlPlaneMachineHealthConditions {
 			// Do not return true when the condition is not set or is set to Unknown because
 			// it means a transient state and can not be considered as unhealthy.

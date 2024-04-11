@@ -238,12 +238,11 @@ func (c *ControlPlane) IsEtcdManaged() bool {
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
 }
 
-// UnhealthyMachinesWithMissingNodeOrUnhealthyControlPlaneComponents returns all unhealthy control plane machines that
-// do not have a Kubernetes node, or have unhealthy control plane components.
-//
+// UnhealthyMachinesWithUnhealthyControlPlaneComponents returns all unhealthy control plane machines that
+// have unhealthy control plane components.
 // It differs from UnhealthyMachinesByHealthCheck which checks `MachineHealthCheck` conditions.
-func (c *ControlPlane) UnhealthyMachinesWithMissingNodeOrUnhealthyControlPlaneComponents(machines collections.Machines) collections.Machines {
-	return machines.Filter(collections.HasMissingNodeOrUnhealthyControlPlaneComponents(c.IsEtcdManaged()))
+func (c *ControlPlane) UnhealthyMachinesWithUnhealthyControlPlaneComponents(machines collections.Machines) collections.Machines {
+	return machines.Filter(collections.HasUnhealthyControlPlaneComponents(c.IsEtcdManaged()))
 }
 
 // UnhealthyMachinesByMachineHealthCheck returns the list of control plane machines marked as unhealthy by Machine Health Check.

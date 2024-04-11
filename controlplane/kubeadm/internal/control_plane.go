@@ -238,24 +238,31 @@ func (c *ControlPlane) IsEtcdManaged() bool {
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
 }
 
-// UnhealthyMachines returns the list of control plane machines marked as unhealthy by MHC.
-func (c *ControlPlane) UnhealthyMachines() collections.Machines {
+// UnhealthyMachinesWithUnhealthyControlPlaneComponents returns all unhealthy control plane machines that
+// have unhealthy control plane components.
+// It differs from UnhealthyMachinesByHealthCheck which checks `MachineHealthCheck` conditions.
+func (c *ControlPlane) UnhealthyMachinesWithUnhealthyControlPlaneComponents(machines collections.Machines) collections.Machines {
+	return machines.Filter(collections.HasUnhealthyControlPlaneComponents(c.IsEtcdManaged()))
+}
+
+// UnhealthyMachinesByMachineHealthCheck returns the list of control plane machines marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) UnhealthyMachinesByMachineHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.HasUnhealthyCondition)
 }
 
-// HealthyMachines returns the list of control plane machines not marked as unhealthy by MHC.
-func (c *ControlPlane) HealthyMachines() collections.Machines {
+// HealthyMachinesByMachineHealthCheck returns the list of control plane machines not marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HealthyMachinesByMachineHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.Not(collections.HasUnhealthyCondition))
 }
 
-// HasUnhealthyMachine returns true if any machine in the control plane is marked as unhealthy by MHC.
-func (c *ControlPlane) HasUnhealthyMachine() bool {
-	return len(c.UnhealthyMachines()) > 0
+// HasUnhealthyMachineByMachineHealthCheck returns true if any machine in the control plane is marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HasUnhealthyMachineByMachineHealthCheck() bool {
+	return len(c.UnhealthyMachinesByMachineHealthCheck()) > 0
 }
 
 // HasHealthyMachineStillProvisioning returns true if any healthy machine in the control plane is still in the process of being provisioned.
 func (c *ControlPlane) HasHealthyMachineStillProvisioning() bool {
-	return len(c.HealthyMachines().Filter(collections.Not(collections.HasNode()))) > 0
+	return len(c.HealthyMachinesByMachineHealthCheck().Filter(collections.Not(collections.HasNode()))) > 0
 }
 
 // PatchMachines patches all the machines conditions.

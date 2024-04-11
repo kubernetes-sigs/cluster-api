@@ -88,7 +88,7 @@ func TestHasUnhealthyMachine(t *testing.T) {
 		}
 
 		g := NewWithT(t)
-		g.Expect(c.HasUnhealthyMachine()).To(BeTrue())
+		g.Expect(c.HasUnhealthyMachineByMachineHealthCheck()).To(BeTrue())
 	})
 
 	t.Run("No unhealthy machine to be remediated by KCP", func(t *testing.T) {
@@ -101,7 +101,7 @@ func TestHasUnhealthyMachine(t *testing.T) {
 		}
 
 		g := NewWithT(t)
-		g.Expect(c.HasUnhealthyMachine()).To(BeFalse())
+		g.Expect(c.HasUnhealthyMachineByMachineHealthCheck()).To(BeFalse())
 	})
 }
 

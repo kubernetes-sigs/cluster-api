@@ -86,7 +86,7 @@ func TestHasUnhealthyMachine(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	g.Expect(c.HasUnhealthyMachine()).To(BeTrue())
+	g.Expect(c.HasUnhealthyMachineByMachineHealthCheck()).To(BeTrue())
 }
 
 type machineOpt func(*clusterv1.Machine)

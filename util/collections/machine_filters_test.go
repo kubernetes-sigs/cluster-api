@@ -21,6 +21,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -377,7 +378,7 @@ func TestWithVersion(t *testing.T) {
 	})
 }
 
-func TestHealtyAPIServer(t *testing.T) {
+func TestHealthyAPIServer(t *testing.T) {
 	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		g.Expect(collections.HealthyAPIServer()(nil)).To(BeFalse())
@@ -430,6 +431,100 @@ func TestGetFilteredMachinesForCluster(t *testing.T) {
 	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
+}
+
+func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(nil)).To(BeFalse())
+	})
+
+	t.Run("machine without node returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with all healthy controlPlane component conditions returns false when the Etcd is not managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with unhealthy 'APIServerPodHealthy' condition returns true when the Etcd is not managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
+	})
+
+	t.Run("machine with unhealthy etcd component conditions returns false when Etcd is not managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with unhealthy etcd conditions returns true when Etcd is managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeTrue())
+	})
+
+	t.Run("machine with all healthy controlPlane and the Etcd component conditions returns false when Etcd is managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeFalse())
+	})
 }
 
 func testControlPlaneMachine(name string) *clusterv1.Machine {

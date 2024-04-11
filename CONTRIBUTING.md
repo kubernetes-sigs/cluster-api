@@ -263,11 +263,11 @@ The [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/pro
 
 ## Triaging issues
 
-Issue triage in Cluster API follow best practices the Kubernetes project while seeking balance with
+Issue triage in Cluster API follows the best practices of the Kubernetes project while seeking balance with
 the different size of this project.
 
 While the maintainers play an important role in the triage process described below, the help of the community is crucial
-to ensure that this task is performed timely and sustainable long term.
+to ensure that this task is performed timely and be sustainable long term.
 
 | Phase               | Responsible | What is required to move forward                                                                                                                                                                         |
 |---------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -281,23 +281,23 @@ Please note that:
 - Priority provides an indication to everyone looking at issues.
   - When assigning priority several factors are taken into consideration, including impact on users, relevance
     for the upcoming releases, maturity of the issue (consensus + completeness).
-  - `priority/awaiting-more-evidences` is used to mark issue where there is not enough info to take a decision for
+  - `priority/awaiting-more-evidence` is used to mark issue where there is not enough info to take a decision for
     one of the other [priorities values](https://github.com/kubernetes-sigs/cluster-api/labels?q=priority).
-  - Priority can change over time, and everyone is welcome to provide constructive feedback about updating issue's priority.
+  - Priority can change over time, and everyone is welcome to provide constructive feedback about updating an issue's priority.
   - Applying a priority label is not a commitment to execute within a certain time frame, because implementation
     depends on contributors volunteering time to do the work and on reviewers/approvers bandwidth.
   
-- Closing inactive issue which are stuck in the "triage" phases is a crucial task for maintaining an
+- Closing inactive issues which are stuck in the "triage" phases is a crucial task for maintaining an
   actionable backlog. Accordingly, the following automation applies to issues in the "triage" or the "refinement" phase:
   - After 90 days of inactivity, issues will be marked with the `lifecycle/stale` label 
   - After 30 days of inactivity from when `lifecycle/stale` was applied, issues will be marked with the `lifecycle/rotten` label 
   - After 30 days of inactivity from when `lifecycle/rotten` was applied, issues will be closed.
-    With this regard, it is important to notice that closed issue are and will always be an high valuable part of the
+    With this regard, it is important to notice that closed issues are and will always be a highly valuable part of the
     knowledge base about the Cluster API project, and they will never go away.
   - Note: 
-    - The automation above do not apply to issues triaged as `priority/critical-urgent`, `priority/important-soon` or `priority/important-longterm`
+    - The automation above does not apply to issues triaged as `priority/critical-urgent`, `priority/important-soon` or `priority/important-longterm`
     - Maintainers could apply the `lifecycle/frozen` label if they want to exclude an issue from the automation above
-    - Issue excluded from the automation above will be re-triaged periodically
+    - Issues excluded from the automation above will be re-triaged periodically
 
 - If you really care about an issue stuck in the "triage" phases, you can engage with the community or
   try to figure out what is holding back the issue by yourself, e.g:
@@ -313,7 +313,7 @@ Please note that:
   - After 90 days of inactivity the `triage/accepted` label will be removed from issues with `priority/important-soon`
   - After 1 year of inactivity the `triage/accepted` label will be removed from issues without `priority/critical-urgent` or `priority/important-soon`
 
-- If you really care about an issue stuck in the "actionable", you can try to figure out what is holding back
+- If you really care about an issue stuck in the "actionable" phase, you can try to figure out what is holding back
   the issue implementation (usually lack of contributors), engage with the community, find ways to help and free up
   maintainers/other contributors time from other tasks, or `/assign` the issue and send a PR.
  

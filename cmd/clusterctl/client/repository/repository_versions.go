@@ -18,6 +18,7 @@ package repository
 
 import (
 	"context"
+	"sort"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -91,11 +92,7 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *uint
 
 	// Search for the latest release according to semantic version ordering.
 	// Releases with tag name that are not in semver format are ignored.
-	var latestTag string
-	var latestPrereleaseTag string
-
-	var latestReleaseVersion *version.Version
-	var latestPrereleaseVersion *version.Version
+	versionCandidates := []*version.Version{}
 
 	for _, v := range versions {
 		sv, err := version.ParseSemantic(v)
@@ -109,28 +106,48 @@ func latestPatchRelease(ctx context.Context, repo Repository, major, minor *uint
 			continue
 		}
 
-		// track prereleases separately
-		if sv.PreRelease() != "" {
-			if latestPrereleaseVersion == nil || latestPrereleaseVersion.LessThan(sv) {
-				latestPrereleaseTag = v
-				latestPrereleaseVersion = sv
+		versionCandidates = append(versionCandidates, sv)
+	}
+
+	if len(versionCandidates) == 0 {
+		return "", errors.New("failed to find releases tagged with a valid semantic version number")
+	}
+
+	// Sort parsed versions by semantic version order.
+	sort.SliceStable(versionCandidates, func(i, j int) bool {
+		// Prioritize release versions over pre-releases. For example v1.0.0 > v2.0.0-alpha
+		// If both are pre-releases, sort by semantic version order as usual.
+		if versionCandidates[j].PreRelease() == "" && versionCandidates[i].PreRelease() != "" {
+			return false
+		}
+		if versionCandidates[i].PreRelease() == "" && versionCandidates[j].PreRelease() != "" {
+			return true
+		}
+
+		return versionCandidates[j].LessThan(versionCandidates[i])
+	})
+
+	// Limit the number of searchable versions by 5.
+	versionCandidates = versionCandidates[:min(5, len(versionCandidates))]
+
+	for _, v := range versionCandidates {
+		// Iterate through sorted versions and try to fetch a file from that release.
+		// If it's completed successfully, we get the latest release.
+		// Note: the fetched file will be cached and next time we will get it from the cache.
+		versionString := "v" + v.String()
+		_, err := repo.GetFile(ctx, versionString, metadataFile)
+		if err != nil {
+			if errors.Is(err, errNotFound) {
+				// Ignore this version
+				continue
 			}
-			continue
+
+			return "", err
 		}
 
-		if latestReleaseVersion == nil || latestReleaseVersion.LessThan(sv) {
-			latestTag = v
-			latestReleaseVersion = sv
-		}
+		return versionString, nil
 	}
 
-	// Fall back to returning latest prereleases if no release has been cut or bail if it's also empty
-	if latestTag == "" {
-		if latestPrereleaseTag == "" {
-			return "", errors.New("failed to find releases tagged with a valid semantic version number")
-		}
-
-		return latestPrereleaseTag, nil
-	}
-	return latestTag, nil
+	// If we reached this point, it means we didn't find any release.
+	return "", errors.New("failed to find releases tagged with a valid semantic version number")
 }

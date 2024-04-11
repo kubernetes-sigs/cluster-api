@@ -127,6 +127,7 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 				ArtifactsDirectory: input.ArtifactFolder,
 				ConfigFilePath:     kubetestConfigFilePath,
 				GinkgoNodes:        int(workerMachineCount),
+				ClusterName:        clusterResources.Cluster.GetName(),
 			},
 		)
 		Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")

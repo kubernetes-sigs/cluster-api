@@ -146,6 +146,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 						// Pin the conformance image to workaround https://github.com/kubernetes-sigs/cluster-api/issues/9240 .
 						// This should get dropped again when bumping to a version post v1.28.0 in `test/e2e/config/docker.yaml`.
 						ConformanceImage: "gcr.io/k8s-staging-ci-images/conformance:v1.29.0-alpha.0.190_18290bfdc8fbe1",
+						ClusterName:      clusterName,
 					},
 				)).To(Succeed())
 			},
@@ -175,6 +176,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 						// Pin the conformance image to workaround https://github.com/kubernetes-sigs/cluster-api/issues/9240 .
 						// This should get dropped again when bumping to a version post v1.28.0 in `test/e2e/config/docker.yaml`.
 						ConformanceImage: "gcr.io/k8s-staging-ci-images/conformance:v1.29.0-alpha.0.190_18290bfdc8fbe1",
+						ClusterName:      clusterName,
 					},
 				)).To(Succeed())
 			},

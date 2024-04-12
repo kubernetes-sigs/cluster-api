@@ -134,7 +134,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		}
 
 		// Set up a Namespace where to host objects for this spec and create a watcher for the Namespace events.
-		namespace, cancelWatches = SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
@@ -286,7 +286,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		}, 10*time.Second, 1*time.Second).Should(Succeed(), "delete extensionConfig failed")
 
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
-		DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }
 

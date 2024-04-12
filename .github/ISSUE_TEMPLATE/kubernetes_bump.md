@@ -11,10 +11,7 @@ This issue is tracking the tasks that should be implemented **after** the Kubern
 
 ## Tasks
 
-Prerequisites:
-
-* [ ] Decide which Cluster API release series will support the new Kubernetes version
-  * If feasible we usually cherry-pick the changes back to the latest release series.
+**Note:** If feasible we usually cherry-pick the changes back to the latest release series.
 
 ### Supporting managing and running on the new Kubernetes version
 
@@ -27,7 +24,7 @@ changes should be cherry-picked to all release series that will support the new 
   * Prior art: TODO (previously #9160)
 * [ ] Modify CAPD to use the new Kubernetes release after it is GA:
   * Bump the Kubernetes version in `test/*` except for `test/infrastructure/kind/*`.
-  * Prior art: TODO (previously #9160)
+  * Prior art: #10384
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
 
   * At the `.versions`  section in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/):

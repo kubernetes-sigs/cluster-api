@@ -256,6 +256,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 					ArtifactsDirectory: input.ArtifactFolder,
 					ConfigFilePath:     kubetestConfigFilePath,
 					GinkgoNodes:        int(clusterResources.ExpectedWorkerNodes()),
+					ClusterName:        clusterResources.Cluster.GetName(),
 				},
 			)
 			Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")

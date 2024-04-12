@@ -157,6 +157,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 						ClusterProxy:       proxy.GetWorkloadCluster(ctx, namespace, clusterName),
 						ArtifactsDirectory: artifactFolder,
 						ConfigFilePath:     "./data/kubetest/dualstack.yaml",
+						ClusterName:        clusterName,
 					},
 				)).To(Succeed())
 			},
@@ -183,6 +184,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 						ClusterProxy:       proxy.GetWorkloadCluster(ctx, namespace, clusterName),
 						ArtifactsDirectory: artifactFolder,
 						ConfigFilePath:     "./data/kubetest/dualstack.yaml",
+						ClusterName:        clusterName,
 					},
 				)).To(Succeed())
 			},

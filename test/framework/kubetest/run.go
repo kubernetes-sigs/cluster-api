@@ -31,6 +31,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/yaml"
@@ -73,6 +74,8 @@ type RunInput struct {
 	// KubeTestRepoListPath is optional file for specifying custom image repositories
 	// https://github.com/kubernetes/kubernetes/blob/master/test/images/README.md#testing-the-new-image
 	KubeTestRepoListPath string
+	// ClusterName is the name of the cluster to run the test at
+	ClusterName string
 }
 
 // Run executes kube-test given an artifact directory, and sets settings
@@ -82,6 +85,12 @@ func Run(ctx context.Context, input RunInput) error {
 	if input.ClusterProxy == nil {
 		return errors.New("ClusterProxy must be provided")
 	}
+	// If input.ClusterName is not set use a random string to allow parallel execution
+	// of kubetest on different clusters.
+	if input.ClusterName == "" {
+		input.ClusterName = rand.String(10)
+	}
+
 	if input.GinkgoNodes == 0 {
 		input.GinkgoNodes = DefaultGinkgoNodes
 	}
@@ -103,7 +112,7 @@ func Run(ctx context.Context, input RunInput) error {
 		input.KubernetesVersion = discoveredVersion
 	}
 	input.ArtifactsDirectory = framework.ResolveArtifactsDirectory(input.ArtifactsDirectory)
-	reportDir := path.Join(input.ArtifactsDirectory, "kubetest")
+	reportDir := path.Join(input.ArtifactsDirectory, "kubetest", input.ClusterName)
 	outputDir := path.Join(reportDir, "e2e-output")
 	kubetestConfigDir := path.Join(reportDir, "config")
 	if err := os.MkdirAll(outputDir, 0o750); err != nil {
@@ -133,7 +142,7 @@ func Run(ctx context.Context, input RunInput) error {
 		"report-dir":           "/output",
 		"e2e-output-dir":       "/output/e2e-output",
 		"dump-logs-on-failure": "false",
-		"report-prefix":        "kubetest.",
+		"report-prefix":        fmt.Sprintf("kubetest.%s.", input.ClusterName),
 		"num-nodes":            strconv.FormatInt(int64(input.NumberOfNodes), 10),
 	}
 	ginkgoArgs := buildArgs(ginkgoVars, "-")

@@ -3079,6 +3079,147 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 	}
 }
 
+func TestValidateAutoscalerAnnotationsForCluster(t *testing.T) {
+	tests := []struct {
+		name         string
+		expectErr    bool
+		cluster      *clusterv1.Cluster
+		clusterClass *clusterv1.ClusterClass
+	}{
+		{
+			name:      "no workers in topology",
+			expectErr: false,
+			cluster:   &clusterv1.Cluster{},
+		},
+		{
+			name:      "replicas is not set",
+			expectErr: false,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set but there are no autoscaler annotations",
+			expectErr: false,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set on an MD that has only one annotation",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers2").
+						WithReplicas(2).
+						WithAnnotations(map[string]string{
+							clusterv1.AutoscalerMinSizeAnnotation: "2",
+						}).
+						Build(),
+					).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set on an MD that has two annotations",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithReplicas(2).
+						Build(),
+					).
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers2").
+						WithReplicas(2).
+						WithAnnotations(map[string]string{
+							clusterv1.AutoscalerMinSizeAnnotation: "2",
+							clusterv1.AutoscalerMaxSizeAnnotation: "20",
+						}).
+						Build(),
+					).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set, there are no autoscaler annotations on the Cluster MDT, but there is no matching ClusterClass MDC",
+			expectErr: false,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("mdc1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+			clusterClass: builder.ClusterClass("ns", "name").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc2").Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set, there are no autoscaler annotations on the Cluster MDT, but there is only one on the ClusterClass MDC",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("mdc1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+			clusterClass: builder.ClusterClass("ns", "name").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc1").
+					WithAnnotations(map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "2",
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set, there are no autoscaler annotations on the Cluster MDT, but there are two on the ClusterClass MDC",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("mdc1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+			clusterClass: builder.ClusterClass("ns", "name").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc1").
+					WithAnnotations(map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "2",
+						clusterv1.AutoscalerMaxSizeAnnotation: "20",
+					}).
+					Build()).
+				Build(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := validateAutoscalerAnnotationsForCluster(tt.cluster, tt.clusterClass)
+			if tt.expectErr {
+				g.Expect(err).ToNot(BeEmpty())
+			} else {
+				g.Expect(err).To(BeEmpty())
+			}
+		})
+	}
+}
+
 func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
 	gvk := ref.GetObjectKind().GroupVersionKind()
 	output := &unstructured.Unstructured{}

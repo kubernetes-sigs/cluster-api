@@ -197,6 +197,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		// Ensure no MachineHealthCheck currently in use has been removed from the ClusterClass.
 		allErrs = append(allErrs,
 			validateUpdatesToMachineHealthCheckClasses(clusters, oldClusterClass, newClusterClass)...)
+
+		allErrs = append(allErrs,
+			validateAutoscalerAnnotationsForClusterClass(clusters, newClusterClass)...)
 	}
 
 	if len(allErrs) > 0 {
@@ -503,6 +506,17 @@ func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.Er
 	}
 	for idx, m := range clusterClass.Spec.Workers.MachinePools {
 		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machinePools").Index(idx).Child("template", "metadata"))...)
+	}
+	return allErrs
+}
+
+// validateAutoscalerAnnotationsForClusterClass iterates over a list of Clusters that use a ClusterClass and returns
+// errors if the ClusterClass contains autoscaler annotations while a Cluster has worker replicas.
+func validateAutoscalerAnnotationsForClusterClass(clusters []clusterv1.Cluster, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+	for _, c := range clusters {
+		c := c
+		allErrs = append(allErrs, validateAutoscalerAnnotationsForCluster(&c, newClusterClass)...)
 	}
 	return allErrs
 }

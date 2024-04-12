@@ -306,6 +306,10 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	if clusterClassPollErr == nil {
 		allErrs = append(allErrs, ValidateClusterForClusterClass(newCluster, clusterClass)...)
 	}
+
+	// Validate the Cluster and associated ClusterClass' autoscaler annotations.
+	allErrs = append(allErrs, validateAutoscalerAnnotationsForCluster(newCluster, clusterClass)...)
+
 	if oldCluster != nil { // On update
 		// The ClusterClass must exist to proceed with update validation. Return an error if the ClusterClass was
 		// not found.
@@ -388,6 +392,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 			allErrs = append(allErrs, check.ClusterClassesAreCompatible(oldClusterClass, clusterClass)...)
 		}
 	}
+
 	return allWarnings, allErrs
 }
 
@@ -878,6 +883,64 @@ func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path)
 			allErrs = append(allErrs, mp.Metadata.Validate(
 				fldPath.Child("workers", "machinePools").Index(idx).Child("metadata"),
 			)...)
+		}
+	}
+	return allErrs
+}
+
+// validateAutoscalerAnnotationsForCluster iterates the MachineDeploymentsTopology objects under Workers and ensures the replicas
+// field and min/max annotations for autoscaler are not set at the same time. Optionally it also checks if a given ClusterClass has
+// the annotations that may apply to this Cluster.
+func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if cluster.Spec.Topology == nil || cluster.Spec.Topology.Workers == nil {
+		return allErrs
+	}
+
+	fldPath := field.NewPath("spec", "topology")
+	for i, mdt := range cluster.Spec.Topology.Workers.MachineDeployments {
+		if mdt.Replicas == nil {
+			continue
+		}
+		for k := range mdt.Metadata.Annotations {
+			if k == clusterv1.AutoscalerMinSizeAnnotation || k == clusterv1.AutoscalerMaxSizeAnnotation {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						fldPath.Child("workers", "machineDeployments").Index(i).Child("replicas"),
+						cluster.Spec.Topology.Workers.MachineDeployments[i].Replicas,
+						fmt.Sprintf("cannot be set for cluster %q in namespace %q if the same MachineDeploymentTopology has autoscaler annotations",
+							cluster.Name, cluster.Namespace),
+					),
+				)
+				break
+			}
+		}
+
+		// Find a matching MachineDeploymentClass for this MachineDeploymentTopology and make sure it does not have
+		// the autoscaler annotations in its Template. Skip this step entirely if clusterClass is nil.
+		if clusterClass == nil {
+			continue
+		}
+		for _, mdc := range clusterClass.Spec.Workers.MachineDeployments {
+			if mdc.Class != mdt.Class {
+				continue
+			}
+			for k := range mdc.Template.Metadata.Annotations {
+				if k == clusterv1.AutoscalerMinSizeAnnotation || k == clusterv1.AutoscalerMaxSizeAnnotation {
+					allErrs = append(
+						allErrs,
+						field.Invalid(
+							fldPath.Child("workers", "machineDeployments").Index(i).Child("replicas"),
+							cluster.Spec.Topology.Workers.MachineDeployments[i].Replicas,
+							fmt.Sprintf("cannot be set for cluster %q in namespace %q if the source class %q of this MachineDeploymentTopology has autoscaler annotations",
+								cluster.Name, cluster.Namespace, mdt.Class),
+						),
+					)
+					break
+				}
+			}
 		}
 	}
 	return allErrs

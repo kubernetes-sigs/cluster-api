@@ -41,10 +41,11 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	replicas := int32(len(controlPlane.Machines))
 	desiredReplicas := *controlPlane.KCP.Spec.Replicas
 
-	// set basic data that does not require interacting with the workload cluster
+	// Set basic data that does not require interacting with the workload cluster.
 	controlPlane.KCP.Status.Replicas = replicas
-	controlPlane.KCP.Status.ReadyReplicas = 0
-	controlPlane.KCP.Status.UnavailableReplicas = replicas
+	// Status.Replicas is only ever 0 on the first reconcile for KCP, then Status.UnavailableReplicas is set to `desiredReplicas`.
+	// Otherwise keep it unchanged when `desiredReplicas` does not change. So as to avoid updating it when unable to get the workload cluster.
+	controlPlane.KCP.Status.UnavailableReplicas = desiredReplicas - controlPlane.KCP.Status.ReadyReplicas
 
 	// Return early if the deletion timestamp is set, because we don't want to try to connect to the workload cluster
 	// and we don't want to report resize condition (because it is set to deleting into reconcile delete).
@@ -90,7 +91,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 		return err
 	}
 	controlPlane.KCP.Status.ReadyReplicas = status.ReadyNodes
-	controlPlane.KCP.Status.UnavailableReplicas = replicas - status.ReadyNodes
+	controlPlane.KCP.Status.UnavailableReplicas = desiredReplicas - status.ReadyNodes
 
 	// This only gets initialized once and does not change if the kubeadm config map goes away.
 	if status.HasKubeadmConfig {

@@ -16,7 +16,7 @@ Each [release](https://github.com/kubernetes-sigs/cluster-api/releases) of the C
 All of the four images are hosted by [registry.k8s.io](https://registry.k8s.io). In order to verify the authenticity of the images, you can use `cosign verify` command with the appropriate image name and version: 
 
 ```bash
-$ cosign verify registry.k8s.io/cluster-api/cluster-api-controller:v1.5.0 --certificate-identity krel-trust@k8s-releng-prod.iam.gserviceaccount.com --certificate-oidc-issuer https://accounts.google.com | jq .
+$ COSIGN_EXPERIMENTAL=1 cosign verify registry.k8s.io/cluster-api/cluster-api-controller:v1.5.0 --certificate-identity krel-trust@k8s-releng-prod.iam.gserviceaccount.com --certificate-oidc-issuer https://accounts.google.com | jq .
 ```
 ```text
 Verification for registry.k8s.io/cluster-api/cluster-api-controller:v1.5.0 --

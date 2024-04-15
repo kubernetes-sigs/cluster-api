@@ -61,7 +61,7 @@ func (m *crdMigrator) Run(ctx context.Context, objs []unstructured.Unstructured)
 	for i := range objs {
 		obj := objs[i]
 
-		if obj.GetKind() == "CustomResourceDefinition" {
+		if obj.GetKind() == customResourceDefinitionKind {
 			crd := &apiextensionsv1.CustomResourceDefinition{}
 			if err := scheme.Scheme.Convert(&obj, crd, nil); err != nil {
 				return errors.Wrapf(err, "failed to convert CRD %q", obj.GetName())

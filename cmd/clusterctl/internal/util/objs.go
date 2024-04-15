@@ -27,6 +27,7 @@ import (
 )
 
 const (
+	certificateKind         = "Certificate"
 	deploymentKind          = "Deployment"
 	daemonSetKind           = "DaemonSet"
 	controllerContainerName = "manager"
@@ -191,4 +192,9 @@ func IsDeploymentWithManager(obj unstructured.Unstructured) bool {
 		}
 	}
 	return false
+}
+
+// IsCertificate return true if obj is a certificate.
+func IsCertificate(obj unstructured.Unstructured) bool {
+	return obj.GroupVersionKind().Kind == certificateKind
 }

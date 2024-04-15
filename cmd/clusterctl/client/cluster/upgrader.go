@@ -447,7 +447,11 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 		}
 	}
 
-	return waitForProvidersReady(ctx, InstallOptions(opts), installQueue, u.proxy)
+	if err := waitForProvidersReady(ctx, InstallOptions(opts), installQueue, u.proxy); err != nil {
+		return err
+	}
+
+	return waitForCAInjection(ctx, installQueue, u.proxy)
 }
 
 func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clusterctlv1.Provider) error {

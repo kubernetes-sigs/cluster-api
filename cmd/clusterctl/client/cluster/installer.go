@@ -103,7 +103,11 @@ func (i *providerInstaller) Install(ctx context.Context, opts InstallOptions) ([
 		ret = append(ret, components)
 	}
 
-	return ret, waitForProvidersReady(ctx, opts, i.installQueue, i.proxy)
+	if err := waitForProvidersReady(ctx, opts, i.installQueue, i.proxy); err != nil {
+		return ret, err
+	}
+
+	return ret, waitForCAInjection(ctx, i.installQueue, i.proxy)
 }
 
 func installComponentsAndUpdateInventory(ctx context.Context, components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {

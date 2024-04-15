@@ -307,10 +307,10 @@ func (cm *certManagerClient) deleteObjs(ctx context.Context, objs []unstructured
 
 		// CRDs, and namespace are preserved in order to avoid deletion of user objects;
 		// web-hooks are preserved to avoid a user attempting to CREATE a cert-manager resource while the upgrade is in progress.
-		if obj.GetKind() == "CustomResourceDefinition" ||
+		if obj.GetKind() == customResourceDefinitionKind ||
 			obj.GetKind() == "Namespace" ||
-			obj.GetKind() == "MutatingWebhookConfiguration" ||
-			obj.GetKind() == "ValidatingWebhookConfiguration" {
+			obj.GetKind() == mutatingWebhookConfigurationKind ||
+			obj.GetKind() == validatingWebhookConfigurationKind {
 			continue
 		}
 

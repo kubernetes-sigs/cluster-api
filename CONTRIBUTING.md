@@ -269,12 +269,12 @@ the different size of this project.
 While the maintainers play an important role in the triage process described below, the help of the community is crucial
 to ensure that this task is performed timely and be sustainable long term.
 
-| Phase               | Responsible | What is required to move forward                                                                                                                                                                         |
-|---------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Initial triage      | Maintainers | The issue MUST have: <br/> - [priotiy/*](https://github.com/kubernetes-sigs/cluster-api/labels?q=priority) label<br/>- [kind/*](https://github.com/kubernetes-sigs/cluster-api/labels?q=kind) label<br/> |
-| Triage finalization | Everyone    | There should be consensus on the way forward and enough details for the issue being actionable                                                                                                           |
-| Triage finalization | Maintainers | The issue MUST have: <br/> - `triage/accepted` label<br/> - `help` or `good-first-issue` label                                                                                                           |
-| Actionable          | Everyone    | Contributors volunteering time to do the work and on reviewers/approvers bandwidth<br/>The issue being fixed                                                                                             |
+| Phase               | Responsible | What is required to move forward                                                                                                                                                                          |
+|---------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Initial triage      | Maintainers | The issue MUST have: <br/> - [priority/*](https://github.com/kubernetes-sigs/cluster-api/labels?q=priority) label<br/>- [kind/*](https://github.com/kubernetes-sigs/cluster-api/labels?q=kind) label<br/> |
+| Triage finalization | Everyone    | There should be consensus on the way forward and enough details for the issue being actionable                                                                                                            |
+| Triage finalization | Maintainers | The issue MUST have: <br/> - `triage/accepted` label<br/> label, plus eventually `help` or `good-first-issue` label                                                                                       |
+| Actionable          | Everyone    | Contributors volunteering time to do the work and reviewers/approvers bandwidth<br/>The issue being fixed                                                                                                 |
 
 Please note that:
 
@@ -300,7 +300,7 @@ Please note that:
     - Issues excluded from the automation above will be re-triaged periodically
 
 - If you really care about an issue stuck in the "triage" phases, you can engage with the community or
-  try to figure out what is holding back the issue by yourself, e.g:
+  try to figure out what is holding back the issue by yourself, e.g.:
   - Issue too generic or not yet actionable
   - Lack of consensus or the issue is not relevant for other contributors
   - Lack of contributors; in this case, finding ways to help and free up maintainers/other contributors time from other tasks

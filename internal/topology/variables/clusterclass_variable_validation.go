@@ -329,7 +329,7 @@ func multiplyWithOverflowGuard(baseCost, cardinality uint64) uint64 {
 }
 
 // unbounded uses nil to represent an unbounded cardinality value.
-var unbounded *uint64 = nil
+var unbounded *uint64 = nil //nolint:revive // Using as a named variable to provide the meaning of nil in this context.
 
 func getExpressionCost(cr cel.CompilationResult, cardinalityCost *apiextensionsvalidation.CELSchemaContext) uint64 {
 	if cardinalityCost.MaxCardinality != unbounded {

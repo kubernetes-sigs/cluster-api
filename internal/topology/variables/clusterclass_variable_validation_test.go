@@ -1023,6 +1023,62 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Valid integer schema with CEL expression",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "self >= 1",
+						}},
+					},
+				},
+			},
+		},
+		{
+			name: "Integer schema with invalid CEL expression",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule: "this does not compile",
+						}},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Forbid validation rules where cost total exceeds total limit",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "cpu",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"list": {
+								Type:     "array",
+								MaxItems: ptr.To[int64](10000000),
+								Items: &clusterv1.JSONSchemaProps{
+									Type:         "string",
+									MaxLength:    ptr.To[int64](500000),
+									XValidations: clusterv1.ValidationRules{{Rule: "self.contains('keyword')"}},
+								},
+							},
+							"field": { // include a validation rule that does not contribute to total limit being exceeded (i.e. it is less than 1% of the limit)
+								Type:         "integer",
+								XValidations: clusterv1.ValidationRules{{Rule: "self > 50 && self < 100"}},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

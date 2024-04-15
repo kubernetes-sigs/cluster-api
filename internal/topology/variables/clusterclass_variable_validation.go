@@ -19,16 +19,22 @@ package variables
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	apiextensionsvalidation "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/validation"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
+	"k8s.io/apiextensions-apiserver/pkg/apiserver/schema/cel"
 	structuraldefaulting "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/defaulting"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/validation"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	celconfig "k8s.io/apiserver/pkg/apis/cel"
+	apiservercel "k8s.io/apiserver/pkg/cel"
+	"k8s.io/apiserver/pkg/cel/environment"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -36,6 +42,9 @@ import (
 const (
 	// builtinsName is the name of the builtin variable.
 	builtinsName = "builtin"
+
+	// StaticEstimatedCostLimit represents the largest-allowed static CEL cost on a per-expression basis.
+	StaticEstimatedCostLimit = apiextensionsvalidation.StaticEstimatedCostLimit
 )
 
 // ValidateClusterClassVariables validates clusterClassVariable.
@@ -215,9 +224,132 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 		allErrs = append(allErrs, validateSchema(&p, fldPath.Child("properties").Key(propertyName))...)
 	}
 
-	if schema.Items != nil {
-		allErrs = append(allErrs, validateSchema(schema.Items.Schema, fldPath.Child("items"))...)
+	// If any schema related validation errors have been found at this level or deeper, skip CEL expression validation.
+	// Invalid OpenAPISchemas are not always possible to convert into valid CEL DeclTypes, and can lead to CEL
+	// validation error messages that are not actionable (will go away once the schema errors are resolved) and that
+	// are difficult for CEL expression authors to understand.
+	if len(allErrs) > 0 {
+		return allErrs
 	}
 
+	celContext := apiextensionsvalidation.RootCELContext(schema)
+	allErrs = append(allErrs, validateCELExpressions(schema, fldPath, celContext)...)
+
 	return allErrs
+}
+
+func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *field.Path, celContext *apiextensionsvalidation.CELSchemaContext) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if celContext == nil {
+		return allErrs
+	}
+
+	if schema.AdditionalProperties != nil {
+		allErrs = append(allErrs, validateCELExpressions(schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"), celContext.ChildAdditionalPropertiesContext(schema.AdditionalProperties.Schema))...)
+	}
+
+	if len(schema.Properties) != 0 {
+		for property, jsonSchema := range schema.Properties {
+			propertySchema := jsonSchema
+			allErrs = append(allErrs, validateCELExpressions(&propertySchema, fldPath.Child("properties").Key(property), celContext.ChildPropertyContext(&propertySchema, property))...)
+		}
+	}
+
+	if schema.Items != nil {
+		allErrs = append(allErrs, validateCELExpressions(schema.Items.Schema, fldPath.Child("items"), celContext.ChildItemsContext(schema.Items.Schema))...)
+		if len(schema.Items.JSONSchemas) != 0 {
+			for i, jsonSchema := range schema.Items.JSONSchemas {
+				itemsSchema := jsonSchema
+				allErrs = append(allErrs, validateCELExpressions(&itemsSchema, fldPath.Child("items").Index(i), celContext.ChildItemsContext(&itemsSchema))...)
+			}
+		}
+	}
+
+	typeInfo, err := celContext.TypeInfo()
+	if err != nil {
+		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to construct type information for x-kubernetes-validations rules: %w", err)))
+	}
+	if typeInfo == nil {
+		return allErrs
+	}
+
+	compResults, err := cel.Compile(
+		typeInfo.Schema,
+		typeInfo.DeclType,
+		celconfig.PerCallLimit,
+		environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()),
+		cel.NewExpressionsEnvLoader(),
+	)
+	if err != nil {
+		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), err))
+	}
+
+	for i, cr := range compResults {
+		expressionCost := getExpressionCost(cr, celContext)
+		if expressionCost > StaticEstimatedCostLimit {
+			costErrorMsg := getCostErrorMessage("estimated rule cost", expressionCost, StaticEstimatedCostLimit)
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), costErrorMsg))
+		}
+		if celContext.TotalCost != nil {
+			celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), expressionCost)
+		}
+		if cr.Error != nil {
+			if cr.Error.Type == apiservercel.ErrorTypeRequired {
+				allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), cr.Error.Detail))
+			} else {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i], cr.Error.Detail))
+			}
+		}
+		if cr.MessageExpressionError != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), schema.XValidations[i], cr.MessageExpressionError.Detail))
+		} else if cr.MessageExpression != nil {
+			if cr.MessageExpressionMaxCost > StaticEstimatedCostLimit {
+				costErrorMsg := getCostErrorMessage("estimated messageExpression cost", cr.MessageExpressionMaxCost, StaticEstimatedCostLimit)
+				allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), costErrorMsg))
+			}
+			if celContext.TotalCost != nil {
+				celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), cr.MessageExpressionMaxCost)
+			}
+		}
+	}
+	return allErrs
+}
+
+// multiplyWithOverflowGuard returns the product of baseCost and cardinality unless that product
+// would exceed math.MaxUint, in which case math.MaxUint is returned.
+func multiplyWithOverflowGuard(baseCost, cardinality uint64) uint64 {
+	if baseCost == 0 {
+		// an empty rule can return 0, so guard for that here
+		return 0
+	} else if math.MaxUint/baseCost < cardinality {
+		return math.MaxUint
+	}
+	return baseCost * cardinality
+}
+
+// unbounded uses nil to represent an unbounded cardinality value.
+var unbounded *uint64 = nil
+
+func getExpressionCost(cr cel.CompilationResult, cardinalityCost *apiextensionsvalidation.CELSchemaContext) uint64 {
+	if cardinalityCost.MaxCardinality != unbounded {
+		return multiplyWithOverflowGuard(cr.MaxCost, *cardinalityCost.MaxCardinality)
+	}
+	return multiplyWithOverflowGuard(cr.MaxCost, cr.MaxCardinality)
+}
+
+func getCostErrorMessage(costName string, expressionCost, costLimit uint64) string {
+	exceedFactor := float64(expressionCost) / float64(costLimit)
+	var factor string
+	if exceedFactor > 100.0 {
+		// if exceedFactor is greater than 2 orders of magnitude, the rule is likely O(n^2) or worse
+		// and will probably never validate without some set limits
+		// also in such cases the cost estimation is generally large enough to not add any value
+		factor = "more than 100x"
+	} else if exceedFactor < 1.5 {
+		factor = fmt.Sprintf("%fx", exceedFactor) // avoid reporting "exceeds budge by a factor of 1.0x"
+	} else {
+		factor = fmt.Sprintf("%.1fx", exceedFactor)
+	}
+	return fmt.Sprintf("%s exceeds budget by factor of %s (try simplifying the rule, or adding maxItems, maxProperties, and maxLength where arrays, maps, and strings are declared)", costName, factor)
 }

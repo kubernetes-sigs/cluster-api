@@ -187,6 +187,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 		// the current cluster because of concurrent access.
 		if errors.Is(err, remote.ErrClusterLocked) {
+			if aggr, ok := err.(kerrors.Aggregate); ok && len(aggr.Errors()) > 1 {
+				// Print the errors if it's not only ErrClusterLocked.
+				log.Info(aggr.Error())
+			}
 			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
@@ -852,7 +856,8 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 }
 
 // updateStatus updates the Status field for the MachineSet
-// It checks for the current state of the replicas and updates the Status of the MachineSet.
+// It checks for the current state of the replicas and updates the Status field of the MachineSet.
+// When unable to retrieve the Node status, it returns error and won't update the Status field of the MachineSet.
 func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	newStatus := ms.Status.DeepCopy()
@@ -890,8 +895,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 
 		node, err := r.getMachineNode(ctx, cluster, machine)
 		if err != nil && machine.GetDeletionTimestamp().IsZero() {
-			log.Error(err, "Unable to retrieve Node status", "Node", klog.KObj(node))
-			continue
+			return errors.Wrapf(err, "unable to retrieve the status of Node %s", klog.KObj(node))
 		}
 
 		if noderefutil.IsNodeReady(node) {
@@ -964,6 +968,9 @@ func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Clus
 	}
 	node := &corev1.Node{}
 	if err := remoteClient.Get(ctx, client.ObjectKey{Name: machine.Status.NodeRef.Name}, node); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
 	}
 	return node, nil

@@ -17,6 +17,8 @@ limitations under the License.
 package webhooks
 
 import (
+	"context"
+
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,10 +52,10 @@ func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // This method can be used when testing the behavior of the desired state computation of
 // the Cluster topology controller (because variables are always defaulted and validated
 // before the desired state is computed).
-func (webhook *Cluster) DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func (webhook *Cluster) DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	// As of today this func is not a method on internal/webhooks.Cluster because it doesn't use
 	// any of its fields. But it seems more consistent and future-proof to expose it as a method.
-	return webhooks.DefaultAndValidateVariables(cluster, clusterClass)
+	return webhooks.DefaultAndValidateVariables(ctx, cluster, oldCluster, clusterClass)
 }
 
 // ClusterClass implements a validation and defaulting webhook for ClusterClass.

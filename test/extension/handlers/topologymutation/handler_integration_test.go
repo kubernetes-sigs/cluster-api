@@ -117,7 +117,7 @@ func TestHandler(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Run variable defaulting and validation on the Cluster object.
-	errs := clusterWebhook.DefaultAndValidateVariables(s.Current.Cluster, s.Blueprint.ClusterClass)
+	errs := clusterWebhook.DefaultAndValidateVariables(ctx, s.Current.Cluster, nil, s.Blueprint.ClusterClass)
 	g.Expect(errs.ToAggregate()).ToNot(HaveOccurred())
 
 	// Return the desired state.

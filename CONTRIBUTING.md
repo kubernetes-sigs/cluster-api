@@ -16,6 +16,7 @@
 - [Documentation changes](#documentation-changes)
 - [Releases](#releases)
 - [Proposal process (CAEP)](#proposal-process-caep)
+- [Triaging issues](#triaging-issues)
 - [Triaging E2E test failures](#triaging-e2e-test-failures)
 - [Reviewing a Patch](#reviewing-a-patch)
   - [Reviews](#reviews)
@@ -260,6 +261,62 @@ The [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/pro
 - A proposal in a Google Doc MUST turn into a [Pull Request](https://github.com/kubernetes-sigs/cluster-api/pulls).
 - Proposals MUST be merged and in `implementable` state to be considered part of a major or minor release.
 
+## Triaging issues
+
+Issue triage in Cluster API follows the best practices of the Kubernetes project while seeking balance with
+the different size of this project.
+
+While the maintainers play an important role in the triage process described below, the help of the community is crucial
+to ensure that this task is performed timely and be sustainable long term.
+
+| Phase               | Responsible | What is required to move forward                                                                                                                                                                          |
+|---------------------|-------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Initial triage      | Maintainers | The issue MUST have: <br/> - [priority/*](https://github.com/kubernetes-sigs/cluster-api/labels?q=priority) label<br/>- [kind/*](https://github.com/kubernetes-sigs/cluster-api/labels?q=kind) label<br/> |
+| Triage finalization | Everyone    | There should be consensus on the way forward and enough details for the issue being actionable                                                                                                            |
+| Triage finalization | Maintainers | The issue MUST have: <br/> - `triage/accepted` label<br/> label, plus eventually `help` or `good-first-issue` label                                                                                       |
+| Actionable          | Everyone    | Contributors volunteering time to do the work and reviewers/approvers bandwidth<br/>The issue being fixed                                                                                                 |
+
+Please note that:
+
+- Priority provides an indication to everyone looking at issues.
+  - When assigning priority several factors are taken into consideration, including impact on users, relevance
+    for the upcoming releases, maturity of the issue (consensus + completeness).
+  - `priority/awaiting-more-evidence` is used to mark issue where there is not enough info to take a decision for
+    one of the other [priorities values](https://github.com/kubernetes-sigs/cluster-api/labels?q=priority).
+  - Priority can change over time, and everyone is welcome to provide constructive feedback about updating an issue's priority.
+  - Applying a priority label is not a commitment to execute within a certain time frame, because implementation
+    depends on contributors volunteering time to do the work and on reviewers/approvers bandwidth.
+  
+- Closing inactive issues which are stuck in the "triage" phases is a crucial task for maintaining an
+  actionable backlog. Accordingly, the following automation applies to issues in the "triage" or the "refinement" phase:
+  - After 90 days of inactivity, issues will be marked with the `lifecycle/stale` label 
+  - After 30 days of inactivity from when `lifecycle/stale` was applied, issues will be marked with the `lifecycle/rotten` label 
+  - After 30 days of inactivity from when `lifecycle/rotten` was applied, issues will be closed.
+    With this regard, it is important to notice that closed issues are and will always be a highly valuable part of the
+    knowledge base about the Cluster API project, and they will never go away.
+  - Note: 
+    - The automation above does not apply to issues triaged as `priority/critical-urgent`, `priority/important-soon` or `priority/important-longterm`
+    - Maintainers could apply the `lifecycle/frozen` label if they want to exclude an issue from the automation above
+    - Issues excluded from the automation above will be re-triaged periodically
+
+- If you really care about an issue stuck in the "triage" phases, you can engage with the community or
+  try to figure out what is holding back the issue by yourself, e.g.:
+  - Issue too generic or not yet actionable
+  - Lack of consensus or the issue is not relevant for other contributors
+  - Lack of contributors; in this case, finding ways to help and free up maintainers/other contributors time from other tasks
+    can really help to unblock your issues.
+  
+- Issues in the "actionable" state are not subject to the stale/rotten/closed process; however, it is required to re-assess
+  them periodically given that the project change quickly. Accordingly, the following automation applies to issues
+  in the "actionable" phase:
+  - After 30 days of inactivity, the `triage/accepted` label will be removed from issues with `priority/critical-urgent`
+  - After 90 days of inactivity the `triage/accepted` label will be removed from issues with `priority/important-soon`
+  - After 1 year of inactivity the `triage/accepted` label will be removed from issues without `priority/critical-urgent` or `priority/important-soon`
+
+- If you really care about an issue stuck in the "actionable" phase, you can try to figure out what is holding back
+  the issue implementation (usually lack of contributors), engage with the community, find ways to help and free up
+  maintainers/other contributors time from other tasks, or `/assign` the issue and send a PR.
+ 
 ## Triaging E2E test failures
 
 When you submit a change to the Cluster API repository as set of validation jobs is automatically executed by

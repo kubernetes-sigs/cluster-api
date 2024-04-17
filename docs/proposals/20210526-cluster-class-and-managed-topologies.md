@@ -70,7 +70,7 @@ status: provisional
 ## Glossary
 
 ### ClusterClass
-A collection of templates that define a topology (control plane and machine deployments) to be used to continuously reconcile one or more Clusters.
+A collection of templates that define a topology (control plane, machine deployments and machine pools) to be used to continuously reconcile one or more Clusters.
 
 ### Topology
 A topology refers to a Cluster that provides a single control point to manage its own topology; the topology is defined by a ClusterClass.
@@ -85,7 +85,7 @@ We're enhancing the Cluster CRD and controller to use a ClusterClass resource to
 
 Currently, Cluster API does not expose a native way to provision multiple clusters of the same configuration. The ClusterClass object is supposed to act as a collection of template references which can be used to create managed topologies.
 
-Today, the Cluster object is a logical grouping of components which describe an underlying cluster. The user experience to create a cluster requires the user to create a bunch of underlying resources such as KCP (control plane provider), MachineDeployments, and infrastructure or bootstrap templates for those resources which logically end up representing the cluster. Since the cluster configuration is spread around multiple components, upgrading the cluster version is hard as it requires changes to different fields in different resources to perform an upgrade. The ClusterClass object aims at reducing this complexity by delegating the responsibility of lifecycle managing these underlying resources to the Cluster controller.
+Today, the Cluster object is a logical grouping of components which describe an underlying cluster. The user experience to create a cluster requires the user to create a bunch of underlying resources such as KCP (control plane provider), MachineDeployments, MachinePools and infrastructure or bootstrap templates for those resources which logically end up representing the cluster. Since the cluster configuration is spread around multiple components, upgrading the cluster version is hard as it requires changes to different fields in different resources to perform an upgrade. The ClusterClass object aims at reducing this complexity by delegating the responsibility of lifecycle managing these underlying resources to the Cluster controller.
 
 This method of provisioning the cluster would act as a single control point for the entire cluster. Scaling the nodes, adding/removing sets of worker nodes and upgrading cluster kubernetes versions would be achievable by editing the topology. This would facilitate the maintenance of existing clusters as well as ease the creation of newer clusters.
 
@@ -124,7 +124,7 @@ As a cluster operator, I want to use one `ClusterClass` to create multiple topol
 
 #### Story 2 - Easier UX for Kubernetes version upgrades
 For a cluster operator, the UX to update the Kubernetes version of the control plane and worker nodes in the cluster should be easy.
-- Instead of individually modifying the KCP and each MachineDeployment, updating a single option should result in k8s version updates for all the CP and worker nodes.
+- Instead of individually modifying the KCP and each MachineDeployment or MachinePool, updating a single option should result in k8s version updates for all the CP and worker nodes.
 
 **Note**: In order to complete the user story for all the providers, some of the advanced features (such as Extensibility/Transformation) are required. However, getting this in place even only for a subset of providers allows us to build and test a big chunk of the entire machinery.
 
@@ -202,6 +202,10 @@ at high level the new CRD contains:
     - The reference to the infrastructureMachine template (e.g. AWSMachineTemplate) to be used when creating machine deployment machines.
     - Additional attributes to be set when creating the machine deployment object, like metadata, nodeDrainTimeout, rolloutStrategy etc.
     - The definition of a MachineHealthCheck to be created for monitoring machine deployment machines.
+  - And/or a set of MachinePoolClasses, each one with:
+    - The reference to the bootstrap template (e.g. KubeadmConfigTemplate) to be used when creating machine pools.
+    - The reference to the infrastructureMachinePool template (e.g. DockerMachinePoolTemplate) to be used when creating machine pools.
+    - Additional attributes to be set when creating the machine pool object, like metadata, nodeDrainTimeout, etc.
 - A list of patches, allowing to change above templates for each specific Cluster.
 - A list of variable definitions, defining a set of additional values the users can provide on each specific cluster;
   those values can be used in patches. 
@@ -251,8 +255,9 @@ At high level the cluster topology is defined by:
   - The link to the MachineDeployment class defining the templates to use for this MachineDeployment
   - The number of replicas for this MachineDeployment as well as overrides/additional values for metadata, nodeDrainTimeout etc.
     Additionally it is also possible to override the control plane's MachineHealthCheck.
+- The above also applies for machine pools.
 - A set of variables allowing to customize the cluster topology through patches. Please note that it is also possible
-  to define variable overrides for each MachineDeployments.
+  to define variable overrides for each MachineDeployment or MachinePool.
 
 More info in [writing a ClusterClass](https://cluster-api.sigs.k8s.io/tasks/experimental-features/cluster-class/write-clusterclass.html).
 
@@ -264,14 +269,14 @@ API definitions; additionally please consider the following:
 **ClusterClass**
 
 - It is not allowed to change apiGroup or Kind for the referenced templates (with the only exception of the bootstrap templates).
-- MachineDeploymentClass cannot be removed as long as they are used in Clusters.
+- MachineDeploymentClass and MachinePoolClass cannot be removed as long as they are used in Clusters.
 - It’s the responsibility of the ClusterClass author to ensure the patches are semantically valid, in the sense they
   generate valid templates for all the combinations of the corresponding variables in input.
 - Variables cannot be removed as long as they are used in Clusters.
 - When changing variable definitions, the system validates schema changes against existing clusters and blocks in case the changes are  
   not compatible (the variable value is not compatible with the new variable definition).
 
-Note: we are considering adding a field to allow smoother deprecations of MachineDeploymentClass and/or variables, but this
+Note: we are considering adding a field to allow smoother deprecations of MachineDeploymentClass, MachinePoolClass and/or variables, but this
 is not yet implemented as of today.
 
 **Cluster**
@@ -420,10 +425,10 @@ This section talks about updating a Cluster which was created using a `ClusterCl
 1. User updates the `cluster.spec.topology`.
 2. System compares and updates InfrastructureCluster object, if the computed object after the change is different than the current one.
 3. System compares and updates ControlPlane object, if necessary. This includes also comparing and rotating the InfrastructureMachineTemplate, if necessary.
-4. System compares and updates MachineDeployment object, if necessary. This includes also
-    1. Adding/Removing MachineDeployment, if necessary.
-    2. Comparing and rotating the InfrastructureMachineTemplate and BootstrapTemplate for the existing MachineDeployments, if necessary.
-    3. Comparing and updating the replicas, labels, annotations and version of the existing MachineDeployments, if necessary.
+4. System compares and updates MachineDeployment and/or MachinePool object, if necessary. This includes also
+    1. Adding/Removing MachineDeployment/MachinePool, if necessary.
+    2. Comparing and rotating the InfrastructureMachineTemplate and BootstrapTemplate for the existing MachineDeployments/MachinePools, if necessary.
+    3. Comparing and updating the replicas, labels, annotations and version of the existing MachineDeployments/MachinePools, if necessary.
 5. System compares and updates MachineHealthCheck objects corresponding to ControlPlane or MachineDeployments, if necessary.
 
 ![Update cluster with ClusterClass](./images/cluster-class/update.png)

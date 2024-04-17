@@ -197,14 +197,9 @@ func ObjectKey(object metav1.Object) client.ObjectKey {
 
 // ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Cluster events and returns reconciliation requests for an infrastructure provider object.
-func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.MapFunc {
+func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.ObjectMapFunc[*clusterv1.Cluster] {
 	log := ctrl.LoggerFrom(ctx)
-	return func(ctx context.Context, o client.Object) []reconcile.Request {
-		cluster, ok := o.(*clusterv1.Cluster)
-		if !ok {
-			return nil
-		}
-
+	return func(ctx context.Context, cluster *clusterv1.Cluster) []reconcile.Request {
 		// Return early if the InfrastructureRef is nil.
 		if cluster.Spec.InfrastructureRef == nil {
 			return nil
@@ -265,13 +260,8 @@ func GetMachineByName(ctx context.Context, c client.Client, namespace, name stri
 
 // MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Machine events and returns reconciliation requests for an infrastructure provider object.
-func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
-	return func(_ context.Context, o client.Object) []reconcile.Request {
-		m, ok := o.(*clusterv1.Machine)
-		if !ok {
-			return nil
-		}
-
+func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ObjectMapFunc[*clusterv1.Machine] {
+	return func(_ context.Context, m *clusterv1.Machine) []reconcile.Request {
 		gk := gvk.GroupKind()
 		// Return early if the GroupKind doesn't match what we expect.
 		infraGK := m.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
@@ -473,7 +463,7 @@ func (k KubeAwareAPIVersions) Less(i, j int) bool {
 // Note: This function uses the passed in typed ObjectList and thus with the default client configuration all list calls
 // will be cached.
 // NB: The objects are required to have `clusterv1.ClusterNameLabel` applied.
-func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.ObjectMapFunc[*clusterv1.Cluster], error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err
@@ -495,12 +485,7 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 		return nil, err
 	}
 
-	return func(ctx context.Context, o client.Object) []ctrl.Request {
-		cluster, ok := o.(*clusterv1.Cluster)
-		if !ok {
-			return nil
-		}
-
+	return func(ctx context.Context, cluster *clusterv1.Cluster) []ctrl.Request {
 		listOpts := []client.ListOption{
 			client.MatchingLabels{
 				clusterv1.ClusterNameLabel: cluster.Name,
@@ -537,7 +522,7 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 // MachineDeploymentToObjectsMapper returns a mapper function that gets a machinedeployment
 // and lists all objects for the object passed in and returns a list of requests.
 // NB: The objects are required to have `clusterv1.MachineDeploymentNameLabel` applied.
-func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.ObjectMapFunc[*clusterv1.MachineDeployment], error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err
@@ -559,12 +544,7 @@ func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, sch
 		return nil, err
 	}
 
-	return func(ctx context.Context, o client.Object) []ctrl.Request {
-		md, ok := o.(*clusterv1.MachineDeployment)
-		if !ok {
-			return nil
-		}
-
+	return func(ctx context.Context, md *clusterv1.MachineDeployment) []ctrl.Request {
 		listOpts := []client.ListOption{
 			client.MatchingLabels{
 				clusterv1.MachineDeploymentNameLabel: md.Name,
@@ -601,7 +581,7 @@ func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, sch
 // MachineSetToObjectsMapper returns a mapper function that gets a machineset
 // and lists all objects for the object passed in and returns a list of requests.
 // NB: The objects are required to have `clusterv1.MachineSetNameLabel` applied.
-func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.ObjectMapFunc[*clusterv1.MachineSet], error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err
@@ -623,12 +603,7 @@ func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *ru
 		return nil, err
 	}
 
-	return func(ctx context.Context, o client.Object) []ctrl.Request {
-		ms, ok := o.(*clusterv1.MachineSet)
-		if !ok {
-			return nil
-		}
-
+	return func(ctx context.Context, ms *clusterv1.MachineSet) []ctrl.Request {
 		listOpts := []client.ListOption{
 			client.MatchingLabels{
 				clusterv1.MachineSetNameLabel: format.MustFormatValue(ms.Name),

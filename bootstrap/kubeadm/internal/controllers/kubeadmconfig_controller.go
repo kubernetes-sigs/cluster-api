@@ -108,30 +108,31 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 
 	b := ctrl.NewControllerManagedBy(mgr).
-		For(&bootstrapv1.KubeadmConfig{}).
+		Add(builder.For(mgr,
+			&bootstrapv1.KubeadmConfig{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &bootstrapv1.KubeadmConfig{}),
+		)).
 		WithOptions(options).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
-		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
+			handler.EnqueueRequestsFromObjectMap(r.MachineToBootstrapMapFunc),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
+		))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		b = b.Watches(
+		b = b.Add(builder.Watches(mgr,
 			&expv1.MachinePool{},
-			handler.EnqueueRequestsFromMapFunc(r.MachinePoolToBootstrapMapFunc),
-		)
+			handler.EnqueueRequestsFromObjectMap(r.MachinePoolToBootstrapMapFunc),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}),
+		))
 	}
 
-	b = b.Watches(
+	b = b.Add(builder.Watches(mgr,
 		&clusterv1.Cluster{},
-		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmConfigs),
-		builder.WithPredicates(
-			predicates.All(ctrl.LoggerFrom(ctx),
-				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
-				predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
-			),
-		),
-	)
+		handler.EnqueueRequestsFromObjectMap(r.ClusterToKubeadmConfigs),
+		predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+	))
 
 	if err := b.Complete(r); err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -875,14 +876,8 @@ func (r *KubeadmConfigReconciler) tokenCheckRefreshOrRotationInterval() time.Dur
 
 // ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of KubeadmConfigs.
-func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(ctx context.Context, c *clusterv1.Cluster) []ctrl.Request {
 	result := []ctrl.Request{}
-
-	c, ok := o.(*clusterv1.Cluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
-	}
-
 	selectors := []client.ListOption{
 		client.InNamespace(c.Namespace),
 		client.MatchingLabels{
@@ -923,12 +918,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(ctx context.Context, o
 
 // MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of KubeadmConfig.
-func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
-	m, ok := o.(*clusterv1.Machine)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
-	}
-
+func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, m *clusterv1.Machine) []ctrl.Request {
 	result := []ctrl.Request{}
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.GroupVersionKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig") {
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.Bootstrap.ConfigRef.Name}
@@ -939,12 +929,7 @@ func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(_ context.Context, o
 
 // MachinePoolToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of KubeadmConfig.
-func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, o client.Object) []ctrl.Request {
-	m, ok := o.(*expv1.MachinePool)
-	if !ok {
-		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
-	}
-
+func (r *KubeadmConfigReconciler) MachinePoolToBootstrapMapFunc(_ context.Context, m *expv1.MachinePool) []ctrl.Request {
 	result := []ctrl.Request{}
 	configRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 	if configRef != nil && configRef.GroupVersionKind().GroupKind() == bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind() {

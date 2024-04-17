@@ -172,25 +172,28 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&infraexpv1.DockerMachinePool{}).
+		Add(builder.For(mgr,
+			&infraexpv1.DockerMachinePool{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infraexpv1.DockerMachinePool{}),
+		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&expv1.MachinePool{},
-			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(
+			handler.EnqueueRequestsFromObjectMap(utilexp.MachinePoolToInfrastructureMapFunc(
 				infraexpv1.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
-		).
-		Watches(
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}),
+		)).
+		Add(builder.Watches(mgr,
 			&infrav1.DockerMachine{},
-			handler.EnqueueRequestsFromMapFunc(dockerMachineToDockerMachinePool),
-		).
-		Watches(
+			handler.EnqueueRequestsFromObjectMap(dockerMachineToDockerMachinePool),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.DockerMachine{}),
+		)).
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
-			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
-			),
-		).Build(r)
+			handler.EnqueueRequestsFromObjectMap(clusterToDockerMachinePools),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+		)).Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -351,12 +354,7 @@ func setInfrastructureMachineKind(dockerMachinePool *infraexpv1.DockerMachinePoo
 }
 
 // dockerMachineToDockerMachinePool creates a mapping handler to transform DockerMachine to DockerMachinePools.
-func dockerMachineToDockerMachinePool(_ context.Context, o client.Object) []ctrl.Request {
-	dockerMachine, ok := o.(*infrav1.DockerMachine)
-	if !ok {
-		panic(fmt.Sprintf("Expected a DockerMachine but got a %T", o))
-	}
-
+func dockerMachineToDockerMachinePool(_ context.Context, dockerMachine *infrav1.DockerMachine) []ctrl.Request {
 	for _, ownerRef := range dockerMachine.GetOwnerReferences() {
 		gv, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 		if err != nil {

@@ -32,6 +32,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -72,15 +73,12 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.ClusterClass{}).
+	err := ctrl.NewControllerManagedBy(mgr).Add(builder.For(mgr, &clusterv1.ClusterClass{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.ClusterClass{}))).
 		Named("clusterclass").
 		WithOptions(options).
-		Watches(
-			&runtimev1.ExtensionConfig{},
-			handler.EnqueueRequestsFromMapFunc(r.extensionConfigToClusterClass),
-		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		Add(builder.Watches(mgr, &runtimev1.ExtensionConfig{},
+			handler.EnqueueRequestsFromObjectMap(r.extensionConfigToClusterClass),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &runtimev1.ExtensionConfig{}))).
 		Complete(r)
 
 	if err != nil {
@@ -393,13 +391,9 @@ func uniqueObjectRefKey(ref *corev1.ObjectReference) string {
 
 // extensionConfigToClusterClass maps an ExtensionConfigs to the corresponding ClusterClass to reconcile them on updates
 // of the ExtensionConfig.
-func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client.Object) []reconcile.Request {
+func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, ext *runtimev1.ExtensionConfig) []reconcile.Request {
 	res := []ctrl.Request{}
 	log := ctrl.LoggerFrom(ctx)
-	ext, ok := o.(*runtimev1.ExtensionConfig)
-	if !ok {
-		panic(fmt.Sprintf("Expected an ExtensionConfig but got a %T", o))
-	}
 
 	clusterClasses := clusterv1.ClusterClassList{}
 	selector, err := metav1.LabelSelectorAsSelector(ext.Spec.NamespaceSelector)

@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -88,20 +87,17 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&expv1.MachinePool{}).
+		Add(builder.For(mgr,
+			&expv1.MachinePool{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}))).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
+			handler.EnqueueRequestsFromObjectMap(clusterToMachinePools),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
-				),
-			),
-		).
+			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		)).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -335,18 +331,13 @@ func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *
 	return r.Tracker.Watch(ctx, remote.WatchInput{
 		Name:         "machinepool-watchNodes",
 		Cluster:      util.ObjectKey(cluster),
-		Watcher:      r.controller,
+		Watcher:      &controller.ControllerAdapter{Controller: r.controller},
 		Kind:         &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachinePool),
+		EventHandler: handler.EnqueueRequestsFromObjectMapFunc(r.nodeToMachinePool),
 	})
 }
 
-func (r *MachinePoolReconciler) nodeToMachinePool(ctx context.Context, o client.Object) []reconcile.Request {
-	node, ok := o.(*corev1.Node)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Node but got a %T", o))
-	}
-
+func (r *MachinePoolReconciler) nodeToMachinePool(ctx context.Context, node *corev1.Node) []reconcile.Request {
 	var filters []client.ListOption
 	// Match by clusterName when the node has the annotation.
 	if clusterName, ok := node.GetAnnotations()[clusterv1.ClusterNameAnnotation]; ok {

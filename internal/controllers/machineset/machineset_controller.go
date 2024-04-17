@@ -98,26 +98,21 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.MachineSet{}).
-		Owns(&clusterv1.Machine{}).
+		Add(builder.For(mgr, &clusterv1.MachineSet{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{}))).
+		Add(builder.Owns(mgr, &clusterv1.MachineSet{}, &clusterv1.Machine{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}))).
 		// Watches enqueues MachineSet for corresponding Machine resources, if no managed controller reference (owner) exists.
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
-		).
+			handler.EnqueueRequestsFromObjectMap(r.MachineToMachineSets),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
+		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
-			builder.WithPredicates(
-				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
-				),
-			),
-		).Complete(r)
+			handler.EnqueueRequestsFromObjectMap(clusterToMachineSets),
+			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		)).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -772,14 +767,8 @@ func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*
 
 // MachineToMachineSets is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineSets that might adopt an orphaned Machine.
-func (r *Reconciler) MachineToMachineSets(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *Reconciler) MachineToMachineSets(ctx context.Context, m *clusterv1.Machine) []ctrl.Request {
 	result := []ctrl.Request{}
-
-	m, ok := o.(*clusterv1.Machine)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
-	}
-
 	log := ctrl.LoggerFrom(ctx, "Machine", klog.KObj(m))
 
 	// Check if the controller reference is already set and

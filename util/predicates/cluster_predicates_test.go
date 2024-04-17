@@ -21,7 +21,6 @@ import (
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -88,12 +87,7 @@ func TestClusterControlplaneInitializedPredicate(t *testing.T) {
 	for i := range testcases {
 		tc := testcases[i]
 		t.Run(tc.name, func(*testing.T) {
-			ev := event.UpdateEvent{
-				ObjectOld: &tc.oldCluster,
-				ObjectNew: &tc.newCluster,
-			}
-
-			g.Expect(predicate.Update(ev)).To(Equal(tc.expected))
+			g.Expect(predicate.OnUpdate(&tc.oldCluster, &tc.newCluster)).To(Equal(tc.expected))
 		})
 	}
 }

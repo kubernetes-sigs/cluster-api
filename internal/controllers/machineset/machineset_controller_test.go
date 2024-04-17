@@ -632,7 +632,7 @@ func TestMachineSetToMachines(t *testing.T) {
 	}
 	testsCases := []struct {
 		name      string
-		mapObject client.Object
+		mapObject *clusterv1.Machine
 		expected  []reconcile.Request
 	}{
 		{

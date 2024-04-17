@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"path"
 	"strings"
 	"time"
@@ -31,6 +30,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -78,13 +78,13 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.Cluster{}).
-		Watches(
+		Add(builder.For(mgr, &clusterv1.Cluster{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}))).
+		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
-		).
+			handler.EnqueueRequestsFromObjectMap(r.controlPlaneMachineToCluster),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
+		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -511,11 +511,7 @@ func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, clust
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update its status.controlPlaneInitialized field.
-func (r *Reconciler) controlPlaneMachineToCluster(ctx context.Context, o client.Object) []ctrl.Request {
-	m, ok := o.(*clusterv1.Machine)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
-	}
+func (r *Reconciler) controlPlaneMachineToCluster(ctx context.Context, m *clusterv1.Machine) []ctrl.Request {
 	if !util.IsControlPlaneMachine(m) {
 		return nil
 	}

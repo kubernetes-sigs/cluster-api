@@ -65,26 +65,19 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.MachineSet{},
-			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx)),
-					predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))),
-			),
-		).
+		Add(builder.For(mgr, &clusterv1.MachineSet{},
+			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx), &clusterv1.MachineSet{}),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{}),
+		)).
 		Named("topology/machineset").
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
-			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-					predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
-				),
-			),
-		).
+			handler.EnqueueRequestsFromObjectMap(clusterToMachineSets),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
+		)).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

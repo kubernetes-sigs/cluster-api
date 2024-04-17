@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -92,29 +91,32 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.Cluster{}, builder.WithPredicates(
+		Add(builder.For(mgr, &clusterv1.Cluster{},
 			// Only reconcile Cluster with topology.
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 			predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
 		)).
 		Named("topology/cluster").
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.ClusterClass{},
-			handler.EnqueueRequestsFromMapFunc(r.clusterClassToCluster),
-		).
-		Watches(
+			handler.EnqueueRequestsFromObjectMap(r.clusterClassToCluster),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.ClusterClass{}),
+		)).
+		Add(builder.Watches(mgr,
 			&clusterv1.MachineDeployment{},
-			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
+			handler.EnqueueRequestsFromObjectMap(r.machineDeploymentToCluster),
 			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
-		).
-		Watches(
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineDeployment{}),
+			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx), &clusterv1.MachineDeployment{}),
+		)).
+		Add(builder.Watches(mgr,
 			&expv1.MachinePool{},
-			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
+			handler.EnqueueRequestsFromObjectMap(r.machinePoolToCluster),
 			// Only trigger Cluster reconciliation if the MachinePool is topology owned.
-			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
-		).
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}),
+			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx), &expv1.MachinePool{}),
+		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -297,7 +299,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.InfrastructureCluster,
 			handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the InfrastructureCluster is topology owned.
-			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))); err != nil {
+			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx), &clusterv1.Cluster{})); err != nil {
 			return errors.Wrap(err, "error watching Infrastructure CR")
 		}
 	}
@@ -305,7 +307,7 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 		if err := r.externalTracker.Watch(ctrl.LoggerFrom(ctx), s.Current.ControlPlane.Object,
 			handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Cluster{}),
 			// Only trigger Cluster reconciliation if the ControlPlane is topology owned.
-			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))); err != nil {
+			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx), &clusterv1.Cluster{})); err != nil {
 			return errors.Wrap(err, "error watching ControlPlane CR")
 		}
 	}
@@ -335,12 +337,7 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 
 // clusterClassToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when its own ClusterClass gets updated.
-func (r *Reconciler) clusterClassToCluster(ctx context.Context, o client.Object) []ctrl.Request {
-	clusterClass, ok := o.(*clusterv1.ClusterClass)
-	if !ok {
-		panic(fmt.Sprintf("Expected a ClusterClass but got a %T", o))
-	}
-
+func (r *Reconciler) clusterClassToCluster(ctx context.Context, clusterClass *clusterv1.ClusterClass) []ctrl.Request {
 	clusterList := &clusterv1.ClusterList{}
 	if err := r.Client.List(
 		ctx,
@@ -362,11 +359,7 @@ func (r *Reconciler) clusterClassToCluster(ctx context.Context, o client.Object)
 
 // machineDeploymentToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when one of its own MachineDeployments gets updated.
-func (r *Reconciler) machineDeploymentToCluster(_ context.Context, o client.Object) []ctrl.Request {
-	md, ok := o.(*clusterv1.MachineDeployment)
-	if !ok {
-		panic(fmt.Sprintf("Expected a MachineDeployment but got a %T", o))
-	}
+func (r *Reconciler) machineDeploymentToCluster(_ context.Context, md *clusterv1.MachineDeployment) []ctrl.Request {
 	if md.Spec.ClusterName == "" {
 		return nil
 	}
@@ -381,11 +374,7 @@ func (r *Reconciler) machineDeploymentToCluster(_ context.Context, o client.Obje
 
 // machinePoolToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update when one of its own MachinePools gets updated.
-func (r *Reconciler) machinePoolToCluster(_ context.Context, o client.Object) []ctrl.Request {
-	mp, ok := o.(*expv1.MachinePool)
-	if !ok {
-		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
-	}
+func (r *Reconciler) machinePoolToCluster(_ context.Context, mp *expv1.MachinePool) []ctrl.Request {
 	if mp.Spec.ClusterName == "" {
 		return nil
 	}

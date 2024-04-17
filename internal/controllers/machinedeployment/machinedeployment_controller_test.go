@@ -710,7 +710,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 
 	testsCases := []struct {
 		machineSet clusterv1.MachineSet
-		mapObject  client.Object
+		mapObject  *clusterv1.MachineSet
 		expected   []reconcile.Request
 	}{
 		{

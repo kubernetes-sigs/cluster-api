@@ -1144,24 +1144,27 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.InMemoryMachine{}).
+		Add(builder.For(mgr,
+			&infrav1.InMemoryMachine{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.InMemoryMachine{}),
+		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
-		).
-		Watches(
+			handler.EnqueueRequestsFromObjectMap(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
+		)).
+		Add(builder.Watches(mgr,
 			&infrav1.InMemoryCluster{},
-			handler.EnqueueRequestsFromMapFunc(r.InMemoryClusterToInMemoryMachines),
-		).
-		Watches(
+			handler.EnqueueRequestsFromObjectMap(r.InMemoryClusterToInMemoryMachines),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.InMemoryCluster{}),
+		)).
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToInMemoryMachines),
-			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
-			),
-		).Complete(r)
+			handler.EnqueueRequestsFromObjectMap(clusterToInMemoryMachines),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+		)).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -1170,13 +1173,8 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 
 // InMemoryClusterToInMemoryMachines is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of InMemoryMachines.
-func (r *InMemoryMachineReconciler) InMemoryClusterToInMemoryMachines(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *InMemoryMachineReconciler) InMemoryClusterToInMemoryMachines(ctx context.Context, c *infrav1.InMemoryCluster) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.(*infrav1.InMemoryCluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a InMemoryCluster but got a %T", o))
-	}
-
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:

@@ -130,21 +130,8 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 
 // ResourceHasFilterLabel returns a predicate that returns true only if the provided resource contains
 // a label with the WatchLabel key and the configured label value exactly.
-func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Funcs {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "update"), e.ObjectNew, labelValue)
-		},
-		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "create"), e.Object, labelValue)
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "delete"), e.Object, labelValue)
-		},
-		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "generic"), e.Object, labelValue)
-		},
-	}
+func ResourceHasFilterLabel[T client.Object](logger logr.Logger, labelValue string, _ T) predicate.ObjectFuncs[T] {
+	return predicate.NewObjectPredicateFuncs(processIfLabelMatch[T](logger.WithValues("predicate", "ResourceHasFilterLabel"), labelValue))
 }
 
 // ResourceNotPaused returns a Predicate that returns true only if the provided resource does not contain the
@@ -161,54 +148,45 @@ func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Fun
 //			Build(r)
 //		return err
 //	}
-func ResourceNotPaused(logger logr.Logger) predicate.Funcs {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "update"), e.ObjectNew)
-		},
-		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "create"), e.Object)
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "delete"), e.Object)
-		},
-		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "generic"), e.Object)
-		},
-	}
+func ResourceNotPaused[T client.Object](logger logr.Logger, _ T) predicate.ObjectFuncs[T] {
+	return predicate.NewObjectPredicateFuncs(processIfNotPaused[T](logger.WithValues("predicate", "ResourceNotPaused")))
 }
 
 // ResourceNotPausedAndHasFilterLabel returns a predicate that returns true only if the
 // ResourceNotPaused and ResourceHasFilterLabel predicates return true.
-func ResourceNotPausedAndHasFilterLabel(logger logr.Logger, labelValue string) predicate.Funcs {
-	return All(logger, ResourceNotPaused(logger), ResourceHasFilterLabel(logger, labelValue))
+func ResourceNotPausedAndHasFilterLabel[T client.Object](logger logr.Logger, labelValue string, o T) predicate.ObjectPredicate[T] {
+	return predicate.All(ResourceNotPaused(logger, o), ResourceHasFilterLabel(logger, labelValue, o))
 }
 
-func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
-	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if annotations.HasPaused(obj) {
-		log.V(4).Info("Resource is paused, will not attempt to map resource")
+func processIfNotPaused[T client.Object](logger logr.Logger) func(T) bool {
+	return func(obj T) bool {
+		kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
+		log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+		if annotations.HasPaused(obj) {
+			log.V(4).Info("Resource is paused, will not attempt to map resource")
+			return false
+		}
+		log.V(6).Info("Resource is not paused, will attempt to map resource")
+		return true
+	}
+}
+
+func processIfLabelMatch[T client.Object](logger logr.Logger, labelValue string) func(T) bool {
+	return func(obj T) bool {
+		// Return early if no labelValue was set.
+		if labelValue == "" {
+			return true
+		}
+
+		kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
+		log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+		if labels.HasWatchLabel(obj, labelValue) {
+			log.V(6).Info("Resource matches label, will attempt to map resource")
+			return true
+		}
+		log.V(4).Info("Resource does not match label, will not attempt to map resource")
 		return false
 	}
-	log.V(6).Info("Resource is not paused, will attempt to map resource")
-	return true
-}
-
-func processIfLabelMatch(logger logr.Logger, obj client.Object, labelValue string) bool {
-	// Return early if no labelValue was set.
-	if labelValue == "" {
-		return true
-	}
-
-	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if labels.HasWatchLabel(obj, labelValue) {
-		log.V(6).Info("Resource matches label, will attempt to map resource")
-		return true
-	}
-	log.V(4).Info("Resource does not match label, will not attempt to map resource")
-	return false
 }
 
 // ResourceIsNotExternallyManaged returns a predicate that returns true only if the resource does not contain
@@ -245,32 +223,21 @@ func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
 
 // ResourceIsTopologyOwned returns a predicate that returns true only if the resource has
 // the `topology.cluster.x-k8s.io/owned` label.
-func ResourceIsTopologyOwned(logger logr.Logger) predicate.Funcs {
-	return predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "update"), e.ObjectNew)
-		},
-		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "create"), e.Object)
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "delete"), e.Object)
-		},
-		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "generic"), e.Object)
-		},
-	}
+func ResourceIsTopologyOwned[T client.Object](logger logr.Logger, _ T) predicate.ObjectFuncs[T] {
+	return predicate.NewObjectPredicateFuncs(processIfTopologyOwned[T](logger.WithValues("predicate", "ResourceIsTopologyOwned")))
 }
 
-func processIfTopologyOwned(logger logr.Logger, obj client.Object) bool {
-	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if labels.IsTopologyOwned(obj) {
-		log.V(6).Info("Resource is topology owned, will attempt to map resource")
-		return true
+func processIfTopologyOwned[T client.Object](logger logr.Logger) func(T) bool {
+	return func(obj T) bool {
+		kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
+		log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+		if labels.IsTopologyOwned(obj) {
+			log.V(6).Info("Resource is topology owned, will attempt to map resource")
+			return true
+		}
+		// We intentionally log this line only on level 6, because it will be very frequently
+		// logged for MachineDeployments and MachineSets not owned by a topology.
+		log.V(6).Info("Resource is not topology owned, will not attempt to map resource")
+		return false
 	}
-	// We intentionally log this line only on level 6, because it will be very frequently
-	// logged for MachineDeployments and MachineSets not owned by a topology.
-	log.V(6).Info("Resource is not topology owned, will not attempt to map resource")
-	return false
 }

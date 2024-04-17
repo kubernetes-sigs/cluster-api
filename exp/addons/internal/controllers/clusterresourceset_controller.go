@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -67,11 +66,14 @@ type ClusterResourceSetReconciler struct {
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	err := ctrl.NewControllerManagedBy(mgr).
-		For(&addonsv1.ClusterResourceSet{}).
-		Watches(
+		Add(builder.For(mgr, &addonsv1.ClusterResourceSet{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &addonsv1.ClusterResourceSet{}),
+		)).
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSet),
-		).
+			handler.EnqueueRequestsFromObjectMap(r.clusterToClusterResourceSet),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		)).
 		WatchesMetadata(
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
@@ -87,7 +89,6 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -434,14 +435,8 @@ func (r *ClusterResourceSetReconciler) ensureResourceOwnerRef(ctx context.Contex
 }
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet.
-func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster) []ctrl.Request {
 	result := []ctrl.Request{}
-
-	cluster, ok := o.(*clusterv1.Cluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster but got a %T", o))
-	}
-
 	resourceList := &addonsv1.ClusterResourceSetList{}
 	if err := r.Client.List(ctx, resourceList, client.InNamespace(cluster.Namespace)); err != nil {
 		return nil

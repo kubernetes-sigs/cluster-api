@@ -45,7 +45,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 	testcases := []struct {
 		name    string
 		input   schema.GroupVersionKind
-		request client.Object
+		request *clusterv1.Machine
 		output  []reconcile.Request
 	}{
 		{

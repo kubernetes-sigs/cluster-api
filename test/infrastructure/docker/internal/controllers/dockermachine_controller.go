@@ -485,24 +485,27 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.DockerMachine{}).
+		Add(builder.For(mgr,
+			&infrav1.DockerMachine{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.DockerMachine{}))).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
-		).
-		Watches(
+			handler.EnqueueRequestsFromObjectMap(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
+		)).
+		Add(builder.Watches(mgr,
 			&infrav1.DockerCluster{},
-			handler.EnqueueRequestsFromMapFunc(r.DockerClusterToDockerMachines),
-		).
-		Watches(
+			handler.EnqueueRequestsFromObjectMap(r.DockerClusterToDockerMachines),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.DockerCluster{}),
+		)).
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachines),
-			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
-			),
-		).Complete(r)
+			handler.EnqueueRequestsFromObjectMap(clusterToDockerMachines),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		)).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -511,13 +514,8 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 // DockerClusterToDockerMachines is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of DockerMachines.
-func (r *DockerMachineReconciler) DockerClusterToDockerMachines(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *DockerMachineReconciler) DockerClusterToDockerMachines(ctx context.Context, c *infrav1.DockerCluster) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.(*infrav1.DockerCluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a DockerCluster but got a %T", o))
-	}
-
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:

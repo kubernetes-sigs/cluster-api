@@ -18,7 +18,6 @@ package machinedeployment
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -81,25 +80,24 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.MachineDeployment{}).
-		Owns(&clusterv1.MachineSet{}).
+		Add(builder.For(mgr,
+			&clusterv1.MachineDeployment{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineDeployment{}))).
+		Add(builder.Owns(mgr, &clusterv1.MachineDeployment{}, &clusterv1.MachineSet{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{}))).
 		// Watches enqueues MachineDeployment for corresponding MachineSet resources, if no managed controller reference (owner) exists.
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.MachineSet{},
-			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
+			handler.EnqueueRequestsFromObjectMap(r.MachineSetToDeployments),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{})),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
-			builder.WithPredicates(
-				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-				),
-			),
-		).Complete(r)
+			handler.EnqueueRequestsFromObjectMap(clusterToMachineDeployments),
+			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		)).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -380,13 +378,8 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 
 // MachineSetToDeployments is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineDeployments that might adopt an orphaned MachineSet.
-func (r *Reconciler) MachineSetToDeployments(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *Reconciler) MachineSetToDeployments(ctx context.Context, ms *clusterv1.MachineSet) []ctrl.Request {
 	result := []ctrl.Request{}
-
-	ms, ok := o.(*clusterv1.MachineSet)
-	if !ok {
-		panic(fmt.Sprintf("Expected a MachineSet but got a %T", o))
-	}
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.

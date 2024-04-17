@@ -493,7 +493,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 
 		tests := []struct {
 			name string
-			o    client.Object
+			o    *clusterv1.Machine
 			want []ctrl.Request
 		}{
 			{

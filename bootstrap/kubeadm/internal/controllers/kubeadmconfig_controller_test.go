@@ -57,7 +57,7 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	g := NewWithT(t)
 	cluster := builder.Cluster("my-cluster", metav1.NamespaceDefault).Build()
 	objs := []client.Object{cluster}
-	machineObjs := []client.Object{}
+	machineObjs := []*clusterv1.Machine{}
 	var expectedConfigName string
 	for i := 0; i < 3; i++ {
 		configName := fmt.Sprintf("my-config-%d", i)

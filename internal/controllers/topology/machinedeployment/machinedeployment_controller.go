@@ -71,7 +71,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToMachineDeployments),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToMachineDeployments),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 			predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
 		)).

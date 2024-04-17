@@ -9,8 +9,8 @@ github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1/go.mod h1:xomTg6
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/toml v1.0.0 h1:dtDWrepsVPfW9H/4y7dDgFc2MBUSeJhlaDtK13CxFlU=
 github.com/BurntSushi/toml v1.0.0/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
-github.com/Danil-Grigorev/controller-runtime v0.6.1-0.20240417125124-8984b3049571 h1:a1Oaf+Zk1mbhUP0wVULBOLZ+b4MXLW6g/2kadPQg5yw=
-github.com/Danil-Grigorev/controller-runtime v0.6.1-0.20240417125124-8984b3049571/go.mod h1:TLM3OvUJgcqHVBLVRlNylmfbOlOukMLFHtc6jo3EtIQ=
+github.com/Danil-Grigorev/controller-runtime v0.6.1-0.20240419093006-d4ca5bcd94b1 h1:DUXbWHmgQDEW+dAeY6HrsYTh/FrpALIR0noA3vDVkG0=
+github.com/Danil-Grigorev/controller-runtime v0.6.1-0.20240419093006-d4ca5bcd94b1/go.mod h1:TLM3OvUJgcqHVBLVRlNylmfbOlOukMLFHtc6jo3EtIQ=
 github.com/MakeNowJust/heredoc v1.0.0 h1:cXCdzVdstXyiTqTvfqk9SDHpKNjxuom+DOlyEeQ4pzQ=
 github.com/MakeNowJust/heredoc v1.0.0/go.mod h1:mG5amYoWBHf8vpLOuehzbGGw0EHxpZZ6lCpQ4fNJ8LE=
 github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJLSYI=

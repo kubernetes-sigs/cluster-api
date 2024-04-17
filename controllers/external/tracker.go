@@ -22,7 +22,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -54,12 +53,9 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj client.Object, handler handle
 		return nil
 	}
 
-	u := &unstructured.Unstructured{}
-	u.SetGroupVersionKind(gvk)
-
 	log.Info(fmt.Sprintf("Adding watch on external object %q", gvk.String()))
 	err := o.Controller.Watch(
-		source.Kind(o.Cache, u).Prepare(handler, append(p, predicates.ResourceNotPaused(log, obj))...),
+		source.Kind(o.Cache, obj, handler, append(p, predicates.ResourceNotPaused(log, obj))...),
 	)
 	if err != nil {
 		o.m.Delete(key)

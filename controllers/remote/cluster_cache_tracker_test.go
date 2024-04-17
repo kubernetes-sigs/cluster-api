@@ -30,7 +30,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -88,7 +87,7 @@ func TestClusterCacheTracker(t *testing.T) {
 
 			watch, err := ctrl.NewControllerManagedBy(mgr).For(&clusterv1.MachineDeployment{}).Build(c)
 			g.Expect(err).ToNot(HaveOccurred())
-			w = &controller.ControllerAdapter{Controller: watch}
+			w = watch
 
 			mgrContext, mgrCancel = context.WithCancel(ctx)
 			t.Log("Starting the manager")

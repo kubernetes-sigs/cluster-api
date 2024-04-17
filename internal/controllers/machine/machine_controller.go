@@ -115,14 +115,15 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
+		Named("machine").
 		Add(builder.For(mgr, &clusterv1.Machine{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}))).
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToMachines),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToMachines),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-			predicate.Any(
-				predicate.Any(
+			predicate.Or(
+				predicate.Or(
 					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 					predicates.ClusterControlPlaneInitialized(ctrl.LoggerFrom(ctx)),
 				),
@@ -132,12 +133,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		)).
 		Add(builder.Watches(mgr,
 			&clusterv1.MachineSet{},
-			handler.EnqueueRequestsFromObjectMap(msToMachines),
+			handler.EnqueueRequestsFromTypedMapFunc(msToMachines),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{}),
 		)).
 		Add(builder.Watches(mgr,
 			&clusterv1.MachineDeployment{},
-			handler.EnqueueRequestsFromObjectMap(mdToMachines),
+			handler.EnqueueRequestsFromTypedMapFunc(mdToMachines),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineDeployment{}),
 		)).
 		Build(r)
@@ -859,13 +860,18 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 	return r.Tracker.Watch(ctx, remote.WatchInput{
 		Name:         "machine-watchNodes",
 		Cluster:      util.ObjectKey(cluster),
-		Watcher:      &controller.ControllerAdapter{Controller: r.controller},
+		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromObjectMapFunc(r.nodeToMachine),
+		EventHandler: handler.EnqueueRequestsFromTypedMapFunc(r.nodeToMachine),
 	})
 }
 
-func (r *Reconciler) nodeToMachine(ctx context.Context, node *corev1.Node) []reconcile.Request {
+func (r *Reconciler) nodeToMachine(ctx context.Context, o client.Object) []reconcile.Request {
+	node, ok := o.(*corev1.Node)
+	if !ok {
+		panic(fmt.Sprintf("Expected a Node but got a %T", o))
+	}
+
 	var filters []client.ListOption
 	// Match by clusterName when the node has the annotation.
 	if clusterName, ok := node.GetAnnotations()[clusterv1.ClusterNameAnnotation]; ok {

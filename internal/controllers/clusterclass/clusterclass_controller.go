@@ -73,11 +73,12 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	err := ctrl.NewControllerManagedBy(mgr).Add(builder.For(mgr, &clusterv1.ClusterClass{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.ClusterClass{}))).
+	err := ctrl.NewControllerManagedBy(mgr).
 		Named("clusterclass").
+		Add(builder.For(mgr, &clusterv1.ClusterClass{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.ClusterClass{}))).
 		WithOptions(options).
 		Add(builder.Watches(mgr, &runtimev1.ExtensionConfig{},
-			handler.EnqueueRequestsFromObjectMap(r.extensionConfigToClusterClass),
+			handler.EnqueueRequestsFromTypedMapFunc(r.extensionConfigToClusterClass),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &runtimev1.ExtensionConfig{}))).
 		Complete(r)
 

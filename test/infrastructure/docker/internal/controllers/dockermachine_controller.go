@@ -485,23 +485,24 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
+		Named("dockerMachine").
 		Add(builder.For(mgr,
 			&infrav1.DockerMachine{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.DockerMachine{}))).
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromObjectMap(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
+			handler.EnqueueRequestsFromTypedMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
 		)).
 		Add(builder.Watches(mgr,
 			&infrav1.DockerCluster{},
-			handler.EnqueueRequestsFromObjectMap(r.DockerClusterToDockerMachines),
+			handler.EnqueueRequestsFromTypedMapFunc(r.DockerClusterToDockerMachines),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.DockerCluster{}),
 		)).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToDockerMachines),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToDockerMachines),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),

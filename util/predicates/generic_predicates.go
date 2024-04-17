@@ -130,8 +130,8 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 
 // ResourceHasFilterLabel returns a predicate that returns true only if the provided resource contains
 // a label with the WatchLabel key and the configured label value exactly.
-func ResourceHasFilterLabel[T client.Object](logger logr.Logger, labelValue string, _ T) predicate.ObjectFuncs[T] {
-	return predicate.NewObjectPredicateFuncs(processIfLabelMatch[T](logger.WithValues("predicate", "ResourceHasFilterLabel"), labelValue))
+func ResourceHasFilterLabel[T client.Object](logger logr.Logger, labelValue string, _ T) predicate.TypedPredicate[T] {
+	return predicate.NewTypedPredicateFuncs(processIfLabelMatch[T](logger.WithValues("predicate", "ResourceHasFilterLabel"), labelValue))
 }
 
 // ResourceNotPaused returns a Predicate that returns true only if the provided resource does not contain the
@@ -148,14 +148,14 @@ func ResourceHasFilterLabel[T client.Object](logger logr.Logger, labelValue stri
 //			Build(r)
 //		return err
 //	}
-func ResourceNotPaused[T client.Object](logger logr.Logger, _ T) predicate.ObjectFuncs[T] {
-	return predicate.NewObjectPredicateFuncs(processIfNotPaused[T](logger.WithValues("predicate", "ResourceNotPaused")))
+func ResourceNotPaused[T client.Object](logger logr.Logger, _ T) predicate.TypedPredicate[T] {
+	return predicate.NewTypedPredicateFuncs(processIfNotPaused[T](logger.WithValues("predicate", "ResourceNotPaused")))
 }
 
 // ResourceNotPausedAndHasFilterLabel returns a predicate that returns true only if the
 // ResourceNotPaused and ResourceHasFilterLabel predicates return true.
-func ResourceNotPausedAndHasFilterLabel[T client.Object](logger logr.Logger, labelValue string, o T) predicate.ObjectPredicate[T] {
-	return predicate.All(ResourceNotPaused(logger, o), ResourceHasFilterLabel(logger, labelValue, o))
+func ResourceNotPausedAndHasFilterLabel[T client.Object](logger logr.Logger, labelValue string, o T) predicate.TypedPredicate[T] {
+	return predicate.And(ResourceNotPaused(logger, o), ResourceHasFilterLabel(logger, labelValue, o))
 }
 
 func processIfNotPaused[T client.Object](logger logr.Logger) func(T) bool {
@@ -223,8 +223,8 @@ func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
 
 // ResourceIsTopologyOwned returns a predicate that returns true only if the resource has
 // the `topology.cluster.x-k8s.io/owned` label.
-func ResourceIsTopologyOwned[T client.Object](logger logr.Logger, _ T) predicate.ObjectFuncs[T] {
-	return predicate.NewObjectPredicateFuncs(processIfTopologyOwned[T](logger.WithValues("predicate", "ResourceIsTopologyOwned")))
+func ResourceIsTopologyOwned[T client.Object](logger logr.Logger, _ T) predicate.TypedPredicate[T] {
+	return predicate.NewTypedPredicateFuncs(processIfTopologyOwned[T](logger.WithValues("predicate", "ResourceIsTopologyOwned")))
 }
 
 func processIfTopologyOwned[T client.Object](logger logr.Logger) func(T) bool {

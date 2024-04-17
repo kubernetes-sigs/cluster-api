@@ -1144,6 +1144,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
+		Named("inMemoryMachine").
 		Add(builder.For(mgr,
 			&infrav1.InMemoryMachine{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.InMemoryMachine{}),
@@ -1151,17 +1152,17 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromObjectMap(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
+			handler.EnqueueRequestsFromTypedMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
 		)).
 		Add(builder.Watches(mgr,
 			&infrav1.InMemoryCluster{},
-			handler.EnqueueRequestsFromObjectMap(r.InMemoryClusterToInMemoryMachines),
+			handler.EnqueueRequestsFromTypedMapFunc(r.InMemoryClusterToInMemoryMachines),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.InMemoryCluster{}),
 		)).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToInMemoryMachines),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToInMemoryMachines),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 		)).Complete(r)

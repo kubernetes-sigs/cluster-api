@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -87,13 +88,14 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
+		Named("machinepool").
 		Add(builder.For(mgr,
 			&expv1.MachinePool{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}))).
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToMachinePools),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToMachinePools),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
@@ -331,13 +333,18 @@ func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *
 	return r.Tracker.Watch(ctx, remote.WatchInput{
 		Name:         "machinepool-watchNodes",
 		Cluster:      util.ObjectKey(cluster),
-		Watcher:      &controller.ControllerAdapter{Controller: r.controller},
+		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromObjectMapFunc(r.nodeToMachinePool),
+		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachinePool),
 	})
 }
 
-func (r *MachinePoolReconciler) nodeToMachinePool(ctx context.Context, node *corev1.Node) []reconcile.Request {
+func (r *MachinePoolReconciler) nodeToMachinePool(ctx context.Context, o client.Object) []reconcile.Request {
+	node, ok := o.(*corev1.Node)
+	if !ok {
+		panic(fmt.Sprintf("Expected a Node but got a %T", o))
+	}
+
 	var filters []client.ListOption
 	// Match by clusterName when the node has the annotation.
 	if clusterName, ok := node.GetAnnotations()[clusterv1.ClusterNameAnnotation]; ok {

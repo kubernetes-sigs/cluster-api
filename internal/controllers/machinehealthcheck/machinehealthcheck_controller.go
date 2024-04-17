@@ -86,18 +86,19 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
+		Named("machineHealthCheck").
 		Add(builder.For(mgr,
 			&clusterv1.MachineHealthCheck{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineHealthCheck{}))).
 		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromObjectMap(r.machineToMachineHealthCheck),
+			handler.EnqueueRequestsFromTypedMapFunc(r.machineToMachineHealthCheck),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
 		)).
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(r.clusterToMachineHealthCheck),
+			handler.EnqueueRequestsFromTypedMapFunc(r.clusterToMachineHealthCheck),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
@@ -497,7 +498,12 @@ func (r *Reconciler) machineToMachineHealthCheck(ctx context.Context, m *cluster
 	return requests
 }
 
-func (r *Reconciler) nodeToMachineHealthCheck(ctx context.Context, node *corev1.Node) []reconcile.Request {
+func (r *Reconciler) nodeToMachineHealthCheck(ctx context.Context, o client.Object) []reconcile.Request {
+	node, ok := o.(*corev1.Node)
+	if !ok {
+		panic(fmt.Sprintf("Expected a corev1.Node, got %T", o))
+	}
+
 	machine, err := getMachineFromNode(ctx, r.Client, node.Name)
 	if machine == nil || err != nil {
 		return nil
@@ -515,9 +521,9 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 	return r.Tracker.Watch(ctx, remote.WatchInput{
 		Name:         "machinehealthcheck-watchClusterNodes",
 		Cluster:      util.ObjectKey(cluster),
-		Watcher:      &controller.ControllerAdapter{Controller: r.controller},
+		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromObjectMapFunc(r.nodeToMachineHealthCheck),
+		EventHandler: handler.EnqueueRequestsFromTypedMapFunc(r.nodeToMachineHealthCheck),
 	})
 }
 

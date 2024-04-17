@@ -29,7 +29,6 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -144,7 +143,7 @@ func TestGetNode(t *testing.T) {
 	g.Expect(tracker.Watch(ctx, remote.WatchInput{
 		Name:    "TestGetNode",
 		Cluster: util.ObjectKey(testCluster),
-		Watcher: &controller.ControllerAdapter{Controller: w},
+		Watcher: w,
 		Kind:    &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(func(context.Context, client.Object) []reconcile.Request {
 			return nil

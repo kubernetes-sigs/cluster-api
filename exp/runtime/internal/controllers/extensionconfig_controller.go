@@ -62,6 +62,7 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	err := ctrl.NewControllerManagedBy(mgr).
+		Named("extensionconfig").
 		Add(builder.For(mgr,
 			&runtimev1.ExtensionConfig{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &runtimev1.ExtensionConfig{}),

@@ -66,12 +66,13 @@ type ClusterResourceSetReconciler struct {
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	err := ctrl.NewControllerManagedBy(mgr).
+		Named("clusterResourceSet").
 		Add(builder.For(mgr, &addonsv1.ClusterResourceSet{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &addonsv1.ClusterResourceSet{}),
 		)).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(r.clusterToClusterResourceSet),
+			handler.EnqueueRequestsFromTypedMapFunc(r.clusterToClusterResourceSet),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 		)).
 		WatchesMetadata(

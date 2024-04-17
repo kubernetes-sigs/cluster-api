@@ -98,18 +98,19 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
+		Named("machineset").
 		Add(builder.For(mgr, &clusterv1.MachineSet{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{}))).
 		Add(builder.Owns(mgr, &clusterv1.MachineSet{}, &clusterv1.Machine{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}))).
 		// Watches enqueues MachineSet for corresponding Machine resources, if no managed controller reference (owner) exists.
 		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromObjectMap(r.MachineToMachineSets),
+			handler.EnqueueRequestsFromTypedMapFunc(r.MachineToMachineSets),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
 		)).
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToMachineSets),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToMachineSets),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 		)).Complete(r)

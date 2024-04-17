@@ -89,7 +89,7 @@ func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace stri
 
 // MachinePoolToInfrastructureMapFunc returns a handler.MapFunc that watches for
 // MachinePool events and returns reconciliation requests for an infrastructure provider object.
-func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.ObjectMapFunc[*expv1.MachinePool] {
+func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.TypedMapFunc[*expv1.MachinePool] {
 	log = log.WithValues("machine-pool-to-infra-map-func", gvk.String())
 	return func(_ context.Context, m *expv1.MachinePool) []reconcile.Request {
 		log := log.WithValues("MachinePool", klog.KObj(m))

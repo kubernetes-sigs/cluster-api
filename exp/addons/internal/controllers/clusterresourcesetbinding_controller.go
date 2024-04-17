@@ -50,10 +50,11 @@ type ClusterResourceSetBindingReconciler struct {
 
 func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	err := ctrl.NewControllerManagedBy(mgr).
+		Named("clusterResourceSetBinding").
 		For(&addonsv1.ClusterResourceSetBinding{}).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(r.clusterToClusterResourceSetBinding),
+			handler.EnqueueRequestsFromTypedMapFunc(r.clusterToClusterResourceSetBinding),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 		)).
 		WithOptions(options).

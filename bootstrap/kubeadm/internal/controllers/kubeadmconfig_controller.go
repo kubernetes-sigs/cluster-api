@@ -108,6 +108,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 
 	b := ctrl.NewControllerManagedBy(mgr).
+		Named("kubeadmConfig").
 		Add(builder.For(mgr,
 			&bootstrapv1.KubeadmConfig{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &bootstrapv1.KubeadmConfig{}),
@@ -115,21 +116,21 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromObjectMap(r.MachineToBootstrapMapFunc),
+			handler.EnqueueRequestsFromTypedMapFunc(r.MachineToBootstrapMapFunc),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
 		))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Add(builder.Watches(mgr,
 			&expv1.MachinePool{},
-			handler.EnqueueRequestsFromObjectMap(r.MachinePoolToBootstrapMapFunc),
+			handler.EnqueueRequestsFromTypedMapFunc(r.MachinePoolToBootstrapMapFunc),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}),
 		))
 	}
 
 	b = b.Add(builder.Watches(mgr,
 		&clusterv1.Cluster{},
-		handler.EnqueueRequestsFromObjectMap(r.ClusterToKubeadmConfigs),
+		handler.EnqueueRequestsFromTypedMapFunc(r.ClusterToKubeadmConfigs),
 		predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 		predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 	))

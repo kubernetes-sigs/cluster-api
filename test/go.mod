@@ -4,7 +4,7 @@ go 1.22.0
 
 replace sigs.k8s.io/cluster-api => ../
 
-replace sigs.k8s.io/controller-runtime => github.com/Danil-Grigorev/controller-runtime v0.6.1-0.20240417125124-8984b3049571
+replace sigs.k8s.io/controller-runtime => github.com/Danil-Grigorev/controller-runtime v0.6.1-0.20240419093006-d4ca5bcd94b1
 
 require (
 	github.com/blang/semver/v4 v4.0.0

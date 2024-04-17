@@ -197,7 +197,7 @@ func ObjectKey(object metav1.Object) client.ObjectKey {
 
 // ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Cluster events and returns reconciliation requests for an infrastructure provider object.
-func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.ObjectMapFunc[*clusterv1.Cluster] {
+func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.TypedMapFunc[*clusterv1.Cluster] {
 	log := ctrl.LoggerFrom(ctx)
 	return func(ctx context.Context, cluster *clusterv1.Cluster) []reconcile.Request {
 		// Return early if the InfrastructureRef is nil.
@@ -260,7 +260,7 @@ func GetMachineByName(ctx context.Context, c client.Client, namespace, name stri
 
 // MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Machine events and returns reconciliation requests for an infrastructure provider object.
-func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.ObjectMapFunc[*clusterv1.Machine] {
+func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.TypedMapFunc[*clusterv1.Machine] {
 	return func(_ context.Context, m *clusterv1.Machine) []reconcile.Request {
 		gk := gvk.GroupKind()
 		// Return early if the GroupKind doesn't match what we expect.
@@ -463,7 +463,7 @@ func (k KubeAwareAPIVersions) Less(i, j int) bool {
 // Note: This function uses the passed in typed ObjectList and thus with the default client configuration all list calls
 // will be cached.
 // NB: The objects are required to have `clusterv1.ClusterNameLabel` applied.
-func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.ObjectMapFunc[*clusterv1.Cluster], error) {
+func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.TypedMapFunc[*clusterv1.Cluster], error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err
@@ -522,7 +522,7 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 // MachineDeploymentToObjectsMapper returns a mapper function that gets a machinedeployment
 // and lists all objects for the object passed in and returns a list of requests.
 // NB: The objects are required to have `clusterv1.MachineDeploymentNameLabel` applied.
-func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.ObjectMapFunc[*clusterv1.MachineDeployment], error) {
+func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.TypedMapFunc[*clusterv1.MachineDeployment], error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err
@@ -581,7 +581,7 @@ func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, sch
 // MachineSetToObjectsMapper returns a mapper function that gets a machineset
 // and lists all objects for the object passed in and returns a list of requests.
 // NB: The objects are required to have `clusterv1.MachineSetNameLabel` applied.
-func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.ObjectMapFunc[*clusterv1.MachineSet], error) {
+func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.TypedMapFunc[*clusterv1.MachineSet], error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err

@@ -91,6 +91,7 @@ type KubeadmControlPlaneReconciler struct {
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
+		Named("kubeadmControlPlane").
 		Add(builder.For(mgr,
 			&controlplanev1.KubeadmControlPlane{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &controlplanev1.KubeadmControlPlane{}),
@@ -103,7 +104,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(r.ClusterToKubeadmControlPlane),
+			handler.EnqueueRequestsFromTypedMapFunc(r.ClusterToKubeadmControlPlane),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 		)).Build(r)

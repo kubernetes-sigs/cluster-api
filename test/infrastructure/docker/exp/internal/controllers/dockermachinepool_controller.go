@@ -172,6 +172,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
+		Named("dockerMachinePool").
 		Add(builder.For(mgr,
 			&infraexpv1.DockerMachinePool{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infraexpv1.DockerMachinePool{}),
@@ -179,18 +180,18 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&expv1.MachinePool{},
-			handler.EnqueueRequestsFromObjectMap(utilexp.MachinePoolToInfrastructureMapFunc(
+			handler.EnqueueRequestsFromTypedMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(
 				infraexpv1.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}),
 		)).
 		Add(builder.Watches(mgr,
 			&infrav1.DockerMachine{},
-			handler.EnqueueRequestsFromObjectMap(dockerMachineToDockerMachinePool),
+			handler.EnqueueRequestsFromTypedMapFunc(dockerMachineToDockerMachinePool),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &infrav1.DockerMachine{}),
 		)).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToDockerMachinePools),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToDockerMachinePools),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 		)).Build(r)

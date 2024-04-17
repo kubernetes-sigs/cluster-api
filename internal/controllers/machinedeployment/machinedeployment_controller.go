@@ -80,6 +80,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	err = ctrl.NewControllerManagedBy(mgr).
+		Named("machineDeployment").
 		Add(builder.For(mgr,
 			&clusterv1.MachineDeployment{},
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineDeployment{}))).
@@ -88,13 +89,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		// Watches enqueues MachineDeployment for corresponding MachineSet resources, if no managed controller reference (owner) exists.
 		Add(builder.Watches(mgr,
 			&clusterv1.MachineSet{},
-			handler.EnqueueRequestsFromObjectMap(r.MachineSetToDeployments),
+			handler.EnqueueRequestsFromTypedMapFunc(r.MachineSetToDeployments),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{})),
 		).
 		WithOptions(options).
 		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromObjectMap(clusterToMachineDeployments),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToMachineDeployments),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
 		)).Complete(r)

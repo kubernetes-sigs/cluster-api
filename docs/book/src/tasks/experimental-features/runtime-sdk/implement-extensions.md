@@ -358,6 +358,8 @@ implementation documentation.
 
 ## Tips & tricks
 
+Make sure to add the ExtensionConfig object to the YAML manifest used to deploy the runtime extensions (see [Extensionsconfig](#extensionconfig) for more details).
+
 After you implemented and deployed a Runtime Extension you can manually test it by sending HTTP requests.
 This can be for example done via kubectl:
 

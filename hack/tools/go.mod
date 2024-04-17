@@ -1,6 +1,7 @@
 module sigs.k8s.io/cluster-api/hack/tools
 
-go 1.21
+go 1.22
+
 toolchain go1.22.2
 
 replace sigs.k8s.io/cluster-api => ../../

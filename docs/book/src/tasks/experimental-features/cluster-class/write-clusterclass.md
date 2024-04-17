@@ -137,6 +137,55 @@ For more details please see: [clusterctl alpha topology plan].
 
 </aside>
 
+## ClusterClass with MachinePools
+
+ClusterClass also supports MachinePool workers. They work very similar to MachineDeployments. MachinePools
+can be specified in the ClusterClass template under the workers section like so:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  workers:
+    machinePools:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: quick-start-default-worker-machinepooltemplate
+```
+
+They can then be similarly defined as workers in the cluster template like so:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: my-docker-cluster
+spec:
+  topology:
+    workers:
+      machinePools:
+      - class: default-worker
+        name: mp-0
+        replicas: 4
+        metadata:
+          labels:
+            mpLabel: mpLabelValue
+          annotations:
+            mpAnnotation: mpAnnotationValue
+        failureDomain: region
+```
+
 ## ClusterClass with MachineHealthChecks
 
 `MachineHealthChecks` can be configured in the ClusterClass for the control plane and for a 
@@ -393,11 +442,11 @@ spec:
 
 This section will explain more advanced features of ClusterClass patches.
 
-### MachineDeployment variable overrides
+### MachineDeployment & MachinePool variable overrides
 
 If you want to use many variations of MachineDeployments in Clusters, you can either define
 a MachineDeployment class for every variation or you can define patches and variables to
-make a single MachineDeployment class more flexible.
+make a single MachineDeployment class more flexible. The same applies for MachinePools.
 
 In the following example we make the `instanceType` of a `AWSMachineTemplate` customizable.
 First we define the `workerMachineType` variable and the corresponding patch:
@@ -446,7 +495,7 @@ spec:
 ```
 
 In the Cluster resource the `workerMachineType` variable can then be set cluster-wide and
-it can also be overridden for an individual MachineDeployment.
+it can also be overridden for an individual MachineDeployment or MachinePool.
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -498,6 +547,12 @@ referenced in patches:
 - `builtin.machineDeployment.{infrastructureRef.name,bootstrap.configRef.name}`
     - Please note, these variables are only available when patching the templates of a MachineDeployment
       and contain the values of the current `MachineDeployment` topology.
+- `builtin.machinePool.{replicas,version,class,name,topologyName}`
+    - Please note, these variables are only available when patching the templates of a MachinePool 
+      and contain the values of the current `MachinePool` topology.
+- `builtin.machinePool.{infrastructureRef.name,bootstrap.configRef.name}`
+    - Please note, these variables are only available when patching the templates of a MachinePool
+      and contain the values of the current `MachinePool` topology.
 
 Builtin variables can be referenced just like regular variables, e.g.:
 ```yaml
@@ -522,8 +577,8 @@ spec:
 **Tips & Tricks**
 
 Builtin variables can be used to dynamically calculate image names. The version used in the patch 
-will always be the same as the one we set in the corresponding MachineDeployment (works the same way 
-with `.builtin.controlPlane.version`).
+will always be the same as the one we set in the corresponding MachineDeployment or MachinePool 
+(works the same way with `.builtin.controlPlane.version`).
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -813,6 +868,9 @@ accessible via built in variables:
 - `builtin.machineDeployment.version`, represent the desired version for each specific MachineDeployment object;
   this version changes only after the upgrade for the control plane is completed, and in case of many
   MachineDeployments in the same cluster, they are upgraded sequentially.
+- `builtin.machinePool.version`, represent the desired version for each specific MachinePool object;
+  this version changes only after the upgrade for the control plane is completed, and in case of many
+  MachinePools in the same cluster, they are upgraded sequentially.
 
 This info should provide the bases for developing version-aware patches, allowing the patch author to determine when a
 patch should adapt to the new Kubernetes version by choosing one of the above variables. In practice the
@@ -820,6 +878,7 @@ following rules applies to the most common use cases:
 
 - When developing a version-aware patch for the control plane, `builtin.controlPlane.version` must be used.
 - When developing a version-aware patch for MachineDeployments, `builtin.machineDeployment.version` must be used.
+- When developing a version-aware patch for MachinePools, `builtin.machinePool.version` must be used.
 
 **Tips & Tricks**:
 

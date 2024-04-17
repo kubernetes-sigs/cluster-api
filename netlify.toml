@@ -4,7 +4,7 @@
     publish = "docs/book/book"
 
 [build.environment]
-    GO_VERSION = "1.21"
+    GO_VERSION = "1.22.2"
 
 # Standard Netlify redirects
 [[redirects]]

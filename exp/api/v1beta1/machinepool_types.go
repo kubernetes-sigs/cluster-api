@@ -37,7 +37,7 @@ type MachinePoolSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
-	// Number of desired machines. Defaults to 1.
+	// Number of desired machines. Defaults to 1 unless the MachinePool is externally managed.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`

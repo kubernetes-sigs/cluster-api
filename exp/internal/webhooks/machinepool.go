@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -64,7 +65,7 @@ func (webhook *MachinePool) Default(_ context.Context, obj runtime.Object) error
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	if m.Spec.Replicas == nil {
+	if m.Spec.Replicas == nil && !annotations.IsExternallyManaged(m) {
 		m.Spec.Replicas = pointer.Int32(1)
 	}
 

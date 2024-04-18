@@ -240,6 +240,31 @@ func retryWithExponentialBackoff(ctx context.Context, opts wait.Backoff, operati
 	return nil
 }
 
+// retryWithExponentialBackoffWithContextCancel repeats an operation until it passes or the exponential backoff times out.
+func retryWithExponentialBackoffWithContextCancel(ctx context.Context, opts wait.Backoff, operation func(ctx context.Context) error) error {
+	log := logf.Log
+
+	i := 0
+	err := wait.ExponentialBackoffWithContext(ctx, opts, func(ctx context.Context) (bool, error) {
+		i++
+		if err := operation(ctx); err != nil {
+			if ctx.Err() != nil {
+				return true, errors.New("timeout exceeded")
+			}
+			if i < opts.Steps {
+				log.V(5).Info("Retrying with backoff", "Cause", err.Error())
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "action failed after %d attempts", i)
+	}
+	return nil
+}
+
 // newWriteBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl write operations.
 func newWriteBackoff() wait.Backoff {
 	// Return a exponential backoff configuration which returns durations for a total time of ~40s.

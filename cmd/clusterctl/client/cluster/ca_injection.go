@@ -38,16 +38,6 @@ import (
 
 const certManagerCAAnnotation = "cert-manager.io/inject-ca-from"
 
-func waitForCAInjection(ctx context.Context, installQueue []repository.Components, proxy Proxy) error {
-	c, err := proxy.NewClient(ctx)
-	if err != nil {
-		return err
-	}
-	caInjectionVerifier := newCAInjectionVerifier(c)
-
-	return caInjectionVerifier.Run(ctx, installQueue)
-}
-
 // certificateInjectionVerifier waits for cert-managers ca-injector to inject the
 // referred CA certificate to all CRDs, MutatingWebhookConfigurations and
 // ValidatingWebhookConfigurations.
@@ -65,15 +55,12 @@ func newCAInjectionVerifier(client client.Client) *certificateInjectionVerifier 
 }
 
 // Run runs the verification for all objects passed from the installQueue.
-func (c *certificateInjectionVerifier) Run(ctx context.Context, installQueue []repository.Components) error {
+func (c *certificateInjectionVerifier) Run(ctx context.Context, components repository.Components) error {
 	annotatedObjects := []*unstructured.Unstructured{}
-	for _, components := range installQueue {
-		for _, obj := range components.Objs() {
-			obj := obj
-			if value, ok := obj.GetAnnotations()[certManagerCAAnnotation]; ok {
-				_ = value
-				annotatedObjects = append(annotatedObjects, &obj)
-			}
+	for _, obj := range components.Objs() {
+		obj := obj
+		if _, ok := obj.GetAnnotations()[certManagerCAAnnotation]; ok {
+			annotatedObjects = append(annotatedObjects, &obj)
 		}
 	}
 
@@ -81,7 +68,7 @@ func (c *certificateInjectionVerifier) Run(ctx context.Context, installQueue []r
 	log := logf.Log
 	log.V(2).Info("Verifying CA injection for objects")
 
-	if err := retryWithExponentialBackoff(ctx, newVerifyBackoff(), func(ctx context.Context) error {
+	if err := retryWithExponentialBackoffWithContextCancel(ctx, newVerifyBackoff(), func(ctx context.Context) error {
 		var errs []error
 		for _, obj := range annotatedObjects {
 			errs = []error{}
@@ -127,7 +114,7 @@ func (c *certificateInjectionVerifier) getCACertificateFor(ctx context.Context, 
 	secretObjKey := client.ObjectKey{Namespace: certificate.GetNamespace(), Name: secretName}
 	certificateSecret := &corev1.Secret{}
 	if err := c.Client.Get(ctx, secretObjKey, certificateSecret); err != nil {
-		return "", errors.Wrapf(err, "getting secret %s", &certificateObjKey)
+		return "", errors.Wrapf(err, "getting secret %s for certificate %s", secretObjKey, certificateObjKey)
 	}
 
 	ca, ok := certificateSecret.Data["ca.crt"]
@@ -147,7 +134,7 @@ func splitObjectKey(nameStr string) client.ObjectKey {
 	return client.ObjectKey{Namespace: nameStr[:splitPoint], Name: nameStr[splitPoint+1:]}
 }
 
-// checkObject gets the desired CA certificate and compares it relevant field on
+// checkObject gets the desired CA certificate and compares it with the relevant field on
 // the object which is first read from kube-apiserver.
 func (c *certificateInjectionVerifier) checkObject(ctx context.Context, obj unstructured.Unstructured) error {
 	// get the CA certificate from the Certificate's secret which is referred in an
@@ -168,7 +155,12 @@ func (c *certificateInjectionVerifier) checkObject(ctx context.Context, obj unst
 			return err
 		}
 
-		if crd.Spec.Conversion.Webhook == nil || crd.Spec.Conversion.Webhook.ClientConfig == nil || string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle) != ca {
+		if crd.Spec.Conversion.Webhook == nil || crd.Spec.Conversion.Webhook.ClientConfig == nil {
+			// Skip validation because .Webhook and/or .Webhook.ClientConfig does not exist.
+			return nil
+		}
+
+		if string(crd.Spec.Conversion.Webhook.ClientConfig.CABundle) != ca {
 			return fmt.Errorf("injected CA for CustomResourceDefinition %s does not match", objKey)
 		}
 	case mutatingWebhookConfigurationKind:
@@ -191,8 +183,6 @@ func (c *certificateInjectionVerifier) checkObject(ctx context.Context, obj unst
 				return fmt.Errorf("injected CA for ValidatingWebhookConfiguration %s does not match", objKey)
 			}
 		}
-	default:
-		return fmt.Errorf("unknown object type %s", obj.GetKind())
 	}
 
 	return nil
@@ -201,12 +191,12 @@ func (c *certificateInjectionVerifier) checkObject(ctx context.Context, obj unst
 // newVerifyBackoff creates a new API Machinery backoff parameter set suitable for use with clusterctl verify operations.
 func newVerifyBackoff() wait.Backoff {
 	// Return a exponential backoff configuration which returns durations for a total time of ~5m.
-	// Example: 0, .5s, 1.2s, 2.3s, 4s, 6s, 10s, 16s, 24s, 37s, 57s, 85s, 129s, 194s, 291s
+	// Example: 0, .5s, 1.2s, 2s, 3.1s, 4.5s, 6.4s, 9s, 12s, 16s, 21s, 28s, ...
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{
 		Duration: 500 * time.Millisecond,
-		Factor:   1.5,
-		Steps:    14,
+		Factor:   1.2,
+		Steps:    100,
 		Jitter:   0.4,
 	}
 }

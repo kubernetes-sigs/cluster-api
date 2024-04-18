@@ -103,11 +103,7 @@ func (i *providerInstaller) Install(ctx context.Context, opts InstallOptions) ([
 		ret = append(ret, components)
 	}
 
-	if err := waitForProvidersReady(ctx, opts, i.installQueue, i.proxy); err != nil {
-		return ret, err
-	}
-
-	return ret, waitForCAInjection(ctx, i.installQueue, i.proxy)
+	return ret, waitForProvidersReady(ctx, opts, i.installQueue, i.proxy)
 }
 
 func installComponentsAndUpdateInventory(ctx context.Context, components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
@@ -142,19 +138,31 @@ func waitForProvidersReady(ctx context.Context, opts InstallOptions, installQueu
 // waitManagerDeploymentsReady waits till the installed manager deployments are ready.
 func waitManagerDeploymentsReady(ctx context.Context, opts InstallOptions, installQueue []repository.Components, proxy Proxy) error {
 	for _, components := range installQueue {
+		// Create a context with timeout for all checks for this components.
+		ctx, cancel := context.WithTimeout(ctx, opts.WaitProviderTimeout)
+
+		// Lookup managed deployment and wait for it to be ready.
 		for _, obj := range components.Objs() {
 			if util.IsDeploymentWithManager(obj) {
-				if err := waitDeploymentReady(ctx, obj, opts.WaitProviderTimeout, proxy); err != nil {
-					return errors.Wrapf(err, "deployment %q is not ready after %s", obj.GetName(), opts.WaitProviderTimeout)
+				if err := waitDeploymentReady(ctx, obj, proxy); err != nil {
+					cancel()
+					return errors.Wrapf(err, "deployment %q for provider %s/%s is not ready", obj.GetName(), components.Type(), components.Name())
 				}
 			}
 		}
+
+		// Verify CA injection for all components.
+		if err := waitForCAInjection(ctx, components, proxy); err != nil {
+			cancel()
+			return errors.Wrapf(err, "ca injection for provider %s/%s is not finished", components.Type(), components.Name())
+		}
+		cancel()
 	}
 	return nil
 }
 
-func waitDeploymentReady(ctx context.Context, deployment unstructured.Unstructured, timeout time.Duration, proxy Proxy) error {
-	return wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, timeout, false, func(ctx context.Context) (bool, error) {
+func waitDeploymentReady(ctx context.Context, deployment unstructured.Unstructured, proxy Proxy) error {
+	return wait.PollUntilContextCancel(ctx, 100*time.Millisecond, false, func(ctx context.Context) (bool, error) {
 		c, err := proxy.NewClient(ctx)
 		if err != nil {
 			return false, err
@@ -174,6 +182,16 @@ func waitDeploymentReady(ctx context.Context, deployment unstructured.Unstructur
 		}
 		return false, nil
 	})
+}
+
+func waitForCAInjection(ctx context.Context, components repository.Components, proxy Proxy) error {
+	c, err := proxy.NewClient(ctx)
+	if err != nil {
+		return err
+	}
+	caInjectionVerifier := newCAInjectionVerifier(c)
+
+	return caInjectionVerifier.Run(ctx, components)
 }
 
 func (i *providerInstaller) Validate(ctx context.Context) error {

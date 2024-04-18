@@ -34,12 +34,18 @@ capi:buildDockerImages () {
   fi
 }
 
-# k8s::prepareKindestImagesVariables defaults the environment variables KUBERNETES_VERSION,
+# k8s::prepareKindestImagesVariables defaults the environment variables KUBERNETES_VERSION_MANAGEMENT, KUBERNETES_VERSION,
 # KUBERNETES_VERSION_UPGRADE_TO, KUBERNETES_VERSION_UPGRADE_FROM and KUBERNETES_VERSION_LATEST_CI
 # depending on what is set in GINKGO_FOCUS.
 # Note: We do this to ensure that the kindest/node image gets built if it does
 # not already exist, e.g. for pre-releases, but only if necessary.
 k8s::prepareKindestImagesVariables() {
+  # Always default KUBERNETES_VERSION_MANAGEMENT because we always create a management cluster out of it.
+  if [[ -z "${KUBERNETES_VERSION_MANAGEMENT:-}" ]]; then
+    KUBERNETES_VERSION_MANAGEMENT=$(grep KUBERNETES_VERSION_MANAGEMENT: < "$E2E_CONF_FILE" | awk -F'"' '{ print $2}')
+    echo "Defaulting KUBERNETES_VERSION_MANAGEMENT to ${KUBERNETES_VERSION_MANAGEMENT} to trigger image build (because env var is not set)"
+  fi
+
   if [[ ${GINKGO_FOCUS:-} == *"K8s-Install-ci-latest"* ]]; then
     # If the test focuses on [K8s-Install-ci-latest], only default KUBERNETES_VERSION_LATEST_CI
     # to the value in the e2e config and only if it is not set.

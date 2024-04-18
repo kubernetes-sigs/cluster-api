@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api
 
 go 1.22.0
 
+replace sigs.k8s.io/controller-runtime => github.com/alvaroaleman/controller-runtime v0.1.5-0.20240417152545-b71b2564035d
+
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/sprig/v3 v3.2.3
@@ -159,7 +161,7 @@ require (
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.18.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.18.0 // indirect

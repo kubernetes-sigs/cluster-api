@@ -1492,8 +1492,14 @@ $(IMPORT_BOSS): # Build import-boss
 ## triage-party
 ## --------------------------------------
 
+.PHONY: release-triage-party
+release-triage-party: docker-build-triage-party docker-push-triage-party clean-triage-party
+
+.PHONY: release-local-triage-party
+release-local-triage-party: docker-build-triage-party clean-triage-party ## Release the triage party image for local use only
+
 .PHONY: checkout-triage-party
-triage-party-checkout:
+checkout-triage-party:
 	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
 	@if [ -d "$(TRIAGE_PARTY_TMP_DIR)" ]; then \
 		echo "$(TRIAGE_PARTY_TMP_DIR) exists, skipping clone"; \
@@ -1510,7 +1516,7 @@ triage-party-checkout:
 	fi
 
 .PHONY: docker-build-triage-party
-docker-build-triage-party: triage-party-checkout ## Build triage-party docker images for all architectures
+docker-build-triage-party: checkout-triage-party
 	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
 	cd $(TRIAGE_PARTY_TMP_DIR) && \
 	docker buildx build --platform linux/amd64 -t $(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION) .
@@ -1520,8 +1526,12 @@ docker-push-triage-party:
 	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
 	docker push $(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION)
 
+.PHONY: clean-triage-party
+clean-triage-party:
+	rm -fr "$(TRIAGE_PARTY_TMP_DIR)"
+
 .PHONY: triage-party
-triage-party:
+triage-party: ## Start a local instance of triage party
 	@if [ -z "${GITHUB_TOKEN}" ]; then echo "GITHUB_TOKEN is not set"; exit 1; fi
 	docker run --platform linux/amd64 --rm \
 		-e GITHUB_TOKEN \

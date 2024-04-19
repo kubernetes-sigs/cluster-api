@@ -19,6 +19,7 @@ package framework
 import (
 	"reflect"
 
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -70,6 +71,9 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	// Add the api extensions (CRD) to the scheme.
 	_ = apiextensionsv1beta.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// Add the admission registration scheme (Mutating-, ValidatingWebhookConfiguration).
+	_ = admissionregistrationv1.AddToScheme(scheme)
 
 	// Add RuntimeSDK to the scheme.
 	_ = runtimev1.AddToScheme(scheme)

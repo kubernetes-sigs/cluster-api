@@ -25,6 +25,7 @@ updated info about which API version they are supporting.
 - [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## Infrastructure
+- [Akamai (Linode)](https://linode.github.io/cluster-api-provider-linode/)
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)
 - [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
 - [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)

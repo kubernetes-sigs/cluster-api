@@ -136,6 +136,7 @@ in-memory               InfrastructureProvider   https://github.com/kubernetes-s
 k0sproject-k0smotron    InfrastructureProvider   https://github.com/k0sproject/k0smotron/releases/latest/                                    infrastructure-components.yaml
 kubekey                 InfrastructureProvider   https://github.com/kubesphere/kubekey/releases/latest/                                      infrastructure-components.yaml
 kubevirt                InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/           infrastructure-components.yaml
+linode-linode           InfrastructureProvider   https://github.com/linode/cluster-api-provider-linode/releases/latest/                      infrastructure-components.yaml
 maas                    InfrastructureProvider   https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                  infrastructure-components.yaml
 metal3                  InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                   infrastructure-components.yaml
 my-infra-provider       InfrastructureProvider   /home/.config/cluster-api/overrides/infrastructure-docker/latest/                           infrastructure-components.yaml
@@ -287,6 +288,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: kubevirt
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/
+- File: infrastructure-components.yaml
+  Name: linode-linode
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/linode/cluster-api-provider-linode/releases/latest/
 - File: infrastructure-components.yaml
   Name: maas
   ProviderType: InfrastructureProvider

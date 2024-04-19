@@ -37,6 +37,7 @@ const (
 
 // Infra providers.
 const (
+	AkamaiProviderName         = "linode-linode"
 	AWSProviderName            = "aws"
 	AzureProviderName          = "azure"
 	BYOHProviderName           = "byoh"
@@ -149,6 +150,11 @@ func (p *providersClient) defaults() []Provider {
 		},
 
 		// Infrastructure providers
+		&provider{
+			name:         AkamaiProviderName,
+			url:          "https://github.com/linode/cluster-api-provider-linode/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
 		&provider{
 			name:         AWSProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/infrastructure-components.yaml",

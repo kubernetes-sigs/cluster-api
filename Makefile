@@ -997,9 +997,6 @@ serve-book: ## Build and serve the book (with live-reload)
 
 ## latest git tag for the commit, e.g., v0.3.10
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
-ifneq (,$(findstring -,$(RELEASE_TAG)))
-    PRE_RELEASE=true
-endif
 ## set by Prow, ref name of the base branch, e.g., main
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out

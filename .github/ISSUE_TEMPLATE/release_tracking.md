@@ -82,3 +82,6 @@ If and when necessary:
 * [ ] [Release Lead] [Track] [Bump the Cluster API apiVersion](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#optional-track-bump-the-cluster-api-apiversion)
 * [ ] [Release Lead] [Track] [Bump the Kubernetes version](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#optional-track-bump-the-kubernetes-version)
 * [ ] [Release Lead] [Track Release and Improvement tasks](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#optional-track-release-and-improvement-tasks)
+
+/priority critical-urgent
+/kind feature

@@ -21,7 +21,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -95,4 +97,12 @@ func (dst *MachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*expv1.MachinePoolList)
 
 	return Convert_v1beta1_MachinePoolList_To_v1alpha3_MachinePoolList(src, dst, nil)
+}
+
+func Convert_v1alpha3_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(in *clusterv1alpha3.MachineTemplateSpec, out *clusterv1.MachineTemplateSpec, s apimachineryconversion.Scope) error {
+	return clusterv1alpha3.Convert_v1alpha3_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(in, out, s)
+}
+
+func Convert_v1beta1_MachineTemplateSpec_To_v1alpha3_MachineTemplateSpec(in *clusterv1.MachineTemplateSpec, out *clusterv1alpha3.MachineTemplateSpec, s apimachineryconversion.Scope) error {
+	return clusterv1alpha3.Convert_v1beta1_MachineTemplateSpec_To_v1alpha3_MachineTemplateSpec(in, out, s)
 }

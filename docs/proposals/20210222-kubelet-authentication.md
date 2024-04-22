@@ -30,6 +30,8 @@ superseded-by:
 # Cluster API Kubelet Authentication
 
 
+**Note**: This proposal has not been implemented and should be carefully re-evaluated if it is still up-to-date before implementation.
+
 ## Table of Contents
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->

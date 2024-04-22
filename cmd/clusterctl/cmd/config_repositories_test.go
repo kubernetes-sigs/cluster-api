@@ -148,6 +148,7 @@ outscale                InfrastructureProvider   https://github.com/outscale/clu
 packet                  InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/             infrastructure-components.yaml
 proxmox                 InfrastructureProvider   https://github.com/ionos-cloud/cluster-api-provider-proxmox/releases/latest/                infrastructure-components.yaml
 sidero                  InfrastructureProvider   https://github.com/siderolabs/sidero/releases/latest/                                       infrastructure-components.yaml
+tinkerbell              InfrastructureProvider   https://github.com/tinkerbell/cluster-api-provider-tinkerbell/releases/latest/              infrastructure-components.yaml
 vcd                     InfrastructureProvider   https://github.com/vmware/cluster-api-provider-cloud-director/releases/latest/              infrastructure-components.yaml
 vcluster                InfrastructureProvider   https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/                   infrastructure-components.yaml
 virtink                 InfrastructureProvider   https://github.com/smartxworks/cluster-api-provider-virtink/releases/latest/                infrastructure-components.yaml
@@ -336,6 +337,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: sidero
   ProviderType: InfrastructureProvider
   URL: https://github.com/siderolabs/sidero/releases/latest/
+- File: infrastructure-components.yaml
+  Name: tinkerbell
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/tinkerbell/cluster-api-provider-tinkerbell/releases/latest/
 - File: infrastructure-components.yaml
   Name: vcd
   ProviderType: InfrastructureProvider

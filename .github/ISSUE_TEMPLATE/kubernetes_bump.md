@@ -21,10 +21,10 @@ changes should be cherry-picked to all release series that will support the new 
 
 * [ ] Continuously modify CAPD to use early versions of the upcoming Kubernetes release (betas and rcs):
   * Bump the Kubernetes version in `test/*` except for `test/infrastructure/kind/*`.
-  * Prior art: TODO (previously #9160)
+  * Prior art: #10384
 * [ ] Modify CAPD to use the new Kubernetes release after it is GA:
   * Bump the Kubernetes version in `test/*` except for `test/infrastructure/kind/*`.
-  * Prior art: #10384
+  * Prior art: #10454
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
 
   * At the `.versions`  section in the `cluster-api-prowjob-gen.yaml` file in [test-infra](https://github.com/kubernetes/test-infra/blob/master/config/jobs/kubernetes-sigs/cluster-api/):
@@ -45,9 +45,11 @@ changes should be cherry-picked to all release series that will support the new 
     TEST_INFRA_DIR=../../k8s.io/test-infra make generate-test-infra-prowjobs
     ```
 
+  * Prior art: #32456
+
 * [ ] Update book:
   * Update supported versions in `versions.md`
-  * Prior art: #9161
+  * Prior art: #10454
 
 * [ ] Issues specific to the Kubernetes minor release:
   * Sometimes there are adjustments that we have to make in Cluster API to be able to support
@@ -82,17 +84,17 @@ run the Cluster API controllers on the new Kubernetes version.
 * [ ] Ensure there is a new controller-runtime minor release which uses the new Kubernetes Go dependencies.
 * [ ] Update our Prow jobs for the `main` branch to use the correct `kubekins-e2e` image via the configuration file and by running `make generate-test-infra-prowjobs`.
   * It is recommended to have one PR for presubmit and one for periodic jobs to reduce the risk of breaking the periodic jobs.
-  * Prior art: presubmit jobs: https://github.com/kubernetes/test-infra/pull/27311
-  * Prior art: periodic jobs: https://github.com/kubernetes/test-infra/pull/27326
+  * Prior art: https://github.com/kubernetes/test-infra/pull/32380
 * [ ] Bump the Go version in Cluster API: (if Kubernetes is using a new Go minor version)
   * Search for the currently used Go version across the repository and update it
   * We have to at least modify it in: `hack/ensure-go.sh`, `.golangci.yml`, `cloudbuild*.yaml`, `go.mod`, `Makefile`, `netlify.toml`, `Tiltfile`
-  * Prior art: #7135
+  * Prior art: #10452
 * [ ] Bump controller-runtime
 * [ ] Bump controller-tools
 * [ ] Bump the Kubernetes version used in integration tests via `KUBEBUILDER_ENVTEST_KUBERNETES_VERSION` in `Makefile`
   * **Note**: This PR should be cherry-picked as well. It is part of this section as it depends on kubebuilder/controller-runtime
     releases and is not strictly necessary for [Supporting managing and running on the new Kubernetes version](#supporting-managing-and-running-on-the-new-kubernetes-version).
+  * Prior art to release envtest binaries: https://github.com/kubernetes-sigs/kubebuilder/pull/3864
   * Prior art: #7193
 * [ ] Bump conversion-gen via `CONVERSION_GEN_VER` in `Makefile`
   * Prior art: #7118

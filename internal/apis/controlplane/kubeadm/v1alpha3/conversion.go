@@ -22,6 +22,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -153,4 +154,12 @@ func Convert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec
 	out.MachineTemplate.InfrastructureRef = in.InfrastructureTemplate
 	out.MachineTemplate.NodeDrainTimeout = in.NodeDrainTimeout
 	return autoConvert_v1alpha3_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(in, out, s)
+}
+
+func Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *bootstrapv1alpha3.KubeadmConfigSpec, s apiconversion.Scope) error {
+	return bootstrapv1alpha3.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
+}
+
+func Convert_v1alpha3_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *bootstrapv1alpha3.KubeadmConfigSpec, out *bootstrapv1.KubeadmConfigSpec, s apiconversion.Scope) error {
+	return bootstrapv1alpha3.Convert_v1alpha3_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in, out, s)
 }

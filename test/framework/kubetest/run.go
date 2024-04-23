@@ -31,6 +31,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/tools/clientcmd"
@@ -204,7 +205,10 @@ func Run(ctx context.Context, input RunInput) error {
 		RestartPolicy: dockercontainer.RestartPolicyDisabled,
 	}, ginkgo.GinkgoWriter)
 	if err != nil {
-		return errors.Wrap(err, "Unable to run conformance tests")
+		return kerrors.NewAggregate([]error{
+			errors.Wrap(err, "Unable to run conformance tests"),
+			framework.GatherJUnitReports(reportDir, input.ArtifactsDirectory),
+		})
 	}
 	return framework.GatherJUnitReports(reportDir, input.ArtifactsDirectory)
 }

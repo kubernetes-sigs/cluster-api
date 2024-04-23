@@ -56,7 +56,7 @@ const (
 	OCIProviderName            = "oci"
 	OpenStackProviderName      = "openstack"
 	PacketProviderName         = "packet"
-	TinkerbellProviderName     = "tinkerbell"
+	TinkerbellProviderName     = "tinkerbell-tinkerbell"
 	SideroProviderName         = "sidero"
 	VCloudDirectorProviderName = "vcd"
 	VSphereProviderName        = "vsphere"

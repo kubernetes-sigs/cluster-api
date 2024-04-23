@@ -37,7 +37,6 @@ const (
 
 // Infra providers.
 const (
-	AkamaiProviderName         = "linode-linode"
 	AWSProviderName            = "aws"
 	AzureProviderName          = "azure"
 	BYOHProviderName           = "byoh"
@@ -50,6 +49,7 @@ const (
 	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
 	InMemoryProviderName       = "in-memory"
+	LinodeProviderName         = "linode-linode"
 	Metal3ProviderName         = "metal3"
 	NestedProviderName         = "nested"
 	NutanixProviderName        = "nutanix"
@@ -151,7 +151,7 @@ func (p *providersClient) defaults() []Provider {
 
 		// Infrastructure providers
 		&provider{
-			name:         AkamaiProviderName,
+			name:         LinodeProviderName,
 			url:          "https://github.com/linode/cluster-api-provider-linode/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},

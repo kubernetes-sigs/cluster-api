@@ -861,7 +861,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1240,6 +1240,14 @@ export ALLOWED_NODES="[pve1,pve2,pve3]"
 ```
 
 For more information about prerequisites and advanced setups for Proxmox, see the [Proxmox getting started guide].
+
+{{#/tab }}
+{{#tab Tinkerbell}}
+
+```bash
+export TINKERBELL_IP=<hegel ip>
+```
+For more information please visit [Tinkerbell getting started guide].
 
 {{#/tab }}
 {{#tab VCD}}
@@ -1763,3 +1771,4 @@ kind delete cluster
 [workload cluster]: ../reference/glossary.md#workload-cluster
 [CAPI Operator quickstart]: ./quick-start-operator.md
 [Proxmox getting started guide]: https://github.com/ionos-cloud/cluster-api-provider-proxmox/blob/main/docs/Usage.md
+[Tinkerbell getting started guide]: https://github.com/tinkerbell/cluster-api-provider-tinkerbell/blob/main/docs/QUICK-START.md

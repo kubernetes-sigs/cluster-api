@@ -205,7 +205,7 @@ REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 PROD_REGISTRY ?= registry.k8s.io/cluster-api
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api
-STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api.appspot.com
+STAGING_BUCKET ?= k8s-staging-cluster-api
 
 # core
 IMAGE_NAME ?= cluster-api-controller
@@ -1147,7 +1147,8 @@ release-staging-nightly: ## Tag and push container images to the staging bucket.
 	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
 	## Build the dev manifests
 	$(MAKE) release-manifests-dev
-	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20210121/bootstrap-components.yaml
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425/core-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
 	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
 
 .PHONY: release-alias-tag

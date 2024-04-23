@@ -159,26 +159,25 @@ func (cm *certManagerClient) EnsureInstalled(ctx context.Context) error {
 		return nil
 	}
 
-	// Otherwise install cert manager.
-	// NOTE: this instance of cert-manager will have clusterctl specific annotations that will be used to
-	// manage the lifecycle of all the components.
-	return cm.install(ctx)
-}
-
-func (cm *certManagerClient) install(ctx context.Context) error {
-	log := logf.Log
-
 	config, err := cm.configClient.CertManager().Get()
 	if err != nil {
 		return err
 	}
-	log.Info("Installing cert-manager", "Version", config.Version())
-
-	// Gets the cert-manager components from the repository.
 	objs, err := cm.getManifestObjs(ctx, config)
 	if err != nil {
 		return err
 	}
+
+	// Otherwise install cert manager.
+	// NOTE: this instance of cert-manager will have clusterctl specific annotations that will be used to
+	// manage the lifecycle of all the components.
+	return cm.install(ctx, config.Version(), objs)
+}
+
+func (cm *certManagerClient) install(ctx context.Context, version string, objs []unstructured.Unstructured) error {
+	log := logf.Log
+
+	log.Info("Installing cert-manager", "Version", version)
 
 	// Install all cert-manager manifests
 	createCertManagerBackoff := newWriteBackoff()
@@ -214,15 +213,25 @@ func (cm *certManagerClient) PlanUpgrade(ctx context.Context) (CertManagerUpgrad
 		return CertManagerUpgradePlan{ExternallyManaged: true}, nil
 	}
 
-	log.Info("Checking cert-manager version...")
-	currentVersion, targetVersion, shouldUpgrade, err := cm.shouldUpgrade(objs)
+	// Get the list of objects to install.
+	config, err := cm.configClient.CertManager().Get()
+	if err != nil {
+		return CertManagerUpgradePlan{}, err
+	}
+	installObjs, err := cm.getManifestObjs(ctx, config)
+	if err != nil {
+		return CertManagerUpgradePlan{}, err
+	}
+
+	log.Info("Checking if cert-manager needs upgrade...")
+	currentVersion, shouldUpgrade, err := cm.shouldUpgrade(config.Version(), objs, installObjs)
 	if err != nil {
 		return CertManagerUpgradePlan{}, err
 	}
 
 	return CertManagerUpgradePlan{
 		From:          currentVersion,
-		To:            targetVersion,
+		To:            config.Version(),
 		ShouldUpgrade: shouldUpgrade,
 	}, nil
 }
@@ -243,8 +252,18 @@ func (cm *certManagerClient) EnsureLatestVersion(ctx context.Context) error {
 		return nil
 	}
 
-	log.Info("Checking cert-manager version...")
-	currentVersion, _, shouldUpgrade, err := cm.shouldUpgrade(objs)
+	// Get the list of objects to install.
+	config, err := cm.configClient.CertManager().Get()
+	if err != nil {
+		return err
+	}
+	installObjs, err := cm.getManifestObjs(ctx, config)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Checking if cert-manager needs upgrade...")
+	currentVersion, shouldUpgrade, err := cm.shouldUpgrade(config.Version(), objs, installObjs)
 	if err != nil {
 		return err
 	}
@@ -256,7 +275,7 @@ func (cm *certManagerClient) EnsureLatestVersion(ctx context.Context) error {
 
 	// Migrate CRs to latest CRD storage version, if necessary.
 	// Note: We have to do this before cert-manager is deleted so conversion webhooks still work.
-	if err := cm.migrateCRDs(ctx); err != nil {
+	if err := cm.migrateCRDs(ctx, installObjs); err != nil {
 		return err
 	}
 
@@ -269,27 +288,16 @@ func (cm *certManagerClient) EnsureLatestVersion(ctx context.Context) error {
 	}
 
 	// Install cert-manager.
-	return cm.install(ctx)
+	return cm.install(ctx, config.Version(), installObjs)
 }
 
-func (cm *certManagerClient) migrateCRDs(ctx context.Context) error {
-	config, err := cm.configClient.CertManager().Get()
-	if err != nil {
-		return err
-	}
-
-	// Gets the new cert-manager components from the repository.
-	objs, err := cm.getManifestObjs(ctx, config)
-	if err != nil {
-		return err
-	}
-
+func (cm *certManagerClient) migrateCRDs(ctx context.Context, installObj []unstructured.Unstructured) error {
 	c, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	return NewCRDMigrator(c).Run(ctx, objs)
+	return NewCRDMigrator(c).Run(ctx, installObj)
 }
 
 func (cm *certManagerClient) deleteObjs(ctx context.Context, objs []unstructured.Unstructured) error {
@@ -322,16 +330,10 @@ func (cm *certManagerClient) deleteObjs(ctx context.Context, objs []unstructured
 	return nil
 }
 
-func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (string, string, bool, error) {
-	config, err := cm.configClient.CertManager().Get()
-	if err != nil {
-		return "", "", false, err
-	}
-
-	desiredVersion := config.Version()
+func (cm *certManagerClient) shouldUpgrade(desiredVersion string, objs, installObjs []unstructured.Unstructured) (string, bool, error) {
 	desiredSemVersion, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return "", "", false, errors.Wrapf(err, "failed to parse config version [%s] for cert-manager component", desiredVersion)
+		return "", false, errors.Wrapf(err, "failed to parse config version [%s] for cert-manager component", desiredVersion)
 	}
 
 	needUpgrade := false
@@ -358,17 +360,23 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 
 		objSemVersion, err := semver.ParseTolerant(objVersion)
 		if err != nil {
-			return "", "", false, errors.Wrapf(err, "failed to parse version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
+			return "", false, errors.Wrapf(err, "failed to parse version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
 		}
 
 		c := version.Compare(objSemVersion, desiredSemVersion, version.WithBuildTags())
 		switch {
 		case c < 0 || c == 2:
-			// if version < current or same version and different non-numeric build metadata, then upgrade
+			// The installed version is lower than the desired version or they are equal, but their metadata
+			// is different non-numerically (see version.WithBuildTags()). Upgrade is required.
 			currentVersion = objVersion
 			needUpgrade = true
-		case c >= 0:
-			// the installed version is greater than or equal to one required by clusterctl, so we are ok
+		case c == 0:
+			// The installed version is equal to the desired version. Upgrade is required only if the number
+			// of available objects and objects to install differ. This would act as a re-install.
+			currentVersion = objVersion
+			needUpgrade = len(objs) != len(installObjs)
+		case c > 0:
+			// The installed version is greater than the desired version. Upgrade is not required.
 			currentVersion = objVersion
 		}
 
@@ -376,7 +384,7 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 			break
 		}
 	}
-	return currentVersion, desiredVersion, needUpgrade, nil
+	return currentVersion, needUpgrade, nil
 }
 
 func (cm *certManagerClient) getWaitTimeout() time.Duration {

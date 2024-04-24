@@ -70,14 +70,6 @@ OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
-# Set --output-dir for conversion-gen if we are not within GOPATH
-ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api)
-	CONVERSION_GEN_OUTPUT_BASE := --output-dir=$(ROOT_DIR)
-	CONVERSION_GEN_OUTPUT_BASE_CAPD := --output-dir=$(ROOT_DIR)/$(CAPD_DIR)
-else
-	export GOPATH := $(shell go env GOPATH)
-endif
-
 #
 # Ginkgo configuration.
 #
@@ -447,7 +439,7 @@ generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go code for core api
 	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/core/v1alpha3,./internal/apis/core/v1alpha4"
 	$(CONVERSION_GEN) \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/core/v1alpha3 \
 		./internal/apis/core/v1alpha4
@@ -458,7 +450,7 @@ generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go c
 	$(CONVERSION_GEN) \
 		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3 \
 		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4 \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/core/exp/v1alpha3 \
 		./internal/apis/core/exp/v1alpha4 \
@@ -469,7 +461,7 @@ generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go c
 generate-go-conversions-core-exp-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
 	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/ipam/api/v1alpha1"
 	$(CONVERSION_GEN) \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./$(EXP_DIR)/ipam/api/v1alpha1
 
@@ -477,7 +469,7 @@ generate-go-conversions-core-exp-ipam: $(CONVERSION_GEN) ## Generate conversions
 generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions go code for core runtime
 	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/runtime/test/v1alpha1,./internal/runtime/test/v1alpha2"
 	$(CONVERSION_GEN) \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/runtime/test/v1alpha1 \
 		./internal/runtime/test/v1alpha2
@@ -486,13 +478,13 @@ generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions 
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap
 	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/bootstrap/kubeadm"
 	$(CONVERSION_GEN) \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/bootstrap/kubeadm/v1alpha3 \
 		./internal/apis/bootstrap/kubeadm/v1alpha4
 	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta2,./bootstrap/kubeadm/types/upstreamv1beta3"
 	$(CONVERSION_GEN) \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./bootstrap/kubeadm/types/upstreamv1beta2 \
 		./bootstrap/kubeadm/types/upstreamv1beta3
@@ -505,7 +497,7 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4 \
 		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3 \
 		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4 \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
 		./internal/apis/controlplane/kubeadm/v1alpha3 \
 		./internal/apis/controlplane/kubeadm/v1alpha4
@@ -513,7 +505,7 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 .PHONY: generate-go-conversions-docker-infrastructure
 generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for docker infrastructure provider
 	cd $(CAPD_DIR); $(CONVERSION_GEN) \
-		--output-file=zz_generated.conversion.go $(CONVERSION_GEN_OUTPUT_BASE_CAPD) \
+		--output-file=zz_generated.conversion.go \
 		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt \
 		./api/v1alpha3 \
 		./api/v1alpha4 \

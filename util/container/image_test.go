@@ -176,9 +176,9 @@ func TestModifyImageRepository(t *testing.T) {
 			wantErrMessage: "",
 		},
 		{
-			name:           "errors if the repository name is too long",
-			image:          "example.com/image:1.17.3",
-			repo:           strings.Repeat("a", 255),
+			name:           "errors if the image name is too long",
+			image:          "example.com/" + strings.Repeat("a", 255) + ":1.17.3",
+			repo:           testRepository,
 			want:           "",
 			wantError:      true,
 			wantErrMessage: reference.ErrNameTooLong.Error(),

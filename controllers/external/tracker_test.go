@@ -24,9 +24,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -55,7 +53,7 @@ func newWatchCountController(raiseError bool) *watchCountController {
 	}
 }
 
-func (c *watchCountController) Watch(_ source.Source, _ handler.EventHandler, _ ...predicate.Predicate) error {
+func (c *watchCountController) Watch(_ source.Source) error {
 	c.count++
 	if c.raiseError {
 		return errors.New("injected failure")

@@ -126,7 +126,8 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		// If no request found in context, then this has not come via a webhook request, so skip validation of old cluster.
 		var oldCluster *clusterv1.Cluster
 		req, err := admission.RequestFromContext(ctx)
-		if err == nil && len(req.OldObject.Raw) > 0 {
+
+		if err != nil && len(req.OldObject.Raw) > 0 {
 			scheme := runtime.NewScheme()
 			if err := clusterv1.AddToScheme(scheme); err != nil {
 				return apierrors.NewInternalError(errors.Wrap(err, "failed to configure API scheme"))

@@ -536,7 +536,7 @@ func (t *ClusterCacheTracker) deleteAccessor(_ context.Context, cluster client.O
 // Watcher is a scoped-down interface from Controller that only knows how to watch.
 type Watcher interface {
 	// Watch watches src for changes, sending events to eventHandler if they pass predicates.
-	Watch(src source.Source, eventHandler handler.EventHandler, predicates ...predicate.Predicate) error
+	Watch(src source.Source) error
 }
 
 // WatchInput specifies the parameters used to establish a new watch for a remote cluster.
@@ -585,7 +585,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	}
 
 	// Need to create the watch
-	if err := input.Watcher.Watch(source.Kind(accessor.cache, input.Kind), input.EventHandler, input.Predicates...); err != nil {
+	if err := input.Watcher.Watch(source.Kind(accessor.cache, input.Kind, input.EventHandler, input.Predicates...)); err != nil {
 		return errors.Wrapf(err, "failed to add %s watch on cluster %s: failed to create watch", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 	}
 

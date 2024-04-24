@@ -40,6 +40,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -114,30 +115,32 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.Machine{}).
+		Named("machine").
+		Add(builder.For(mgr, &clusterv1.Machine{}, predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}))).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToMachines),
-			builder.WithPredicates(
-				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.Any(ctrl.LoggerFrom(ctx),
-						predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-						predicates.ClusterControlPlaneInitialized(ctrl.LoggerFrom(ctx)),
-					),
-					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToMachines),
+			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
+			predicate.Or(
+				predicate.Or(
+					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+					predicates.ClusterControlPlaneInitialized(ctrl.LoggerFrom(ctx)),
 				),
-			)).
-		Watches(
+				predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+				predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+			),
+		)).
+		Add(builder.Watches(mgr,
 			&clusterv1.MachineSet{},
-			handler.EnqueueRequestsFromMapFunc(msToMachines),
-		).
-		Watches(
+			handler.EnqueueRequestsFromTypedMapFunc(msToMachines),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineSet{}),
+		)).
+		Add(builder.Watches(mgr,
 			&clusterv1.MachineDeployment{},
-			handler.EnqueueRequestsFromMapFunc(mdToMachines),
-		).
+			handler.EnqueueRequestsFromTypedMapFunc(mdToMachines),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineDeployment{}),
+		)).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -859,7 +862,7 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachine),
+		EventHandler: handler.EnqueueRequestsFromTypedMapFunc(r.nodeToMachine),
 	})
 }
 

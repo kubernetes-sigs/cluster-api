@@ -45,7 +45,7 @@ func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // ScaleValidator validates KCP for replicas.
 type ScaleValidator struct {
 	Client  client.Reader
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // Handle will validate for number of replicas.

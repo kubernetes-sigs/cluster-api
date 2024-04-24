@@ -59,7 +59,7 @@ func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // MachineSet implements a validation and defaulting webhook for MachineSet.
 type MachineSet struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 var _ webhook.CustomDefaulter = &MachineSet{}

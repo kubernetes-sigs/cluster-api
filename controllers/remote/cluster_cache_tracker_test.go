@@ -84,8 +84,10 @@ func TestClusterCacheTracker(t *testing.T) {
 			c = &testController{
 				ch: make(chan string),
 			}
-			w, err = ctrl.NewControllerManagedBy(mgr).For(&clusterv1.MachineDeployment{}).Build(c)
+
+			watch, err := ctrl.NewControllerManagedBy(mgr).For(&clusterv1.MachineDeployment{}).Build(c)
 			g.Expect(err).ToNot(HaveOccurred())
+			w = watch
 
 			mgrContext, mgrCancel = context.WithCancel(ctx)
 			t.Log("Starting the manager")

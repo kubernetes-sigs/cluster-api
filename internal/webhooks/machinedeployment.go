@@ -58,7 +58,7 @@ func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) erro
 
 // MachineDeployment implements a validation and defaulting webhook for MachineDeployment.
 type MachineDeployment struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 var _ webhook.CustomDefaulter = &MachineDeployment{}

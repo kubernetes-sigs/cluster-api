@@ -86,24 +86,23 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1.MachineHealthCheck{}).
-		Watches(
+		Named("machineHealthCheck").
+		Add(builder.For(mgr,
+			&clusterv1.MachineHealthCheck{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.MachineHealthCheck{}))).
+		Add(builder.Watches(mgr,
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(r.machineToMachineHealthCheck),
-		).
+			handler.EnqueueRequestsFromTypedMapFunc(r.machineToMachineHealthCheck),
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Machine{}),
+		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(r.clusterToMachineHealthCheck),
-			builder.WithPredicates(
-				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
-				),
-			),
-		).Build(r)
+			handler.EnqueueRequestsFromTypedMapFunc(r.clusterToMachineHealthCheck),
+			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
+			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		)).Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -455,12 +454,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 // clusterToMachineHealthCheck maps events from Cluster objects to
 // MachineHealthCheck objects that belong to the Cluster.
-func (r *Reconciler) clusterToMachineHealthCheck(ctx context.Context, o client.Object) []reconcile.Request {
-	c, ok := o.(*clusterv1.Cluster)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Cluster, got %T", o))
-	}
-
+func (r *Reconciler) clusterToMachineHealthCheck(ctx context.Context, c *clusterv1.Cluster) []reconcile.Request {
 	mhcList := &clusterv1.MachineHealthCheckList{}
 	if err := r.Client.List(
 		ctx,
@@ -482,12 +476,7 @@ func (r *Reconciler) clusterToMachineHealthCheck(ctx context.Context, o client.O
 
 // machineToMachineHealthCheck maps events from Machine objects to
 // MachineHealthCheck objects that monitor the given machine.
-func (r *Reconciler) machineToMachineHealthCheck(ctx context.Context, o client.Object) []reconcile.Request {
-	m, ok := o.(*clusterv1.Machine)
-	if !ok {
-		panic(fmt.Sprintf("Expected a Machine, got %T", o))
-	}
-
+func (r *Reconciler) machineToMachineHealthCheck(ctx context.Context, m *clusterv1.Machine) []reconcile.Request {
 	mhcList := &clusterv1.MachineHealthCheckList{}
 	if err := r.Client.List(
 		ctx,
@@ -534,7 +523,7 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachineHealthCheck),
+		EventHandler: handler.EnqueueRequestsFromTypedMapFunc(r.nodeToMachineHealthCheck),
 	})
 }
 

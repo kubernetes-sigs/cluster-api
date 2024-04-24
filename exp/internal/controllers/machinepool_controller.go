@@ -88,20 +88,18 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&expv1.MachinePool{}).
+		Named("machinepool").
+		Add(builder.For(mgr,
+			&expv1.MachinePool{},
+			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &expv1.MachinePool{}))).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Watches(
+		Add(builder.Watches(mgr,
 			&clusterv1.Cluster{},
-			handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
+			handler.EnqueueRequestsFromTypedMapFunc(clusterToMachinePools),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
-				),
-			),
-		).
+			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue, &clusterv1.Cluster{}),
+		)).
 		Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

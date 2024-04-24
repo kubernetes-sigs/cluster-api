@@ -88,12 +88,10 @@ func TestClusterControlplaneInitializedPredicate(t *testing.T) {
 	for i := range testcases {
 		tc := testcases[i]
 		t.Run(tc.name, func(*testing.T) {
-			ev := event.UpdateEvent{
+			g.Expect(predicate.Update(event.TypedUpdateEvent[*clusterv1.Cluster]{
 				ObjectOld: &tc.oldCluster,
 				ObjectNew: &tc.newCluster,
-			}
-
-			g.Expect(predicate.Update(ev)).To(Equal(tc.expected))
+			})).To(Equal(tc.expected))
 		})
 	}
 }

@@ -1920,7 +1920,7 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 	testCases := []struct {
 		name     string
 		toCreate []clusterv1.MachineHealthCheck
-		object   client.Object
+		object   *clusterv1.Cluster
 		expected []reconcile.Request
 	}{
 		{
@@ -1995,7 +1995,7 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 	testCases := []struct {
 		name     string
 		toCreate []clusterv1.MachineHealthCheck
-		object   client.Object
+		object   *clusterv1.Machine
 		expected []reconcile.Request
 	}{
 		{
@@ -2082,7 +2082,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 		name        string
 		mhcToCreate []clusterv1.MachineHealthCheck
 		mToCreate   []clusterv1.Machine
-		object      client.Object
+		object      *corev1.Node
 		expected    []reconcile.Request
 	}{
 		{

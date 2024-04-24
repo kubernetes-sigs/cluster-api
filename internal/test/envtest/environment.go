@@ -291,9 +291,6 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&webhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
 	if err := (&webhooks.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}

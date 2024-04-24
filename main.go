@@ -101,18 +101,19 @@ var (
 	diagnosticsOptions          = flags.DiagnosticsOptions{}
 	logOptions                  = logs.NewOptions()
 	// core Cluster API specific flags.
-	clusterTopologyConcurrency     int
-	clusterCacheTrackerConcurrency int
-	clusterClassConcurrency        int
-	clusterConcurrency             int
-	extensionConfigConcurrency     int
-	machineConcurrency             int
-	machineSetConcurrency          int
-	machineDeploymentConcurrency   int
-	machinePoolConcurrency         int
-	clusterResourceSetConcurrency  int
-	machineHealthCheckConcurrency  int
-	nodeDrainClientTimeout         time.Duration
+	clusterTopologyConcurrency      int
+	clusterCacheTrackerConcurrency  int
+	clusterClassConcurrency         int
+	clusterConcurrency              int
+	extensionConfigConcurrency      int
+	machineConcurrency              int
+	machineSetConcurrency           int
+	machineDeploymentConcurrency    int
+	machinePoolConcurrency          int
+	clusterResourceSetConcurrency   int
+	machineHealthCheckConcurrency   int
+	nodeDrainClientTimeout          time.Duration
+	useDeprecatedInfraMachineNaming bool
 )
 
 func init() {
@@ -220,6 +221,10 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
+
+	fs.BoolVar(&useDeprecatedInfraMachineNaming, "use-deprecated-infra-machine-naming", false,
+		"Use deprecated infrastructure machine naming")
+	_ = fs.MarkDeprecated("use-deprecated-infra-machine-naming", "This flag will be removed in v1.9.")
 
 	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 	flags.AddTLSOptions(fs, &tlsOptions)
@@ -506,11 +511,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCac
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineSetReconciler{
-		Client:                    mgr.GetClient(),
-		UnstructuredCachingClient: unstructuredCachingClient,
-		APIReader:                 mgr.GetAPIReader(),
-		Tracker:                   tracker,
-		WatchFilterValue:          watchFilterValue,
+		Client:                       mgr.GetClient(),
+		UnstructuredCachingClient:    unstructuredCachingClient,
+		APIReader:                    mgr.GetAPIReader(),
+		Tracker:                      tracker,
+		WatchFilterValue:             watchFilterValue,
+		DeprecatedInfraMachineNaming: useDeprecatedInfraMachineNaming,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
 		os.Exit(1)

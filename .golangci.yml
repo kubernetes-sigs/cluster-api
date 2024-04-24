@@ -243,6 +243,11 @@ issues:
   - linters:
     - staticcheck
     text: "SA1019: (clusterv1alpha3.*|clusterv1alpha4.*) is deprecated: This type will be removed in one of the next releases."
+  # Specific exclude rules for deprecated featuregates that are still part of the codebase. These
+  # should be removed as the referenced deprecated types are removed from the project.
+  - linters:
+    - staticcheck
+    text: "SA1019: feature.InfraMachineNameFromTemplate is deprecated: v1.7."
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"

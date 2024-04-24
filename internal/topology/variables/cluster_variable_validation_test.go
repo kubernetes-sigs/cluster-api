@@ -17,16 +17,18 @@ limitations under the License.
 package variables
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+var testCtx = ctrl.SetupSignalHandler()
 
 func Test_ValidateClusterVariables(t *testing.T) {
 	tests := []struct {
@@ -35,6 +37,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		values           []clusterv1.ClusterVariable
 		validateRequired bool
 		wantErr          bool
+		wantErrMessage   string
 	}{
 		{
 			name: "Pass for a number of valid values.",
@@ -630,7 +633,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterVariables(context.TODO(), tt.values, nil, tt.definitions,
+			errList := validateClusterVariables(testCtx, tt.values, nil, tt.definitions,
 				tt.validateRequired, field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -648,6 +651,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 		clusterClassVariable *clusterv1.ClusterClassVariable
 		clusterVariable      *clusterv1.ClusterVariable
 		wantErr              bool
+		wantErrMessage       string
 	}{
 		{
 			name: "Valid integer",
@@ -1546,8 +1550,9 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name:    "Error if integer is above maximum via with CEL expression",
-			wantErr: true,
+			name:           "Error if integer is above maximum via with CEL expression",
+			wantErr:        true,
+			wantErrMessage: `failed rule: self <= 1`,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -1568,8 +1573,9 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name:    "Error if integer is below minimum via CEL expression",
-			wantErr: true,
+			name:           "Error if integer is below minimum via CEL expression",
+			wantErr:        true,
+			wantErrMessage: `failed rule: self >= 1`,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -1589,16 +1595,43 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:           "Error if integer is below minimum via CEL expression with custom error message",
+			wantErr:        true,
+			wantErrMessage: `new value must be greater than or equal to 1`,
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule:    "self >= 1",
+							Message: "new value must be greater than or equal to 1",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`0`),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariable(context.TODO(), tt.clusterVariable, nil, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(testCtx, tt.clusterVariable, nil, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())
+				if tt.wantErrMessage != "" {
+					g.Expect(errList[0].Error()).To(ContainSubstring(tt.wantErrMessage))
+				}
 				return
 			}
 			g.Expect(errList).To(BeEmpty())
@@ -1612,7 +1645,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 		clusterClassVariable *clusterv1.ClusterClassVariable
 		clusterVariable      *clusterv1.ClusterVariable
 		oldClusterVariable   *clusterv1.ClusterVariable
-		wantErr              bool
+		wantErrMessage       string
 	}{
 		{
 			name: "Valid transition if old value is not set",
@@ -1663,8 +1696,8 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 			},
 		},
 		{
-			name:    "Error if integer is not greater than old value via CEL expression",
-			wantErr: true,
+			name:           "Error if integer is not greater than old value via CEL expression",
+			wantErrMessage: `failed rule: self > oldSelf`,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -1690,16 +1723,46 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:           "Error if integer is not greater than old value via CEL expression with custom error message",
+			wantErrMessage: `new value must be greater than old value`,
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						XValidations: clusterv1.ValidationRules{{
+							Rule:    "self > oldSelf",
+							Message: "new value must be greater than old value",
+						}},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`0`),
+				},
+			},
+			oldClusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`1`),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariable(context.TODO(), tt.clusterVariable, tt.oldClusterVariable, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(testCtx, tt.clusterVariable, tt.oldClusterVariable, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
 
-			if tt.wantErr {
-				g.Expect(errList).NotTo(BeEmpty())
+			if tt.wantErrMessage != "" {
+				g.Expect(errList).To(HaveLen(1))
+				g.Expect(errList[0].Error()).To(ContainSubstring(tt.wantErrMessage))
 				return
 			}
 			g.Expect(errList).To(BeEmpty())
@@ -2050,7 +2113,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateMachineVariables(context.TODO(), tt.values, tt.oldValues, tt.definitions,
+			errList := ValidateMachineVariables(testCtx, tt.values, tt.oldValues, tt.definitions,
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(0).Child("variables", "overrides"))
 
 			if tt.wantErr {

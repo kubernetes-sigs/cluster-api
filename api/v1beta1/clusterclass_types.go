@@ -614,6 +614,7 @@ type ValidationRule struct {
 	//   - 'map': `X + Y` performs a merge where the array positions of all keys in `X` are preserved but the values
 	//     are overwritten by values in `Y` when the key sets of `X` and `Y` intersect. Elements in `Y` with
 	//     non-intersecting keys are appended, retaining their partial order.
+	// +kubebuilder:validation:Required
 	Rule string `json:"rule"`
 	// Message represents the message displayed when validation fails. The message is required if the Rule contains
 	// line breaks. The message must not contain line breaks.
@@ -641,6 +642,7 @@ type ValidationRule struct {
 	// +optional
 	// +kubebuilder:validation:Enum=FieldValueInvalid;FieldValueForbidden;FieldValueRequired;FieldValueDuplicate
 	// +kubebuilder:default=FieldValueInvalid
+	// +default=ref(sigs.k8s.io/cluster-api/api/v1beta1.FieldValueInvalid)
 	Reason *FieldValueErrorReason `json:"FieldValueRequired,omitempty"`
 	// FieldPath represents the field path returned when the validation fails.
 	// It must be a relative JSON path (i.e. with array notation) scoped to the location of this x-kubernetes-validations extension in the schema and refer to an existing field.

@@ -61,6 +61,13 @@ const (
 	//
 	// alpha: v1.5
 	MachineSetPreflightChecks featuregate.Feature = "MachineSetPreflightChecks"
+
+	// InfraMachineNameFromTemplate is a feature gate for the now deprecated way of naming infra machines.
+	// With this feature gate enabled, infra machines will be named based on the infra machine template.
+	// The new behavior is that they get the same name as the machine.
+	//
+	// Deprecated: v1.7.
+	InfraMachineNameFromTemplate featuregate.Feature = "InfraMachineNameFromTemplate"
 )
 
 func init() {
@@ -77,4 +84,5 @@ var defaultClusterAPIFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 	KubeadmBootstrapFormatIgnition: {Default: false, PreRelease: featuregate.Alpha},
 	RuntimeSDK:                     {Default: false, PreRelease: featuregate.Alpha},
 	MachineSetPreflightChecks:      {Default: false, PreRelease: featuregate.Alpha},
+	InfraMachineNameFromTemplate:   {Default: false, PreRelease: featuregate.Deprecated},
 }

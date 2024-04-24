@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -496,12 +497,16 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 				log = log.WithValues(bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name))
 			}
 
+			infraMachineName := machine.Name
+			if feature.Gates.Enabled(feature.InfraMachineNameFromTemplate) {
+				infraMachineName = names.SimpleNameGenerator.GenerateName(ms.Spec.Template.Spec.InfrastructureRef.Name + "-")
+			}
 			// Create the InfraMachine.
 			infraRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 				Client:      r.UnstructuredCachingClient,
 				TemplateRef: &ms.Spec.Template.Spec.InfrastructureRef,
 				Namespace:   machine.Namespace,
-				Name:        machine.Name,
+				Name:        infraMachineName,
 				ClusterName: machine.Spec.ClusterName,
 				Labels:      machine.Labels,
 				Annotations: machine.Annotations,

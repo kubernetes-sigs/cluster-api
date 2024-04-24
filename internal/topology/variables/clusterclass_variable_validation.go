@@ -22,6 +22,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/pkg/errors"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsvalidation "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/validation"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
@@ -241,10 +242,6 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *field.Path, celContext *apiextensionsvalidation.CELSchemaContext) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if celContext == nil {
-		return allErrs
-	}
-
 	if schema.AdditionalProperties != nil {
 		allErrs = append(allErrs, validateCELExpressions(schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"), celContext.ChildAdditionalPropertiesContext(schema.AdditionalProperties.Schema))...)
 	}
@@ -268,7 +265,7 @@ func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *fiel
 
 	typeInfo, err := celContext.TypeInfo()
 	if err != nil {
-		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to construct type information for x-kubernetes-validations rules: %w", err)))
+		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), errors.Wrap(err, "internal error: failed to construct type information for x-kubernetes-validations rules")))
 	}
 	if typeInfo == nil {
 		return allErrs

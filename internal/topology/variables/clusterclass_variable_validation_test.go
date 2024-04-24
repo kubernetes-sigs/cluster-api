@@ -17,7 +17,6 @@ limitations under the License.
 package variables
 
 import (
-	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -106,7 +105,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterClassVariables(context.TODO(),
+			errList := ValidateClusterClassVariables(testCtx,
 				tt.clusterClassVariables,
 				field.NewPath("spec", "variables"))
 
@@ -1084,7 +1083,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterClassVariable(context.TODO(),
+			errList := validateClusterClassVariable(testCtx,
 				tt.clusterClassVariable,
 				field.NewPath("spec", "variables").Index(0))
 

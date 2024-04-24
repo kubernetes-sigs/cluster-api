@@ -64,7 +64,8 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 		return append(allErrs, field.Invalid(fldPath, "["+strings.Join(valueStrings, ",")+"]", fmt.Sprintf("cluster variables not valid: %s", err)))
 	}
 
-	// Get a map of old ClusterVariable values, assume they are all valid and not duplicate names, etc.
+	// Get a map of old ClusterVariable values. We know they are all valid and not duplicate names, etc. as validation previous
+	// validation has already asserted that.
 	oldValuesMap := make(map[string]*clusterv1.ClusterVariable, len(oldValues))
 	for idx := range oldValues {
 		v := oldValues[idx]
@@ -198,6 +199,8 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 	}
 
 	celValidator := cel.NewValidator(ss, false, celconfig.PerCallLimit)
+	// celValidation will be nil if there are no CEL validations specified in the schema
+	// under `x-kubernetes-validations`.
 	if celValidator == nil {
 		return nil
 	}

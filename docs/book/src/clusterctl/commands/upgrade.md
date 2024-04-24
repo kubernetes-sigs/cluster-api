@@ -148,6 +148,8 @@ clusterctl upgrade apply \
 
 <h1> Deploying nightly release images </h1>
 
-Cluster API publishes nightly versions of the project componenents' manifests from the `main` branch to a Google storage bucket for user consumption.  The syntax for the URL is: `https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_<YYYYMMDD>/<COMPENENT_NAME>-components.yaml`.
+Cluster API publishes nightly versions of the project components' manifests from the `main` branch to a Google storage bucket for user consumption. The syntax for the URL is: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_<YYYYMMDD>/<COMPENENT_NAME>-components.yaml`.
 
-For example, to retrieve the core component manifest published January 1, 2024, the following URL can be used: https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20240101/core-components.yaml.
+Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
+
+For example, to retrieve the core component manifest published April 25, 2024, the following URL can be used: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425/core-components.yaml`.

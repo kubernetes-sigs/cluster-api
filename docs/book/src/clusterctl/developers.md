@@ -109,7 +109,7 @@ if you want to run your tests using a Cluster API nightly build, you can run the
 (change the date at the end of the bucket name according to your needs):
 
 ```bash
-cmd/clusterctl/hack/create-local-repository.py https://storage.googleapis.com/artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20240101
+cmd/clusterctl/hack/create-local-repository.py https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425
 ```
 
 Note: this works only with core Cluster API nightly builds. 

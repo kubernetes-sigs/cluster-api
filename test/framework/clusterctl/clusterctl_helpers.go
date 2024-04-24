@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
@@ -94,6 +95,16 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 
 		if input.ClusterctlBinaryPath != "" {
 			InitWithBinary(ctx, input.ClusterctlBinaryPath, initInput)
+			// Old versions of clusterctl may deploy CRDs, Mutating- and/or ValidatingWebhookConfigurations
+			// before creating the new Certificate objects. This check ensures the CA's are up to date before
+			// continuing.
+			clusterctlVersion, err := getClusterCtlVersion(input.ClusterctlBinaryPath)
+			Expect(err).ToNot(HaveOccurred())
+			if clusterctlVersion.LT(semver.MustParse("1.7.2")) {
+				Eventually(func() error {
+					return verifyCAInjection(ctx, client)
+				}, time.Minute*5, time.Second*10).Should(Succeed(), "Failed to verify CA injection")
+			}
 		} else {
 			Init(ctx, initInput)
 		}
@@ -182,13 +193,23 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		LogFolder:                 input.LogFolder,
 	}
 
+	client := input.ClusterProxy.GetClient()
+
 	if input.ClusterctlBinaryPath != "" {
 		UpgradeWithBinary(ctx, input.ClusterctlBinaryPath, upgradeInput)
+		// Old versions of clusterctl may deploy CRDs, Mutating- and/or ValidatingWebhookConfigurations
+		// before creating the new Certificate objects. This check ensures the CA's are up to date before
+		// continuing.
+		clusterctlVersion, err := getClusterCtlVersion(input.ClusterctlBinaryPath)
+		Expect(err).ToNot(HaveOccurred())
+		if clusterctlVersion.LT(semver.MustParse("1.7.2")) {
+			Eventually(func() error {
+				return verifyCAInjection(ctx, client)
+			}, time.Minute*5, time.Second*10).Should(Succeed(), "Failed to verify CA injection")
+		}
 	} else {
 		Upgrade(ctx, upgradeInput)
 	}
-
-	client := input.ClusterProxy.GetClient()
 
 	log.Logf("Waiting for provider controllers to be running")
 	controllersDeployments := framework.GetControllerDeployments(ctx, framework.GetControllerDeploymentsInput{

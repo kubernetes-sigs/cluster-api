@@ -18,6 +18,7 @@ package repository
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -258,6 +259,22 @@ func NewComponents(input ComponentsInput) (Components, error) {
 
 	// Add common labels.
 	objs = addCommonLabels(objs, input.Provider)
+
+	// Deploying cert-manager objects and especially Certificates before Mutating-
+	// ValidatingWebhookConfigurations and CRDs ensures cert-manager's ca-injector
+	// receives the event for the objects at the right time to inject the new CA.
+	sort.SliceStable(objs, func(i, j int) bool {
+		// First prioritize Namespaces over everything.
+		if objs[i].GetKind() == "Namespace" {
+			return true
+		}
+		if objs[j].GetKind() == "Namespace" {
+			return false
+		}
+
+		// Second prioritize cert-manager objects.
+		return objs[i].GroupVersionKind().Group == "cert-manager.io"
+	})
 
 	return &components{
 		Provider:        input.Provider,

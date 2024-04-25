@@ -112,6 +112,28 @@ func Test_CRDMigrator(t *testing.T) {
 			wantIsMigrated: false,
 		},
 		{
+			name: "No-op if new CRD adds a new versions and unserves the old",
+			currentCRD: &apiextensionsv1.CustomResourceDefinition{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+						{Name: "v1alpha1", Storage: true, Served: true},
+					},
+				},
+				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
+			},
+			newCRD: &apiextensionsv1.CustomResourceDefinition{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+						{Name: "v1beta1", Storage: true, Served: true}, // v1beta1 is being added
+						{Name: "v1alpha1", Served: false},              // v1alpha1 still exists but is not served anymore
+					},
+				},
+			},
+			wantIsMigrated: false,
+		},
+		{
 			name: "Fails if new CRD drops current storage version",
 			currentCRD: &apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
@@ -185,7 +207,7 @@ func Test_CRDMigrator(t *testing.T) {
 					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 						{Name: "v1", Storage: true, Served: true}, // v1 is being added
-						{Name: "v1beta1", Served: true},           // v1beta1 still there (required for migration)
+						{Name: "v1beta1", Served: true},           // v1beta1 still there
 						// v1alpha1 is being dropped
 					},
 				},
@@ -246,8 +268,8 @@ func Test_CRDMigrator(t *testing.T) {
 					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
 						{Name: "v1", Storage: true, Served: true}, // v1 is being added
-						{Name: "v1beta1", Served: true},           // v1beta1 still there (required for migration)
-						{Name: "v1alpha1", Served: false},         // v1alpha1 is no longer being served (required for migration)
+						{Name: "v1beta1", Served: true},           // v1beta1 still there (required for future migration)
+						{Name: "v1alpha1", Served: false},         // v1alpha1 is no longer being served
 					},
 				},
 			},

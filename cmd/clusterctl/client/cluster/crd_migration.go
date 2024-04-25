@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
@@ -115,9 +116,9 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	}
 
 	currentStatusStoredVersions := sets.Set[string]{}.Insert(currentCRD.Status.StoredVersions...)
-	// If the new CRD still contains all current stored versions, nothing to do
-	// as no previous storage version will be dropped.
-	if servedVersions.HasAll(currentStatusStoredVersions.UnsortedList()...) {
+	// If the old CRD only contains its current storageVersion as storedVersion,
+	// nothing to do as all objects are already on the current storageVersion.
+	if currentStatusStoredVersions.Len() == 1 && currentCRD.Status.StoredVersions[0] == currentStorageVersion {
 		log.V(2).Info("CRD migration check passed", "name", newCRD.Name)
 		return false, nil
 	}
@@ -157,7 +158,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 
 	var i int
 	for {
-		if err := retryWithExponentialBackoff(ctx, newReadBackoff(), func(ctx context.Context) error {
+		if err := retryWithExponentialBackoff(ctx, newCRDMigrationBackoff(), func(ctx context.Context) error {
 			return m.Client.List(ctx, list, client.Continue(list.GetContinue()))
 		}); err != nil {
 			return errors.Wrapf(err, "failed to list %q", list.GetKind())
@@ -167,7 +168,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 			obj := list.Items[i]
 
 			log.V(5).Info("Migrating", logf.UnstructuredToValues(obj)...)
-			if err := retryWithExponentialBackoff(ctx, newWriteBackoff(), func(ctx context.Context) error {
+			if err := retryWithExponentialBackoff(ctx, newCRDMigrationBackoff(), func(ctx context.Context) error {
 				return handleMigrateErr(m.Client.Update(ctx, &obj))
 			}); err != nil {
 				return errors.Wrapf(err, "failed to migrate %s/%s", obj.GetNamespace(), obj.GetName())
@@ -229,4 +230,21 @@ func storageVersionForCRD(crd *apiextensionsv1.CustomResourceDefinition) (string
 		}
 	}
 	return "", errors.Errorf("could not find storage version for CRD %q", crd.Name)
+}
+
+// newCRDMigrationBackoff creates a new API Machinery backoff parameter set suitable for use with crd migration operations.
+// Clusterctl upgrades cert-manager right before doing CRD migration. This may lead to rollout of new certificates.
+// The time between new certificate creation + injection into objects (CRD, Webhooks) and the new secrets getting propagated
+// to the controller can be 60-90s, because the kubelet only periodically syncs secret contents to pods.
+// During this timespan conversion, validating- or mutationwebhooks may be unavailable and cause a failure.
+func newCRDMigrationBackoff() wait.Backoff {
+	// Return a exponential backoff configuration which returns durations for a total time of ~1m30s.
+	// Example: 0, .25s, .6s, 1.2, 2.1s, 3.4s, 5.5s, 8s, 12s, 19s, 28s, 43s, 64s, 97s
+	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
+	return wait.Backoff{
+		Duration: 500 * time.Millisecond,
+		Factor:   1.5,
+		Steps:    9,
+		Jitter:   0.1,
+	}
 }

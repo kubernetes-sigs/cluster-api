@@ -75,6 +75,9 @@ Cluster API Provider IBM Cloud
 ### CAPIO
 Cluster API Operator
 
+### CAPL
+Cluster API Provider Akamai (Linode)
+
 ### CAPM3
 Cluster API Provider Metal3
 

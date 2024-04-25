@@ -56,6 +56,7 @@ const (
 	OCIProviderName            = "oci"
 	OpenStackProviderName      = "openstack"
 	PacketProviderName         = "packet"
+	TinkerbellProviderName     = "tinkerbell-tinkerbell"
 	SideroProviderName         = "sidero"
 	VCloudDirectorProviderName = "vcd"
 	VSphereProviderName        = "vsphere"
@@ -189,6 +190,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         PacketProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         TinkerbellProviderName,
+			url:          "https://github.com/tinkerbell/cluster-api-provider-tinkerbell/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

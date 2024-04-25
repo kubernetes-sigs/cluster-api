@@ -56,6 +56,7 @@ var (
 		"kubernetes-sigs/cluster-api-provider-openstack",
 		"kubernetes-sigs/cluster-api-operator",
 		"kubernetes-sigs/cluster-api-provider-packet",
+		"tinkerbell/cluster-api-provider-tinkerbell",
 		"kubernetes-sigs/cluster-api-provider-vsphere",
 		"metal3-io/cluster-api-provider-metal3",
 	}

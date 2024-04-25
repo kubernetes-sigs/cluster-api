@@ -102,6 +102,9 @@ Cluster API Provider Outscale
 ### CAPOCI
 Cluster API Provider Oracle Cloud Infrastructure (OCI)
 
+### CAPT
+Cluster API Provider Tinkerbell
+
 ### CAPV
 Cluster API Provider vSphere
 

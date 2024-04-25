@@ -35,6 +35,11 @@ A cluster infrastructure provider must define an API type for "infrastructure cl
             `FailureDomainSpec` is defined as:
             - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.
             - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
+7. Should have a `Status.Conditions` with the following:
+   1. A `Paused` condition to report if the cluster or cluster infrastructure is paused. It should check if 'spec.paused' is set on the cluster, and for the paused annotation on the infrastructure. This is currently optional, but will be required in the future.
+   ```go
+{{#include code-examples.md:2:28}}
+   ```
 
 Note: once any of `failureReason` or `failureMessage` surface on the cluster who is referencing the infrastructureCluster object,
 they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the cluster).

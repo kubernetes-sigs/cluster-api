@@ -264,6 +264,10 @@ The `status` object **may** define several fields:
 * `externalManagedControlPlane` - is a bool that should be set to true if the Node objects do not
   exist in the cluster. For example, managed control plane providers for AKS, EKS, GKE, etc, should
   set this to `true`. Leaving the field undefined is equivalent to setting the value to `false`.
+* `.Conditions[Paused]` - is a condition that reports if the cluster or control plane resource is paused. It should check if 'spec.paused' is set on the cluster, and for the paused annotation on the resource. This is currently optional, but will become required in future.
+  ```go
+{{#include ../../providers/code-examples.md:2:28}}
+  ```
 
 Note: once any of `failureReason` or `failureMessage` surface on the cluster who is referencing the control plane object,
 they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the cluster).

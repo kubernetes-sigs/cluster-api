@@ -26,6 +26,11 @@ A bootstrap provider must define an API type for bootstrap resources. The type:
             meant to be suitable for programmatic interpretation
         2. `failureMessage` (string): indicates there is a fatal problem reconciling the bootstrap data;
             meant to be a more descriptive value than `failureReason`
+7. Should have `Status.Conditions` with the following:
+   1. A `Status.Conditions[Paused]` to report if the cluster or bootstrap resource is paused. It should check if 'spec.paused' is set on the cluster, and for the paused annotation on the resource. This is currently optional, but will be required in the future.
+   ```go
+{{#include code-examples.md:2:28}}
+   ```
 
 Note: once any of `failureReason` or `failureMessage` surface on the machine/machine pool who is referencing the bootstrap config object, 
 they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine/machine pool). 

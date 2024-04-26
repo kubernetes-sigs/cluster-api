@@ -84,12 +84,8 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 
 	// Gets the list of version supported by the new CRD
 	newVersions := sets.Set[string]{}
-	servedVersions := sets.Set[string]{}
 	for _, version := range newCRD.Spec.Versions {
 		newVersions.Insert(version.Name)
-		if version.Served {
-			servedVersions.Insert(version.Name)
-		}
 	}
 
 	// Get the current CRD.
@@ -130,9 +126,8 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	// This way we can make sure that all CR objects are now stored in the current storage version.
 	// Alternatively, we would have to figure out which objects are stored in which version but this information is not
 	// exposed by the apiserver.
-	storedVersionsToDelete := currentStatusStoredVersions.Difference(servedVersions)
-	storedVersionsToPreserve := currentStatusStoredVersions.Intersection(servedVersions)
-	log.Info("CR migration required", "kind", newCRD.Spec.Names.Kind, "storedVersionsToDelete", strings.Join(sets.List(storedVersionsToDelete), ","), "storedVersionsToPreserve", strings.Join(sets.List(storedVersionsToPreserve), ","))
+	storedVersionsToDelete := currentStatusStoredVersions.Delete(currentStorageVersion)
+	log.Info("CR migration required", "kind", newCRD.Spec.Names.Kind, "storedVersionsToDelete", strings.Join(sets.List(storedVersionsToDelete), ","), "storedVersionToPreserve", currentStorageVersion)
 
 	if err := m.migrateResourcesForCRD(ctx, currentCRD, currentStorageVersion); err != nil {
 		return false, err
@@ -239,12 +234,12 @@ func storageVersionForCRD(crd *apiextensionsv1.CustomResourceDefinition) (string
 // During this timespan conversion, validating- or mutationwebhooks may be unavailable and cause a failure.
 func newCRDMigrationBackoff() wait.Backoff {
 	// Return a exponential backoff configuration which returns durations for a total time of ~1m30s.
-	// Example: 0, .25s, .6s, 1.2, 2.1s, 3.4s, 5.5s, 8s, 12s, 19s, 28s, 43s, 64s, 97s
+	// Example: 0, .25s, .6s, 1.1s, 1.8s, 2.7s, 4s, 6s, 9s, 12s, 17s, 25s, 35s, 49s, 69s, 97s, 135s
 	// Jitter is added as a random fraction of the duration multiplied by the jitter factor.
 	return wait.Backoff{
-		Duration: 500 * time.Millisecond,
-		Factor:   1.5,
-		Steps:    9,
+		Duration: 250 * time.Millisecond,
+		Factor:   1.4,
+		Steps:    17,
 		Jitter:   0.1,
 	}
 }

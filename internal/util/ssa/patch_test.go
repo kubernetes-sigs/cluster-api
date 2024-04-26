@@ -127,20 +127,6 @@ func TestPatch(t *testing.T) {
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, createObject)).To(Succeed())
 		// Verify that gvk is still set
 		g.Expect(createObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
-		// Note: We have to patch the status here to explicitly set these two status fields.
-		// If we don't do it the Machine defaulting webhook will try to set the two fields to false.
-		// For an unknown reason this will happen with the 2nd update call (3.) below and not before.
-		// This means that this call would unexpectedly not cache the object because the resourceVersion
-		// is changed because the fields are set.
-		// It's unclear why those status fields are not already set during create (1.) or the first update (2.)
-		// (the webhook is returning patches for the two fields in those requests as well).
-		// To further investigate this behavior it would be necessary to debug the kube-apiserver.
-		// Fortunately, in reality this is not an issue as the fields will be set sooner or later and then
-		// the requests are cached.
-		createObjectWithStatus := createObject.DeepCopy()
-		createObjectWithStatus.Status.BootstrapReady = false
-		createObjectWithStatus.Status.InfrastructureReady = false
-		g.Expect(env.Status().Patch(ctx, createObjectWithStatus, client.MergeFrom(createObject))).To(Succeed())
 
 		// 2. Update the object and verify that the request was not cached as the object was changed.
 		// Get the original object.
@@ -160,6 +146,14 @@ func TestPatch(t *testing.T) {
 		g.Expect(modifiedObject.GroupVersionKind()).To(Equal(initialObject.GroupVersionKind()))
 		// Verify that request was not cached (as it changed the object)
 		g.Expect(ssaCache.Has(requestIdentifier)).To(BeFalse())
+
+		// Wait for 1 second. We are also trying to verify in this test that the resourceVersion of the Machine
+		// is not increased. Under some circumstances this would only happen if the timestamp in managedFields would
+		// be increased by 1 second.
+		// Please see the following issues for more context:
+		// * https://github.com/kubernetes-sigs/cluster-api/issues/10533
+		// * https://github.com/kubernetes/kubernetes/issues/124605
+		time.Sleep(1 * time.Second)
 
 		// 3. Repeat the same update and verify that the request was cached as the object was not changed.
 		// Get the original object.

@@ -330,6 +330,7 @@ providers.
 | CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack    |
 | CAPOCI        | cluster.x-k8s.io/provider=infrastructure-oci          |
 | CAPP          | cluster.x-k8s.io/provider=infrastructure-packet       |
+| CAPT          | cluster.x-k8s.io/provider=infrastructure-tinkerbell   |
 | CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere      |
 | CAPVC         | cluster.x-k8s.io/provider=infrastructure-vcluster     |
 | CAPVCD        | cluster.x-k8s.io/provider=infrastructure-vcd          |

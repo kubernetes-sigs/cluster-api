@@ -1113,6 +1113,17 @@ release-staging: ## Build and push container images to the staging bucket
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-image-verify
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-push-all
 	REGISTRY=$(STAGING_REGISTRY) $(MAKE) release-alias-tag
+	# Set the manifest image to the staging bucket.
+	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(RELEASE_ALIAS_TAG)
+	## Build the manifests
+	$(MAKE) release-manifests
+	# Set the manifest image to the staging bucket.
+	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(RELEASE_ALIAS_TAG)
+	## Build the dev manifests
+	$(MAKE) release-manifests-dev
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-cluster-api/components/main/core-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
+	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-staging-nightly
 release-staging-nightly: ## Tag and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_main_20210121

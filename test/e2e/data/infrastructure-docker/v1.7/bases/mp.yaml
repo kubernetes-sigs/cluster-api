@@ -1,0 +1,47 @@
+---
+# MachinePool which references the DockerMachinePool and KubeadmConfigTemplate below
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: "${CLUSTER_NAME}-mp-0"
+spec:
+  clusterName: '${CLUSTER_NAME}'
+  replicas: ${WORKER_MACHINE_COUNT}
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfig
+          name: "${CLUSTER_NAME}-mp-0-config"
+      clusterName: '${CLUSTER_NAME}'
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachinePool
+        name: "${CLUSTER_NAME}-dmp-0"
+      version: "${KUBERNETES_VERSION}"
+  failureDomains:
+    - fd4
+    - fd5
+    - fd6
+    - fd7
+    - fd8
+---
+# DockerMachinePool using default values referenced by the MachinePool
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePool
+metadata:
+  name: "${CLUSTER_NAME}-dmp-0"
+spec:
+  template:
+      # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
+      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
+---
+# KubeadmConfigTemplate referenced by the MachinePool
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfig
+metadata:
+  name: "${CLUSTER_NAME}-mp-0-config"
+spec:
+  joinConfiguration:
+    nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.

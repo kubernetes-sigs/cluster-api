@@ -105,14 +105,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+					predicates.ClusterCreateUpdateEvent(ctrl.LoggerFrom(ctx)),
 					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 				),
 			),
@@ -153,12 +153,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, machineSet) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(machineSet, r.Client)
 	if err != nil {
@@ -171,6 +165,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
+
+	// Return early if the object or Cluster is paused.
+	if annotations.IsPaused(cluster, machineSet) {
+		log.Info("Reconciliation is paused for this object")
+		conditions.MarkTrue(machineSet, clusterv1.PausedCondition)
+		return ctrl.Result{}, nil
+	}
+	conditions.MarkFalse(machineSet, clusterv1.PausedCondition, clusterv1.ResourceNotPausedReason, clusterv1.ConditionSeverityInfo, "Resource is operating as expected")
 
 	// Ignore deleted MachineSets, this can happen when foregroundDeletion
 	// is enabled
@@ -208,6 +210,7 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 			clusterv1.MachinesCreatedCondition,
 			clusterv1.ResizedCondition,
 			clusterv1.MachinesReadyCondition,
+			clusterv1.PausedCondition,
 		}},
 	)
 	return patchHelper.Patch(ctx, machineSet, options...)

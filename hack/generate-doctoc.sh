@@ -28,4 +28,4 @@ if [[ -z "$(command -v doctoc)" ]]; then
   exit 0
 fi
 
-doctoc ./CONTRIBUTING.md docs/release/release-tasks.md docs/release/release-team-onboarding.md docs/release/release-team.md docs/scope-and-objectives.md docs/staging-use-cases.md docs/proposals
+doctoc ./CONTRIBUTING.md docs/release/release-tasks.md docs/release/release-team-onboarding.md docs/release/release-team.md docs/proposals

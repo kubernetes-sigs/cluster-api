@@ -639,6 +639,58 @@ func TestClusterReconciler_deleteClusterClass(t *testing.T) {
 	g.Expect(env.Delete(ctx, clusterClass)).NotTo(Succeed())
 }
 
+func TestClusterReconciler_pausedCondition(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+	timeout := 5 * time.Second
+
+	ns, err := env.CreateNamespace(ctx, "test-topology-cluster-reconcile")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create the objects needed for the integration test:
+	// - a ClusterClass with all the related templates
+	// - a Cluster using the above ClusterClass
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Defer a cleanup function that deletes each of the objects created during setupTestEnvForIntegrationTests.
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	actualCluster := &clusterv1.Cluster{}
+	g.Eventually(func(g Gomega) error {
+		// Get the cluster object.
+		if err := env.GetAPIReader().Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, actualCluster); err != nil {
+			return err
+		}
+
+		// Check if the Cluster has the paused condition set 'False'.
+		g.Expect(assertClusterPausedCondition(actualCluster, corev1.ConditionFalse)).Should(Succeed())
+
+		return nil
+	}, timeout).Should(Succeed())
+
+	patchHelper, err := patch.NewHelper(actualCluster, env.Client)
+	g.Expect(err).ToNot(HaveOccurred())
+	// Change the cluster to 'Paused'
+	clusterPaused := actualCluster.DeepCopy()
+	clusterPaused.Spec.Paused = true
+	g.Expect(patchHelper.Patch(ctx, clusterPaused)).Should(Succeed())
+
+	g.Eventually(func(g Gomega) error {
+		// Get the cluster object.
+		if err := env.GetAPIReader().Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, actualCluster); err != nil {
+			return err
+		}
+
+		// Check if the Cluster has the paused condition set 'True'.
+		g.Expect(assertClusterPausedCondition(actualCluster, corev1.ConditionTrue)).Should(Succeed())
+
+		return nil
+	}, timeout).Should(Succeed())
+}
+
 func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -900,6 +952,17 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 func assertClusterTopologyReconciledCondition(cluster *clusterv1.Cluster) error {
 	if !conditions.Has(cluster, clusterv1.TopologyReconciledCondition) {
 		return fmt.Errorf("cluster should have the TopologyReconciled condition set")
+	}
+	return nil
+}
+
+func assertClusterPausedCondition(cluster *clusterv1.Cluster, status corev1.ConditionStatus) error {
+	if !conditions.Has(cluster, clusterv1.PausedCondition) {
+		return fmt.Errorf("cluster should have the paused condition set")
+	}
+	pausedCondition := conditions.Get(cluster, clusterv1.PausedCondition)
+	if pausedCondition.Status != status {
+		return fmt.Errorf("unexpected cluster paused condition %s, expected %s", pausedCondition.Status, status)
 	}
 	return nil
 }

@@ -403,6 +403,36 @@ func TestMachineSetReconciler(t *testing.T) {
 			return conditions.IsTrue(instance, clusterv1.MachinesReadyCondition)
 		}, timeout).Should(BeTrue())
 
+		t.Log("Verifying MachineSet has PausedCondition")
+		// Start with Paused == False
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
+			if err := env.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			// Checks the condition is set
+			if !conditions.Has(instance, clusterv1.PausedCondition) {
+				return false
+			}
+
+			// The condition is set to false
+			return conditions.IsFalse(instance, clusterv1.PausedCondition)
+		}, timeout).Should(BeTrue())
+
+		// Pause the cluster
+		testCluster.Spec.Paused = true
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		// The paused condition should eventually be true
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: instance.Name, Namespace: instance.Namespace}
+			if err := env.Get(ctx, key, instance); err != nil {
+				return false
+			}
+
+			// The condition is set to false
+			return conditions.IsTrue(instance, clusterv1.PausedCondition)
+		}, timeout).Should(BeTrue())
 		// Validate that the controller set the cluster name label in selector.
 		g.Expect(instance.Status.Selector).To(ContainSubstring(testCluster.Name))
 	})

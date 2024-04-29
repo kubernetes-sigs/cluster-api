@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -114,7 +115,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -163,13 +164,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	// Return early if the Cluster is paused.
-	// TODO: What should we do if the cluster class is paused?
-	if annotations.IsPaused(cluster, cluster) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	patchHelper, err := patch.NewHelper(cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -187,6 +181,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		options := []patch.Option{
 			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.TopologyReconciledCondition,
+				clusterv1.PausedCondition,
 			}},
 			patch.WithForceOverwriteConditions{},
 		}
@@ -195,6 +190,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return
 		}
 	}()
+
+	// Return early and set the paused condition to True if the object or Cluster
+	// is paused.
+	// TODO: What should we do if the cluster class is paused?
+	if annotations.IsPaused(cluster, cluster) {
+		log.Info("Reconciliation is paused for this object")
+		conditions.MarkTrue(cluster, clusterv1.PausedCondition)
+		return ctrl.Result{}, nil
+	}
+	conditions.MarkFalse(cluster, clusterv1.PausedCondition, clusterv1.ResourceNotPausedReason, clusterv1.ConditionSeverityInfo, "Resource is operating as expected")
 
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).

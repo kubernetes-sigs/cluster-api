@@ -23,10 +23,10 @@ When a new Kubernetes minor release is available, we will try to support it in a
 (although only in the latest supported Cluster API minor release). See Cluster API [release cycle](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md)
 and [release calendars](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/release/releases) for more details.
 
-For example, Cluster API v1.5.0 would support the following Kubernetes versions:
-* v1.24.x to v1.27.x for the management cluster
-* v1.22.x to v1.27.x for the workload cluster
-* When Kubernetes 1.28 is released, it will be supported in v1.5.x (but not in v1.4.x)
+For example, Cluster API v1.7.0 would support the following Kubernetes versions:
+* v1.26.x to v1.29.x for the management cluster
+* v1.24.x to v1.29.x for the workload cluster
+* When Kubernetes 1.30 is released, it will be supported in v1.7.x (but not in v1.6.x)
 
 Support in this context means that we:
 * maintain corresponding code paths
@@ -57,8 +57,8 @@ The Core Provider, Kubeadm Bootstrap Provider, and Kubeadm Control Plane Provide
 In some cases, the Management Cluster is separate from the Workload Clusters. The Kubernetes version of the Management and Workload Clusters are allowed to be different.
 
 Management Clusters and Workload Clusters can be upgraded independently and in any order, however, if you are additionally moving from
-v1alpha3 (v0.3.x) to v1beta1 (v1.x) as part of the upgrade rollout, the management cluster will need to be upgraded to at least v1.20.x,
-prior to upgrading any workload cluster using Cluster API v1beta1 (v1.x)
+v1alpha3 (v0.3.x) or v1alpha4 (v0.4.x) to v1beta1 (v1.x) as part of the upgrade, prior to upgrading any workload cluster using Cluster API v1beta1, 
+the management cluster will need to be upgraded the at least the minimum supported Kubernetes version for your target CAPI version.
 
 These diagrams show the relationships between components in a Cluster API release (yellow), and other components (white).
 

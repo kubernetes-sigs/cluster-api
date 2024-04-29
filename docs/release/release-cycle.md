@@ -1,6 +1,6 @@
 # Release Cycle
 
-The release cycle is the time between when we start working on a release on the `main` branch until the `.0` release (e.g. `v1.3.0`) is released.
+The release cycle is the time between when we start working on a release on the `main` branch until the `.0` release (e.g. `vX.Y.0`) is released.
 
 Each release cycle will last approximately 4 months (~ 17 weeks) and it can be split up into the following phases:
 

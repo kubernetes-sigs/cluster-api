@@ -161,7 +161,7 @@ Cluster API maintains the most recent release/releases for all supported API and
 - For the current stable API version (v1beta1) we support the two most recent minor releases; older minor releases are immediately unsupported when a new major/minor release is available.
 - For older API versions we only support the most recent minor release until the API version reaches EOL.
 - We will maintain test coverage for all supported minor releases and for one additional release for the current stable API version in case we have to do an emergency patch release.
-  For example, if v1.2 and v1.3 are currently supported, we will also maintain test coverage for v1.1 for one additional release cycle. When v1.4 is released, tests for v1.1 will be removed.
+  For example, if v1.6 and v1.7 are currently supported, we will also maintain test coverage for v1.5 for one additional release cycle. When v1.8 is released, tests for v1.5 will be removed.
 
 | Minor Release | API Version  | Supported Until                                |
 |---------------|--------------|------------------------------------------------|
@@ -183,9 +183,9 @@ Cluster API maintains the most recent release/releases for all supported API and
 
 ### Removal of v1alpha3 & v1alpha4 apiVersions
 
-Both v1alpha3 and v1alpha4 have been removed from Cluster API as of release 1.7.
-
-For more details and latest information please see the following issue: [Removing v1alpha3 & v1alpha4 apiVersions](https://github.com/kubernetes-sigs/cluster-api/issues/8038).
+Cluster API stopped to serve v1alpha3 API types from the v1.5 release and v1alpha4 types starting from the v1.6 release.
+Those types still exist in Cluster API while we work to a fix (or a workaround) for https://github.com/kubernetes-sigs/cluster-api/issues/10051.
+IMPORTANT! v1alpha3 and v1alpha4 types only exist for conversion and cannot be used by clients anymore.
 
 Note: Removal of a deprecated APIVersion in Kubernetes [can cause issues with garbage collection by the kube-controller-manager](https://github.com/kubernetes/kubernetes/issues/102641)
 This means that some objects which rely on garbage collection for cleanup - e.g. MachineSets and their descendent objects, like Machines and InfrastructureMachines, may not be cleaned up properly if those

@@ -17,7 +17,7 @@ jobs:
       release_tag: ${{ steps.release-version.outputs.release_version }}
     steps:
       - name: Checkout code 
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # tag=v4.1.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # tag=v4.1.4
         with:
           fetch-depth: 0
       - name: Get changed files
@@ -87,7 +87,7 @@ jobs:
         env:
           RELEASE_TAG: ${{needs.push_release_tags.outputs.release_tag}}
       - name: checkout code
-        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # tag=v4.1.3
+        uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # tag=v4.1.4
         with:
           fetch-depth: 0
           ref: ${{ env.RELEASE_TAG }}

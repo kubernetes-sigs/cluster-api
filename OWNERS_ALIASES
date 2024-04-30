@@ -119,26 +119,25 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-release-lead:
-  - cahillsf
-  
+  - adilGhaffarDev
+
   cluster-api-release-team:
   # members added in commented lines have a pending membership
   # and will be added back once it is acquired.
-  - adilGhaffarDev # release ci lead
-  # - adityabhatia
-  # - akshay196
-  - cahillsf # release lead
-  # - chandankumar4
-  # - Dhairya-Arora01
-  - Fedosin
-  # - mansikulkarni96
-  - mcbenjemaa
-  - nawazkh
-  # - ssuriyan7
-  - SubhasmitaSw
-  # - Sunnatillo
-  - troy0820 
-  # - typeid
-  - VibhorChinda
-  - willie-yao # release comms lead
-  - yrs147 
+  - adilGhaffarDev # release lead
+  # - chandankumar4 # release comms lead
+  - chiukapoor
+  # - dhij
+  - hackeramitkumar
+  - jayesh-srivastava
+  # - kperath
+  # - meatballhat
+  # - Nivedita-coder
+  - pravarag
+  # - rajankumary2k
+  # - shipra101
+  # - smoshiur1237
+  # - Sunnatillo # release ci lead
+  - troy0820
+  - vishalanarase
+  - willie-yao

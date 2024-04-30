@@ -291,7 +291,7 @@ func getClusterObj(ctx context.Context, proxy Proxy, cluster *node, clusterObj *
 
 	if err := c.Get(ctx, clusterObjKey, clusterObj); err != nil {
 		return errors.Wrapf(err, "error reading Cluster %s/%s",
-			clusterObj.GetNamespace(), clusterObj.GetName())
+			cluster.identity.Namespace, cluster.identity.Name)
 	}
 	return nil
 }

@@ -25,6 +25,10 @@ import (
 
 // IPAddressClaimSpec is the desired state of an IPAddressClaim.
 type IPAddressClaimSpec struct {
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +optional
+	ClusterName string `json:"clusterName,omitempty"`
+
 	// PoolRef is a reference to the pool from which an IP address should be created.
 	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
 }

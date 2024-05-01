@@ -50,6 +50,9 @@ const (
 
 	// AnnotationPausedReason (Severity=Info) documents a CAPI object that is paused due to the paused annotation being present.
 	AnnotationPausedReason = "PausedAnnotationSet"
+
+	// MachineDeploymentPausedReason (Severity=Info) documents a CAPI object that is paused due to the machine deployment being paused.
+	MachineDeploymentPausedReason = "MachineDeploymentPaused"
 )
 
 const (

@@ -465,6 +465,25 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			return conditions.IsTrue(deployment, clusterv1.MachineDeploymentAvailableCondition)
 		}, timeout).Should(BeTrue())
 
+		// By default, the machine deployment is not paused
+
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: deployment.Name, Namespace: deployment.Namespace}
+			g.Expect(env.Get(ctx, key, deployment)).To(Succeed())
+			return conditions.IsFalse(deployment, clusterv1.PausedCondition)
+		}, timeout).Should(BeTrue())
+
+		// Pause the cluster, expect the paused condition to be set
+		g.Expect(env.Get(ctx, util.ObjectKey(testCluster), testCluster)).To(Succeed())
+		testCluster.Spec.Paused = true
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		g.Eventually(func() bool {
+			key := client.ObjectKey{Name: deployment.Name, Namespace: deployment.Namespace}
+			g.Expect(env.Get(ctx, key, deployment)).To(Succeed())
+			return conditions.IsTrue(deployment, clusterv1.PausedCondition)
+		}, timeout).Should(BeTrue())
+
 		// Validate that the controller set the cluster name label in selector.
 		g.Expect(deployment.Status.Selector).To(ContainSubstring(testCluster.Name))
 	})

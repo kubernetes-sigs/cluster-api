@@ -63,6 +63,9 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 					framework.ExpFinalizersAssertion,
 					framework.DockerInfraFinalizersAssertion,
 				)
+				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+				// continuous reconciles when everything should be stable.
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace)
 			},
 		}
 	})
@@ -104,6 +107,9 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 					framework.ExpFinalizersAssertion,
 					framework.DockerInfraFinalizersAssertion,
 				)
+				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+				// continuous reconciles when everything should be stable.
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace)
 			},
 		}
 	})

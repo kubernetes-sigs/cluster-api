@@ -246,11 +246,12 @@ Execute the run configuration with `Debug`.
 The e2e tests create a new management cluster with kind on each run. To avoid this and speed up the test execution the tests can 
 also be run against a management cluster created by [tilt](./tilt.md):
 ```bash
-# Create a kind cluster
-./hack/kind-install-for-capd.sh
-# Set up the management cluster via tilt
-tilt up 
+# Prereqs for e2e testing with tilt
+make tilt-e2e-prerequisites
+# Create a kind cluster and start tilt
+make tilt-up
 ```
+
 Now you can start the e2e test via IDE as described above but with the additional `-e2e.use-existing-cluster=true` flag.
 
 **Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](./tilt.md#wiring-up-debuggers).

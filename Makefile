@@ -642,11 +642,11 @@ lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --path-prefix $(TOOLS_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
 .PHONY: lint-dockerfiles
 lint-dockerfiles:
-	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -960,6 +960,11 @@ test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 .PHONY: kind-cluster
 kind-cluster: ## Create a new kind cluster designed for development with Tilt
 	hack/kind-install-for-capd.sh
+
+.PHONY: tilt-e2e-prerequisites
+tilt-e2e-prerequisites: ## Build the corresponding kindest/node images required for e2e testing and generate the e2e templates
+	scripts/build-kind.sh
+	$(MAKE) generate-e2e-templates
 
 .PHONY: tilt-up
 tilt-up: kind-cluster ## Start tilt and build kind cluster if needed.

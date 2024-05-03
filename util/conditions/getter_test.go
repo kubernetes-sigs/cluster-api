@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -31,6 +32,13 @@ var (
 	falseInfo1    = FalseCondition("falseInfo1", "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
 	falseWarning1 = FalseCondition("falseWarning1", "reason falseWarning1", clusterv1.ConditionSeverityWarning, "message falseWarning1")
 	falseError1   = FalseCondition("falseError1", "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1")
+
+	negativePolarityConditions = sets.New("positive-false1", "negative-unknown1", "negative-trueInfo1", "negative-trueWarning1", "negative-trueError1")
+	positiveFalse1             = PositiveFalseCondition("positive-false1")
+	negativeUnknown1           = UnknownCondition("negative-unknown1", "reason negative-unknown1", "message negative-unknown1")
+	negativeTrueInfo1          = NegativeTrueCondition("negative-trueInfo1", "reason negative-trueInfo1", clusterv1.ConditionSeverityInfo, "message negative-trueInfo1")
+	negativeTrueWarning1       = NegativeTrueCondition("negative-trueWarning1", "reason negative-trueWarning1", clusterv1.ConditionSeverityWarning, "message negative-trueWarning1")
+	negativeTrueError1         = NegativeTrueCondition("negative-trueError1", "reason negative-trueError1", clusterv1.ConditionSeverityError, "message negative-trueError1")
 )
 
 func TestGetAndHas(t *testing.T) {
@@ -50,41 +58,54 @@ func TestGetAndHas(t *testing.T) {
 func TestIsMethods(t *testing.T) {
 	g := NewWithT(t)
 
-	obj := getterWithConditions(nil1, true1, unknown1, falseInfo1, falseWarning1, falseError1)
+	obj := getterWithConditions(nil1, true1, unknown1, falseInfo1, falseWarning1, falseError1, positiveFalse1, negativeUnknown1, negativeTrueInfo1, negativeTrueWarning1, negativeTrueError1)
 
 	// test isTrue
 	g.Expect(IsTrue(obj, "nil1")).To(BeFalse())
 	g.Expect(IsTrue(obj, "true1")).To(BeTrue())
 	g.Expect(IsTrue(obj, "falseInfo1")).To(BeFalse())
 	g.Expect(IsTrue(obj, "unknown1")).To(BeFalse())
+	g.Expect(IsTrue(obj, "positive-false1")).To(BeFalse())
+	g.Expect(IsTrue(obj, "negative-trueInfo1")).To(BeTrue())
+	g.Expect(IsTrue(obj, "negative-unknown1")).To(BeFalse())
 
 	// test isFalse
 	g.Expect(IsFalse(obj, "nil1")).To(BeFalse())
 	g.Expect(IsFalse(obj, "true1")).To(BeFalse())
 	g.Expect(IsFalse(obj, "falseInfo1")).To(BeTrue())
 	g.Expect(IsFalse(obj, "unknown1")).To(BeFalse())
+	g.Expect(IsFalse(obj, "positive-false1")).To(BeTrue())
+	g.Expect(IsFalse(obj, "negative-trueInfo1")).To(BeFalse())
+	g.Expect(IsFalse(obj, "negative-unknown1")).To(BeFalse())
 
 	// test isUnknown
 	g.Expect(IsUnknown(obj, "nil1")).To(BeTrue())
 	g.Expect(IsUnknown(obj, "true1")).To(BeFalse())
 	g.Expect(IsUnknown(obj, "falseInfo1")).To(BeFalse())
 	g.Expect(IsUnknown(obj, "unknown1")).To(BeTrue())
+	g.Expect(IsUnknown(obj, "positive-false1")).To(BeFalse())
+	g.Expect(IsUnknown(obj, "negative-trueInfo1")).To(BeFalse())
+	g.Expect(IsUnknown(obj, "negative-unknown1")).To(BeTrue())
 
 	// test GetReason
 	g.Expect(GetReason(obj, "nil1")).To(Equal(""))
 	g.Expect(GetReason(obj, "falseInfo1")).To(Equal("reason falseInfo1"))
+	g.Expect(GetReason(obj, "negative-trueInfo1")).To(Equal("reason negative-trueInfo1"))
 
 	// test GetMessage
 	g.Expect(GetMessage(obj, "nil1")).To(Equal(""))
 	g.Expect(GetMessage(obj, "falseInfo1")).To(Equal("message falseInfo1"))
+	g.Expect(GetMessage(obj, "negative-trueInfo1")).To(Equal("message negative-trueInfo1"))
 
 	// test GetSeverity
+	expectedSeverity := clusterv1.ConditionSeverityInfo
 	g.Expect(GetSeverity(obj, "nil1")).To(BeNil())
 	severity := GetSeverity(obj, "falseInfo1")
-	expectedSeverity := clusterv1.ConditionSeverityInfo
+	g.Expect(severity).To(Equal(&expectedSeverity))
+	severity = GetSeverity(obj, "negative-trueInfo1")
 	g.Expect(severity).To(Equal(&expectedSeverity))
 
-	// test GetMessage
+	// test GetLastTransitionTime
 	g.Expect(GetLastTransitionTime(obj, "nil1")).To(BeNil())
 	g.Expect(GetLastTransitionTime(obj, "falseInfo1")).ToNot(BeNil())
 }
@@ -132,6 +153,9 @@ func TestSummary(t *testing.T) {
 	foo := TrueCondition("foo")
 	bar := FalseCondition("bar", "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1")
 	baz := FalseCondition("baz", "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2")
+	negativeFoo := PositiveFalseCondition("negative-foo")
+	negativeBar := NegativeTrueCondition("negative-bar", "reason negative-falseInfo1", clusterv1.ConditionSeverityInfo, "message negative-falseInfo1")
+	// negativeBaz := NegativeTrueCondition("negative-baz", "reason negative-falseInfo2", clusterv1.ConditionSeverityInfo, "message negative-falseInfo2")
 	existingReady := FalseCondition(clusterv1.ReadyCondition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. existing ready has higher priority than other conditions
 
 	tests := []struct {
@@ -149,6 +173,18 @@ func TestSummary(t *testing.T) {
 			name: "Returns ready condition with the summary of existing conditions (with default options)",
 			from: getterWithConditions(foo, bar),
 			want: FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"),
+		},
+		{
+			name:    "Returns ready condition with the summary of existing conditions with negative polarity (with default options)",
+			from:    getterWithConditions(negativeFoo, negativeBar),
+			options: []MergeOption{WithNegativePolarityConditions("negative-foo", "negative-bar")},
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason negative-falseInfo1", clusterv1.ConditionSeverityInfo, "message negative-falseInfo1"),
+		},
+		{
+			name:    "Returns ready condition with the summary of existing conditions with mixed polarity (with default options)",
+			from:    getterWithConditions(foo, bar, negativeFoo, negativeBar),
+			options: []MergeOption{WithNegativePolarityConditions("negative-foo", "negative-bar")},
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason falseInfo1", clusterv1.ConditionSeverityInfo, "message falseInfo1"), // bar take precedence on negativeBar because it is listed first
 		},
 		{
 			name:    "Returns ready condition with the summary of existing conditions (using WithStepCounter options)",
@@ -185,6 +221,18 @@ func TestSummary(t *testing.T) {
 			from:    getterWithConditions(foo, bar),
 			options: []MergeOption{WithConditions("foo")}, // bar should be ignored
 			want:    TrueCondition(clusterv1.ReadyCondition),
+		},
+		{
+			name:    "Returns ready condition with the summary of selected conditions with negative polarity (using WithConditions options)",
+			from:    getterWithConditions(negativeFoo, negativeBar),
+			options: []MergeOption{WithConditions("negative-foo"), WithNegativePolarityConditions("negative-foo", "negative-bar")}, // negative-bar should be ignored
+			want:    TrueCondition(clusterv1.ReadyCondition),
+		},
+		{
+			name:    "Returns ready condition with the summary of selected conditions with mixed polarity (using WithConditions options)",
+			from:    getterWithConditions(foo, bar, negativeFoo, negativeBar),
+			options: []MergeOption{WithConditions("foo", "negative-foo", "negative-bar"), WithNegativePolarityConditions("negative-foo", "negative-bar")}, // bar should be ignored
+			want:    FalseCondition(clusterv1.ReadyCondition, "reason negative-falseInfo1", clusterv1.ConditionSeverityInfo, "message negative-falseInfo1"),
 		},
 		{
 			name:    "Returns ready condition with the summary of selected conditions (using WithConditions and WithStepCounter options)",

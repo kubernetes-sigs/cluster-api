@@ -1495,8 +1495,8 @@ $(IMPORT_BOSS): # Build import-boss
 .PHONY: release-triage-party
 release-triage-party: docker-build-triage-party docker-push-triage-party clean-triage-party
 
-.PHONY: release-local-triage-party
-release-local-triage-party: docker-build-triage-party clean-triage-party ## Release the triage party image for local use only
+.PHONY: release-triage-party-local
+release-triage-party-local: docker-build-triage-party clean-triage-party ## Release the triage party image for local use only
 
 .PHONY: checkout-triage-party
 checkout-triage-party:

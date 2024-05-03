@@ -26,7 +26,7 @@ collections:
     dedup: false
     description: >
       Work on issue to get them to an actionable state.
-      When ready, apply triage/accepted and help of good-first issue label
+      When ready, apply triage/accepted and "help wanted" or "good first issue" label
     rules:
       - triage-stale-awaiting-more-evidence
       - triage-stale-kind-support
@@ -41,7 +41,7 @@ collections:
   - id: actionable
     name: Actionable
     description: >
-      Issue to be worked.
+      Issues that can be worked on.
     dedup: false
     rules:
       - actionable-not-assigned-without-help-or-good-first-issue
@@ -68,7 +68,7 @@ rules:
   triage-needs-kind:
     # WHY?: kinds need to be assigned by maintainers, let's do it!
     name: "needs-kind"
-    resolution: "Add a kind/ label: api-change, bug, cleanup, deprecation, design, documentation, failing-test, feature, flake, proposal, regression, release-blocking, support"
+    resolution: "Add a kind/ label: api-change, bug, cleanup, deprecation, documentation, failing-test, feature, flake, proposal, regression, release-blocking, support"
     type: issue
     filters:
       # TODO: Configure plugins so needs-kind label is applied + use it for this filter
@@ -88,7 +88,7 @@ rules:
   triage-stale-awaiting-more-evidence:
     # WHY?: issue authors are supposed to provide answers timely when an issue is labeled priority/awaiting-more-evidence, otherwise /close
     name: "priority/awaiting-more-evidence not commented in the last 15 days"
-    resolution: "Consider if to close with /close, consider if to remove priority/awaiting-more-evidence label"
+    resolution: "Consider if to close with /close or to remove priority/awaiting-more-evidence label"
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -98,7 +98,7 @@ rules:
   triage-stale-kind-support:
     # WHY?: support request are supposed to be quick back and forth between authors and maintainers, otherwise /close
     name: "Support request not commented in the last 15 days"
-    resolution: "Consider if to close with /close, consider if to change kind"
+    resolution: "Consider if to close with /close or if to change kind"
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -107,6 +107,7 @@ rules:
 
   triage-updated:
     # WHY?: maintainers are supposed to keep up with issue discussions and help to move to actionable
+    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issues with updates in the last month"
     resolution: "Check if the issue is now actionable by applying /triage accepted, help in making progress, consider if to change priority or kind"
     type: issue
@@ -118,8 +119,9 @@ rules:
   triage-again:
     # WHY?: maintainers are supposed to re-assess triaged issues after some time (frequency depends on priority)
     # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issues back to triage"
-    resolution: "Confirm that this issue is still relevant with /triage accepted, close this issue with /close"
+    resolution: "Confirm that this issue is still relevant with /triage accepted or close this issue with /close"
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -128,6 +130,7 @@ rules:
   triage-lifecycle-stale-or-rotten-priority-critical-urgent:
     # WHY?: issue with priority/critical-urgent do not get automatically closed, it is up to maintainers to take a look again
     # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with priority/critical-urgent, lifecycle/stale or rotten, and not commented in the last month"
     resolution: "Consider if bring this issue to the attention of the community, consider if to change priority with /priority important-soon, /priority important-longterm or /priority backlog, consider if to close with /close"
     type: issue
@@ -138,8 +141,9 @@ rules:
       - commented: +30d
 
   triage-lifecycle-stale-or-rotten-priority-important-soon:
-    # WHY?: issue with priority/important-soon  do not get automatically closed, it is up to maintainers to take a look again
+    # WHY?: issue with priority/important-soon do not get automatically closed, it is up to maintainers to take a look again
     # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with priority/important-soon, lifecycle/stale or rotten, not commented in the last 2 month"
     resolution: "Consider if to change priority with /priority important-longterm or /priority backlog, consider if to close with /close"
     type: issue
@@ -152,8 +156,9 @@ rules:
   triage-lifecycle-stale-or-rotten-priority-important-longterm:
     # WHY?: issue with priority/important-longterm do not get automatically closed, it is up to maintainers to take a look again
     # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with priority/important-longterm, lifecycle/stale or rotten, not commented in the last 6 months"
-    resolution: "Consider if to change priority with /priority backlog, consider if to clos with /closee"
+    resolution: "Consider if to change priority with /priority backlog, consider if to close with /close"
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -164,6 +169,7 @@ rules:
   triage-lifecycle-frozen:
     # WHY?: issue with lifecycle/frozen do not get automatically closed, it is up to maintainers to take a look again
     # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with lifecycle/frozen, not commented in the last 6 months"
     resolution: "Consider if to close with /close"
     type: issue
@@ -173,6 +179,7 @@ rules:
       - commented: +180d
 
   triage-all:
+    # Note: This list is not intended to go to 0 items (it lists all).
     name: "All the issue in triage"
     resolution: "Check if the issue is now actionable by applying /triage accepted, help in making progress, consider if to change priority or kind"
     type: issue
@@ -188,11 +195,12 @@ rules:
     type: issue
     filters:
       - label: "triage/accepted"
-      - label: "!(help|good-first-issue)"
+      - label: "!(help wanted|good first issue)"
       - tag: "!assigned"
 
   actionable-updated:
     # WHY?: maintainers are supposed to keep up with issue discussions
+    # Note: Is is be okay if this list does not go to 0, maintainers should not be forced to add an answer only for the sake of getting this list empty.
     name: "Issues with updates in the last month"
     resolution: "Check updates"
     type: issue
@@ -202,6 +210,7 @@ rules:
       - tag: "!member-last"
 
   actionable-all:
+    # Note: This list is not intended to go to 0 items (it lists all).
     name: "All the actionable issues"
     type: issue
     filters:
@@ -212,7 +221,7 @@ rules:
 
   fixme-avoid-triage-needs-information:
     name: "With triage/needs-information (let's not use this label)"
-    resolution: "Remove triage/needs-information, se priority/awaiting-more-evidence instead"
+    resolution: "Remove triage/needs-information, use priority/awaiting-more-evidence instead"
     type: issue
     filters:
       - label: "triage/needs-information"
@@ -253,13 +262,13 @@ rules:
     resolution: "help or good-first-issue should not be applied before triage/accepted"
     type: issue
     filters:
-      - label: "(help|good-first-issue)"
+      - label: "(help wanted|good first issue)"
       - label: "!triage/accepted"
       - tag: "!untriaged"
 
   fixme-lifecycle-frozen-with-priority-critical-urgent-priority-important-soon-priority-important-longterm:
     name: "With lifecycle/frozen and one of priority/critical-urgent, priority/important-soon or priority/important-longterm"
-    resolution: "Remove triage/accepted (priority/critical-urgent, priority/important-soon or priority/important-longterm are not subject to lifecycle events)"
+    resolution: "Remove lifecycle/frozen (priority/critical-urgent, priority/important-soon or priority/important-longterm are not subject to lifecycle events)"
     type: issue
     filters:
       - label: "lifecycle/frozen"

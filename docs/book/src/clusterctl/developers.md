@@ -166,11 +166,10 @@ exact components are dependent on which providers you have initialized. Below
 is an example output with the Docker provider being installed.
 
 ```bash
-kubectl get deploy -A | grep  "cap\|cert"
-capd-system
+kubectl get deploy -A | grep "cap\|cert"
 ```
 ```bash
-capd-controller-manager                         1/1     1            1           25m
+capd-system                         capd-controller-manager                         1/1     1            1           25m
 capi-kubeadm-bootstrap-system       capi-kubeadm-bootstrap-controller-manager       1/1     1            1           25m
 capi-kubeadm-control-plane-system   capi-kubeadm-control-plane-controller-manager   1/1     1            1           25m
 capi-system                         capi-controller-manager                         1/1     1            1           25m

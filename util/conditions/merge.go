@@ -27,7 +27,10 @@ import (
 type conditionPolarity string
 
 const (
+	// PositivePolarity describe a condition with positive polarity (Status=True good).
 	PositivePolarity conditionPolarity = "Positive"
+
+	// NegativePolarity describe a condition with negative polarity (Status=False good).
 	NegativePolarity conditionPolarity = "Negative"
 )
 

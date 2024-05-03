@@ -117,7 +117,7 @@ func GetLastTransitionTime(from Getter, t clusterv1.ConditionType) *metav1.Time 
 
 // summary returns a Ready condition with the summary of all the conditions existing
 // on an object. If the object does not have other conditions, no summary condition is generated.
-// NOTE: The resulting Ready condition will have positive polarity; the we are starting from might have positive or negative polarity.
+// NOTE: The resulting Ready condition will have positive polarity; the conditions we are starting from might have positive or negative polarity.
 func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	conditions := from.GetConditions()
 

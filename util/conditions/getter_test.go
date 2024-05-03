@@ -155,7 +155,6 @@ func TestSummary(t *testing.T) {
 	baz := FalseCondition("baz", "reason falseInfo2", clusterv1.ConditionSeverityInfo, "message falseInfo2")
 	negativeFoo := PositiveFalseCondition("negative-foo")
 	negativeBar := NegativeTrueCondition("negative-bar", "reason negative-falseInfo1", clusterv1.ConditionSeverityInfo, "message negative-falseInfo1")
-	// negativeBaz := NegativeTrueCondition("negative-baz", "reason negative-falseInfo2", clusterv1.ConditionSeverityInfo, "message negative-falseInfo2")
 	existingReady := FalseCondition(clusterv1.ReadyCondition, "reason falseError1", clusterv1.ConditionSeverityError, "message falseError1") // NB. existing ready has higher priority than other conditions
 
 	tests := []struct {

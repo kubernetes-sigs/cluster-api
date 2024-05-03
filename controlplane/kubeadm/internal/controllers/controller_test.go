@@ -64,6 +64,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
+const (
+	timeout = time.Second * 30
+)
+
 func TestClusterToKubeadmControlPlane(t *testing.T) {
 	g := NewWithT(t)
 	fakeClient := newFakeClient()
@@ -391,6 +395,15 @@ func TestReconcilePaused(t *testing.T) {
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
 		recorder:            record.NewFakeRecorder(32),
+		managementCluster: &fakeManagementCluster{
+			Management: &internal.Management{Client: env},
+			Workload: fakeWorkloadCluster{
+				Workload: &internal.Workload{
+					Client: env,
+				},
+				Status: internal.ClusterStatus{},
+			},
+		},
 	}
 
 	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -2278,6 +2291,94 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
 	})
+}
+
+func TestReconcilePausedCondition(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "test-reconcile-pause-condition")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	cluster, kcp, _ := createClusterWithControlPlane(ns.Name)
+	g.Expect(env.Create(ctx, cluster)).To(Succeed())
+	g.Expect(env.Create(ctx, kcp)).To(Succeed())
+	defer func(do ...client.Object) {
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+	}(cluster, kcp, ns)
+
+	// Set cluster.status.InfrastructureReady so we actually enter in the reconcile loop
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"status\":{\"infrastructureReady\":%t}}", true)))
+	g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
+
+	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericInfrastructureMachineTemplate",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-foo",
+				"namespace": cluster.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"hello": "world",
+					},
+				},
+			},
+		},
+	}
+	g.Expect(env.Create(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		recorder:            record.NewFakeRecorder(32),
+		managementCluster: &fakeManagementCluster{
+			Management: &internal.Management{Client: env},
+			Workload: fakeWorkloadCluster{
+				Workload: &internal.Workload{
+					Client: env,
+				},
+				Status: internal.ClusterStatus{},
+			},
+		},
+	}
+
+	// We start unpaused
+	g.Eventually(func() bool {
+		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		key := util.ObjectKey(kcp)
+		if err := env.Get(ctx, key, kcp); err != nil {
+			return false
+		}
+
+		// Checks the condition is set
+		if !conditions.Has(kcp, clusterv1.PausedCondition) {
+			return false
+		}
+		// The condition is set to false
+		return conditions.IsFalse(kcp, clusterv1.PausedCondition)
+	}, timeout).Should(BeTrue())
+
+	// Pause the cluster
+	cluster.Spec.Paused = true
+	g.Expect(env.Update(ctx, cluster)).To(Succeed())
+
+	g.Eventually(func() bool {
+		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+		g.Expect(err).ToNot(HaveOccurred())
+
+		key := util.ObjectKey(kcp)
+		if err := env.Get(ctx, key, kcp); err != nil {
+			return false
+		}
+
+		// The condition is set to true
+		return conditions.IsTrue(kcp, clusterv1.PausedCondition)
+	}, timeout).Should(BeTrue())
+
 }
 
 // test utils.

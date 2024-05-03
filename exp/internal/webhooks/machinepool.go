@@ -21,10 +21,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/admission/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
@@ -37,6 +39,8 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
 )
+
+const defaultNodeDeletionTimeout = 10 * time.Second
 
 func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	if webhook.decoder == nil {
@@ -106,6 +110,11 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 
 	if m.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
 		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
+	}
+
+	// Set the default value for the node deletion timeout.
+	if m.Spec.Template.Spec.NodeDeletionTimeout == nil {
+		m.Spec.Template.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: defaultNodeDeletionTimeout}
 	}
 
 	// tolerate version strings without a "v" prefix: prepend it if it's not there.

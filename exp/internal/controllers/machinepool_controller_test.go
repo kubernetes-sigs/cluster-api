@@ -18,10 +18,11 @@ package controllers
 
 import (
 	"testing"
+	"time"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -29,7 +30,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -280,8 +280,6 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 		},
 	}
 
-	time := metav1.Now()
-
 	testCluster := clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
@@ -298,57 +296,26 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 		},
 	}
 
+	timeNow := metav1.Now()
 	type expected struct {
-		result reconcile.Result
-		err    bool
+		mpExist bool
+		result  reconcile.Result
+		err     bool
 	}
 	testCases := []struct {
+		name        string
 		machinePool expv1.MachinePool
 		expected    expected
+		withTracker bool
 	}{
 		{
+			name: "Create machine Pool",
 			machinePool: expv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "created",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{expv1.MachinePoolFinalizer},
-				},
-				Spec: expv1.MachinePoolSpec{
-					ClusterName:    "test-cluster",
-					ProviderIDList: []string{"test://id-1"},
-					Replicas:       ptr.To[int32](1),
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: clusterv1.MachineSpec{
-
-							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: builder.InfrastructureGroupVersion.String(),
-								Kind:       builder.TestInfrastructureMachineTemplateKind,
-								Name:       "infra-config1",
-							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
-						},
-					},
-				},
-				Status: expv1.MachinePoolStatus{
-					Replicas:      1,
-					ReadyReplicas: 1,
-					NodeRefs: []corev1.ObjectReference{
-						{Name: "test"},
-					},
-					ObservedGeneration: 1,
-				},
-			},
-			expected: expected{
-				result: reconcile.Result{},
-				err:    false,
-			},
-		},
-		{
-			machinePool: expv1.MachinePool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "updated",
-					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{expv1.MachinePoolFinalizer},
+					Name:              "created",
+					Namespace:         metav1.NamespaceDefault,
+					Finalizers:        []string{expv1.MachinePoolFinalizer},
+					CreationTimestamp: timeNow,
 				},
 				Spec: expv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
@@ -375,11 +342,14 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				},
 			},
 			expected: expected{
-				result: reconcile.Result{},
-				err:    false,
+				mpExist: true,
+				result:  reconcile.Result{},
+				err:     false,
 			},
+			withTracker: true,
 		},
 		{
+			name: "Delete machinePool with nodeDeleteTimeout not passed",
 			machinePool: expv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "deleted",
@@ -388,7 +358,8 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Finalizers:        []string{expv1.MachinePoolFinalizer},
-					DeletionTimestamp: &time,
+					CreationTimestamp: timeNow,
+					DeletionTimestamp: &metav1.Time{Time: timeNow.Add(time.Hour * 1)},
 				},
 				Spec: expv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
@@ -400,21 +371,112 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+							NodeDeletionTimeout: &metav1.Duration{Duration: 1 * time.Minute},
+						},
+					},
+					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
+				},
+				Status: expv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{
+							APIVersion: "v1",
+							Kind:       "Node",
+							Name:       "test-node",
 						},
 					},
 				},
 			},
 			expected: expected{
-				result: reconcile.Result{},
-				err:    false,
+				mpExist: true,
+				result:  reconcile.Result{},
+				err:     false,
+			},
+			withTracker: true,
+		},
+		{
+			name: "Delete machinePool with nodeDeleteTimeout passed",
+			machinePool: expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "deleted-timeoutNode",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					},
+					Finalizers:        []string{expv1.MachinePoolFinalizer},
+					CreationTimestamp: metav1.Time{Time: timeNow.Add(time.Minute * -2)},
+					DeletionTimestamp: &metav1.Time{Time: timeNow.Add(time.Minute * -1)},
+				},
+				Spec: expv1.MachinePoolSpec{
+					ClusterName: "test-cluster",
+					Replicas:    ptr.To[int32](1),
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Second},
+						},
+					},
+					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
+				},
+				Status: expv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{
+							APIVersion: "v1",
+							Kind:       "Node",
+							Name:       "test-node",
+						},
+					},
+				},
+			},
+			expected: expected{
+				mpExist: false,
+				result:  reconcile.Result{},
+				err:     false,
+			},
+		},
+		{
+			name: "Try delete machinePool with nodeDeleteTimeout set to zero",
+			machinePool: expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "try-delete",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					},
+					Finalizers:        []string{expv1.MachinePoolFinalizer},
+					CreationTimestamp: metav1.Time{Time: timeNow.Add(time.Minute * -2)},
+					DeletionTimestamp: &metav1.Time{Time: timeNow.Add(time.Minute * -1)},
+				},
+				Spec: expv1.MachinePoolSpec{
+					ClusterName: "test-cluster",
+					Replicas:    ptr.To[int32](1),
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							NodeDeletionTimeout: &metav1.Duration{Duration: 0 * time.Second},
+						},
+					},
+					ProviderIDList: []string{"aws:///us-test-2a/i-013ab00756982217f"},
+				},
+				Status: expv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{
+							APIVersion: "v1",
+							Kind:       "Node",
+							Name:       "test-node",
+						},
+					},
+				},
+			},
+			expected: expected{
+				mpExist: true,
+				result:  reconcile.Result{},
+				err:     true,
 			},
 		},
 	}
 
 	for i := range testCases {
 		tc := testCases[i]
-		t.Run("machinePool should be "+tc.machinePool.Name, func(t *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
 			clientFake := fake.NewClientBuilder().WithObjects(
@@ -429,7 +491,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
 				APIReader: clientFake,
-				Tracker:   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+			}
+
+			// Set the tracker.
+			if tc.withTracker {
+				r.Tracker = remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace})
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machinePool)})
@@ -438,10 +504,55 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-
 			g.Expect(result).To(BeComparableTo(tc.expected.result))
+
+			// Check machinePool test cases
+			key := client.ObjectKey{Namespace: tc.machinePool.Namespace, Name: tc.machinePool.Name}
+			if tc.expected.mpExist {
+				g.Consistently(func(g Gomega) {
+					g.Expect(r.Client.Get(ctx, key, &expv1.MachinePool{})).To(Succeed())
+				}).WithTimeout(2 * time.Second).Should(Succeed())
+			} else {
+				// We expect to fail retrieve the machinePool as it is deleted
+				g.Eventually(func(g Gomega) {
+					g.Expect(apierrors.IsNotFound(r.Client.Get(ctx, key, &expv1.MachinePool{}))).To(BeTrue())
+				}).WithTimeout(5 * time.Second).Should(Succeed())
+			}
 		})
 	}
+}
+
+func TestMachinePoolNodeDeleteTimeoutPassed(t *testing.T) {
+	g := NewWithT(t)
+	r := &MachinePoolReconciler{}
+	timeNow := metav1.Now()
+	machinePool := expv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "machinepool",
+			Namespace:         metav1.NamespaceDefault,
+			CreationTimestamp: timeNow,
+		},
+	}
+
+	// MachienPool not deleted expected false
+	g.Expect(r.isMachinePoolNodeDeleteTimeoutPassed(&machinePool)).To(BeFalse())
+
+	// MachienPool deleted and NodeDeleteTimeout not set expected false
+	machinePool.DeletionTimestamp = &timeNow
+	g.Expect(r.isMachinePoolNodeDeleteTimeoutPassed(&machinePool)).To(BeFalse())
+
+	// MachienPool deleted and NodeDeleteTimeout set to zero expected false
+	machinePool.Spec.Template.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 0 * time.Second}
+	g.Expect(r.isMachinePoolNodeDeleteTimeoutPassed(&machinePool)).To(BeFalse())
+
+	// MachienPool deleted  (at timeNow) and NodeDeleteTimeout set to 1 min expected false
+	machinePool.Spec.Template.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 1 * time.Minute}
+	g.Expect(r.isMachinePoolNodeDeleteTimeoutPassed(&machinePool)).To(BeFalse())
+
+	// MachienPool deleted  (at timeNow -1 min) and NodeDeleteTimeout set to 10 Second expected true
+	machinePool.DeletionTimestamp = &metav1.Time{Time: timeNow.Add(time.Minute * -1)}
+	machinePool.Spec.Template.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 10 * time.Second}
+	g.Expect(r.isMachinePoolNodeDeleteTimeoutPassed(&machinePool)).To(BeTrue())
 }
 
 func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
@@ -595,8 +706,10 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
+	clientFake := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build()
 	mr := &MachinePoolReconciler{
-		Client: fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build(),
+		Client:  clientFake,
+		Tracker: remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -868,7 +981,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
 				APIReader: clientFake,
-				Tracker:   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				Tracker:   remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})

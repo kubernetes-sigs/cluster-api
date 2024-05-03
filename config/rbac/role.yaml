@@ -85,8 +85,6 @@ rules:
   resources:
   - clusterclasses
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
@@ -118,8 +116,6 @@ rules:
   - clusters/finalizers
   - clusters/status
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
@@ -131,8 +127,6 @@ rules:
   - clusters
   - clusters/status
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch
@@ -297,22 +291,6 @@ rules:
   - events
   verbs:
   - create
-  - get
-  - list
-  - patch
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
 - apiGroups:
   - ""
   resources:

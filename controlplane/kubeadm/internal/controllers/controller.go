@@ -161,11 +161,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if annotations.IsPaused(cluster, kcp) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(kcp, r.Client)
 	if err != nil {
@@ -181,11 +176,14 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		// patch and return right away instead of reusing the main defer,
 		// because the main defer may take too much time to get cluster status
 		// Patch ObservedGeneration only if the reconciliation completed successfully
+
+		// TODO theobarberbany: Is this ordering correct, do we want finalizer to
+		// take priority over the paused condition?
 		patchOpts := []patch.Option{patch.WithStatusObservedGeneration{}}
 		if err := patchHelper.Patch(ctx, kcp, patchOpts...); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer")
 		}
-
+		log.Info("Returning early to add finalizer")
 		return ctrl.Result{}, nil
 	}
 
@@ -193,15 +191,13 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	// adopt them if necessary.
 	controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
 	if err != nil {
+		log.Error(err, "Failed to initControlPlaneScope")
 		return ctrl.Result{}, err
 	}
-	if adoptableMachineFound {
-		// if there are no errors but at least one CP machine has been adopted, then requeue and
-		// wait for the update event for the ownership to be set.
-		return ctrl.Result{}, nil
-	}
+	log.Info("initControlPlaneScope")
 
 	defer func() {
+		log.Info("start of deferred update status")
 		// Always attempt to update status.
 		if err := r.updateStatus(ctx, controlPlane); err != nil {
 			var connFailure *internal.RemoteClusterConnectionError
@@ -222,6 +218,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			log.Error(err, "Failed to patch KubeadmControlPlane")
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
+		log.Info("patched KubeadmControlPlane")
 
 		// Only requeue if there is no error, Requeue or RequeueAfter and the object does not have a deletion timestamp.
 		if reterr == nil && res.IsZero() && kcp.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -242,6 +239,36 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			}
 		}
 	}()
+
+	// Return early and set the paused condition to True if the object or Cluster
+	// is paused.
+	if annotations.IsPaused(cluster, kcp) {
+		log.Info("Reconciliation is paused for this object")
+
+		newPausedCondition := &clusterv1.Condition{
+			Type:     clusterv1.PausedCondition,
+			Status:   corev1.ConditionTrue,
+			Severity: clusterv1.ConditionSeverityInfo,
+		}
+
+		if cluster.Spec.Paused {
+			newPausedCondition.Reason = clusterv1.ClusterPausedReason
+		} else {
+			newPausedCondition.Reason = clusterv1.AnnotationPausedReason
+		}
+
+		conditions.Set(kcp, newPausedCondition)
+		return ctrl.Result{}, nil
+	}
+	log.Info("Object not paused")
+	conditions.MarkFalseWithNegativePolarity(kcp, clusterv1.PausedCondition)
+
+	if adoptableMachineFound {
+		// if there are no errors but at least one CP machine has been adopted, then requeue and
+		// wait for the update event for the ownership to be set.
+		log.Info("Returning early, adoptableMachineFound")
+		return ctrl.Result{}, nil
+	}
 
 	if !kcp.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
@@ -325,19 +352,21 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
-	// Also, if requested, we are adding additional options like e.g. Patch ObservedGeneration when issuing the
-	// patch at the end of the reconcile loop.
-	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-		controlplanev1.MachinesCreatedCondition,
-		clusterv1.ReadyCondition,
-		controlplanev1.MachinesSpecUpToDateCondition,
-		controlplanev1.ResizedCondition,
-		controlplanev1.MachinesReadyCondition,
-		controlplanev1.AvailableCondition,
-		controlplanev1.CertificatesAvailableCondition,
-	}})
-
-	return patchHelper.Patch(ctx, kcp, options...)
+	return patchHelper.Patch(
+		ctx,
+		kcp,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			controlplanev1.MachinesCreatedCondition,
+			clusterv1.ReadyCondition,
+			clusterv1.PausedCondition,
+			controlplanev1.MachinesSpecUpToDateCondition,
+			controlplanev1.ResizedCondition,
+			controlplanev1.MachinesReadyCondition,
+			controlplanev1.AvailableCondition,
+			controlplanev1.CertificatesAvailableCondition,
+		}},
+		patch.WithStatusObservedGeneration{},
+	)
 }
 
 // reconcile handles KubeadmControlPlane reconciliation.

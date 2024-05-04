@@ -100,7 +100,7 @@ The value string is a possibly signed sequence of decimal numbers, each with opt
 
 If no value is specified, or the format is invalid, the default value of 10 minutes will be used.
 
-Please note that the configuration above will be considered also when doing `clusterctl upgrade plan` or `clusterctl upgrade plan`.
+Please note that the configuration above will be considered also when doing `clusterctl upgrade plan` or `clusterctl upgrade apply`.
 
 ## Migrating to user-managed cert-manager
 

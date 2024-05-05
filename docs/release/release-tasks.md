@@ -366,13 +366,12 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
    ```bash
    # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
    # PREVIOUS_VERSION_TAG is the previous released tag for determining the changes.
-   # Can be also used for pre-releases. The warning banner for RC and beta releases will be determined automatically.
    RELEASE_TAG=v1.7.x-rc.1 PREVIOUS_VERSION_TAG=tags/v1.7.x-rc.0 make release-notes
    ```
+   **Note**: For a first pre-release version without a pre-release precedent, use above command without `PREVIOUS_VERSION_TAG`.
    2. STABLE RELEASE example
    ```bash
    # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
-   # Can be also used for pre-releases. The warning banner for RC and beta releases will be determined automatically.
    RELEASE_TAG=v1.7.x make release-notes
    ```
 

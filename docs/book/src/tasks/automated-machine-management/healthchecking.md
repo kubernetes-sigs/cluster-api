@@ -20,7 +20,7 @@ A MachineHealthCheck is a resource within the Cluster API which allows users to 
 A MachineHealthCheck is defined on a management cluster and scoped to a particular workload cluster.
 
 When defining a MachineHealthCheck, users specify a timeout for each of the conditions that they define to check on the Machine's Node.
-If any of these conditions are met for the duration of the timeout, the Machine will be remediated.
+If any of these conditions are met for the duration of the timeout, the Machine will be remediated. Also, Machines with `failureMessage` or `failureMessage` (terminal failures) are automatically remediated.
 By default, the action of remediating a Machine should trigger a new Machine to be created to replace the failed one, but providers are allowed to plug in more sophisticated external remediation solutions.
 
 ## Creating a MachineHealthCheck

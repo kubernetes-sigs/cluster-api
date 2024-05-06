@@ -61,6 +61,10 @@ The `status` object **may** define several fields that do not affect functionali
 * `failureReason` - a string field explaining why a fatal error has occurred, if possible.
 * `failureMessage` - a string field that holds the message contained by the error.
 
+Note: once any of `failureMessage` or `failureMessage` surface on the machine, they cannot be restored anymore (it is
+considered a terminal error). Also, if the machine is under control of a MachineHealthCheck instance, the machine will be
+automatically remediated.
+
 Example:
 
 ```yaml
@@ -104,6 +108,10 @@ external DNS names, and/or internal DNS names for the provider's machine instanc
 defined as:
     - `type` (string): one of `Hostname`, `ExternalIP`, `InternalIP`, `ExternalDNS`, `InternalDNS`
     - `address` (string)
+
+Note: once any of `failureMessage` or `failureMessage` surface on the machine, they cannot be restored anymore  (this is
+considered a terminal error). Also, if the machine is under control of a MachineHealthCheck instance, the machine will be
+automatically remediated.
 
 Example:
 ```yaml

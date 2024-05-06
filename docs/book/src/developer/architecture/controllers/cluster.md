@@ -50,6 +50,9 @@ is a map, defined as `map[string]FailureDomainSpec`. A unique key must be used f
     - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.
     - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
 
+Note: once any of `failureMessage` or `failureMessage` surface on the cluster, they cannot be restored anymore (it is 
+considered a terminal error).
+
 Example:
 ```yaml
 kind: MyProviderCluster

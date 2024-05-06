@@ -1,6 +1,8 @@
 {
     "ignorePatterns": [{
         "pattern": "^http://localhost"
+    },{
+        "pattern": "https://azure.microsoft.com/en-us/products/kubernetes-service"
     }],
     "httpHeaders": [{
         "comment": "Workaround as suggested here: https://github.com/tcort/markdown-link-check/issues/201",

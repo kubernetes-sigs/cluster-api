@@ -62,8 +62,9 @@ type ClusterNetworkBuiltins struct {
 	// Pods is the network ranges from which Pod networks are allocated.
 	Pods []string `json:"pods,omitempty"`
 	// IPFamily is the IPFamily the Cluster is operating in. One of Invalid, IPv4, IPv6, DualStack.
-	// Note: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD.
-	// IPFamily may be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521
+	//
+	// Deprecated: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD.
+	// IPFamily will be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521
 	IPFamily string `json:"ipFamily,omitempty"`
 }
 

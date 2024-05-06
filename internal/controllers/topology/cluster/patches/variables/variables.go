@@ -68,7 +68,7 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, def
 		},
 	}
 	if cluster.Spec.ClusterNetwork != nil {
-		clusterNetworkIPFamily, _ := cluster.GetIPFamily()
+		clusterNetworkIPFamily, _ := cluster.GetIPFamily() //nolint:staticcheck // We tolerate this until removal. See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
 		builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{
 			IPFamily: ipFamilyToString(clusterNetworkIPFamily),
 		}

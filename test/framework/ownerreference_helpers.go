@@ -45,14 +45,14 @@ import (
 )
 
 // ValidateOwnerReferencesOnUpdate checks that expected owner references are updated to the correct apiVersion.
-func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
 
 	// Pause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
 
 	// Change the version of the OwnerReferences on each object in the Graph to "v1alpha1"
-	changeOwnerReferencesAPIVersion(ctx, proxy, namespace)
+	changeOwnerReferencesAPIVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 
 	// Unpause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
@@ -66,13 +66,13 @@ func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, na
 	forceClusterResourceSetReconcile(ctx, proxy.GetClient(), namespace)
 
 	// Check that the ownerReferences have updated their apiVersions to current versions after reconciliation.
-	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 }
 
 // ValidateOwnerReferencesResilience checks that expected owner references are in place, deletes them, and verifies that expect owner references are properly rebuilt.
-func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
 	// Check that the ownerReferences are as expected on the first iteration.
-	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
 
@@ -88,7 +88,7 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
 
 	// Once all Clusters are paused remove the OwnerReference from all objects in the graph.
-	removeOwnerReferences(ctx, proxy, namespace)
+	removeOwnerReferences(ctx, proxy, namespace, ownerGraphFilterFunction)
 
 	// Unpause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
@@ -98,10 +98,10 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	forceClusterClassReconcile(ctx, proxy.GetClient(), clusterKey)
 
 	// Check that the ownerReferences are as expected after additional reconciliations.
-	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 }
 
-func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
 	allAssertFuncs := map[string]func(reference []metav1.OwnerReference) error{}
 	for _, m := range assertFuncs {
 		for k, v := range m {
@@ -112,7 +112,7 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 		allErrs := []error{}
 		ctx := context.Background()
 
-		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, kubeconfigPath)
+		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, kubeconfigPath, ownerGraphFilterFunction)
 		// Sometimes the conversion-webhooks are not ready yet / cert-managers ca-injector
 		// may not yet have injected the new ca bundle after the upgrade.
 		// If this is the case we return an error to retry.
@@ -382,6 +382,22 @@ func setClusterPause(ctx context.Context, cli client.Client, clusterKey types.Na
 	Expect(cli.Patch(ctx, cluster, pausePatch)).To(Succeed())
 }
 
+// GetOwnerGraphFilterByClusterNameFunc is used in e2e tests where the owner graph gets queried
+// to filter out cluster-wide objects which don't have the clusterName in their
+// object name. This avoids assertions on objects which are part of in-parallel
+// running tests like ExtensionConfig.
+func GetOwnerGraphFilterByClusterNameFunc(clusterName string) func(u unstructured.Unstructured) bool {
+	return func(u unstructured.Unstructured) bool {
+		// Ignore cluster-wide objects which don't have the clusterName in their object
+		// name to avoid asserting on cluster-wide objects which get created or deleted
+		// by tests which run in-parallel (e.g. ExtensionConfig).
+		if u.GetNamespace() == "" && !strings.Contains(u.GetName(), clusterName) {
+			return false
+		}
+		return true
+	}
+}
+
 // forceClusterClassReconcile force reconciliation of the ClusterClass associated with the Cluster if one exists. If the
 // Cluster has no ClusterClass this is a no-op.
 func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterKey types.NamespacedName) {
@@ -406,8 +422,8 @@ func forceClusterResourceSetReconcile(ctx context.Context, cli client.Client, na
 	}
 }
 
-func changeOwnerReferencesAPIVersion(ctx context.Context, proxy ClusterProxy, namespace string) {
-	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath())
+func changeOwnerReferencesAPIVersion(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction)
 	Expect(err).ToNot(HaveOccurred())
 	for _, object := range graph {
 		ref := object.Object
@@ -434,8 +450,8 @@ func changeOwnerReferencesAPIVersion(ctx context.Context, proxy ClusterProxy, na
 	}
 }
 
-func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace string) {
-	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath())
+func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction)
 	Expect(err).ToNot(HaveOccurred())
 	for _, object := range graph {
 		ref := object.Object

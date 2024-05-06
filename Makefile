@@ -183,7 +183,7 @@ IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
 TRIAGE_PARTY_IMAGE_NAME ?= extra/triage-party
 TRIAGE_PARTY_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(TRIAGE_PARTY_IMAGE_NAME)
-TRIAGE_PARTY_DIR := hack/triage
+TRIAGE_PARTY_DIR := hack/tools/triage
 TRIAGE_PARTY_TMP_DIR ?= $(TRIAGE_PARTY_DIR)/triage-party.tmp
 TRIAGE_PARTY_VERSION ?= v1.6.0
 

@@ -107,9 +107,10 @@ rules:
 
   triage-updated:
     # WHY?: maintainers are supposed to keep up with issue discussions and help to move to actionable
-    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issues with updates in the last month"
-    resolution: "Check if the issue is now actionable by applying /triage accepted, help in making progress, consider if to change priority or kind"
+    resolution: |
+      Check if the issue is now actionable by applying /triage accepted, help in making progress, consider if to change priority or kind.
+      Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -118,10 +119,11 @@ rules:
 
   triage-again:
     # WHY?: maintainers are supposed to re-assess triaged issues after some time (frequency depends on priority)
-    # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
-    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issues back to triage"
-    resolution: "Confirm that this issue is still relevant with /triage accepted or close this issue with /close"
+    resolution: |
+      Confirm that this issue is still relevant with /triage accepted or close this issue with /close.
+      Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+      Note: it is be okay if this list does not go to 0, maintainers should not be forced to add an answer only for the sake of getting this list empty.
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -129,10 +131,11 @@ rules:
 
   triage-lifecycle-stale-or-rotten-priority-critical-urgent:
     # WHY?: issue with priority/critical-urgent do not get automatically closed, it is up to maintainers to take a look again
-    # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
-    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with priority/critical-urgent, lifecycle/stale or rotten, and not commented in the last month"
-    resolution: "Consider if bring this issue to the attention of the community, consider if to change priority with /priority important-soon, /priority important-longterm or /priority backlog, consider if to close with /close"
+    resolution: |
+      Consider if bring this issue to the attention of the community, consider if to change priority with /priority important-soon, /priority important-longterm or /priority backlog, consider if to close with /close.
+      Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+      Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -142,10 +145,11 @@ rules:
 
   triage-lifecycle-stale-or-rotten-priority-important-soon:
     # WHY?: issue with priority/important-soon do not get automatically closed, it is up to maintainers to take a look again
-    # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
-    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with priority/important-soon, lifecycle/stale or rotten, not commented in the last 2 month"
-    resolution: "Consider if to change priority with /priority important-longterm or /priority backlog, consider if to close with /close"
+    resolution: |
+      Consider if to change priority with /priority important-longterm or /priority backlog, consider if to close with /close.      
+      Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+      Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -155,10 +159,11 @@ rules:
 
   triage-lifecycle-stale-or-rotten-priority-important-longterm:
     # WHY?: issue with priority/important-longterm do not get automatically closed, it is up to maintainers to take a look again
-    # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
-    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with priority/important-longterm, lifecycle/stale or rotten, not commented in the last 6 months"
-    resolution: "Consider if to change priority with /priority backlog, consider if to close with /close"
+    resolution: |
+      Consider if to change priority with /priority backlog, consider if to close with /close"
+      Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+      Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -168,10 +173,11 @@ rules:
 
   triage-lifecycle-frozen:
     # WHY?: issue with lifecycle/frozen do not get automatically closed, it is up to maintainers to take a look again
-    # Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
-    # Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     name: "Issue with lifecycle/frozen, not commented in the last 6 months"
-    resolution: "Consider if to close with /close"
+    resolution: |
+      Consider if to close with /close.
+      Note: this is a clear sign of project lacking contributors. At some point - might be after two back and forth -, we should give up and close.
+      Note: maintainers can't make everything actionable (so it is okay if this list does not go to 0).
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -179,9 +185,10 @@ rules:
       - commented: +180d
 
   triage-all:
-    # Note: This list is not intended to go to 0 items (it lists all).
     name: "All the issue in triage"
-    resolution: "Check if the issue is now actionable by applying /triage accepted, help in making progress, consider if to change priority or kind"
+    resolution: |
+      Check if the issue is now actionable by applying /triage accepted, help in making progress, consider if to change priority or kind.
+      Note: This list is not intended to go to 0 items (it lists all).
     type: issue
     filters:
       - label: "!triage/accepted"
@@ -200,9 +207,10 @@ rules:
 
   actionable-updated:
     # WHY?: maintainers are supposed to keep up with issue discussions
-    # Note: Is is be okay if this list does not go to 0, maintainers should not be forced to add an answer only for the sake of getting this list empty.
     name: "Issues with updates in the last month"
-    resolution: "Check updates"
+    resolution: |
+      Check updates
+      Note: it is be okay if this list does not go to 0, maintainers should not be forced to add an answer only for the sake of getting this list empty.
     type: issue
     filters:
       - label: "triage/accepted"
@@ -210,8 +218,9 @@ rules:
       - tag: "!member-last"
 
   actionable-all:
-    # Note: This list is not intended to go to 0 items (it lists all).
     name: "All the actionable issues"
+    resolution: |
+      Note: This list is not intended to go to 0 items (it lists all).
     type: issue
     filters:
       - label: "triage/accepted"

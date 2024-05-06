@@ -31,7 +31,7 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	go.etcd.io/etcd/api/v3 v3.5.13
 	go.etcd.io/etcd/client/v3 v3.5.13
-	golang.org/x/oauth2 v0.19.0
+	golang.org/x/oauth2 v0.20.0
 	golang.org/x/text v0.14.0
 	gomodules.xyz/jsonpatch/v2 v2.4.0
 	google.golang.org/grpc v1.59.0

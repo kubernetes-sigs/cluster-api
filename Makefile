@@ -173,6 +173,12 @@ IMPORT_BOSS_VER := v0.28.1
 IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
 IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
 
+TRIAGE_PARTY_IMAGE_NAME ?= extra/triage-party
+TRIAGE_PARTY_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(TRIAGE_PARTY_IMAGE_NAME)
+TRIAGE_PARTY_DIR := hack/tools/triage
+TRIAGE_PARTY_TMP_DIR ?= $(TRIAGE_PARTY_DIR)/triage-party.tmp
+TRIAGE_PARTY_VERSION ?= v1.6.0
+
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
@@ -1478,6 +1484,60 @@ $(GOVULNCHECK): # Build govulncheck.
 
 $(IMPORT_BOSS): # Build import-boss
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)
+
+## --------------------------------------
+## triage-party
+## --------------------------------------
+
+.PHONY: release-triage-party
+release-triage-party: docker-build-triage-party docker-push-triage-party clean-triage-party
+
+.PHONY: release-triage-party-local
+release-triage-party-local: docker-build-triage-party clean-triage-party ## Release the triage party image for local use only
+
+.PHONY: checkout-triage-party
+checkout-triage-party:
+	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
+	@if [ -d "$(TRIAGE_PARTY_TMP_DIR)" ]; then \
+		echo "$(TRIAGE_PARTY_TMP_DIR) exists, skipping clone"; \
+	else \
+		git clone "https://github.com/google/triage-party.git" "$(TRIAGE_PARTY_TMP_DIR)"; \
+		cd "$(TRIAGE_PARTY_TMP_DIR)"; \
+		git checkout "$(TRIAGE_PARTY_VERSION)"; \
+		git apply "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/triage-improvements.patch"; \
+	fi
+	@cd "$(ROOT_DIR)/$(TRIAGE_PARTY_TMP_DIR)"; \
+	if [ "$$(git describe --tag 2> /dev/null)" != "$(TRIAGE_PARTY_VERSION)" ]; then \
+		echo "ERROR: checked out version $$(git describe --tag 2> /dev/null) does not match expected version $(TRIAGE_PARTY_VERSION)"; \
+		exit 1; \
+	fi
+
+.PHONY: docker-build-triage-party
+docker-build-triage-party: checkout-triage-party
+	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
+	cd $(TRIAGE_PARTY_TMP_DIR) && \
+	docker buildx build --platform linux/amd64 -t $(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION) .
+
+.PHONY: docker-push-triage-party
+docker-push-triage-party:
+	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
+	docker push $(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION)
+
+.PHONY: clean-triage-party
+clean-triage-party:
+	rm -fr "$(TRIAGE_PARTY_TMP_DIR)"
+
+.PHONY: triage-party
+triage-party: ## Start a local instance of triage party
+	@if [ -z "${GITHUB_TOKEN}" ]; then echo "GITHUB_TOKEN is not set"; exit 1; fi
+	docker run --platform linux/amd64 --rm \
+		-e GITHUB_TOKEN \
+		-e "PERSIST_BACKEND=disk" \
+		-e "PERSIST_PATH=/app/.cache" \
+		-v "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/.cache:/app/.cache" \
+		-v "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/config.yaml:/app/config/config.yaml" \
+		-p 8080:8080 \
+		$(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION)
 
 ## --------------------------------------
 ## Helpers

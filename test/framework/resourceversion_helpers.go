@@ -29,11 +29,11 @@ import (
 )
 
 // ValidateResourceVersionStable checks that resource versions are stable.
-func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, namespace string) {
+func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
 	// Wait until resource versions are stable for a bit.
 	var previousResourceVersions map[string]string
 	Eventually(func(g Gomega) {
-		objectsWithResourceVersion, err := getObjectsWithResourceVersion(ctx, proxy, namespace)
+		objectsWithResourceVersion, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		defer func() {
@@ -46,14 +46,14 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 
 	// Verify resource versions are stable for a while.
 	Consistently(func(g Gomega) {
-		objectsWithResourceVersion, err := getObjectsWithResourceVersion(ctx, proxy, namespace)
+		objectsWithResourceVersion, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(objectsWithResourceVersion).To(Equal(previousResourceVersions))
 	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "Resource versions didn't stay stable")
 }
 
-func getObjectsWithResourceVersion(ctx context.Context, proxy ClusterProxy, namespace string) (map[string]string, error) {
-	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath())
+func getObjectsWithResourceVersion(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) (map[string]string, error) {
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction)
 	if err != nil {
 		return nil, err
 	}

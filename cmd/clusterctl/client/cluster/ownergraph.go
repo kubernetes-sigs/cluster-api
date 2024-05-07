@@ -42,9 +42,26 @@ type OwnerGraphNode struct {
 // GetOwnerGraphFilterFunction allows filtering the objects returned by GetOwnerGraph.
 // The function has to return true for objects which should be kept.
 // NOTE: this function signature is exposed to allow implementation of E2E tests; there is
-// no guarantee about the stability of this API. Using this test with providers may require
-// a custom implementation of this function, or the OwnerGraph it returns.
+// no guarantee about the stability of this API.
 type GetOwnerGraphFilterFunction func(u unstructured.Unstructured) bool
+
+// FilterClusterObjectsWithNameFilter is used in e2e tests where the owner graph
+// gets queried to filter out cluster-wide objects which don't have the s in their
+// object name. This avoids assertions on objects which are part of in-parallel
+// running tests like ExtensionConfig.
+// NOTE: this function signature is exposed to allow implementation of E2E tests; there is
+// no guarantee about the stability of this API.
+func FilterClusterObjectsWithNameFilter(s string) func(u unstructured.Unstructured) bool {
+	return func(u unstructured.Unstructured) bool {
+		// Ignore cluster-wide objects which don't have the clusterName in their object
+		// name to avoid asserting on cluster-wide objects which get created or deleted
+		// by tests which run in-parallel (e.g. ExtensionConfig).
+		if u.GetNamespace() == "" && !strings.Contains(u.GetName(), s) {
+			return false
+		}
+		return true
+	}
+}
 
 // GetOwnerGraph returns a graph with all the objects considered by clusterctl move as nodes and the OwnerReference relationship between those objects as edges.
 // NOTE: this data structure is exposed to allow implementation of E2E tests verifying that CAPI can properly rebuild its

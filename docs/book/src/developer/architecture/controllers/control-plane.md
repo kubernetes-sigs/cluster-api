@@ -234,8 +234,8 @@ The `status` object **may** define several fields:
   exist in the cluster. For example, managed control plane providers for AKS, EKS, GKE, etc, should
   set this to `true`. Leaving the field undefined is equivalent to setting the value to `false`.
 
-Note: once any of `failureMessage` or `failureMessage` surface on the cluster, they cannot be restored anymore (it is
-considered a terminal error).
+Note: once any of `failureReason` or `failureMessage` surface on the cluster who is referencing the control plane object,
+they cannot be restored anymore (it is considered a terminal error).
 
 ## Example usage
 

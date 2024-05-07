@@ -382,11 +382,11 @@ func setClusterPause(ctx context.Context, cli client.Client, clusterKey types.Na
 	Expect(cli.Patch(ctx, cluster, pausePatch)).To(Succeed())
 }
 
-// GetOwnerGraphFilterByClusterNameFunc is used in e2e tests where the owner graph gets queried
-// to filter out cluster-wide objects which don't have the clusterName in their
-// object name. This avoids assertions on objects which are part of in-parallel
+// SkipClusterObjectsWithoutNameContains is used in e2e tests where the owner graph
+// gets queried to filter out cluster-wide objects which don't have the clusterName
+// in their object name. This avoids assertions on objects which are part of in-parallel
 // running tests like ExtensionConfig.
-func GetOwnerGraphFilterByClusterNameFunc(clusterName string) func(u unstructured.Unstructured) bool {
+func SkipClusterObjectsWithoutNameContains(clusterName string) func(u unstructured.Unstructured) bool {
 	return func(u unstructured.Unstructured) bool {
 		// Ignore cluster-wide objects which don't have the clusterName in their object
 		// name to avoid asserting on cluster-wide objects which get created or deleted

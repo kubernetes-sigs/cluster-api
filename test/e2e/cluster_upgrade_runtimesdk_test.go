@@ -46,7 +46,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
-				framework.ValidateResourceVersionStable(ctx, proxy, namespace, framework.GetOwnerGraphFilterByClusterNameFunc(clusterName))
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, framework.SkipClusterObjectsWithoutNameContains(clusterName))
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
 			Flavor: ptr.To("upgrades-runtimesdk"),

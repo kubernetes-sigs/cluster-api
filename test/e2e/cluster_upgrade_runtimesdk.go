@@ -88,7 +88,7 @@ type clusterUpgradeWithRuntimeSDKSpecInput struct {
 
 	// Allows to inject a function to be run after the cluster is upgraded.
 	// If not specified, this is a no-op.
-	PostMachinesProvisioned func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
+	PostUpgrade func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
 }
 
 // clusterUpgradeWithRuntimeSDKSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
@@ -264,9 +264,9 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
-		if input.PostMachinesProvisioned != nil {
+		if input.PostUpgrade != nil {
 			log.Logf("Calling PostMachinesProvisioned for cluster %s", klog.KRef(namespace.Name, clusterResources.Cluster.Name))
-			input.PostMachinesProvisioned(input.BootstrapClusterProxy, namespace.Name, clusterName)
+			input.PostUpgrade(input.BootstrapClusterProxy, namespace.Name, clusterResources.Cluster.Name)
 		}
 
 		By("Dumping resources and deleting the workload cluster; deletion waits for BeforeClusterDeleteHook to gate the operation")

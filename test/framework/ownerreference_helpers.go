@@ -382,22 +382,6 @@ func setClusterPause(ctx context.Context, cli client.Client, clusterKey types.Na
 	Expect(cli.Patch(ctx, cluster, pausePatch)).To(Succeed())
 }
 
-// SkipClusterObjectsWithoutNameContains is used in e2e tests where the owner graph
-// gets queried to filter out cluster-wide objects which don't have the clusterName
-// in their object name. This avoids assertions on objects which are part of in-parallel
-// running tests like ExtensionConfig.
-func SkipClusterObjectsWithoutNameContains(clusterName string) func(u unstructured.Unstructured) bool {
-	return func(u unstructured.Unstructured) bool {
-		// Ignore cluster-wide objects which don't have the clusterName in their object
-		// name to avoid asserting on cluster-wide objects which get created or deleted
-		// by tests which run in-parallel (e.g. ExtensionConfig).
-		if u.GetNamespace() == "" && !strings.Contains(u.GetName(), clusterName) {
-			return false
-		}
-		return true
-	}
-}
-
 // forceClusterClassReconcile force reconciliation of the ClusterClass associated with the Cluster if one exists. If the
 // Cluster has no ClusterClass this is a no-op.
 func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterKey types.NamespacedName) {

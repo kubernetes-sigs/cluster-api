@@ -70,6 +70,16 @@ type Options struct {
 	// It is used to set webhook.Server.CertDir.
 	CertDir string
 
+	// CertName is the server certificate name. Defaults to tls.crt.
+	//
+	// Note: This option is only used when TLSOpts does not set GetCertificate.
+	CertName string
+
+	// KeyName is the server key name. Defaults to tls.key.
+	//
+	// Note: This option is only used when TLSOpts does not set GetCertificate.
+	KeyName string
+
 	// TLSOpts is used to allow configuring the TLS config used for the server.
 	// This also allows providing a certificate via GetCertificate.
 	TLSOpts []func(*tls.Config)
@@ -86,14 +96,20 @@ func New(options Options) (*Server, error) {
 	if options.CertDir == "" {
 		options.CertDir = filepath.Join(os.TempDir(), "k8s-webhook-server", "serving-certs")
 	}
+	if options.CertName == "" {
+		options.CertName = "tls.crt"
+	}
+	if options.KeyName == "" {
+		options.KeyName = "tls.key"
+	}
 
 	webhookServer := webhook.NewServer(
 		webhook.Options{
 			Port:       options.Port,
 			Host:       options.Host,
 			CertDir:    options.CertDir,
-			CertName:   "tls.crt",
-			KeyName:    "tls.key",
+			CertName:   options.CertName,
+			KeyName:    options.KeyName,
 			TLSOpts:    options.TLSOpts,
 			WebhookMux: http.NewServeMux(),
 		},

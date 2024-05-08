@@ -27,8 +27,8 @@ A bootstrap provider must define an API type for bootstrap resources. The type:
         2. `failureMessage` (string): indicates there is a fatal problem reconciling the bootstrap data;
             meant to be a more descriptive value than `failureReason`
 
-Note: once any of `failureReason` or `failureMessage` surface on the machine who is referencing the bootstrap config object, 
-they cannot be restored anymore (it is considered a terminal error). 
+Note: once any of `failureReason` or `failureMessage` surface on the machine/machine pool who is referencing the bootstrap config object, 
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine/machine pool). 
 Also, if the machine is under control of a MachineHealthCheck instance, the machine will be automatically remediated.
 
 Note: because the `dataSecretName` is part of `status`, this value must be deterministically recreatable from the data in the

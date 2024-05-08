@@ -62,7 +62,7 @@ The `status` object **may** define several fields that do not affect functionali
 * `failureMessage` - a string field that holds the message contained by the error.
 
 Note: once any of `failureReason` or `failureMessage` surface on the machine who is referencing the bootstrap config object, 
-they cannot be restored anymore (it is considered a terminal error). 
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine). 
 Also, if the machine is under control of a MachineHealthCheck instance, the machine will be automatically remediated.
 
 Example:
@@ -110,7 +110,7 @@ defined as:
     - `address` (string)
 
 Note: once any of `failureReason` or `failureMessage` surface on the machine who is referencing the infrastructureMachine object, 
-they cannot be restored anymore  (this is considered a terminal error). 
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine). 
 Also, if the machine is under control of a MachineHealthCheck instance, the machine will be automatically remediated.
 
 Example:

@@ -51,7 +51,7 @@ is a map, defined as `map[string]FailureDomainSpec`. A unique key must be used f
     - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
 
 Note: once any of `failureReason` or `failureMessage` surface on the cluster who is referencing the infrastructureCluster object, 
-they cannot be restored anymore (it is considered a terminal error).
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the cluster).
 
 Example:
 ```yaml

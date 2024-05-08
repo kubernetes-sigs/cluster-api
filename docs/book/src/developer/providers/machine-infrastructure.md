@@ -46,7 +46,7 @@ A machine infrastructure provider must define an API type for "infrastructure ma
    1. A Ready condition to represent the overall operational state of the component. It can be based on the summary of more detailed conditions existing on the same object, e.g. instanceReady, SecurityGroupsReady conditions.
 
 Note: once any of `failureReason` or `failureMessage` surface on the machine who is referencing the infrastructureMachine object,
-they cannot be restored anymore  (this is considered a terminal error).
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine).
 Also, if the machine is under control of a MachineHealthCheck instance, the machine will be automatically remediated.
 
 ### InfraMachineTemplate Resources

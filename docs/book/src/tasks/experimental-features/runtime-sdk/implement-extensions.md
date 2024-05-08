@@ -84,7 +84,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Webhook Server port")
 
 	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
-		"Webhook cert dir, only used when webhook-port is specified.")
+		"Webhook cert dir.")
 }
 
 func main() {
@@ -279,7 +279,7 @@ well with practices like unit testing and generally makes the entire system more
 
 ### Error messages
 
-RuntimeExtension authors should be aware that error messages are surfaced as a conditions in Kubernetes resources 
+RuntimeExtension authors should be aware that error messages are surfaced as a conditions in Kubernetes resources
 and recorded in Cluster API controller's logs. As a consequence:
 
 - Error message must not contain any sensitive information.
@@ -291,16 +291,16 @@ and recorded in Cluster API controller's logs. As a consequence:
 <h1>Caution</h1>
 
 If an error message is not deterministic and it changes at every call even if the problem is the same, it could
-lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to 
+lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to
 controllers processing those resource that might impact system stability.
 
 </aside>
 
 ### ExtensionConfig
 
-To register your runtime extension apply the ExtensionConfig resource in the management cluster, including your CA 
-certs, ClusterIP service associated with the app and namespace, and the target namespace for the given extension. Once 
-created, the extension will detect the associated service and discover the associated Hooks. For clarification, you can 
+To register your runtime extension apply the ExtensionConfig resource in the management cluster, including your CA
+certs, ClusterIP service associated with the app and namespace, and the target namespace for the given extension. Once
+created, the extension will detect the associated service and discover the associated Hooks. For clarification, you can
 check the status of the ExtensionConfig. Below is an example of `ExtensionConfig` -
 
 ```yaml
@@ -328,7 +328,7 @@ spec:
 
 Settings can be added to the ExtensionConfig object in the form of a map with string keys and values. These settings are
 sent with each request to hooks registered by that ExtensionConfig. Extension developers can implement behavior in their
-extensions to alter behavior based on these settings. Settings should be well documented by extension developers so that 
+extensions to alter behavior based on these settings. Settings should be well documented by extension developers so that
 ClusterClass authors can understand usage and expected behaviour.
 
 Settings can be provided for individual external patches by providing them in the ClusterClass `.spec.patches[*].external.settings`.
@@ -380,7 +380,7 @@ curl -X 'POST' 'http://127.0.0.1:8001/api/v1/namespaces/default/services/https:w
   -d '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoveryRequest"}' | jq
 ```
 
-For more details about the API of the Runtime Extensions please see <button onclick="openSwaggerUI()">Swagger UI</button>.  
+For more details about the API of the Runtime Extensions please see <button onclick="openSwaggerUI()">Swagger UI</button>.
 For more details on proxy support please see [Proxies in Kubernetes](https://kubernetes.io/docs/concepts/cluster-administration/proxies/).
 
 <script>

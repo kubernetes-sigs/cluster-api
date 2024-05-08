@@ -665,7 +665,7 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary diagrams import-restrictions go-directive
 
 .PHONY: verify
-verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
+verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint lint-dockerfiles ## Run all verify-* targets
 
 .PHONY: verify-go-directive
 verify-go-directive:

@@ -52,6 +52,7 @@ spec:
           privileged: false
           runAsUser: 65532
           runAsGroup: 65532
+        terminationMessagePolicy: FallbackToLogsOnError
       terminationGracePeriodSeconds: 10
       serviceAccountName: manager
       tolerations:

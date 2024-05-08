@@ -58,6 +58,7 @@ spec:
             name: dockersock
         securityContext:
           privileged: true
+        terminationMessagePolicy: FallbackToLogsOnError
       terminationGracePeriodSeconds: 10
       serviceAccountName: manager
       tolerations:

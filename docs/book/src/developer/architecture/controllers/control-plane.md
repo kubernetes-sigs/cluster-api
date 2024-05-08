@@ -233,6 +233,18 @@ The `status` object **may** define several fields:
 * `externalManagedControlPlane` - is a bool that should be set to true if the Node objects do not
   exist in the cluster. For example, managed control plane providers for AKS, EKS, GKE, etc, should
   set this to `true`. Leaving the field undefined is equivalent to setting the value to `false`.
+* `paused` - is a condition that reports if the cluster or control plane resource is paused. It should check if 'spec.paused' is set on the cluster, and for the paused annotation on the resource. This is currently optional, but will become required in future.
+```go
+	// Return early and set the paused condition to True if the object or Cluster
+	// is paused.
+	if annotations.IsPaused(cluster, m) {
+		log.Info("Reconciliation is paused for this object, setting Paused condition")
+		conditions.MarkTrue(m, clusterv1.PausedCondition)
+		return ctrl.Result{}, nil
+	}
+
+	conditions.MarkFalse(m, clusterv1.PausedCondition, clusterv1.ResourceNotPausedReason, clusterv1.ConditionSeverityInfo, "Resource is operating as expected")
+   ```
 
 ## Example usage
 

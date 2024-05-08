@@ -44,7 +44,18 @@ A machine infrastructure provider must define an API type for "infrastructure ma
             - `address` (string)
 7. Should have a conditions field with the following:
    1. A Ready condition to represent the overall operational state of the component. It can be based on the summary of more detailed conditions existing on the same object, e.g. instanceReady, SecurityGroupsReady conditions.
+   2. A Paused condition to report if the cluster or infrastructure machine is paused. It should check if 'spec.paused' is set on the cluster, and for the paused annotation on the infrastructure. This is currently optional, but will be required in the future.
+   ```go
+	// Return early and set the paused condition to True if the object or Cluster
+	// is paused.
+	if annotations.IsPaused(cluster, m) {
+		log.Info("Reconciliation is paused for this object, setting Paused condition")
+		conditions.MarkTrue(m, clusterv1.PausedCondition)
+		return ctrl.Result{}, nil
+	}
 
+	conditions.MarkFalse(m, clusterv1.PausedCondition, clusterv1.ResourceNotPausedReason, clusterv1.ConditionSeverityInfo, "Resource is operating as expected") 
+   ```
 
 ### InfraMachineTemplate Resources
 

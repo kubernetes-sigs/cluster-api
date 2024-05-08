@@ -26,6 +26,20 @@ A bootstrap provider must define an API type for bootstrap resources. The type:
             meant to be suitable for programmatic interpretation
         2. `failureMessage` (string): indicates there is a fatal problem reconciling the bootstrap data;
             meant to be a more descriptive value than `failureReason`
+7. Should have a conditions field with the following:
+   1. A Paused condition to report if the cluster or bootstrap resource is paused. It should check if 'spec.paused' is set on the cluster, and for the paused annotation on the resource. This is currently optional, but will be required in the future.
+   ```go
+	// Return early and set the paused condition to True if the object or Cluster
+	// is paused.
+	if annotations.IsPaused(cluster, m) {
+		log.Info("Reconciliation is paused for this object, setting Paused condition")
+		conditions.MarkTrue(m, clusterv1.PausedCondition)
+		return ctrl.Result{}, nil
+	}
+
+	conditions.MarkFalse(m, clusterv1.PausedCondition, clusterv1.ResourceNotPausedReason, clusterv1.ConditionSeverityInfo, "Resource is operating as expected") 
+   ```
+
 
 Note: because the `dataSecretName` is part of `status`, this value must be deterministically recreatable from the data in the
 `Cluster`, `Machine`, and/or bootstrap resource. If the name is randomly generated, it is not always possible to move

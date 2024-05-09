@@ -127,6 +127,9 @@ type ClusterctlUpgradeSpecInput struct {
 	// If not set, the test will upgrade once to the v1beta1 contract.
 	// For some examples see clusterctl_upgrade_test.go
 	Upgrades []ClusterctlUpgradeSpecInputUpgrade
+
+	// ControlPlaneMachineCount specifies the number of control plane machines to create in the workload cluster.
+	ControlPlaneMachineCount *int64
 }
 
 // ClusterctlUpgradeSpecInputUpgrade defines an upgrade.
@@ -379,6 +382,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
 		}
 		controlPlaneMachineCount := pointer.Int64(1)
+
+		// Don't set controlPlaneMachineCount to 0 to satisfy the validation in the cluster template.
+		if input.ControlPlaneMachineCount != nil && *input.ControlPlaneMachineCount != int64(0) {
+			controlPlaneMachineCount = input.ControlPlaneMachineCount
+		}
 		workerMachineCount := pointer.Int64(1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
@@ -427,6 +435,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		expectedMachinePoolNodeCount := calculateExpectedMachinePoolNodeCount(ctx, managementClusterProxy.GetClient(), workloadClusterUnstructured, coreCAPIStorageVersion)
 		expectedMachinePoolMachineCount, err := calculateExpectedMachinePoolMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterNamespace, workloadClusterName)
 		Expect(err).ToNot(HaveOccurred())
+
+		// Account for clusters that have a control plane count of 0.
+		if input.ControlPlaneMachineCount != nil && *input.ControlPlaneMachineCount == int64(0) {
+			controlPlaneMachineCount = input.ControlPlaneMachineCount
+		}
 		expectedMachineCount := *controlPlaneMachineCount + expectedMachineDeploymentMachineCount + expectedMachinePoolMachineCount
 
 		Byf("Expect %d Machines and %d MachinePool replicas to exist", expectedMachineCount, expectedMachinePoolNodeCount)

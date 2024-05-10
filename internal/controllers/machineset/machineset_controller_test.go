@@ -1008,6 +1008,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	replicas := int32(2)
 	version := "v1.25.3"
 	duration10s := &metav1.Duration{Duration: 10 * time.Second}
+	duration11s := &metav1.Duration{Duration: 11 * time.Second}
 	ms := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			UID:       "abc-123-ms-uid",
@@ -1347,6 +1348,28 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeout).Should(Equal(deletingMachine.Spec.NodeDeletionTimeout))
 		g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeout).Should(Equal(deletingMachine.Spec.NodeVolumeDetachTimeout))
 	}, 5*time.Second).Should(Succeed())
+
+	// Verify in-place mutable fields are updated on the deleting machine
+	ms.Spec.Template.Spec.NodeDrainTimeout = duration11s
+	ms.Spec.Template.Spec.NodeDeletionTimeout = duration11s
+	ms.Spec.Template.Spec.NodeVolumeDetachTimeout = duration11s
+	g.Expect(reconciler.syncMachines(ctx, ms, []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine})).To(Succeed())
+	updatedDeletingMachine := deletingMachine.DeepCopy()
+
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
+	// Verify Node timeout values
+	g.Expect(updatedDeletingMachine.Spec.NodeDrainTimeout).Should(And(
+		Not(BeNil()),
+		HaveValue(Equal(*ms.Spec.Template.Spec.NodeDrainTimeout)),
+	))
+	g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeout).Should(And(
+		Not(BeNil()),
+		HaveValue(Equal(*ms.Spec.Template.Spec.NodeDeletionTimeout)),
+	))
+	g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeout).Should(And(
+		Not(BeNil()),
+		HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeout)),
+	))
 }
 
 func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {

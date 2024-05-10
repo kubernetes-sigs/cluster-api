@@ -362,8 +362,24 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 	log := ctrl.LoggerFrom(ctx)
 	for i := range machines {
 		m := machines[i]
-		// If the machine is already being deleted, we don't need to update it.
+		// If the machine is already being deleted, we only need to sync
+		// the subset of fields that impact tearing down a machine
 		if !m.DeletionTimestamp.IsZero() {
+			patchHelper, err := patch.NewHelper(m, r.Client)
+			if err != nil {
+				return errors.Wrapf(err, "failed to generate patch for Machine %q", klog.KObj(m))
+			}
+
+			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
+			m.Spec.NodeDrainTimeout = machineSet.Spec.Template.Spec.NodeDrainTimeout
+			m.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
+			m.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout
+
+			err = patchHelper.Patch(ctx, m)
+			if err != nil {
+				log.Error(err, "Failed to update Machine", "Machine", klog.KObj(m))
+				return errors.Wrapf(err, "failed to update Machine %q", klog.KObj(m))
+			}
 			continue
 		}
 

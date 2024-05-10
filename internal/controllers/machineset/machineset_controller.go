@@ -87,6 +87,9 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	// Deprecated: DeprecatedInfraMachineNaming. Name the InfraStructureMachines after the InfraMachineTemplate.
+	DeprecatedInfraMachineNaming bool
+
 	ssaCache ssa.Cache
 	recorder record.EventRecorder
 }
@@ -496,12 +499,16 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 				log = log.WithValues(bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name))
 			}
 
+			infraMachineName := machine.Name
+			if r.DeprecatedInfraMachineNaming {
+				infraMachineName = names.SimpleNameGenerator.GenerateName(ms.Spec.Template.Spec.InfrastructureRef.Name + "-")
+			}
 			// Create the InfraMachine.
 			infraRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 				Client:      r.UnstructuredCachingClient,
 				TemplateRef: &ms.Spec.Template.Spec.InfrastructureRef,
 				Namespace:   machine.Namespace,
-				Name:        machine.Name,
+				Name:        infraMachineName,
 				ClusterName: machine.Spec.ClusterName,
 				Labels:      machine.Labels,
 				Annotations: machine.Annotations,

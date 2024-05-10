@@ -86,10 +86,11 @@ var (
 	diagnosticsOptions          = flags.DiagnosticsOptions{}
 	logOptions                  = logs.NewOptions()
 	// KCP specific flags.
-	kubeadmControlPlaneConcurrency int
-	clusterCacheTrackerConcurrency int
-	etcdDialTimeout                time.Duration
-	etcdCallTimeout                time.Duration
+	kubeadmControlPlaneConcurrency  int
+	clusterCacheTrackerConcurrency  int
+	etcdDialTimeout                 time.Duration
+	etcdCallTimeout                 time.Duration
+	useDeprecatedInfraMachineNaming bool
 )
 
 func init() {
@@ -166,6 +167,10 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.DurationVar(&etcdCallTimeout, "etcd-call-timeout-duration", etcd.DefaultCallTimeout,
 		"Duration that the etcd client waits at most for read and write operations to etcd.")
+
+	fs.BoolVar(&useDeprecatedInfraMachineNaming, "use-deprecated-infra-machine-naming", false,
+		"Use the deprecated naming convention for infra machines where they are named after the InfraMachineTemplate.")
+	_ = fs.MarkDeprecated("use-deprecated-infra-machine-naming", "This flag will be removed in v1.9.")
 
 	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 	flags.AddTLSOptions(fs, &tlsOptions)
@@ -342,12 +347,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
-		Client:              mgr.GetClient(),
-		SecretCachingClient: secretCachingClient,
-		Tracker:             tracker,
-		WatchFilterValue:    watchFilterValue,
-		EtcdDialTimeout:     etcdDialTimeout,
-		EtcdCallTimeout:     etcdCallTimeout,
+		Client:                       mgr.GetClient(),
+		SecretCachingClient:          secretCachingClient,
+		Tracker:                      tracker,
+		WatchFilterValue:             watchFilterValue,
+		EtcdDialTimeout:              etcdDialTimeout,
+		EtcdCallTimeout:              etcdCallTimeout,
+		DeprecatedInfraMachineNaming: useDeprecatedInfraMachineNaming,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)

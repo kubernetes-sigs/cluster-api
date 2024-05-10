@@ -84,6 +84,9 @@ type KubeadmControlPlaneReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	// Deprecated: DeprecatedInfraMachineNaming. Name the InfraStructureMachines after the InfraMachineTemplate.
+	DeprecatedInfraMachineNaming bool
+
 	managementCluster         internal.ManagementCluster
 	managementClusterUncached internal.ManagementCluster
 	ssaCache                  ssa.Cache

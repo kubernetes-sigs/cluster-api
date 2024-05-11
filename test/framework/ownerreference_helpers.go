@@ -102,10 +102,10 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 }
 
 func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
-	allAssertFuncs := map[string]func(reference []metav1.OwnerReference) error{}
+	allAssertFuncs := map[string][]func(reference []metav1.OwnerReference) error{}
 	for _, m := range assertFuncs {
 		for k, v := range m {
-			allAssertFuncs[k] = v
+			allAssertFuncs[k] = append(allAssertFuncs[k], v)
 		}
 	}
 	Eventually(func() error {
@@ -125,8 +125,10 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 				allErrs = append(allErrs, fmt.Errorf("kind %s does not have an associated ownerRef assertion function", v.Object.Kind))
 				continue
 			}
-			if err := allAssertFuncs[v.Object.Kind](v.Owners); err != nil {
-				allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s/%s", v.Object.Kind, v.Object.Name))
+			for _, f := range allAssertFuncs[v.Object.Kind] {
+				if err := f(v.Owners); err != nil {
+					allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s/%s", v.Object.Kind, v.Object.Name))
+				}
 			}
 		}
 		return kerrors.NewAggregate(allErrs)
@@ -308,7 +310,6 @@ var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReferenc
 	dockerMachineKind: func(owners []metav1.OwnerReference) error {
 		// The DockerMachine must be owned and controlled by a Machine or a DockerMachinePool.
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machineController, dockerMachinePoolController})
-
 	},
 	dockerMachineTemplateKind: func(owners []metav1.OwnerReference) error {
 		// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.

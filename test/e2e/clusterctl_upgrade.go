@@ -382,9 +382,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
 		}
 		controlPlaneMachineCount := pointer.Int64(1)
-
-		// Don't set controlPlaneMachineCount to 0 to satisfy the validation in the cluster template.
-		if input.ControlPlaneMachineCount != nil && *input.ControlPlaneMachineCount != int64(0) {
+		if input.ControlPlaneMachineCount != nil {
 			controlPlaneMachineCount = input.ControlPlaneMachineCount
 		}
 		workerMachineCount := pointer.Int64(1)
@@ -436,10 +434,6 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		expectedMachinePoolMachineCount, err := calculateExpectedMachinePoolMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterNamespace, workloadClusterName)
 		Expect(err).ToNot(HaveOccurred())
 
-		// Account for clusters that have a control plane count of 0.
-		if input.ControlPlaneMachineCount != nil && *input.ControlPlaneMachineCount == int64(0) {
-			controlPlaneMachineCount = input.ControlPlaneMachineCount
-		}
 		expectedMachineCount := *controlPlaneMachineCount + expectedMachineDeploymentMachineCount + expectedMachinePoolMachineCount
 
 		Byf("Expect %d Machines and %d MachinePool replicas to exist", expectedMachineCount, expectedMachinePoolNodeCount)
@@ -466,7 +460,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				}
 			}
 			return n, nil
-		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(*controlPlaneMachineCount+*workerMachineCount), "Timed out waiting for all machines to be exist")
+		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(expectedMachineCount), "Timed out waiting for all Machines to exist")
 
 		By("Waiting for MachinePool to be ready with correct number of replicas")
 		Eventually(func() (int64, error) {

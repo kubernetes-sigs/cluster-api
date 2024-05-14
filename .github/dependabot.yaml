@@ -37,6 +37,8 @@ updates:
     # Ignore k8s and its transitives modules as they are upgraded manually together with controller-runtime.
   - dependency-name: "k8s.io/*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  - dependency-name: "github.com/prometheus/*"
+    update-types: [ "version-update:semver-major", "version-update:semver-minor"]
   - dependency-name: "go.etcd.io/*"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "google.golang.org/grpc"

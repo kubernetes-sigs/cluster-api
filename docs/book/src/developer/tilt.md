@@ -8,7 +8,7 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer
-2. [kind](https://kind.sigs.k8s.io): v0.22.0 or newer
+2. [kind](https://kind.sigs.k8s.io): v0.23.0 or newer
 3. [Tilt](https://docs.tilt.dev/install.html): v0.30.8 or newer
 4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
 5. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`

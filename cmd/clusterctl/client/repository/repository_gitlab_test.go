@@ -154,7 +154,7 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
-		if r.URL.RawPath == "/api/v4/projects/group%2Fproject/packages/generic/my-package/v0.4.1/file.yaml" {
+		if r.URL.EscapedPath() == "/api/v4/projects/group%2Fproject/packages/generic/my-package/v0.4.1/file.yaml" {
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.Header().Set("Content-Disposition", "attachment; filename=file.yaml")
 			fmt.Fprint(w, "content")

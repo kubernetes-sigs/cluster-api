@@ -131,7 +131,7 @@ func (h *serverSidePatchHelper) Patch(ctx context.Context) error {
 	}
 
 	log := ctrl.LoggerFrom(ctx)
-	log.V(5).Info("Patching object", "Intent", h.modified)
+	log.V(5).Info("Patching object", "intent", h.modified)
 
 	options := []client.PatchOption{
 		client.FieldOwner(TopologyManagerName),

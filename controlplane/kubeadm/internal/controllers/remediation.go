@@ -143,7 +143,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 		// The cluster MUST have more than one replica, because this is the smallest cluster size that allows any etcd failure tolerance.
 		if controlPlane.Machines.Len() <= 1 {
-			log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "Replicas", controlPlane.Machines.Len())
+			log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "replicas", controlPlane.Machines.Len())
 			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate if current replicas are less or equal to 1")
 			return ctrl.Result{}, nil
 		}
@@ -312,7 +312,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	var retryForSameMachineInProgress bool
 	if lastRemediationTime.Add(minHealthyPeriod).After(reconciliationTime) {
 		retryForSameMachineInProgress = true
-		log = log.WithValues("RemediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, lastRemediationData.Machine))
+		log = log.WithValues("remediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, lastRemediationData.Machine))
 	}
 
 	// If the retry for the same machine is not in progress, this is the first try of a new retry sequence.
@@ -412,7 +412,7 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		//
 		// NOTE: This should not happen given that KCP is running reconcileEtcdMembers before calling this method.
 		if machine == nil {
-			log.Info("An etcd member does not have a corresponding machine, assuming this member is unhealthy", "MemberName", etcdMember)
+			log.Info("An etcd member does not have a corresponding machine, assuming this member is unhealthy", "memberName", etcdMember)
 			targetUnhealthyMembers++
 			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember))
 			continue

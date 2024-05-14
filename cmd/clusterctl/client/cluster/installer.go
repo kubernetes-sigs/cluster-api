@@ -108,16 +108,16 @@ func (i *providerInstaller) Install(ctx context.Context, opts InstallOptions) ([
 
 func installComponentsAndUpdateInventory(ctx context.Context, components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
 	log := logf.Log
-	log.Info("Installing", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
+	log.Info("Installing", "provider", components.ManifestLabel(), "version", components.Version(), "targetNamespace", components.TargetNamespace())
 
 	inventoryObject := components.InventoryObject()
 
-	log.V(1).Info("Creating objects", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
+	log.V(1).Info("Creating objects", "provider", components.ManifestLabel(), "version", components.Version(), "targetNamespace", components.TargetNamespace())
 	if err := providerComponents.Create(ctx, components.Objs()); err != nil {
 		return err
 	}
 
-	log.V(1).Info("Creating inventory entry", "Provider", components.ManifestLabel(), "Version", components.Version(), "TargetNamespace", components.TargetNamespace())
+	log.V(1).Info("Creating inventory entry", "provider", components.ManifestLabel(), "version", components.Version(), "targetNamespace", components.TargetNamespace())
 	return providerInventory.Create(ctx, inventoryObject)
 }
 

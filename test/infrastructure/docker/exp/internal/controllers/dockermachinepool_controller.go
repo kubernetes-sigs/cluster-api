@@ -132,7 +132,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Always attempt to Patch the DockerMachinePool object and status after each reconciliation.
 	defer func() {
 		if err := patchDockerMachinePool(ctx, patchHelper, dockerMachinePool); err != nil {
-			log.Error(err, "failed to patch DockerMachinePool")
+			log.Error(err, "Failed to patch DockerMachinePool")
 			if rerr == nil {
 				rerr = err
 			}
@@ -177,8 +177,8 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
 			&expv1.MachinePool{},
-			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(
-				infraexpv1.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
+			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(ctx,
+				infraexpv1.GroupVersion.WithKind("DockerMachinePool"))),
 		).
 		Watches(
 			&infrav1.DockerMachine{},

@@ -137,7 +137,7 @@ func (v *viperReader) Init(ctx context.Context, path string) error {
 	if err := viper.ReadInConfig(); err != nil {
 		return err
 	}
-	log.V(5).Info("Using configuration", "File", viper.ConfigFileUsed())
+	log.V(5).Info("Using configuration", "file", viper.ConfigFileUsed())
 	return nil
 }
 

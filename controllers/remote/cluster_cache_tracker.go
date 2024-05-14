@@ -580,7 +580,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 
 	if accessor.watches.Has(input.Name) {
 		log := ctrl.LoggerFrom(ctx)
-		log.V(6).Info("Watch already exists", "Cluster", klog.KRef(input.Cluster.Namespace, input.Cluster.Name), "name", input.Name)
+		log.V(6).Info(fmt.Sprintf("Watch %s already exists", input.Name), "Cluster", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 		return nil
 	}
 

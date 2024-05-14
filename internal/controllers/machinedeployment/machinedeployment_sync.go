@@ -630,7 +630,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 			continue
 		}
 
-		log.V(4).Info("Trying to cleanup machine set for deployment", "machineset", ms.Name)
+		log.V(4).Info("Trying to cleanup machine set for deployment", "MachineSet", klog.KObj(ms))
 		if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.

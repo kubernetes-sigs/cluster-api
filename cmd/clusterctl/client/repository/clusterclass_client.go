@@ -81,13 +81,13 @@ func (cc *clusterClassClient) Get(ctx context.Context, name, targetNamespace str
 	}
 
 	if rawArtifact == nil {
-		log.V(5).Info("Fetching", "File", filename, "Provider", cc.provider.Name(), "Type", cc.provider.Type(), "Version", version)
+		log.V(5).Info("Fetching", "file", filename, "provider", cc.provider.Name(), "type", cc.provider.Type(), "version", version)
 		rawArtifact, err = cc.repository.GetFile(ctx, version, filename)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", filename, cc.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", filename, "Provider", cc.provider.ManifestLabel(), "Version", version)
+		log.V(1).Info("Using", "override", filename, "provider", cc.provider.ManifestLabel(), "version", version)
 	}
 
 	return NewTemplate(TemplateInput{

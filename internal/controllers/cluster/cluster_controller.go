@@ -30,8 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -249,12 +251,18 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				// Don't handle deleted child
 				continue
 			}
-			gvk := child.GetObjectKind().GroupVersionKind().String()
 
-			log.Info("Deleting child object", "gvk", gvk, "name", child.GetName())
+			gvk, err := apiutil.GVKForObject(child, r.Client.Scheme())
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "error getting gvk for child object"))
+				continue
+			}
+
+			log := log.WithValues(gvk.Kind, klog.KObj(child))
+			log.Info("Deleting child object")
 			if err := r.Client.Delete(ctx, child); err != nil {
 				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, child.GetName())
-				log.Error(err, "Error deleting resource", "gvk", gvk, "name", child.GetName())
+				log.Error(err, "Error deleting resource")
 				errs = append(errs, err)
 			}
 		}

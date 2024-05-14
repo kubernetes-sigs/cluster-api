@@ -991,7 +991,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 		apiServerEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = apiServerEndpoint
-		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint", "APIServerEndpoint", apiServerEndpoint)
+		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint", "apiServerEndpoint", apiServerEndpoint)
 	}
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
@@ -1029,39 +1029,39 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 	// then use Cluster's ControlPlaneEndpoint as a control plane endpoint for the Kubernetes cluster.
 	if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		config.Spec.ClusterConfiguration.ControlPlaneEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
-		log.V(3).Info("Altering ClusterConfiguration.ControlPlaneEndpoint", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
+		log.V(3).Info("Altering ClusterConfiguration.ControlPlaneEndpoint", "controlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
 	}
 
 	// If there are no ClusterName defined in ClusterConfiguration, use Cluster.Name
 	if config.Spec.ClusterConfiguration.ClusterName == "" {
 		config.Spec.ClusterConfiguration.ClusterName = cluster.Name
-		log.V(3).Info("Altering ClusterConfiguration.ClusterName", "ClusterName", config.Spec.ClusterConfiguration.ClusterName)
+		log.V(3).Info("Altering ClusterConfiguration.ClusterName", "clusterName", config.Spec.ClusterConfiguration.ClusterName)
 	}
 
 	// If there are no Network settings defined in ClusterConfiguration, use ClusterNetwork settings, if defined
 	if cluster.Spec.ClusterNetwork != nil {
 		if config.Spec.ClusterConfiguration.Networking.DNSDomain == "" && cluster.Spec.ClusterNetwork.ServiceDomain != "" {
 			config.Spec.ClusterConfiguration.Networking.DNSDomain = cluster.Spec.ClusterNetwork.ServiceDomain
-			log.V(3).Info("Altering ClusterConfiguration.Networking.DNSDomain", "DNSDomain", config.Spec.ClusterConfiguration.Networking.DNSDomain)
+			log.V(3).Info("Altering ClusterConfiguration.Networking.DNSDomain", "dnsDomain", config.Spec.ClusterConfiguration.Networking.DNSDomain)
 		}
 		if config.Spec.ClusterConfiguration.Networking.ServiceSubnet == "" &&
 			cluster.Spec.ClusterNetwork.Services != nil &&
 			len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
 			config.Spec.ClusterConfiguration.Networking.ServiceSubnet = cluster.Spec.ClusterNetwork.Services.String()
-			log.V(3).Info("Altering ClusterConfiguration.Networking.ServiceSubnet", "ServiceSubnet", config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
+			log.V(3).Info("Altering ClusterConfiguration.Networking.ServiceSubnet", "serviceSubnet", config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
 		}
 		if config.Spec.ClusterConfiguration.Networking.PodSubnet == "" &&
 			cluster.Spec.ClusterNetwork.Pods != nil &&
 			len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
 			config.Spec.ClusterConfiguration.Networking.PodSubnet = cluster.Spec.ClusterNetwork.Pods.String()
-			log.V(3).Info("Altering ClusterConfiguration.Networking.PodSubnet", "PodSubnet", config.Spec.ClusterConfiguration.Networking.PodSubnet)
+			log.V(3).Info("Altering ClusterConfiguration.Networking.PodSubnet", "podSubnet", config.Spec.ClusterConfiguration.Networking.PodSubnet)
 		}
 	}
 
 	// If there are no KubernetesVersion settings defined in ClusterConfiguration, use Version from machine, if defined
 	if config.Spec.ClusterConfiguration.KubernetesVersion == "" && machine.Spec.Version != nil {
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
-		log.V(3).Info("Altering ClusterConfiguration.KubernetesVersion", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
+		log.V(3).Info("Altering ClusterConfiguration.KubernetesVersion", "kubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
 	}
 }
 

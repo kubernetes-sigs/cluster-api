@@ -225,6 +225,6 @@ func (h *TwoWaysPatchHelper) Patch(ctx context.Context) error {
 	}
 
 	// Note: deepcopy before patching in order to avoid modifications to the original object.
-	log.V(5).Info("Patching object", "Patch", string(h.patch))
+	log.V(5).Info("Patching object", "patch", string(h.patch))
 	return h.client.Patch(ctx, h.original.DeepCopyObject().(client.Object), client.RawPatch(types.MergePatchType, h.patch))
 }

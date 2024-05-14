@@ -122,7 +122,7 @@ func (l *topologyReconcileLogger) WithMachineDeployment(md *clusterv1.MachineDep
 	return &topologyReconcileLogger{
 		Logger: l.Logger.WithValues(
 			"MachineDeployment", klog.KObj(md),
-			"MachineDeploymentTopology", topologyName,
+			"machineDeploymentTopology", topologyName,
 		),
 	}
 }
@@ -133,7 +133,7 @@ func (l *topologyReconcileLogger) WithMachinePool(mp *expv1.MachinePool) Logger 
 	return &topologyReconcileLogger{
 		Logger: l.Logger.WithValues(
 			"MachinePool", klog.KObj(mp),
-			"MachinePoolTopology", topologyName,
+			"machinePoolTopology", topologyName,
 		),
 	}
 }

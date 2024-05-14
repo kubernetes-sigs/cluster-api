@@ -209,7 +209,7 @@ func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clus
 		// attempt to Patch the ClusterResourceSetBinding object after delete reconciliation if there is at least 1 binding left.
 		if len(clusterResourceSetBinding.Spec.Bindings) == 0 {
 			if r.Client.Delete(ctx, clusterResourceSetBinding) != nil {
-				log.Error(err, "failed to delete empty ClusterResourceSetBinding")
+				log.Error(err, "Failed to delete empty ClusterResourceSetBinding")
 			}
 		} else if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
 			return err
@@ -289,7 +289,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	defer func() {
 		// Always attempt to Patch the ClusterResourceSetBinding object after each reconciliation.
 		if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
-			log.Error(err, "failed to patch config")
+			log.Error(err, "Failed to patch config")
 		}
 	}()
 
@@ -359,7 +359,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		isSuccessful := true
 		if err := resourceScope.apply(ctx, remoteClient); err != nil {
 			isSuccessful = false
-			log.Error(err, "failed to apply ClusterResourceSet resource", "Resource kind", resource.Kind, "Resource name", resource.Name)
+			log.Error(err, "Failed to apply ClusterResourceSet resource", resource.Kind, klog.KRef(clusterResourceSet.Namespace, resource.Name))
 			conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 			errList = append(errList, err)
 		}

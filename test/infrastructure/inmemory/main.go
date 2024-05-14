@@ -174,13 +174,13 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	// Set log level 2 as default.
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
-		setupLog.Error(err, "failed to set default log level")
+		setupLog.Error(err, "Failed to set default log level")
 		os.Exit(1)
 	}
 	pflag.Parse()
 
 	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -194,7 +194,7 @@ func main() {
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to add TLS settings to the webhook server")
 		os.Exit(1)
 	}
 
@@ -247,7 +247,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -259,21 +259,21 @@ func main() {
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
-	setupLog.Info("starting manager", "version", version.Get().String())
+	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Error(err, "Problem running manager")
 		os.Exit(1)
 	}
 }
 
 func setupChecks(mgr ctrl.Manager) {
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create ready check")
+		setupLog.Error(err, "Unable to create ready check")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create health check")
+		setupLog.Error(err, "Unable to create health check")
 		os.Exit(1)
 	}
 }
@@ -285,7 +285,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Start in memory manager
 	inMemoryManager := inmemoryruntime.NewManager(inmemoryScheme)
 	if err := inMemoryManager.Start(ctx); err != nil {
-		setupLog.Error(err, "unable to start a in memory manager")
+		setupLog.Error(err, "Unable to start a in memory manager")
 		os.Exit(1)
 	}
 
@@ -293,7 +293,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	podIP := os.Getenv("POD_IP")
 	apiServerMux, err := inmemoryserver.NewWorkloadClustersMux(inMemoryManager, podIP)
 	if err != nil {
-		setupLog.Error(err, "unable to create workload clusters mux")
+		setupLog.Error(err, "Unable to create workload clusters mux")
 		os.Exit(1)
 	}
 
@@ -304,7 +304,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIServerMux:     apiServerMux,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "InMemoryCluster")
+		setupLog.Error(err, "Unable to create controller", "controller", "InMemoryCluster")
 		os.Exit(1)
 	}
 
@@ -314,29 +314,29 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIServerMux:     apiServerMux,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "InMemoryMachine")
+		setupLog.Error(err, "Unable to create controller", "controller", "InMemoryMachine")
 		os.Exit(1)
 	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
 	if err := (&webhooks.InMemoryCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryCluster")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "InMemoryCluster")
 		os.Exit(1)
 	}
 
 	if err := (&webhooks.InMemoryClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryClusterTemplate")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "InMemoryClusterTemplate")
 		os.Exit(1)
 	}
 
 	if err := (&webhooks.InMemoryMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryMachine")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "InMemoryMachine")
 		os.Exit(1)
 	}
 
 	if err := (&webhooks.InMemoryMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryMachineTemplate")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "InMemoryMachineTemplate")
 		os.Exit(1)
 	}
 }

@@ -155,7 +155,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 
 	// If there are deleting machines, wait for the operation to complete.
 	if controlPlane.HasDeletingMachine() {
-		logger.Info("Waiting for machines to be deleted", "Machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		logger.Info("Waiting for machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 

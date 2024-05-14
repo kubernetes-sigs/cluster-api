@@ -206,7 +206,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		if err := r.updateStatus(ctx, controlPlane); err != nil {
 			var connFailure *internal.RemoteClusterConnectionError
 			if errors.As(err, &connFailure) {
-				log.Info("Could not connect to workload cluster to fetch status", "err", err.Error())
+				log.Error(err, "Could not connect to workload cluster to fetch status")
 			} else {
 				log.Error(err, "Failed to update KubeadmControlPlane Status")
 				reterr = kerrors.NewAggregate([]error{reterr, err})
@@ -273,7 +273,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 	if !cluster.Status.InfrastructureReady || !cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, collections.Machines{})
 		if err != nil {
-			log.Error(err, "failed to initialize control plane scope")
+			log.Error(err, "Failed to initialize control plane scope")
 			return nil, false, err
 		}
 		return controlPlane, false, nil
@@ -282,7 +282,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 	// Read control plane machines
 	controlPlaneMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines(cluster.Name))
 	if err != nil {
-		log.Error(err, "failed to retrieve control plane machines for cluster")
+		log.Error(err, "Failed to retrieve control plane machines for cluster")
 		return nil, false, err
 	}
 
@@ -301,7 +301,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 
 	controlPlane, err := internal.NewControlPlane(ctx, r.managementCluster, r.Client, cluster, kcp, ownedMachines)
 	if err != nil {
-		log.Error(err, "failed to initialize control plane scope")
+		log.Error(err, "Failed to initialize control plane scope")
 		return nil, false, err
 	}
 	return controlPlane, false, nil
@@ -367,7 +367,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// Generate Cluster Kubeconfig if needed
 	if result, err := r.reconcileKubeconfig(ctx, controlPlane); !result.IsZero() || err != nil {
 		if err != nil {
-			log.Error(err, "failed to reconcile Kubeconfig")
+			log.Error(err, "Failed to reconcile Kubeconfig")
 		}
 		return result, err
 	}
@@ -426,17 +426,17 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
-		log.Info("Initializing control plane", "Desired", desiredReplicas, "Existing", numMachines)
+		log.Info("Initializing control plane", "desired", desiredReplicas, "existing", numMachines)
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
 		// Create a new Machine w/ join
-		log.Info("Scaling up control plane", "Desired", desiredReplicas, "Existing", numMachines)
+		log.Info("Scaling up control plane", "desired", desiredReplicas, "existing", numMachines)
 		return r.scaleUpControlPlane(ctx, controlPlane)
 	// We are scaling down
 	case numMachines > desiredReplicas:
-		log.Info("Scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
+		log.Info("Scaling down control plane", "desired", desiredReplicas, "existing", numMachines)
 		// The last parameter (i.e. machines needing to be rolled out) should always be empty here.
 		return r.scaleDownControlPlane(ctx, controlPlane, collections.Machines{})
 	}
@@ -462,7 +462,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 
 	// Update kube-proxy daemonset.
 	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, controlPlane.KCP, parsedVersion); err != nil {
-		log.Error(err, "failed to update kube-proxy daemonset")
+		log.Error(err, "Failed to update kube-proxy daemonset")
 		return ctrl.Result{}, err
 	}
 
@@ -495,7 +495,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
 	controllerRef := metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
-		log.Error(err, "unable to lookup or create cluster certificates")
+		log.Error(err, "Unable to lookup or create cluster certificates")
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return err
 	}
@@ -524,7 +524,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	// Updates conditions reporting the status of static pods and the status of the etcd cluster.
 	// NOTE: Ignoring failures given that we are deleting
 	if err := r.reconcileControlPlaneConditions(ctx, controlPlane); err != nil {
-		log.Info("failed to reconcile conditions", "error", err.Error())
+		log.Error(err, "Failed to reconcile conditions")
 	}
 
 	// Aggregate the operational state of all the machines; while aggregating we are adding the

@@ -175,7 +175,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 func main() {
 	if _, err := os.ReadDir("/tmp/"); err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -184,13 +184,13 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	// Set log level 2 as default.
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
-		setupLog.Error(err, "failed to set default log level")
+		setupLog.Error(err, "Failed to set default log level")
 		os.Exit(1)
 	}
 	pflag.Parse()
 
 	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -204,7 +204,7 @@ func main() {
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to add TLS settings to the webhook server")
 		os.Exit(1)
 	}
 
@@ -268,7 +268,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -279,21 +279,21 @@ func main() {
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
-	setupLog.Info("starting manager", "version", version.Get().String())
+	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Error(err, "Problem running manager")
 		os.Exit(1)
 	}
 }
 
 func setupChecks(mgr ctrl.Manager) {
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create ready check")
+		setupLog.Error(err, "Unable to create ready check")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create health check")
+		setupLog.Error(err, "Unable to create health check")
 		os.Exit(1)
 	}
 }
@@ -306,14 +306,14 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		},
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to create secret caching client")
+		setupLog.Error(err, "Unable to create secret caching client")
 		os.Exit(1)
 	}
 
 	// Set our runtime client into the context for later use
 	runtimeClient, err := container.NewDockerClient()
 	if err != nil {
-		setupLog.Error(err, "unable to establish container runtime connection", "controller", "reconciler")
+		setupLog.Error(err, "Unable to establish container runtime connection", "controller", "reconciler")
 		os.Exit(1)
 	}
 
@@ -326,7 +326,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		},
 	)
 	if err != nil {
-		setupLog.Error(err, "unable to create cluster cache tracker")
+		setupLog.Error(err, "Unable to create cluster cache tracker")
 		os.Exit(1)
 	}
 
@@ -337,7 +337,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: clusterCacheTrackerConcurrency,
 	}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
+		setupLog.Error(err, "Unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}
 
@@ -349,7 +349,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DockerMachine")
+		setupLog.Error(err, "Unable to create controller", "controller", "DockerMachine")
 		os.Exit(1)
 	}
 
@@ -358,7 +358,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ContainerRuntime: runtimeClient,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
+		setupLog.Error(err, "Unable to create controller", "controller", "DockerCluster")
 		os.Exit(1)
 	}
 
@@ -369,7 +369,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			Tracker:          tracker,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePool")
+			setupLog.Error(err, "Unable to create controller", "controller", "DockerMachinePool")
 			os.Exit(1)
 		}
 	}
@@ -377,23 +377,23 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 func setupWebhooks(mgr ctrl.Manager) {
 	if err := (&infrawebhooks.DockerMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "DockerMachineTemplate")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachineTemplate")
 		os.Exit(1)
 	}
 
 	if err := (&infrawebhooks.DockerCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "DockerCluster")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerCluster")
 		os.Exit(1)
 	}
 
 	if err := (&infrawebhooks.DockerClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "DockerClusterTemplate")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "DockerClusterTemplate")
 		os.Exit(1)
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&infraexpwebhooks.DockerMachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "DockerMachinePool")
+			setupLog.Error(err, "Unable to create webhook", "webhook", "DockerMachinePool")
 			os.Exit(1)
 		}
 	}

@@ -400,7 +400,7 @@ func (r *MachinePoolReconciler) createOrUpdateMachines(ctx context.Context, mp *
 		infraMachine := &infraMachines[i]
 		// If infraMachine already has a Machine, update it if needed.
 		if existingMachine, ok := infraMachineToMachine[infraMachine.GetName()]; ok {
-			log.V(2).Info("Patching existing Machine for infraMachine", "infraMachine", klog.KObj(infraMachine), "machine", klog.KObj(&existingMachine))
+			log.V(2).Info("Patching existing Machine for infraMachine", infraMachine.GetKind(), klog.KObj(infraMachine), "Machine", klog.KObj(&existingMachine))
 
 			desiredMachine := computeDesiredMachine(mp, infraMachine, &existingMachine)
 			if err := ssa.Patch(ctx, r.Client, MachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
@@ -488,7 +488,7 @@ func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Cont
 	if labels.IsMachinePoolOwned(o) {
 		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), o.GetLabels())
 		if err != nil {
-			log.Error(err, "failed to get MachinePool for InfraMachine", "infraMachine", klog.KObj(o), "labels", o.GetLabels())
+			log.Error(err, "Failed to get MachinePool for InfraMachine", o.GetObjectKind().GroupVersionKind().Kind, klog.KObj(o), "labels", o.GetLabels())
 			return nil
 		}
 		if machinePool != nil {

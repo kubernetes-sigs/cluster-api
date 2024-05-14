@@ -288,7 +288,7 @@ func main() {
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
-	setupLog.Info("starting manager", "version", version.Get().String())
+	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

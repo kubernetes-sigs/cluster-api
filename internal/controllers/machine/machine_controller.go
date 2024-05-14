@@ -575,7 +575,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		if apierrors.IsNotFound(err) {
 			// If control plane object in the reference does not exist, log and skip check for
 			// external managed control plane
-			log.Error(err, "control plane object specified in cluster spec.controlPlaneRef does not exist", "kind", cluster.Spec.ControlPlaneRef.Kind, "name", cluster.Spec.ControlPlaneRef.Name)
+			log.Error(err, "Control plane object specified in cluster spec.controlPlaneRef does not exist", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
 		} else {
 			if err != nil {
 				// If any other error occurs when trying to get the control plane object,

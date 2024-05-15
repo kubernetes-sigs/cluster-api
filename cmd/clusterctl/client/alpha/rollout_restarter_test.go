@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	kthreescontrolplanev1 "github.com/k3s-io/cluster-api-k3s/controlplane/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -198,6 +199,84 @@ func Test_ObjectRestarter(t *testing.T) {
 			wantErr:     true,
 			wantRollout: false,
 		},
+		{
+			name: "kthreescontrolplane should have upgradeAfter",
+			fields: fields{
+				objs: []client.Object{
+					&kthreescontrolplanev1.KThreesControlPlane{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "KThreesControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "kcp",
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      KThreesControlPlane,
+					Name:      "kcp",
+					Namespace: "default",
+				},
+			},
+			wantErr:     false,
+			wantRollout: true,
+		},
+		{
+			name: "paused kthreescontrolplane should not have upgradeAfter",
+			fields: fields{
+				objs: []client.Object{
+					&kthreescontrolplanev1.KThreesControlPlane{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "KThreesControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "kcp",
+							Annotations: map[string]string{
+								clusterv1.PausedAnnotation: "true",
+							},
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      KThreesControlPlane,
+					Name:      "kcp",
+					Namespace: "default",
+				},
+			},
+			wantErr:     true,
+			wantRollout: false,
+		},
+		{
+			name: "kthreescontrolplane with spec.rolloutAfter should not be updatable",
+			fields: fields{
+				objs: []client.Object{
+					&kthreescontrolplanev1.KThreesControlPlane{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "KThreesControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "kcp",
+						},
+						Spec: kthreescontrolplanev1.KThreesControlPlaneSpec{
+							UpgradeAfter: &metav1.Time{Time: time.Now().Local().Add(time.Hour)},
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      KubeadmControlPlane,
+					Name:      "kcp",
+					Namespace: "default",
+				},
+			},
+			wantErr:     true,
+			wantRollout: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -232,6 +311,15 @@ func Test_ObjectRestarter(t *testing.T) {
 						g.Expect(kcp.Spec.RolloutAfter).NotTo(BeNil())
 					} else {
 						g.Expect(kcp.Spec.RolloutAfter).To(BeNil())
+					}
+				case *kthreescontrolplanev1.KThreesControlPlane:
+					kcp := &kthreescontrolplanev1.KThreesControlPlane{}
+					err = cl.Get(context.TODO(), key, kcp)
+					g.Expect(err).ToNot(HaveOccurred())
+					if tt.wantRollout {
+						g.Expect(kcp.Spec.UpgradeAfter).NotTo(BeNil())
+					} else {
+						g.Expect(kcp.Spec.UpgradeAfter).To(BeNil())
 					}
 				}
 			}

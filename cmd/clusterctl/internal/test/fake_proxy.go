@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	kthreescontrolplanev1 "github.com/k3s-io/cluster-api-k3s/controlplane/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	fakebootstrap "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/bootstrap"
@@ -60,6 +61,7 @@ func init() {
 	_ = addonsv1.AddToScheme(FakeScheme)
 	_ = apiextensionsv1.AddToScheme(FakeScheme)
 	_ = controlplanev1.AddToScheme(FakeScheme)
+	_ = kthreescontrolplanev1.AddToScheme(FakeScheme)
 
 	_ = fakebootstrap.AddToScheme(FakeScheme)
 	_ = fakecontrolplane.AddToScheme(FakeScheme)

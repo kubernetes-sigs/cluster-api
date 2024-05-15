@@ -58,6 +58,20 @@ func (r *rollout) ObjectRestarter(ctx context.Context, proxy cluster.Proxy, ref 
 		if err := setRolloutAfterOnKCP(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
+	case KThreesControlPlane:
+		kcp, err := getKThreesControlPlane(ctx, proxy, ref.Name, ref.Namespace)
+		if err != nil || kcp == nil {
+			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
+		}
+		if annotations.HasPaused(kcp.GetObjectMeta()) {
+			return errors.Errorf("can't restart paused KThreesControlPlane (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", ref.Kind, ref.Name)
+		}
+		if kcp.Spec.UpgradeAfter != nil && kcp.Spec.UpgradeAfter.After(time.Now()) {
+			return errors.Errorf("can't update KThreesControlPlane (remove 'spec.rolloutAfter' first): %v/%v", ref.Kind, ref.Name)
+		}
+		if err := setUpgradeAfterOnKThreesControlPlane(ctx, proxy, ref.Name, ref.Namespace); err != nil {
+			return err
+		}
 	default:
 		return errors.Errorf("Invalid resource type %v. Valid values: %v", ref.Kind, validResourceTypes)
 	}

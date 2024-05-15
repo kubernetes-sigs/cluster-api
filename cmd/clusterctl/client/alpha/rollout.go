@@ -29,6 +29,8 @@ const (
 	MachineDeployment = "machinedeployment"
 	// KubeadmControlPlane is a resource type.
 	KubeadmControlPlane = "kubeadmcontrolplane"
+	// KThreesControlPlane is a resource type.
+	KThreesControlPlane = "kthreescontrolplane"
 )
 
 var validResourceTypes = []string{

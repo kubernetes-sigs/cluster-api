@@ -17,10 +17,10 @@ require (
 	github.com/valyala/fastjson v1.6.4
 	golang.org/x/oauth2 v0.20.0
 	google.golang.org/api v0.178.0
-	k8s.io/api v0.30.0
-	k8s.io/apiextensions-apiserver v0.30.0
-	k8s.io/apimachinery v0.30.0
-	k8s.io/client-go v0.30.0
+	k8s.io/api v0.30.1
+	k8s.io/apiextensions-apiserver v0.30.1
+	k8s.io/apimachinery v0.30.1
+	k8s.io/client-go v0.30.1
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
@@ -166,9 +166,9 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.30.0 // indirect
+	k8s.io/apiserver v0.30.1 // indirect
 	k8s.io/cluster-bootstrap v0.30.0 // indirect
-	k8s.io/component-base v0.30.0 // indirect
+	k8s.io/component-base v0.30.1 // indirect
 	k8s.io/release v0.16.9
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3 // indirect

@@ -19,7 +19,6 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,9 +30,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 )
-
-const kubeadmControlPlaneTemplateImmutableMsg = "KubeadmControlPlaneTemplate spec.template.spec field is immutable. Please create new resource instead."
 
 func (webhook *KubeadmControlPlaneTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -115,9 +113,13 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(ctx context.Context, 
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new KubeadmControlPlaneTemplate: failed to default new object: %v", err))
 	}
 
-	if !reflect.DeepEqual(newK.Spec.Template.Spec, oldK.Spec.Template.Spec) {
+	equal, diff, err := compare.Diff(oldK.Spec.Template.Spec, newK.Spec.Template.Spec)
+	if err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new KubeadmControlPlaneTemplate: %v", err))
+	}
+	if !equal {
 		allErrs = append(allErrs,
-			field.Invalid(field.NewPath("spec", "template", "spec"), newK, kubeadmControlPlaneTemplateImmutableMsg),
+			field.Invalid(field.NewPath("spec", "template", "spec"), newK, fmt.Sprintf("KubeadmControlPlaneTemplate spec.template.spec field is immutable. Please create new resource instead. Diff: %s", diff)),
 		)
 	}
 

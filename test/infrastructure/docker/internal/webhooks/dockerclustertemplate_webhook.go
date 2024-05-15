@@ -19,7 +19,6 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,10 +28,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
-
-const dockerClusterTemplateImmutableMsg = "DockerClusterTemplate spec.template.spec field is immutable. Please create a new resource instead."
 
 // DockerClusterTemplate implements a validating and defaulting webhook for DockerClusterTemplate.
 type DockerClusterTemplate struct{}
@@ -109,9 +107,16 @@ func (webhook *DockerClusterTemplate) ValidateUpdate(ctx context.Context, oldRaw
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DockerClusterTemplate: failed to default new object: %v", err))
 	}
 
-	if !reflect.DeepEqual(newTemplate.Spec.Template.Spec, oldTemplate.Spec.Template.Spec) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newTemplate, dockerClusterTemplateImmutableMsg))
+	equal, diff, err := compare.Diff(oldTemplate.Spec.Template.Spec, newTemplate.Spec.Template.Spec)
+	if err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DockerClusterTemplate: %v", err))
 	}
+	if !equal {
+		allErrs = append(allErrs,
+			field.Invalid(field.NewPath("spec", "template", "spec"), newTemplate, fmt.Sprintf("DockerClusterTemplate spec.template.spec field is immutable. Please create a new resource instead. Diff: %s", diff)),
+		)
+	}
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}

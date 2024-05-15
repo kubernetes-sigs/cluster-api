@@ -208,7 +208,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 			if errors.As(err, &connFailure) {
 				log.Error(err, "Could not connect to workload cluster to fetch status")
 			} else {
-				log.Error(err, "Failed to update KubeadmControlPlane Status")
+				log.Error(err, "Failed to update KubeadmControlPlane status")
 				reterr = kerrors.NewAggregate([]error{reterr, err})
 			}
 		}
@@ -399,7 +399,10 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
-	machinesNeedingRollout, rolloutReasons := controlPlane.MachinesNeedingRollout()
+	machinesNeedingRollout, rolloutReasons, err := controlPlane.MachinesNeedingRollout()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	switch {
 	case len(machinesNeedingRollout) > 0:
 		var reasons []string

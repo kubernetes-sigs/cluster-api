@@ -72,7 +72,7 @@ Prerequisites:
     * Set new default image for the [test framework](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/framework/bootstrap/kind_provider.go#L40)
     * If code changes are required for CAPD to incorporate the new Kind version, update [kind latestMode](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/infrastructure/kind/mapper.go#L66)
   * Verify the quickstart manually
-  * Prior art: TODO (previously #9160 and #10094)
+  * Prior art: #10610
 
 ### Using new Kubernetes dependencies
 

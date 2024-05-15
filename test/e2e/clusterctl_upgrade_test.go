@@ -283,8 +283,8 @@ var _ = Describe("When testing clusterctl upgrades (v1.6=>current)", func() {
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			//  Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.29.4",
-			WorkloadKubernetesVersion: "v1.29.4",
+			InitWithKubernetesVersion: "v1.29.2",
+			WorkloadKubernetesVersion: "v1.29.2",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
 		}
@@ -307,8 +307,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.6=>cur
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.29.4",
-			WorkloadKubernetesVersion: "v1.29.4",
+			InitWithKubernetesVersion: "v1.29.2",
+			WorkloadKubernetesVersion: "v1.29.2",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "topology",
 		}

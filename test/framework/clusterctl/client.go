@@ -374,49 +374,29 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 	Expect(err).ToNot(HaveOccurred())
 	clusterctlSupportsGenerateCluster := version.GTE(semver.MustParse("1.0.0"))
 
-	var cmd *exec.Cmd
+	var command string
 	if clusterctlSupportsGenerateCluster {
-		log.Logf("clusterctl generate cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s",
-			input.ClusterName,
-			valueOrDefault(input.InfrastructureProvider),
-			input.KubernetesVersion,
-			*input.ControlPlaneMachineCount,
-			*input.WorkerMachineCount,
-			valueOrDefault(input.Flavor),
-		)
-		cmd = exec.Command(clusterctlBinaryPath, "generate", "cluster", //nolint:gosec // We don't care about command injection here.
-			input.ClusterName,
-			"--infrastructure", input.InfrastructureProvider,
-			"--kubernetes-version", input.KubernetesVersion,
-			"--control-plane-machine-count", fmt.Sprint(*input.ControlPlaneMachineCount),
-			"--worker-machine-count", fmt.Sprint(*input.WorkerMachineCount),
-			"--flavor", input.Flavor,
-			"--target-namespace", input.Namespace,
-			"--config", input.ClusterctlConfigPath,
-			"--kubeconfig", input.KubeconfigPath,
-		)
+		command = "generate"
 	} else {
-		log.Logf("clusterctl config cluster %s --infrastructure %s --kubernetes-version %s --control-plane-machine-count %d --worker-machine-count %d --flavor %s",
-			input.ClusterName,
-			valueOrDefault(input.InfrastructureProvider),
-			input.KubernetesVersion,
-			*input.ControlPlaneMachineCount,
-			*input.WorkerMachineCount,
-			valueOrDefault(input.Flavor),
-		)
-		cmd = exec.Command(clusterctlBinaryPath, "config", "cluster", //nolint:gosec // We don't care about command injection here.
-			input.ClusterName,
-			"--infrastructure", input.InfrastructureProvider,
-			"--kubernetes-version", input.KubernetesVersion,
-			"--control-plane-machine-count", fmt.Sprint(*input.ControlPlaneMachineCount),
-			"--worker-machine-count", fmt.Sprint(*input.WorkerMachineCount),
-			"--flavor", input.Flavor,
-			"--target-namespace", input.Namespace,
-			"--config", input.ClusterctlConfigPath,
-			"--kubeconfig", input.KubeconfigPath,
-		)
+		command = "config"
 	}
 
+	args := []string{command, "cluster",
+		input.ClusterName,
+		"--infrastructure", input.InfrastructureProvider,
+		"--kubernetes-version", input.KubernetesVersion,
+		"--worker-machine-count", fmt.Sprint(*input.WorkerMachineCount),
+		"--flavor", input.Flavor,
+		"--target-namespace", input.Namespace,
+		"--config", input.ClusterctlConfigPath,
+		"--kubeconfig", input.KubeconfigPath,
+	}
+	if input.ControlPlaneMachineCount != nil && *input.ControlPlaneMachineCount > 0 {
+		args = append(args, "--control-plane-machine-count", fmt.Sprint(*input.ControlPlaneMachineCount))
+	}
+	log.Logf("clusterctl %s", strings.Join(args, " "))
+
+	cmd := exec.Command(clusterctlBinaryPath, args...) //nolint:gosec // We don't care about command injection here.
 	out, err := cmd.Output()
 	_ = os.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string

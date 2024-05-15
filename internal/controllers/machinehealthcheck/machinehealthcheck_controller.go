@@ -280,12 +280,15 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			Message:  message,
 		})
 
-		r.recorder.Event(
-			m,
-			corev1.EventTypeWarning,
-			EventRemediationRestricted,
-			message,
-		)
+		// If there are no unhealthy target, skip publishing the `RemediationRestricted` event to avoid misleading.
+		if len(unhealthy) != 0 {
+			r.recorder.Event(
+				m,
+				corev1.EventTypeWarning,
+				EventRemediationRestricted,
+				message,
+			)
+		}
 		errList := []error{}
 		for _, t := range append(healthy, unhealthy...) {
 			if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {

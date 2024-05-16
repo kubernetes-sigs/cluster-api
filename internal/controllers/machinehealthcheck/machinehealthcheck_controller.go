@@ -61,10 +61,10 @@ const (
 	// is restricted by remediation circuit shorting logic.
 	EventRemediationRestricted string = "RemediationRestricted"
 
-	maxUnhealthyKeyLog     = "max unhealthy"
-	unhealthyTargetsKeyLog = "unhealthy targets"
-	unhealthyRangeKeyLog   = "unhealthy range"
-	totalTargetKeyLog      = "total target"
+	maxUnhealthyKeyLog     = "maxUnhealthy"
+	unhealthyTargetsKeyLog = "unhealthyTargets"
+	unhealthyRangeKeyLog   = "unhealthyRange"
+	totalTargetKeyLog      = "totalTarget"
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -202,7 +202,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		var err error
 		remoteClient, err = r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 		if err != nil {
-			logger.Error(err, "error creating remote cluster cache")
+			logger.Error(err, "Error creating remote cluster cache")
 			return ctrl.Result{}, err
 		}
 
@@ -331,7 +331,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	}
 
 	if minNextCheck := minDuration(nextCheckTimes); minNextCheck > 0 {
-		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "requeueIn", minNextCheck.Truncate(time.Second).String())
+		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "requeueAfter", minNextCheck.Truncate(time.Second).String())
 		return ctrl.Result{RequeueAfter: minNextCheck}, nil
 	}
 
@@ -365,7 +365,7 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 		}
 
 		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
-			logger.Error(err, "failed to patch healthy machine status for machine", "machine", t.Machine.GetName())
+			logger.Error(err, "failed to patch healthy machine status for machine", "Machine", klog.KObj(t.Machine))
 			errList = append(errList, errors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 		}
 	}

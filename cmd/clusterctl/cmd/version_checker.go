@@ -124,14 +124,14 @@ func (v *versionChecker) Check(ctx context.Context) (string, error) {
 
 	// if we are using a dirty dev build, just log it out
 	if strings.HasSuffix(cliVer.String(), "-dirty") {
-		log.V(1).Info("⚠️  Using a development build of clusterctl.", "CLIVersion", cliVer.String(), "LatestGithubRelease", release.Version)
+		log.V(1).Info("⚠️  Using a development build of clusterctl.", "cliVersion", cliVer.String(), "latestGithubRelease", release.Version)
 		return "", nil
 	}
 
 	// if the cli version is a dev build off of the latest available release,
 	// the just log it out as informational.
 	if strings.HasPrefix(cliVer.String(), latestVersion.String()) && gitVersionRegEx.MatchString(cliVer.String()) {
-		log.V(1).Info("⚠️  Using a development build of clusterctl.", "CLIVersion", cliVer.String(), "LatestGithubRelease", release.Version)
+		log.V(1).Info("⚠️  Using a development build of clusterctl.", "cliVersion", cliVer.String(), "latestGithubRelease", release.Version)
 		return "", nil
 	}
 

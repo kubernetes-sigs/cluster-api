@@ -109,7 +109,7 @@ func (n *Node) Delete(ctx context.Context) error {
 		var buffer bytes.Buffer
 		err = containerRuntime.ContainerDebugInfo(debugCtx, n.Name, &buffer)
 		if err != nil {
-			log.Error(err, "failed to get logs from the machine container")
+			log.Error(err, "Failed to get logs from the machine container")
 		} else {
 			log.Info("Got logs from the machine container", "output", strings.ReplaceAll(buffer.String(), "\\n", "\n"))
 		}

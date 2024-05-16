@@ -51,7 +51,7 @@ import (
 func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	log.V(2).Info("Reconciling Docker containers", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace)
+	log.V(2).Info("Reconciling Docker containers", "DockerMachinePool", klog.KObj(dockerMachinePool))
 
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 
@@ -63,7 +63,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Cont
 	matchingMachineCount := len(machinesMatchingInfrastructureSpec(ctx, machines, machinePool, dockerMachinePool))
 	numToCreate := int(*machinePool.Spec.Replicas) - matchingMachineCount
 	for i := 0; i < numToCreate; i++ {
-		log.V(2).Info("Creating a new Docker container for machinePool", "machinePool", machinePool.Name)
+		log.V(2).Info("Creating a new Docker container for machinePool", "MachinePool", klog.KObj(machinePool))
 		name := fmt.Sprintf("worker-%s", util.RandomString(6))
 		if err := createDockerContainer(ctx, name, cluster, machinePool, dockerMachinePool); err != nil {
 			return errors.Wrap(err, "failed to create a new docker machine")
@@ -98,7 +98,7 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 		}
 	}
 
-	log.Info("Creating container for machinePool", "name", name, "machinePool", machinePool.Name)
+	log.Info("Creating container for machinePool", "name", name, "MachinePool", klog.KObj(machinePool))
 	if err := externalMachine.Create(ctx, dockerMachinePool.Spec.Template.CustomImage, constants.WorkerNodeRoleValue, machinePool.Spec.Template.Spec.Version, labels, dockerMachinePool.Spec.Template.ExtraMounts); err != nil {
 		return errors.Wrapf(err, "failed to create docker machine with name %s", name)
 	}
@@ -115,7 +115,7 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	log.V(2).Info("Reconciling DockerMachines", "dockerMachinePool", dockerMachinePool.Name, "namespace", dockerMachinePool.Namespace)
+	log.V(2).Info("Reconciling DockerMachines", "DockerMachinePool", klog.KObj(dockerMachinePool))
 
 	dockerMachineList, err := getDockerMachines(ctx, r.Client, *cluster, *machinePool, *dockerMachinePool)
 	if err != nil {
@@ -144,7 +144,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	// Providers should iterate through their infrastructure instances and ensure that each instance has a corresponding InfraMachine.
 	for _, machine := range externalMachines {
 		if existingMachine, ok := dockerMachineMap[machine.Name()]; ok {
-			log.V(2).Info("Patching existing DockerMachine", "name", existingMachine.Name)
+			log.V(2).Info("Patching existing DockerMachine", "DockerMachine", klog.KObj(&existingMachine))
 			desiredMachine := computeDesiredDockerMachine(machine.Name(), cluster, machinePool, dockerMachinePool, &existingMachine)
 			if err := ssa.Patch(ctx, r.Client, dockerMachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
 				return errors.Wrapf(err, "failed to update DockerMachine %q", klog.KObj(desiredMachine))
@@ -168,7 +168,8 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	// This allows the InfraMachine (and owner Machine) to be deleted and avoid hanging resources when a user deletes an instance out-of-band.
 	for _, dockerMachine := range dockerMachineMap {
 		if _, ok := externalMachineMap[dockerMachine.Name]; !ok {
-			log.V(2).Info("Deleting DockerMachine with no underlying infrastructure", "dockerMachine", dockerMachine.Name)
+			dockerMachine := dockerMachine
+			log.V(2).Info("Deleting DockerMachine with no underlying infrastructure", "DockerMachine", klog.KObj(&dockerMachine))
 			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
 				return err
 			}
@@ -216,7 +217,8 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	// Loop through outdated DockerMachines first and decrement the overProvisionCount until it reaches 0.
 	for _, dockerMachine := range outdatedMachines {
 		if overProvisionCount > 0 {
-			log.V(2).Info("Deleting DockerMachine because it is outdated", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+			dockerMachine := dockerMachine
+			log.V(2).Info("Deleting DockerMachine because it is outdated", "DockerMachine", klog.KObj(&dockerMachine))
 			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
 				return err
 			}
@@ -228,7 +230,8 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 	// Then, loop through the ready DockerMachines first and decrement the overProvisionCount until it reaches 0.
 	for _, dockerMachine := range readyMachines {
 		if overProvisionCount > 0 {
-			log.V(2).Info("Deleting DockerMachine because it is an excess replica", "dockerMachine", dockerMachine.Name, "namespace", dockerMachine.Namespace)
+			dockerMachine := dockerMachine
+			log.V(2).Info("Deleting DockerMachine because it is an excess replica", "DockerMachine", klog.KObj(&dockerMachine))
 			if err := r.deleteMachinePoolMachine(ctx, dockerMachine); err != nil {
 				return err
 			}
@@ -297,7 +300,7 @@ func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Conte
 		return nil
 	}
 
-	log.Info("Deleting Machine for DockerMachine", "machine", klog.KObj(machine), "dockerMachine", klog.KObj(&dockerMachine))
+	log.Info("Deleting Machine for DockerMachine", "Machine", klog.KObj(machine), "DockerMachine", klog.KObj(&dockerMachine))
 
 	if err := r.Client.Delete(ctx, machine); err != nil {
 		return errors.Wrapf(err, "failed to delete Machine %s/%s", machine.Namespace, machine.Name)

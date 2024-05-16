@@ -173,7 +173,7 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	// Set log level 2 as default.
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
-		setupLog.Error(err, "failed to set default log level")
+		setupLog.Error(err, "Failed to set default log level")
 		os.Exit(1)
 	}
 	pflag.Parse()
@@ -182,7 +182,7 @@ func main() {
 	// so klog will automatically use the right logger.
 	// NOTE: klog is the log of choice of component-base machinery.
 	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
-		setupLog.Error(err, "unable to start extension")
+		setupLog.Error(err, "Unable to start extension")
 		os.Exit(1)
 	}
 
@@ -199,7 +199,7 @@ func main() {
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to add TLS settings to the webhook server")
 		os.Exit(1)
 	}
 
@@ -219,7 +219,7 @@ func main() {
 		Catalog:  catalog,
 	})
 	if err != nil {
-		setupLog.Error(err, "error creating runtime extension webhook server")
+		setupLog.Error(err, "Error creating runtime extension webhook server")
 		os.Exit(1)
 	}
 
@@ -251,7 +251,7 @@ func main() {
 	// Start the manager
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -270,7 +270,7 @@ func main() {
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Error(err, "Problem running manager")
 		os.Exit(1)
 	}
 }
@@ -287,7 +287,7 @@ func setupTopologyMutationHookHandlers(runtimeExtensionWebhookServer *server.Ser
 		Name:        "generate-patches",
 		HandlerFunc: topologyMutationExtensionHandlers.GeneratePatches,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -296,7 +296,7 @@ func setupTopologyMutationHookHandlers(runtimeExtensionWebhookServer *server.Ser
 		Name:        "validate-topology",
 		HandlerFunc: topologyMutationExtensionHandlers.ValidateTopology,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -305,7 +305,7 @@ func setupTopologyMutationHookHandlers(runtimeExtensionWebhookServer *server.Ser
 		Name:        "discover-variables",
 		HandlerFunc: topologyMutationExtensionHandlers.DiscoverVariables,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 }
@@ -322,7 +322,7 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 		Name:        "before-cluster-create",
 		HandlerFunc: lifecycleExtensionHandlers.DoBeforeClusterCreate,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -331,7 +331,7 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 		Name:        "after-control-plane-initialized",
 		HandlerFunc: lifecycleExtensionHandlers.DoAfterControlPlaneInitialized,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -340,7 +340,7 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 		Name:        "before-cluster-upgrade",
 		HandlerFunc: lifecycleExtensionHandlers.DoBeforeClusterUpgrade,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -349,7 +349,7 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 		Name:        "after-control-plane-upgrade",
 		HandlerFunc: lifecycleExtensionHandlers.DoAfterControlPlaneUpgrade,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -358,7 +358,7 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 		Name:        "after-cluster-upgrade",
 		HandlerFunc: lifecycleExtensionHandlers.DoAfterClusterUpgrade,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -367,19 +367,19 @@ func setupLifecycleHookHandlers(mgr ctrl.Manager, runtimeExtensionWebhookServer 
 		Name:        "before-cluster-delete",
 		HandlerFunc: lifecycleExtensionHandlers.DoBeforeClusterDelete,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 }
 
 func setupChecks(mgr ctrl.Manager) {
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create ready check")
+		setupLog.Error(err, "Unable to create ready check")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create health check")
+		setupLog.Error(err, "Unable to create health check")
 		os.Exit(1)
 	}
 }

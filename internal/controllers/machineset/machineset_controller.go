@@ -382,7 +382,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 		updatedMachine := r.computeDesiredMachine(machineSet, m)
 		err := ssa.Patch(ctx, r.Client, machineSetManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: m})
 		if err != nil {
-			log.Error(err, "failed to update Machine", "Machine", klog.KObj(updatedMachine))
+			log.Error(err, "Failed to update Machine", "Machine", klog.KObj(updatedMachine))
 			return errors.Wrapf(err, "failed to update Machine %q", klog.KObj(updatedMachine))
 		}
 		machines[i] = updatedMachine
@@ -890,7 +890,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 
 		node, err := r.getMachineNode(ctx, cluster, machine)
 		if err != nil && machine.GetDeletionTimestamp().IsZero() {
-			log.Error(err, "Unable to retrieve Node status", "node", klog.KObj(node))
+			log.Error(err, "Unable to retrieve Node status", "Node", klog.KObj(node))
 			continue
 		}
 

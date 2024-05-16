@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -146,7 +147,7 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 	claim := &ipamv1.IPAddressClaim{}
 	err = webhook.Client.Get(ctx, types.NamespacedName{Name: ip.Spec.ClaimRef.Name, Namespace: ip.ObjectMeta.Namespace}, claim)
 	if err != nil && !apierrors.IsNotFound(err) {
-		log.Error(err, "failed to fetch claim", "name", ip.Spec.ClaimRef.Name)
+		log.Error(err, "Failed to fetch claim", "IPAddressClaim", klog.KRef(ip.ObjectMeta.Namespace, ip.Spec.ClaimRef.Name))
 		allErrs = append(allErrs,
 			field.InternalError(
 				specPath.Child("claimRef"),

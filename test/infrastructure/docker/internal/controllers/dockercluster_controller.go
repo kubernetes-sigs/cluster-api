@@ -88,7 +88,7 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Always attempt to Patch the DockerCluster object and status after each reconciliation.
 	defer func() {
 		if err := patchDockerCluster(ctx, patchHelper, dockerCluster); err != nil {
-			log.Error(err, "failed to patch DockerCluster")
+			log.Error(err, "Failed to patch DockerCluster")
 			if rerr == nil {
 				rerr = err
 			}

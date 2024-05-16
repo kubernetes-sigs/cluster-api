@@ -111,7 +111,7 @@ func getLocalOverride(info *newOverrideInput) ([]byte, error) {
 	log := logf.Log
 
 	overridePath, err := newOverride(info).Path()
-	log.V(5).Info("Potential override file", "SearchFile", overridePath, "Provider", info.provider.ManifestLabel(), "Version", info.version)
+	log.V(5).Info("Potential override file", "searchFile", overridePath, "provider", info.provider.ManifestLabel(), "version", info.version)
 
 	if err != nil {
 		return nil, err

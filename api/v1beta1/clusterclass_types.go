@@ -583,6 +583,54 @@ type JSONSchemaProps struct {
 	// It can be used to add additional data for higher level tools.
 	// +optional
 	XMetadata *VariableSchemaMetadata `json:"x-metadata,omitempty"`
+
+	// x-kubernetes-int-or-string specifies that this value is
+	// either an integer or a string. If this is true, an empty
+	// type is allowed and type as child of anyOf is permitted
+	// if following one of the following patterns:
+	//
+	// 1) anyOf:
+	//    - type: integer
+	//    - type: string
+	// 2) allOf:
+	//    - anyOf:
+	//      - type: integer
+	//      - type: string
+	//    - ... zero or more
+	// +optional
+	XIntOrString bool `json:"x-kubernetes-int-or-string,omitempty"`
+
+	// AllOf specifies that the variable must validate against all of the subschemas in the array.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	AllOf []JSONSchemaProps `json:"allOf,omitempty"`
+
+	// OneOf specifies that the variable must validate against exactly one of the subschemas in the array.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	OneOf []JSONSchemaProps `json:"oneOf,omitempty"`
+
+	// AnyOf specifies that the variable must validate against one or more of the subschemas in the array.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	AnyOf []JSONSchemaProps `json:"anyOf,omitempty"`
+
+	// Not specifies that the variable must not validate against the subschema.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Not *JSONSchemaProps `json:"not,omitempty"`
 }
 
 // VariableSchemaMetadata is the metadata of a variable or a nested field within a variable.

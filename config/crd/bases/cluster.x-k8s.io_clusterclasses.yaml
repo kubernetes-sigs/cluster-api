@@ -1024,6 +1024,18 @@ spec:
                                 NOTE: This field uses PreserveUnknownFields and Schemaless,
                                 because recursive validation is not possible.
                               x-kubernetes-preserve-unknown-fields: true
+                            allOf:
+                              description: |-
+                                AllOf specifies that the variable must validate against all of the subschemas in the array.
+                                NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                because recursive validation is not possible.
+                              x-kubernetes-preserve-unknown-fields: true
+                            anyOf:
+                              description: |-
+                                AnyOf specifies that the variable must validate against one or more of the subschemas in the array.
+                                NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                because recursive validation is not possible.
+                              x-kubernetes-preserve-unknown-fields: true
                             default:
                               description: |-
                                 Default is the default value of the variable.
@@ -1119,6 +1131,18 @@ spec:
                                 NOTE: Can only be set if type is integer or number.
                               format: int64
                               type: integer
+                            not:
+                              description: |-
+                                Not specifies that the variable must not validate against the subschema.
+                                NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                because recursive validation is not possible.
+                              x-kubernetes-preserve-unknown-fields: true
+                            oneOf:
+                              description: |-
+                                OneOf specifies that the variable must validate against exactly one of the subschemas in the array.
+                                NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                because recursive validation is not possible.
+                              x-kubernetes-preserve-unknown-fields: true
                             pattern:
                               description: |-
                                 Pattern is the regex which a string variable must match.
@@ -1148,6 +1172,22 @@ spec:
                               description: |-
                                 UniqueItems specifies if items in an array must be unique.
                                 NOTE: Can only be set if type is array.
+                              type: boolean
+                            x-kubernetes-int-or-string:
+                              description: |-
+                                x-kubernetes-int-or-string specifies that this value is
+                                either an integer or a string. If this is true, an empty
+                                type is allowed and type as child of anyOf is permitted
+                                if following one of the following patterns:
+
+                                1) anyOf:
+                                   - type: integer
+                                   - type: string
+                                2) allOf:
+                                   - anyOf:
+                                     - type: integer
+                                     - type: string
+                                   - ... zero or more
                               type: boolean
                             x-kubernetes-preserve-unknown-fields:
                               description: |-
@@ -2069,6 +2109,18 @@ spec:
                                       NOTE: This field uses PreserveUnknownFields and Schemaless,
                                       because recursive validation is not possible.
                                     x-kubernetes-preserve-unknown-fields: true
+                                  allOf:
+                                    description: |-
+                                      AllOf specifies that the variable must validate against all of the subschemas in the array.
+                                      NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                      because recursive validation is not possible.
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  anyOf:
+                                    description: |-
+                                      AnyOf specifies that the variable must validate against one or more of the subschemas in the array.
+                                      NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                      because recursive validation is not possible.
+                                    x-kubernetes-preserve-unknown-fields: true
                                   default:
                                     description: |-
                                       Default is the default value of the variable.
@@ -2164,6 +2216,18 @@ spec:
                                       NOTE: Can only be set if type is integer or number.
                                     format: int64
                                     type: integer
+                                  not:
+                                    description: |-
+                                      Not specifies that the variable must not validate against the subschema.
+                                      NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                      because recursive validation is not possible.
+                                    x-kubernetes-preserve-unknown-fields: true
+                                  oneOf:
+                                    description: |-
+                                      OneOf specifies that the variable must validate against exactly one of the subschemas in the array.
+                                      NOTE: This field uses PreserveUnknownFields and Schemaless,
+                                      because recursive validation is not possible.
+                                    x-kubernetes-preserve-unknown-fields: true
                                   pattern:
                                     description: |-
                                       Pattern is the regex which a string variable must match.
@@ -2193,6 +2257,22 @@ spec:
                                     description: |-
                                       UniqueItems specifies if items in an array must be unique.
                                       NOTE: Can only be set if type is array.
+                                    type: boolean
+                                  x-kubernetes-int-or-string:
+                                    description: |-
+                                      x-kubernetes-int-or-string specifies that this value is
+                                      either an integer or a string. If this is true, an empty
+                                      type is allowed and type as child of anyOf is permitted
+                                      if following one of the following patterns:
+
+                                      1) anyOf:
+                                         - type: integer
+                                         - type: string
+                                      2) allOf:
+                                         - anyOf:
+                                           - type: integer
+                                           - type: string
+                                         - ... zero or more
                                     type: boolean
                                   x-kubernetes-preserve-unknown-fields:
                                     description: |-

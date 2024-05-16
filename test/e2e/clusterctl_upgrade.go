@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -35,6 +36,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	apiruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
@@ -44,6 +46,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -123,6 +127,9 @@ type ClusterctlUpgradeSpecInput struct {
 	// If not set, the test will upgrade once to the v1beta1 contract.
 	// For some examples see clusterctl_upgrade_test.go
 	Upgrades []ClusterctlUpgradeSpecInputUpgrade
+
+	// ControlPlaneMachineCount specifies the number of control plane machines to create in the workload cluster.
+	ControlPlaneMachineCount *int64
 }
 
 // ClusterctlUpgradeSpecInputUpgrade defines an upgrade.
@@ -375,6 +382,9 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
 		}
 		controlPlaneMachineCount := pointer.Int64(1)
+		if input.ControlPlaneMachineCount != nil {
+			controlPlaneMachineCount = input.ControlPlaneMachineCount
+		}
 		workerMachineCount := pointer.Int64(1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
@@ -410,6 +420,23 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		coreCAPIStorageVersion := getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
 
+		// Note: We have to use unstructured here as the Cluster could be e.g. v1alpha3 / v1alpha4 / v1beta1.
+		workloadClusterUnstructured := discoveryAndWaitForCluster(ctx, discoveryAndWaitForClusterInput{
+			Client:                 managementClusterProxy.GetClient(),
+			CoreCAPIStorageVersion: coreCAPIStorageVersion,
+			Namespace:              workloadClusterNamespace,
+			Name:                   workloadClusterName,
+		}, input.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+
+		By("Calculating expected MachineDeployment and MachinePool Machine and Node counts")
+		expectedMachineDeploymentMachineCount := calculateExpectedMachineDeploymentMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterUnstructured, coreCAPIStorageVersion)
+		expectedMachinePoolNodeCount := calculateExpectedMachinePoolNodeCount(ctx, managementClusterProxy.GetClient(), workloadClusterUnstructured, coreCAPIStorageVersion)
+		expectedMachinePoolMachineCount, err := calculateExpectedMachinePoolMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterNamespace, workloadClusterName)
+		Expect(err).ToNot(HaveOccurred())
+
+		expectedMachineCount := *controlPlaneMachineCount + expectedMachineDeploymentMachineCount + expectedMachinePoolMachineCount
+
+		Byf("Expect %d Machines and %d MachinePool replicas to exist", expectedMachineCount, expectedMachinePoolNodeCount)
 		By("Waiting for the machines to exist")
 		Eventually(func() (int64, error) {
 			var n int64
@@ -433,7 +460,27 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				}
 			}
 			return n, nil
-		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(*controlPlaneMachineCount+*workerMachineCount), "Timed out waiting for all machines to be exist")
+		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(expectedMachineCount), "Timed out waiting for all Machines to exist")
+
+		By("Waiting for MachinePool to be ready with correct number of replicas")
+		Eventually(func() (int64, error) {
+			var n int64
+			machinePoolList := &expv1.MachinePoolList{}
+			if err := managementClusterProxy.GetClient().List(
+				ctx,
+				machinePoolList,
+				client.InNamespace(workloadClusterNamespace),
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
+			); err == nil {
+				for _, mp := range machinePoolList.Items {
+					if mp.Status.Phase == string(expv1.MachinePoolPhaseRunning) {
+						n += int64(mp.Status.ReadyReplicas)
+					}
+				}
+			}
+
+			return n, nil
+		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(expectedMachinePoolNodeCount), "Timed out waiting for all MachinePool replicas to be ready")
 
 		By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
 
@@ -570,20 +617,24 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					ClusterName: workloadClusterName,
 					Namespace:   workloadClusterNamespace,
 				})
-				framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
-					ClusterProxy:              managementClusterProxy,
-					Cluster:                   workloadCluster,
-					MachineDeployment:         testMachineDeployments[0],
-					Replicas:                  2,
-					WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-				})
-				framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
-					ClusterProxy:              managementClusterProxy,
-					Cluster:                   workloadCluster,
-					MachineDeployment:         testMachineDeployments[0],
-					Replicas:                  1,
-					WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-				})
+				if len(testMachineDeployments) > 0 {
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+						ClusterProxy:              managementClusterProxy,
+						Cluster:                   workloadCluster,
+						MachineDeployment:         testMachineDeployments[0],
+						Replicas:                  2,
+						WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+					})
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+						ClusterProxy:              managementClusterProxy,
+						Cluster:                   workloadCluster,
+						MachineDeployment:         testMachineDeployments[0],
+						Replicas:                  1,
+						WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+					})
+				} else {
+					Byf("[%d] No MachineDeployments found to scale", i)
+				}
 			}
 
 			Byf("[%d] Verify client-side SSA still works", i)
@@ -685,6 +736,173 @@ func getCoreCAPIStorageVersion(ctx context.Context, c client.Client) string {
 	}
 	Fail("Cluster CRD has no storage version")
 	return ""
+}
+
+// discoveryAndWaitForClusterInput is the input type for DiscoveryAndWaitForCluster.
+type discoveryAndWaitForClusterInput struct {
+	Client                 client.Client
+	CoreCAPIStorageVersion string
+	Namespace              string
+	Name                   string
+}
+
+// discoveryAndWaitForCluster discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
+func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForClusterInput, intervals ...interface{}) *unstructured.Unstructured {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForCluster")
+	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling discoveryAndWaitForCluster")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForCluster")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling discoveryAndWaitForCluster")
+
+	cluster := &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   clusterv1.GroupVersion.Group,
+		Version: input.CoreCAPIStorageVersion,
+		Kind:    "Cluster",
+	})
+	Eventually(func(g Gomega) {
+		key := client.ObjectKey{
+			Namespace: input.Namespace,
+			Name:      input.Name,
+		}
+		g.Expect(input.Client.Get(ctx, key, cluster)).To(Succeed())
+
+		clusterPhase, ok, err := unstructured.NestedString(cluster.Object, "status", "phase")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ok).To(BeTrue(), "could not get status.phase field")
+		g.Expect(clusterPhase).To(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision")
+	}, intervals...).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(input.Namespace, input.Name))
+
+	return cluster
+}
+
+func calculateExpectedMachineDeploymentMachineCount(ctx context.Context, c client.Client, unstructuredCluster *unstructured.Unstructured, coreCAPIStorageVersion string) int64 {
+	var expectedMachineDeploymentWorkerCount int64
+
+	// Convert v1beta1 unstructured Cluster to clusterv1.Cluster
+	// Only v1beta1 Cluster support ClusterClass (i.e. have cluster.spec.topology).
+	if unstructuredCluster.GroupVersionKind().Version == clusterv1.GroupVersion.Version {
+		cluster := &clusterv1.Cluster{}
+		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())
+
+		if cluster.Spec.Topology != nil {
+			if cluster.Spec.Topology.Workers != nil {
+				for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+					if md.Replicas == nil {
+						continue
+					}
+					expectedMachineDeploymentWorkerCount += int64(*md.Replicas)
+				}
+			}
+			return expectedMachineDeploymentWorkerCount
+		}
+	}
+
+	byClusterOptions := []client.ListOption{
+		client.InNamespace(unstructuredCluster.GetNamespace()),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: unstructuredCluster.GetName()},
+	}
+
+	machineDeploymentList := &unstructured.UnstructuredList{}
+	machineDeploymentList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   clusterv1.GroupVersion.Group,
+		Version: coreCAPIStorageVersion,
+		Kind:    "MachineDeploymentList",
+	})
+	Eventually(func() error {
+		return c.List(ctx, machineDeploymentList, byClusterOptions...)
+	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list MachineDeployments object for Cluster %s", klog.KObj(unstructuredCluster))
+	for _, md := range machineDeploymentList.Items {
+		replicas, ok, err := unstructured.NestedInt64(md.Object, "spec", "replicas")
+		Expect(err).ToNot(HaveOccurred())
+		if !ok {
+			continue
+		}
+		expectedMachineDeploymentWorkerCount += replicas
+	}
+
+	return expectedMachineDeploymentWorkerCount
+}
+
+func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Client, workloadClusterNamespace, workloadClusterName string) (int64, error) {
+	expectedMachinePoolMachineCount := int64(0)
+
+	machinePoolList := &expv1.MachinePoolList{}
+	if err := c.List(
+		ctx,
+		machinePoolList,
+		client.InNamespace(workloadClusterNamespace),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
+	); err == nil {
+		for _, mp := range machinePoolList.Items {
+			mp := mp
+			infraMachinePool, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef, workloadClusterNamespace)
+			if err != nil {
+				return 0, err
+			}
+			// Check if the InfraMachinePool has an infrastructureMachineKind field. If it does not, we should skip checking for MachinePool machines.
+			err = util.UnstructuredUnmarshalField(infraMachinePool, pointer.String(""), "status", "infrastructureMachineKind")
+			if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
+				return 0, err
+			}
+			if err == nil {
+				expectedMachinePoolMachineCount += int64(*mp.Spec.Replicas)
+			}
+		}
+	}
+
+	return expectedMachinePoolMachineCount, nil
+}
+
+func calculateExpectedMachinePoolNodeCount(ctx context.Context, c client.Client, unstructuredCluster *unstructured.Unstructured, coreCAPIStorageVersion string) int64 {
+	var expectedMachinePoolWorkerCount int64
+
+	// Convert v1beta1 unstructured Cluster to clusterv1.Cluster
+	// Only v1beta1 Cluster support ClusterClass (i.e. have cluster.spec.topology).
+	if unstructuredCluster.GroupVersionKind().Version == clusterv1.GroupVersion.Version {
+		cluster := &clusterv1.Cluster{}
+		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())
+
+		if cluster.Spec.Topology != nil {
+			if cluster.Spec.Topology.Workers != nil {
+				for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
+					if mp.Replicas == nil {
+						continue
+					}
+					expectedMachinePoolWorkerCount += int64(*mp.Replicas)
+				}
+			}
+			return expectedMachinePoolWorkerCount
+		}
+	}
+
+	byClusterOptions := []client.ListOption{
+		client.InNamespace(unstructuredCluster.GetNamespace()),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: unstructuredCluster.GetName()},
+	}
+
+	machinePoolList := &unstructured.UnstructuredList{}
+	machinePoolGroup := clusterv1.GroupVersion.Group
+	if coreCAPIStorageVersion == "v1alpha3" {
+		machinePoolGroup = "exp.cluster.x-k8s.io"
+	}
+	machinePoolList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   machinePoolGroup,
+		Version: coreCAPIStorageVersion,
+		Kind:    "MachinePoolList",
+	})
+	Eventually(func() error {
+		return c.List(ctx, machinePoolList, byClusterOptions...)
+	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list MachinePool object for Cluster %s", klog.KObj(unstructuredCluster))
+	for _, mp := range machinePoolList.Items {
+		replicas, ok, err := unstructured.NestedInt64(mp.Object, "spec", "replicas")
+		Expect(err).ToNot(HaveOccurred())
+		if !ok {
+			continue
+		}
+		expectedMachinePoolWorkerCount += replicas
+	}
+
+	return expectedMachinePoolWorkerCount
 }
 
 // deleteAllClustersAndWaitInput is the input type for deleteAllClustersAndWait.

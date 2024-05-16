@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,12 +37,12 @@ type ClusterResourceSetReconciler struct {
 	WatchFilterValue string
 }
 
-func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, syncPeriod *time.Duration) error {
 	return (&clusterresourcesets.ClusterResourceSetReconciler{
 		Client:           r.Client,
 		Tracker:          r.Tracker,
 		WatchFilterValue: r.WatchFilterValue,
-	}).SetupWithManager(ctx, mgr, options)
+	}).SetupWithManager(ctx, mgr, options, syncPeriod)
 }
 
 // ClusterResourceSetBindingReconciler reconciles a ClusterResourceSetBinding object.

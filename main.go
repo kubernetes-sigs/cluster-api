@@ -360,7 +360,7 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	tracker := setupReconcilers(ctx, mgr)
+	tracker := setupReconcilers(ctx, mgr, syncPeriod)
 	setupWebhooks(mgr, tracker)
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
@@ -389,7 +389,7 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCacheTrackerReader {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, syncPeriod time.Duration) webhooks.ClusterCacheTrackerReader {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -542,7 +542,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCac
 			Client:           mgr.GetClient(),
 			Tracker:          tracker,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency), &syncPeriod); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSet")
 			os.Exit(1)
 		}

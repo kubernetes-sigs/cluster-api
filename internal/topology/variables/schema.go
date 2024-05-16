@@ -163,5 +163,57 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 		}
 	}
 
+	if len(schema.OneOf) > 0 {
+		props.OneOf = make([]apiextensions.JSONSchemaProps, 0, len(schema.OneOf))
+		for idx, oneOf := range schema.OneOf {
+			o := oneOf
+			apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&o, fldPath.Child("oneOf").Index(idx))
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("oneOf").Index(idx), "",
+					fmt.Sprintf("failed to convert schema: %v", err)))
+			} else {
+				props.OneOf = append(props.OneOf, *apiExtensionsSchema)
+			}
+		}
+	}
+
+	if len(schema.AnyOf) > 0 {
+		props.AnyOf = make([]apiextensions.JSONSchemaProps, 0, len(schema.AnyOf))
+		for idx, anyOf := range schema.AnyOf {
+			o := anyOf
+			apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&o, fldPath.Child("anyOf").Index(idx))
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("anyOf").Index(idx), "",
+					fmt.Sprintf("failed to convert schema: %v", err)))
+			} else {
+				props.AnyOf = append(props.AnyOf, *apiExtensionsSchema)
+			}
+		}
+	}
+
+	if len(schema.AllOf) > 0 {
+		props.AllOf = make([]apiextensions.JSONSchemaProps, 0, len(schema.AllOf))
+		for idx, allOf := range schema.AllOf {
+			o := allOf
+			apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&o, fldPath.Child("allOf").Index(idx))
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("allOf").Index(idx), "",
+					fmt.Sprintf("failed to convert schema: %v", err)))
+			} else {
+				props.AllOf = append(props.AllOf, *apiExtensionsSchema)
+			}
+		}
+	}
+
+	if schema.Not != nil {
+		apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.Not, fldPath.Child("not"))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("not"), "",
+				fmt.Sprintf("failed to convert schema: %v", err)))
+		} else {
+			props.Not = apiExtensionsSchema
+		}
+	}
+
 	return props, allErrs
 }

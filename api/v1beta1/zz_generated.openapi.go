@@ -1453,6 +1453,54 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 							Ref:         ref("k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"),
 						},
 					},
+					"allOf": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AllOf specifies that the variable must validate against all of the subschemas in the array. NOTE: Can only be set if type is object. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+									},
+								},
+							},
+						},
+					},
+					"oneOf": {
+						SchemaProps: spec.SchemaProps{
+							Description: "OneOf specifies that the variable must validate against exactly one of the subschemas in the array. NOTE: Can only be set if type is object. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+									},
+								},
+							},
+						},
+					},
+					"anyOf": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AnyOf specifies that the variable must validate against one or more of the subschemas in the array. NOTE: Can only be set if type is object. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+									},
+								},
+							},
+						},
+					},
+					"not": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Not specifies that the variable must not validate against the subschema. NOTE: Can only be set if type is object. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+						},
+					},
 				},
 				Required: []string{"type"},
 			},

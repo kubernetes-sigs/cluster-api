@@ -542,6 +542,42 @@ type JSONSchemaProps struct {
 	// NOTE: Can be set for all types.
 	// +optional
 	Default *apiextensionsv1.JSON `json:"default,omitempty"`
+
+	// AllOf specifies that the variable must validate against all of the subschemas in the array.
+	// NOTE: Can only be set if type is object.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	AllOf []JSONSchemaProps `json:"allOf,omitempty"`
+
+	// OneOf specifies that the variable must validate against exactly one of the subschemas in the array.
+	// NOTE: Can only be set if type is object.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	OneOf []JSONSchemaProps `json:"oneOf,omitempty"`
+
+	// AnyOf specifies that the variable must validate against one or more of the subschemas in the array.
+	// NOTE: Can only be set if type is object.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	AnyOf []JSONSchemaProps `json:"anyOf,omitempty"`
+
+	// Not specifies that the variable must not validate against the subschema.
+	// NOTE: Can only be set if type is object.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Not *JSONSchemaProps `json:"not,omitempty"`
 }
 
 // ClusterClassPatch defines a patch which is applied to customize the referenced templates.

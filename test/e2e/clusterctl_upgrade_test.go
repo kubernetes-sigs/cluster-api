@@ -104,8 +104,9 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func(
 			UpgradeClusterctlVariables: map[string]string{
 				"CLUSTER_TOPOLOGY": "false",
 			},
-			MgmtFlavor:     "topology",
-			WorkloadFlavor: "",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -165,10 +166,11 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.6=>current)", func(
 			},
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
 			//  Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.23.17",
-			WorkloadKubernetesVersion: "v1.23.17",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.23.17",
+			WorkloadKubernetesVersion:   "v1.23.17",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -199,10 +201,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 			InitWithRuntimeExtensionProviders: []string{},
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.0/bases.
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.23.17",
-			WorkloadKubernetesVersion: "v1.23.17",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.23.17",
+			WorkloadKubernetesVersion:   "v1.23.17",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -229,10 +232,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.5=>current)", func() {
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.28.0",
-			WorkloadKubernetesVersion: "v1.28.0",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.28.0",
+			WorkloadKubernetesVersion:   "v1.28.0",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -259,10 +263,11 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.5=>cur
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerDockerPrefix, stableRelease)},
 			InitWithProvidersContract:       "v1beta1",
 			// Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.28.0",
-			WorkloadKubernetesVersion: "v1.28.0",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "topology",
+			InitWithKubernetesVersion:   "v1.28.0",
+			WorkloadKubernetesVersion:   "v1.28.0",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "topology",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -283,10 +288,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.6=>current)", func() {
 			InitWithBinary:            fmt.Sprintf(clusterctlDownloadURL, stableRelease),
 			InitWithProvidersContract: "v1beta1",
 			//  Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.29.2",
-			WorkloadKubernetesVersion: "v1.29.2",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.29.2",
+			WorkloadKubernetesVersion:   "v1.29.2",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })

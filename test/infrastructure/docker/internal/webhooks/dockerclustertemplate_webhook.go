@@ -91,7 +91,7 @@ func (webhook *DockerClusterTemplate) ValidateCreate(_ context.Context, obj runt
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *DockerClusterTemplate) ValidateUpdate(_ context.Context, oldRaw, newRaw runtime.Object) (admission.Warnings, error) {
+func (webhook *DockerClusterTemplate) ValidateUpdate(ctx context.Context, oldRaw, newRaw runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	oldTemplate, ok := oldRaw.(*infrav1.DockerClusterTemplate)
 	if !ok {
@@ -101,6 +101,14 @@ func (webhook *DockerClusterTemplate) ValidateUpdate(_ context.Context, oldRaw, 
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", newRaw))
 	}
+
+	if err := webhook.Default(ctx, oldTemplate); err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DockerClusterTemplate: failed to default old object: %v", err))
+	}
+	if err := webhook.Default(ctx, newTemplate); err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DockerClusterTemplate: failed to default new object: %v", err))
+	}
+
 	if !reflect.DeepEqual(newTemplate.Spec.Template.Spec, oldTemplate.Spec.Template.Spec) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newTemplate, dockerClusterTemplateImmutableMsg))
 	}

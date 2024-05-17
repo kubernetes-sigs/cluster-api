@@ -181,7 +181,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 
 // GetClient returns a cached client for the given cluster.
 func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
-	accessor, err := t.getClusterAccessor(ctx, cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctx, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (t *ClusterCacheTracker) GetReader(ctx context.Context, cluster client.Obje
 
 // GetRESTConfig returns a cached REST config for the given cluster.
 func (t *ClusterCacheTracker) GetRESTConfig(ctc context.Context, cluster client.ObjectKey) (*rest.Config, error) {
-	accessor, err := t.getClusterAccessor(ctc, cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctc, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +206,7 @@ func (t *ClusterCacheTracker) GetRESTConfig(ctc context.Context, cluster client.
 
 // GetEtcdClientCertificateKey returns a cached certificate key to be used for generating certificates for accessing etcd in the given cluster.
 func (t *ClusterCacheTracker) GetEtcdClientCertificateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error) {
-	accessor, err := t.getClusterAccessor(ctx, cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctx, cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func (t *ClusterCacheTracker) storeAccessor(cluster client.ObjectKey, accessor *
 // It then falls back to create a new clusterAccessor if needed.
 // If there is already another go routine trying to create a clusterAccessor
 // for the same cluster, an error is returned.
-func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster client.ObjectKey, indexes ...Index) (*clusterAccessor, error) {
+func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster client.ObjectKey) (*clusterAccessor, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", klog.KRef(cluster.Namespace, cluster.Name))
 
 	// If the clusterAccessor already exists, return early.
@@ -279,7 +279,7 @@ func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster cl
 
 	// We are the go routine who has to initialize the clusterAccessor.
 	log.V(4).Info("Creating new cluster accessor")
-	accessor, err := t.newClusterAccessor(ctx, cluster, indexes...)
+	accessor, err := t.newClusterAccessor(ctx, cluster)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create cluster accessor")
 	}
@@ -290,7 +290,7 @@ func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster cl
 }
 
 // newClusterAccessor creates a new clusterAccessor.
-func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster client.ObjectKey, indexes ...Index) (*clusterAccessor, error) {
+func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster client.ObjectKey) (*clusterAccessor, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Get a rest config for the remote cluster.
@@ -348,7 +348,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	}
 
 	// Create a client and a cache for the cluster.
-	cachedClient, err := t.createCachedClient(ctx, config, cluster, httpClient, mapper, indexes)
+	cachedClient, err := t.createCachedClient(ctx, config, cluster, httpClient, mapper)
 	if err != nil {
 		return nil, err
 	}
@@ -442,7 +442,7 @@ type cachedClientOutput struct {
 }
 
 // createCachedClient creates a cached client for the given cluster, based on a rest.Config.
-func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *rest.Config, cluster client.ObjectKey, httpClient *http.Client, mapper meta.RESTMapper, indexes []Index) (*cachedClientOutput, error) {
+func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *rest.Config, cluster client.ObjectKey, httpClient *http.Client, mapper meta.RESTMapper) (*cachedClientOutput, error) {
 	// Create the cache for the remote cluster
 	cacheOptions := cache.Options{
 		HTTPClient: httpClient,
@@ -462,7 +462,7 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 		cancelFunc: cacheCtxCancel,
 	}
 
-	for _, index := range indexes {
+	for _, index := range t.indexes {
 		if err := cache.IndexField(ctx, index.Object, index.Field, index.ExtractValue); err != nil {
 			return nil, errors.Wrapf(err, "error creating cached client for remote cluster %q: error adding index for field %q to cache", cluster.String(), index.Field)
 		}
@@ -566,7 +566,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 		return errors.New("input.Name is required")
 	}
 
-	accessor, err := t.getClusterAccessor(ctx, input.Cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctx, input.Cluster)
 	if err != nil {
 		return errors.Wrapf(err, "failed to add %s watch on cluster %s", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 	}

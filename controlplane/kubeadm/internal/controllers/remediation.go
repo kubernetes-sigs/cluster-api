@@ -99,9 +99,29 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// Returns if another remediation is in progress but the new Machine is not yet created.
 	// Note: This condition is checked after we check for unhealthy Machines and if machineToBeRemediated
 	// is being deleted to avoid unnecessary logs if no further remediation should be done.
-	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
-		log.Info("Another remediation is already in progress. Skipping remediation.")
-		return ctrl.Result{}, nil
+	if v, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
+		// Check if the annotation is stale; this might happen in case there is a crash in the controller in between
+		// when a new Machine is created and the annotation is eventually removed from KCP via defer patch at the end
+		// of KCP reconcile.
+		remediationData, err := RemediationDataFromAnnotation(v)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		staleAnnotation := false
+		for _, m := range controlPlane.Machines.UnsortedList() {
+			if m.CreationTimestamp.After(remediationData.Timestamp.Time) {
+				// Remove the annotation tracking that a remediation is in progress (the annotation is stale).
+				delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+				staleAnnotation = true
+				break
+			}
+		}
+
+		if !staleAnnotation {
+			log.Info("Another remediation is already in progress. Skipping remediation.")
+			return ctrl.Result{}, nil
+		}
 	}
 
 	patchHelper, err := patch.NewHelper(machineToBeRemediated, r.Client)

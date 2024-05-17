@@ -18,11 +18,9 @@ package cluster
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -1425,7 +1423,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 			got := &clusterv1.Cluster{}
 			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace}, got)).To(Succeed())
 			// Compare the spec of the two clusters to ensure that variables are defaulted correctly.
-			g.Expect(reflect.DeepEqual(got.Spec, tt.wantCluster.Spec)).To(BeTrue(), cmp.Diff(got.Spec, tt.wantCluster.Spec))
+			g.Expect(got.Spec).To(BeComparableTo(tt.wantCluster.Spec))
 		})
 	}
 }

@@ -19,10 +19,10 @@ package controllers
 import (
 	"crypto/sha1" //nolint: gosec
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -1032,7 +1032,7 @@ func configMapHasBeenUpdated(env *envtest.Environment, key client.ObjectKey, new
 			return err
 		}
 
-		if !reflect.DeepEqual(cm.Data, newState.Data) {
+		if !cmp.Equal(cm.Data, newState.Data) {
 			return errors.Errorf("configMap %s hasn't been updated yet", key.Name)
 		}
 

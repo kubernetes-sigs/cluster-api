@@ -414,6 +414,12 @@ func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version,
 		}
 		defer resp.Body.Close()
 
+		// if we get 404 there is no reason to retry
+		if resp.StatusCode == http.StatusNotFound {
+			retryError = errNotFound
+			return true, nil
+		}
+
 		if resp.StatusCode != http.StatusOK {
 			retryError = errors.Errorf("error getting file, status code: %d", resp.StatusCode)
 			return false, nil

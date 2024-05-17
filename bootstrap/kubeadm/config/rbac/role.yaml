@@ -8,7 +8,6 @@ rules:
   - ""
   resources:
   - configmaps
-  - events
   - secrets
   verbs:
   - create
@@ -34,7 +33,6 @@ rules:
   - bootstrap.cluster.x-k8s.io
   resources:
   - kubeadmconfigs
-  - kubeadmconfigs/finalizers
   - kubeadmconfigs/status
   verbs:
   - create
@@ -58,3 +56,9 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create

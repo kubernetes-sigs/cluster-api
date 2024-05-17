@@ -73,6 +73,7 @@ Prerequisites:
     * If code changes are required for CAPD to incorporate the new Kind version, update [kind latestMode](https://github.com/kubernetes-sigs/cluster-api/blob/0f47a19e038ee6b0d3b1e7675a62cdaf84face8c/test/infrastructure/kind/mapper.go#L66)
   * Verify the quickstart manually
   * Prior art: #10610
+* [ ] Cherry-pick above PR to the latest release branch.
 
 ### Using new Kubernetes dependencies
 

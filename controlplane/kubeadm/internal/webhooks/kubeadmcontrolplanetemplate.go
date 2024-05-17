@@ -95,7 +95,7 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateCreate(_ context.Context, ob
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 
 	oldK, ok := oldObj.(*controlplanev1.KubeadmControlPlaneTemplate)
@@ -106,6 +106,13 @@ func (webhook *KubeadmControlPlaneTemplate) ValidateUpdate(_ context.Context, ol
 	newK, ok := newObj.(*controlplanev1.KubeadmControlPlaneTemplate)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmControlPlaneTemplate but got a %T", newObj))
+	}
+
+	if err := webhook.Default(ctx, oldK); err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new KubeadmControlPlaneTemplate: failed to default old object: %v", err))
+	}
+	if err := webhook.Default(ctx, newK); err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new KubeadmControlPlaneTemplate: failed to default new object: %v", err))
 	}
 
 	if !reflect.DeepEqual(newK.Spec.Template.Spec, oldK.Spec.Template.Spec) {

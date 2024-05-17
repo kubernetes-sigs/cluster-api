@@ -61,6 +61,12 @@ type ClusterctlUpgradeSpecInput struct {
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
+	
+	// UseKindForManagementCluster instruct the test to use kind for creating the management cluster (instead to use the actual infrastructure provider).
+	// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
+	// So we are creating a new management cluster where to install older version of providers
+	UseKindForManagementCluster bool
+
 	// InitWithBinary must be used to specify the URL of the clusterctl binary of the old version of Cluster API. The spec will interpolate the
 	// strings `{OS}` and `{ARCH}` to `runtime.GOOS` and `runtime.GOARCH` respectively, e.g. https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}
 	InitWithBinary string
@@ -187,6 +193,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		managementClusterNamespace     *corev1.Namespace
 		managementClusterCancelWatches context.CancelFunc
 		managementClusterResources     *clusterctl.ApplyClusterTemplateAndWaitResult
+		managementClusterProvider      bootstrap.ClusterProvider
 		managementClusterProxy         framework.ClusterProxy
 
 		initClusterctlBinaryURL string
@@ -194,9 +201,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initKubernetesVersion   string
 
 		workloadClusterName string
+
+		scheme *apiruntime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = apiruntime.NewScheme()
+		framework.TryAddDefaultSchemes(scheme)
+
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
@@ -231,73 +243,106 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		managementClusterNamespace, managementClusterCancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		// If the test is not being run in a separated kind cluster, setup a Namespace in the current bootstrap cluster where to host objects for this spec and create a watcher for the namespace events.
+		if !input.UseKindForManagementCluster {
+			managementClusterNamespace, managementClusterCancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		}
 		managementClusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
 	It("Should create a management cluster and then upgrade all the providers", func() {
-		By("Creating a workload cluster to be used as a new management cluster")
-		// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
-		// So we are creating a workload cluster that will be used as a new management cluster where to install older version of providers
 		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
 		if input.InfrastructureProvider != nil {
 			infrastructureProvider = *input.InfrastructureProvider
 		}
-		managementClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy: input.BootstrapClusterProxy,
-			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   infrastructureProvider,
-				Flavor:                   input.MgmtFlavor,
-				Namespace:                managementClusterNamespace.Name,
-				ClusterName:              managementClusterName,
-				KubernetesVersion:        initKubernetesVersion,
-				ControlPlaneMachineCount: ptr.To[int64](1),
-				WorkerMachineCount:       ptr.To[int64](1),
-			},
-			PreWaitForCluster: func() {
-				if input.PreWaitForCluster != nil {
-					input.PreWaitForCluster(input.BootstrapClusterProxy, managementClusterNamespace.Name, managementClusterName)
-				}
-			},
-			CNIManifestPath:              input.CNIManifestPath,
-			ControlPlaneWaiters:          input.ControlPlaneWaiters,
-			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-		}, managementClusterResources)
+		// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
+		// So we are creating a workload cluster that will be used as a new management cluster where to install older version of providers
+		managementClusterName = fmt.Sprintf("%s-management-%s", specName, util.RandomString(6))
+		managementClusterLogFolder := filepath.Join(input.ArtifactFolder, "clusters", managementClusterName)
+		if input.UseKindForManagementCluster {
+			By("Creating a kind cluster to be used as a new management cluster")
 
-		By("Turning the workload cluster into a management cluster with older versions of providers")
+			managementClusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(ctx, bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
+				Name:               managementClusterName,
+				KubernetesVersion:  initKubernetesVersion,
+				RequiresDockerSock: input.E2EConfig.HasDockerProvider(),
+				// Note: most of this images won't be used in this cluster because it is used to spin up older versions of CAPI
+				Images:    input.E2EConfig.Images,
+				IPFamily:  input.E2EConfig.GetVariable(IPFamily),
+				LogFolder: filepath.Join(managementClusterLogFolder, "kind"),
+			})
+			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a bootstrap cluster")
 
-		// If the cluster is a DockerCluster, we should load controller images into the nodes.
-		// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
-		// this approach because this allows to have a single source of truth for images, the e2e config
-		// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
-		// built locally and loaded into kind
-		cluster := managementClusterResources.Cluster
-		if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
-			Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{
-				Name:   cluster.Name,
-				Images: input.E2EConfig.Images,
-			})).To(Succeed())
+			kubeconfigPath := managementClusterProvider.GetKubeconfigPath()
+			Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the bootstrap cluster")
+
+			managementClusterProxy = framework.NewClusterProxy(managementClusterName, kubeconfigPath, scheme)
+			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a bootstrap cluster proxy")
+
+			managementClusterResources.Cluster = &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: managementClusterName,
+				},
+			}
+
+			By("Turning the kind cluster into a management cluster with older versions of providers")
+		} else {
+			By("Creating a workload cluster to be used as a new management cluster")
+
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: input.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     input.ClusterctlConfigPath,
+					KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   infrastructureProvider,
+					Flavor:                   input.MgmtFlavor,
+					Namespace:                managementClusterNamespace.Name,
+					ClusterName:              managementClusterName,
+					KubernetesVersion:        initKubernetesVersion,
+					ControlPlaneMachineCount: ptr.To[int64](1),
+					WorkerMachineCount:       ptr.To[int64](1),
+				},
+				PreWaitForCluster: func() {
+					if input.PreWaitForCluster != nil {
+						input.PreWaitForCluster(input.BootstrapClusterProxy, managementClusterNamespace.Name, managementClusterName)
+					}
+				},
+				CNIManifestPath:              input.CNIManifestPath,
+				ControlPlaneWaiters:          input.ControlPlaneWaiters,
+				WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			}, managementClusterResources)
+
+			// If the cluster is a DockerCluster, we should load controller images into the nodes.
+			// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
+			// this approach because this allows to have a single source of truth for images, the e2e config
+			// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
+			// built locally and loaded into kind
+			cluster := managementClusterResources.Cluster
+			if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
+				Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{
+					Name:   cluster.Name,
+					Images: input.E2EConfig.Images,
+				})).To(Succeed())
+			}
+
+			// Get a ClusterProxy so we can interact with the workload cluster
+			managementClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name, framework.WithMachineLogCollector(input.BootstrapClusterProxy.GetLogCollector()))
 		}
 
-		// Get a ClusterProxy so we can interact with the workload cluster
-		managementClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name, framework.WithMachineLogCollector(input.BootstrapClusterProxy.GetLogCollector()))
+		By("Turning the new cluster into a management cluster with older versions of providers")
 
 		// Download the clusterctl version that should be used to initially set up the management cluster (which is later upgraded).
 		Byf("Downloading clusterctl binary from %s", initClusterctlBinaryURL)
 		clusterctlBinaryPath, clusterctlConfigPath := setupClusterctl(ctx, initClusterctlBinaryURL, input.ClusterctlConfigPath)
 		defer os.Remove(clusterctlBinaryPath) // clean up
 
-		By("Initializing the workload cluster with older versions of providers")
+		By("Initializing the new management cluster with older versions of providers")
 
 		if input.PreInit != nil {
-			By("Running Pre-init steps against the management cluster")
+			By("Running Pre-init steps against the new management cluster")
 			input.PreInit(managementClusterProxy)
 		}
 
@@ -340,7 +385,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			IPAMProviders:             ipamProviders,
 			RuntimeExtensionProviders: runtimeExtensionProviders,
 			AddonProviders:            addonProviders,
-			LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+			LogFolder:                 managementClusterLogFolder,
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
 		By("THE MANAGEMENT CLUSTER WITH THE OLDER VERSION OF PROVIDERS IS UP&RUNNING!")
@@ -364,7 +409,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// In this case ApplyClusterTemplateAndWait can't be used because this helper is linked to the last version of the API;
 		// so we are getting a template using the downloaded version of clusterctl, applying it, and wait for machines to be provisioned.
 
-		workloadClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		workloadClusterName = fmt.Sprintf("%s-workload-%s", specName, util.RandomString(6))
 		workloadClusterNamespace := testNamespace.Name
 		kubernetesVersion := input.WorkloadKubernetesVersion
 		if kubernetesVersion == "" {
@@ -532,7 +577,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					IPAMProviders:             upgrade.IPAMProviders,
 					RuntimeExtensionProviders: upgrade.RuntimeExtensionProviders,
 					AddonProviders:            upgrade.AddonProviders,
-					LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+					LogFolder:                 managementClusterLogFolder,
 				}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 			} else {
 				Byf("[%d] Upgrading providers to the latest version available", i)
@@ -542,7 +587,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					ClusterctlVariables:  input.UpgradeClusterctlVariables,
 					ClusterProxy:         managementClusterProxy,
 					Contract:             upgrade.Contract,
-					LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+					LogFolder:            managementClusterLogFolder,
 				}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 			}
 
@@ -694,8 +739,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			By("Running PreCleanupManagementCluster steps against the management cluster")
 			input.PreCleanupManagementCluster(managementClusterProxy)
 		}
+
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		if input.UseKindForManagementCluster {
+			managementClusterProxy.Dispose(ctx)
+			managementClusterProvider.Dispose(ctx)
+		} else {
+			framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		}
 	})
 }
 

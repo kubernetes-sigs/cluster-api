@@ -97,7 +97,8 @@ func Test_ObjectPauser(t *testing.T) {
 				objs: []client.Object{
 					&controlplanev1.KubeadmControlPlane{
 						TypeMeta: metav1.TypeMeta{
-							Kind: "KubeadmControlPlane",
+							Kind:       "KubeadmControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",
@@ -120,7 +121,8 @@ func Test_ObjectPauser(t *testing.T) {
 				objs: []client.Object{
 					&controlplanev1.KubeadmControlPlane{
 						TypeMeta: metav1.TypeMeta{
-							Kind: "KubeadmControlPlane",
+							Kind:       "KubeadmControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Namespace: "default",

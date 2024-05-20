@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // ObjectRestarter will issue a restart on the specified cluster-api resource.
@@ -33,7 +32,7 @@ func (r *rollout) ObjectRestarter(ctx context.Context, proxy cluster.Proxy, ref 
 	case MachineDeployment:
 		deployment, err := getMachineDeployment(ctx, proxy, ref.Name, ref.Namespace)
 		if err != nil || deployment == nil {
-			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
+			return errors.Wrapf(err, "failed to fetch resource %v/%v", ref.Kind, ref.Name)
 		}
 		if deployment.Spec.Paused {
 			return errors.Errorf("can't restart paused MachineDeployment (run rollout resume first): %v/%v", ref.Kind, ref.Name)
@@ -44,22 +43,32 @@ func (r *rollout) ObjectRestarter(ctx context.Context, proxy cluster.Proxy, ref 
 		if err := setRolloutAfterOnMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
-	case KubeadmControlPlane:
-		kcp, err := getKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace)
-		if err != nil || kcp == nil {
+	default:
+		_, err := resourceHasRolloutAfter(proxy, ref)
+		if err != nil {
+			return errors.Errorf("Invalid resource type %v. Resource must implement rolloutAfter in it's spec", ref.Kind)
+		}
+		obj, err := getUnstructuredControlPlane(ctx, proxy, ref)
+		if err != nil || obj == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if annotations.HasPaused(kcp.GetObjectMeta()) {
-			return errors.Errorf("can't restart paused KubeadmControlPlane (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", ref.Kind, ref.Name)
+
+		annotations := obj.GetAnnotations()
+		if paused, ok := annotations["cluster.x-k8s.io/paused"]; ok && paused == "true" {
+			return errors.Errorf("can't perform operations on paused resource (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", obj.GetKind(), obj.GetName())
 		}
-		if kcp.Spec.RolloutAfter != nil && kcp.Spec.RolloutAfter.After(time.Now()) {
-			return errors.Errorf("can't update KubeadmControlPlane (remove 'spec.rolloutAfter' first): %v/%v", ref.Kind, ref.Name)
+
+		if err := checkControlPlaneRolloutAfter(obj); err != nil {
+			// if _, ok := err.(*errRolloutAfterNotFound); ok {
+			// 	return errors.Errorf("Invalid resource type %v. Resource must implement rolloutAfter in it's spec", ref.Kind)
+			// }
+			return errors.Errorf("err: %s, can't update ControlPlane (remove 'spec.rolloutAfter' first): %v/%v", err.Error(), ref.Kind, ref.Name)
 		}
-		if err := setRolloutAfterOnKCP(ctx, proxy, ref.Name, ref.Namespace); err != nil {
+
+		if err := setRolloutAfterOnControlPlane(ctx, proxy, ref); err != nil {
 			return err
 		}
-	default:
-		return errors.Errorf("Invalid resource type %v. Valid values: %v", ref.Kind, validResourceTypes)
+
 	}
 	return nil
 }

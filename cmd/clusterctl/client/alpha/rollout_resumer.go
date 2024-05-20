@@ -28,7 +28,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // ObjectResumer will issue a resume on the specified cluster-api resource.
@@ -45,19 +44,19 @@ func (r *rollout) ObjectResumer(ctx context.Context, proxy cluster.Proxy, ref co
 		if err := resumeMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
-	case KubeadmControlPlane:
-		kcp, err := getKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace)
-		if err != nil || kcp == nil {
+	default:
+		obj, err := getUnstructuredControlPlane(ctx, proxy, ref)
+		if err != nil || obj == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if !annotations.HasPaused(kcp.GetObjectMeta()) {
-			return errors.Errorf("KubeadmControlPlane is not currently paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // KubeadmControlPlane is intentionally capitalized.
+
+		annotations := obj.GetAnnotations()
+		if paused, ok := annotations["cluster.x-k8s.io/paused"]; !ok || paused == "false" {
+			return errors.Errorf("can't perform operations on paused resource (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", obj.GetKind(), obj.GetName())
 		}
-		if err := resumeKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace); err != nil {
+		if err := resumeControlPlane(ctx, proxy, ref); err != nil {
 			return err
 		}
-	default:
-		return errors.Errorf("invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
 	}
 	return nil
 }
@@ -70,10 +69,10 @@ func resumeMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, nam
 }
 
 // resumeKubeadmControlPlane removes paused annotation.
-func resumeKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, namespace string) error {
+func resumeControlPlane(ctx context.Context, proxy cluster.Proxy, ref corev1.ObjectReference) error {
 	// In the paused annotation we must replace slashes to ~1, see https://datatracker.ietf.org/doc/html/rfc6901#section-3.
 	pausedAnnotation := strings.Replace(clusterv1.PausedAnnotation, "/", "~1", -1)
 	patch := client.RawPatch(types.JSONPatchType, []byte(fmt.Sprintf("[{\"op\": \"remove\", \"path\": \"/metadata/annotations/%s\"}]", pausedAnnotation)))
 
-	return patchKubeadmControlPlane(ctx, proxy, name, namespace, patch)
+	return patchControlPlane(ctx, proxy, ref, patch)
 }

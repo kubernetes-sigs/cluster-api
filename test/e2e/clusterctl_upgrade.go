@@ -61,7 +61,7 @@ type ClusterctlUpgradeSpecInput struct {
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
-	
+
 	// UseKindForManagementCluster instruct the test to use kind for creating the management cluster (instead to use the actual infrastructure provider).
 	// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
 	// So we are creating a new management cluster where to install older version of providers

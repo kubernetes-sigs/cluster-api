@@ -55,7 +55,7 @@ func TestMain(m *testing.M) {
 			Client:  mgr.GetClient(),
 			Tracker: tracker,
 		}
-		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}, nil); err != nil {
+		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}, mgr.GetCache()); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
 		}
 		bindingReconciler := ClusterResourceSetBindingReconciler{

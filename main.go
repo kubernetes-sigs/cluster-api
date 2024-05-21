@@ -39,6 +39,7 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -360,7 +361,7 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	tracker := setupReconcilers(ctx, mgr, syncPeriod)
+	tracker := setupReconcilers(ctx, mgr, watchNamespaces)
 	setupWebhooks(mgr, tracker)
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
@@ -389,7 +390,7 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager, syncPeriod time.Duration) webhooks.ClusterCacheTrackerReader {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map[string]cache.Config) webhooks.ClusterCacheTrackerReader {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -434,6 +435,26 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, syncPeriod time.Dur
 			Registry: runtimeregistry.New(),
 			Client:   mgr.GetClient(),
 		})
+	}
+
+	// Setup a separate cache for the metadata watches to secrets.
+	// This way the watch does not use the LabelSelector defined at the cache which
+	// would filter to secrets having the cluster label, because secrets referred
+	// by ClusterResourceSet are not specific to a single cluster.
+	partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
+		Scheme:            mgr.GetScheme(),
+		Mapper:            mgr.GetRESTMapper(),
+		HTTPClient:        mgr.GetHTTPClient(),
+		SyncPeriod:        ptr.To(time.Minute * 10),
+		DefaultNamespaces: watchNamespaces,
+	})
+	if err != nil {
+		setupLog.Error(err, "failed to create cache for metadata only Secret watches")
+		os.Exit(1)
+	}
+	if err := mgr.Add(partialSecretCache); err != nil {
+		setupLog.Error(err, "failed to start cache for metadata only Secret watches")
+		os.Exit(1)
 	}
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
@@ -482,7 +503,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, syncPeriod time.Dur
 			APIReader:        mgr.GetAPIReader(),
 			RuntimeClient:    runtimeClient,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency), partialSecretCache); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ExtensionConfig")
 			os.Exit(1)
 		}
@@ -542,7 +563,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, syncPeriod time.Dur
 			Client:           mgr.GetClient(),
 			Tracker:          tracker,
 			WatchFilterValue: watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency), &syncPeriod); err != nil {
+		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency), partialSecretCache); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSet")
 			os.Exit(1)
 		}

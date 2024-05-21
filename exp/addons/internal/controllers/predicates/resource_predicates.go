@@ -24,11 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-// ResourceCreateOrUpdate returns a predicate that returns true for create and update events.
-func ResourceCreateOrUpdate(l logr.Logger) predicate.Funcs {
-	return TypedResourceCreateOrUpdate[client.Object](l)
-}
-
 // TypedResourceCreateOrUpdate returns a predicate that returns true for create and update events.
 func TypedResourceCreateOrUpdate[T client.Object](_ logr.Logger) predicate.TypedFuncs[T] {
 	return predicate.TypedFuncs[T]{

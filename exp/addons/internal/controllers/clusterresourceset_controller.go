@@ -67,25 +67,8 @@ type ClusterResourceSetReconciler struct {
 	WatchFilterValue string
 }
 
-func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, syncPeriod *time.Duration) error {
-	// Setup a separate cache for the metadata watches to secrets.
-	// This way the watch does not use the LabelSelector defined at the cache which
-	// would filter to secrets having the cluster label, because secrets referred
-	// by ClusterResourceSet are not specific to a single cluster.
-	partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
-		Scheme:     mgr.GetScheme(),
-		Mapper:     mgr.GetRESTMapper(),
-		HTTPClient: mgr.GetHTTPClient(),
-		SyncPeriod: syncPeriod,
-	})
-	if err != nil {
-		return errors.Wrapf(err, "Failed to create metadataOnlyCache")
-	}
-	if err := mgr.Add(partialSecretCache); err != nil {
-		return errors.Wrapf(err, "Failed to start metadataOnlyCache cache")
-	}
-
-	err = ctrl.NewControllerManagedBy(mgr).
+func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(
 			&clusterv1.Cluster{},
@@ -97,7 +80,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 				resourceToClusterResourceSetFunc[client.Object](r.Client),
 			),
 			builder.WithPredicates(
-				resourcepredicates.ResourceCreateOrUpdate(ctrl.LoggerFrom(ctx)),
+				resourcepredicates.TypedResourceCreateOrUpdate[client.Object](ctrl.LoggerFrom(ctx)),
 			),
 		).
 		WatchesRawSource(source.Kind(

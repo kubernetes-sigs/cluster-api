@@ -990,11 +990,56 @@ metadata:
 		g.Expect(env.Patch(ctx, clusterResourceSetInstance, client.MergeFrom(clusterResourceSetInstance.DeepCopy()))).To(Succeed())
 
 		// Wait until ClusterResourceSetBinding is created for the Cluster
-		g.Eventually(func() bool {
+		g.Eventually(func(g Gomega) {
 			binding := &addonsv1.ClusterResourceSetBinding{}
-			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
-			return err == nil
-		}, timeout).Should(BeTrue())
+			g.Expect(env.Get(ctx, clusterResourceSetBindingKey, binding)).Should(Succeed())
+		}, timeout).Should(Succeed())
+	})
+
+	t.Run("Should handle applying multiple ClusterResourceSets concurrently to the same cluster", func(t *testing.T) {
+		g := NewWithT(t)
+		ns := setup(t, g)
+		defer teardown(t, g, ns)
+
+		t.Log("Creating ClusterResourceSet instances that have same labels as selector")
+		for range 10 {
+			clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("clusterresourceset-%s", util.RandomString(6)),
+					Namespace: ns.Name,
+				},
+				Spec: addonsv1.ClusterResourceSetSpec{
+					ClusterSelector: metav1.LabelSelector{
+						MatchLabels: labels,
+					},
+					Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: secretName, Kind: "Secret"}},
+				},
+			}
+			// Create the ClusterResourceSet.
+			g.Expect(env.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+		}
+
+		t.Log("Updating the cluster with labels to trigger cluster resource sets to be applied")
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		t.Log("Verifying ClusterResourceSetBinding shows that all CRS have been applied")
+		g.Eventually(func(g Gomega) {
+			clusterResourceSetBindingKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			g.Expect(env.Get(ctx, clusterResourceSetBindingKey, binding)).Should(Succeed())
+			g.Expect(binding.Spec.Bindings).To(HaveLen(10))
+			for _, b := range binding.Spec.Bindings {
+				g.Expect(b.Resources).To(HaveLen(2))
+				for _, r := range b.Resources {
+					g.Expect(r.Applied).To(BeTrue())
+				}
+			}
+			g.Expect(binding.OwnerReferences).To(HaveLen(10))
+		}, 4*timeout).Should(Succeed())
+		t.Log("Deleting the created ClusterResourceSet instances")
+		g.Expect(env.DeleteAllOf(ctx, &addonsv1.ClusterResourceSet{}, client.InNamespace(ns.Name))).To(Succeed())
+		g.Expect(env.DeleteAllOf(ctx, &addonsv1.ClusterResourceSetBinding{}, client.InNamespace(ns.Name))).To(Succeed())
 	})
 }
 

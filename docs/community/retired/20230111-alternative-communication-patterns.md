@@ -14,6 +14,11 @@ see-also:
   - https://github.com/kubernetes-sigs/cluster-api/issues/6520
   - https://docs.google.com/document/d/1j4sCPGO_0e1G-IyiI_8s98R3RVrYsgY9n0VFcde3ELo/edit#heading=h.lcjlkg7scook
 ---
+
+# This Feature Group is Retired!
+
+We are putting this work on hold due to lack of contributors/lack of interest.
+
 # Alternative Communication Patterns Feature Group
 
 This document briefly outlines the scope, communication media, and stakeholders for a formal Feature Group dedicated to defining a Cluster API-approved solution for supporting alternative communication patterns. Currently Cluster API assumes that it can initiate direct connections to all child clusters and/or to an infrastructure control plane. For some users / usage scenarios this isn't possible (technically or by policy) and so this group will investigate alternatives to enable these types of usage scenarios.

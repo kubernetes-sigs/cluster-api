@@ -1266,21 +1266,13 @@ spec:
                                       Rule accessing a property named \"x-prop\":
                                       {\"rule\": \"self.x__dash__prop > 0\"}\n  -
                                       Rule accessing a property named \"redact__d\":
-                                      {\"rule\": \"self.redact__underscores__d > 0\"}\n\n\nEquality
-                                      on arrays with x-kubernetes-list-type of 'set'
-                                      or 'map' ignores element order, i.e. [1, 2]
-                                      == [2, 1].\nConcatenation on arrays with x-kubernetes-list-type
-                                      use the semantics of the list type:\n  - 'set':
-                                      `X + Y` performs a union where the array positions
-                                      of all elements in `X` are preserved and\n    non-intersecting
-                                      elements in `Y` are appended, retaining their
-                                      partial order.\n  - 'map': `X + Y` performs
-                                      a merge where the array positions of all keys
-                                      in `X` are preserved but the values\n    are
-                                      overwritten by values in `Y` when the key sets
-                                      of `X` and `Y` intersect. Elements in `Y` with\n
-                                      \   non-intersecting keys are appended, retaining
-                                      their partial order."
+                                      {\"rule\": \"self.redact__underscores__d > 0\"}\n\n\nIf
+                                      `rule` makes use of the `oldSelf` variable it
+                                      is implicitly a\n`transition rule`.\n\n\nBy
+                                      default, the `oldSelf` variable is the same
+                                      type as `self`.\n\n\nTransition rules by default
+                                      are applied only on UPDATE requests and are\nskipped
+                                      if an old value could not be found."
                                     type: string
                                 required:
                                 - rule
@@ -2303,23 +2295,13 @@ spec:
                                             {\"rule\": \"self.x__dash__prop > 0\"}\n
                                             \ - Rule accessing a property named \"redact__d\":
                                             {\"rule\": \"self.redact__underscores__d
-                                            > 0\"}\n\n\nEquality on arrays with x-kubernetes-list-type
-                                            of 'set' or 'map' ignores element order,
-                                            i.e. [1, 2] == [2, 1].\nConcatenation
-                                            on arrays with x-kubernetes-list-type
-                                            use the semantics of the list type:\n
-                                            \ - 'set': `X + Y` performs a union where
-                                            the array positions of all elements in
-                                            `X` are preserved and\n    non-intersecting
-                                            elements in `Y` are appended, retaining
-                                            their partial order.\n  - 'map': `X +
-                                            Y` performs a merge where the array positions
-                                            of all keys in `X` are preserved but the
-                                            values\n    are overwritten by values
-                                            in `Y` when the key sets of `X` and `Y`
-                                            intersect. Elements in `Y` with\n    non-intersecting
-                                            keys are appended, retaining their partial
-                                            order."
+                                            > 0\"}\n\n\nIf `rule` makes use of the
+                                            `oldSelf` variable it is implicitly a\n`transition
+                                            rule`.\n\n\nBy default, the `oldSelf`
+                                            variable is the same type as `self`.\n\n\nTransition
+                                            rules by default are applied only on UPDATE
+                                            requests and are\nskipped if an old value
+                                            could not be found."
                                           type: string
                                       required:
                                       - rule

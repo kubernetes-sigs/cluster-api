@@ -418,8 +418,7 @@ type VariableSchema struct {
 	OpenAPIV3Schema JSONSchemaProps `json:"openAPIV3Schema"`
 }
 
-// +lifted:source=https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L40
-// +lifted:changed
+// Adapted from https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L40
 
 // JSONSchemaProps is a JSON-Schema following Specification Draft 4 (http://json-schema.org/).
 // This struct has been initially copied from apiextensionsv1.JSONSchemaProps, but all fields
@@ -548,13 +547,10 @@ type JSONSchemaProps struct {
 
 	// XValidations describes a list of validation rules written in the CEL expression language.
 	// +optional
-	XValidations ValidationRules `json:"x-kubernetes-validations,omitempty"`
+	// +listType=map
+	// +listMapKey=rule
+	XValidations []ValidationRule `json:"x-kubernetes-validations,omitempty"`
 }
-
-// ValidationRules describes a list of validation rules written in the CEL expression language.
-// +listType=map
-// +listMapKey=rule
-type ValidationRules []ValidationRule
 
 // ValidationRule describes a validation rule written in the CEL expression language.
 type ValidationRule struct {
@@ -598,13 +594,15 @@ type ValidationRule struct {
 	//   - Rule accessing a property named "x-prop": {"rule": "self.x__dash__prop > 0"}
 	//   - Rule accessing a property named "redact__d": {"rule": "self.redact__underscores__d > 0"}
 	//
-	// Equality on arrays with x-kubernetes-list-type of 'set' or 'map' ignores element order, i.e. [1, 2] == [2, 1].
-	// Concatenation on arrays with x-kubernetes-list-type use the semantics of the list type:
-	//   - 'set': `X + Y` performs a union where the array positions of all elements in `X` are preserved and
-	//     non-intersecting elements in `Y` are appended, retaining their partial order.
-	//   - 'map': `X + Y` performs a merge where the array positions of all keys in `X` are preserved but the values
-	//     are overwritten by values in `Y` when the key sets of `X` and `Y` intersect. Elements in `Y` with
-	//     non-intersecting keys are appended, retaining their partial order.
+	//
+	// If `rule` makes use of the `oldSelf` variable it is implicitly a
+	// `transition rule`.
+	//
+	// By default, the `oldSelf` variable is the same type as `self`.
+	//
+	// Transition rules by default are applied only on UPDATE requests and are
+	// skipped if an old value could not be found.
+	//
 	// +kubebuilder:validation:Required
 	Rule string `json:"rule"`
 	// Message represents the message displayed when validation fails. The message is required if the Rule contains
@@ -626,7 +624,6 @@ type ValidationRule struct {
 	// +optional
 	MessageExpression string `json:"messageExpression,omitempty"`
 	// Reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule.
-	// The HTTP status code returned to the caller will match the reason of the reason of the first failed validation rule.
 	// The currently supported reasons are: "FieldValueInvalid", "FieldValueForbidden", "FieldValueRequired", "FieldValueDuplicate".
 	// If not set, default to use "FieldValueInvalid".
 	// All future added reasons must be accepted by clients when reading this value and unknown reasons should be treated as FieldValueInvalid.
@@ -634,7 +631,7 @@ type ValidationRule struct {
 	// +kubebuilder:validation:Enum=FieldValueInvalid;FieldValueForbidden;FieldValueRequired;FieldValueDuplicate
 	// +kubebuilder:default=FieldValueInvalid
 	// +default=ref(sigs.k8s.io/cluster-api/api/v1beta1.FieldValueInvalid)
-	Reason *FieldValueErrorReason `json:"FieldValueRequired,omitempty"`
+	Reason FieldValueErrorReason `json:"FieldValueRequired,omitempty"`
 	// FieldPath represents the field path returned when the validation fails.
 	// It must be a relative JSON path (i.e. with array notation) scoped to the location of this x-kubernetes-validations extension in the schema and refer to an existing field.
 	// e.g. when validation checks if a specific attribute `foo` under a map `testMap`, the fieldPath could be set to `.testMap.foo`

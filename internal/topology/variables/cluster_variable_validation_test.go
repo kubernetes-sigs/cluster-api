@@ -1536,7 +1536,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self <= 1",
 						}},
 					},
@@ -1559,7 +1559,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self <= 1",
 						}},
 					},
@@ -1582,7 +1582,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self >= 1",
 						}},
 					},
@@ -1605,7 +1605,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule:    "self >= 1",
 							Message: "new value must be greater than or equal to 1",
 						}},
@@ -1655,7 +1655,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self > oldSelf",
 						}},
 					},
@@ -1676,7 +1676,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self > oldSelf",
 						}},
 					},
@@ -1704,7 +1704,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self > oldSelf",
 						}},
 					},
@@ -1732,7 +1732,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule:    "self > oldSelf",
 							Message: "new value must be greater than old value",
 						}},
@@ -1921,7 +1921,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XValidations: clusterv1.ValidationRules{{
+									XValidations: []clusterv1.ValidationRule{{
 										Rule: "self <= 1",
 									}},
 								},
@@ -1952,7 +1952,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XValidations: clusterv1.ValidationRules{{
+									XValidations: []clusterv1.ValidationRule{{
 										Rule: "self <= 1",
 									}},
 								},
@@ -1983,7 +1983,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XValidations: clusterv1.ValidationRules{{
+									XValidations: []clusterv1.ValidationRule{{
 										Rule: "self >= 1",
 									}},
 								},
@@ -2013,7 +2013,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XValidations: clusterv1.ValidationRules{{
+									XValidations: []clusterv1.ValidationRule{{
 										Rule: "self > oldSelf",
 									}},
 								},
@@ -2043,7 +2043,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XValidations: clusterv1.ValidationRules{{
+									XValidations: []clusterv1.ValidationRule{{
 										Rule: "self > oldSelf",
 									}},
 								},
@@ -2082,7 +2082,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
-									XValidations: clusterv1.ValidationRules{{
+									XValidations: []clusterv1.ValidationRule{{
 										Rule: "self > oldSelf",
 									}},
 								},

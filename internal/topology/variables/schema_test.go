@@ -195,7 +195,7 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 					Format:    "uri",
 					MinLength: ptr.To[int64](2),
 					MaxLength: ptr.To[int64](4),
-					XValidations: clusterv1.ValidationRules{{
+					XValidations: []clusterv1.ValidationRule{{
 						Rule:              "self > 0",
 						Message:           "value must be greater than 0",
 						MessageExpression: "value must be greater than 0",
@@ -205,7 +205,7 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 						Message:           "value must be greater than 0",
 						MessageExpression: "value must be greater than 0",
 						FieldPath:         "a.field.path",
-						Reason:            ptr.To(clusterv1.FieldValueErrorReason("a reason")),
+						Reason:            clusterv1.FieldValueErrorReason("a reason"),
 					}},
 				},
 			},

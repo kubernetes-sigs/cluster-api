@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -182,6 +183,13 @@ func validateRootSchema(ctx context.Context, clusterClassVariable *clusterv1.Clu
 	return allErrs
 }
 
+var supportedValidationReason = sets.NewString(
+	string(clusterv1.FieldValueRequired),
+	string(clusterv1.FieldValueForbidden),
+	string(clusterv1.FieldValueInvalid),
+	string(clusterv1.FieldValueDuplicate),
+)
+
 func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -225,6 +233,41 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 		allErrs = append(allErrs, validateSchema(&p, fldPath.Child("properties").Key(propertyName))...)
 	}
 
+	for i, rule := range schema.XValidations {
+		trimmedRule := strings.TrimSpace(rule.Rule)
+		trimmedMsg := strings.TrimSpace(rule.Message)
+		trimmedMsgExpr := strings.TrimSpace(rule.MessageExpression)
+		if trimmedRule == "" {
+			allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), "rule is not specified"))
+		} else if rule.Message != "" && trimmedMsg == "" {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message, "message must be non-empty if specified"))
+		} else if rule.Message != "" && len(rule.Message) > 2048 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message, "message must have a maximum length of 2048 characters"))
+		} else if hasNewlines(trimmedMsg) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message, "message must not contain line breaks"))
+		} else if hasNewlines(trimmedRule) && trimmedMsg == "" {
+			allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), "message must be specified if rule contains line breaks"))
+		}
+		if rule.MessageExpression != "" && trimmedMsgExpr == "" {
+			allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), "messageExpression must be non-empty if specified"))
+		}
+		if rule.Reason != nil && !supportedValidationReason.Has(string(*rule.Reason)) {
+			allErrs = append(allErrs, field.NotSupported(fldPath.Child("x-kubernetes-validations").Index(i).Child("reason"), *rule.Reason, supportedValidationReason.List()))
+		}
+		trimmedFieldPath := strings.TrimSpace(rule.FieldPath)
+		if rule.FieldPath != "" && trimmedFieldPath == "" {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, "fieldPath must be non-empty if specified"))
+		}
+		if hasNewlines(rule.FieldPath) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, "fieldPath must not contain line breaks"))
+		}
+		if rule.FieldPath != "" {
+			if !pathValid(schema, rule.FieldPath) {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, "fieldPath must be a valid path"))
+			}
+		}
+	}
+
 	// If any schema related validation errors have been found at this level or deeper, skip CEL expression validation.
 	// Invalid OpenAPISchemas are not always possible to convert into valid CEL DeclTypes, and can lead to CEL
 	// validation error messages that are not actionable (will go away once the schema errors are resolved) and that
@@ -239,6 +282,20 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 	return allErrs
 }
 
+var newlineMatcher = regexp.MustCompile(`[\n\r]+`) // valid newline chars in CEL grammar
+func hasNewlines(s string) bool {
+	return newlineMatcher.MatchString(s)
+}
+
+func pathValid(schema *apiextensions.JSONSchemaProps, path string) bool {
+	// To avoid duplicated code and better maintain, using ValidFieldPath func to check if the path is valid
+	if ss, err := structuralschema.NewStructural(schema); err == nil {
+		_, _, err := cel.ValidFieldPath(path, ss)
+		return err == nil
+	}
+	return true
+}
+
 func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *field.Path, celContext *apiextensionsvalidation.CELSchemaContext) field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -247,13 +304,14 @@ func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *fiel
 	}
 
 	if len(schema.Properties) != 0 {
-		for property, jsonSchema := range schema.Properties {
-			propertySchema := jsonSchema
-			allErrs = append(allErrs, validateCELExpressions(&propertySchema, fldPath.Child("properties").Key(property), celContext.ChildPropertyContext(&propertySchema, property))...)
+		for property, propertySchema := range schema.Properties {
+			p := propertySchema
+			allErrs = append(allErrs, validateCELExpressions(&p, fldPath.Child("properties").Key(property), celContext.ChildPropertyContext(&p, property))...)
 		}
 	}
 
 	if schema.Items != nil {
+		allErrs = append(allErrs, validateSchema(schema.Items.Schema, fldPath.Child("items"))...)
 		allErrs = append(allErrs, validateCELExpressions(schema.Items.Schema, fldPath.Child("items"), celContext.ChildItemsContext(schema.Items.Schema))...)
 		if len(schema.Items.JSONSchemas) != 0 {
 			for i, jsonSchema := range schema.Items.JSONSchemas {
@@ -279,7 +337,7 @@ func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *fiel
 		cel.NewExpressionsEnvLoader(),
 	)
 	if err != nil {
-		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), err))
+		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), errors.Wrap(err, "failed to compile x-kubernetes-validations rules")))
 	}
 
 	for i, cr := range compResults {

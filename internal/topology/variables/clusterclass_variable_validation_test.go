@@ -17,6 +17,7 @@ limitations under the License.
 package variables
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -1029,7 +1030,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "self >= 1",
 						}},
 					},
@@ -1043,7 +1044,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
-						XValidations: clusterv1.ValidationRules{{
+						XValidations: []clusterv1.ValidationRule{{
 							Rule: "this does not compile",
 						}},
 					},
@@ -1065,12 +1066,210 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 								Items: &clusterv1.JSONSchemaProps{
 									Type:         "string",
 									MaxLength:    ptr.To[int64](500000),
-									XValidations: clusterv1.ValidationRules{{Rule: "self.contains('keyword')"}},
+									XValidations: []clusterv1.ValidationRule{{Rule: "self.contains('keyword')"}},
 								},
 							},
 							"field": { // include a validation rule that does not contribute to total limit being exceeded (i.e. it is less than 1% of the limit)
 								Type:         "integer",
-								XValidations: clusterv1.ValidationRules{{Rule: "self > 50 && self < 100"}},
+								XValidations: []clusterv1.ValidationRule{{Rule: "self > 50 && self < 100"}},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "x-kubernetes-validations should have valid reason and fieldPath",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						XValidations: []clusterv1.ValidationRule{
+							{
+								Rule:      "self.a > 0",
+								Reason:    clusterv1.FieldValueErrorReason("InternalError"),
+								FieldPath: ".a",
+							},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"a": {
+								Type: "number",
+								XValidations: []clusterv1.ValidationRule{
+									{
+										Rule:   "true",
+										Reason: clusterv1.FieldValueRequired,
+									},
+									{
+										Rule:   "true",
+										Reason: clusterv1.FieldValueInvalid,
+									},
+									{
+										Rule:   "true",
+										Reason: clusterv1.FieldValueDuplicate,
+									},
+									{
+										Rule:   "true",
+										Reason: clusterv1.FieldValueForbidden,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "x-kubernetes-validations should have valid fieldPath for array",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						XValidations: []clusterv1.ValidationRule{
+							{
+								Rule:      "true",
+								FieldPath: ".foo['b.c']['c\\a']",
+							},
+							{
+								Rule:      "true",
+								FieldPath: "['a.c']",
+							},
+							{
+								Rule:      "true",
+								FieldPath: ".a.c",
+							},
+							{
+								Rule:      "true",
+								FieldPath: ".list[0]",
+							},
+							{
+								Rule:      "true",
+								FieldPath: "   ",
+							},
+							{
+								Rule:      "true",
+								FieldPath: ".",
+							},
+							{
+								Rule:      "true",
+								FieldPath: "..",
+							},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"a.c": {
+								Type: "number",
+							},
+							"foo": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"b.c": {
+										Type: "object",
+										Properties: map[string]clusterv1.JSONSchemaProps{
+											"c\a": {
+												Type: "number",
+											},
+										},
+									},
+								},
+							},
+							"list": {
+								Type: "array",
+								Items: &clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"a": {
+											Type: "number",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "x-kubernetes-validations have invalid fieldPath",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						XValidations: []clusterv1.ValidationRule{
+							{
+								Rule:      "self.a.b.c > 0.0",
+								FieldPath: ".list[0].b",
+							},
+							{
+								Rule:      "self.a.b.c > 0.0",
+								FieldPath: ".list[0.b",
+							},
+							{
+								Rule:      "self.a.b.c > 0.0",
+								FieldPath: ".list0].b",
+							},
+							{
+								Rule:      "self.a.b.c > 0.0",
+								FieldPath: ".a.c",
+							},
+							{
+								Rule:      "self.a.b.c > 0.0",
+								FieldPath: ".a.b.d",
+							},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"a": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"b": {
+										Type: "object",
+										Properties: map[string]clusterv1.JSONSchemaProps{
+											"c": {
+												Type: "number",
+											},
+										},
+									},
+								},
+							},
+							"list": {
+								Type: "array",
+								Items: &clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"a": {
+											Type: "number",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "x-kubernetes-validations should have valid message shorter than 2048 characters",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						XValidations: []clusterv1.ValidationRule{
+							{
+								Rule:      "self.a > 0",
+								Reason:    clusterv1.FieldValueInvalid,
+								FieldPath: ".a",
+								Message:   strings.Repeat("a", 2049),
+							},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"a": {
+								Type: "number",
 							},
 						},
 					},

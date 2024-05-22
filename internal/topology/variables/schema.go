@@ -170,13 +170,13 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	return props, allErrs
 }
 
-func convertToAPIExtensionsXValidations(validationRules clusterv1.ValidationRules) apiextensions.ValidationRules {
+func convertToAPIExtensionsXValidations(validationRules []clusterv1.ValidationRule) apiextensions.ValidationRules {
 	apiExtValidationRules := make(apiextensions.ValidationRules, 0, len(validationRules))
 
 	for _, validationRule := range validationRules {
 		var reason *apiextensions.FieldValueErrorReason
-		if validationRule.Reason != nil {
-			reason = ptr.To(apiextensions.FieldValueErrorReason(*validationRule.Reason))
+		if validationRule.Reason != "" {
+			reason = ptr.To(apiextensions.FieldValueErrorReason(validationRule.Reason))
 		}
 
 		apiExtValidationRules = append(

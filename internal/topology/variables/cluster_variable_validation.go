@@ -64,7 +64,7 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 		return append(allErrs, field.Invalid(fldPath, "["+strings.Join(valueStrings, ",")+"]", fmt.Sprintf("cluster variables not valid: %s", err)))
 	}
 
-	// Get a map of old ClusterVariable values. We know they are all valid and not duplicate names, etc. as validation previous
+	// Get a map of old ClusterVariable values. We know they are all valid and not duplicate names, etc. as previous
 	// validation has already asserted that.
 	oldValuesMap := make(map[string]*clusterv1.ClusterVariable, len(oldValues))
 	for idx := range oldValues {
@@ -176,7 +176,7 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 	// so we wrap the schema and the variable in objects.
 	// <variable-name>: <variable-value>
 	wrappedVariable := map[string]interface{}{
-		definition.Name: variableValue,
+		value.Name: variableValue,
 	}
 	// type: object
 	// properties:

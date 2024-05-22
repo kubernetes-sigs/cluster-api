@@ -56,6 +56,9 @@ func TestMain(m *testing.M) {
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create cache for metadata only Secret watches: %v", err))
 		}
+		if err := mgr.Add(partialSecretCache); err != nil {
+			panic(fmt.Sprintf("Failed to start cache for metadata only Secret watches: %v", err))
+		}
 
 		tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
 		if err != nil {

@@ -39,7 +39,6 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -251,13 +250,13 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	// Set log level 2 as default.
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
-		setupLog.Error(err, "failed to set default log level")
+		setupLog.Error(err, "Failed to set default log level")
 		os.Exit(1)
 	}
 	pflag.Parse()
 
 	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -280,13 +279,13 @@ func main() {
 	}
 
 	if err := version.CheckKubernetesVersion(restConfig, minVer); err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to add TLS settings to the webhook server")
 		os.Exit(1)
 	}
 
@@ -352,7 +351,7 @@ func main() {
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "Unable to start manager")
 		os.Exit(1)
 	}
 
@@ -361,36 +360,36 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	tracker := setupReconcilers(ctx, mgr, watchNamespaces)
+	tracker := setupReconcilers(ctx, mgr, watchNamespaces, &syncPeriod)
 	setupWebhooks(mgr, tracker)
 
 	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.Error(err, "Problem running manager")
 		os.Exit(1)
 	}
 }
 
 func setupChecks(mgr ctrl.Manager) {
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create ready check")
+		setupLog.Error(err, "Unable to create ready check")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create health check")
+		setupLog.Error(err, "Unable to create health check")
 		os.Exit(1)
 	}
 }
 
 func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
-		setupLog.Error(err, "unable to setup indexes")
+		setupLog.Error(err, "Unable to setup indexes")
 		os.Exit(1)
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map[string]cache.Config) webhooks.ClusterCacheTrackerReader {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map[string]cache.Config, syncPeriod *time.Duration) webhooks.ClusterCacheTrackerReader {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -398,7 +397,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		},
 	})
 	if err != nil {
-		setupLog.Error(err, "unable to create secret caching client")
+		setupLog.Error(err, "Unable to create secret caching client")
 		os.Exit(1)
 	}
 
@@ -414,7 +413,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		},
 	)
 	if err != nil {
-		setupLog.Error(err, "unable to create cluster cache tracker")
+		setupLog.Error(err, "Unable to create cluster cache tracker")
 		os.Exit(1)
 	}
 
@@ -423,7 +422,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
+		setupLog.Error(err, "Unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
 	}
 
@@ -440,20 +439,20 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	// Setup a separate cache for the metadata watches to secrets.
 	// This way the watch does not use the LabelSelector defined at the cache which
 	// would filter to secrets having the cluster label, because secrets referred
-	// by ClusterResourceSet are not specific to a single cluster.
+	// by ClusterResourceSet or ExtensionConfig are not specific to a single cluster.
 	partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
 		Scheme:            mgr.GetScheme(),
 		Mapper:            mgr.GetRESTMapper(),
 		HTTPClient:        mgr.GetHTTPClient(),
-		SyncPeriod:        ptr.To(time.Minute * 10),
+		SyncPeriod:        syncPeriod,
 		DefaultNamespaces: watchNamespaces,
 	})
 	if err != nil {
-		setupLog.Error(err, "failed to create cache for metadata only Secret watches")
+		setupLog.Error(err, "Failed to create cache for metadata only Secret watches")
 		os.Exit(1)
 	}
 	if err := mgr.Add(partialSecretCache); err != nil {
-		setupLog.Error(err, "failed to start cache for metadata only Secret watches")
+		setupLog.Error(err, "Failed to start cache for metadata only Secret watches")
 		os.Exit(1)
 	}
 
@@ -463,7 +462,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			RuntimeClient:    runtimeClient,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterClassConcurrency)); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterClass")
+			setupLog.Error(err, "Unable to create controller", "controller", "ClusterClass")
 			os.Exit(1)
 		}
 
@@ -474,7 +473,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			Tracker:          tracker,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
+			setupLog.Error(err, "Unable to create controller", "controller", "ClusterTopology")
 			os.Exit(1)
 		}
 
@@ -483,7 +482,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			APIReader:        mgr.GetAPIReader(),
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MachineDeploymentTopology")
+			setupLog.Error(err, "Unable to create controller", "controller", "MachineDeploymentTopology")
 			os.Exit(1)
 		}
 
@@ -492,7 +491,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			APIReader:        mgr.GetAPIReader(),
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MachineSetTopology")
+			setupLog.Error(err, "Unable to create controller", "controller", "MachineSetTopology")
 			os.Exit(1)
 		}
 	}
@@ -504,7 +503,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			RuntimeClient:    runtimeClient,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency), partialSecretCache); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ExtensionConfig")
+			setupLog.Error(err, "Unable to create controller", "controller", "ExtensionConfig")
 			os.Exit(1)
 		}
 	}
@@ -514,7 +513,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		APIReader:        mgr.GetAPIReader(),
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
+		setupLog.Error(err, "Unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
@@ -524,7 +523,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		WatchFilterValue:       watchFilterValue,
 		NodeDrainClientTimeout: nodeDrainClientTimeout,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Machine")
+		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineSetReconciler{
@@ -534,7 +533,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		WatchFilterValue:             watchFilterValue,
 		DeprecatedInfraMachineNaming: useDeprecatedInfraMachineNaming,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
+		setupLog.Error(err, "Unable to create controller", "controller", "MachineSet")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineDeploymentReconciler{
@@ -542,7 +541,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		APIReader:        mgr.GetAPIReader(),
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineDeploymentConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
+		setupLog.Error(err, "Unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)
 	}
 
@@ -553,7 +552,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			Tracker:          tracker,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
+			setupLog.Error(err, "Unable to create controller", "controller", "MachinePool")
 			os.Exit(1)
 		}
 	}
@@ -564,14 +563,14 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			Tracker:          tracker,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency), partialSecretCache); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSet")
+			setupLog.Error(err, "Unable to create controller", "controller", "ClusterResourceSet")
 			os.Exit(1)
 		}
 		if err := (&addonscontrollers.ClusterResourceSetBindingReconciler{
 			Client:           mgr.GetClient(),
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterResourceSetConcurrency)); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterResourceSetBinding")
+			setupLog.Error(err, "Unable to create controller", "controller", "ClusterResourceSetBinding")
 			os.Exit(1)
 		}
 	}
@@ -581,7 +580,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineHealthCheckConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MachineHealthCheck")
+		setupLog.Error(err, "Unable to create controller", "controller", "MachineHealthCheck")
 		os.Exit(1)
 	}
 
@@ -592,61 +591,61 @@ func setupWebhooks(mgr ctrl.Manager, tracker webhooks.ClusterCacheTrackerReader)
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled.
 	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterClass")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterClass")
 		os.Exit(1)
 	}
 
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the webhook
 	// is going to prevent usage of Cluster.Topology in case the feature flag is disabled.
 	if err := (&webhooks.Cluster{Client: mgr.GetClient(), ClusterCacheTrackerReader: tracker}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Cluster")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "Cluster")
 		os.Exit(1)
 	}
 
 	if err := (&webhooks.Machine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Machine")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "Machine")
 		os.Exit(1)
 	}
 
 	if err := (&webhooks.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineSet")
 		os.Exit(1)
 	}
 
 	if err := (&webhooks.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineDeployment")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineDeployment")
 		os.Exit(1)
 	}
 
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
 	if err := (&expwebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "MachinePool")
 		os.Exit(1)
 	}
 
 	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
 	if err := (&addonswebhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSet")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterResourceSet")
 		os.Exit(1)
 	}
 	// NOTE: ClusterResourceSetBinding is behind ClusterResourceSet feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
 	if err := (&addonswebhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSetBinding")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "ClusterResourceSetBinding")
 		os.Exit(1)
 	}
 
 	if err := (&webhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MachineHealthCheck")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineHealthCheck")
 		os.Exit(1)
 	}
 
 	// NOTE: ExtensionConfig is behind the RuntimeSDK feature gate flag. The webhook will prevent creating or updating
 	// new objects if the feature flag is disabled.
 	if err := (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "ExtensionConfig")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "ExtensionConfig")
 		os.Exit(1)
 	}
 
@@ -654,11 +653,11 @@ func setupWebhooks(mgr ctrl.Manager, tracker webhooks.ClusterCacheTrackerReader)
 		// We are using GetAPIReader here to avoid caching all IPAddressClaims
 		Client: mgr.GetAPIReader(),
 	}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "IPAddress")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "IPAddress")
 		os.Exit(1)
 	}
 	if err := (&expipamwebhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "IPAddressClaim")
+		setupLog.Error(err, "Unable to create webhook", "webhook", "IPAddressClaim")
 		os.Exit(1)
 	}
 }

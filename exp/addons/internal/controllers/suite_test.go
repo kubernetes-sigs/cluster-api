@@ -24,6 +24,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -46,6 +47,16 @@ func TestMain(m *testing.M) {
 	}
 
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		// Create partial cache analog to main.go.
+		partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
+			Scheme:     mgr.GetScheme(),
+			Mapper:     mgr.GetRESTMapper(),
+			HTTPClient: mgr.GetHTTPClient(),
+		})
+		if err != nil {
+			panic(fmt.Sprintf("Failed to create cache for metadata only Secret watches: %v", err))
+		}
+
 		tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
@@ -55,7 +66,7 @@ func TestMain(m *testing.M) {
 			Client:  mgr.GetClient(),
 			Tracker: tracker,
 		}
-		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}, mgr.GetCache()); err != nil {
+		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}, partialSecretCache); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
 		}
 		bindingReconciler := ClusterResourceSetBindingReconciler{

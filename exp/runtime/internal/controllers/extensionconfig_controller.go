@@ -74,7 +74,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 				},
 			},
 			handler.TypedEnqueueRequestsFromMapFunc(
-				secretToExtensionConfigFunc[*metav1.PartialObjectMetadata](r.Client),
+				secretToExtensionConfigFunc(r.Client),
 			),
 		)).
 		WithOptions(options).
@@ -192,8 +192,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, extensionConfig *runti
 
 // secretToExtensionConfigFunc returns a func which maps a secret to ExtensionConfigs with the corresponding
 // InjectCAFromSecretAnnotation to reconcile them on updates of the secrets.
-func secretToExtensionConfigFunc[T client.Object](ctrlClient client.Client) handler.TypedMapFunc[T] {
-	return func(ctx context.Context, o T) []reconcile.Request {
+func secretToExtensionConfigFunc(ctrlClient client.Client) handler.TypedMapFunc[*metav1.PartialObjectMetadata] {
+	return func(ctx context.Context, o *metav1.PartialObjectMetadata) []reconcile.Request {
 		result := []ctrl.Request{}
 
 		extensionConfigs := runtimev1.ExtensionConfigList{}

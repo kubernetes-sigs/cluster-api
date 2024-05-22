@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
-	"reflect"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 )
 
 // SetupWebhookWithManager sets up IPAddress webhooks.
@@ -74,9 +74,14 @@ func (webhook *IPAddress) ValidateUpdate(_ context.Context, oldObj, newObj runti
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddress but got a %T", newObj))
 	}
 
-	if !reflect.DeepEqual(oldIP.Spec, newIP.Spec) {
-		return nil, field.Forbidden(field.NewPath("spec"), "the spec of IPAddress is immutable")
+	equal, diff, err := compare.Diff(oldIP.Spec, newIP.Spec)
+	if err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new IPAddress spec: %v", err))
 	}
+	if !equal {
+		return nil, field.Forbidden(field.NewPath("spec"), fmt.Sprintf("IPAddress spec is immutable. Diff: %s", diff))
+	}
+
 	return nil, nil
 }
 

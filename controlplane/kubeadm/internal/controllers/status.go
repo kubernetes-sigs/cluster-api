@@ -36,7 +36,11 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	// This is necessary for CRDs including scale subresources.
 	controlPlane.KCP.Status.Selector = selector.String()
 
-	controlPlane.KCP.Status.UpdatedReplicas = int32(len(controlPlane.UpToDateMachines()))
+	upToDateMachines, err := controlPlane.UpToDateMachines()
+	if err != nil {
+		return errors.Wrapf(err, "failed to update status")
+	}
+	controlPlane.KCP.Status.UpdatedReplicas = int32(len(upToDateMachines))
 
 	replicas := int32(len(controlPlane.Machines))
 	desiredReplicas := *controlPlane.KCP.Spec.Replicas

@@ -51,6 +51,10 @@ import (
 
 // SetupWebhookWithManager sets up Cluster webhooks.
 func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	if webhook.decoder == nil {
+		webhook.decoder = admission.NewDecoder(mgr.GetScheme())
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WithDefaulter(webhook).
@@ -70,6 +74,8 @@ type ClusterCacheTrackerReader interface {
 type Cluster struct {
 	Client  client.Reader
 	Tracker ClusterCacheTrackerReader
+
+	decoder admission.Decoder
 }
 
 var _ webhook.CustomDefaulter = &Cluster{}
@@ -128,13 +134,8 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		req, err := admission.RequestFromContext(ctx)
 
 		if err != nil && len(req.OldObject.Raw) > 0 {
-			scheme := runtime.NewScheme()
-			if err := clusterv1.AddToScheme(scheme); err != nil {
-				return apierrors.NewInternalError(errors.Wrap(err, "failed to configure API scheme"))
-			}
-
 			oldCluster = &clusterv1.Cluster{}
-			if err := admission.NewDecoder(scheme).DecodeRaw(req.OldObject, oldCluster); err != nil {
+			if err := webhook.decoder.DecodeRaw(req.OldObject, oldCluster); err != nil {
 				return apierrors.NewBadRequest(errors.Wrap(err, "failed to decode old cluster object").Error())
 			}
 		}
@@ -759,7 +760,7 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 		}
 
 		oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
-		for _, mp := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+		for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
 			if mp.Variables != nil {
 				oldMPVariables[mp.Name] = mp.Variables.Overrides
 			}

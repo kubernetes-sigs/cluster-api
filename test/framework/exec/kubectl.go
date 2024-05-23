@@ -38,8 +38,12 @@ func KubectlApply(ctx context.Context, kubeconfigPath string, resources []byte, 
 
 	fmt.Printf("Running kubectl %s\n", strings.Join(aargs, " "))
 	stdout, stderr, err := applyCmd.Run(ctx)
-	fmt.Printf("stderr:\n%s\n", string(stderr))
-	fmt.Printf("stdout:\n%s\n", string(stdout))
+	if len(stderr) > 0 {
+		fmt.Printf("stderr:\n%s\n", string(stderr))
+	}
+	if len(stdout) > 0 {
+		fmt.Printf("stdout:\n%s\n", string(stdout))
+	}
 	return err
 }
 

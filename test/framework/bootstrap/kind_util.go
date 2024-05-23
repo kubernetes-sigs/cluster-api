@@ -18,7 +18,6 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -32,6 +31,8 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	kindmapper "sigs.k8s.io/cluster-api/test/infrastructure/kind"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.
@@ -67,7 +68,13 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 
 	options := []KindClusterOption{}
 	if input.KubernetesVersion != "" {
-		options = append(options, WithNodeImage(fmt.Sprintf("%s:%s", DefaultNodeImageRepository, input.KubernetesVersion)))
+		semVer, err := version.ParseMajorMinorPatchTolerant(input.KubernetesVersion)
+		if err != nil {
+			Expect(err).ToNot(HaveOccurred(), "could not parse KubernetesVersion version")
+		}
+		kindMapping := kindmapper.GetMapping(semVer, "")
+
+		options = append(options, WithNodeImage(kindMapping.Image))
 	}
 	if input.RequiresDockerSock {
 		options = append(options, WithDockerSockMount())

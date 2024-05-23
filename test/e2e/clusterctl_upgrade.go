@@ -266,26 +266,24 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Name:               managementClusterName,
 				KubernetesVersion:  initKubernetesVersion,
 				RequiresDockerSock: input.E2EConfig.HasDockerProvider(),
-				// Note: most of this images won't be used in this cluster because it is used to spin up older versions of CAPI
+				// Note: most of this images won't be used while starting the controllers, because it is used to spin up older versions of CAPI. Those images will be eventually used when upgrading to current.
 				Images:    input.E2EConfig.Images,
 				IPFamily:  input.E2EConfig.GetVariable(IPFamily),
-				LogFolder: filepath.Join(managementClusterLogFolder, "kind"),
+				LogFolder: filepath.Join(managementClusterLogFolder, "logs-kind"),
 			})
-			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a bootstrap cluster")
+			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")
 
 			kubeconfigPath := managementClusterProvider.GetKubeconfigPath()
-			Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the bootstrap cluster")
+			Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the kind cluster")
 
 			managementClusterProxy = framework.NewClusterProxy(managementClusterName, kubeconfigPath, scheme)
-			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a bootstrap cluster proxy")
+			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a kind cluster proxy")
 
 			managementClusterResources.Cluster = &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: managementClusterName,
 				},
 			}
-
-			By("Turning the kind cluster into a management cluster with older versions of providers")
 		} else {
 			By("Creating a workload cluster to be used as a new management cluster")
 

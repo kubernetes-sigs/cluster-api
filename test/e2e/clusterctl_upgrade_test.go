@@ -84,8 +84,9 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>v1.5=>current)", func(
 			UpgradeClusterctlVariables: map[string]string{
 				"CLUSTER_TOPOLOGY": "false",
 			},
-			MgmtFlavor:     "topology",
-			WorkloadFlavor: "",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -134,10 +135,11 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>v1.5=>current)", func(
 			},
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
 			//  Note: Both InitWithKubernetesVersion and WorkloadKubernetesVersion should be the highest mgmt cluster version supported by the source Cluster API version.
-			InitWithKubernetesVersion: "v1.23.17",
-			WorkloadKubernetesVersion: "v1.23.17",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.23.17",
+			WorkloadKubernetesVersion:   "v1.23.17",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -163,10 +165,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.0/bases.
-			InitWithKubernetesVersion: "v1.23.17",
-			WorkloadKubernetesVersion: "v1.23.17",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.23.17",
+			WorkloadKubernetesVersion:   "v1.23.17",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -189,10 +192,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.4=>current)", func() {
 			InitWithInfrastructureProviders: []string{"docker:v1.4.5"},
 			InitWithProvidersContract:       "v1beta1",
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/e2e/data/infrastructure-docker/v1.4/bases.
-			InitWithKubernetesVersion: "v1.27.3",
-			WorkloadKubernetesVersion: "v1.27.3",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.27.3",
+			WorkloadKubernetesVersion:   "v1.27.3",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -215,10 +219,11 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.4=>cur
 			InitWithInfrastructureProviders: []string{"docker:v1.4.5"},
 			InitWithProvidersContract:       "v1beta1",
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/e2e/data/infrastructure-docker/v1.4/bases.
-			InitWithKubernetesVersion: "v1.27.3",
-			WorkloadKubernetesVersion: "v1.27.3",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "topology",
+			InitWithKubernetesVersion:   "v1.27.3",
+			WorkloadKubernetesVersion:   "v1.27.3",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "topology",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -235,10 +240,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.5=>current)", func() {
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/e2e/data/infrastructure-docker/v1.5/bases.
-			InitWithKubernetesVersion: "v1.28.0",
-			WorkloadKubernetesVersion: "v1.28.0",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "",
+			InitWithKubernetesVersion:   "v1.28.0",
+			WorkloadKubernetesVersion:   "v1.28.0",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "",
+			UseKindForManagementCluster: true,
 		}
 	})
 })
@@ -255,10 +261,11 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.5=>cur
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/e2e/data/infrastructure-docker/v1.5/bases.
-			InitWithKubernetesVersion: "v1.28.0",
-			WorkloadKubernetesVersion: "v1.28.0",
-			MgmtFlavor:                "topology",
-			WorkloadFlavor:            "topology",
+			InitWithKubernetesVersion:   "v1.28.0",
+			WorkloadKubernetesVersion:   "v1.28.0",
+			MgmtFlavor:                  "topology",
+			WorkloadFlavor:              "topology",
+			UseKindForManagementCluster: true,
 		}
 	})
 })

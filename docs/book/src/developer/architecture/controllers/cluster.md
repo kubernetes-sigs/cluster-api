@@ -22,7 +22,10 @@ provisions EC2 instances that will become a Kubernetes cluster through some boot
 
 The cluster controller will set an OwnerReference on the infrastructureCluster. This controller should normally take no action during reconciliation until it sees the OwnerReference.
 
-An infrastructureCluster controller is expected to eventually have its `spec.controlPlaneEndpoint` set by the user/controller.
+An infrastructureCluster controller is expected to either supply a controlPlaneEndpoint (via its own `spec.controlPlaneEndpoint` field),
+or rely on `spec.controlPlaneEndpoint` in its parent [Cluster](./cluster.md) object.
+
+If an endpoint is not provided, the implementer should exit reconciliation until it sees `cluster.spec.controlPlaneEndpoint` populated.
 
 The Cluster controller bubbles up `spec.controlPlaneEndpoint` and `status.ready` into `status.infrastructureReady` from the infrastructureCluster.
 
@@ -49,6 +52,9 @@ is a map, defined as `map[string]FailureDomainSpec`. A unique key must be used f
 `FailureDomainSpec` is defined as:
     - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.
     - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
+
+Note: once any of `failureReason` or `failureMessage` surface on the cluster who is referencing the infrastructureCluster object,
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the cluster).
 
 Example:
 ```yaml

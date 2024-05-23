@@ -111,6 +111,12 @@ func InitFlags(fs *pflag.FlagSet) {
 	// recommended because it helps in ensuring consistency across different components in the cluster.
 	logsv1.AddFlags(logOptions, fs)
 
+	// The base logging flags that come from component-base include only basic flags like `v` and `vmodule`.
+	// Add all the flags from `klog` package back and expose all of them.
+	klogflags := flag.NewFlagSet("logging", flag.PanicOnError)
+	klog.InitFlags(klogflags)
+	fs.AddGoFlagSet(klogflags)
+
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 

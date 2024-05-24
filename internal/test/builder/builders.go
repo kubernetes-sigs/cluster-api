@@ -114,12 +114,13 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 
 // ClusterTopologyBuilder contains the fields needed to build a testable ClusterTopology.
 type ClusterTopologyBuilder struct {
-	class                string
-	workers              *clusterv1.WorkersTopology
-	version              string
-	controlPlaneReplicas int32
-	controlPlaneMHC      *clusterv1.MachineHealthCheckTopology
-	variables            []clusterv1.ClusterVariable
+	class                 string
+	workers               *clusterv1.WorkersTopology
+	version               string
+	controlPlaneReplicas  int32
+	controlPlaneMHC       *clusterv1.MachineHealthCheckTopology
+	variables             []clusterv1.ClusterVariable
+	controlPlaneVariables []clusterv1.ClusterVariable
 }
 
 // ClusterTopology returns a ClusterTopologyBuilder.
@@ -144,6 +145,12 @@ func (c *ClusterTopologyBuilder) WithVersion(version string) *ClusterTopologyBui
 // WithControlPlaneReplicas adds the passed replicas value to the ClusterTopologyBuilder.
 func (c *ClusterTopologyBuilder) WithControlPlaneReplicas(replicas int32) *ClusterTopologyBuilder {
 	c.controlPlaneReplicas = replicas
+	return c
+}
+
+// WithControlPlaneVariables adds the passed variable values to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithControlPlaneVariables(variables ...clusterv1.ClusterVariable) *ClusterTopologyBuilder {
+	c.controlPlaneVariables = variables
 	return c
 }
 
@@ -173,7 +180,7 @@ func (c *ClusterTopologyBuilder) WithVariables(vars ...clusterv1.ClusterVariable
 
 // Build returns a testable cluster Topology object with any values passed to the builder.
 func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
-	return &clusterv1.Topology{
+	t := &clusterv1.Topology{
 		Class:   c.class,
 		Workers: c.workers,
 		Version: c.version,
@@ -183,6 +190,14 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 		},
 		Variables: c.variables,
 	}
+
+	if len(c.controlPlaneVariables) > 0 {
+		t.ControlPlane.Variables = &clusterv1.ControlPlaneVariables{
+			Overrides: c.controlPlaneVariables,
+		}
+	}
+
+	return t
 }
 
 // MachineDeploymentTopologyBuilder holds the values needed to create a testable MachineDeploymentTopology.

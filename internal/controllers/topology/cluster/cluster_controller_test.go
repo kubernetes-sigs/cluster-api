@@ -1369,6 +1369,9 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 					WithVariables(
 						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
 						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)}}).
+					WithControlPlaneVariables(
+						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
+						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)}}).
 					WithMachineDeployment(mdTopologyBase.DeepCopy().
 						WithVariables(clusterv1.ClusterVariable{
 							Name:  "httpProxy",
@@ -1384,6 +1387,9 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 			wantCluster: clusterBuilder.DeepCopy().WithTopology(
 				topologyBase.DeepCopy().
 					WithVariables(
+						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
+						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`)}}).
+					WithControlPlaneVariables(
 						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
 						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`)}}).
 					WithMachineDeployment(

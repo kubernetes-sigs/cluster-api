@@ -724,9 +724,19 @@ func DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clust
 
 	// Variables must be validated in the defaulting webhook. Variable definitions are stored in the ClusterClass status
 	// and are patched in the ClusterClass reconcile.
+
+	// Validate cluster-wide variables.
 	allErrs = append(allErrs, variables.ValidateClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Status.Variables,
 		field.NewPath("spec", "topology", "variables"))...)
+
+	// Validate ControlPlane variable overrides.
+	if cluster.Spec.Topology.ControlPlane.Variables != nil && len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
+		allErrs = append(allErrs, variables.ValidateControlPlaneVariables(cluster.Spec.Topology.ControlPlane.Variables.Overrides, clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "controlPlane", "variables", "overrides"))...)
+	}
+
 	if cluster.Spec.Topology.Workers != nil {
+		// Validate MachineDeployment variable overrides.
 		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
 			// Continue if there are no variable overrides.
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
@@ -735,6 +745,8 @@ func DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clust
 			allErrs = append(allErrs, variables.ValidateMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
 		}
+
+		// Validate MachinePool variable overrides.
 		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
 			// Continue if there are no variable overrides.
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
@@ -756,6 +768,8 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 	if clusterClass == nil {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
 	}
+
+	// Default cluster-wide variables.
 	defaultedVariables, errs := variables.DefaultClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Status.Variables,
 		field.NewPath("spec", "topology", "variables"))
 	if len(errs) > 0 {
@@ -764,7 +778,19 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 		cluster.Spec.Topology.Variables = defaultedVariables
 	}
 
+	// Default ControlPlane variable overrides.
+	if cluster.Spec.Topology.ControlPlane.Variables != nil && len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
+		defaultedVariables, errs := variables.DefaultMachineVariables(cluster.Spec.Topology.ControlPlane.Variables.Overrides, clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "controlPlane", "variables", "overrides"))
+		if len(errs) > 0 {
+			allErrs = append(allErrs, errs...)
+		} else {
+			cluster.Spec.Topology.ControlPlane.Variables.Overrides = defaultedVariables
+		}
+	}
+
 	if cluster.Spec.Topology.Workers != nil {
+		// Default MachineDeployment variable overrides.
 		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
 			// Continue if there are no variable overrides.
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
@@ -778,6 +804,8 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 				md.Variables.Overrides = defaultedVariables
 			}
 		}
+
+		// Default MachinePool variable overrides.
 		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
 			// Continue if there are no variable overrides.
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {

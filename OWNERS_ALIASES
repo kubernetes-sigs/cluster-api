@@ -14,12 +14,12 @@ aliases:
   # active folks who can be contacted to perform admin-related
   # tasks on the repo, or otherwise approve any PRS.
   cluster-api-admins:
-  - CecileRobertMichon
+  - fabriziopandini
+  - sbueringer
   - vincepri
 
   # non-admin folks who have write-access and can approve any PRs in the repo
   cluster-api-maintainers:
-  - CecileRobertMichon
   - chrischdi
   - enxebre
   - fabriziopandini
@@ -32,8 +32,6 @@ aliases:
   - jackfrancis
   - JoelSpeed
   - richardcase
-  - stmcginnis
-  - ykakarap
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controllers/topology
@@ -55,10 +53,7 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-bootstrap-provider-kubeadm-ignition-maintainers:
-  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers:
-  - dongsupark
-  - invidian
-  - johananl
+  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers: []
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controlplane/kubeadm
@@ -73,7 +68,6 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-clusterctl-maintainers:
-  - ykakarap
   cluster-api-clusterctl-reviewers:
   - Jont828
 
@@ -112,8 +106,7 @@ aliases:
   # OWNER_ALIASES for docs
   # -----------------------------------------------------------
 
-  cluster-api-docs-maintainers:
-  - oscr
+  cluster-api-docs-maintainers: []
   cluster-api-docs-reviewers:
   - elmiko
 

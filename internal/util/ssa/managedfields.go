@@ -74,7 +74,7 @@ func DropManagedFields(ctx context.Context, c client.Client, obj client.Object, 
 			FilterIntent(&FilterIntentInput{
 				Path:         contract.Path{},
 				Value:        fieldsV1,
-				ShouldFilter: IsIgnorePath(paths),
+				ShouldFilter: IsPathIgnored(paths),
 			})
 
 			fieldsV1Raw, err := json.Marshal(fieldsV1)

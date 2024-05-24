@@ -1,0 +1,148 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: quick-start-runtimesdk
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: quick-start-control-plane
+    machineInfrastructure:
+      ref:
+        kind: DockerMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: quick-start-control-plane
+    namingStrategy:
+      template: "{{ .cluster.name }}-cp-{{ .random }}"
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: quick-start-cluster
+  workers:
+    machineDeployments:
+    - class: default-worker
+      namingStrategy:
+        template: "{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachineTemplate
+            name: quick-start-default-worker-machinetemplate
+    machinePools:
+    - class: default-worker
+      namingStrategy:
+        template: "{{ .cluster.name }}-mp-{{ .machinePool.topologyName }}-{{ .random }}"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: quick-start-default-worker-machinepooltemplate
+  patches:
+  - name: test-patch
+    external:
+      generateExtension: generate-patches.k8s-upgrade-with-runtimesdk
+      validateExtension: validate-topology.k8s-upgrade-with-runtimesdk
+      discoverVariablesExtension: discover-variables.k8s-upgrade-with-runtimesdk
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerClusterTemplate
+metadata:
+  name: quick-start-cluster
+spec:
+  template:
+    spec:
+      failureDomains:
+        fd1:
+          controlPlane: true
+        fd2:
+          controlPlane: true
+        fd3:
+          controlPlane: true
+        fd4:
+          controlPlane: false
+        fd5:
+          controlPlane: false
+        fd6:
+          controlPlane: false
+        fd7:
+          controlPlane: false
+        fd8:
+          controlPlane: false
+      loadBalancer: {}
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: quick-start-control-plane
+spec:
+  template:
+    spec:
+      machineTemplate:
+        nodeDrainTimeout: 1s
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+            certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
+        initConfiguration:
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+        joinConfiguration:
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: quick-start-control-plane
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: quick-start-default-worker-machinetemplate
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: quick-start-default-worker-machinepooltemplate
+spec:
+  template:
+    spec:
+      template:
+        extraMounts:
+        - containerPath: "/var/run/docker.sock"
+          hostPath: "/var/run/docker.sock"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: quick-start-default-worker-bootstraptemplate
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.

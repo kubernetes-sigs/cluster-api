@@ -36,6 +36,9 @@ A cluster infrastructure provider must define an API type for "infrastructure cl
             - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.
             - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
 
+Note: once any of `failureReason` or `failureMessage` surface on the cluster who is referencing the infrastructureCluster object,
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the cluster).
+
 ### InfraClusterTemplate Resources
 
 For a given InfraCluster resource, you should also add a corresponding InfraClusterTemplate resources:

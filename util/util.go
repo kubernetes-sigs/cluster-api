@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -48,6 +48,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/contract"
+	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
 const (
@@ -156,7 +157,7 @@ func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.Obj
 
 // GetOwnerCluster returns the Cluster object owning the current resource.
 func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
-	for _, ref := range obj.OwnerReferences {
+	for _, ref := range obj.GetOwnerReferences() {
 		if ref.Kind != "Cluster" {
 			continue
 		}
@@ -198,7 +199,7 @@ func ObjectKey(object metav1.Object) client.ObjectKey {
 // Cluster events and returns reconciliation requests for an infrastructure provider object.
 func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.MapFunc {
 	log := ctrl.LoggerFrom(ctx)
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		cluster, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			return nil
@@ -240,7 +241,7 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 
 // GetOwnerMachine returns the Machine object owning the current resource.
 func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Machine, error) {
-	for _, ref := range obj.OwnerReferences {
+	for _, ref := range obj.GetOwnerReferences() {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
 			return nil, err
@@ -265,7 +266,7 @@ func GetMachineByName(ctx context.Context, c client.Client, namespace, name stri
 // MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Machine events and returns reconciliation requests for an infrastructure provider object.
 func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
+	return func(_ context.Context, o client.Object) []reconcile.Request {
 		m, ok := o.(*clusterv1.Machine)
 		if !ok {
 			return nil
@@ -289,12 +290,13 @@ func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc
 	}
 }
 
-// HasOwnerRef returns true if the OwnerReference is already in the slice.
+// HasOwnerRef returns true if the OwnerReference is already in the slice. It matches based on Group, Kind and Name.
 func HasOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) bool {
 	return indexOwnerRef(ownerReferences, ref) > -1
 }
 
 // EnsureOwnerRef makes sure the slice contains the OwnerReference.
+// Note: EnsureOwnerRef will update the version of the OwnerReference fi it exists with a different version. It will also update the UID.
 func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) []metav1.OwnerReference {
 	idx := indexOwnerRef(ownerReferences, ref)
 	if idx == -1 {
@@ -324,6 +326,7 @@ func ReplaceOwnerRef(ownerReferences []metav1.OwnerReference, source metav1.Obje
 }
 
 // RemoveOwnerRef returns the slice of owner references after removing the supplied owner ref.
+// Note: RemoveOwnerRef ignores apiVersion and UID. It will remove the passed ownerReference where it matches Name, Group and Kind.
 func RemoveOwnerRef(ownerReferences []metav1.OwnerReference, inputRef metav1.OwnerReference) []metav1.OwnerReference {
 	if index := indexOwnerRef(ownerReferences, inputRef); index != -1 {
 		return append(ownerReferences[:index], ownerReferences[index+1:]...)
@@ -342,6 +345,7 @@ func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRefe
 }
 
 // IsOwnedByObject returns true if any of the owner references point to the given target.
+// It matches the object based on the Group, Kind and Name.
 func IsOwnedByObject(obj metav1.Object, target client.Object) bool {
 	for _, ref := range obj.GetOwnerReferences() {
 		ref := ref
@@ -352,7 +356,7 @@ func IsOwnedByObject(obj metav1.Object, target client.Object) bool {
 	return false
 }
 
-// IsControlledBy differs from metav1.IsControlledBy in that it checks the group (but not version), kind, and name vs uid.
+// IsControlledBy differs from metav1.IsControlledBy. This function matches on Group, Kind and Name. The metav1.IsControlledBy function matches on UID only.
 func IsControlledBy(obj metav1.Object, owner client.Object) bool {
 	controllerRef := metav1.GetControllerOfNoCopy(obj)
 	if controllerRef == nil {
@@ -361,7 +365,7 @@ func IsControlledBy(obj metav1.Object, owner client.Object) bool {
 	return refersTo(controllerRef, owner)
 }
 
-// Returns true if a and b point to the same object.
+// Returns true if a and b point to the same object based on Group, Kind and Name.
 func referSameObject(a, b metav1.OwnerReference) bool {
 	aGV, err := schema.ParseGroupVersion(a.APIVersion)
 	if err != nil {
@@ -376,7 +380,7 @@ func referSameObject(a, b metav1.OwnerReference) bool {
 	return aGV.Group == bGV.Group && a.Kind == b.Kind && a.Name == b.Name
 }
 
-// Returns true if ref refers to obj.
+// Returns true if ref refers to obj based on Group, Kind and Name.
 func refersTo(ref *metav1.OwnerReference, obj client.Object) bool {
 	refGv, err := schema.ParseGroupVersion(ref.APIVersion)
 	if err != nil {
@@ -464,13 +468,26 @@ func (k KubeAwareAPIVersions) Less(i, j int) bool {
 	return k8sversion.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
 }
 
-// ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
+// ClusterToTypedObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
 // and returns a list of requests.
+// Note: This function uses the passed in typed ObjectList and thus with the default client configuration all list calls
+// will be cached.
 // NB: The objects are required to have `clusterv1.ClusterNameLabel` applied.
-func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
 		return nil, err
+	}
+
+	// Note: we create the typed ObjectList once here, so we don't have to use
+	// reflection in every execution of the actual event handler.
+	obj, err := scheme.New(gvk)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+	}
+	objectList, ok := obj.(client.ObjectList)
+	if !ok {
+		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
 	}
 
 	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
@@ -478,7 +495,7 @@ func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runti
 		return nil, err
 	}
 
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		cluster, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			return nil
@@ -494,16 +511,151 @@ func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runti
 			listOpts = append(listOpts, client.InNamespace(cluster.Namespace))
 		}
 
-		list := &unstructured.UnstructuredList{}
-		list.SetGroupVersionKind(gvk)
-		if err := c.List(context.TODO(), list, listOpts...); err != nil {
+		objectList = objectList.DeepCopyObject().(client.ObjectList)
+		if err := c.List(ctx, objectList, listOpts...); err != nil {
+			return nil
+		}
+
+		objects, err := meta.ExtractList(objectList)
+		if err != nil {
 			return nil
 		}
 
 		results := []ctrl.Request{}
-		for _, obj := range list.Items {
+		for _, obj := range objects {
+			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// are client.Objects.
+			o := obj.(client.Object)
 			results = append(results, ctrl.Request{
-				NamespacedName: client.ObjectKey{Namespace: obj.GetNamespace(), Name: obj.GetName()},
+				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
+			})
+		}
+		return results
+	}, nil
+}
+
+// MachineDeploymentToObjectsMapper returns a mapper function that gets a machinedeployment
+// and lists all objects for the object passed in and returns a list of requests.
+// NB: The objects are required to have `clusterv1.MachineDeploymentNameLabel` applied.
+func MachineDeploymentToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+	gvk, err := apiutil.GVKForObject(ro, scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	// Note: we create the typed ObjectList once here, so we don't have to use
+	// reflection in every execution of the actual event handler.
+	obj, err := scheme.New(gvk)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+	}
+	objectList, ok := obj.(client.ObjectList)
+	if !ok {
+		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
+	}
+
+	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
+	if err != nil {
+		return nil, err
+	}
+
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
+		md, ok := o.(*clusterv1.MachineDeployment)
+		if !ok {
+			return nil
+		}
+
+		listOpts := []client.ListOption{
+			client.MatchingLabels{
+				clusterv1.MachineDeploymentNameLabel: md.Name,
+			},
+		}
+
+		if isNamespaced {
+			listOpts = append(listOpts, client.InNamespace(md.Namespace))
+		}
+
+		objectList = objectList.DeepCopyObject().(client.ObjectList)
+		if err := c.List(ctx, objectList, listOpts...); err != nil {
+			return nil
+		}
+
+		objects, err := meta.ExtractList(objectList)
+		if err != nil {
+			return nil
+		}
+
+		results := []ctrl.Request{}
+		for _, obj := range objects {
+			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// are client.Objects.
+			o := obj.(client.Object)
+			results = append(results, ctrl.Request{
+				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
+			})
+		}
+		return results
+	}, nil
+}
+
+// MachineSetToObjectsMapper returns a mapper function that gets a machineset
+// and lists all objects for the object passed in and returns a list of requests.
+// NB: The objects are required to have `clusterv1.MachineSetNameLabel` applied.
+func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+	gvk, err := apiutil.GVKForObject(ro, scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	// Note: we create the typed ObjectList once here, so we don't have to use
+	// reflection in every execution of the actual event handler.
+	obj, err := scheme.New(gvk)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to construct object of type %s", gvk)
+	}
+	objectList, ok := obj.(client.ObjectList)
+	if !ok {
+		return nil, errors.Errorf("expected object to be a client.ObjectList, is actually %T", obj)
+	}
+
+	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
+	if err != nil {
+		return nil, err
+	}
+
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
+		ms, ok := o.(*clusterv1.MachineSet)
+		if !ok {
+			return nil
+		}
+
+		listOpts := []client.ListOption{
+			client.MatchingLabels{
+				clusterv1.MachineSetNameLabel: format.MustFormatValue(ms.Name),
+			},
+		}
+
+		if isNamespaced {
+			listOpts = append(listOpts, client.InNamespace(ms.Namespace))
+		}
+
+		objectList = objectList.DeepCopyObject().(client.ObjectList)
+		if err := c.List(ctx, objectList, listOpts...); err != nil {
+			return nil
+		}
+
+		objects, err := meta.ExtractList(objectList)
+		if err != nil {
+			return nil
+		}
+
+		results := []ctrl.Request{}
+		for _, obj := range objects {
+			// Note: We don't check if the type cast succeeds as all items in an client.ObjectList
+			// are client.Objects.
+			o := obj.(client.Object)
+			results = append(results, ctrl.Request{
+				NamespacedName: client.ObjectKey{Namespace: o.GetNamespace(), Name: o.GetName()},
 			})
 		}
 		return results
@@ -591,4 +743,23 @@ func IsNil(i interface{}) bool {
 		return reflect.ValueOf(i).IsValid() && reflect.ValueOf(i).IsNil()
 	}
 	return false
+}
+
+// MergeMap merges maps.
+// NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
+func MergeMap(maps ...map[string]string) map[string]string {
+	m := make(map[string]string)
+	for i := len(maps) - 1; i >= 0; i-- {
+		for k, v := range maps[i] {
+			m[k] = v
+		}
+	}
+
+	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile
+	// given that at json level label: {} or annotation: {} is different from no field, which is the
+	// corresponding value stored in etcd given that those fields are defined as omitempty.
+	if len(m) == 0 {
+		return nil
+	}
+	return m
 }

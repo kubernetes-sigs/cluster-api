@@ -1,8 +1,8 @@
-bases:
+resources:
 - ../bases/crs.yaml
 - ../bases/md.yaml
 - ../bases/cluster-with-kcp.yaml
 
-patchesStrategicMerge:
-- md.yaml
-- cluster-with-kcp.yaml
+patches:
+- path: md.yaml
+- path: cluster-with-kcp.yaml

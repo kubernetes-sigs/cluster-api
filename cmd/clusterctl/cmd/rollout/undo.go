@@ -17,6 +17,8 @@ limitations under the License.
 package rollout
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -54,7 +56,7 @@ func NewCmdRolloutUndo(cfgFile string) *cobra.Command {
 		Short:                 "Undo a cluster-api resource",
 		Long:                  undoLong,
 		Example:               undoExample,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runUndo(cfgFile, args)
 		},
 	}
@@ -71,12 +73,14 @@ func NewCmdRolloutUndo(cfgFile string) *cobra.Command {
 func runUndo(cfgFile string, args []string) error {
 	undoOpt.resources = args
 
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	return c.RolloutUndo(client.RolloutUndoOptions{
+	return c.RolloutUndo(ctx, client.RolloutUndoOptions{
 		Kubeconfig: client.Kubeconfig{Path: undoOpt.kubeconfig, Context: undoOpt.kubeconfigContext},
 		Namespace:  undoOpt.namespace,
 		Resources:  undoOpt.resources,

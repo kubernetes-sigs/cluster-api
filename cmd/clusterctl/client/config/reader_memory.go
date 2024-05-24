@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
@@ -42,7 +44,7 @@ func NewMemoryReader() *MemoryReader {
 }
 
 // Init initialize the reader.
-func (f *MemoryReader) Init(_ string) error {
+func (f *MemoryReader) Init(_ context.Context, _ string) error {
 	data, err := yaml.Marshal(f.providers)
 	if err != nil {
 		return err

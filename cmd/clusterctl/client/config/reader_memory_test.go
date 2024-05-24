@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -52,8 +53,11 @@ func TestMemoryReader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			f := NewMemoryReader()
-			g.Expect(f.Init("")).To(Succeed())
+			g.Expect(f.Init(ctx, "")).To(Succeed())
 			for _, p := range tt.providers {
 				_, err := f.AddProvider(p.Name, p.Type, p.URL)
 				g.Expect(err).ToNot(HaveOccurred())
@@ -64,11 +68,11 @@ func TestMemoryReader(t *testing.T) {
 
 			providersOut := []configProvider{}
 			g.Expect(f.UnmarshalKey("providers", &providersOut)).To(Succeed())
-			g.Expect(providersOut).To(Equal(tt.providers))
+			g.Expect(providersOut).To(BeComparableTo(tt.providers))
 
 			imagesOut := map[string]imageMeta{}
 			g.Expect(f.UnmarshalKey("images", &imagesOut)).To(Succeed())
-			g.Expect(imagesOut).To(Equal(tt.imageMetas))
+			g.Expect(imagesOut).To(BeComparableTo(tt.imageMetas))
 
 			for n, v := range tt.variables {
 				outV, err := f.Get(n)

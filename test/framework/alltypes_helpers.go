@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -32,6 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -49,7 +53,7 @@ type GetCAPIResourcesInput struct {
 // This list includes all the types belonging to CAPI providers.
 func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstructured.Unstructured {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for GetCAPIResources")
-	Expect(input.Lister).NotTo(BeNil(), "input.Deleter is required for GetCAPIResources")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for GetCAPIResources")
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for GetCAPIResources")
 
 	types := getClusterAPITypes(ctx, input.Lister)
@@ -115,7 +119,7 @@ type DumpAllResourcesInput struct {
 // This dump includes all the types belonging to CAPI providers.
 func DumpAllResources(ctx context.Context, input DumpAllResourcesInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DumpAllResources")
-	Expect(input.Lister).NotTo(BeNil(), "input.Deleter is required for DumpAllResources")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpAllResources")
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for DumpAllResources")
 
 	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
@@ -126,6 +130,67 @@ func DumpAllResources(ctx context.Context, input DumpAllResourcesInput) {
 	for i := range resources {
 		r := resources[i]
 		dumpObject(r, input.LogPath)
+	}
+}
+
+// DumpNamespaceAndGVK specifies a GVK and namespace to be dumped.
+type DumpNamespaceAndGVK struct {
+	GVK       schema.GroupVersionKind
+	Namespace string
+}
+
+// DumpResourcesForClusterInput is the input for DumpResourcesForCluster.
+type DumpResourcesForClusterInput struct {
+	Lister    Lister
+	LogPath   string
+	Cluster   *clusterv1.Cluster
+	Resources []DumpNamespaceAndGVK
+}
+
+// DumpResourcesForCluster dumps specified resources to yaml.
+func DumpResourcesForCluster(ctx context.Context, input DumpResourcesForClusterInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DumpResourcesForCluster")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpResourcesForCluster")
+	Expect(input.Cluster).NotTo(BeNil(), "input.Cluster is required for DumpResourcesForCluster")
+
+	for _, resource := range input.Resources {
+		resourceList := new(unstructured.UnstructuredList)
+		resourceList.SetGroupVersionKind(resource.GVK)
+
+		var i int
+		var listErr error
+		_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
+			if listErr = input.Lister.List(ctx, resourceList, client.InNamespace(resource.Namespace)); listErr != nil {
+				// Fail fast for well known network errors that most likely won't recover.
+				// e.g This error happens when the control plane endpoint for the workload cluster can't be reached from
+				// the machine where the E2E test runs.
+				if strings.HasSuffix(listErr.Error(), "connect: no route to host") {
+					return true, nil
+				}
+				// e.g This error happens when the API server for the workload cluster is down or the control plane endpoint
+				// can't be reached from the machine where the E2E test runs.
+				// NOTE: we consider this error won't recover after it happens at least 3 times in a row
+				if strings.HasSuffix(listErr.Error(), "i/o timeout") {
+					i++
+					if i >= 3 {
+						return true, nil
+					}
+					return false, nil
+				}
+
+				i = 0
+				return false, nil
+			}
+			return true, nil
+		})
+		if listErr != nil {
+			// NB. we are treating failures in collecting resources as a non-blocking operation (best effort)
+			fmt.Printf("Failed to list %s for Cluster %s: %v\n", resource.GVK.Kind, klog.KObj(input.Cluster), listErr)
+			continue
+		}
+		for i := range resourceList.Items {
+			dumpObject(&resourceList.Items[i], input.LogPath)
+		}
 	}
 }
 

@@ -58,12 +58,12 @@ func TestGetMachinesForCluster(t *testing.T) {
 		},
 	}
 	machines, err := m.GetMachinesForCluster(ctx, cluster)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(3))
 
 	// Test the ControlPlaneMachines works
 	machines, err = m.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines("my-cluster"))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
 	// Test that the filters use AND logic instead of OR logic
@@ -71,7 +71,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 		return cluster.Name == "first-machine"
 	}
 	machines, err = m.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 }
 
@@ -93,6 +93,9 @@ func TestGetWorkloadCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-cluster-etcd",
 			Namespace: ns.Name,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: "my-cluster",
+			},
 		},
 		Data: map[string][]byte{
 			secret.TLSCrtDataName: certs.EncodeCertPEM(cert),
@@ -105,14 +108,6 @@ func TestGetWorkloadCluster(t *testing.T) {
 	delete(emptyKeyEtcdSecret.Data, secret.TLSKeyDataName)
 	badCrtEtcdSecret := etcdSecret.DeepCopy()
 	badCrtEtcdSecret.Data[secret.TLSCrtDataName] = []byte("bad cert")
-	tracker, err := remote.NewClusterCacheTracker(
-		env.Manager,
-		remote.ClusterCacheTrackerOptions{
-			Log:     &log.Log,
-			Indexes: remote.DefaultIndexes,
-		},
-	)
-	g.Expect(err).ToNot(HaveOccurred())
 
 	// Create kubeconfig secret
 	// Store the envtest config as the contents of the kubeconfig secret.
@@ -128,6 +123,9 @@ func TestGetWorkloadCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-cluster-kubeconfig",
 			Namespace: ns.Name,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: "my-cluster",
+			},
 		},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: testEnvKubeconfig,
@@ -187,17 +185,26 @@ func TestGetWorkloadCluster(t *testing.T) {
 			g := NewWithT(t)
 
 			for _, o := range tt.objs {
-				g.Expect(env.Client.Create(ctx, o)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, o)).To(Succeed())
 				defer func(do client.Object) {
-					g.Expect(env.Cleanup(ctx, do)).To(Succeed())
+					g.Expect(env.CleanupAndWait(ctx, do)).To(Succeed())
 				}(o)
 			}
 
-			// Note: The API reader is intentionally used instead of the regular (cached) client
-			// to avoid test failures when the local cache isn't able to catch up in time.
+			// We have to create a new ClusterCacheTracker for every test case otherwise
+			// it could still have a rest config from a previous run cached.
+			tracker, err := remote.NewClusterCacheTracker(
+				env.Manager,
+				remote.ClusterCacheTrackerOptions{
+					Log: &log.Log,
+				},
+			)
+			g.Expect(err).ToNot(HaveOccurred())
+
 			m := Management{
-				Client:  env.GetAPIReader(),
-				Tracker: tracker,
+				Client:              env.GetClient(),
+				SecretCachingClient: secretCachingClient,
+				Tracker:             tracker,
 			}
 
 			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)

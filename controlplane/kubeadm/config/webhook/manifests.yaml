@@ -2,7 +2,6 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
   name: mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
@@ -52,9 +51,29 @@ webhooks:
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
-  creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation-scale.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - UPDATE
+    resources:
+    - kubeadmcontrolplanes/scale
+  sideEffects: None
 - admissionReviewVersions:
   - v1
   - v1beta1
@@ -97,25 +116,4 @@ webhooks:
     - UPDATE
     resources:
     - kubeadmcontrolplanetemplates
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation-scale.kubeadmcontrolplane.controlplane.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - controlplane.cluster.x-k8s.io
-    apiVersions:
-    - v1beta1
-    operations:
-    - UPDATE
-    resources:
-    - kubeadmcontrolplanes/scale
   sideEffects: None

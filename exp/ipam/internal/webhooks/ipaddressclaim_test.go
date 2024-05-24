@@ -22,9 +22,9 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 )
 
 func TestIPAddressClaimValidateCreate(t *testing.T) {
@@ -34,7 +34,7 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 				PoolRef: corev1.TypedLocalObjectReference{
 					Name:     "identical",
 					Kind:     "TestPool",
-					APIGroup: pointer.String("ipam.cluster.x-k8s.io"),
+					APIGroup: ptr.To("ipam.cluster.x-k8s.io"),
 				},
 			},
 		}
@@ -49,7 +49,7 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "should accept a valid claim",
-			claim:     getClaim(func(addr *ipamv1.IPAddressClaim) {}),
+			claim:     getClaim(func(*ipamv1.IPAddressClaim) {}),
 			expectErr: false,
 		},
 		{
@@ -61,15 +61,18 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := IPAddressClaim{}
+			warnings, err := wh.ValidateCreate(context.Background(), &tt.claim)
 			if tt.expectErr {
-				g.Expect(wh.ValidateCreate(context.Background(), &tt.claim)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(wh.ValidateCreate(context.Background(), &tt.claim)).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -95,13 +98,13 @@ func TestIPAddressClaimValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:      "should accept objects with identical spec",
-			oldClaim:  getClaim(func(addr *ipamv1.IPAddressClaim) {}),
-			newClaim:  getClaim(func(addr *ipamv1.IPAddressClaim) {}),
+			oldClaim:  getClaim(func(*ipamv1.IPAddressClaim) {}),
+			newClaim:  getClaim(func(*ipamv1.IPAddressClaim) {}),
 			expectErr: false,
 		},
 		{
 			name:     "should reject objects with different spec",
-			oldClaim: getClaim(func(addr *ipamv1.IPAddressClaim) {}),
+			oldClaim: getClaim(func(*ipamv1.IPAddressClaim) {}),
 			newClaim: getClaim(func(addr *ipamv1.IPAddressClaim) {
 				addr.Spec.PoolRef.Name = "different"
 			}),
@@ -109,15 +112,18 @@ func TestIPAddressClaimValidateUpdate(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := IPAddressClaim{}
+			warnings, err := wh.ValidateUpdate(context.Background(), &tt.oldClaim, &tt.newClaim)
 			if tt.expectErr {
-				g.Expect(wh.ValidateUpdate(context.Background(), &tt.oldClaim, &tt.newClaim)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(wh.ValidateUpdate(context.Background(), &tt.oldClaim, &tt.newClaim)).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

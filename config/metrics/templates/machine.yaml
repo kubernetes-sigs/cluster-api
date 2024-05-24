@@ -1,0 +1,130 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: Machine
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machine
+    metrics:
+    - name: info
+      help: Information about a machine.
+      each:
+        info:
+          labelsFromPath:
+            container_runtime_version:
+            - status
+            - nodeInfo
+            - containerRuntimeVersion
+            failure_domain:
+            - spec
+            - failureDomain
+            kernel_version:
+            - status
+            - nodeInfo
+            - kernelVersion
+            kubelet_version:
+            - status
+            - nodeInfo
+            - kubeletVersion
+            kube_proxy_version:
+            - status
+            - nodeInfo
+            - kubeProxyVersion
+            os_image:
+            - status
+            - nodeInfo
+            - osImage
+            provider_id:
+            - spec
+            - providerID
+            version:
+            - spec
+            - version
+            bootstrap_reference_kind:
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - infrastructureRef
+            - name
+            control_plane_name:
+            - metadata
+            - labels
+            - cluster.x-k8s.io/control-plane-name
+        type: Info
+    - name: addresses
+      help: Address information about a machine.
+      each:
+        info:
+          path:
+          - status
+          - addresses
+          labelsFromPath:
+            type:
+            - type
+            address:
+            - address
+        type: Info
+    - name: status_certificatesexpirydate
+      help: Information about certificate expiration date of a control plane node.
+      each:
+        gauge:
+          nilIsZero: true
+          path:
+            - status
+            - certificatesExpiryDate
+        type: Gauge
+    - name: status_noderef
+      help: Information about the node reference of a machine.
+      each:
+        info:
+          labelsFromPath:
+            node_name:
+            - status
+            - nodeRef
+            - name
+            node_uid:
+            - status
+            - nodeRef
+            - uid
+        type: Info
+    - name: status_phase
+      help: The machines current phase.
+      each:
+        stateSet:
+          labelName: phase
+          list:
+          - Pending
+          - Provisioning
+          - Provisioned
+          - Running
+          - Deleting
+          - Deleted
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+        type: StateSet

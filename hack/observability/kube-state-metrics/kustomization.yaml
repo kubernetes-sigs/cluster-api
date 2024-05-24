@@ -1,15 +1,30 @@
 resources:
   - ../namespace.yaml
-  # The kube-state-metrics helm chart will reference a configmap with name `kube-state-metrics-crd-config`.
-  # The configMapGenerator below will create the configmap and append a hash suffix calculated from its
-  # content to the name. Kustomize will append the suffix hash to all references in the helm chart, but
-  # only when the helm chart content is referenced in "resources".
-  # This would not work if the helm chart is configured in this file via the "helmCharts" option.
-  - ./chart
+  # Aggregated ClusterRole and ClusterRoleBinding for kube-state-metrics crd resources.
+  - rbac-crd-aggregation.yaml
+  # Adds the configmap which contains the script to build the final crd configuration.
+  - crd-sidecar-cm.yaml
+  # Adds the core CAPI crd metrics configmap and CusterRole.
+  - ../../../config/metrics
 
 namespace: observability
 
-configMapGenerator:
-- name: kube-state-metrics-crd-config
-  files:
-  - crd-config.yaml
+helmCharts:
+  - name: kube-state-metrics
+    repo: https://prometheus-community.github.io/helm-charts
+    namespace: observability
+    releaseName: kube-state-metrics
+    valuesFile: values.yaml
+    version: 5.12.1
+
+helmGlobals:
+    # Store chart in ".charts" folder instead of "charts".
+    # Otherwise "go mod tidy" picks up dependencies of go files contained in the Helm Chart.
+    # "go mod tidy" ignores folders that begin with ".": https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
+    chartHome: .charts
+
+patches:
+# Adds the sidecar container which assembles the final configuration for kube-state-metrics
+- path: crd-sidecar-patch.yaml
+  target:
+    kind: Deployment

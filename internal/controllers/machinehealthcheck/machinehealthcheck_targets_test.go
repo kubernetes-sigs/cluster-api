@@ -87,10 +87,10 @@ func TestGetTargetsFromMHC(t *testing.T) {
 	// machines for skip remediation
 	testNode5 := newTestNode("node5")
 	testMachine5 := newTestMachine("machine5", namespace, clusterName, testNode5.Name, mhcSelector)
-	testMachine5.Annotations = map[string]string{"cluster.x-k8s.io/skip-remediation": ""}
+	testMachine5.Annotations = map[string]string{clusterv1.MachineSkipRemediationAnnotation: ""}
 	testNode6 := newTestNode("node6")
 	testMachine6 := newTestMachine("machine6", namespace, clusterName, testNode6.Name, mhcSelector)
-	testMachine6.Annotations = map[string]string{"cluster.x-k8s.io/paused": ""}
+	testMachine6.Annotations = map[string]string{clusterv1.PausedAnnotation: ""}
 
 	testCases := []struct {
 		desc            string
@@ -176,9 +176,9 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			gs.Expect(targets).To(HaveLen(len(tc.expectedTargets)))
 			for i, target := range targets {
 				expectedTarget := tc.expectedTargets[i]
-				gs.Expect(target.Machine).To(Equal(expectedTarget.Machine))
-				gs.Expect(target.MHC).To(Equal(expectedTarget.MHC))
-				gs.Expect(target.Node).To(Equal(expectedTarget.Node))
+				gs.Expect(target.Machine).To(BeComparableTo(expectedTarget.Machine))
+				gs.Expect(target.MHC).To(BeComparableTo(expectedTarget.MHC))
+				gs.Expect(target.Node).To(BeComparableTo(expectedTarget.Node))
 			}
 		})
 	}
@@ -274,6 +274,54 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 	nodeGoneAwayCondition := newFailedHealthCheckCondition(clusterv1.NodeNotFoundReason, "")
 
+	// Create a test MHC without conditions
+	testMHCEmptyConditions := &clusterv1.MachineHealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-mhc",
+			Namespace: namespace,
+		},
+		Spec: clusterv1.MachineHealthCheckSpec{
+			Selector: metav1.LabelSelector{
+				MatchLabels: mhcSelector,
+			},
+			ClusterName: clusterName,
+		},
+	}
+	// Target for when the Node has been seen, but has now gone
+	// using MHC without unhealthyConditions
+	nodeGoneAwayEmptyConditions := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCEmptyConditions,
+		Machine: testMachine.DeepCopy(),
+		Node: &corev1.Node{
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
+				},
+			},
+		},
+		nodeMissing: true,
+	}
+	nodeEmptyConditions := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHCEmptyConditions,
+		Machine: testMachine.DeepCopy(),
+		Node: &corev1.Node{
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
+				},
+			},
+		},
+		nodeMissing: false,
+	}
+
 	// Target for when the node has been in an unknown state for shorter than the timeout
 	testNodeUnknown200 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 200*time.Second)
 	nodeUnknown200 := healthCheckTarget{
@@ -339,6 +387,18 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:    nil,
 	}
 	machineFailureMsgCondition := newFailedHealthCheckCondition(clusterv1.MachineHasFailureReason, "FailureMessage: %s", failureMsg)
+
+	// Target for when the machine has the remediate machine annotation
+	annotationRemediationMsg := "Marked for remediation via remediate-machine annotation"
+	testMachineAnnotationRemediation := testMachine.DeepCopy()
+	testMachineAnnotationRemediation.Annotations = map[string]string{clusterv1.RemediateMachineAnnotation: ""}
+	machineAnnotationRemediation := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachineAnnotationRemediation,
+		Node:    nil,
+	}
+	machineAnnotationRemediationCondition := newFailedHealthCheckCondition(clusterv1.HasRemediateMachineAnnotationReason, annotationRemediationMsg)
 
 	testCases := []struct {
 		desc                              string
@@ -426,6 +486,30 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNeedsRemediationCondition: []clusterv1.Condition{machineFailureMsgCondition},
 			expectedNextCheckTimes:            []time.Duration{},
 		},
+		{
+			desc:                              "when the machine is manually marked for remediation",
+			targets:                           []healthCheckTarget{machineAnnotationRemediation},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{machineAnnotationRemediation},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{machineAnnotationRemediationCondition},
+			expectedNextCheckTimes:            []time.Duration{},
+		},
+		{
+			desc:                              "health check with empty unhealthy conditions and missing node",
+			targets:                           []healthCheckTarget{nodeGoneAwayEmptyConditions},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{nodeGoneAwayEmptyConditions},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeGoneAwayCondition},
+			expectedNextCheckTimes:            []time.Duration{},
+		},
+		{
+			desc:                              "health check with empty unhealthy conditions and node",
+			targets:                           []healthCheckTarget{nodeEmptyConditions},
+			expectedHealthy:                   []healthCheckTarget{nodeEmptyConditions},
+			expectedNeedsRemediation:          []healthCheckTarget{},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{},
+			expectedNextCheckTimes:            []time.Duration{},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -469,9 +553,10 @@ func TestHealthCheckTargets(t *testing.T) {
 			gs.Expect(healthy).To(ConsistOf(tc.expectedHealthy))
 			gs.Expect(unhealthy).To(ConsistOf(tc.expectedNeedsRemediation))
 			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
-			for i, expectedMachineConditions := range tc.expectedNeedsRemediationCondition {
+			for i, expectedMachineCondition := range tc.expectedNeedsRemediationCondition {
 				actualConditions := unhealthy[i].Machine.GetConditions()
-				gs.Expect(actualConditions).To(WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineConditions)))
+				conditionsMatcher := WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineCondition))
+				gs.Expect(actualConditions).To(conditionsMatcher)
 			}
 		})
 	}

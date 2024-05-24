@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -26,21 +25,6 @@ import (
 
 	"sigs.k8s.io/cluster-api/controllers/external"
 )
-
-// bootstrapTemplateNamePrefix calculates the name prefix for a BootstrapTemplate.
-func bootstrapTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
-	return fmt.Sprintf("%s-%s-bootstrap-", clusterName, machineDeploymentTopologyName)
-}
-
-// infrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
-func infrastructureMachineTemplateNamePrefix(clusterName, machineDeploymentTopologyName string) string {
-	return fmt.Sprintf("%s-%s-infra-", clusterName, machineDeploymentTopologyName)
-}
-
-// infrastructureMachineTemplateNamePrefix calculates the name prefix for a InfrastructureMachineTemplate.
-func controlPlaneInfrastructureMachineTemplateNamePrefix(clusterName string) string {
-	return fmt.Sprintf("%s-control-plane-", clusterName)
-}
 
 // getReference gets the object referenced in ref.
 func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {

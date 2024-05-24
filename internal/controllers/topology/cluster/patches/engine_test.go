@@ -29,14 +29,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
@@ -49,6 +49,8 @@ func TestApply(t *testing.T) {
 		controlPlaneInfrastructureMachineTemplate      map[string]interface{}
 		machineDeploymentBootstrapTemplate             map[string]map[string]interface{}
 		machineDeploymentInfrastructureMachineTemplate map[string]map[string]interface{}
+		machinePoolBootstrapConfig                     map[string]map[string]interface{}
+		machinePoolInfrastructureMachinePool           map[string]map[string]interface{}
 	}
 
 	tests := []struct {
@@ -134,7 +136,7 @@ func TestApply(t *testing.T) {
 			},
 		},
 		{
-			name: "Should apply JSON patches to MachineDeployment templates",
+			name: "Should apply JSON patches to MachineDeployment and MachinePool templates",
 			patches: []clusterv1.ClusterClassPatch{
 				{
 					Name: "fake-patch1",
@@ -175,6 +177,42 @@ func TestApply(t *testing.T) {
 								},
 							},
 						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachinePoolTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+										Names: []string{"default-mp-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:    "add",
+									Path:  "/spec/template/spec/resource",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-infra"`)},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.BootstrapGroupVersion.String(),
+								Kind:       builder.GenericBootstrapConfigTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+										Names: []string{"default-mp-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:    "add",
+									Path:  "/spec/template/spec/resource",
+									Value: &apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-bootstrap"`)},
+								},
+							},
+						},
 					},
 				},
 			},
@@ -186,6 +224,14 @@ func TestApply(t *testing.T) {
 				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
 					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-infra"},
 					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-infra"},
+				},
+				machinePoolBootstrapConfig: map[string]map[string]interface{}{
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-bootstrap"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-bootstrap"},
+				},
+				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-infra"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-infra"},
 				},
 			},
 		},
@@ -360,8 +406,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-infrastructureCluster"),
-						ValidateExtension: pointer.String("validate-infrastructureCluster"),
+						GenerateExtension: ptr.To("patch-infrastructureCluster"),
+						ValidateExtension: ptr.To("validate-infrastructureCluster"),
 					},
 				},
 			},
@@ -396,8 +442,8 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-infrastructureCluster"),
-						ValidateExtension: pointer.String("validate-infrastructureCluster"),
+						GenerateExtension: ptr.To("patch-infrastructureCluster"),
+						ValidateExtension: ptr.To("validate-infrastructureCluster"),
 					},
 				},
 			},
@@ -429,13 +475,13 @@ func TestApply(t *testing.T) {
 				{
 					Name: "fake-patch1",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-infrastructureCluster"),
+						GenerateExtension: ptr.To("patch-infrastructureCluster"),
 					},
 				},
 				{
 					Name: "fake-patch2",
 					External: &clusterv1.ExternalPatchDefinition{
-						GenerateExtension: pointer.String("patch-controlPlane"),
+						GenerateExtension: ptr.To("patch-controlPlane"),
 					},
 				},
 			},
@@ -499,7 +545,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/clusterName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.cluster.name"),
+										Variable: ptr.To("builtin.cluster.name"),
 									},
 								},
 							},
@@ -517,7 +563,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.controlPlane.name"),
+										Variable: ptr.To("builtin.controlPlane.name"),
 									},
 								},
 							},
@@ -535,7 +581,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/controlPlaneName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.controlPlane.name"),
+										Variable: ptr.To("builtin.controlPlane.name"),
 									},
 								},
 							},
@@ -555,7 +601,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machineDeploymentTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.machineDeployment.topologyName"),
+										Variable: ptr.To("builtin.machineDeployment.topologyName"),
 									},
 								},
 							},
@@ -575,7 +621,47 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/machineDeploymentTopologyName",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("builtin.machineDeployment.topologyName"),
+										Variable: ptr.To("builtin.machineDeployment.topologyName"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.BootstrapGroupVersion.String(),
+								Kind:       builder.GenericBootstrapConfigTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+										Names: []string{"default-mp-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/machinePoolTopologyName",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("builtin.machinePool.topologyName"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachinePoolTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+										Names: []string{"default-mp-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/machinePoolTopologyName",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("builtin.machinePool.topologyName"),
 									},
 								},
 							},
@@ -601,6 +687,14 @@ func TestApply(t *testing.T) {
 					"default-worker-topo1": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo1"},
 					"default-worker-topo2": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo2"},
 				},
+				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
+					"default-mp-worker-topo1": {"spec.machinePoolTopologyName": "default-mp-worker-topo1"},
+					"default-mp-worker-topo2": {"spec.machinePoolTopologyName": "default-mp-worker-topo2"},
+				},
+				machinePoolBootstrapConfig: map[string]map[string]interface{}{
+					"default-mp-worker-topo1": {"spec.machinePoolTopologyName": "default-mp-worker-topo1"},
+					"default-mp-worker-topo2": {"spec.machinePoolTopologyName": "default-mp-worker-topo2"},
+				},
 			},
 		},
 		{
@@ -608,6 +702,14 @@ func TestApply(t *testing.T) {
 			varDefinitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name: "default-worker-infra",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "inline",
+						},
+					},
+				},
+				{
+					Name: "default-mp-worker-infra",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -644,7 +746,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("infraCluster"),
+										Variable: ptr.To("infraCluster"),
 									},
 								},
 							},
@@ -664,7 +766,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("default-worker-infra"),
+										Variable: ptr.To("default-worker-infra"),
 									},
 								},
 							},
@@ -684,7 +786,47 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: pointer.String("default-worker-infra"),
+										Variable: ptr.To("default-worker-infra"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.BootstrapGroupVersion.String(),
+								Kind:       builder.GenericBootstrapConfigTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+										Names: []string{"default-mp-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/resource",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("default-mp-worker-infra"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachinePoolTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachinePoolClass: &clusterv1.PatchSelectorMatchMachinePoolClass{
+										Names: []string{"default-mp-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/resource",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("default-mp-worker-infra"),
 									},
 								},
 							},
@@ -704,6 +846,14 @@ func TestApply(t *testing.T) {
 					"default-worker-topo1": {"spec.template.spec.resource": "value1"},
 					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
 				},
+				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
+					"default-mp-worker-topo1": {"spec.resource": "value2"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
+				},
+				machinePoolBootstrapConfig: map[string]map[string]interface{}{
+					"default-mp-worker-topo1": {"spec.resource": "value2"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
+				},
 			},
 		},
 	}
@@ -716,10 +866,13 @@ func TestApply(t *testing.T) {
 			//   * A ClusterClass with its corresponding templates:
 			//     * ControlPlaneTemplate with a corresponding ControlPlane InfrastructureMachineTemplate.
 			//     * MachineDeploymentClass "default-worker" with corresponding BootstrapTemplate and InfrastructureMachineTemplate.
+			//     * MachinePoolClass "default-mp-worker" with corresponding BootstrapTemplate and InfrastructureMachinePoolTemplate.
 			//   * The corresponding Cluster.spec.topology:
 			//     * with 3 ControlPlane replicas
 			//     * with a "default-worker-topo1" MachineDeploymentTopology without replicas (based on "default-worker")
+			//     * with a "default-mp-worker-topo1" MachinePoolTopology without replicas (based on "default-mp-worker")
 			//     * with a "default-worker-topo2" MachineDeploymentTopology with 3 replicas (based on "default-worker")
+			//     * with a "default-mp-worker-topo2" MachinePoolTopology with 3 replicas (based on "default-mp-worker")
 			// * desired: essentially the corresponding desired objects.
 			blueprint, desired := setupTestObjects()
 
@@ -764,6 +917,12 @@ func TestApply(t *testing.T) {
 				expectedBootstrapTemplates[mdTopology] = md.BootstrapTemplate.DeepCopy()
 				expectedInfrastructureMachineTemplate[mdTopology] = md.InfrastructureMachineTemplate.DeepCopy()
 			}
+			expectedBootstrapConfig := map[string]*unstructured.Unstructured{}
+			expectedInfrastructureMachinePool := map[string]*unstructured.Unstructured{}
+			for mpTopology, mp := range desired.MachinePools {
+				expectedBootstrapConfig[mpTopology] = mp.BootstrapObject.DeepCopy()
+				expectedInfrastructureMachinePool[mpTopology] = mp.InfrastructureMachinePoolObject.DeepCopy()
+			}
 
 			// Set expected fields on the copy of the objects, so they can be used for comparison with the result of Apply.
 			if tt.expectedFields.infrastructureCluster != nil {
@@ -780,6 +939,12 @@ func TestApply(t *testing.T) {
 			}
 			for mdTopology, expectedFields := range tt.expectedFields.machineDeploymentInfrastructureMachineTemplate {
 				setSpecFields(expectedInfrastructureMachineTemplate[mdTopology], expectedFields)
+			}
+			for mpTopology, expectedFields := range tt.expectedFields.machinePoolBootstrapConfig {
+				setSpecFields(expectedBootstrapConfig[mpTopology], expectedFields)
+			}
+			for mpTopology, expectedFields := range tt.expectedFields.machinePoolInfrastructureMachinePool {
+				setSpecFields(expectedInfrastructureMachinePool[mpTopology], expectedFields)
 			}
 
 			// Apply patches.
@@ -801,6 +966,12 @@ func TestApply(t *testing.T) {
 			for mdTopology, infrastructureMachineTemplate := range expectedInfrastructureMachineTemplate {
 				g.Expect(desired.MachineDeployments[mdTopology].InfrastructureMachineTemplate).To(EqualObject(infrastructureMachineTemplate))
 			}
+			for mpTopology, bootstrapConfig := range expectedBootstrapConfig {
+				g.Expect(desired.MachinePools[mpTopology].BootstrapObject).To(EqualObject(bootstrapConfig))
+			}
+			for mpTopology, infrastructureMachinePool := range expectedInfrastructureMachinePool {
+				g.Expect(desired.MachinePools[mpTopology].InfrastructureMachinePoolObject).To(EqualObject(infrastructureMachinePool))
+			}
 		})
 	}
 }
@@ -817,10 +988,20 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 
 	workerInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "linux-worker-inframachinetemplate").
 		Build()
-	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstraptemplate").
+	workerInfrastructureMachinePoolTemplate := builder.InfrastructureMachinePoolTemplate(metav1.NamespaceDefault, "linux-worker-inframachinepooltemplate").
+		Build()
+	workerInfrastructureMachinePool := builder.InfrastructureMachinePool(metav1.NamespaceDefault, "linux-worker-inframachinepool").
+		Build()
+	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstrapconfigtemplate").
+		Build()
+	workerBootstrapConfig := builder.BootstrapConfig(metav1.NamespaceDefault, "linux-worker-bootstrapconfig").
 		Build()
 	mdClass1 := builder.MachineDeploymentClass("default-worker").
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
+		WithBootstrapTemplate(workerBootstrapTemplate).
+		Build()
+	mpClass1 := builder.MachinePoolClass("default-mp-worker").
+		WithInfrastructureTemplate(workerInfrastructureMachinePoolTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
 		Build()
 
@@ -829,6 +1010,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
 		WithWorkerMachineDeploymentClasses(*mdClass1).
+		WithWorkerMachinePoolClasses(*mpClass1).
 		Build()
 
 	// Note: we depend on TypeMeta being set to calculate HolderReferences correctly.
@@ -845,7 +1027,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		Spec: clusterv1.ClusterSpec{
 			Paused: false,
 			ClusterNetwork: &clusterv1.ClusterNetwork{
-				APIServerPort: pointer.Int32(8),
+				APIServerPort: ptr.To[int32](8),
 				Services: &clusterv1.NetworkRanges{
 					CIDRBlocks: []string{"10.10.10.1/24"},
 				},
@@ -860,7 +1042,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				Version: "v1.21.2",
 				Class:   clusterClass.Name,
 				ControlPlane: clusterv1.ControlPlaneTopology{
-					Replicas: pointer.Int32(3),
+					Replicas: ptr.To[int32](3),
 				},
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -878,6 +1060,12 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 						Name: "default-worker-infra",
 						// This value should be overwritten for the default-worker-topo1 MachineDeployment.
 						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo2"`)},
+						DefinitionFrom: "inline",
+					},
+					{
+						Name: "default-mp-worker-infra",
+						// This value should be overwritten for the default-mp-worker-topo1 MachinePool.
+						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo2"`)},
 						DefinitionFrom: "inline",
 					},
 				},
@@ -901,7 +1089,29 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Metadata: clusterv1.ObjectMeta{},
 							Class:    "default-worker",
 							Name:     "default-worker-topo2",
-							Replicas: pointer.Int32(5),
+							Replicas: ptr.To[int32](5),
+						},
+					},
+					MachinePools: []clusterv1.MachinePoolTopology{
+						{
+							Metadata: clusterv1.ObjectMeta{},
+							Class:    "default-mp-worker",
+							Name:     "default-mp-worker-topo1",
+							Variables: &clusterv1.MachinePoolVariables{
+								Overrides: []clusterv1.ClusterVariable{
+									{
+										Name:           "default-mp-worker-infra",
+										DefinitionFrom: "inline",
+										Value:          apiextensionsv1.JSON{Raw: []byte(`"value2"`)},
+									},
+								},
+							},
+						},
+						{
+							Metadata: clusterv1.ObjectMeta{},
+							Class:    "default-mp-worker",
+							Name:     "default-mp-worker-topo2",
+							Replicas: ptr.To[int32](5),
 						},
 					},
 				},
@@ -922,6 +1132,12 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 			"default-worker": {
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
 				BootstrapTemplate:             workerBootstrapTemplate,
+			},
+		},
+		MachinePools: map[string]*scope.MachinePoolBlueprint{
+			"default-mp-worker": {
+				InfrastructureMachinePoolTemplate: workerInfrastructureMachinePoolTemplate,
+				BootstrapTemplate:                 workerBootstrapTemplate,
 			},
 		},
 	}
@@ -972,6 +1188,27 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				// Make sure we're using an independent instance of the template.
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate.DeepCopy(),
 				BootstrapTemplate:             workerBootstrapTemplate.DeepCopy(),
+			},
+		},
+		MachinePools: map[string]*scope.MachinePoolState{
+			"default-mp-worker-topo1": {
+				Object: builder.MachinePool(metav1.NamespaceDefault, "mp1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyMachinePoolNameLabel: "default-mp-worker-topo1"}).
+					WithVersion("v1.21.2").
+					Build(),
+				// Make sure we're using an independent instance of the template.
+				InfrastructureMachinePoolObject: workerInfrastructureMachinePool.DeepCopy(),
+				BootstrapObject:                 workerBootstrapConfig.DeepCopy(),
+			},
+			"default-mp-worker-topo2": {
+				Object: builder.MachinePool(metav1.NamespaceDefault, "mp2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyMachinePoolNameLabel: "default-mp-worker-topo2"}).
+					WithVersion("v1.20.6").
+					WithReplicas(5).
+					Build(),
+				// Make sure we're using an independent instance of the template.
+				InfrastructureMachinePoolObject: workerInfrastructureMachinePool.DeepCopy(),
+				BootstrapObject:                 workerBootstrapConfig.DeepCopy(),
 			},
 		},
 	}

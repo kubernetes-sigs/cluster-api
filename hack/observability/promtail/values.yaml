@@ -4,6 +4,9 @@ config:
   # publish data to loki
   clients:
     - url: http://loki:3100/loki/api/v1/push
+      # We have to set the tenant_id/OrgID to push logs to Loki
+      # otherwise we get an auth error.
+      tenant_id: 1
 
   snippets:
     pipelineStages:
@@ -12,9 +15,17 @@ config:
       - json:
           expressions:
             controller:
-            cluster: join('/',[Cluster.namespace,Cluster.name])
-            machine: join('/',[Machine.namespace,Machine.name])
+            Cluster: join('/',[Cluster.namespace,Cluster.name])
+            Machine: join('/',[Machine.namespace,Machine.name])
+            KubeadmControlPlane: join('/',[KubeadmControlPlane.namespace,KubeadmControlPlane.name])
+            MachineDeployment: join('/',[MachineDeployment.namespace,MachineDeployment.name])
+            MachineSet: join('/',[MachineSet.namespace,MachineSet.name])
+            MachinePool: join('/',[MachinePool.namespace,MachinePool.name])
       - labels:
           controller:
-          cluster:
-          machine:
+          Cluster:
+          Machine:
+          KubeadmControlPlane:
+          MachineDeployment:
+          MachineSet:
+          MachinePool:

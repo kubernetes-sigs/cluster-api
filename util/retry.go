@@ -46,15 +46,3 @@ func Retry(fn wait.ConditionFunc, initialBackoffSec int) error {
 	}
 	return nil
 }
-
-// Poll tries a condition func until it returns true, an error, or the timeout
-// is reached.
-func Poll(interval, timeout time.Duration, condition wait.ConditionFunc) error {
-	return wait.Poll(interval, timeout, condition)
-}
-
-// PollImmediate tries a condition func until it returns true, an error, or the timeout
-// is reached.
-func PollImmediate(interval, timeout time.Duration, condition wait.ConditionFunc) error {
-	return wait.PollImmediate(interval, timeout, condition)
-}

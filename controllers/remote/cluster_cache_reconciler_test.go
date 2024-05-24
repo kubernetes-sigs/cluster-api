@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -71,7 +72,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 
 			t.Log("Creating a clusterAccessor for the cluster")
 			_, err := cct.GetClient(ctx, testClusterKey)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}
 
 		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
@@ -80,14 +81,16 @@ func TestClusterCacheReconciler(t *testing.T) {
 			t.Log("Setting up a new manager")
 			var err error
 			mgr, err = manager.New(env.Config, manager.Options{
-				Scheme:             scheme.Scheme,
-				MetricsBindAddress: "0",
+				Scheme: scheme.Scheme,
+				Metrics: metricsserver.Options{
+					BindAddress: "0",
+				},
 			})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Setting up a ClusterCacheTracker")
 			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Creating the ClusterCacheReconciler")
 			r := &ClusterCacheReconciler{
@@ -107,7 +110,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 
 			t.Log("Creating a namespace for the test")
 			ns, err := env.CreateNamespace(ctx, "cluster-cache-test")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Creating clusters to test with")
 			createAndWatchCluster("cluster-1", ns, g)

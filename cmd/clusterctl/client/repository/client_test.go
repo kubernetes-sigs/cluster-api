@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -31,14 +32,16 @@ import (
 func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 	g := NewWithT(t)
 
+	ctx := context.Background()
+
 	tmpDir := createTempDir(t)
 	defer os.RemoveAll(tmpDir)
 
 	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "")
 	dst2 := createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.0/bootstrap-components.yaml", "")
 
-	configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
-	g.Expect(err).NotTo(HaveOccurred())
+	configClient, err := config.New(ctx, "", config.InjectReader(test.NewFakeReader()))
+	g.Expect(err).ToNot(HaveOccurred())
 
 	type fields struct {
 		provider config.Provider
@@ -81,8 +84,10 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			repoClient, err := newRepositoryClient(tt.fields.provider, configClient)
-			gs.Expect(err).NotTo(HaveOccurred())
+			ctx := context.Background()
+
+			repoClient, err := newRepositoryClient(ctx, tt.fields.provider, configClient)
+			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(repoClient.repository).To(BeAssignableToTypeOf(tt.expected))
 		})
@@ -126,18 +131,22 @@ func Test_newRepositoryClient_YamlProcessor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			configProvider := config.NewProvider("fakeProvider", "", clusterctlv1.CoreProviderType)
-			configClient, err := config.New("", config.InjectReader(test.NewFakeReader()))
-			g.Expect(err).NotTo(HaveOccurred())
+			configClient, err := config.New(ctx, "", config.InjectReader(test.NewFakeReader()))
+			g.Expect(err).ToNot(HaveOccurred())
 
 			tt.opts = append(tt.opts, InjectRepository(NewMemoryRepository()))
 
 			repoClient, err := newRepositoryClient(
+				ctx,
 				configProvider,
 				configClient,
 				tt.opts...,
 			)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			tt.assert(g, repoClient.processor)
 		})
 	}

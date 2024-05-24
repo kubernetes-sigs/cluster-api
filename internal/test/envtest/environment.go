@@ -42,22 +42,28 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	bootstrapwebhooks "sigs.k8s.io/cluster-api/bootstrap/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanewebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	addonswebhooks "sigs.k8s.io/cluster-api/exp/addons/webhooks"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	expapiwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	internalwebhooks "sigs.k8s.io/cluster-api/internal/webhooks"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/version"
@@ -65,11 +71,10 @@ import (
 )
 
 func init() {
-	klog.InitFlags(nil)
-	logger := klogr.New()
+	logger := klog.Background()
 	// Use klog as the internal logger for this envtest environment.
 	log.SetLogger(logger)
-	// Additionally force all of the controllers to use the Ginkgo logger.
+	// Additionally force all controllers to use the Ginkgo logger.
 	ctrl.SetLogger(logger)
 	// Add logger for ginkgo.
 	klog.SetOutput(ginkgo.GinkgoWriter)
@@ -140,11 +145,11 @@ func Run(ctx context.Context, input RunInput) int {
 
 	if input.MinK8sVersion != "" {
 		if err := version.CheckKubernetesVersion(env.Config, input.MinK8sVersion); err != nil {
-			fmt.Printf("[IMPORTANT] skipping tests after failing version check: %v\n", err)
+			fmt.Printf("[ERROR] Cannot run tests after failing version check: %v\n", err)
 			if err := env.stop(); err != nil {
 				fmt.Println("[WARNING] Failed to stop the test environment")
 			}
-			return 0
+			return 1
 		}
 	}
 
@@ -209,6 +214,8 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 			builder.GenericControlPlaneTemplateCRD.DeepCopy(),
 			builder.GenericInfrastructureMachineCRD.DeepCopy(),
 			builder.GenericInfrastructureMachineTemplateCRD.DeepCopy(),
+			builder.GenericInfrastructureMachinePoolCRD.DeepCopy(),
+			builder.GenericInfrastructureMachinePoolTemplateCRD.DeepCopy(),
 			builder.GenericInfrastructureClusterCRD.DeepCopy(),
 			builder.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
 			builder.GenericRemediationCRD.DeepCopy(),
@@ -216,6 +223,8 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 			builder.TestInfrastructureClusterTemplateCRD.DeepCopy(),
 			builder.TestInfrastructureClusterCRD.DeepCopy(),
 			builder.TestInfrastructureMachineTemplateCRD.DeepCopy(),
+			builder.TestInfrastructureMachinePoolCRD.DeepCopy(),
+			builder.TestInfrastructureMachinePoolTemplateCRD.DeepCopy(),
 			builder.TestInfrastructureMachineCRD.DeepCopy(),
 			builder.TestBootstrapConfigTemplateCRD.DeepCopy(),
 			builder.TestBootstrapConfigCRD.DeepCopy(),
@@ -232,11 +241,6 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 		panic(err)
 	}
 
-	objs := []client.Object{}
-	if len(uncachedObjs) > 0 {
-		objs = append(objs, uncachedObjs...)
-	}
-
 	// Localhost is used on MacOS to avoid Firewall warning popups.
 	host := "localhost"
 	if strings.EqualFold(os.Getenv("USE_EXISTING_CLUSTER"), "true") {
@@ -249,12 +253,22 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	}
 
 	options := manager.Options{
-		Scheme:                scheme.Scheme,
-		MetricsBindAddress:    "0",
-		CertDir:               env.WebhookInstallOptions.LocalServingCertDir,
-		Port:                  env.WebhookInstallOptions.LocalServingPort,
-		ClientDisableCacheFor: objs,
-		Host:                  host,
+		Scheme: scheme.Scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: "0",
+		},
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: uncachedObjs,
+			},
+		},
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port:    env.WebhookInstallOptions.LocalServingPort,
+				CertDir: env.WebhookInstallOptions.LocalServingCertDir,
+				Host:    host,
+			},
+		),
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)
@@ -263,7 +277,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	}
 
 	// Set minNodeStartupTimeout for Test, so it does not need to be at least 30s
-	clusterv1.SetMinNodeStartupTimeout(metav1.Duration{Duration: 1 * time.Millisecond})
+	internalwebhooks.SetMinNodeStartupTimeout(metav1.Duration{Duration: 1 * time.Millisecond})
 
 	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
@@ -271,34 +285,37 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&clusterv1.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&clusterv1.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&clusterv1.MachineDeployment{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapwebhooks.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&bootstrapv1.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&bootstrapwebhooks.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&bootstrapv1.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplanewebhooks.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&controlplanev1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplanewebhooks.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&addonswebhooks.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for crs: %+v", err)
 	}
-	if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&addonswebhooks.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("unable to create webhook for ClusterResourceSetBinding: %+v", err)
+	}
+	if err := (&expapiwebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
 	}
 	if err := (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {

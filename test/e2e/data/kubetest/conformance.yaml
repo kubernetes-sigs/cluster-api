@@ -1,11 +1,16 @@
 ginkgo.focus: \[Conformance\]
 ginkgo.skip: \[Serial\]
 disable-log-dump: true
+# ginkgo.progress flag is deprecated but its still used in
+# k8s versions <= v1.26, we have to keep it as long as we
+# support these versions.
 ginkgo.progress: true
-ginkgo.slowSpecThreshold: 120.0
-ginkgo.flakeAttempts: 3
+ginkgo.slow-spec-threshold: 120s
+ginkgo.flake-attempts: 3
 ginkgo.trace: true
 ginkgo.v: true
 # Use 5m instead of the default 10m to fail faster
 # if kube-system Pods are not coming up.
 system-pods-startup-timeout: 5m
+# TODO: (killianmuldoon) This flag is not currently working with the conformance set-up.
+# ginkgo.noColor: true

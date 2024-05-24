@@ -20,13 +20,16 @@ limitations under the License.
 package e2e
 
 import (
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
+
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with RuntimeSDK [PR-Informing] [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with RuntimeSDK [ClusterClass]", func() {
 	clusterUpgradeWithRuntimeSDKSpec(ctx, func() clusterUpgradeWithRuntimeSDKSpecInput {
 		version, err := semver.ParseTolerant(e2eConfig.GetVariable(KubernetesVersionUpgradeFrom))
 		Expect(err).ToNot(HaveOccurred(), "Invalid argument, KUBERNETES_VERSION_UPGRADE_FROM is not a valid version")
@@ -35,13 +38,19 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 		}
 
 		return clusterUpgradeWithRuntimeSDKSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: ptr.To("docker"),
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+				// continuous reconciles when everything should be stable.
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
-			Flavor: pointer.String("upgrades-runtimesdk"),
+			Flavor: ptr.To("upgrades-runtimesdk"),
 		}
 	})
 })

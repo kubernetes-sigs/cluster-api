@@ -1,4 +1,4 @@
-# MachinePool  Controller
+# MachinePool Controller
 
 ![](../../../images/cluster-admission-machinepool-controller.png)
 
@@ -61,6 +61,9 @@ The `status` object **may** define several fields that do not affect functionali
 * `failureReason` - a string field explaining why a fatal error has occurred, if possible.
 * `failureMessage` - a string field that holds the message contained by the error.
 
+Note: once any of `failureReason` or `failureMessage` surface on the machine pool who is referencing the bootstrap config object, 
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine pool). 
+
 Example:
 
 ```yaml
@@ -95,8 +98,14 @@ The `status` object **may** define several fields that do not affect functionali
 
 * `failureReason` - is a string that explains why a fatal error has occurred, if possible.
 * `failureMessage` - is a string that holds the message contained by the error.
+* `infrastructureMachineKind` - the kind of the InfraMachines. This should be set if the InfrastructureMachinePool plans to support MachinePool Machines.
 
-Example:
+Note: once any of `failureReason` or `failureMessage` surface on the machine pool who is referencing the InfrastructureMachinePool object, 
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine pool).
+
+Note: Infrastructure providers can support MachinePool Machines by having the InfraMachinePool set the `infrastructureMachineKind` to the kind of their InfrastructureMachines. The InfrastructureMachinePool will be responsible for creating InfrastructureMachines as the MachinePool is scaled up, and the MachinePool controller will create Machines for each InfrastructureMachine and set the ownerRef. The InfrastructureMachinePool will be responsible for deleting the Machines as the MachinePool is scaled down in order for the Machine deletion workflow to function properly. In addition, the InfrastructureMachines must also have the following labels set by the InfrastructureMachinePool: `cluster.x-k8s.io/cluster-name` and `cluster.x-k8s.io/pool-name`. The `MachinePoolNameLabel` must also be formatted with `capilabels.MustFormatValue()` so that it will not exceed character limits.
+
+Example
 ```yaml
 kind: MyMachinePool
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -106,6 +115,7 @@ spec:
       - cloud:////my-cloud-provider-id-1
 status:
     ready: true
+    infrastructureMachineKind: InfrastructureMachine
 ```
 
 #### Externally Managed Autoscaler
@@ -133,6 +143,7 @@ spec:
 status:
     ready: true
     phase: Scaling
+    infrastructureMachineKind: InfrastructureMachine
 ```
 
 It is the provider's responsibility to update Cluster API's `Spec.Replicas` property to the value observed in the underlying infra environment as it changes in response to external autoscaling behaviors. Once that is done, and the number of providerID items is equal to the `Spec.Replicas` property, the MachinePools's `Status.Phase` property will be set to `Running` by Cluster API.

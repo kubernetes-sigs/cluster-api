@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	. "github.com/onsi/gomega"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -37,13 +39,40 @@ import (
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+// ValidateOwnerReferencesOnUpdate checks that expected owner references are updated to the correct apiVersion.
+func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
+
+	// Pause the cluster.
+	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
+
+	// Change the version of the OwnerReferences on each object in the Graph to "v1alpha1"
+	changeOwnerReferencesAPIVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
+
+	// Unpause the cluster.
+	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
+
+	// Force ClusterClass reconciliation. This ensures ClusterClass ownerReferences  are re-reconciled before asserting
+	// the owner reference graph.
+	forceClusterClassReconcile(ctx, proxy.GetClient(), clusterKey)
+
+	// Force ClusterResourceSet reconciliation. This ensures ClusterResourceBinding ownerReferences are re-reconciled before
+	// asserting the owner reference graph.
+	forceClusterResourceSetReconcile(ctx, proxy.GetClient(), namespace)
+
+	// Check that the ownerReferences have updated their apiVersions to current versions after reconciliation.
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
+}
+
 // ValidateOwnerReferencesResilience checks that expected owner references are in place, deletes them, and verifies that expect owner references are properly rebuilt.
-func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
 	// Check that the ownerReferences are as expected on the first iteration.
-	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
 
@@ -53,52 +82,64 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	// edge case where an external system intentionally nukes all the owner references in a single operation.
 	// The assumption is that if the system can recover from this edge case, it can also handle use cases where an owner
 	// reference is deleted by mistake.
+
+	// Setting the paused property on the Cluster resource will pause reconciliations, thereby having no effect on OwnerReferences.
+	// This also makes debugging easier.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
 
 	// Once all Clusters are paused remove the OwnerReference from all objects in the graph.
-	removeOwnerReferences(ctx, proxy, namespace)
+	removeOwnerReferences(ctx, proxy, namespace, ownerGraphFilterFunction)
 
+	// Unpause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
 
-	// Annotate the clusterClass, if one is in use, to speed up reconciliation. This ensures ClusterClass ownerReferences
+	// Annotate the ClusterClass, if one is in use, to speed up reconciliation. This ensures ClusterClass ownerReferences
 	// are re-reconciled before asserting the owner reference graph.
 	forceClusterClassReconcile(ctx, proxy.GetClient(), clusterKey)
 
 	// Check that the ownerReferences are as expected after additional reconciliations.
-	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 }
 
-func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
-	allAssertFuncs := map[string]func(reference []metav1.OwnerReference) error{}
+func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+	allAssertFuncs := map[string][]func(reference []metav1.OwnerReference) error{}
 	for _, m := range assertFuncs {
 		for k, v := range m {
-			allAssertFuncs[k] = v
+			allAssertFuncs[k] = append(allAssertFuncs[k], v)
 		}
 	}
-	var errStrings string
 	Eventually(func() error {
-		graph, err := clusterctlcluster.GetOwnerGraph(namespace, kubeconfigPath)
-		Expect(err).To(BeNil())
 		allErrs := []error{}
+		ctx := context.Background()
+
+		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, kubeconfigPath, ownerGraphFilterFunction)
+		// Sometimes the conversion-webhooks are not ready yet / cert-managers ca-injector
+		// may not yet have injected the new ca bundle after the upgrade.
+		// If this is the case we return an error to retry.
+		if err != nil && strings.Contains(err.Error(), "x509: certificate signed by unknown authority") {
+			return err
+		}
+		Expect(err).ToNot(HaveOccurred())
 		for _, v := range graph {
 			if _, ok := allAssertFuncs[v.Object.Kind]; !ok {
 				allErrs = append(allErrs, fmt.Errorf("kind %s does not have an associated ownerRef assertion function", v.Object.Kind))
 				continue
 			}
-			if err := allAssertFuncs[v.Object.Kind](v.Owners); err != nil {
-				allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s/%s", v.Object.Kind, v.Object.Name))
+			for _, f := range allAssertFuncs[v.Object.Kind] {
+				if err := f(v.Owners); err != nil {
+					allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s/%s", v.Object.Kind, v.Object.Name))
+				}
 			}
 		}
-		errStrings = ""
-		for _, err := range allErrs {
-			errStrings = fmt.Sprintf("%s\n%s", errStrings, err.Error())
-		}
 		return kerrors.NewAggregate(allErrs)
-	}).Should(Succeed(), errStrings)
+	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }
 
-// Kind and GVK for types in the core API package.
+// Kinds and Owners for types in the core API package.
 var (
+	coreGroupVersion = clusterv1.GroupVersion.String()
+
+	extensionConfigKind    = "ExtensionConfig"
 	clusterClassKind       = "ClusterClass"
 	clusterKind            = "Cluster"
 	machineKind            = "Machine"
@@ -106,60 +147,77 @@ var (
 	machineDeploymentKind  = "MachineDeployment"
 	machineHealthCheckKind = "MachineHealthCheck"
 
-	clusterClassGVK      = clusterv1.GroupVersion.WithKind(clusterClassKind)
-	clusterGVK           = clusterv1.GroupVersion.WithKind(clusterKind)
-	machineDeploymentGVK = clusterv1.GroupVersion.WithKind(machineDeploymentKind)
-	machineSetGVK        = clusterv1.GroupVersion.WithKind(machineSetKind)
-	machineGVK           = clusterv1.GroupVersion.WithKind(machineKind)
+	clusterOwner                = metav1.OwnerReference{Kind: clusterKind, APIVersion: coreGroupVersion}
+	clusterController           = metav1.OwnerReference{Kind: clusterKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
+	clusterClassOwner           = metav1.OwnerReference{Kind: clusterClassKind, APIVersion: coreGroupVersion}
+	machineDeploymentController = metav1.OwnerReference{Kind: machineDeploymentKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
+	machineSetController        = metav1.OwnerReference{Kind: machineSetKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
+	machineController           = metav1.OwnerReference{Kind: machineKind, APIVersion: coreGroupVersion, Controller: ptr.To(true)}
 )
 
-// CoreTypeOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
+// CoreOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
 // OwnerReferences aren't as expected.
-var CoreTypeOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error{
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
+var CoreOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error{
+	extensionConfigKind: func(owners []metav1.OwnerReference) error {
+		// ExtensionConfig should have no owners.
+		return HasExactOwners(owners)
+	},
 	clusterClassKind: func(owners []metav1.OwnerReference) error {
 		// ClusterClass doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+		return HasExactOwners(owners)
 	},
 	clusterKind: func(owners []metav1.OwnerReference) error {
 		// Cluster doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+		return HasExactOwners(owners)
 	},
 	machineDeploymentKind: func(owners []metav1.OwnerReference) error {
 		// MachineDeployments must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		return HasExactOwners(owners, clusterOwner)
 	},
 	machineSetKind: func(owners []metav1.OwnerReference) error {
-		// MachineSets must be owned by a MachineDeployments.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machineDeploymentGVK})
+		// MachineSets must be owned and controlled by a MachineDeployment.
+		return HasExactOwners(owners, machineDeploymentController)
 	},
 	machineKind: func(owners []metav1.OwnerReference) error {
-		// Machines must be owned by a MachineSet or a KubeadmControlPlane, depending on if this Machine is part of a ControlPlane or not.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineSetGVK}, []schema.GroupVersionKind{kubeadmControlPlaneGVK})
+		// Machines must be owned and controlled by a MachineSet, MachinePool, or a KubeadmControlPlane, depending on if this Machine is part of a Machine Deployment, MachinePool, or ControlPlane.
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineSetController}, []metav1.OwnerReference{machinePoolController}, []metav1.OwnerReference{kubeadmControlPlaneController})
 	},
 	machineHealthCheckKind: func(owners []metav1.OwnerReference) error {
 		// MachineHealthChecks must be owned by the Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		return HasExactOwners(owners, clusterOwner)
 	},
 }
 
-// Kind and GVK for types in the exp package.
+// Kinds and Owners for types in the exp package.
 var (
 	clusterResourceSetKind        = "ClusterResourceSet"
 	clusterResourceSetBindingKind = "ClusterResourceSetBinding"
+	machinePoolKind               = "MachinePool"
 
-	clusterResourceSetGVK = addonsv1.GroupVersion.WithKind(clusterResourceSetKind)
+	machinePoolController = metav1.OwnerReference{Kind: machinePoolKind, APIVersion: expv1.GroupVersion.String(), Controller: ptr.To(true)}
+
+	clusterResourceSetOwner = metav1.OwnerReference{Kind: clusterResourceSetKind, APIVersion: addonsv1.GroupVersion.String()}
 )
 
 // ExpOwnerReferenceAssertions maps experimental types to functions which return an error if the passed OwnerReferences
 // aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var ExpOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	clusterResourceSetKind: func(owners []metav1.OwnerReference) error {
 		// ClusterResourcesSet doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+		return HasExactOwners(owners)
 	},
-	// ClusterResourcesSetBinding has both Cluster and ClusterResourceSet set as owners on creation.
+	// ClusterResourcesSetBinding has ClusterResourceSet set as owners on creation.
 	clusterResourceSetBindingKind: func(owners []metav1.OwnerReference) error {
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK, clusterResourceSetGVK})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterResourceSetOwner}, []metav1.OwnerReference{clusterResourceSetOwner, clusterResourceSetOwner})
+	},
+	// MachinePool must be owned by a Cluster.
+	machinePoolKind: func(owners []metav1.OwnerReference) error {
+		// MachinePools must be owned by a Cluster.
+		return HasExactOwners(owners, clusterOwner)
 	},
 }
 
@@ -170,117 +228,144 @@ var (
 
 // KubernetesReferenceAssertions maps Kubernetes types to functions which return an error if the passed OwnerReferences
 // aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var KubernetesReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	secretKind: func(owners []metav1.OwnerReference) error {
-		// Secrets for cluster certificates must be owned by the KubeadmControlPlane. The bootstrap secret should be owned by a KubeadmControlPlane.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{kubeadmControlPlaneGVK}, []schema.GroupVersionKind{kubeadmConfigGVK})
+		// Secrets for cluster certificates must be owned and controlled by the KubeadmControlPlane. The bootstrap secret should be owned and controlled by a KubeadmControlPlane.
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{kubeadmControlPlaneController}, []metav1.OwnerReference{kubeadmConfigController})
 	},
 	configMapKind: func(owners []metav1.OwnerReference) error {
 		// The only configMaps considered here are those owned by a ClusterResourceSet.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterResourceSetGVK})
+		return HasExactOwners(owners, clusterResourceSetOwner)
 	},
 }
 
-// Kind and GVK for types in the Kubeadm ControlPlane package.
+// Kind and Owners for types in the Kubeadm ControlPlane package.
 var (
 	kubeadmControlPlaneKind         = "KubeadmControlPlane"
 	kubeadmControlPlaneTemplateKind = "KubeadmControlPlaneTemplate"
 
-	kubeadmControlPlaneGVK = controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind)
+	kubeadmControlPlaneGroupVersion = controlplanev1.GroupVersion.String()
+
+	kubeadmControlPlaneController = metav1.OwnerReference{Kind: kubeadmControlPlaneKind, APIVersion: kubeadmControlPlaneGroupVersion, Controller: ptr.To(true)}
 )
 
 // KubeadmControlPlaneOwnerReferenceAssertions maps Kubeadm control plane types to functions which return an error if the passed
 // OwnerReferences aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var KubeadmControlPlaneOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmControlPlaneKind: func(owners []metav1.OwnerReference) error {
-		// The KubeadmControlPlane must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		// The KubeadmControlPlane must be owned and controlled by a Cluster.
+		return HasExactOwners(owners, clusterController)
 	},
 	kubeadmControlPlaneTemplateKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmControlPlaneTemplate must be owned by a ClusterClass.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterClassGVK})
+		return HasExactOwners(owners, clusterClassOwner)
 	},
 }
 
-// Kind and GVK for types in the Kubeadm Bootstrap package.
+// Owners and kinds for types in the Kubeadm Bootstrap package.
 var (
 	kubeadmConfigKind         = "KubeadmConfig"
 	kubeadmConfigTemplateKind = "KubeadmConfigTemplate"
 
-	kubeadmConfigGVK = bootstrapv1.GroupVersion.WithKind(kubeadmConfigKind)
+	kubeadmConfigGroupVersion = bootstrapv1.GroupVersion.String()
+	kubeadmConfigController   = metav1.OwnerReference{Kind: kubeadmConfigKind, APIVersion: kubeadmConfigGroupVersion, Controller: ptr.To(true)}
 )
 
 // KubeadmBootstrapOwnerReferenceAssertions maps KubeadmBootstrap types to functions which return an error if the passed OwnerReferences
 // aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmConfigKind: func(owners []metav1.OwnerReference) error {
-		// The KubeadmConfig must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK})
+		// The KubeadmConfig must be owned and controlled by a Machine or MachinePool.
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machinePoolController, clusterOwner})
 	},
 	kubeadmConfigTemplateKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmConfigTemplate must be owned by a ClusterClass.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK}, []schema.GroupVersionKind{clusterClassGVK})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
 	},
 }
 
-// Kind and GVK for types in the Docker infrastructure package.
+// Kinds for types in the Docker infrastructure package.
 var (
-	dockerMachineKind         = "DockerMachine"
-	dockerMachineTemplateKind = "DockerMachineTemplate"
-	dockerClusterKind         = "DockerCluster"
-	dockerClusterTemplateKind = "DockerClusterTemplate"
+	dockerMachineKind             = "DockerMachine"
+	dockerMachineTemplateKind     = "DockerMachineTemplate"
+	dockerMachinePoolKind         = "DockerMachinePool"
+	dockerMachinePoolTemplateKind = "DockerMachinePoolTemplate"
+	dockerClusterKind             = "DockerCluster"
+	dockerClusterTemplateKind     = "DockerClusterTemplate"
+
+	dockerMachinePoolController = metav1.OwnerReference{Kind: dockerMachinePoolKind, APIVersion: infraexpv1.GroupVersion.String()}
 )
 
 // DockerInfraOwnerReferenceAssertions maps Docker Infrastructure types to functions which return an error if the passed
 // OwnerReferences aren't as expected.
+// Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
+// That document should be updated if these references change.
 var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	dockerMachineKind: func(owners []metav1.OwnerReference) error {
-		// The DockerMachine must be owned by a Machine.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK})
+		// The DockerMachine must be owned and controlled by a Machine or a DockerMachinePool.
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machineController, dockerMachinePoolController})
 	},
 	dockerMachineTemplateKind: func(owners []metav1.OwnerReference) error {
 		// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.
 		// DockerMachineTemplates created for specific Clusters in the Topology controller must be owned by a Cluster.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK}, []schema.GroupVersionKind{clusterClassGVK})
+		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
 	},
 	dockerClusterKind: func(owners []metav1.OwnerReference) error {
-		// DockerCluster must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
+		// DockerCluster must be owned and controlled by a Cluster.
+		return HasExactOwners(owners, clusterController)
 	},
 	dockerClusterTemplateKind: func(owners []metav1.OwnerReference) error {
 		// DockerClusterTemplate must be owned by a ClusterClass.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterClassGVK})
+		return HasExactOwners(owners, clusterClassOwner)
+	},
+	dockerMachinePoolKind: func(owners []metav1.OwnerReference) error {
+		// DockerMachinePool must be owned and controlled by a MachinePool.
+		return HasExactOwners(owners, machinePoolController, clusterOwner)
+	},
+	dockerMachinePoolTemplateKind: func(owners []metav1.OwnerReference) error {
+		// DockerMachinePoolTemplate must be owned by a ClusterClass.
+		return HasExactOwners(owners, clusterClassOwner)
 	},
 }
 
-func hasExactOwnersByGVK(refList []metav1.OwnerReference, wantGVKs []schema.GroupVersionKind) error {
-	refGVKs := []schema.GroupVersionKind{}
-	for _, ref := range refList {
-		refGVK, err := ownerRefGVK(ref)
-		if err != nil {
-			return err
-		}
-		refGVKs = append(refGVKs, refGVK)
+func HasExactOwners(gotOwners []metav1.OwnerReference, wantOwners ...metav1.OwnerReference) error {
+	wantComparable := []string{}
+	gotComparable := []string{}
+	for _, ref := range gotOwners {
+		gotComparable = append(gotComparable, ownerReferenceString(ref))
 	}
-	sort.SliceStable(refGVKs, func(i int, j int) bool {
-		return refGVKs[i].String() > refGVKs[j].String()
-	})
-	sort.SliceStable(wantGVKs, func(i int, j int) bool {
-		return wantGVKs[i].String() > wantGVKs[j].String()
-	})
-	if !reflect.DeepEqual(wantGVKs, refGVKs) {
-		return fmt.Errorf("wanted %v, actual %v", wantGVKs, refGVKs)
+	for _, ref := range wantOwners {
+		wantComparable = append(wantComparable, ownerReferenceString(ref))
+	}
+	sort.Strings(gotComparable)
+	sort.Strings(wantComparable)
+
+	if !reflect.DeepEqual(gotComparable, wantComparable) {
+		return fmt.Errorf("wanted %v, actual %v", wantComparable, gotComparable)
 	}
 	return nil
 }
 
-// NOTE: we are using hasOneOfExactOwnersByGVK as a convenience approach for checking owner references on objects that
-// can have different owner references depending on the cluster topology.
+func ownerReferenceString(ref metav1.OwnerReference) string {
+	controller := false
+	if ref.Controller != nil && *ref.Controller {
+		controller = true
+	}
+	return fmt.Sprintf("%s/%s/%v", ref.APIVersion, ref.Kind, controller)
+}
+
+// HasOneOfExactOwners is a convenience approach for checking owner references on objects that can have different owner references depending on the cluster.
 // In a follow-up iteration we can make improvements to check owner references according to the specific use cases vs checking generically "oneOf".
-func hasOneOfExactOwnersByGVK(refList []metav1.OwnerReference, possibleGVKS ...[]schema.GroupVersionKind) error {
+func HasOneOfExactOwners(refList []metav1.OwnerReference, possibleOwners ...[]metav1.OwnerReference) error {
 	var allErrs []error
-	for _, wantGVK := range possibleGVKS {
-		err := hasExactOwnersByGVK(refList, wantGVK)
+	for _, wantOwner := range possibleOwners {
+		err := HasExactOwners(refList, wantOwner...)
 		if err != nil {
 			allErrs = append(allErrs, err)
 			continue
@@ -288,14 +373,6 @@ func hasOneOfExactOwnersByGVK(refList []metav1.OwnerReference, possibleGVKS ...[
 		return nil
 	}
 	return kerrors.NewAggregate(allErrs)
-}
-
-func ownerRefGVK(ref metav1.OwnerReference) (schema.GroupVersionKind, error) {
-	refGV, err := schema.ParseGroupVersion(ref.APIVersion)
-	if err != nil {
-		return schema.GroupVersionKind{}, err
-	}
-	return schema.GroupVersionKind{Version: refGV.Version, Group: refGV.Group, Kind: ref.Kind}, nil
 }
 
 func setClusterPause(ctx context.Context, cli client.Client, clusterKey types.NamespacedName, value bool) {
@@ -320,9 +397,19 @@ func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterK
 	}
 }
 
-func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace string) {
-	graph, err := clusterctlcluster.GetOwnerGraph(namespace, proxy.GetKubeconfigPath())
-	Expect(err).To(BeNil())
+// forceClusterResourceSetReconcile forces reconciliation of all ClusterResourceSets.
+func forceClusterResourceSetReconcile(ctx context.Context, cli client.Client, namespace string) {
+	crsList := &addonsv1.ClusterResourceSetList{}
+	Expect(cli.List(ctx, crsList, client.InNamespace(namespace))).To(Succeed())
+	for _, crs := range crsList.Items {
+		annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
+		Expect(cli.Patch(ctx, crs.DeepCopy(), annotationPatch)).To(Succeed())
+	}
+}
+
+func changeOwnerReferencesAPIVersion(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction)
+	Expect(err).ToNot(HaveOccurred())
 	for _, object := range graph {
 		ref := object.Object
 		obj := new(unstructured.Unstructured)
@@ -332,7 +419,35 @@ func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace st
 
 		Expect(proxy.GetClient().Get(ctx, client.ObjectKey{Namespace: namespace, Name: object.Object.Name}, obj)).To(Succeed())
 		helper, err := patch.NewHelper(obj, proxy.GetClient())
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+
+		newOwners := []metav1.OwnerReference{}
+		for _, owner := range obj.GetOwnerReferences() {
+			gv, err := schema.ParseGroupVersion(owner.APIVersion)
+			Expect(err).To(Succeed())
+			gv.Version = "v1alpha1"
+			owner.APIVersion = gv.String()
+			newOwners = append(newOwners, owner)
+		}
+
+		obj.SetOwnerReferences(newOwners)
+		Expect(helper.Patch(ctx, obj)).To(Succeed())
+	}
+}
+
+func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction)
+	Expect(err).ToNot(HaveOccurred())
+	for _, object := range graph {
+		ref := object.Object
+		obj := new(unstructured.Unstructured)
+		obj.SetAPIVersion(ref.APIVersion)
+		obj.SetKind(ref.Kind)
+		obj.SetName(ref.Name)
+
+		Expect(proxy.GetClient().Get(ctx, client.ObjectKey{Namespace: namespace, Name: object.Object.Name}, obj)).To(Succeed())
+		helper, err := patch.NewHelper(obj, proxy.GetClient())
+		Expect(err).ToNot(HaveOccurred())
 		obj.SetOwnerReferences([]metav1.OwnerReference{})
 		Expect(helper.Patch(ctx, obj)).To(Succeed())
 	}

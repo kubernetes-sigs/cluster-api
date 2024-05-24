@@ -33,7 +33,7 @@ func GatherJUnitReports(srcDir string, destDir string) error {
 		return err
 	}
 
-	return filepath.Walk(srcDir, func(p string, info os.FileInfo, err error) error {
+	return filepath.Walk(srcDir, func(p string, info os.FileInfo, _ error) error {
 		if info.IsDir() && p != srcDir {
 			return filepath.SkipDir
 		}

@@ -4,12 +4,22 @@
 # and can be disabled.
 alertmanager:
   enabled: false
-kubeStateMetrics:
+kube-state-metrics:
   enabled: false
-nodeExporter:
+prometheus-node-exporter:
   enabled: false
-pushgateway:
+prometheus-pushgateway:
   enabled: false
+
+server:
+  extraFlags:
+  # Required for configmap-reload.
+  - "web.enable-lifecycle"
+  # Used by tempo to write traces.
+  - "web.enable-remote-write-receiver"
+  persistentVolume:
+    # Give Prometheus more space to store metrics.
+    size: 20Gi
 
 # Scrape metrics from deployed providers
 extraScrapeConfigs: |
@@ -17,6 +27,13 @@ extraScrapeConfigs: |
     # 15s is a bit often for production but helps to get metrics quicker for development.
     scrape_interval: 15s
     metrics_path: /metrics
+    scheme: https
+    authorization:
+      type: Bearer
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
     kubernetes_sd_configs:
       - role: pod
 

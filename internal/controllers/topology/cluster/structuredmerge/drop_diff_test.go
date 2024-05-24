@@ -60,8 +60,8 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 						"foo": "123-changed",
 					},
 				},
-				shouldDropDiffFunc: ssa.IsNotAllowedPath(
-					[]contract.Path{ // NOTE: we are dropping everything not in this list (IsNotAllowed)
+				shouldDropDiffFunc: ssa.IsPathNotAllowed(
+					[]contract.Path{ // NOTE: we are dropping everything not in this list (IsPathNotAllowed)
 						{"metadata", "labels"},
 						{"metadata", "annotations"},
 						{"spec"},
@@ -110,8 +110,8 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				shouldDropDiffFunc: ssa.IsNotAllowedPath(
-					[]contract.Path{ // NOTE: we are dropping everything not in this list (IsNotAllowed)
+				shouldDropDiffFunc: ssa.IsPathNotAllowed(
+					[]contract.Path{ // NOTE: we are dropping everything not in this list (IsPathNotAllowed)
 						{"metadata", "labels"},
 						{"metadata", "annotations"},
 						{"spec"},
@@ -146,8 +146,8 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				shouldDropDiffFunc: ssa.IsNotAllowedPath(
-					[]contract.Path{}, // NOTE: we are dropping everything not in this list (IsNotAllowed)
+				shouldDropDiffFunc: ssa.IsPathNotAllowed(
+					[]contract.Path{}, // NOTE: we are dropping everything not in this list (IsPathNotAllowed)
 				),
 			},
 			wantModified: map[string]interface{}{
@@ -161,7 +161,7 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 
 			dropDiff(tt.ctx)
 
-			g.Expect(tt.ctx.modified).To(Equal(tt.wantModified))
+			g.Expect(tt.ctx.modified).To(BeComparableTo(tt.wantModified))
 		})
 	}
 }
@@ -194,7 +194,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 						},
 					},
 				},
-				shouldDropDiffFunc: ssa.IsIgnorePath(
+				shouldDropDiffFunc: ssa.IsPathIgnored(
 					[]contract.Path{
 						{"spec", "controlPlaneEndpoint"},
 					},
@@ -226,7 +226,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 						},
 					},
 				},
-				shouldDropDiffFunc: ssa.IsIgnorePath(
+				shouldDropDiffFunc: ssa.IsPathIgnored(
 					[]contract.Path{
 						{"spec", "controlPlaneEndpoint"},
 					},
@@ -251,7 +251,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				shouldDropDiffFunc: ssa.IsIgnorePath(
+				shouldDropDiffFunc: ssa.IsPathIgnored(
 					[]contract.Path{
 						{"spec", "foo"},
 					},
@@ -268,7 +268,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 
 			dropDiff(tt.ctx)
 
-			g.Expect(tt.ctx.modified).To(Equal(tt.wantModified))
+			g.Expect(tt.ctx.modified).To(BeComparableTo(tt.wantModified))
 		})
 	}
 }

@@ -102,6 +102,9 @@ type KubeadmControlPlaneSpec struct {
 	// RolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
 	// KubeadmControlPlane.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
@@ -190,7 +193,7 @@ type RemediationStrategy struct {
 	//	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.
 	//	If M1-1 (replacement of M1) has problems while bootstrapping it will become unhealthy, and then be
 	//	remediated; such operation is considered a retry, remediation-retry #1.
-	//	If M1-2 (replacement of M1-2) becomes unhealthy, remediation-retry #2 will happen, etc.
+	//	If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.
 	//
 	// A retry could happen only after RetryPeriod from the previous retry.
 	// If a machine is marked as unhealthy after MinHealthyPeriod from the previous remediation expired,
@@ -267,8 +270,11 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Initialized bool `json:"initialized"`
 
-	// Ready denotes that the KubeadmControlPlane API Server is ready to
-	// receive requests.
+	// Ready denotes that the KubeadmControlPlane API Server became ready during initial provisioning
+	// to receive requests.
+	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed. Please use conditions
+	// to check the operational state of the control plane.
 	// +optional
 	Ready bool `json:"ready"`
 
@@ -356,5 +362,5 @@ type KubeadmControlPlaneList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&KubeadmControlPlane{}, &KubeadmControlPlaneList{})
+	objectTypes = append(objectTypes, &KubeadmControlPlane{}, &KubeadmControlPlaneList{})
 }

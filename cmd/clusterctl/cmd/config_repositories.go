@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -56,7 +57,7 @@ var configRepositoryCmd = &cobra.Command{
 		Display the list of providers and their repository configurations.
 
 		clusterctl ships with a list of known providers; if necessary, edit
-		$HOME/.cluster-api/clusterctl.yaml file to add a new provider or to customize existing ones.`),
+		$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml file to add a new provider or to customize existing ones.`),
 
 	Example: Examples(`
 		# Displays the list of available providers.
@@ -65,7 +66,7 @@ var configRepositoryCmd = &cobra.Command{
 		# Print the list of available providers in yaml format.
 		clusterctl config repositories -o yaml`),
 
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runGetRepositories(cfgFile, os.Stdout)
 	},
 }
@@ -85,7 +86,9 @@ func runGetRepositories(cfgFile string, out io.Writer) error {
 		return errors.New("unable to print to nil output writer")
 	}
 
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}

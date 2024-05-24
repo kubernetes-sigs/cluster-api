@@ -25,7 +25,7 @@ Optionally, the provider repository can include the following files:
 <h1> Pre-defined list of providers </h1>
 
 The `clusterctl` command ships with a pre-defined list of provider repositories that allows a simpler "out-of-the-box" user experience.
-As a provider implementer, if you are interested in being added to this list, please create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api).
+As a provider implementer, if you are interested in being added to this list, please see next paragraph.
 
 </aside>
 
@@ -34,6 +34,60 @@ As a provider implementer, if you are interested in being added to this list, pl
 <h1>Customizing the list of providers</h1>
 
 It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](configuration.md).
+
+</aside>
+
+#### Adding a provider to clusterctl
+
+As a Cluster API project, we always have been more than happy to give visibility to all the open source CAPI providers
+by allowing provider's maintainers to add their own project to the pre-defined list of provider shipped with `clusterctl`.
+
+<aside class="note">
+
+<h1>Important! it is visibility only</h1>
+
+Provider's maintainer are the ultimately responsible for their own project.
+
+Adding a provider to the `clusterctl` provider list does not imply any form of quality assessment, market screening, 
+entitlement, recognition or support by the Cluster API maintainers.
+
+</aside>
+
+This is the process to add a new provider to the pre-defined list of providers shipped with `clusterctl`:
+- As soon as possible, create an issue to the [Cluster API repository](https://sigs.k8s.io/cluster-api) declaring the intent to add a new provider;
+  each provider must have a unique name & type in the pre-defined list of providers shipped with `clusterctl`; the provider's name
+  must be declared in the issue above and abide to the following naming convention:
+  - The name must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character.
+  - The name length should not exceed 63 characters.
+  - For providers not in the kubernetes-sigs org, in order to prevent conflicts the `clusterctl` name must be prefixed with
+    the provider's GitHub org name followed by `-` (see note below).
+- Create a PR making the necessary changes to clusterctl and the Cluster API book, e.g. [#9798](https://github.com/kubernetes-sigs/cluster-api/pull/9798),
+  [9720](https://github.com/kubernetes-sigs/cluster-api/pull/9720/files). 
+
+The Cluster API maintainers will review issues/PRs for adding new providers. If the PR merges before code freeze deadline
+for the next Cluster API minor release, changes will be included in the release, otherwise in the next minor
+release. Maintainers will also consider if possible/convenient to backport to the current Cluster API minor release
+branch to include it in the next patch release.
+
+<aside class="note">
+
+<h1>What about closed source providers?</h1>
+
+Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however, 
+those providers could be used with `clusterctl` by changing the [clusterctl configuration](configuration.md).
+
+</aside>
+
+<aside class="note">
+
+<h1>Provider's GitHub org prefix</h1>
+
+The need to add a prefix for providers not in the kubernetes-sigs org applies to all the providers being added to
+`clusterctl`'s pre-defined list of provider starting from January 2024. This rule doesn't apply retroactively
+to the existing pre-defined providers, but we reserve the right to reconsider this in the future.
+
+Please note that the need to add a prefix for providers not in the kubernetes-sigs org does not apply to providers added by
+changing the [clusterctl configuration](configuration.md).
 
 </aside>
 
@@ -170,6 +224,7 @@ It is strongly recommended that:
 * Control plane providers release a file called `control-plane-components.yaml`
 * IPAM providers release a file called `ipam-components.yaml`
 * Runtime extensions providers release a file called `runtime-extension-components.yaml`
+* Add-on providers release a file called `addon-components.yaml`
 
 #### Target namespace
 
@@ -250,17 +305,23 @@ providers.
 | CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm           |
 | CABPM         | cluster.x-k8s.io/provider=bootstrap-microk8s          |
 | CABPKK3S      | cluster.x-k8s.io/provider=bootstrap-kubekey-k3s       |
+| CABPOCNE      | cluster.x-k8s.io/provider=bootstrap-ocne              |
+| CABPK0S       | cluster.x-k8s.io/provider=bootstrap-k0smotron         |
 | CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm       |
 | CACPM         | cluster.x-k8s.io/provider=control-plane-microk8s      |
 | CACPN         | cluster.x-k8s.io/provider=control-plane-nested        |
 | CACPKK3S      | cluster.x-k8s.io/provider=control-plane-kubekey-k3s   |
+| CACPOCNE      | cluster.x-k8s.io/provider=control-plane-ocne          |
+| CACPK0S       | cluster.x-k8s.io/provider=control-plane-k0smotron     |
 | CAPA          | cluster.x-k8s.io/provider=infrastructure-aws          |
 | CAPB          | cluster.x-k8s.io/provider=infrastructure-byoh         |
 | CAPC          | cluster.x-k8s.io/provider=infrastructure-cloudstack   |
 | CAPD          | cluster.x-k8s.io/provider=infrastructure-docker       |
+| CAPIM         | cluster.x-k8s.io/provider=infrastructure-in-memory    |
 | CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean |
 | CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp          |
 | CAPH          | cluster.x-k8s.io/provider=infrastructure-hetzner      |
+| CAPHV         | cluster.x-k8s.io/provider=infrastructure-hivelocity   |
 | CAPIBM        | cluster.x-k8s.io/provider=infrastructure-ibmcloud     |
 | CAPKK         | cluster.x-k8s.io/provider=infrastructure-kubekey      |
 | CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt     |
@@ -269,12 +330,16 @@ providers.
 | CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack    |
 | CAPOCI        | cluster.x-k8s.io/provider=infrastructure-oci          |
 | CAPP          | cluster.x-k8s.io/provider=infrastructure-packet       |
+| CAPT          | cluster.x-k8s.io/provider=infrastructure-tinkerbell   |
 | CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere      |
 | CAPVC         | cluster.x-k8s.io/provider=infrastructure-vcluster     |
 | CAPVCD        | cluster.x-k8s.io/provider=infrastructure-vcd          |
 | CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix      |
 | CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure        |
 | CAPOSC        | cluster.x-k8s.io/provider=infrastructure-outscale     |
+| CAPK0S        | cluster.x-k8s.io/provider=infrastructure-k0smotron    |
+| CAIPAMIC      | cluster.x-k8s.io/provider=ipam-in-cluster             |
+
 ### Workload cluster templates
 
 An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl generate cluster`.
@@ -464,7 +529,9 @@ If moving some of excluded object is required, the provider authors should creat
 exact move sequence to be executed by the user.
 
 Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
-`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification.
+`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification. If a provider needs to perform extra work in response to a
+cluster being paused, `clusterctl move` can be blocked from creating any resources on the destination
+management cluster by annotating any resource to be moved with `clusterctl.cluster.x-k8s.io/block-move`.
 
 <aside class="note warning">
 

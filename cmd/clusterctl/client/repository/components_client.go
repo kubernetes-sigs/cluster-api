@@ -17,6 +17,8 @@ limitations under the License.
 package repository
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -27,8 +29,8 @@ import (
 // ComponentsClient has methods to work with yaml file for generating provider components.
 // Assets are yaml files to be used for deploying a provider into a management cluster.
 type ComponentsClient interface {
-	Raw(options ComponentsOptions) ([]byte, error)
-	Get(options ComponentsOptions) (Components, error)
+	Raw(ctx context.Context, options ComponentsOptions) ([]byte, error)
+	Get(ctx context.Context, options ComponentsOptions) (Components, error)
 }
 
 // componentsClient implements ComponentsClient.
@@ -53,20 +55,20 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 }
 
 // Raw returns the components from a repository.
-func (f *componentsClient) Raw(options ComponentsOptions) ([]byte, error) {
-	return f.getRawBytes(&options)
+func (f *componentsClient) Raw(ctx context.Context, options ComponentsOptions) ([]byte, error) {
+	return f.getRawBytes(ctx, &options)
 }
 
 // Get returns the components from a repository.
-func (f *componentsClient) Get(options ComponentsOptions) (Components, error) {
-	file, err := f.getRawBytes(&options)
+func (f *componentsClient) Get(ctx context.Context, options ComponentsOptions) (Components, error) {
+	file, err := f.getRawBytes(ctx, &options)
 	if err != nil {
 		return nil, err
 	}
 	return NewComponents(ComponentsInput{f.provider, f.configClient, f.processor, file, options})
 }
 
-func (f *componentsClient) getRawBytes(options *ComponentsOptions) ([]byte, error) {
+func (f *componentsClient) getRawBytes(ctx context.Context, options *ComponentsOptions) ([]byte, error) {
 	log := logf.Log
 
 	// If the request does not target a specific version, read from the default repository version that is derived from the repository URL, e.g. latest.
@@ -89,13 +91,13 @@ func (f *componentsClient) getRawBytes(options *ComponentsOptions) ([]byte, erro
 	}
 
 	if file == nil {
-		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.Name(), "Type", f.provider.Type(), "Version", options.Version)
-		file, err = f.repository.GetFile(options.Version, path)
+		log.V(5).Info("Fetching", "file", path, "provider", f.provider.Name(), "type", f.provider.Type(), "version", options.Version)
+		file, err = f.repository.GetFile(ctx, options.Version, path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
 		}
 	} else {
-		log.Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
+		log.Info("Using", "override", path, "provider", f.provider.ManifestLabel(), "version", options.Version)
 	}
 	return file, nil
 }

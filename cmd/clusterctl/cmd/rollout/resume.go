@@ -17,6 +17,8 @@ limitations under the License.
 package rollout
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -55,7 +57,7 @@ func NewCmdRolloutResume(cfgFile string) *cobra.Command {
 		Short:                 "Resume a cluster-api resource",
 		Long:                  resumeLong,
 		Example:               resumeExample,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, args []string) error {
 			return runResume(cfgFile, args)
 		},
 	}
@@ -71,12 +73,14 @@ func NewCmdRolloutResume(cfgFile string) *cobra.Command {
 func runResume(cfgFile string, args []string) error {
 	resumeOpt.resources = args
 
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	return c.RolloutResume(client.RolloutResumeOptions{
+	return c.RolloutResume(ctx, client.RolloutResumeOptions{
 		Kubeconfig: client.Kubeconfig{Path: resumeOpt.kubeconfig, Context: resumeOpt.kubeconfigContext},
 		Namespace:  resumeOpt.namespace,
 		Resources:  resumeOpt.resources,

@@ -27,14 +27,14 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// InfrastructureMachineContract encodes information about the Machine API contract for InfrastructureMachine objects
+// InfrastructureMachineContract encodes information about the Cluster API contract for InfrastructureMachine objects
 // like DockerMachines, AWS Machines, etc.
 type InfrastructureMachineContract struct{}
 
 var infrastructureMachine *InfrastructureMachineContract
 var onceInfrastructureMachine sync.Once
 
-// InfrastructureMachine provide access to the information about the Machine API contract for InfrastructureMachine objects.
+// InfrastructureMachine provide access to the information about the Cluster API contract for InfrastructureMachine objects.
 func InfrastructureMachine() *InfrastructureMachineContract {
 	onceInfrastructureMachine.Do(func() {
 		infrastructureMachine = &InfrastructureMachineContract{}
@@ -101,7 +101,7 @@ func (m *MachineAddresses) Get(obj *unstructured.Unstructured) (*[]clusterv1.Mac
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(m.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(m.path, "."))
+		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(m.path, "."))
 	}
 
 	addresses := make([]clusterv1.MachineAddress, len(slice))

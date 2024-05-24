@@ -20,12 +20,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const (
@@ -34,6 +36,11 @@ const (
 
 	// GetNodesClusterRoleName defines the name of the ClusterRole and ClusterRoleBinding to get nodes.
 	GetNodesClusterRoleName = "kubeadm:get-nodes"
+
+	// ClusterAdminsGroupAndClusterRoleBinding is the name of the Group used for kubeadm generated cluster
+	// admin credentials and the name of the ClusterRoleBinding that binds the same Group to the "cluster-admin"
+	// built-in ClusterRole.
+	ClusterAdminsGroupAndClusterRoleBinding = "kubeadm:cluster-admins"
 
 	// NodesGroup defines the well-known group for all nodes.
 	NodesGroup = "system:nodes"
@@ -64,6 +71,33 @@ func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error 
 		}
 	}
 	return nil
+}
+
+// AllowClusterAdminPermissions creates ClusterRoleBinding rules to use the kubeadm:cluster-admins Cluster Role created in Kubeadm v1.29.
+func (w *Workload) AllowClusterAdminPermissions(ctx context.Context, targetVersion semver.Version) error {
+	// We intentionally only parse major/minor/patch so that the subsequent code
+	// also already applies to pre-release versions of new releases.
+	// Do nothing for Kubernetes < 1.29.
+	if version.Compare(targetVersion, semver.Version{Major: 1, Minor: 29, Patch: 0}, version.WithoutPreReleases()) < 0 {
+		return nil
+	}
+	return w.EnsureResource(ctx, &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ClusterAdminsGroupAndClusterRoleBinding,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "cluster-admin",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind: rbacv1.GroupKind,
+				Name: ClusterAdminsGroupAndClusterRoleBinding,
+			},
+		},
+	},
+	)
 }
 
 // AllowBootstrapTokensToGetNodes creates RBAC rules to allow Node Bootstrap Tokens to list nodes.

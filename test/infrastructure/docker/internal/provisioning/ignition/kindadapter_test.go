@@ -75,7 +75,7 @@ func TestRealUseCase(t *testing.T) {
 
 	commands, err := RawIgnitionToProvisioningCommands(cloudData)
 
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(commands).To(HaveLen(len(expectedCmds)))
 
 	for i, cmd := range commands {
@@ -90,6 +90,6 @@ func TestDecodeFileContents(t *testing.T) {
 
 	in := "data:,foo%20bar"
 	out, err := decodeFileContents(in)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(out).To(Equal("foo bar"))
 }

@@ -1,0 +1,5104 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 2,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 28,
+      "panels": [],
+      "title": "Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 29,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_clusterclass_info)",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "# ClusterClass",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 3,
+        "y": 1
+      },
+      "id": 30,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_cluster_info{name=~\"${Cluster:pipe}\"})",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "# Cluster",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 6,
+        "y": 1
+      },
+      "id": 31,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_kubeadmcontrolplane_info{cluster_name=~\"${Cluster:pipe}\"})",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "# KubeadmControlPlane",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 9,
+        "y": 1
+      },
+      "id": 32,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_machinedeployment_info{cluster_name=~\"${Cluster:pipe}\"})",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "# MachineDeployment",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 12,
+        "y": 1
+      },
+      "id": 33,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_machineset_info{cluster_name=~\"${Cluster:pipe}\"})",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "# MachineSet",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 15,
+        "y": 1
+      },
+      "id": 34,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_machinepool_info{cluster_name=~\"${Cluster:pipe}\"})",
+          "hide": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "# MachinePool",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 18,
+        "y": 1
+      },
+      "id": 35,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_machine_info{cluster_name=~\"${Cluster:pipe}\"})",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "# Machine",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 21,
+        "y": 1
+      },
+      "id": 36,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "9.5.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(capi_machinehealthcheck_info{cluster_name=~\"${Cluster:pipe}\"})",
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "# MachineHealthCheck",
+      "type": "stat"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 7,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 2
+          },
+          "id": 5,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster time until last Machine NodeHealthy since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 8
+          },
+          "id": 4,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster time until InfrastructureReady since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 14
+          },
+          "id": 6,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster time until ControlPlaneReady since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 20
+          },
+          "id": 38,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})",
+              "legendFormat": "until InfrastructureReady since creationTimestamp",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})",
+              "hide": false,
+              "legendFormat": "until ControlPlaneReady since creationTimestamp",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "hide": false,
+              "legendFormat": "until last Machine NodeHealthy since creationTimestamp",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Average time",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Creation Timestamp"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeAsIso"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 24
+          },
+          "id": 1,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) by (name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "count(capi_cluster_info{name=~\"${Cluster:pipe}\"} * on(name) group_right () label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"cluster_name\", \".*\")) by(name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "count(capi_cluster_info{name=~\"${Cluster:pipe}\"} * on(name) group_right () label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"cluster_name\", \".*\")) by(name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "E"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name) * 1000",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "F"
+            }
+          ],
+          "title": "Cluster overview",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "name",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Time 4": true,
+                  "Time 5": true,
+                  "Time 6": true,
+                  "Value #B": false
+                },
+                "indexByName": {
+                  "Time 1": 4,
+                  "Time 2": 6,
+                  "Time 3": 8,
+                  "Time 4": 10,
+                  "Time 5": 11,
+                  "Time 6": 12,
+                  "Value #A": 5,
+                  "Value #B": 7,
+                  "Value #C": 9,
+                  "Value #D": 1,
+                  "Value #E": 2,
+                  "Value #F": 3,
+                  "name": 0
+                },
+                "renameByName": {
+                  "Value": "Creation until InfrastructureReady",
+                  "Value #A": "Time until InfrastructureReady",
+                  "Value #B": "Time until ControlPlaneReady",
+                  "Value #C": "Time until last Machine NodeHealthy",
+                  "Value #D": "# CP",
+                  "Value #E": "# Worker",
+                  "Value #F": "Creation Timestamp",
+                  "name": "Cluster Name"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 31
+          },
+          "id": 13,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster time until condition first true since creationTimestamp (all)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 31
+          },
+          "id": 14,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg((min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster time until condition first true since creationTimestamp (last 5m)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 39
+          },
+          "id": 25,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": false
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name))",
+              "legendFormat": "Average",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Cluster time until last Machine NodeHealthy since creationTimestamp (all)",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Cluster",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 27,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 11
+          },
+          "id": 39,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "KubeadmControlPlane time until Ready since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 17
+          },
+          "id": 40,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"})",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Average time until Ready since creationTimestamp",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Creation Timestamp"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeAsIso"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 21
+          },
+          "id": 41,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (name) * 1000",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
+            }
+          ],
+          "title": "KubeadmControlPlane overview",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "name",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Time 4": true,
+                  "Value #B": false
+                },
+                "indexByName": {
+                  "Time 1": 2,
+                  "Time 2": 4,
+                  "Value #A": 3,
+                  "Value #B": 1,
+                  "name": 0
+                },
+                "renameByName": {
+                  "Value": "Time until Ready",
+                  "Value #A": "Time until Ready",
+                  "Value #B": "Creation Timestamp",
+                  "Value #C": "Time until last Machine NodeHealthy",
+                  "Value #D": "# CP",
+                  "Value #E": "# Worker",
+                  "name": "KubeadmControlPlane Name"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 28
+          },
+          "id": 15,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "KubeadmControlPlane time until condition first true since creationTimestamp (all)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 28
+          },
+          "id": 16,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg((min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_kubeadmcontrolplane_created{cluster_name=~\"${Cluster:pipe}\"}) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "KubeadmControlPlane time until condition first true since creationTimestamp (last 5m)",
+          "type": "timeseries"
+        }
+      ],
+      "title": "KubeadmControlPlane",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
+      "id": 8,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 12
+          },
+          "id": 10,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane Machine time until NodeHealthy since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 18
+          },
+          "id": 11,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane Machine time until BootstrapReady since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 24
+          },
+          "id": 12,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane Machine time until InfrastructureReady since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 30
+          },
+          "id": 42,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "legendFormat": "until BootstrapReady since creationTimestamp",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "hide": false,
+              "legendFormat": "until InfrastructureReady since creationTimestamp",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name)))",
+              "hide": false,
+              "legendFormat": "until NodeHealthy since creationTimestamp",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Average time",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Creation Timestamp"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeAsIso"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 34
+          },
+          "id": 2,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right capi_machine_info{control_plane_name!=\"\"}) by (name) * 1000",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "D"
+            }
+          ],
+          "title": "Control Plane Machines Overview",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "name",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Value #B": false
+                },
+                "indexByName": {
+                  "Time 1": 2,
+                  "Time 2": 4,
+                  "Time 3": 6,
+                  "Time 4": 8,
+                  "Value #A": 3,
+                  "Value #B": 5,
+                  "Value #C": 7,
+                  "Value #D": 1,
+                  "name": 0
+                },
+                "renameByName": {
+                  "Value": "Creation until BootstrapReady",
+                  "Value #A": "Time until BootstrapReady",
+                  "Value #B": "Time until InfrastructureReady",
+                  "Value #C": "Time until NodeHealthy",
+                  "Value #D": "Creation Timestamp",
+                  "name": "Machine Name"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 41
+          },
+          "id": 17,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane Machine time until condition first true since creationTimestamp (all)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 41
+          },
+          "id": 18,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane Machine time until condition first true since creationTimestamp (last 5m)",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Control Plane Machine",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "id": 9,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 13
+          },
+          "id": 43,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker Machine time until NodeHealthy since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 19
+          },
+          "id": 44,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker Machine time until BootstrapReady since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 25
+          },
+          "id": 45,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker Machine time until InfrastructureReady since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 31
+          },
+          "id": 46,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "legendFormat": "until BootstrapReady since creationTimestamp",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "hide": false,
+              "legendFormat": "until InfrastructureReady since creationTimestamp",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name)))",
+              "hide": false,
+              "legendFormat": "until NodeHealthy since creationTimestamp",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Average time",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Creation Timestamp"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeAsIso"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 35
+          },
+          "id": 47,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"BootstrapReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"InfrastructureReady\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (name)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right capi_machine_info{control_plane_name=\"\"}) by (name) * 1000",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "D"
+            }
+          ],
+          "title": "Worker Machines Overview",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "name",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Value #B": false
+                },
+                "indexByName": {
+                  "Time 1": 2,
+                  "Time 2": 4,
+                  "Time 3": 6,
+                  "Time 4": 8,
+                  "Value #A": 3,
+                  "Value #B": 5,
+                  "Value #C": 7,
+                  "Value #D": 1,
+                  "name": 0
+                },
+                "renameByName": {
+                  "Value": "Creation until BootstrapReady",
+                  "Value #A": "Time until BootstrapReady",
+                  "Value #B": "Time until InfrastructureReady",
+                  "Value #C": "Time until NodeHealthy",
+                  "Value #D": "Creation Timestamp",
+                  "name": "Machine Name"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 42
+          },
+          "id": 19,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker Machine time until condition first true since creationTimestamp (all)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 42
+          },
+          "id": 20,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker Machine time until condition first true since creationTimestamp (last 5m)",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Worker Machine",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "id": 37,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 14
+          },
+          "id": 48,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane KubeadmConfig time until Ready since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 20
+          },
+          "id": 49,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))))",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Average time until Ready since creationTimestamp",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Creation Timestamp"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeAsIso"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 24
+          },
+          "id": 50,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))) by (name) * 1000",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
+            }
+          ],
+          "title": "Control Plane KubeadmConfig Overview",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "name",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Value #B": false
+                },
+                "indexByName": {
+                  "Time 1": 2,
+                  "Time 2": 4,
+                  "Value #A": 3,
+                  "Value #B": 1,
+                  "name": 0
+                },
+                "renameByName": {
+                  "Value": "Time until Ready",
+                  "Value #A": "Time until Ready",
+                  "Value #B": "Creation Timestamp",
+                  "Value #C": "Time until NodeHealthy",
+                  "name": "KubeadmConfig Name"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 31
+          },
+          "id": 21,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane KubeadmConfig time until condition first true since creationTimestamp (all)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 31
+          },
+          "id": 22,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Control Plane KubeadmConfig time until condition first true since creationTimestamp (last 5m)",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Control Plane KubeadmConfig",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 10
+      },
+      "id": 26,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "left",
+                "fillOpacity": 100,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineWidth": 0,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "#EAB839",
+                    "value": 95
+                  },
+                  {
+                    "color": "red",
+                    "value": 99
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 24,
+            "x": 0,
+            "y": 15
+          },
+          "id": 51,
+          "options": {
+            "barRadius": 0,
+            "barWidth": 0.9,
+            "fullHighlight": false,
+            "groupWidth": 1,
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "right",
+              "showLegend": false
+            },
+            "orientation": "auto",
+            "showValue": "never",
+            "stacking": "none",
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            },
+            "xTickLabelRotation": 0,
+            "xTickLabelSpacing": 0
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "format": "time_series",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker KubeadmConfig time until Ready since creationTimestamp",
+          "type": "barchart"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 21
+          },
+          "id": 52,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))))",
+              "legendFormat": "__auto",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Average time until Ready since creationTimestamp",
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Creation Timestamp"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "dateTimeAsIso"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 24,
+            "x": 0,
+            "y": 25
+          },
+          "id": 53,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "enablePagination": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\",type=\"Ready\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (name)",
+              "format": "table",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name))) by (name) * 1000",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "B"
+            }
+          ],
+          "title": "Worker KubeadmConfig Overview",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "name",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "Time 1": true,
+                  "Time 2": true,
+                  "Time 3": true,
+                  "Value #B": false
+                },
+                "indexByName": {
+                  "Time 1": 2,
+                  "Time 2": 4,
+                  "Value #A": 3,
+                  "Value #B": 1,
+                  "name": 0
+                },
+                "renameByName": {
+                  "Value": "Time until Ready",
+                  "Value #A": "Time until Ready",
+                  "Value #B": "Creation Timestamp",
+                  "Value #C": "Time until NodeHealthy",
+                  "name": "KubeadmConfig Name"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 32
+          },
+          "id": 23,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker KubeadmConfig time until condition first true since creationTimestamp (all)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 1,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 32
+          },
+          "id": 24,
+          "options": {
+            "legend": {
+              "calcs": [
+                "mean",
+                "min",
+                "max",
+                "lastNotNull"
+              ],
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "asc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created{cluster_name=~\"${Cluster:pipe}\"} * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
+              "legendFormat": "{{type}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Worker KubeadmConfig time until condition first true since creationTimestamp (last 5m)",
+          "type": "timeseries"
+        }
+      ],
+      "title": "Worker KubeadmConfig",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 54,
+      "panels": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Delta first 10 to last 10"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percentunit"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 12
+          },
+          "id": 55,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "min(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "max(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})  by (type)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})  by (type)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "quantile(0.5, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"})  by (type)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "quantile(0.9, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "E"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "quantile(0.99, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "F"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "stddev(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (type)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "G"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name))) by (type)",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "H"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name))) by (type)\n",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "I"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "(avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name))) by (type) - avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name))) by (type)) / avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name))) by (type)\n",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "J"
+            }
+          ],
+          "title": "Cluster Time until Condition true since creationTimestamp",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {
+                "byField": "type",
+                "mode": "outer"
+              }
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                },
+                "indexByName": {},
+                "renameByName": {
+                  "Time 2": "",
+                  "Time 3": "",
+                  "Time 4": "",
+                  "Value #A": "Min",
+                  "Value #B": "Max",
+                  "Value #C": "Average",
+                  "Value #D": "P50",
+                  "Value #E": "P90",
+                  "Value #F": "P99",
+                  "Value #G": "Standard deviation",
+                  "Value #H": "Average first 10",
+                  "Value #I": "Average last 10",
+                  "Value #J": "Delta first 10 to last 10",
+                  "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () bottomk(10, avg(capi_cluster_created) by (name)))": "Average first 10",
+                  "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created)": "Average",
+                  "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () topk(10, avg(capi_cluster_created) by (name)))\n": "Average last 10",
+                  "max(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created)": "Max",
+                  "min(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created)": "Min",
+                  "quantile(0.5, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created)": "P50",
+                  "quantile(0.9, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created)": "P90",
+                  "quantile(0.99, min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created)": "P99",
+                  "stddev(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\",type=\"ControlPlaneReady\"}[168h]) - on(name) group_left () capi_cluster_created)": "Standard deviation",
+                  "type": "Type"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "filterable": true,
+                "inspect": false
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": [
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Delta first 10 to last 10"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percentunit"
+                  }
+                ]
+              }
+            ]
+          },
+          "gridPos": {
+            "h": 4,
+            "w": 24,
+            "x": 0,
+            "y": 20
+          },
+          "id": 56,
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true,
+            "sortBy": []
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "min(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "instant": true,
+              "range": false,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "max(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "C"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "quantile(0.5, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "D"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "quantile(0.9, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "E"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "quantile(0.99, label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(capi_cluster_created{name=~\"${Cluster:pipe}\"}, \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "F"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "G"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "H"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "exemplar": false,
+              "expr": "(avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(topk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\")) - avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))) / avg(label_replace(max(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\",type=\"NodeHealthy\"}[168h])) by (cluster_name) - on (cluster_name) label_replace(bottomk(10, avg(capi_cluster_created{name=~\"${Cluster:pipe}\"}) by (name)), \"cluster_name\", \"$0\", \"name\", \".*\") unless count(capi_machine_status_condition_last_transition_time{status=\"False\",type=\"NodeHealthy\"}) by (cluster_name), \"name\", \"$0\", \"cluster_name\", \".*\"))",
+              "format": "table",
+              "hide": false,
+              "instant": true,
+              "range": false,
+              "refId": "I"
+            }
+          ],
+          "title": "Cluster time until last Machine NodeHealthy since creationTimestamp",
+          "transformations": [
+            {
+              "id": "joinByField",
+              "options": {}
+            },
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true
+                },
+                "indexByName": {},
+                "renameByName": {
+                  "Time": "",
+                  "Value #A": "Min",
+                  "Value #B": "Max",
+                  "Value #C": "Average",
+                  "Value #D": "P50",
+                  "Value #E": "P90",
+                  "Value #F": "P99",
+                  "Value #G": "Average first 10",
+                  "Value #H": "Average last 10",
+                  "Value #I": "Delta first 10 to last 10"
+                }
+              }
+            }
+          ],
+          "type": "table"
+        }
+      ],
+      "title": "KPIs",
+      "type": "row"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": ".*",
+          "value": ".*"
+        },
+        "description": "Cluster prefix to filter by",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": true,
+        "name": "Cluster",
+        "options": [
+          {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          }
+        ],
+        "query": "",
+        "queryValue": ".*",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Cluster API Performance",
+  "uid": "b2660352-4f3c-4024-837c-393d901e6981",
+  "version": 11,
+  "weekStart": ""
+}

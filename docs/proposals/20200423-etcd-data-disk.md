@@ -16,7 +16,9 @@ status: implementable
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 - [Glossary](#glossary)
 - [Summary](#summary)
 - [Motivation](#motivation)
@@ -24,10 +26,19 @@ status: implementable
   - [Non-Goals/Future Work](#non-goalsfuture-work)
 - [Proposal](#proposal)
   - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
   - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+  - [Changes required in the bootstrap provider (i.e. CABPK)](#changes-required-in-the-bootstrap-provider-ie-cabpk)
+  - [Changes required in the infrastructure provider (here Azure is used as an example to illustrate the required changes).](#changes-required-in-the-infrastructure-provider-here-azure-is-used-as-an-example-to-illustrate-the-required-changes)
   - [Risks and Mitigations](#risks-and-mitigations)
 - [Alternatives](#alternatives)
+  - [Use script to do the etcd mount and append that script to preKubeadmCommands](#use-script-to-do-the-etcd-mount-and-append-that-script-to-prekubeadmcommands)
+  - [Use Cloud init to mount the data dir but modify bootstrap data in the infrastructure provider before passing to the instance user data](#use-cloud-init-to-mount-the-data-dir-but-modify-bootstrap-data-in-the-infrastructure-provider-before-passing-to-the-instance-user-data)
+  - [Instrument the OS image with image-builder to perform this customization automatically through custom UDEV rules, scripts, etc.](#instrument-the-os-image-with-image-builder-to-perform-this-customization-automatically-through-custom-udev-rules-scripts-etc)
 - [Upgrade Strategy](#upgrade-strategy)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 
@@ -49,8 +60,7 @@ A "side effect" motivation is to open up the option of putting other directories
 
 References:
 https://docs.microsoft.com/en-us/archive/blogs/xiangwu/azure-vm-storage-performance-and-throttling-demystify
-https://docs.d2iq.com/mesosphere/dcos/1.13/installing/production/system-requirements/azure-recommendations/#disk-configurations
-
+https://github.com/mesosphere/dcos-docs-site/blob/f15c4d9cd8c36c8a406a22b76b825b49d9fe577d/pages/mesosphere/dcos/1.13/installing/production/system-requirements/azure-recommendations/index.md#disk-configurations
 ### Goals
 
 - Allow running etcd on its own disk

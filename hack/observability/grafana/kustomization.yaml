@@ -1,10 +1,19 @@
 resources:
   - ../namespace.yaml
+  # The grafana helm chart will reference a configmap with name `grafana-dashboards`.
+  # The configMapGenerator below will create the configmap and append a hash suffix calculated from its
+  # content to the name. Kustomize will append the suffix hash to all references in the helm chart, but
+  # only when the helm chart content is referenced in "resources".
+  # This would not work if the helm chart is configured in this file via the "helmCharts" option.
+  - ./chart
 
-helmCharts:
-  - name: grafana
-    repo: https://grafana.github.io/helm-charts
-    releaseName: grafana
-    namespace: observability
-    valuesFile: values.yaml
-    version: 6.35.0
+namespace: observability
+
+configMapGenerator:
+- name: grafana-dashboards
+  files:
+  - dashboards/cluster-api-mgmt-apiserver-requests.json
+  - dashboards/cluster-api-performance.json
+  - dashboards/cluster-api-state.json
+  - dashboards/cluster-api-wl-apiserver-requests.json
+  - dashboards/controller-runtime.json

@@ -21,11 +21,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -40,14 +41,28 @@ type K8SConformanceSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
-	Flavor                string
-	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
+
+	// InfrastructureProviders specifies the infrastructure to use for clusterctl
+	// operations (Example: get cluster templates).
+	// Note: In most cases this need not be specified. It only needs to be specified when
+	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
+	// able to identify the default.
+	InfrastructureProvider *string
+
+	Flavor              string
+	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 }
 
 // K8SConformanceSpec implements a spec that creates a cluster and runs Kubernetes conformance suite.
 func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSpecInput) {
 	const (
 		kubetestConfigurationVariable = "KUBETEST_CONFIGURATION"
+		kubetestNumberOfNodesVariable = "KUBETEST_NUMBER_OF_NODES"
+		kubetestGinkgoNodesVariable   = "KUBETEST_GINKGO_NODES"
 	)
 	var (
 		specName               = "k8s-conformance"
@@ -72,12 +87,17 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 		Expect(kubetestConfigFilePath).To(BeAnExistingFile(), "%s should be a valid kubetest config file")
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
 	It("Should create a workload cluster and run kubetest", func() {
 		By("Creating a workload cluster")
+
+		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
+		if input.InfrastructureProvider != nil {
+			infrastructureProvider = *input.InfrastructureProvider
+		}
 
 		// NOTE: The number of CP nodes does not have relevance for conformance; instead, the number of workers allows
 		// better parallelism of tests and thus a lower execution time.
@@ -89,13 +109,13 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				InfrastructureProvider:   infrastructureProvider,
 				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64(1),
-				WorkerMachineCount:       pointer.Int64(workerMachineCount),
+				ControlPlaneMachineCount: ptr.To[int64](1),
+				WorkerMachineCount:       ptr.To[int64](workerMachineCount),
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -105,15 +125,30 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 
 		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
 
+		var err error
+
+		numberOfNodes := int(workerMachineCount)
+		if s, ok := os.LookupEnv(kubetestNumberOfNodesVariable); ok && s != "" {
+			numberOfNodes, err = strconv.Atoi(s)
+			Expect(err).ToNot(HaveOccurred(), "Failed to parse kubetestNumberOfNodesVariable to int")
+		}
+
+		ginkgoNodes := int(workerMachineCount)
+		if s, ok := os.LookupEnv(kubetestGinkgoNodesVariable); ok && s != "" {
+			ginkgoNodes, err = strconv.Atoi(s)
+			Expect(err).ToNot(HaveOccurred(), "Failed to parse kubetestGinkgoNodesVariable to int")
+		}
+
 		// Start running conformance test suites.
-		err := kubetest.Run(
+		err = kubetest.Run(
 			ctx,
 			kubetest.RunInput{
 				ClusterProxy:       workloadProxy,
-				NumberOfNodes:      int(workerMachineCount),
+				NumberOfNodes:      numberOfNodes,
 				ArtifactsDirectory: input.ArtifactFolder,
 				ConfigFilePath:     kubetestConfigFilePath,
-				GinkgoNodes:        int(workerMachineCount),
+				GinkgoNodes:        ginkgoNodes,
+				ClusterName:        clusterResources.Cluster.GetName(),
 			},
 		)
 		Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")
@@ -123,6 +158,6 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
 }

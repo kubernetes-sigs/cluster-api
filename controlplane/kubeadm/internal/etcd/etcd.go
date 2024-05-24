@@ -131,7 +131,7 @@ func pbMemberToMember(m *etcdserverpb.Member) *Member {
 
 // ClientConfiguration describes the configuration for an etcd client.
 type ClientConfiguration struct {
-	Endpoints   []string
+	Endpoint    string
 	Proxy       proxy.Proxy
 	TLSConfig   *tls.Config
 	DialTimeout time.Duration
@@ -146,7 +146,7 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 	}
 
 	etcdClient, err := clientv3.New(clientv3.Config{
-		Endpoints:   config.Endpoints,
+		Endpoints:   []string{config.Endpoint}, // NOTE: endpoint is used only as a host for certificate validation, the network connection is defined by DialOptions.
 		DialTimeout: config.DialTimeout,
 		DialOptions: []grpc.DialOption{
 			grpc.WithBlock(), // block until the underlying connection is up

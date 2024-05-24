@@ -18,9 +18,9 @@ package upstreamv1beta1
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
@@ -39,7 +39,7 @@ func TestMarshalJSON(t *testing.T) {
 			g := NewWithT(t)
 
 			b, err := json.Marshal(rt.bts)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(b).To(BeEquivalentTo(rt.expected))
 		})
 	}
@@ -69,7 +69,7 @@ func TestUnmarshalJSON(t *testing.T) {
 			if rt.expectedError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(newbts).To(Equal(rt.bts))
 		})
@@ -98,7 +98,7 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 	var err error
 	newbts := &BootstrapTokenString{}
 	// If string input was specified, roundtrip like this: string -> (unmarshal) -> object -> (marshal) -> string
-	if len(input) > 0 {
+	if input != "" {
 		if err := json.Unmarshal([]byte(input), newbts); err != nil {
 			return errors.Wrap(err, "expected no unmarshal error, got error")
 		}
@@ -119,11 +119,12 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 		if err := json.Unmarshal(b, newbts); err != nil {
 			return errors.Wrap(err, "expected no unmarshal error, got error")
 		}
-		if !reflect.DeepEqual(bts, newbts) {
+		if diff := cmp.Diff(bts, newbts); diff != "" {
 			return errors.Errorf(
-				"expected object: %v\n\t  actual: %v",
+				"expected object: %v\n\t  actual: %v\n\t got diff: %v",
 				bts,
 				newbts,
+				diff,
 			)
 		}
 	}
@@ -179,7 +180,7 @@ func TestNewBootstrapTokenString(t *testing.T) {
 			if rt.expectedError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(actual).To(Equal(rt.bts))
 		})
@@ -214,7 +215,7 @@ func TestNewBootstrapTokenStringFromIDAndSecret(t *testing.T) {
 			if rt.expectedError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(actual).To(Equal(rt.bts))
 		})

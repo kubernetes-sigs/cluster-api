@@ -88,7 +88,9 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
     PACKAGE_VERSION="$(apt-cache madison kubelet | grep "$${VERSION_REGEX}-" | head -n1 | cut -d '|' -f 2 | tr -d '[:space:]')"
     for CI_PACKAGE in "$${PACKAGES_TO_TEST[@]}"; do
       echo "* installing package: $${CI_PACKAGE} $${PACKAGE_VERSION}"
+      apt-mark unhold "$${CI_PACKAGE}"
       apt-get install -y "$${CI_PACKAGE}=$${PACKAGE_VERSION}"
+      apt-mark hold "$${CI_PACKAGE}"
     done
   else
     CI_URL="https://dl.k8s.io/ci/$${KUBERNETES_VERSION}/bin/linux/amd64"

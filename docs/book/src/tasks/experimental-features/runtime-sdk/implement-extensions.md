@@ -84,22 +84,27 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Webhook Server port")
 
 	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
-		"Webhook cert dir, only used when webhook-port is specified.")
+		"Webhook cert dir.")
 }
 
 func main() {
 	// Creates a logger to be used during the main func.
-	setupLog := ctrl.Log.WithName("main")
+	setupLog := ctrl.Log.WithName("setup")
 
 	// Initialize and parse command line flags.
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	// Set log level 2 as default.
+	if err := pflag.CommandLine.Set("v", "2"); err != nil {
+		setupLog.Error(err, "Failed to set default log level")
+		os.Exit(1)
+	}
 	pflag.Parse()
 
 	// Validates logs flags using Kubernetes component-base machinery and applies them
 	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
-		setupLog.Error(err, "unable to start extension")
+		setupLog.Error(err, "Unable to start extension")
 		os.Exit(1)
 	}
 
@@ -121,7 +126,7 @@ func main() {
 		CertDir: webhookCertDir,
 	})
 	if err != nil {
-		setupLog.Error(err, "error creating webhook server")
+		setupLog.Error(err, "Error creating webhook server")
 		os.Exit(1)
 	}
 
@@ -131,7 +136,7 @@ func main() {
 		Name:        "before-cluster-create",
 		HandlerFunc: DoBeforeClusterCreate,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
@@ -139,7 +144,7 @@ func main() {
 		Name:        "before-cluster-upgrade",
 		HandlerFunc: DoBeforeClusterUpgrade,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -149,7 +154,7 @@ func main() {
 	// Start the https server.
 	setupLog.Info("Starting Runtime Extension server")
 	if err := webhookServer.Start(ctx); err != nil {
-		setupLog.Error(err, "error running webhook server")
+		setupLog.Error(err, "Error running webhook server")
 		os.Exit(1)
 	}
 }
@@ -274,7 +279,7 @@ well with practices like unit testing and generally makes the entire system more
 
 ### Error messages
 
-RuntimeExtension authors should be aware that error messages are surfaced as a conditions in Kubernetes resources 
+RuntimeExtension authors should be aware that error messages are surfaced as a conditions in Kubernetes resources
 and recorded in Cluster API controller's logs. As a consequence:
 
 - Error message must not contain any sensitive information.
@@ -286,16 +291,44 @@ and recorded in Cluster API controller's logs. As a consequence:
 <h1>Caution</h1>
 
 If an error message is not deterministic and it changes at every call even if the problem is the same, it could
-lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to 
+lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to
 controllers processing those resource that might impact system stability.
 
 </aside>
+
+### ExtensionConfig
+
+To register your runtime extension apply the ExtensionConfig resource in the management cluster, including your CA
+certs, ClusterIP service associated with the app and namespace, and the target namespace for the given extension. Once
+created, the extension will detect the associated service and discover the associated Hooks. For clarification, you can
+check the status of the ExtensionConfig. Below is an example of `ExtensionConfig` -
+
+```yaml
+apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+kind: ExtensionConfig
+metadata:
+  annotations:
+    runtime.cluster.x-k8s.io/inject-ca-from-secret: default/test-runtime-sdk-svc-cert
+  name: test-runtime-sdk-extensionconfig
+spec:
+  clientConfig:
+    service:
+      name: test-runtime-sdk-svc
+      namespace: default # Note: this assumes the test extension get deployed in the default namespace
+      port: 443
+  namespaceSelector:
+    matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: In
+        values:
+          - default # Note: this assumes the test extension is used by Cluster in the default namespace only
+```
 
 ### Settings
 
 Settings can be added to the ExtensionConfig object in the form of a map with string keys and values. These settings are
 sent with each request to hooks registered by that ExtensionConfig. Extension developers can implement behavior in their
-extensions to alter behavior based on these settings. Settings should be well documented by extension developers so that 
+extensions to alter behavior based on these settings. Settings should be well documented by extension developers so that
 ClusterClass authors can understand usage and expected behaviour.
 
 Settings can be provided for individual external patches by providing them in the ClusterClass `.spec.patches[*].external.settings`.
@@ -325,6 +358,8 @@ implementation documentation.
 
 ## Tips & tricks
 
+Make sure to add the ExtensionConfig object to the YAML manifest used to deploy the runtime extensions (see [Extensionsconfig](#extensionconfig) for more details).
+
 After you implemented and deployed a Runtime Extension you can manually test it by sending HTTP requests.
 This can be for example done via kubectl:
 
@@ -347,7 +382,7 @@ curl -X 'POST' 'http://127.0.0.1:8001/api/v1/namespaces/default/services/https:w
   -d '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoveryRequest"}' | jq
 ```
 
-For more details about the API of the Runtime Extensions please see <button onclick="openSwaggerUI()">Swagger UI</button>.  
+For more details about the API of the Runtime Extensions please see <button onclick="openSwaggerUI()">Swagger UI</button>.
 For more details on proxy support please see [Proxies in Kubernetes](https://kubernetes.io/docs/concepts/cluster-administration/proxies/).
 
 <script>

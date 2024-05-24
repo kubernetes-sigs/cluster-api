@@ -19,10 +19,10 @@ package contract
 import (
 	"sync"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -157,7 +157,7 @@ func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (b
 	// assume that the control plane is being created for the first time.
 	statusVersion, err := c.StatusVersion().Get(obj)
 	if err != nil {
-		if errors.Is(err, errNotFound) {
+		if errors.Is(err, ErrFieldNotFound) {
 			return true, nil
 		}
 		return false, errors.Wrap(err, "failed to get control plane status version")
@@ -183,7 +183,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 	}
 	statusVersion, err := c.StatusVersion().Get(obj)
 	if err != nil {
-		if errors.Is(err, errNotFound) { // status version is not yet set
+		if errors.Is(err, ErrFieldNotFound) { // status version is not yet set
 			// If the status.version is not yet present in the object, it implies the
 			// first machine of the control plane is provisioning. We can reasonably assume
 			// that the control plane is not upgrading at this stage.
@@ -216,7 +216,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 
 	statusReplicas, err := c.StatusReplicas().Get(obj)
 	if err != nil {
-		if errors.Is(err, errNotFound) {
+		if errors.Is(err, ErrFieldNotFound) {
 			// status is probably not yet set on the control plane
 			// if status is missing we can consider the control plane to be scaling
 			// so that we can block any operations that expect control plane to be stable.
@@ -227,7 +227,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 
 	updatedReplicas, err := c.UpdatedReplicas().Get(obj)
 	if err != nil {
-		if errors.Is(err, errNotFound) {
+		if errors.Is(err, ErrFieldNotFound) {
 			// If updatedReplicas is not set on the control plane
 			// we should consider the control plane to be scaling so that
 			// we block any operation that expect the control plane to be stable.
@@ -238,7 +238,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 
 	readyReplicas, err := c.ReadyReplicas().Get(obj)
 	if err != nil {
-		if errors.Is(err, errNotFound) {
+		if errors.Is(err, ErrFieldNotFound) {
 			// If readyReplicas is not set on the control plane
 			// we should consider the control plane to be scaling so that
 			// we block any operation that expect the control plane to be stable.
@@ -249,7 +249,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 
 	unavailableReplicas, err := c.UnavailableReplicas().Get(obj)
 	if err != nil {
-		if !errors.Is(err, errNotFound) {
+		if !errors.Is(err, ErrFieldNotFound) {
 			return false, errors.Wrap(err, "failed to get control plane status unavailableReplicas")
 		}
 		// If unavailableReplicas is not set on the control plane we assume it is 0.
@@ -259,7 +259,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 		//   * This is because the patchHelper marshals before/after object to JSON to calculate a diff
 		//     and as the unavailableReplicas field is not a pointer, not set and 0 are both rendered as 0.
 		//     If before/after of the field is the same (i.e. 0), there is no diff and thus also no patch to set it to 0.
-		unavailableReplicas = pointer.Int64(0)
+		unavailableReplicas = ptr.To[int64](0)
 	}
 
 	// Control plane is still scaling if:

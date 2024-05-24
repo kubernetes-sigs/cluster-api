@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 )
 
@@ -115,9 +115,9 @@ func (v buildIdentifiers) compare(o buildIdentifiers) int {
 		return 0
 	} else if i == len(v) && i < len(o) {
 		return -1
-	} else {
-		return 1
 	}
+
+	return 1
 }
 
 type buildIdentifier struct {

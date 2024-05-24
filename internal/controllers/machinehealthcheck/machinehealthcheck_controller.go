@@ -36,11 +36,11 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
@@ -61,16 +61,16 @@ const (
 	// is restricted by remediation circuit shorting logic.
 	EventRemediationRestricted string = "RemediationRestricted"
 
-	maxUnhealthyKeyLog     = "max unhealthy"
-	unhealthyTargetsKeyLog = "unhealthy targets"
-	unhealthyRangeKeyLog   = "unhealthy range"
-	totalTargetKeyLog      = "total target"
+	maxUnhealthyKeyLog     = "maxUnhealthy"
+	unhealthyTargetsKeyLog = "unhealthyTargets"
+	unhealthyRangeKeyLog   = "unhealthyRange"
+	totalTargetKeyLog      = "totalTarget"
 )
 
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinehealthchecks;machinehealthchecks/status;machinehealthchecks/finalizers,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinehealthchecks;machinehealthchecks/status,verbs=get;list;watch;update;patch
 
 // Reconciler reconciles a MachineHealthCheck object.
 type Reconciler struct {
@@ -85,32 +85,30 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.machineToMachineHealthCheck),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Watches(
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(r.clusterToMachineHealthCheck),
+			builder.WithPredicates(
+				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
+				predicates.All(ctrl.LoggerFrom(ctx),
+					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+				),
+			),
+		).Build(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
-	err = controller.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(r.clusterToMachineHealthCheck),
-		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		predicates.All(ctrl.LoggerFrom(ctx),
-			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
-		),
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
-	}
 
-	r.controller = controller
+	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	return nil
 }
@@ -150,7 +148,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(m, r.Client)
 	if err != nil {
-		log.Error(err, "Failed to build patch helper")
 		return ctrl.Result{}, err
 	}
 
@@ -178,7 +175,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// the current cluster because of concurrent access.
 		if errors.Is(err, remote.ErrClusterLocked) {
 			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "Failed to reconcile MachineHealthCheck")
 		r.recorder.Eventf(m, corev1.EventTypeWarning, "ReconcileError", "%v", err)
@@ -192,12 +189,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
 	// Ensure the MachineHealthCheck is owned by the Cluster it belongs to
-	m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
+	m.SetOwnerReferences(util.EnsureOwnerRef(m.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-	})
+	}))
 
 	// If the cluster is already initialized, get the remote cluster cache to use as a client.Reader.
 	var remoteClient client.Client
@@ -205,7 +202,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		var err error
 		remoteClient, err = r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 		if err != nil {
-			logger.Error(err, "error creating remote cluster cache")
+			logger.Error(err, "Error creating remote cluster cache")
 			return ctrl.Result{}, err
 		}
 
@@ -282,12 +279,15 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			Message:  message,
 		})
 
-		r.recorder.Event(
-			m,
-			corev1.EventTypeWarning,
-			EventRemediationRestricted,
-			message,
-		)
+		// If there are no unhealthy target, skip publishing the `RemediationRestricted` event to avoid misleading.
+		if len(unhealthy) != 0 {
+			r.recorder.Event(
+				m,
+				corev1.EventTypeWarning,
+				EventRemediationRestricted,
+				message,
+			)
+		}
 		errList := []error{}
 		for _, t := range append(healthy, unhealthy...) {
 			if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
@@ -331,7 +331,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 	}
 
 	if minNextCheck := minDuration(nextCheckTimes); minNextCheck > 0 {
-		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "requeueIn", minNextCheck.Truncate(time.Second).String())
+		logger.V(3).Info("Some targets might go unhealthy. Ensuring a requeue happens", "requeueAfter", minNextCheck.Truncate(time.Second).String())
 		return ctrl.Result{RequeueAfter: minNextCheck}, nil
 	}
 
@@ -365,7 +365,7 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 		}
 
 		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
-			logger.Error(err, "failed to patch healthy machine status for machine", "machine", t.Machine.GetName())
+			logger.Error(err, "failed to patch healthy machine status for machine", "Machine", klog.KObj(t.Machine))
 			errList = append(errList, errors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
 		}
 	}
@@ -458,7 +458,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 
 // clusterToMachineHealthCheck maps events from Cluster objects to
 // MachineHealthCheck objects that belong to the Cluster.
-func (r *Reconciler) clusterToMachineHealthCheck(o client.Object) []reconcile.Request {
+func (r *Reconciler) clusterToMachineHealthCheck(ctx context.Context, o client.Object) []reconcile.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Cluster, got %T", o))
@@ -466,7 +466,7 @@ func (r *Reconciler) clusterToMachineHealthCheck(o client.Object) []reconcile.Re
 
 	mhcList := &clusterv1.MachineHealthCheckList{}
 	if err := r.Client.List(
-		context.TODO(),
+		ctx,
 		mhcList,
 		client.InNamespace(c.Namespace),
 		client.MatchingLabels{clusterv1.ClusterNameLabel: c.Name},
@@ -485,7 +485,7 @@ func (r *Reconciler) clusterToMachineHealthCheck(o client.Object) []reconcile.Re
 
 // machineToMachineHealthCheck maps events from Machine objects to
 // MachineHealthCheck objects that monitor the given machine.
-func (r *Reconciler) machineToMachineHealthCheck(o client.Object) []reconcile.Request {
+func (r *Reconciler) machineToMachineHealthCheck(ctx context.Context, o client.Object) []reconcile.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine, got %T", o))
@@ -493,7 +493,7 @@ func (r *Reconciler) machineToMachineHealthCheck(o client.Object) []reconcile.Re
 
 	mhcList := &clusterv1.MachineHealthCheckList{}
 	if err := r.Client.List(
-		context.TODO(),
+		ctx,
 		mhcList,
 		client.InNamespace(m.Namespace),
 		client.MatchingLabels{clusterv1.ClusterNameLabel: m.Spec.ClusterName},
@@ -512,18 +512,18 @@ func (r *Reconciler) machineToMachineHealthCheck(o client.Object) []reconcile.Re
 	return requests
 }
 
-func (r *Reconciler) nodeToMachineHealthCheck(o client.Object) []reconcile.Request {
+func (r *Reconciler) nodeToMachineHealthCheck(ctx context.Context, o client.Object) []reconcile.Request {
 	node, ok := o.(*corev1.Node)
 	if !ok {
 		panic(fmt.Sprintf("Expected a corev1.Node, got %T", o))
 	}
 
-	machine, err := getMachineFromNode(context.TODO(), r.Client, node.Name)
+	machine, err := getMachineFromNode(ctx, r.Client, node.Name)
 	if machine == nil || err != nil {
 		return nil
 	}
 
-	return r.machineToMachineHealthCheck(machine)
+	return r.machineToMachineHealthCheck(ctx, machine)
 }
 
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {

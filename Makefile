@@ -23,7 +23,8 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.19.6
+GO_VERSION ?= 1.22.3
+GO_DIRECTIVE_VERSION ?= 1.22.0
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Use GOPROXY environment variable if set
@@ -39,7 +40,7 @@ export GO111MODULE=on
 #
 # Kubebuilder.
 #
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.26.0
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.30.0
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?= 60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?= 60s
 
@@ -59,21 +60,15 @@ BIN_DIR := bin
 TEST_DIR := test
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
+DOCS_DIR := docs
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
+CAPIM_DIR := $(TEST_DIR)/infrastructure/inmemory
 TEST_EXTENSION_DIR := $(TEST_DIR)/extension
 GO_INSTALL := ./scripts/go_install.sh
 OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
-
-# Set --output-base for conversion-gen if we are not within GOPATH
-ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api)
-	CONVERSION_GEN_OUTPUT_BASE := --output-base=$(ROOT_DIR)
-	CONVERSION_GEN_OUTPUT_BASE_CAPD := --output-base=$(ROOT_DIR)/$(CAPD_DIR)
-else
-	export GOPATH := $(shell go env GOPATH)
-endif
 
 #
 # Ginkgo configuration.
@@ -101,27 +96,31 @@ get_go_version = $(shell go list -m $1 | awk '{print $$2}')
 # Binaries.
 #
 # Note: Need to use abspath so we can invoke these from subdirectories
-KUSTOMIZE_VER := v4.5.2
+KUSTOMIZE_VER := v5.3.0
 KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
-KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v5
 
-SETUP_ENVTEST_VER := v0.0.0-20211110210527-619e6b92dab9
+# This is a commit from CR main (22.05.2024).
+# Intentionally using a commit from main to use a setup-envtest version
+# that uses binaries from controller-tools, not GCS.
+# CR PR: https://github.com/kubernetes-sigs/controller-runtime/pull/2811
+SETUP_ENVTEST_VER := v0.0.0-20240522175850-2e9781e9fc60
 SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.11.3
+CONTROLLER_GEN_VER := v0.15.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
 
-GOTESTSUM_VER := v1.6.4
+GOTESTSUM_VER := v1.11.0
 GOTESTSUM_BIN := gotestsum
 GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
 GOTESTSUM_PKG := gotest.tools/gotestsum
 
-CONVERSION_GEN_VER := v0.26.0
+CONVERSION_GEN_VER := v0.30.0
 CONVERSION_GEN_BIN := conversion-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -133,40 +132,69 @@ ENVSUBST_VER := $(call get_go_version,github.com/drone/envsubst/v2)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-$(ENVSUBST_VER))
 ENVSUBST_PKG := github.com/drone/envsubst/v2/cmd/envsubst
 
-GO_APIDIFF_VER := v0.6.0
+GO_APIDIFF_VER := v0.8.2
 GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
 GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
-HADOLINT_VER := v2.10.0
+HADOLINT_VER := v2.12.0
 HADOLINT_FAILURE_THRESHOLD = warning
 
 SHELLCHECK_VER := v0.9.0
 
-KPROMO_VER := v3.4.5
+TRIVY_VER := 0.49.1
+
+KPROMO_VER := v4.0.5
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
-KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
+# KPROMO_PKG may have to be changed if KPROMO_VER increases its major version.
+KPROMO_PKG := sigs.k8s.io/promo-tools/v4/cmd/kpromo
 
-YQ_VER := v4.25.2
+YQ_VER := v4.35.2
 YQ_BIN := yq
 YQ :=  $(abspath $(TOOLS_BIN_DIR)/$(YQ_BIN)-$(YQ_VER))
 YQ_PKG := github.com/mikefarah/yq/v4
 
+PLANTUML_VER := 1.2024.3
+
 GINKGO_BIN := ginkgo
-GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
-GINKGO := $(abspath $(TOOLS_BIN_DIR)/$(GINKGO_BIN)-$(GINGKO_VER))
+GINKGO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
+GINKGO := $(abspath $(TOOLS_BIN_DIR)/$(GINKGO_BIN)-$(GINKGO_VER))
 GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
+
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT_VER := $(shell cat .github/workflows/pr-golangci-lint.yaml | grep [[:space:]]version: | sed 's/.*version: //')
+GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)-$(GOLANGCI_LINT_VER))
+GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/cmd/golangci-lint
+
+GOVULNCHECK_BIN := govulncheck
+GOVULNCHECK_VER := v1.0.4
+GOVULNCHECK := $(abspath $(TOOLS_BIN_DIR)/$(GOVULNCHECK_BIN)-$(GOVULNCHECK_VER))
+GOVULNCHECK_PKG := golang.org/x/vuln/cmd/govulncheck
+
+IMPORT_BOSS_BIN := import-boss
+IMPORT_BOSS_VER := v0.28.1
+IMPORT_BOSS := $(abspath $(TOOLS_BIN_DIR)/$(IMPORT_BOSS_BIN))
+IMPORT_BOSS_PKG := k8s.io/code-generator/cmd/import-boss
+
+TRIAGE_PARTY_IMAGE_NAME ?= extra/triage-party
+TRIAGE_PARTY_CONTROLLER_IMG ?= $(STAGING_REGISTRY)/$(TRIAGE_PARTY_IMAGE_NAME)
+TRIAGE_PARTY_DIR := hack/tools/triage
+TRIAGE_PARTY_TMP_DIR ?= $(TRIAGE_PARTY_DIR)/triage-party.tmp
+TRIAGE_PARTY_VERSION ?= v1.6.0
 
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
-OPENAPI_GEN_VER := 5e7f5fd
+OPENAPI_GEN_VER := dc4e619 # main branch as of 22.04.2024
 OPENAPI_GEN_BIN := openapi-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
 OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(OPENAPI_GEN_BIN))
 OPENAPI_GEN_PKG := k8s.io/kube-openapi/cmd/openapi-gen
+
+PROWJOB_GEN_BIN := prowjob-gen
+PROWJOB_GEN := $(abspath $(TOOLS_BIN_DIR)/$(PROWJOB_GEN_BIN))
 
 RUNTIME_OPENAPI_GEN_BIN := runtime-openapi-gen
 RUNTIME_OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN))
@@ -174,15 +202,12 @@ RUNTIME_OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN))
 TILT_PREPARE_BIN := tilt-prepare
 TILT_PREPARE := $(abspath $(TOOLS_BIN_DIR)/$(TILT_PREPARE_BIN))
 
-GOLANGCI_LINT_BIN := golangci-lint
-GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN))
-
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 PROD_REGISTRY ?= registry.k8s.io/cluster-api
 
 STAGING_REGISTRY ?= gcr.io/k8s-staging-cluster-api
-STAGING_BUCKET ?= artifacts.k8s-staging-cluster-api.appspot.com
+STAGING_BUCKET ?= k8s-staging-cluster-api
 
 # core
 IMAGE_NAME ?= cluster-api-controller
@@ -200,6 +225,10 @@ KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAG
 CAPD_IMAGE_NAME ?= capd-manager
 CAPD_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPD_IMAGE_NAME)
 
+# capim
+CAPIM_IMAGE_NAME ?= capim-manager
+CAPIM_CONTROLLER_IMG ?= $(REGISTRY)/$(CAPIM_IMAGE_NAME)
+
 # clusterctl
 CLUSTERCTL_MANIFEST_DIR := cmd/clusterctl/config
 CLUSTERCTL_IMAGE_NAME ?= clusterctl
@@ -216,7 +245,7 @@ CAPI_KIND_CLUSTER_NAME ?= capi-test
 
 TAG ?= dev
 ARCH ?= $(shell go env GOARCH)
-ALL_ARCH = amd64 arm arm64 ppc64le s390x
+ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= Always
@@ -234,7 +263,7 @@ LDFLAGS := $(shell hack/version.sh)
 all: test managers clusterctl
 
 help:  # Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-45s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-50s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-50s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
 ## Generate / Manifests
@@ -242,7 +271,7 @@ help:  # Display this help
 
 ##@ generate:
 
-ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure
+ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
@@ -253,15 +282,19 @@ generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## 
 
 .PHONY: generate-manifests-core
 generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
-	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases,./config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
+		paths=./ \
 		paths=./api/... \
+		paths=./internal/apis/core/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/internal/controllers/... \
+		paths=./$(EXP_DIR)/internal/webhooks/... \
 		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./$(EXP_DIR)/addons/internal/controllers/... \
+		paths=./$(EXP_DIR)/addons/internal/webhooks/... \
 		paths=./$(EXP_DIR)/ipam/api/... \
 		paths=./$(EXP_DIR)/ipam/internal/webhooks/... \
 		paths=./$(EXP_DIR)/runtime/api/... \
@@ -279,10 +312,13 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 
 .PHONY: generate-manifests-kubeadm-bootstrap
 generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm bootstrap
-	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/kubeadm/config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/kubeadm/config/crd/bases,./bootstrap/kubeadm/config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
+		paths=./bootstrap/kubeadm \
 		paths=./bootstrap/kubeadm/api/... \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
+		paths=./bootstrap/kubeadm/internal/webhooks/... \
+		paths=./internal/apis/bootstrap/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./bootstrap/kubeadm/config/crd/bases \
@@ -292,11 +328,13 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 
 .PHONY: generate-manifests-kubeadm-control-plane
 generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm control plane
-	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/kubeadm/config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/kubeadm/config/crd/bases,./controlplane/kubeadm/config/webhook/manifests.yaml"
 	$(CONTROLLER_GEN) \
+		paths=./controlplane/kubeadm \
 		paths=./controlplane/kubeadm/api/... \
 		paths=./controlplane/kubeadm/internal/controllers/... \
 		paths=./controlplane/kubeadm/internal/webhooks/... \
+		paths=./internal/apis/controlplane/kubeadm/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
@@ -306,17 +344,42 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 
 .PHONY: generate-manifests-docker-infrastructure
 generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for docker infrastructure provider
-	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPD_DIR)/config/crd/bases"
+	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPD_DIR)/config/crd/bases,$(CAPD_DIR)/config/webhook/manifests.yaml"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
+		paths=./ \
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/internal/controllers/... \
+		paths=./$(EXP_DIR)/internal/webhooks/... \
 		paths=./internal/controllers/... \
+		paths=./internal/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./config/crd/bases \
 		output:webhook:dir=./config/webhook \
 		webhook
+
+
+.PHONY: generate-manifests-in-memory-infrastructure
+generate-manifests-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for in-memory infrastructure provider
+	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPIM_DIR)/config/crd/bases,$(CAPIM_DIR)/config/webhook/manifests.yaml"
+	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
+		paths=./ \
+		paths=./api/... \
+		paths=./internal/controllers/... \
+		paths=./internal/webhooks/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=./config/crd/bases \
+		output:webhook:dir=./config/webhook \
+		webhook
+
+.PHONY: generate-manifests-test-extension
+generate-manifests-test-extension: $(CONTROLLER_GEN) ## Generate manifests e.g. RBAC for test-extension provider
+	cd ./test/extension; $(CONTROLLER_GEN) \
+		paths=./... \
+		output:rbac:dir=./config/rbac \
+		rbac:roleName=manager-role
 
 .PHONY: generate-go-deepcopy
 generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
@@ -360,6 +423,17 @@ generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) ## Generate deepco
 		paths=./api/... \
 		paths=./$(EXP_DIR)/api/...
 
+.PHONY: generate-go-deepcopy-in-memory-infrastructure
+generate-go-deepcopy-in-memory-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for in-memory infrastructure provider
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPIM_DIR)/api,$(CAPIM_DIR)/internal/cloud/api"
+	cd $(CAPIM_DIR); $(CONTROLLER_GEN) \
+		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
+		paths=./api/... \
+        paths=./internal/cloud/api/...
+
+.PHONY: generate-go-deepcopy-test-extension
+generate-go-deepcopy-test-extension: $(CONTROLLER_GEN) ## Generate deepcopy go code for test-extension
+
 .PHONY: generate-go-conversions
 generate-go-conversions: ## Run all generate-go-conversions-* targets
 	$(MAKE) $(addprefix generate-go-conversions-,$(ALL_GENERATE_MODULES))
@@ -368,100 +442,106 @@ generate-go-conversions: ## Run all generate-go-conversions-* targets
 generate-go-conversions-core: ## Run all generate-go-conversions-core-* targets
 	$(MAKE) generate-go-conversions-core-api
 	$(MAKE) generate-go-conversions-core-exp
+	$(MAKE) generate-go-conversions-core-exp-ipam
 	$(MAKE) generate-go-conversions-core-runtime
 
 .PHONY: generate-go-conversions-core-api
 generate-go-conversions-core-api: $(CONVERSION_GEN) ## Generate conversions go code for core api
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/v1alpha3,./api/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/core/v1alpha3,./internal/apis/core/v1alpha4"
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha3 \
-		--input-dirs=./api/v1alpha4 \
-		--build-tag=ignore_autogenerated_core \
-		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./internal/apis/core/v1alpha3 \
+		./internal/apis/core/v1alpha4
 
 .PHONY: generate-go-conversions-core-exp
 generate-go-conversions-core-exp: $(CONVERSION_GEN) ## Generate conversions go code for core exp
-	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/api/v1alpha3,./$(EXP_DIR)/addons/api/v1alpha3,./$(EXP_DIR)/api/v1alpha4,./$(EXP_DIR)/addons/api/v1alpha4"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/core/exp/v1alpha3,./internal/apis/core/exp/addons/v1alpha3,./internal/apis/core/exp/v1alpha4,./internal/apis/core/exp/addons/v1alpha4"
 	$(CONVERSION_GEN) \
-		--input-dirs=./$(EXP_DIR)/api/v1alpha3 \
-		--input-dirs=./$(EXP_DIR)/api/v1alpha4 \
-		--input-dirs=./$(EXP_DIR)/addons/api/v1alpha3 \
-		--input-dirs=./$(EXP_DIR)/addons/api/v1alpha4 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha3 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha4 \
-		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3 \
+		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4 \
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./internal/apis/core/exp/v1alpha3 \
+		./internal/apis/core/exp/v1alpha4 \
+		./internal/apis/core/exp/addons/v1alpha3 \
+		./internal/apis/core/exp/addons/v1alpha4
+
+.PHONY: generate-go-conversions-core-exp-ipam
+generate-go-conversions-core-exp-ipam: $(CONVERSION_GEN) ## Generate conversions go code for core exp IPAM
+	$(MAKE) clean-generated-conversions SRC_DIRS="./$(EXP_DIR)/ipam/api/v1alpha1"
+	$(CONVERSION_GEN) \
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./$(EXP_DIR)/ipam/api/v1alpha1
 
 .PHONY: generate-go-conversions-core-runtime
 generate-go-conversions-core-runtime: $(CONVERSION_GEN) ## Generate conversions go code for core runtime
 	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/runtime/test/v1alpha1,./internal/runtime/test/v1alpha2"
 	$(CONVERSION_GEN) \
-		--input-dirs=./internal/runtime/test/v1alpha1 \
-		--input-dirs=./internal/runtime/test/v1alpha2 \
-		--build-tag=ignore_autogenerated_runtime \
-		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./internal/runtime/test/v1alpha1 \
+		./internal/runtime/test/v1alpha2
 
 .PHONY: generate-go-conversions-kubeadm-bootstrap
 generate-go-conversions-kubeadm-bootstrap: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm bootstrap
-	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/api"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/bootstrap/kubeadm"
 	$(CONVERSION_GEN) \
-		--input-dirs=./bootstrap/kubeadm/api/v1alpha3 \
-		--input-dirs=./bootstrap/kubeadm/api/v1alpha4 \
-		--build-tag=ignore_autogenerated_kubeadm_bootstrap \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha3 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha4 \
-		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta1,./bootstrap/kubeadm/types/upstreamv1beta2,./bootstrap/kubeadm/types/upstreamv1beta3"
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./internal/apis/bootstrap/kubeadm/v1alpha3 \
+		./internal/apis/bootstrap/kubeadm/v1alpha4
+	$(MAKE) clean-generated-conversions SRC_DIRS="./bootstrap/kubeadm/types/upstreamv1beta2,./bootstrap/kubeadm/types/upstreamv1beta3"
 	$(CONVERSION_GEN) \
-		--input-dirs=./bootstrap/kubeadm/types/upstreamv1beta1 \
-		--input-dirs=./bootstrap/kubeadm/types/upstreamv1beta2 \
-		--input-dirs=./bootstrap/kubeadm/types/upstreamv1beta3 \
-		--build-tag=ignore_autogenerated_kubeadm_types \
-		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./bootstrap/kubeadm/types/upstreamv1beta2 \
+		./bootstrap/kubeadm/types/upstreamv1beta3
 
 .PHONY: generate-go-conversions-kubeadm-control-plane
 generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate conversions go code for kubeadm control plane
-	$(MAKE) clean-generated-conversions SRC_DIRS="./controlplane/kubeadm/api"
+	$(MAKE) clean-generated-conversions SRC_DIRS="./internal/apis/controlplane/kubeadm"
 	$(CONVERSION_GEN) \
-		--input-dirs=./controlplane/kubeadm/api/v1alpha3 \
-		--input-dirs=./controlplane/kubeadm/api/v1alpha4 \
-		--build-tag=ignore_autogenerated_kubeadm_controlplane \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha3 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha4 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4 \
-		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3 \
+		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4 \
+		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha3 \
+		--extra-dirs=sigs.k8s.io/cluster-api/internal/apis/bootstrap/kubeadm/v1alpha4 \
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
+		./internal/apis/controlplane/kubeadm/v1alpha3 \
+		./internal/apis/controlplane/kubeadm/v1alpha4
 
 .PHONY: generate-go-conversions-docker-infrastructure
 generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for docker infrastructure provider
 	cd $(CAPD_DIR); $(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha3 \
-		--input-dirs=./api/v1alpha4 \
-		--input-dirs=./$(EXP_DIR)/api/v1alpha3 \
-		--input-dirs=./$(EXP_DIR)/api/v1alpha4 \
-		--build-tag=ignore_autogenerated_capd \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha3 \
-		--extra-peer-dirs=sigs.k8s.io/cluster-api/api/v1alpha4 \
-		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE_CAPD) \
-		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=../../../hack/boilerplate/boilerplate.generatego.txt \
+		./api/v1alpha3 \
+		./api/v1alpha4 \
+		./$(EXP_DIR)/api/v1alpha3 \
+		./$(EXP_DIR)/api/v1alpha4
+
+.PHONY: generate-go-conversions-in-memory-infrastructure
+generate-go-conversions-in-memory-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for in-memory infrastructure provider
+	cd $(CAPIM_DIR)
+
+.PHONY: generate-go-conversions-test-extension
+generate-go-conversions-test-extension: $(CONVERSION_GEN) ## Generate conversions go code for in-memory infrastructure provider
 
 # The tmp/sigs.k8s.io/cluster-api symlink is a workaround to make this target run outside of GOPATH
 .PHONY: generate-go-openapi
 generate-go-openapi: $(OPENAPI_GEN) $(CONTROLLER_GEN) ## Generate openapi go code for runtime SDK
 	@mkdir -p ./tmp/sigs.k8s.io; ln -s $(ROOT_DIR) ./tmp/sigs.k8s.io/; cd ./tmp; \
 	for pkg in "api/v1beta1" "$(EXP_DIR)/runtime/hooks/api/v1alpha1"; do \
-		$(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"; \
+		(cd ../ && $(MAKE) clean-generated-openapi-definitions SRC_DIRS="./$${pkg}"); \
 		echo "** Generating openapi schema for types in ./$${pkg} **"; \
 		$(OPENAPI_GEN) \
-			--input-dirs=sigs.k8s.io/cluster-api/$${pkg} \
-			--output-file-base=zz_generated.openapi \
-			--output-package=sigs.k8s.io/cluster-api/$${pkg} \
-			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt; \
+			--output-dir=../$${pkg} \
+			--output-file=zz_generated.openapi.go \
+			--output-pkg=sigs.k8s.io/cluster-api/$${pkg} \
+			--go-header-file=../hack/boilerplate/boilerplate.generatego.txt \
+			sigs.k8s.io/cluster-api/$${pkg}; \
 	done; \
 	rm sigs.k8s.io/cluster-api
 
@@ -471,10 +551,15 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
 
+.PHONY: generate-doctoc
+generate-doctoc:
+	TRACE=$(TRACE) ./hack/generate-doctoc.sh
+
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.0 v1.2 v1.3 main) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.0 v1.5 v1.6 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
+INMEMORY_TEMPLATES := test/e2e/data/infrastructure-inmemory
 
 .PHONY: generate-e2e-templates-v0.3
 generate-e2e-templates-v0.3: $(KUSTOMIZE)
@@ -488,15 +573,15 @@ generate-e2e-templates-v0.4: $(KUSTOMIZE)
 generate-e2e-templates-v1.0: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.0/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.0/cluster-template.yaml
 
-.PHONY: generate-e2e-templates-v1.2
-generate-e2e-templates-v1.2: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.2/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.2/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.2/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.2/cluster-template-topology.yaml
+.PHONY: generate-e2e-templates-v1.5
+generate-e2e-templates-v1.5: $(KUSTOMIZE)
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.5/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.5/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.5/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.5/cluster-template-topology.yaml
 
-.PHONY: generate-e2e-templates-v1.3
-generate-e2e-templates-v1.3: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.3/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.3/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.3/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.3/cluster-template-topology.yaml
+.PHONY: generate-e2e-templates-v1.6
+generate-e2e-templates-v1.6: $(KUSTOMIZE)
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.6/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.6/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.6/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.6/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-main
 generate-e2e-templates-main: $(KUSTOMIZE)
@@ -509,36 +594,52 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-machine-pool --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-machine-pool.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-node-drain --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-node-drain.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-upgrades --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-upgrades.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-upgrades-cgroupfs --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-upgrades-cgroupfs.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-upgrades-runtimesdk --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-upgrades-runtimesdk.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-kcp-scale-in --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-kcp-scale-in.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-ipv6 --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-ipv6.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology-dualstack-ipv6-primary --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology-dualstack-ipv6-primary.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology-dualstack-ipv4-primary --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology-dualstack-ipv4-primary.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology-single-node-cluster --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology-single-node-cluster.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology-autoscaler --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology-autoscaler.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-ignition --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-ignition.yaml
 
-.PHONY: generate-test-extension-deployment
-generate-test-extension-deployment: $(KUSTOMIZE)
-	mkdir -p test/e2e/data/test-extension
-	$(KUSTOMIZE) build test/extension/config/default > test/e2e/data/test-extension/deployment.yaml
+	$(KUSTOMIZE) build $(INMEMORY_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(INMEMORY_TEMPLATES)/main/cluster-template.yaml
 
 .PHONY: generate-metrics-config
-generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml
-	OUTPUT_FILE="${OBSERVABILITY_DIR}/kube-state-metrics/crd-config.yaml"; \
-	METRICS_DIR="${OBSERVABILITY_DIR}/kube-state-metrics/metrics"; \
+generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./config/metrics/crd-metrics-config.yaml
+	OUTPUT_FILE="./config/metrics/crd-metrics-config.yaml"; \
+	METRIC_TEMPLATES_DIR="./config/metrics/templates"; \
 	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
-	cat "$${METRICS_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
-	for resource in cluster kubeadmcontrolplane machine machinedeployment machinehealthcheck machineset machinepool; do \
-		cat "$${METRICS_DIR}/$${resource}.yaml"; \
-		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRICS_DIR}/common_metrics.yaml"; \
+	cat "$${METRIC_TEMPLATES_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
+	for resource in clusterclass cluster kubeadmcontrolplane kubeadmconfig machine machinedeployment machinehealthcheck machineset machinepool; do \
+		cat "$${METRIC_TEMPLATES_DIR}/$${resource}.yaml"; \
+		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRIC_TEMPLATES_DIR}/common_metrics.yaml"; \
 		if [[ "$${resource}" != "cluster" ]]; then \
-			cat "$${METRICS_DIR}/owner_metric.yaml"; \
+			cat "$${METRIC_TEMPLATES_DIR}/owner_metric.yaml"; \
 		fi \
 	done >> "$${OUTPUT_FILE}"; \
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files
-	$(MAKE) -C docs diagrams
+	$(MAKE) generate-diagrams-book
+	$(MAKE) generate-diagrams-proposals
+
+.PHONY: generate-diagrams-book
+generate-diagrams-book: ## Generate diagrams for *.plantuml files in book
+	docker run -v $(ROOT_DIR)/$(DOCS_DIR):/$(DOCS_DIR)$(DOCKER_VOL_OPTS)  plantuml/plantuml:$(PLANTUML_VER) /$(DOCS_DIR)/book/**/*.plantuml
+
+.PHONY: generate-diagrams-proposals
+generate-diagrams-proposals: ## Generate diagrams for *.plantuml files in proposals
+	docker run -v $(ROOT_DIR)/$(DOCS_DIR):/$(DOCS_DIR)$(DOCKER_VOL_OPTS)  plantuml/plantuml:$(PLANTUML_VER) /$(DOCS_DIR)/proposals/**/*.plantuml
+
+.PHONY: generate-test-infra-prowjobs
+generate-test-infra-prowjobs: $(PROWJOB_GEN) ## Generates the prowjob configurations in test-infra
+	@if [ -z "${TEST_INFRA_DIR}" ]; then echo "TEST_INFRA_DIR is not set"; exit 1; fi
+	$(PROWJOB_GEN) \
+		-config "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api/cluster-api-prowjob-gen.yaml" \
+		-templates-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api/templates" \
+		-output-dir "$(TEST_INFRA_DIR)/config/jobs/kubernetes-sigs/cluster-api"
 
 ## --------------------------------------
 ## Lint / Verify
@@ -549,13 +650,13 @@ generate-diagrams: ## Generate diagrams for *.plantuml files
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --path-prefix $(TOOLS_DIR) -v $(GOLANGCI_LINT_EXTRA_ARGS)
-	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	cd $(TEST_DIR); $(GOLANGCI_LINT) run --path-prefix $(TEST_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run --path-prefix $(TOOLS_DIR) --config $(ROOT_DIR)/.golangci.yml -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
 .PHONY: lint-dockerfiles
 lint-dockerfiles:
-	./scripts/ci-lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
+	./scripts/lint-dockerfiles.sh $(HADOLINT_VER) $(HADOLINT_FAILURE_THRESHOLD)
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -571,10 +672,14 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions capi-book-summary
+ALL_VERIFY_CHECKS = licenses boilerplate shellcheck tiltfile modules gen conversions doctoc capi-book-summary diagrams import-restrictions go-directive
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
+
+.PHONY: verify-go-directive
+verify-go-directive:
+	TRACE=$(TRACE) ./hack/verify-go-directive.sh -g $(GO_DIRECTIVE_VERSION)
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
@@ -599,8 +704,11 @@ verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion 
 	$(CONVERSION_VERIFIER)
 
 .PHONY: verify-doctoc
-verify-doctoc:
-	TRACE=$(TRACE) ./hack/verify-doctoc.sh
+verify-doctoc: generate-doctoc
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "doctoc is out of date, run make generate-doctoc"; exit 1; \
+	fi
 
 .PHONY: verify-capi-book-summary
 verify-capi-book-summary:
@@ -620,7 +728,40 @@ verify-tiltfile: ## Verify Tiltfile format
 
 .PHONY: verify-container-images
 verify-container-images: ## Verify container images
-	TRACE=$(TRACE) ./hack/verify-container-images.sh
+	TRACE=$(TRACE) ./hack/verify-container-images.sh $(TRIVY_VER)
+
+.PHONY: verify-licenses
+verify-licenses: ## Verify licenses
+	TRACE=$(TRACE) ./hack/verify-licenses.sh $(TRIVY_VER)
+
+.PHONY: verify-govulncheck
+verify-govulncheck: $(GOVULNCHECK) ## Verify code for vulnerabilities
+	$(GOVULNCHECK) ./... && R1=$$? || R1=$$?; \
+	$(GOVULNCHECK) -C "$(TOOLS_DIR)" ./... && R2=$$? || R2=$$?; \
+	$(GOVULNCHECK) -C "$(TEST_DIR)" ./... && R3=$$? || R3=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ] || [ "$$R3" -ne "0" ]; then \
+		exit 1; \
+	fi
+
+.PHONY: verify-diagrams
+verify-diagrams: generate-diagrams ## Verify generated diagrams are up to date
+	@if !(git diff --quiet HEAD); then \
+		git diff; \
+		echo "generated diagrams are out of date, run make generate-diagrams"; exit 1; \
+	fi
+
+.PHONY: verify-security
+verify-security: ## Verify code and images for vulnerabilities
+	$(MAKE) verify-container-images && R1=$$? || R1=$$?; \
+	$(MAKE) verify-govulncheck && R2=$$? || R2=$$?; \
+	if [ "$$R1" -ne "0" ] || [ "$$R2" -ne "0" ]; then \
+	  echo "Check for vulnerabilities failed! There are vulnerabilities to be fixed"; \
+		exit 1; \
+	fi
+
+.PHONY: verify-import-restrictions
+verify-import-restrictions: $(IMPORT_BOSS) ## Verify import restrictions with import-boss
+	./hack/verify-import-restrictions.sh
 
 ## --------------------------------------
 ## Binaries
@@ -632,7 +773,7 @@ verify-container-images: ## Verify container images
 clusterctl: ## Build the clusterctl binary
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-ALL_MANAGERS = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure
+ALL_MANAGERS = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure
 
 .PHONY: managers
 managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
@@ -653,6 +794,10 @@ manager-kubeadm-control-plane: ## Build the kubeadm control plane manager binary
 manager-docker-infrastructure: ## Build the docker infrastructure manager binary into the ./bin folder
 	cd $(CAPD_DIR); go build -trimpath -ldflags "$(LDFLAGS)" -o ../../../$(BIN_DIR)/capd-manager sigs.k8s.io/cluster-api/test/infrastructure/docker
 
+.PHONY: manager-in-memory-infrastructure
+manager-in-memory-infrastructure: ## Build the in-memory-infrastructure infrastructure manager binary into the ./bin folder
+	cd $(CAPIM_DIR); go build -trimpath -ldflags "$(LDFLAGS)" -o ../../../$(BIN_DIR)/capim-manager sigs.k8s.io/cluster-api/test/infrastructure/inmemory
+
 .PHONY: docker-pull-prerequisites
 docker-pull-prerequisites:
 	docker pull docker.io/docker/dockerfile:1.4
@@ -665,13 +810,14 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images 
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension clusterctl
+# Choice of images to build/push
+ALL_DOCKER_BUILD ?= core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension clusterctl
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all the images
 	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD))
 
-ALL_DOCKER_BUILD_E2E = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension
+ALL_DOCKER_BUILD_E2E = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure in-memory-infrastructure test-extension
 
 .PHONY: docker-build-e2e
 docker-build-e2e: ## Run docker-build-* targets for all the images with settings to be used for the e2e tests
@@ -681,35 +827,48 @@ docker-build-e2e: ## Run docker-build-* targets for all the images with settings
 
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-bootstrap
 docker-build-kubeadm-bootstrap: ## Build the docker image for kubeadm bootstrap controller manager
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./bootstrap/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-kubeadm-control-plane
 docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm control plane controller manager
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat ./Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-build-docker-infrastructure
 docker-build-docker-infrastructure: ## Build the docker image for docker infrastructure controller manager
-	cd $(CAPD_DIR); DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" ../../.. -t $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat $(CAPD_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
+.PHONY: docker-build-in-memory-infrastructure
+docker-build-in-memory-infrastructure: ## Build the docker image for in-memory infrastructure controller manager
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat $(CAPIM_DIR)/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(CAPIM_CONTROLLER_IMG)-$(ARCH):$(TAG) --file -
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPIM_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_pull_policy.yaml"
+
 .PHONY: docker-build-clusterctl
 docker-build-clusterctl: ## Build the docker image for clusterctl
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" -f ./cmd/clusterctl/Dockerfile . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat ./cmd/clusterctl/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG) --file -
 
 .PHONY: docker-build-test-extension
 docker-build-test-extension: ## Build the docker image for core controller manager
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG) --file ./test/extension/Dockerfile
+## reads Dockerfile from stdin to avoid an incorrectly cached Dockerfile (https://github.com/moby/buildkit/issues/1368)
+	cat ./test/extension/Dockerfile | DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG) --file -
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(TEST_EXTENSION_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/extension/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/manager_pull_policy.yaml"
 
@@ -769,6 +928,20 @@ test-docker-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and 
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit.infra_docker.stdout
 	exit $$(cat $(ARTIFACTS)/junit.infra_docker.exitcode)
 
+.PHONY: test-in-memory-infrastructure
+test-in-memory-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests for in-memory infrastructure provider
+	cd $(CAPIM_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+
+.PHONY: test-in-memory-infrastructure-verbose
+test-in-memory-infrastructure-verbose: ## Run unit and integration tests for in-memory infrastructure provider with verbose flag
+	$(MAKE) test-in-memory-infrastructure TEST_ARGS="$(TEST_ARGS) -v"
+
+.PHONY: test-in-memory-infrastructure-junit
+test-in-memory-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for in-memory infrastructure provider
+	cd $(CAPIM_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_inmemory.exitcode) | tee $(ARTIFACTS)/junit.infra_inmemory.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_inmemory.xml --raw-command cat $(ARTIFACTS)/junit.infra_inmemory.stdout
+	exit $$(cat $(ARTIFACTS)/junit.infra_inmemory.exitcode)
+
 .PHONY: test-test-extension
 test-test-extension: $(SETUP_ENVTEST) ## Run unit and integration tests for the test extension
 	cd $(TEST_EXTENSION_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
@@ -784,7 +957,7 @@ test-test-extension-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integra
 	exit $$(cat $(ARTIFACTS)/junit.test_extension.exitcode)
 
 .PHONY: test-e2e
-test-e2e: $(GINKGO) generate-e2e-templates generate-test-extension-deployment ## Run the end-to-end tests
+test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 	$(GINKGO) -v --trace -poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) \
 		-poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) --tags=e2e --focus="$(GINKGO_FOCUS)" \
 		$(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) --no-color=$(GINKGO_NOCOLOR) \
@@ -797,6 +970,11 @@ test-e2e: $(GINKGO) generate-e2e-templates generate-test-extension-deployment ##
 .PHONY: kind-cluster
 kind-cluster: ## Create a new kind cluster designed for development with Tilt
 	hack/kind-install-for-capd.sh
+
+.PHONY: tilt-e2e-prerequisites
+tilt-e2e-prerequisites: ## Build the corresponding kindest/node images required for e2e testing and generate the e2e templates
+	scripts/build-kind.sh
+	$(MAKE) generate-e2e-templates
 
 .PHONY: tilt-up
 tilt-up: kind-cluster ## Start tilt and build kind cluster if needed.
@@ -822,7 +1000,7 @@ PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort
 ## set by Prow, ref name of the base branch, e.g., main
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
-RELEASE_NOTES_DIR := _releasenotes
+RELEASE_NOTES_DIR := CHANGELOG
 USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only works on https://github.com/<username>/cluster-api.git style URLs
 ifeq ($(USER_FORK),)
 USER_FORK := $(shell git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1) # for git@github.com:<username>/cluster-api.git style URLs
@@ -881,6 +1059,14 @@ manifest-modification-dev: # Set the manifest images to the staging bucket.
 		MANIFEST_IMG=$(REGISTRY)/$(CAPD_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(REGISTRY)/$(CAPIM_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(REGISTRY)/$(TEST_EXTENSION_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="$(TEST_EXTENSION_DIR)/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
 
 .PHONY: release-manifests
@@ -908,6 +1094,9 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) $(RUNTIME_OPENAPI_GEN) ## Build t
 release-manifests-dev: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the development manifests and copies them in the release folder
 	cd $(CAPD_DIR); $(KUSTOMIZE) build config/default > ../../../$(RELEASE_DIR)/infrastructure-components-development.yaml
 	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
+	cd $(CAPIM_DIR); $(KUSTOMIZE) build config/default > ../../../$(RELEASE_DIR)/infrastructure-components-in-memory-development.yaml
+	cp $(CAPIM_DIR)/templates/* $(RELEASE_DIR)/
+	cd $(TEST_EXTENSION_DIR); $(KUSTOMIZE) build config/default > ../../$(RELEASE_DIR)/runtime-extension-components-development.yaml
 
 .PHONY: release-binaries
 release-binaries: ## Build the binaries to publish with a release
@@ -935,7 +1124,21 @@ release-binary: $(RELEASE_DIR)
 
 .PHONY: release-staging
 release-staging: ## Build and push container images to the staging bucket
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-alias-tag
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-image-verify
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-push-all
+	REGISTRY=$(STAGING_REGISTRY) $(MAKE) release-alias-tag
+	# Set the manifest image to the staging bucket.
+	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(RELEASE_ALIAS_TAG)
+	## Build the manifests
+	$(MAKE) release-manifests
+	# Set the manifest image to the staging bucket.
+	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(RELEASE_ALIAS_TAG)
+	## Build the dev manifests
+	$(MAKE) release-manifests-dev
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-cluster-api/components/main/core-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
+	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-staging-nightly
 release-staging-nightly: ## Tag and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_main_20210121
@@ -950,7 +1153,8 @@ release-staging-nightly: ## Tag and push container images to the staging bucket.
 	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
 	## Build the dev manifests
 	$(MAKE) release-manifests-dev
-	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20210121/bootstrap-components.yaml
+	# Example manifest location: https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425/core-components.yaml
+	# Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
 	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
 
 .PHONY: release-alias-tag
@@ -960,15 +1164,28 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(CLUSTERCTL_IMG):$(TAG) $(CLUSTERCTL_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(CAPD_CONTROLLER_IMG):$(TAG) $(CAPD_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+	gcloud container images add-tag $(CAPIM_CONTROLLER_IMG):$(TAG) $(CAPIM_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(TEST_EXTENSION_IMG):$(TAG) $(TEST_EXTENSION_IMG):$(RELEASE_ALIAS_TAG)
 
+.PHONY: release-notes-tool
+release-notes-tool:
+	go build -C hack/tools -o $(ROOT_DIR)/bin/notes -tags tools sigs.k8s.io/cluster-api/hack/tools/release/notes
+
 .PHONY: release-notes
-release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
-	if [ -n "${PRE_RELEASE}" ]; then \
-	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/new)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	else \
-	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	fi
+release-notes: release-notes-tool
+	./bin/notes --release $(RELEASE_TAG) > CHANGELOG/$(RELEASE_TAG).md
+
+.PHONY: test-release-notes-tool
+test-release-notes-tool:
+	go test -C hack/tools -v -tags tools,integration sigs.k8s.io/cluster-api/hack/tools/release/notes
+
+.PHONY: release-provider-issues-tool
+release-provider-issues-tool: # Creates GitHub issues in a pre-defined list of CAPI provider repositories
+	@go run ./hack/tools/release/internal/update_providers/provider_issues.go
+
+.PHONY: release-weekly-update-tool
+release-weekly-update-tool:
+	go build -C hack/tools -o $(ROOT_DIR)/bin/weekly -tags tools sigs.k8s.io/cluster-api/hack/tools/release/weekly
 
 .PHONY: promote-images
 promote-images: $(KPROMO)
@@ -978,26 +1195,23 @@ promote-images: $(KPROMO)
 ## Docker
 ## --------------------------------------
 
+.PHONY: docker-image-verify
+docker-image-verify: ## Verifies all built images to contain the correct binary in the expected arch
+	ALL_ARCH="$(ALL_ARCH)" TAG="$(TAG)" ./hack/docker-image-verify.sh
+
 .PHONY: docker-push-all
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
-	$(MAKE) docker-push-manifest-core
-	$(MAKE) docker-push-manifest-kubeadm-bootstrap
-	$(MAKE) docker-push-manifest-kubeadm-control-plane
-	$(MAKE) docker-push-manifest-docker-infrastructure
-	$(MAKE) docker-push-manifest-test-extension
-	$(MAKE) docker-push-clusterctl
+	$(MAKE) ALL_ARCH="$(ALL_ARCH)" $(addprefix docker-push-manifest-,$(ALL_DOCKER_BUILD))
 
 docker-push-%:
 	$(MAKE) ARCH=$* docker-push
 
 .PHONY: docker-push
-docker-push: ## Push the docker images to be included in the release
+docker-push: $(addprefix docker-push-,$(ALL_DOCKER_BUILD)) ## Push the docker images to be included in the release
+
+.PHONY: docker-push-core
+docker-push-core: ## Push the core docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
-	docker push $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-manifest-core
 docker-push-manifest-core: ## Push the multiarch manifest for the core docker images
@@ -1007,6 +1221,10 @@ docker-push-manifest-core: ## Push the multiarch manifest for the core docker im
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
+.PHONY: docker-push-kubeadm-bootstrap
+docker-push-kubeadm-bootstrap: ## Push the kubeadm bootstrap docker image
+	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
 .PHONY: docker-push-manifest-kubeadm-bootstrap
 docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the kubeadm bootstrap docker images
 	docker manifest create --amend $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)\-&:$(TAG)~g")
@@ -1014,6 +1232,10 @@ docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the k
 	docker manifest push --purge $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-push-kubeadm-control-plane
+docker-push-kubeadm-control-plane: ## Push the kubeadm control plane docker image
+	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-manifest-kubeadm-control-plane
 docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for the kubeadm control plane docker images
@@ -1023,6 +1245,10 @@ docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for t
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
+.PHONY: docker-push-docker-infrastructure
+docker-push-docker-infrastructure: ## Push the docker infrastructure provider image
+	docker push $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
 .PHONY: docker-push-manifest-docker-infrastructure
 docker-push-manifest-docker-infrastructure: ## Push the multiarch manifest for the docker infrastructure provider images
 	docker manifest create --amend $(CAPD_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPD_CONTROLLER_IMG)\-&:$(TAG)~g")
@@ -1031,6 +1257,21 @@ docker-push-manifest-docker-infrastructure: ## Push the multiarch manifest for t
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
+.PHONY: docker-push-in-memory-infrastructure
+docker-push-in-memory-infrastructure: ## Push the in-memory infrastructure provider image
+	docker push $(CAPIM_CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: docker-push-manifest-in-memory-infrastructure
+docker-push-manifest-in-memory-infrastructure: ## Push the multiarch manifest for the in-memory infrastructure provider images
+	docker manifest create --amend $(CAPIM_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPIM_CONTROLLER_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CAPIM_CONTROLLER_IMG}:${TAG} ${CAPIM_CONTROLLER_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(CAPIM_CONTROLLER_IMG):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPIM_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPIM_DIR)/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-push-test-extension
+docker-push-test-extension: ## Push the test extension provider image
+	docker push $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-manifest-test-extension
 docker-push-manifest-test-extension: ## Push the multiarch manifest for the test extension provider images
@@ -1041,7 +1282,11 @@ docker-push-manifest-test-extension: ## Push the multiarch manifest for the test
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push-clusterctl
-docker-push-clusterctl: ## Push the clusterctl images
+docker-push-clusterctl: ## Push the clusterctl image
+	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
+
+.PHONY: docker-push-manifest-clusterctl
+docker-push-manifest-clusterctl: ## Push the multiarch manifest for the clusterctl images
 	docker manifest create --amend $(CLUSTERCTL_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CLUSTERCTL_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CLUSTERCTL_IMG}:${TAG} ${CLUSTERCTL_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(CLUSTERCTL_IMG):$(TAG)
@@ -1084,10 +1329,11 @@ clean-tilt: clean-charts clean-kind ## Remove all files generated by Tilt
 	rm -rf ./controlplane/kubeadm/.tiltbuild
 	rm -rf ./bootstrap/kubeadm/.tiltbuild
 	rm -rf ./test/infrastructure/docker/.tiltbuild
+	rm -rf ./test/infrastructure/inmemory/.tiltbuild
 
 .PHONY: clean-charts
 clean-charts: ## Remove all local copies of Helm charts in ./hack/observability
-	(for path in "./hack/observability/*"; do rm -rf $$path/charts ; done)
+	(for path in "./hack/observability/*"; do rm -rf $$path/.charts ; done)
 
 .PHONY: clean-book
 clean-book: ## Remove all generated GitBook files
@@ -1140,6 +1386,9 @@ $(OPENAPI_GEN_BIN): $(OPENAPI_GEN) ## Build a local copy of openapi-gen.
 .PHONY: $(RUNTIME_OPENAPI_GEN_BIN)
 $(RUNTIME_OPENAPI_GEN_BIN): $(RUNTIME_OPENAPI_GEN) ## Build a local copy of runtime-openapi-gen.
 
+.PHONY: $(PROWJOB_GEN_BIN)
+$(PROWJOB_GEN_BIN): $(PROWJOB_GEN) ## Build a local copy of prowjob-gen.
+
 .PHONY: $(CONVERSION_VERIFIER_BIN)
 $(CONVERSION_VERIFIER_BIN): $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
 
@@ -1167,11 +1416,17 @@ $(YQ_BIN): $(YQ) ## Build a local copy of yq
 .PHONY: $(TILT_PREPARE_BIN)
 $(TILT_PREPARE_BIN): $(TILT_PREPARE) ## Build a local copy of tilt-prepare.
 
-.PHONY: $(GOLANGCI_LINT_BIN)
-$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
-
 .PHONY: $(GINKGO_BIN)
-$(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo
+$(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
+
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
+
+.PHONY: $(GOVULNCHECK_BIN)
+$(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
+
+.PHONY: $(IMPORT_BOSS_BIN)
+$(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
@@ -1194,6 +1449,10 @@ $(OPENAPI_GEN): # Build openapi-gen from tools folder.
 $(RUNTIME_OPENAPI_GEN): $(TOOLS_DIR)/go.mod # Build openapi-gen from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen
 
+.PHONY: $(PROWJOB_GEN)
+$(PROWJOB_GEN): $(TOOLS_DIR)/go.mod # Build prowjob-gen from tools folder.
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(PROWJOB_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/prowjob-gen
+
 $(GOTESTSUM): # Build gotestsum from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
 
@@ -1210,7 +1469,7 @@ $(SETUP_ENVTEST): # Build setup-envtest from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
 
 $(TILT_PREPARE): $(TOOLS_DIR)/go.mod # Build tilt-prepare from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/tilt-prepare sigs.k8s.io/cluster-api/hack/tools/tilt-prepare
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/tilt-prepare sigs.k8s.io/cluster-api/hack/tools/internal/tilt-prepare
 
 $(KPROMO):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KPROMO_PKG) $(KPROMO_BIN) ${KPROMO_VER}
@@ -1218,13 +1477,71 @@ $(KPROMO):
 $(YQ):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(YQ_PKG) $(YQ_BIN) ${YQ_VER}
 
-$(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golangci-lint using hack script into tools folder.
-	hack/ensure-golangci-lint.sh \
-		-b $(TOOLS_BIN_DIR) \
-		$(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version: | sed 's/.*version: //')
-
 $(GINKGO): # Build ginkgo from tools folder.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GINKGO_PKG) $(GINKGO_BIN) $(GINGKO_VER)
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GINKGO_PKG) $(GINKGO_BIN) $(GINKGO_VER)
+
+$(GOLANGCI_LINT): # Build golangci-lint from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOLANGCI_LINT_PKG) $(GOLANGCI_LINT_BIN) $(GOLANGCI_LINT_VER)
+
+$(GOVULNCHECK): # Build govulncheck.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOVULNCHECK_PKG) $(GOVULNCHECK_BIN) $(GOVULNCHECK_VER)
+
+$(IMPORT_BOSS): # Build import-boss
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(IMPORT_BOSS_PKG) $(IMPORT_BOSS_BIN) $(IMPORT_BOSS_VER)
+
+## --------------------------------------
+## triage-party
+## --------------------------------------
+
+.PHONY: release-triage-party
+release-triage-party: docker-build-triage-party docker-push-triage-party clean-triage-party
+
+.PHONY: release-triage-party-local
+release-triage-party-local: docker-build-triage-party clean-triage-party ## Release the triage party image for local use only
+
+.PHONY: checkout-triage-party
+checkout-triage-party:
+	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
+	@if [ -d "$(TRIAGE_PARTY_TMP_DIR)" ]; then \
+		echo "$(TRIAGE_PARTY_TMP_DIR) exists, skipping clone"; \
+	else \
+		git clone "https://github.com/google/triage-party.git" "$(TRIAGE_PARTY_TMP_DIR)"; \
+		cd "$(TRIAGE_PARTY_TMP_DIR)"; \
+		git checkout "$(TRIAGE_PARTY_VERSION)"; \
+		git apply "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/triage-improvements.patch"; \
+	fi
+	@cd "$(ROOT_DIR)/$(TRIAGE_PARTY_TMP_DIR)"; \
+	if [ "$$(git describe --tag 2> /dev/null)" != "$(TRIAGE_PARTY_VERSION)" ]; then \
+		echo "ERROR: checked out version $$(git describe --tag 2> /dev/null) does not match expected version $(TRIAGE_PARTY_VERSION)"; \
+		exit 1; \
+	fi
+
+.PHONY: docker-build-triage-party
+docker-build-triage-party: checkout-triage-party
+	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
+	cd $(TRIAGE_PARTY_TMP_DIR) && \
+	docker buildx build --platform linux/amd64 -t $(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION) .
+
+.PHONY: docker-push-triage-party
+docker-push-triage-party:
+	@if [ -z "${TRIAGE_PARTY_VERSION}" ]; then echo "TRIAGE_PARTY_VERSION is not set"; exit 1; fi
+	docker push $(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION)
+
+.PHONY: clean-triage-party
+clean-triage-party:
+	rm -fr "$(TRIAGE_PARTY_TMP_DIR)"
+
+.PHONY: triage-party
+triage-party: ## Start a local instance of triage party
+	@if [ -z "${GITHUB_TOKEN}" ]; then echo "GITHUB_TOKEN is not set"; exit 1; fi
+	docker run --platform linux/amd64 --rm \
+		-e GITHUB_TOKEN \
+		-e "PERSIST_BACKEND=disk" \
+		-e "PERSIST_PATH=/app/.cache" \
+		-v "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/.cache:/app/.cache" \
+		-v "$(ROOT_DIR)/$(TRIAGE_PARTY_DIR)/config.yaml:/app/config/config.yaml" \
+		-p 8080:8080 \
+		$(TRIAGE_PARTY_CONTROLLER_IMG):$(TRIAGE_PARTY_VERSION)
 
 ## --------------------------------------
 ## Helpers

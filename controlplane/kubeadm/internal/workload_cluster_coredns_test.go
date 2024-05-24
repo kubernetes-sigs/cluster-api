@@ -19,7 +19,7 @@ package internal
 import (
 	"testing"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -32,7 +32,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/yaml"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 func TestUpdateCoreDNS(t *testing.T) {
@@ -124,7 +124,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			"ClusterConfiguration": yaml.Raw(`
+			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
 				apiVersion: kubeadm.k8s.io/v1beta2
 				dns:
@@ -140,7 +140,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			Namespace: metav1.NamespaceSystem,
 		},
 		Data: map[string]string{
-			"ClusterConfiguration": yaml.Raw(`
+			"ClusterConfiguration": utilyaml.Raw(`
 				apiServer:
 				apiVersion: kubeadm.k8s.io/v1beta2
 				dns:
@@ -567,7 +567,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					g.Eventually(func() []rbacv1.PolicyRule {
 						g.Expect(env.Get(ctx, client.ObjectKey{Name: coreDNSClusterRoleName}, &actualClusterRole)).To(Succeed())
 						return actualClusterRole.Rules
-					}, "5s").Should(Equal(tt.expectRules))
+					}, "5s").Should(BeComparableTo(tt.expectRules))
 				}
 			}
 		})
@@ -760,7 +760,7 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 			var actualClusterRole rbacv1.ClusterRole
 			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: coreDNSClusterRoleName, Namespace: metav1.NamespaceSystem}, &actualClusterRole)).To(Succeed())
 
-			g.Expect(actualClusterRole.Rules).To(Equal(tt.expectCoreDNSPolicyRules))
+			g.Expect(actualClusterRole.Rules).To(BeComparableTo(tt.expectCoreDNSPolicyRules))
 		})
 	}
 }
@@ -1369,7 +1369,8 @@ func TestGetCoreDNSInfo(t *testing.T) {
 				expectErr:     true,
 			},
 		}
-		for _, tt := range tests {
+		for i := range tests {
+			tt := tests[i]
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 				fakeClient := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
@@ -1394,7 +1395,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 				tt.expectedInfo.Corefile = expectedCorefile
 				tt.expectedInfo.Deployment = actualDepl
 
-				g.Expect(actualInfo).To(Equal(&tt.expectedInfo))
+				g.Expect(actualInfo).To(BeComparableTo(&tt.expectedInfo))
 			})
 		}
 	})
@@ -1409,7 +1410,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 	}{
 		{
 			name: "it should set the DNS image config",
-			clusterConfigurationData: yaml.Raw(`
+			clusterConfigurationData: utilyaml.Raw(`
 				apiVersion: kubeadm.k8s.io/v1beta2
 				kind: ClusterConfiguration
 				`),
@@ -1419,7 +1420,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 					ImageTag:        "v1.2.3",
 				},
 			},
-			wantClusterConfiguration: yaml.Raw(`
+			wantClusterConfiguration: utilyaml.Raw(`
 				apiServer: {}
 				apiVersion: kubeadm.k8s.io/v1beta2
 				controllerManager: {}
@@ -1433,7 +1434,8 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 				`),
 		},
 	}
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
@@ -1449,7 +1451,7 @@ func TestUpdateCoreDNSImageInfoInKubeadmConfigMap(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.updateCoreDNSImageInfoInKubeadmConfigMap(ctx, &tt.newDNS, semver.MustParse("1.19.1"))
+			err := w.UpdateClusterConfiguration(ctx, semver.MustParse("1.19.1"), w.updateCoreDNSImageInfoInKubeadmConfigMap(&tt.newDNS))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var actualConfig corev1.ConfigMap
@@ -1676,7 +1678,7 @@ func TestPatchCoreDNSDeploymentTolerations(t *testing.T) {
 
 			patchCoreDNSDeploymentTolerations(d, tt.kubernetesVersion)
 
-			g.Expect(d.Spec.Template.Spec.Tolerations).To(Equal(tt.expectedTolerations))
+			g.Expect(d.Spec.Template.Spec.Tolerations).To(BeComparableTo(tt.expectedTolerations))
 		})
 	}
 }

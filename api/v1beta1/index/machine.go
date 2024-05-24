@@ -21,12 +21,11 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 )
 
 const (
@@ -82,14 +81,11 @@ func machineByProviderID(o client.Object) []string {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
 
-	if pointer.StringDeref(machine.Spec.ProviderID, "") == "" {
+	providerID := ptr.Deref(machine.Spec.ProviderID, "")
+
+	if providerID == "" {
 		return nil
 	}
 
-	providerID, err := noderefutil.NewProviderID(*machine.Spec.ProviderID)
-	if err != nil {
-		// Failed to create providerID, skipping.
-		return nil
-	}
-	return []string{providerID.IndexKey()}
+	return []string{providerID}
 }

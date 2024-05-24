@@ -23,153 +23,18 @@ import (
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
 const (
-	// BuiltinsName is the name of the builtin variable.
-	BuiltinsName = "builtin"
 	// emptyDefinitionFrom may be supplied in variable values.
 	emptyDefinitionFrom = ""
 )
-
-// Builtins represents builtin variables exposed through patches.
-type Builtins struct {
-	Cluster           *ClusterBuiltins           `json:"cluster,omitempty"`
-	ControlPlane      *ControlPlaneBuiltins      `json:"controlPlane,omitempty"`
-	MachineDeployment *MachineDeploymentBuiltins `json:"machineDeployment,omitempty"`
-}
-
-// ClusterBuiltins represents builtin cluster variables.
-type ClusterBuiltins struct {
-	// Name is the name of the cluster.
-	Name string `json:"name,omitempty"`
-
-	// Namespace is the namespace of the cluster.
-	Namespace string `json:"namespace,omitempty"`
-
-	// Topology represents the cluster topology variables.
-	Topology *ClusterTopologyBuiltins `json:"topology,omitempty"`
-
-	// Network represents the cluster network variables.
-	Network *ClusterNetworkBuiltins `json:"network,omitempty"`
-}
-
-// ClusterTopologyBuiltins represents builtin cluster topology variables.
-type ClusterTopologyBuiltins struct {
-	// Version is the Kubernetes version of the Cluster.
-	// NOTE: Please note that this version might temporarily differ from the version
-	// of the ControlPlane or workers while an upgrade process is being orchestrated.
-	Version string `json:"version,omitempty"`
-
-	// Class is the name of the ClusterClass of the Cluster.
-	Class string `json:"class,omitempty"`
-}
-
-// ClusterNetworkBuiltins represents builtin cluster network variables.
-type ClusterNetworkBuiltins struct {
-	// ServiceDomain is the domain name for services.
-	ServiceDomain *string `json:"serviceDomain,omitempty"`
-	// Services is the network ranges from which service VIPs are allocated.
-	Services []string `json:"services,omitempty"`
-	// Pods is the network ranges from which Pod networks are allocated.
-	Pods []string `json:"pods,omitempty"`
-	// IPFamily is the IPFamily the Cluster is operating in. One of Invalid, IPv4, IPv6, DualStack.
-	// Note: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD.
-	// IPFamily may be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521
-	IPFamily string `json:"ipFamily,omitempty"`
-}
-
-// ControlPlaneBuiltins represents builtin ControlPlane variables.
-// NOTE: These variables are only set for templates belonging to the ControlPlane object.
-type ControlPlaneBuiltins struct {
-	// Version is the Kubernetes version of the ControlPlane object.
-	// NOTE: Please note that this version is the version we are currently reconciling towards.
-	// It can differ from the current version of the ControlPlane while an upgrade process is
-	// being orchestrated.
-	Version string `json:"version,omitempty"`
-
-	// Name is the name of the ControlPlane,
-	// to which the current template belongs to.
-	Name string `json:"name,omitempty"`
-
-	// Replicas is the value of the replicas field of the ControlPlane object.
-	Replicas *int64 `json:"replicas,omitempty"`
-
-	// MachineTemplate is the value of the .spec.machineTemplate field of the ControlPlane object.
-	MachineTemplate *ControlPlaneMachineTemplateBuiltins `json:"machineTemplate,omitempty"`
-}
-
-// ControlPlaneMachineTemplateBuiltins is the value of the .spec.machineTemplate field of the ControlPlane object.
-type ControlPlaneMachineTemplateBuiltins struct {
-	// InfrastructureRef is the value of the infrastructureRef field of ControlPlane.spec.machineTemplate.
-	InfrastructureRef ControlPlaneMachineTemplateInfrastructureRefBuiltins `json:"infrastructureRef,omitempty"`
-}
-
-// ControlPlaneMachineTemplateInfrastructureRefBuiltins is the value of the infrastructureRef field of
-// ControlPlane.spec.machineTemplate.
-type ControlPlaneMachineTemplateInfrastructureRefBuiltins struct {
-	// Name of the infrastructureRef.
-	Name string `json:"name,omitempty"`
-}
-
-// MachineDeploymentBuiltins represents builtin MachineDeployment variables.
-// NOTE: These variables are only set for templates belonging to a MachineDeployment.
-type MachineDeploymentBuiltins struct {
-	// Version is the Kubernetes version of the MachineDeployment,
-	// to which the current template belongs to.
-	// NOTE: Please note that this version is the version we are currently reconciling towards.
-	// It can differ from the current version of the MachineDeployment machines while an upgrade process is
-	// being orchestrated.
-	Version string `json:"version,omitempty"`
-
-	// Class is the class name of the MachineDeployment,
-	// to which the current template belongs to.
-	Class string `json:"class,omitempty"`
-
-	// Name is the name of the MachineDeployment,
-	// to which the current template belongs to.
-	Name string `json:"name,omitempty"`
-
-	// TopologyName is the topology name of the MachineDeployment,
-	// to which the current template belongs to.
-	TopologyName string `json:"topologyName,omitempty"`
-
-	// Replicas is the value of the replicas field of the MachineDeployment,
-	// to which the current template belongs to.
-	Replicas *int64 `json:"replicas,omitempty"`
-
-	// Bootstrap is the value of the .spec.template.spec.bootstrap field of the MachineDeployment.
-	Bootstrap *MachineDeploymentBootstrapBuiltins `json:"bootstrap,omitempty"`
-
-	// InfrastructureRef is the value of the .spec.template.spec.bootstrap field of the MachineDeployment.
-	InfrastructureRef *MachineDeploymentInfrastructureRefBuiltins `json:"infrastructureRef,omitempty"`
-}
-
-// MachineDeploymentBootstrapBuiltins is the value of the .spec.template.spec.bootstrap field
-// of the MachineDeployment.
-type MachineDeploymentBootstrapBuiltins struct {
-	// ConfigRef is the value of the .spec.template.spec.bootstrap.configRef field of the MachineDeployment.
-	ConfigRef *MachineDeploymentBootstrapConfigRefBuiltins `json:"configRef,omitempty"`
-}
-
-// MachineDeploymentBootstrapConfigRefBuiltins is the value of the .spec.template.spec.bootstrap.configRef
-// field of the MachineDeployment.
-type MachineDeploymentBootstrapConfigRefBuiltins struct {
-	// Name of the bootstrap.configRef.
-	Name string `json:"name,omitempty"`
-}
-
-// MachineDeploymentInfrastructureRefBuiltins is the value of the .spec.template.spec.infrastructureRef field
-// of the MachineDeployment.
-type MachineDeploymentInfrastructureRefBuiltins struct {
-	// Name of the infrastructureRef.
-	Name string `json:"name,omitempty"`
-}
 
 // Global returns variables that apply to all the templates, including user provided variables
 // and builtin variables for the Cluster object.
@@ -179,7 +44,7 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, def
 	// Add user defined variables from Cluster.spec.topology.variables.
 	for _, variable := range clusterTopology.Variables {
 		// Don't add user-defined "builtin" variable.
-		if variable.Name == BuiltinsName {
+		if variable.Name == runtimehooksv1.BuiltinsName {
 			continue
 		}
 		// Add the variable if it is defined for the current patch or it is defined for all the patches.
@@ -192,19 +57,19 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, def
 	}
 
 	// Construct builtin variable.
-	builtin := Builtins{
-		Cluster: &ClusterBuiltins{
+	builtin := runtimehooksv1.Builtins{
+		Cluster: &runtimehooksv1.ClusterBuiltins{
 			Name:      cluster.Name,
 			Namespace: cluster.Namespace,
-			Topology: &ClusterTopologyBuiltins{
+			Topology: &runtimehooksv1.ClusterTopologyBuiltins{
 				Version: cluster.Spec.Topology.Version,
 				Class:   cluster.Spec.Topology.Class,
 			},
 		},
 	}
 	if cluster.Spec.ClusterNetwork != nil {
-		clusterNetworkIPFamily, _ := cluster.GetIPFamily()
-		builtin.Cluster.Network = &ClusterNetworkBuiltins{
+		clusterNetworkIPFamily, _ := cluster.GetIPFamily() //nolint:staticcheck // We tolerate this until removal. See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
+		builtin.Cluster.Network = &runtimehooksv1.ClusterNetworkBuiltins{
 			IPFamily: ipFamilyToString(clusterNetworkIPFamily),
 		}
 		if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
@@ -219,7 +84,7 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, def
 	}
 
 	// Add builtin variables derived from the cluster object.
-	variable, err := toVariable(BuiltinsName, builtin)
+	variable, err := toVariable(runtimehooksv1.BuiltinsName, builtin)
 	if err != nil {
 		return nil, err
 	}
@@ -233,8 +98,8 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 	variables := []runtimehooksv1.Variable{}
 
 	// Construct builtin variable.
-	builtin := Builtins{
-		ControlPlane: &ControlPlaneBuiltins{
+	builtin := runtimehooksv1.Builtins{
+		ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 			Name: cp.GetName(),
 		},
 	}
@@ -258,14 +123,14 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 	builtin.ControlPlane.Version = *version
 
 	if cpInfrastructureMachineTemplate != nil {
-		builtin.ControlPlane.MachineTemplate = &ControlPlaneMachineTemplateBuiltins{
-			InfrastructureRef: ControlPlaneMachineTemplateInfrastructureRefBuiltins{
+		builtin.ControlPlane.MachineTemplate = &runtimehooksv1.ControlPlaneMachineTemplateBuiltins{
+			InfrastructureRef: runtimehooksv1.ControlPlaneMachineTemplateInfrastructureRefBuiltins{
 				Name: cpInfrastructureMachineTemplate.GetName(),
 			},
 		}
 	}
 
-	variable, err := toVariable(BuiltinsName, builtin)
+	variable, err := toVariable(runtimehooksv1.BuiltinsName, builtin)
 	if err != nil {
 		return nil, err
 	}
@@ -292,8 +157,8 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 	}
 
 	// Construct builtin variable.
-	builtin := Builtins{
-		MachineDeployment: &MachineDeploymentBuiltins{
+	builtin := runtimehooksv1.Builtins{
+		MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 			Version:      *md.Spec.Template.Spec.Version,
 			Class:        mdTopology.Class,
 			Name:         md.Name,
@@ -301,24 +166,77 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 		},
 	}
 	if md.Spec.Replicas != nil {
-		builtin.MachineDeployment.Replicas = pointer.Int64(int64(*md.Spec.Replicas))
+		builtin.MachineDeployment.Replicas = ptr.To[int64](int64(*md.Spec.Replicas))
 	}
 
 	if mdBootstrapTemplate != nil {
-		builtin.MachineDeployment.Bootstrap = &MachineDeploymentBootstrapBuiltins{
-			ConfigRef: &MachineDeploymentBootstrapConfigRefBuiltins{
+		builtin.MachineDeployment.Bootstrap = &runtimehooksv1.MachineBootstrapBuiltins{
+			ConfigRef: &runtimehooksv1.MachineBootstrapConfigRefBuiltins{
 				Name: mdBootstrapTemplate.GetName(),
 			},
 		}
 	}
 
 	if mdInfrastructureMachineTemplate != nil {
-		builtin.MachineDeployment.InfrastructureRef = &MachineDeploymentInfrastructureRefBuiltins{
+		builtin.MachineDeployment.InfrastructureRef = &runtimehooksv1.MachineInfrastructureRefBuiltins{
 			Name: mdInfrastructureMachineTemplate.GetName(),
 		}
 	}
 
-	variable, err := toVariable(BuiltinsName, builtin)
+	variable, err := toVariable(runtimehooksv1.BuiltinsName, builtin)
+	if err != nil {
+		return nil, err
+	}
+	variables = append(variables, *variable)
+
+	return variables, nil
+}
+
+// MachinePool returns variables that apply to templates belonging to a MachinePool.
+func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *expv1.MachinePool, mpBootstrapObject, mpInfrastructureMachinePool *unstructured.Unstructured, definitionFrom string, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
+	variables := []runtimehooksv1.Variable{}
+
+	// Add variables overrides for the MachinePool.
+	if mpTopology.Variables != nil {
+		for _, variable := range mpTopology.Variables.Overrides {
+			// Add the variable if it is defined for the current patch or it is defined for all the patches.
+			if variable.DefinitionFrom == emptyDefinitionFrom || variable.DefinitionFrom == definitionFrom {
+				// Add the variable if it has a definition from this patch in the ClusterClass.
+				if _, ok := patchVariableDefinitions[variable.Name]; ok {
+					variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
+				}
+			}
+		}
+	}
+
+	// Construct builtin variable.
+	builtin := runtimehooksv1.Builtins{
+		MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+			Version:      *mp.Spec.Template.Spec.Version,
+			Class:        mpTopology.Class,
+			Name:         mp.Name,
+			TopologyName: mpTopology.Name,
+		},
+	}
+	if mp.Spec.Replicas != nil {
+		builtin.MachinePool.Replicas = ptr.To[int64](int64(*mp.Spec.Replicas))
+	}
+
+	if mpBootstrapObject != nil {
+		builtin.MachinePool.Bootstrap = &runtimehooksv1.MachineBootstrapBuiltins{
+			ConfigRef: &runtimehooksv1.MachineBootstrapConfigRefBuiltins{
+				Name: mpBootstrapObject.GetName(),
+			},
+		}
+	}
+
+	if mpInfrastructureMachinePool != nil {
+		builtin.MachinePool.InfrastructureRef = &runtimehooksv1.MachineInfrastructureRefBuiltins{
+			Name: mpInfrastructureMachinePool.GetName(),
+		}
+	}
+
+	variable, err := toVariable(runtimehooksv1.BuiltinsName, builtin)
 	if err != nil {
 		return nil, err
 	}
@@ -351,13 +269,4 @@ func ipFamilyToString(ipFamily clusterv1.ClusterIPFamily) string {
 	default:
 		return "Invalid"
 	}
-}
-
-// ToMap converts a list of Variables to a map of JSON (name is the map key).
-func ToMap(variables []runtimehooksv1.Variable) map[string]apiextensionsv1.JSON {
-	variablesMap := map[string]apiextensionsv1.JSON{}
-	for i := range variables {
-		variablesMap[variables[i].Name] = variables[i].Value
-	}
-	return variablesMap
 }

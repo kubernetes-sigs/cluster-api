@@ -19,10 +19,10 @@ package controllers
 import (
 	"crypto/sha1" //nolint: gosec
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -235,7 +235,7 @@ metadata:
 		testCluster.SetLabels(labels)
 		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
 
-		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
+		t.Log("Verifying ClusterResourceSetBinding is created with cluster name")
 		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			clusterResourceSetBindingKey := client.ObjectKey{
@@ -247,12 +247,7 @@ metadata:
 				return false
 			}
 
-			return util.HasOwnerRef(binding.GetOwnerReferences(), metav1.OwnerReference{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Cluster",
-				Name:       testCluster.Name,
-				UID:        testCluster.UID,
-			})
+			return binding.Spec.ClusterName == testCluster.Name
 		}, timeout).Should(BeTrue())
 
 		// Wait until ClusterResourceSetBinding is created for the Cluster
@@ -528,8 +523,8 @@ metadata:
 			if err != nil {
 				return false
 			}
-			return len(binding.Spec.Bindings) == 2 && len(binding.OwnerReferences) == 3
-		}, timeout).Should(BeTrue(), "Expected 2 ClusterResourceSets and 3 OwnerReferences")
+			return len(binding.Spec.Bindings) == 2 && len(binding.OwnerReferences) == 2
+		}, timeout).Should(BeTrue(), "Expected 2 ClusterResourceSets and 2 OwnerReferences")
 
 		t.Log("Verifying deleted CRS is deleted from ClusterResourceSetBinding")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.
@@ -544,8 +539,8 @@ metadata:
 			if err != nil {
 				return false
 			}
-			return len(binding.Spec.Bindings) == 1 && len(binding.OwnerReferences) == 2
-		}, timeout).Should(BeTrue(), "ClusterResourceSetBinding should have 1 ClusterResourceSet and 2 OwnerReferences")
+			return len(binding.Spec.Bindings) == 1 && len(binding.OwnerReferences) == 1
+		}, timeout).Should(BeTrue(), "ClusterResourceSetBinding should have 1 ClusterResourceSet and 1 OwnerReferences")
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted after deleting all matching CRS objects")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.
@@ -634,7 +629,7 @@ metadata:
 
 		binding := &addonsv1.ClusterResourceSetBinding{}
 		err := env.Get(ctx, clusterResourceSetBindingKey, binding)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		resourceHashes := map[string]string{}
 		for _, r := range binding.Spec.Bindings[0].Resources {
 			resourceHashes[r.Name] = r.Hash
@@ -669,7 +664,7 @@ metadata:
 		)
 
 		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		testConfigmap := configMap(
 			configmapName,
@@ -688,7 +683,7 @@ metadata:
 		)
 
 		resourceConfigMap2Content, err := yaml.Marshal(resourceConfigMap2)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		testSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -808,7 +803,7 @@ metadata:
 		)
 
 		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		resourceConfigMapWithMissingNamespace := configMap(
 			"cm-missing-namespace",
@@ -819,7 +814,7 @@ metadata:
 		)
 
 		resourceConfigMapMissingNamespaceContent, err := yaml.Marshal(resourceConfigMapWithMissingNamespace)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		testConfigmap := configMap(
 			configmapName,
@@ -915,6 +910,92 @@ metadata:
 		g.Expect(env.Delete(ctx, resourceConfigMapWithMissingNamespace)).To(Succeed())
 		g.Expect(env.Delete(ctx, missingNs)).To(Succeed())
 	})
+
+	t.Run("Should only create ClusterResourceSetBinding after the remote cluster's Kubernetes API Server Service has been created", func(t *testing.T) {
+		g := NewWithT(t)
+		ns := setup(t, g)
+		defer teardown(t, g, ns)
+
+		fakeService := &corev1.Service{
+			TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "fake",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Name: "https",
+						Port: 443,
+					},
+				},
+				Type: "ClusterIP",
+			},
+		}
+
+		kubernetesAPIServerService := &corev1.Service{}
+		t.Log("Verifying Kubernetes API Server Service has been created")
+		g.Expect(env.Get(ctx, client.ObjectKey{Name: "kubernetes", Namespace: metav1.NamespaceDefault}, kubernetesAPIServerService)).To(Succeed())
+
+		fakeService.Spec.ClusterIP = kubernetesAPIServerService.Spec.ClusterIP
+
+		t.Log("Let Kubernetes API Server Service fail to create by occupying its IP")
+		g.Eventually(func() error {
+			err := env.Delete(ctx, kubernetesAPIServerService)
+			if err != nil {
+				return err
+			}
+			err = env.Create(ctx, fakeService)
+			if err != nil {
+				return err
+			}
+			return nil
+		}, timeout).Should(Succeed())
+		g.Expect(apierrors.IsNotFound(env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), &corev1.Service{}))).To(BeTrue())
+
+		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterResourceSetName,
+				Namespace: ns.Name,
+			},
+			Spec: addonsv1.ClusterResourceSetSpec{
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: labels,
+				},
+			},
+		}
+		// Create the ClusterResourceSet.
+		g.Expect(env.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		// ClusterResourceSetBinding for the Cluster is not created because the Kubernetes API Server Service doesn't exist.
+		clusterResourceSetBindingKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
+		g.Consistently(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+
+			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+			return apierrors.IsNotFound(err)
+		}, timeout).Should(BeTrue())
+
+		t.Log("Create Kubernetes API Server Service")
+		g.Expect(env.Delete(ctx, fakeService)).Should(Succeed())
+		kubernetesAPIServerService.ResourceVersion = ""
+		g.Expect(env.Create(ctx, kubernetesAPIServerService)).Should(Succeed())
+
+		// Label the CRS to trigger reconciliation.
+		labels["new"] = ""
+		clusterResourceSetInstance.SetLabels(labels)
+		g.Expect(env.Patch(ctx, clusterResourceSetInstance, client.MergeFrom(clusterResourceSetInstance.DeepCopy()))).To(Succeed())
+
+		// Wait until ClusterResourceSetBinding is created for the Cluster
+		g.Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+			return err == nil
+		}, timeout).Should(BeTrue())
+	})
 }
 
 func clusterResourceSetBindingReady(env *envtest.Environment, cluster *clusterv1.Cluster) func() bool {
@@ -940,12 +1021,7 @@ func clusterResourceSetBindingReady(env *envtest.Environment, cluster *clusterv1
 			return false
 		}
 
-		return util.HasOwnerRef(binding.GetOwnerReferences(), metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		})
+		return binding.Spec.ClusterName == cluster.Name
 	}
 }
 
@@ -956,7 +1032,7 @@ func configMapHasBeenUpdated(env *envtest.Environment, key client.ObjectKey, new
 			return err
 		}
 
-		if !reflect.DeepEqual(cm.Data, newState.Data) {
+		if !cmp.Equal(cm.Data, newState.Data) {
 			return errors.Errorf("configMap %s hasn't been updated yet", key.Name)
 		}
 

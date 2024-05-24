@@ -149,14 +149,14 @@ func Test_ObjectResumer(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectResumer(proxy, tt.fields.ref)
+			err := r.ObjectResumer(context.Background(), proxy, tt.fields.ref)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 			for _, obj := range tt.fields.objs {
-				cl, err := proxy.NewClient()
+				cl, err := proxy.NewClient(context.Background())
 				g.Expect(err).ToNot(HaveOccurred())
 				key := client.ObjectKeyFromObject(obj)
 				switch obj.(type) {

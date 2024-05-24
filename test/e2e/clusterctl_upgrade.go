@@ -18,6 +18,7 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,35 +26,33 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
+	apiruntime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/discovery"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-)
-
-const (
-	initWithBinaryVariableName = "INIT_WITH_BINARY"
-	initWithProvidersContract  = "INIT_WITH_PROVIDERS_CONTRACT"
-	initWithKubernetesVersion  = "INIT_WITH_KUBERNETES_VERSION"
 )
 
 // ClusterctlUpgradeSpecInput is the input for ClusterctlUpgradeSpec.
@@ -62,14 +61,18 @@ type ClusterctlUpgradeSpecInput struct {
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
-	// InitWithBinary can be used to override the INIT_WITH_BINARY e2e config variable with the URL of the clusterctl binary of the old version of Cluster API. The spec will interpolate the
+
+	// UseKindForManagementCluster instruct the test to use kind for creating the management cluster (instead to use the actual infrastructure provider).
+	// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
+	// So we are creating a new management cluster where to install older version of providers
+	UseKindForManagementCluster bool
+
+	// InitWithBinary must be used to specify the URL of the clusterctl binary of the old version of Cluster API. The spec will interpolate the
 	// strings `{OS}` and `{ARCH}` to `runtime.GOOS` and `runtime.GOARCH` respectively, e.g. https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}
 	InitWithBinary string
-	// InitWithProvidersContract can be used to override the INIT_WITH_PROVIDERS_CONTRACT e2e config variable with a specific
-	// provider contract to use to initialise the secondary management cluster, e.g. `v1alpha3`
+	// InitWithProvidersContract can be used to set the contract used to initialise the secondary management cluster, e.g. `v1alpha3`
 	InitWithProvidersContract string
-	// InitWithKubernetesVersion can be used to override the INIT_WITH_KUBERNETES_VERSION e2e config variable with a specific
-	// Kubernetes version to use to create the secondary management cluster, e.g. `v1.25.0`
+	// InitWithKubernetesVersion must be used to set a Kubernetes version to use to create the secondary management cluster, e.g. `v1.25.0`
 	InitWithKubernetesVersion string
 	// InitWithCoreProvider specifies the core provider version to use when initializing the secondary management cluster, e.g. `cluster-api:v1.3.0`.
 	// If not set, the core provider version is calculated based on the contract.
@@ -89,29 +92,64 @@ type ClusterctlUpgradeSpecInput struct {
 	// InitWithRuntimeExtensionProviders specifies the runtime extension provider versions to add to the secondary management cluster, e.g. `test:v0.0.1`.
 	// If not set, the runtime extension provider version is calculated based on the contract.
 	InitWithRuntimeExtensionProviders []string
+	// InitWithAddonProviders specifies the add-on provider versions to add to the secondary management cluster, e.g. `helm:v0.0.1`.
+	// If not set, the add-on provider version is calculated based on the contract.
+	InitWithAddonProviders []string
 	// UpgradeClusterctlVariables can be used to set additional variables for clusterctl upgrade.
 	UpgradeClusterctlVariables map[string]string
 	SkipCleanup                bool
+
+	// InfrastructureProviders specifies the infrastructure to use for clusterctl
+	// operations (Example: get cluster templates).
+	// Note: In most cases this need not be specified. It only needs to be specified when
+	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
+	// able to identify the default.
+	InfrastructureProvider *string
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 	// PreWaitForCluster is a function that can be used as a hook to apply extra resources (that cannot be part of the template) in the generated namespace hosting the cluster
 	// This function is called after applying the cluster template and before waiting for the cluster resources.
 	PreWaitForCluster   func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string, workloadClusterName string)
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 	PreInit             func(managementClusterProxy framework.ClusterProxy)
 	PreUpgrade          func(managementClusterProxy framework.ClusterProxy)
-	PostUpgrade         func(managementClusterProxy framework.ClusterProxy)
+	PostUpgrade         func(managementClusterProxy framework.ClusterProxy, clusterNamespace, clusterName string)
 	// PreCleanupManagementCluster hook can be used for extra steps that might be required from providers, for example, remove conflicting service (such as DHCP) running on
 	// the target management cluster and run it on bootstrap (before the latter resumes LCM) if both clusters share the same LAN
 	PreCleanupManagementCluster func(managementClusterProxy framework.ClusterProxy)
 	MgmtFlavor                  string
 	CNIManifestPath             string
 	WorkloadFlavor              string
-	// Custom providers can be specified to upgrade to a pre-release or a custom version instead of upgrading to the latest using contact
+	// WorkloadKubernetesVersion is Kubernetes version used to create the workload cluster, e.g. `v1.25.0`
+	WorkloadKubernetesVersion string
+
+	// Upgrades allows to define upgrade sequences.
+	// If not set, the test will upgrade once to the v1beta1 contract.
+	// For some examples see clusterctl_upgrade_test.go
+	Upgrades []ClusterctlUpgradeSpecInputUpgrade
+
+	// ControlPlaneMachineCount specifies the number of control plane machines to create in the workload cluster.
+	ControlPlaneMachineCount *int64
+}
+
+// ClusterctlUpgradeSpecInputUpgrade defines an upgrade.
+type ClusterctlUpgradeSpecInputUpgrade struct {
+	// UpgradeWithBinary can be used to set the clusterctl binary to use for the provider upgrade. The spec will interpolate the
+	// strings `{OS}` and `{ARCH}` to `runtime.GOOS` and `runtime.GOARCH` respectively, e.g. https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}
+	// If not set, the test will use the ApplyUpgrade function of the clusterctl library.
+	WithBinary string
+	// Contract defines the contract to upgrade to.
+	// Either the contract *or* the *Provider fields should be defined
+	// For some examples see clusterctl_upgrade_test.go
+	Contract                  string
 	CoreProvider              string
 	BootstrapProviders        []string
 	ControlPlaneProviders     []string
 	InfrastructureProviders   []string
 	IPAMProviders             []string
 	RuntimeExtensionProviders []string
+	AddonProviders            []string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -124,7 +162,7 @@ type ClusterctlUpgradeSpecInput struct {
 // then run clusterctl upgrade to the latest version of Cluster API and ensure correct operation by
 // scaling a MachineDeployment.
 //
-// To use this spec the variables INIT_WITH_BINARY and INIT_WITH_PROVIDERS_CONTRACT must be set or specified directly
+// To use this spec the fields InitWithBinary and InitWithKubernetesVersion must be specified
 // in the spec input. See ClusterctlUpgradeSpecInput for further information.
 //
 // In order to get this to work, infrastructure providers need to implement a mechanism to stage
@@ -155,121 +193,154 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		managementClusterNamespace     *corev1.Namespace
 		managementClusterCancelWatches context.CancelFunc
 		managementClusterResources     *clusterctl.ApplyClusterTemplateAndWaitResult
+		managementClusterProvider      bootstrap.ClusterProvider
 		managementClusterProxy         framework.ClusterProxy
 
 		initClusterctlBinaryURL string
 		initContract            string
 		initKubernetesVersion   string
 
-		workLoadClusterName string
+		workloadClusterName string
+
+		scheme *apiruntime.Scheme
 	)
 
 	BeforeEach(func() {
+		scheme = apiruntime.NewScheme()
+		framework.TryAddDefaultSchemes(scheme)
+
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
+		Expect(input.InitWithBinary).ToNot(BeEmpty(), "Invalid argument. input.InitWithBinary can't be empty when calling %s spec", specName)
+		Expect(input.InitWithKubernetesVersion).ToNot(BeEmpty(), "Invalid argument. input.InitWithKubernetesVersion can't be empty when calling %s spec", specName)
 
 		clusterctlBinaryURLTemplate := input.InitWithBinary
-		if clusterctlBinaryURLTemplate == "" {
-			Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. %s variable must be defined when calling %s spec", initWithBinaryVariableName, specName)
-			Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithBinaryVariableName, specName)
-			clusterctlBinaryURLTemplate = input.E2EConfig.GetVariable(initWithBinaryVariableName)
-		}
 		clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
 		initClusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
 
 		// NOTE: by default we are considering all the providers, no matter of the contract.
-		// However, given that we want to test both v1alpha3 --> v1beta1 and v1alpha4 --> v1beta1, the INIT_WITH_PROVIDERS_CONTRACT
-		// variable can be used to select versions with a specific contract.
+		// However, given that we want to test both v1alpha3 --> v1beta1 and v1alpha4 --> v1beta1,
+		// InitWithProvidersContract can be used to select versions with a specific contract.
 		initContract = "*"
-		if input.E2EConfig.HasVariable(initWithProvidersContract) {
-			initContract = input.E2EConfig.GetVariable(initWithProvidersContract)
-		}
 		if input.InitWithProvidersContract != "" {
 			initContract = input.InitWithProvidersContract
 		}
 
 		initKubernetesVersion = input.InitWithKubernetesVersion
-		if initKubernetesVersion == "" {
-			Expect(input.E2EConfig.Variables).To(HaveKey(initWithKubernetesVersion), "Invalid argument. %s variable must be defined when calling %s spec", initWithKubernetesVersion, specName)
-			Expect(input.E2EConfig.Variables[initWithKubernetesVersion]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithKubernetesVersion, specName)
-			initKubernetesVersion = input.E2EConfig.GetVariable(initWithKubernetesVersion)
+
+		if len(input.Upgrades) == 0 {
+			// Upgrade once to v1beta1 if no upgrades are specified.
+			input.Upgrades = []ClusterctlUpgradeSpecInputUpgrade{
+				{
+					Contract: clusterv1.GroupVersion.Version,
+				},
+			}
 		}
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
-		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		managementClusterNamespace, managementClusterCancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		// If the test is not being run in a separated kind cluster, setup a Namespace in the current bootstrap cluster where to host objects for this spec and create a watcher for the namespace events.
+		if !input.UseKindForManagementCluster {
+			managementClusterNamespace, managementClusterCancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		}
 		managementClusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
 	It("Should create a management cluster and then upgrade all the providers", func() {
-		By("Creating a workload cluster to be used as a new management cluster")
+		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
+		if input.InfrastructureProvider != nil {
+			infrastructureProvider = *input.InfrastructureProvider
+		}
 		// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
 		// So we are creating a workload cluster that will be used as a new management cluster where to install older version of providers
-		managementClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy: input.BootstrapClusterProxy,
-			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   input.MgmtFlavor,
-				Namespace:                managementClusterNamespace.Name,
-				ClusterName:              managementClusterName,
-				KubernetesVersion:        initKubernetesVersion,
-				ControlPlaneMachineCount: pointer.Int64(1),
-				WorkerMachineCount:       pointer.Int64(1),
-			},
-			PreWaitForCluster: func() {
-				if input.PreWaitForCluster != nil {
-					input.PreWaitForCluster(input.BootstrapClusterProxy, managementClusterNamespace.Name, managementClusterName)
-				}
-			},
-			CNIManifestPath:              input.CNIManifestPath,
-			ControlPlaneWaiters:          input.ControlPlaneWaiters,
-			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-		}, managementClusterResources)
+		managementClusterName = fmt.Sprintf("%s-management-%s", specName, util.RandomString(6))
+		managementClusterLogFolder := filepath.Join(input.ArtifactFolder, "clusters", managementClusterName)
+		if input.UseKindForManagementCluster {
+			By("Creating a kind cluster to be used as a new management cluster")
 
-		By("Turning the workload cluster into a management cluster with older versions of providers")
+			managementClusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(ctx, bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
+				Name:               managementClusterName,
+				KubernetesVersion:  initKubernetesVersion,
+				RequiresDockerSock: input.E2EConfig.HasDockerProvider(),
+				// Note: most of this images won't be used while starting the controllers, because it is used to spin up older versions of CAPI. Those images will be eventually used when upgrading to current.
+				Images:    input.E2EConfig.Images,
+				IPFamily:  input.E2EConfig.GetVariable(IPFamily),
+				LogFolder: filepath.Join(managementClusterLogFolder, "logs-kind"),
+			})
+			Expect(managementClusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")
 
-		// If the cluster is a DockerCluster, we should load controller images into the nodes.
-		// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
-		// this approach because this allows to have a single source of truth for images, the e2e config
-		// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
-		// built locally and loaded into kind
-		cluster := managementClusterResources.Cluster
-		if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
-			Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{
-				Name:   cluster.Name,
-				Images: input.E2EConfig.Images,
-			})).To(Succeed())
+			kubeconfigPath := managementClusterProvider.GetKubeconfigPath()
+			Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the kind cluster")
+
+			managementClusterProxy = framework.NewClusterProxy(managementClusterName, kubeconfigPath, scheme)
+			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a kind cluster proxy")
+
+			managementClusterResources.Cluster = &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: managementClusterName,
+				},
+			}
+		} else {
+			By("Creating a workload cluster to be used as a new management cluster")
+
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: input.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     input.ClusterctlConfigPath,
+					KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   infrastructureProvider,
+					Flavor:                   input.MgmtFlavor,
+					Namespace:                managementClusterNamespace.Name,
+					ClusterName:              managementClusterName,
+					KubernetesVersion:        initKubernetesVersion,
+					ControlPlaneMachineCount: ptr.To[int64](1),
+					WorkerMachineCount:       ptr.To[int64](1),
+				},
+				PreWaitForCluster: func() {
+					if input.PreWaitForCluster != nil {
+						input.PreWaitForCluster(input.BootstrapClusterProxy, managementClusterNamespace.Name, managementClusterName)
+					}
+				},
+				CNIManifestPath:              input.CNIManifestPath,
+				ControlPlaneWaiters:          input.ControlPlaneWaiters,
+				WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			}, managementClusterResources)
+
+			// If the cluster is a DockerCluster, we should load controller images into the nodes.
+			// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
+			// this approach because this allows to have a single source of truth for images, the e2e config
+			// Nb. the images for official version of the providers will be pulled from internet, but the latest images must be
+			// built locally and loaded into kind
+			cluster := managementClusterResources.Cluster
+			if cluster.Spec.InfrastructureRef.Kind == "DockerCluster" {
+				Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{
+					Name:   cluster.Name,
+					Images: input.E2EConfig.Images,
+				})).To(Succeed())
+			}
+
+			// Get a ClusterProxy so we can interact with the workload cluster
+			managementClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name, framework.WithMachineLogCollector(input.BootstrapClusterProxy.GetLogCollector()))
 		}
 
-		// Get a ClusterProxy so we can interact with the workload cluster
-		managementClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
+		By("Turning the new cluster into a management cluster with older versions of providers")
 
-		// Download the older clusterctl version to be used for setting up the management cluster to be upgraded
-		log.Logf("Downloading clusterctl binary from %s", initClusterctlBinaryURL)
-		clusterctlBinaryPath := downloadToTmpFile(ctx, initClusterctlBinaryURL)
+		// Download the clusterctl version that should be used to initially set up the management cluster (which is later upgraded).
+		Byf("Downloading clusterctl binary from %s", initClusterctlBinaryURL)
+		clusterctlBinaryPath, clusterctlConfigPath := setupClusterctl(ctx, initClusterctlBinaryURL, input.ClusterctlConfigPath)
 		defer os.Remove(clusterctlBinaryPath) // clean up
 
-		err := os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
-		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
-
-		// Adjusts the clusterctlConfigPath in case the clusterctl version <= v1.3 (thus using a config file with only the providers supported in those versions)
-		clusterctlConfigPath := clusterctl.AdjustConfigPathForBinary(clusterctlBinaryPath, input.ClusterctlConfigPath)
-
-		By("Initializing the workload cluster with older versions of providers")
+		By("Initializing the new management cluster with older versions of providers")
 
 		if input.PreInit != nil {
-			By("Running Pre-init steps against the management cluster")
+			By("Running Pre-init steps against the new management cluster")
 			input.PreInit(managementClusterProxy)
 		}
 
@@ -280,6 +351,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			infrastructureProviders   []string
 			ipamProviders             []string
 			runtimeExtensionProviders []string
+			addonProviders            []string
 		)
 
 		coreProvider = input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.ClusterAPIProviderName)[0]
@@ -297,6 +369,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.IPAMProviders()...))
 		runtimeExtensionProviders = getValueOrFallback(input.InitWithRuntimeExtensionProviders,
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.RuntimeExtensionProviders()...))
+		addonProviders = getValueOrFallback(input.InitWithAddonProviders,
+			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.AddonProviders()...))
 
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 			ClusterctlBinaryPath:      clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
@@ -308,7 +382,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			InfrastructureProviders:   infrastructureProviders,
 			IPAMProviders:             ipamProviders,
 			RuntimeExtensionProviders: runtimeExtensionProviders,
-			LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+			AddonProviders:            addonProviders,
+			LogFolder:                 managementClusterLogFolder,
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
 		By("THE MANAGEMENT CLUSTER WITH THE OLDER VERSION OF PROVIDERS IS UP&RUNNING!")
@@ -321,19 +396,31 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", "bootstrap"),
 		})
 
+		if input.PostNamespaceCreated != nil {
+			log.Logf("Calling postNamespaceCreated for namespace %s", testNamespace.Name)
+			input.PostNamespaceCreated(managementClusterProxy, testNamespace.Name)
+		}
+
 		By("Creating a test workload cluster")
 
 		// NOTE: This workload cluster is used to check the old management cluster works fine.
 		// In this case ApplyClusterTemplateAndWait can't be used because this helper is linked to the last version of the API;
 		// so we are getting a template using the downloaded version of clusterctl, applying it, and wait for machines to be provisioned.
 
-		workLoadClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-		kubernetesVersion := input.E2EConfig.GetVariable(KubernetesVersion)
-		controlPlaneMachineCount := pointer.Int64(1)
-		workerMachineCount := pointer.Int64(1)
+		workloadClusterName = fmt.Sprintf("%s-workload-%s", specName, util.RandomString(6))
+		workloadClusterNamespace := testNamespace.Name
+		kubernetesVersion := input.WorkloadKubernetesVersion
+		if kubernetesVersion == "" {
+			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
+		}
+		controlPlaneMachineCount := ptr.To[int64](1)
+		if input.ControlPlaneMachineCount != nil {
+			controlPlaneMachineCount = input.ControlPlaneMachineCount
+		}
+		workerMachineCount := ptr.To[int64](1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
-			workLoadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
+			workloadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
 
 		log.Logf("Getting the cluster template yaml")
 		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
@@ -344,12 +431,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// select template
 			Flavor: input.WorkloadFlavor,
 			// define template variables
-			Namespace:                testNamespace.Name,
-			ClusterName:              workLoadClusterName,
+			Namespace:                workloadClusterNamespace,
+			ClusterName:              workloadClusterName,
 			KubernetesVersion:        kubernetesVersion,
 			ControlPlaneMachineCount: controlPlaneMachineCount,
 			WorkerMachineCount:       workerMachineCount,
-			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+			InfrastructureProvider:   infrastructureProvider,
 			// setup clusterctl logs folder
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", managementClusterProxy.GetName()),
 		})
@@ -360,129 +447,260 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		if input.PreWaitForCluster != nil {
 			By("Running PreWaitForCluster steps against the management cluster")
-			input.PreWaitForCluster(managementClusterProxy, testNamespace.Name, workLoadClusterName)
+			input.PreWaitForCluster(managementClusterProxy, workloadClusterNamespace, workloadClusterName)
 		}
 
-		By("Waiting for the machines to exists")
+		coreCAPIStorageVersion := getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
+
+		// Note: We have to use unstructured here as the Cluster could be e.g. v1alpha3 / v1alpha4 / v1beta1.
+		workloadClusterUnstructured := discoveryAndWaitForCluster(ctx, discoveryAndWaitForClusterInput{
+			Client:                 managementClusterProxy.GetClient(),
+			CoreCAPIStorageVersion: coreCAPIStorageVersion,
+			Namespace:              workloadClusterNamespace,
+			Name:                   workloadClusterName,
+		}, input.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+
+		By("Calculating expected MachineDeployment and MachinePool Machine and Node counts")
+		expectedMachineDeploymentMachineCount := calculateExpectedMachineDeploymentMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterUnstructured, coreCAPIStorageVersion)
+		expectedMachinePoolNodeCount := calculateExpectedMachinePoolNodeCount(ctx, managementClusterProxy.GetClient(), workloadClusterUnstructured, coreCAPIStorageVersion)
+		expectedMachinePoolMachineCount, err := calculateExpectedMachinePoolMachineCount(ctx, managementClusterProxy.GetClient(), workloadClusterNamespace, workloadClusterName)
+		Expect(err).ToNot(HaveOccurred())
+
+		expectedMachineCount := *controlPlaneMachineCount + expectedMachineDeploymentMachineCount + expectedMachinePoolMachineCount
+
+		Byf("Expect %d Machines and %d MachinePool replicas to exist", expectedMachineCount, expectedMachinePoolNodeCount)
+		By("Waiting for the machines to exist")
 		Eventually(func() (int64, error) {
 			var n int64
-			machineList := &clusterv1alpha3.MachineList{}
-			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName}); err == nil {
-				for _, machine := range machineList.Items {
-					if machine.Status.NodeRef != nil {
+			machineList := &unstructured.UnstructuredList{}
+			machineList.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   clusterv1.GroupVersion.Group,
+				Version: coreCAPIStorageVersion,
+				Kind:    "MachineList",
+			})
+			if err := managementClusterProxy.GetClient().List(
+				ctx,
+				machineList,
+				client.InNamespace(workloadClusterNamespace),
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
+			); err == nil {
+				for _, m := range machineList.Items {
+					_, found, err := unstructured.NestedMap(m.Object, "status", "nodeRef")
+					if err == nil && found {
 						n++
 					}
 				}
 			}
 			return n, nil
-		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(*controlPlaneMachineCount+*workerMachineCount), "Timed out waiting for all machines to be exist")
+		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(expectedMachineCount), "Timed out waiting for all Machines to exist")
+
+		By("Waiting for MachinePool to be ready with correct number of replicas")
+		Eventually(func() (int64, error) {
+			var n int64
+			machinePoolList := &expv1.MachinePoolList{}
+			if err := managementClusterProxy.GetClient().List(
+				ctx,
+				machinePoolList,
+				client.InNamespace(workloadClusterNamespace),
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
+			); err == nil {
+				for _, mp := range machinePoolList.Items {
+					if mp.Status.Phase == string(expv1.MachinePoolPhaseRunning) {
+						n += int64(mp.Status.ReadyReplicas)
+					}
+				}
+			}
+
+			return n, nil
+		}, input.E2EConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(expectedMachinePoolNodeCount), "Timed out waiting for all MachinePool replicas to be ready")
 
 		By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
 
-		if input.PreUpgrade != nil {
-			By("Running Pre-upgrade steps against the management cluster")
-			input.PreUpgrade(managementClusterProxy)
-		}
+		for i, upgrade := range input.Upgrades {
+			Byf("[%d] Starting upgrade", i)
+			if input.PreUpgrade != nil {
+				Byf("[%d] Running Pre-upgrade steps against the management cluster", i)
+				input.PreUpgrade(managementClusterProxy)
+			}
 
-		// Get the workloadCluster before the management cluster is upgraded to make sure that the upgrade did not trigger
-		// any unexpected rollouts.
-		preUpgradeMachineList := &unstructured.UnstructuredList{}
-		preUpgradeMachineList.SetGroupVersionKind(clusterv1alpha3.GroupVersion.WithKind("MachineList"))
-		err = managementClusterProxy.GetClient().List(
-			ctx,
-			preUpgradeMachineList,
-			client.InNamespace(testNamespace.Name),
-			client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
-		)
-		Expect(err).NotTo(HaveOccurred())
-		// Check if the user want a custom upgrade
-		isCustomUpgrade := input.CoreProvider != "" ||
-			len(input.BootstrapProviders) > 0 ||
-			len(input.ControlPlaneProviders) > 0 ||
-			len(input.InfrastructureProviders) > 0 ||
-			len(input.IPAMProviders) > 0 ||
-			len(input.RuntimeExtensionProviders) > 0
-
-		if isCustomUpgrade {
-			By("Upgrading providers to custom versions")
-			clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
-				ClusterctlConfigPath:      input.ClusterctlConfigPath,
-				ClusterctlVariables:       input.UpgradeClusterctlVariables,
-				ClusterProxy:              managementClusterProxy,
-				CoreProvider:              input.CoreProvider,
-				BootstrapProviders:        input.BootstrapProviders,
-				ControlPlaneProviders:     input.ControlPlaneProviders,
-				InfrastructureProviders:   input.InfrastructureProviders,
-				IPAMProviders:             input.IPAMProviders,
-				RuntimeExtensionProviders: input.RuntimeExtensionProviders,
-				LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
-			}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
-		} else {
-			By("Upgrading providers to the latest version available")
-			clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
-				ClusterctlConfigPath: input.ClusterctlConfigPath,
-				ClusterctlVariables:  input.UpgradeClusterctlVariables,
-				ClusterProxy:         managementClusterProxy,
-				Contract:             clusterv1.GroupVersion.Version,
-				LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
-			}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
-		}
-
-		By("THE MANAGEMENT CLUSTER WAS SUCCESSFULLY UPGRADED!")
-
-		if input.PostUpgrade != nil {
-			By("Running Post-upgrade steps against the management cluster")
-			input.PostUpgrade(managementClusterProxy)
-		}
-
-		// After the upgrade check that there were no unexpected rollouts.
-		log.Logf("Verify there are no unexpected rollouts")
-		Consistently(func() bool {
-			postUpgradeMachineList := &unstructured.UnstructuredList{}
-			postUpgradeMachineList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineList"))
-			err = managementClusterProxy.GetClient().List(
+			// Get the workloadCluster before the management cluster is upgraded to make sure that the upgrade did not trigger
+			// any unexpected rollouts.
+			preUpgradeMachineList := &unstructured.UnstructuredList{}
+			preUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
+				Group:   clusterv1.GroupVersion.Group,
+				Version: coreCAPIStorageVersion,
+				Kind:    "MachineList",
+			})
+			err := managementClusterProxy.GetClient().List(
 				ctx,
-				postUpgradeMachineList,
-				client.InNamespace(testNamespace.Name),
-				client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
+				preUpgradeMachineList,
+				client.InNamespace(workloadClusterNamespace),
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 			)
-			Expect(err).NotTo(HaveOccurred())
-			return matchUnstructuredLists(preUpgradeMachineList, postUpgradeMachineList)
-		}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
+			Expect(err).ToNot(HaveOccurred())
 
-		// After upgrading we are sure the version is the latest version of the API,
-		// so it is possible to use the standard helpers
-		workloadCluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
-			Getter:    managementClusterProxy.GetClient(),
-			Namespace: testNamespace.Name,
-			Name:      workLoadClusterName,
-		})
+			clusterctlUpgradeBinaryPath := ""
+			// TODO: While it is generally fine to use this clusterctl config for upgrades as well,
+			// it is not ideal because it points to the latest repositories (e.g. _artifacts/repository/cluster-api/latest/components.yaml)
+			// For example this means if we upgrade to v1.5 the upgrade won't use the metadata.yaml from v1.5 it will use the one from latest.
+			clusterctlUpgradeConfigPath := input.ClusterctlConfigPath
+			if upgrade.WithBinary != "" {
+				// Download the clusterctl version to be used to upgrade the management cluster
+				upgradeClusterctlBinaryURL := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH).Replace(upgrade.WithBinary)
+				Byf("[%d] Downloading clusterctl binary from %s", i, upgradeClusterctlBinaryURL)
+				clusterctlUpgradeBinaryPath, clusterctlUpgradeConfigPath = setupClusterctl(ctx, upgradeClusterctlBinaryURL, input.ClusterctlConfigPath)
+				defer os.Remove(clusterctlBinaryPath) //nolint:gocritic // Resource leakage is not a concern here.
+			}
 
-		if workloadCluster.Spec.Topology != nil {
-			// Cluster is using ClusterClass, scale up via topology.
-			framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
-				ClusterProxy:              managementClusterProxy,
-				Cluster:                   workloadCluster,
-				Replicas:                  2,
-				WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			// Check if the user want a custom upgrade
+			isCustomUpgrade := upgrade.CoreProvider != "" ||
+				len(upgrade.BootstrapProviders) > 0 ||
+				len(upgrade.ControlPlaneProviders) > 0 ||
+				len(upgrade.InfrastructureProviders) > 0 ||
+				len(upgrade.IPAMProviders) > 0 ||
+				len(upgrade.RuntimeExtensionProviders) > 0 ||
+				len(upgrade.AddonProviders) > 0
+
+			if isCustomUpgrade {
+				Byf("[%d] Upgrading providers to custom versions", i)
+				clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
+					ClusterctlBinaryPath:      clusterctlUpgradeBinaryPath, // use specific version of clusterctl to upgrade the management cluster (if set)
+					ClusterctlConfigPath:      clusterctlUpgradeConfigPath,
+					ClusterctlVariables:       input.UpgradeClusterctlVariables,
+					ClusterProxy:              managementClusterProxy,
+					CoreProvider:              upgrade.CoreProvider,
+					BootstrapProviders:        upgrade.BootstrapProviders,
+					ControlPlaneProviders:     upgrade.ControlPlaneProviders,
+					InfrastructureProviders:   upgrade.InfrastructureProviders,
+					IPAMProviders:             upgrade.IPAMProviders,
+					RuntimeExtensionProviders: upgrade.RuntimeExtensionProviders,
+					AddonProviders:            upgrade.AddonProviders,
+					LogFolder:                 managementClusterLogFolder,
+				}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
+			} else {
+				Byf("[%d] Upgrading providers to the latest version available", i)
+				clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
+					ClusterctlBinaryPath: clusterctlUpgradeBinaryPath, // use specific version of clusterctl to upgrade the management cluster (if set)
+					ClusterctlConfigPath: clusterctlUpgradeConfigPath,
+					ClusterctlVariables:  input.UpgradeClusterctlVariables,
+					ClusterProxy:         managementClusterProxy,
+					Contract:             upgrade.Contract,
+					LogFolder:            managementClusterLogFolder,
+				}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
+			}
+
+			Byf("[%d] THE MANAGEMENT CLUSTER WAS SUCCESSFULLY UPGRADED!", i)
+
+			// We have to get the core CAPI storage version again as the upgrade might have stopped serving v1alpha3/v1alpha4.
+			coreCAPIStorageVersion = getCoreCAPIStorageVersion(ctx, managementClusterProxy.GetClient())
+
+			// Note: Currently we only support v1beta1 core CAPI apiVersion after upgrades.
+			// This seems a reasonable simplification as we don't want to test upgrades to v1alpha3 / v1alpha4.
+			workloadCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+				Getter:    managementClusterProxy.GetClient(),
+				Namespace: workloadClusterNamespace,
+				Name:      workloadClusterName,
+			}, input.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+
+			if input.PostUpgrade != nil {
+				Byf("[%d] Running Post-upgrade steps against the management cluster", i)
+				input.PostUpgrade(managementClusterProxy, workloadClusterNamespace, managementClusterName)
+			}
+
+			// After the upgrade check that MachineList is available. This ensures the APIServer is serving without
+			// error before checking that it `Consistently` returns the MachineList later on.
+			Byf("[%d] Waiting for MachineList to be available", i)
+			Eventually(func() error {
+				postUpgradeMachineList := &unstructured.UnstructuredList{}
+				postUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
+					Group:   clusterv1.GroupVersion.Group,
+					Version: coreCAPIStorageVersion,
+					Kind:    "MachineList",
+				})
+				err = managementClusterProxy.GetClient().List(
+					ctx,
+					postUpgradeMachineList,
+					client.InNamespace(workloadCluster.GetNamespace()),
+					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
+				)
+				return err
+			}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
+
+			// After the upgrade check that there were no unexpected rollouts.
+			Byf("[%d] Verify there are no unexpected rollouts", i)
+			Consistently(func() bool {
+				postUpgradeMachineList := &unstructured.UnstructuredList{}
+				postUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
+					Group:   clusterv1.GroupVersion.Group,
+					Version: coreCAPIStorageVersion,
+					Kind:    "MachineList",
+				})
+				err = managementClusterProxy.GetClient().List(
+					ctx,
+					postUpgradeMachineList,
+					client.InNamespace(workloadCluster.GetNamespace()),
+					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
+				)
+				Expect(err).ToNot(HaveOccurred())
+				return validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)
+			}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
+
+			// Scale up to 2 and back down to 1 so we can repeat this multiple times.
+			Byf("[%d] Scale MachineDeployment to ensure the providers work", i)
+			if workloadCluster.Spec.Topology != nil {
+				// Cluster is using ClusterClass, scale up via topology.
+				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
+					ClusterProxy:              managementClusterProxy,
+					Cluster:                   workloadCluster,
+					Replicas:                  2,
+					WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+				})
+				framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
+					ClusterProxy:              managementClusterProxy,
+					Cluster:                   workloadCluster,
+					Replicas:                  1,
+					WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+				})
+			} else {
+				// Cluster is not using ClusterClass, scale up via MachineDeployment.
+				testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
+					Lister:      managementClusterProxy.GetClient(),
+					ClusterName: workloadClusterName,
+					Namespace:   workloadClusterNamespace,
+				})
+				if len(testMachineDeployments) > 0 {
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+						ClusterProxy:              managementClusterProxy,
+						Cluster:                   workloadCluster,
+						MachineDeployment:         testMachineDeployments[0],
+						Replicas:                  2,
+						WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+					})
+					framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+						ClusterProxy:              managementClusterProxy,
+						Cluster:                   workloadCluster,
+						MachineDeployment:         testMachineDeployments[0],
+						Replicas:                  1,
+						WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+					})
+				} else {
+					Byf("[%d] No MachineDeployments found to scale", i)
+				}
+			}
+
+			Byf("[%d] Verify client-side SSA still works", i)
+			clusterUpdate := &unstructured.Unstructured{}
+			clusterUpdate.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("Cluster"))
+			clusterUpdate.SetNamespace(workloadCluster.Namespace)
+			clusterUpdate.SetName(workloadCluster.Name)
+			clusterUpdate.SetLabels(map[string]string{
+				fmt.Sprintf("test-label-upgrade-%d", i): "test-label-value",
 			})
-		} else {
-			// Cluster is not using ClusterClass, scale up via MachineDeployment.
-			testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
-				Lister:      managementClusterProxy.GetClient(),
-				ClusterName: workLoadClusterName,
-				Namespace:   testNamespace.Name,
-			})
-			framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
-				ClusterProxy:              managementClusterProxy,
-				Cluster:                   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace.Name}},
-				MachineDeployment:         testMachineDeployments[0],
-				Replicas:                  2,
-				WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-			})
+			err = managementClusterProxy.GetClient().Patch(ctx, clusterUpdate, client.Apply, client.FieldOwner("e2e-test-client"))
+			Expect(err).ToNot(HaveOccurred())
+
+			Byf("[%d] THE UPGRADED MANAGEMENT CLUSTER WORKS!", i)
 		}
-
-		By("THE UPGRADED MANAGEMENT CLUSTER WORKS!")
 
 		By("PASSED!")
 	})
@@ -490,40 +708,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 	AfterEach(func() {
 		if testNamespace != nil {
 			// Dump all the logs from the workload cluster before deleting them.
-			managementClusterProxy.CollectWorkloadClusterLogs(ctx, testNamespace.Name, managementClusterName, filepath.Join(input.ArtifactFolder, "clusters", managementClusterName, "machines"))
-
-			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-				Lister:    managementClusterProxy.GetClient(),
-				Namespace: testNamespace.Name,
-				LogPath:   filepath.Join(input.ArtifactFolder, "clusters", managementClusterResources.Cluster.Name, "resources"),
-			})
+			framework.DumpAllResourcesAndLogs(ctx, managementClusterProxy, input.ArtifactFolder, testNamespace, managementClusterResources.Cluster)
 
 			if !input.SkipCleanup {
-				switch {
-				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1.GroupVersion) == nil:
-					Byf("Deleting all %s clusters in namespace %s in management cluster %s", clusterv1.GroupVersion, testNamespace.Name, managementClusterName)
-					framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-						Client:    managementClusterProxy.GetClient(),
-						Namespace: testNamespace.Name,
-					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
-				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1alpha4.GroupVersion) == nil:
-					Byf("Deleting all %s clusters in namespace %s in management cluster %s", clusterv1alpha4.GroupVersion, testNamespace.Name, managementClusterName)
-					deleteAllClustersAndWaitV1alpha4(ctx, framework.DeleteAllClustersAndWaitInput{
-						Client:    managementClusterProxy.GetClient(),
-						Namespace: testNamespace.Name,
-					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
-				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1alpha3.GroupVersion) == nil:
-					Byf("Deleting all %s clusters in namespace %s in management cluster %s", clusterv1alpha3.GroupVersion, testNamespace.Name, managementClusterName)
-					deleteAllClustersAndWaitV1alpha3(ctx, framework.DeleteAllClustersAndWaitInput{
-						Client:    managementClusterProxy.GetClient(),
-						Namespace: testNamespace.Name,
-					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
-				default:
-					log.Logf("Management Cluster does not appear to support CAPI resources.")
-				}
-
-				Byf("Deleting cluster %s", klog.KRef(testNamespace.Name, managementClusterName))
-				framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
+				Byf("Deleting all clusters in namespace %s in management cluster %s", testNamespace.Name, managementClusterName)
+				deleteAllClustersAndWait(ctx, deleteAllClustersAndWaitInput{
 					Client:    managementClusterProxy.GetClient(),
 					Namespace: testNamespace.Name,
 				}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
@@ -548,9 +737,27 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			By("Running PreCleanupManagementCluster steps against the management cluster")
 			input.PreCleanupManagementCluster(managementClusterProxy)
 		}
+
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
-		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		if input.UseKindForManagementCluster {
+			managementClusterProxy.Dispose(ctx)
+			managementClusterProvider.Dispose(ctx)
+		} else {
+			framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		}
 	})
+}
+
+func setupClusterctl(ctx context.Context, clusterctlBinaryURL, clusterctlConfigPath string) (string, string) {
+	clusterctlBinaryPath := downloadToTmpFile(ctx, clusterctlBinaryURL)
+
+	err := os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
+	Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
+
+	// Adjusts the clusterctlConfigPath in case the clusterctl version <= v1.3 (thus using a config file with only the providers supported in those versions)
+	clusterctlConfigPath = clusterctl.AdjustConfigPathForBinary(clusterctlBinaryPath, clusterctlConfigPath)
+
+	return clusterctlBinaryPath, clusterctlConfigPath
 }
 
 func downloadToTmpFile(ctx context.Context, url string) string {
@@ -573,165 +780,294 @@ func downloadToTmpFile(ctx context.Context, url string) string {
 	return tmpFile.Name()
 }
 
-// deleteAllClustersAndWaitV1alpha3 deletes all cluster resources in the given namespace and waits for them to be gone using the older API.
-func deleteAllClustersAndWaitV1alpha3(ctx context.Context, input framework.DeleteAllClustersAndWaitInput, intervals ...interface{}) {
+func getCoreCAPIStorageVersion(ctx context.Context, c client.Client) string {
+	clusterCRD := &apiextensionsv1.CustomResourceDefinition{}
+	if err := c.Get(ctx, client.ObjectKey{Name: "clusters.cluster.x-k8s.io"}, clusterCRD); err != nil {
+		Expect(err).ToNot(HaveOccurred(), "failed to retrieve a machine CRD")
+	}
+	// Pick the storage version
+	for _, version := range clusterCRD.Spec.Versions {
+		if version.Storage {
+			return version.Name
+		}
+	}
+	Fail("Cluster CRD has no storage version")
+	return ""
+}
+
+// discoveryAndWaitForClusterInput is the input type for DiscoveryAndWaitForCluster.
+type discoveryAndWaitForClusterInput struct {
+	Client                 client.Client
+	CoreCAPIStorageVersion string
+	Namespace              string
+	Name                   string
+}
+
+// discoveryAndWaitForCluster discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
+func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForClusterInput, intervals ...interface{}) *unstructured.Unstructured {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for discoveryAndWaitForCluster")
+	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling discoveryAndWaitForCluster")
+	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling discoveryAndWaitForCluster")
+	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling discoveryAndWaitForCluster")
+
+	cluster := &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   clusterv1.GroupVersion.Group,
+		Version: input.CoreCAPIStorageVersion,
+		Kind:    "Cluster",
+	})
+	Eventually(func(g Gomega) {
+		key := client.ObjectKey{
+			Namespace: input.Namespace,
+			Name:      input.Name,
+		}
+		g.Expect(input.Client.Get(ctx, key, cluster)).To(Succeed())
+
+		clusterPhase, ok, err := unstructured.NestedString(cluster.Object, "status", "phase")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ok).To(BeTrue(), "could not get status.phase field")
+		g.Expect(clusterPhase).To(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision")
+	}, intervals...).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(input.Namespace, input.Name))
+
+	return cluster
+}
+
+func calculateExpectedMachineDeploymentMachineCount(ctx context.Context, c client.Client, unstructuredCluster *unstructured.Unstructured, coreCAPIStorageVersion string) int64 {
+	var expectedMachineDeploymentWorkerCount int64
+
+	// Convert v1beta1 unstructured Cluster to clusterv1.Cluster
+	// Only v1beta1 Cluster support ClusterClass (i.e. have cluster.spec.topology).
+	if unstructuredCluster.GroupVersionKind().Version == clusterv1.GroupVersion.Version {
+		cluster := &clusterv1.Cluster{}
+		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())
+
+		if cluster.Spec.Topology != nil {
+			if cluster.Spec.Topology.Workers != nil {
+				for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+					if md.Replicas == nil {
+						continue
+					}
+					expectedMachineDeploymentWorkerCount += int64(*md.Replicas)
+				}
+			}
+			return expectedMachineDeploymentWorkerCount
+		}
+	}
+
+	byClusterOptions := []client.ListOption{
+		client.InNamespace(unstructuredCluster.GetNamespace()),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: unstructuredCluster.GetName()},
+	}
+
+	machineDeploymentList := &unstructured.UnstructuredList{}
+	machineDeploymentList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   clusterv1.GroupVersion.Group,
+		Version: coreCAPIStorageVersion,
+		Kind:    "MachineDeploymentList",
+	})
+	Eventually(func() error {
+		return c.List(ctx, machineDeploymentList, byClusterOptions...)
+	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list MachineDeployments object for Cluster %s", klog.KObj(unstructuredCluster))
+	for _, md := range machineDeploymentList.Items {
+		replicas, ok, err := unstructured.NestedInt64(md.Object, "spec", "replicas")
+		Expect(err).ToNot(HaveOccurred())
+		if !ok {
+			continue
+		}
+		expectedMachineDeploymentWorkerCount += replicas
+	}
+
+	return expectedMachineDeploymentWorkerCount
+}
+
+func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Client, workloadClusterNamespace, workloadClusterName string) (int64, error) {
+	expectedMachinePoolMachineCount := int64(0)
+
+	machinePoolList := &expv1.MachinePoolList{}
+	if err := c.List(
+		ctx,
+		machinePoolList,
+		client.InNamespace(workloadClusterNamespace),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
+	); err == nil {
+		for _, mp := range machinePoolList.Items {
+			mp := mp
+			infraMachinePool, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef, workloadClusterNamespace)
+			if err != nil {
+				return 0, err
+			}
+			// Check if the InfraMachinePool has an infrastructureMachineKind field. If it does not, we should skip checking for MachinePool machines.
+			err = util.UnstructuredUnmarshalField(infraMachinePool, ptr.To(""), "status", "infrastructureMachineKind")
+			if err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
+				return 0, err
+			}
+			if err == nil {
+				expectedMachinePoolMachineCount += int64(*mp.Spec.Replicas)
+			}
+		}
+	}
+
+	return expectedMachinePoolMachineCount, nil
+}
+
+func calculateExpectedMachinePoolNodeCount(ctx context.Context, c client.Client, unstructuredCluster *unstructured.Unstructured, coreCAPIStorageVersion string) int64 {
+	var expectedMachinePoolWorkerCount int64
+
+	// Convert v1beta1 unstructured Cluster to clusterv1.Cluster
+	// Only v1beta1 Cluster support ClusterClass (i.e. have cluster.spec.topology).
+	if unstructuredCluster.GroupVersionKind().Version == clusterv1.GroupVersion.Version {
+		cluster := &clusterv1.Cluster{}
+		Expect(apiruntime.DefaultUnstructuredConverter.FromUnstructured(unstructuredCluster.Object, cluster)).To(Succeed())
+
+		if cluster.Spec.Topology != nil {
+			if cluster.Spec.Topology.Workers != nil {
+				for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
+					if mp.Replicas == nil {
+						continue
+					}
+					expectedMachinePoolWorkerCount += int64(*mp.Replicas)
+				}
+			}
+			return expectedMachinePoolWorkerCount
+		}
+	}
+
+	byClusterOptions := []client.ListOption{
+		client.InNamespace(unstructuredCluster.GetNamespace()),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: unstructuredCluster.GetName()},
+	}
+
+	machinePoolList := &unstructured.UnstructuredList{}
+	machinePoolGroup := clusterv1.GroupVersion.Group
+	if coreCAPIStorageVersion == "v1alpha3" {
+		machinePoolGroup = "exp.cluster.x-k8s.io"
+	}
+	machinePoolList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   machinePoolGroup,
+		Version: coreCAPIStorageVersion,
+		Kind:    "MachinePoolList",
+	})
+	Eventually(func() error {
+		return c.List(ctx, machinePoolList, byClusterOptions...)
+	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "Failed to list MachinePool object for Cluster %s", klog.KObj(unstructuredCluster))
+	for _, mp := range machinePoolList.Items {
+		replicas, ok, err := unstructured.NestedInt64(mp.Object, "spec", "replicas")
+		Expect(err).ToNot(HaveOccurred())
+		if !ok {
+			continue
+		}
+		expectedMachinePoolWorkerCount += replicas
+	}
+
+	return expectedMachinePoolWorkerCount
+}
+
+// deleteAllClustersAndWaitInput is the input type for deleteAllClustersAndWait.
+type deleteAllClustersAndWaitInput struct {
+	Client    client.Client
+	Namespace string
+}
+
+// deleteAllClustersAndWait deletes all cluster resources in the given namespace and waits for them to be gone.
+func deleteAllClustersAndWait(ctx context.Context, input deleteAllClustersAndWaitInput, intervals ...interface{}) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for deleteAllClustersAndWaitOldAPI")
 	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling deleteAllClustersAndWaitOldAPI")
 	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling deleteAllClustersAndWaitOldAPI")
 
-	clusters := getAllClustersByNamespaceV1alpha3(ctx, framework.GetAllClustersByNamespaceInput{
-		Lister:    input.Client,
-		Namespace: input.Namespace,
+	coreCAPIStorageVersion := getCoreCAPIStorageVersion(ctx, input.Client)
+
+	clusterList := &unstructured.UnstructuredList{}
+	clusterList.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   clusterv1.GroupVersion.Group,
+		Version: coreCAPIStorageVersion,
+		Kind:    "ClusterList",
 	})
+	Expect(input.Client.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
 
-	for _, c := range clusters {
-		deleteClusterV1alpha3(ctx, deleteClusterV1alpha3Input{
-			Deleter: input.Client,
-			Cluster: c,
-		})
+	// Enforce restart of kube-controller-manager by stealing its lease.
+	// Note: Due to a known issue in the kube-controller-manager we have to restart it
+	// in case the kube-controller-manager internally caches ownerRefs of apiVersions
+	// which now don't exist anymore (e.g. v1alpha3/v1alpha4).
+	// Alternatives to this would be:
+	// * some other way to restart the kube-controller-manager (e.g. control plane node rollout)
+	// * removing ownerRefs from (at least) MachineDeployments
+	Eventually(func(g Gomega) {
+		kubeControllerManagerLease := &coordinationv1.Lease{}
+		g.Expect(input.Client.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceSystem, Name: "kube-controller-manager"}, kubeControllerManagerLease)).To(Succeed())
+		// As soon as the kube-controller-manager detects it doesn't own the lease anymore it will restart.
+		// Once the current lease times out the kube-controller-manager will become leader again.
+		kubeControllerManagerLease.Spec.HolderIdentity = ptr.To("e2e-test-client")
+		g.Expect(input.Client.Update(ctx, kubeControllerManagerLease)).To(Succeed())
+	}, 3*time.Minute, 3*time.Second).Should(Succeed(), "failed to steal lease from kube-controller-manager to trigger restart")
+
+	for _, c := range clusterList.Items {
+		Byf("Deleting cluster %s", c.GetName())
+		Expect(input.Client.Delete(ctx, c.DeepCopy())).To(Succeed())
 	}
 
-	for _, c := range clusters {
-		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
-		waitForClusterDeletedV1alpha3(ctx, waitForClusterDeletedV1alpha3Input{
-			Getter:  input.Client,
-			Cluster: c,
-		}, intervals...)
-	}
-}
-
-// getAllClustersByNamespaceV1alpha3 returns the list of Cluster objects in a namespace using the older API.
-func getAllClustersByNamespaceV1alpha3(ctx context.Context, input framework.GetAllClustersByNamespaceInput) []*clusterv1alpha3.Cluster {
-	clusterList := &clusterv1alpha3.ClusterList{}
-	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
-
-	clusters := make([]*clusterv1alpha3.Cluster, len(clusterList.Items))
-	for i := range clusterList.Items {
-		clusters[i] = &clusterList.Items[i]
-	}
-	return clusters
-}
-
-// deleteClusterV1alpha3Input is the input for deleteClusterV1alpha3.
-type deleteClusterV1alpha3Input struct {
-	Deleter framework.Deleter
-	Cluster *clusterv1alpha3.Cluster
-}
-
-// deleteClusterV1alpha3 deletes the cluster and waits for everything the cluster owned to actually be gone using the older API.
-func deleteClusterV1alpha3(ctx context.Context, input deleteClusterV1alpha3Input) {
-	Byf("Deleting cluster %s", input.Cluster.GetName())
-	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
-}
-
-// waitForClusterDeletedV1alpha3Input is the input for waitForClusterDeletedV1alpha3.
-type waitForClusterDeletedV1alpha3Input struct {
-	Getter  framework.Getter
-	Cluster *clusterv1alpha3.Cluster
-}
-
-// waitForClusterDeletedV1alpha3 waits until the cluster object has been deleted using the older API.
-func waitForClusterDeletedV1alpha3(ctx context.Context, input waitForClusterDeletedV1alpha3Input, intervals ...interface{}) {
-	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
-	Eventually(func() bool {
-		cluster := &clusterv1alpha3.Cluster{}
-		key := client.ObjectKey{
-			Namespace: input.Cluster.GetNamespace(),
-			Name:      input.Cluster.GetName(),
-		}
-		return apierrors.IsNotFound(input.Getter.Get(ctx, key, cluster))
-	}, intervals...).Should(BeTrue())
-}
-
-// deleteAllClustersAndWaitV1alpha4 deletes all cluster resources in the given namespace and waits for them to be gone using the older API.
-func deleteAllClustersAndWaitV1alpha4(ctx context.Context, input framework.DeleteAllClustersAndWaitInput, intervals ...interface{}) {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for deleteAllClustersAndWaitOldAPI")
-	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling deleteAllClustersAndWaitOldAPI")
-	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling deleteAllClustersAndWaitOldAPI")
-
-	clusters := getAllClustersByNamespaceV1alpha4(ctx, framework.GetAllClustersByNamespaceInput{
-		Lister:    input.Client,
-		Namespace: input.Namespace,
-	})
-
-	for _, c := range clusters {
-		deleteClusterV1alpha4(ctx, deleteClusterV1alpha4Input{
-			Deleter: input.Client,
-			Cluster: c,
-		})
-	}
-
-	for _, c := range clusters {
-		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
-		waitForClusterDeletedV1alpha4(ctx, waitForClusterDeletedV1alpha4Input{
-			Getter:  input.Client,
-			Cluster: c,
-		}, intervals...)
+	for _, c := range clusterList.Items {
+		Byf("Waiting for cluster %s to be deleted", c.GetName())
+		Eventually(func() bool {
+			cluster := c.DeepCopy()
+			key := client.ObjectKey{
+				Namespace: c.GetNamespace(),
+				Name:      c.GetName(),
+			}
+			return apierrors.IsNotFound(input.Client.Get(ctx, key, cluster))
+		}, intervals...).Should(BeTrue())
 	}
 }
 
-// getAllClustersByNamespaceV1alpha4 returns the list of Cluster objects in a namespace using the older API.
-func getAllClustersByNamespaceV1alpha4(ctx context.Context, input framework.GetAllClustersByNamespaceInput) []*clusterv1alpha4.Cluster {
-	clusterList := &clusterv1alpha4.ClusterList{}
-	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
-
-	clusters := make([]*clusterv1alpha4.Cluster, len(clusterList.Items))
-	for i := range clusterList.Items {
-		clusters[i] = &clusterList.Items[i]
-	}
-	return clusters
-}
-
-// deleteClusterV1alpha4Input is the input for deleteClusterV1alpha4.
-type deleteClusterV1alpha4Input struct {
-	Deleter framework.Deleter
-	Cluster *clusterv1alpha4.Cluster
-}
-
-// deleteClusterV1alpha4 deletes the cluster and waits for everything the cluster owned to actually be gone using the older API.
-func deleteClusterV1alpha4(ctx context.Context, input deleteClusterV1alpha4Input) {
-	Byf("Deleting cluster %s", input.Cluster.GetName())
-	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
-}
-
-// waitForClusterDeletedV1alpha4Input is the input for waitForClusterDeletedV1alpha4.
-type waitForClusterDeletedV1alpha4Input struct {
-	Getter  framework.Getter
-	Cluster *clusterv1alpha4.Cluster
-}
-
-// waitForClusterDeletedV1alpha4 waits until the cluster object has been deleted using the older API.
-func waitForClusterDeletedV1alpha4(ctx context.Context, input waitForClusterDeletedV1alpha4Input, intervals ...interface{}) {
-	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
-	Eventually(func() bool {
-		cluster := &clusterv1alpha4.Cluster{}
-		key := client.ObjectKey{
-			Namespace: input.Cluster.GetNamespace(),
-			Name:      input.Cluster.GetName(),
-		}
-		return apierrors.IsNotFound(input.Getter.Get(ctx, key, cluster))
-	}, intervals...).Should(BeTrue())
-}
-
-func matchUnstructuredLists(l1 *unstructured.UnstructuredList, l2 *unstructured.UnstructuredList) bool {
-	if l1 == nil && l2 == nil {
+// validateMachineRollout compares preMachineList and postMachineList to detect a rollout.
+// Note: we are using unstructured lists because the Machines have different apiVersions.
+func validateMachineRollout(preMachineList, postMachineList *unstructured.UnstructuredList) bool {
+	if preMachineList == nil && postMachineList == nil {
 		return true
 	}
-	if l1 == nil || l2 == nil {
+	if preMachineList == nil || postMachineList == nil {
 		return false
 	}
-	if len(l1.Items) != len(l2.Items) {
-		return false
+
+	if names(preMachineList).Equal(names(postMachineList)) {
+		return true
 	}
-	s1 := sets.Set[string]{}
-	for _, i := range l1.Items {
-		s1.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
+
+	log.Logf("Rollout detected (%d Machines before, %d Machines after)", len(preMachineList.Items), len(postMachineList.Items))
+	newMachines := names(postMachineList).Difference(names(preMachineList))
+	deletedMachines := names(preMachineList).Difference(names(postMachineList))
+
+	if len(newMachines) > 0 {
+		log.Logf("Detected new Machines")
+		for _, obj := range postMachineList.Items {
+			obj := obj
+			if newMachines.Has(obj.GetName()) {
+				resourceYAML, err := yaml.Marshal(obj)
+				Expect(err).ToNot(HaveOccurred())
+				log.Logf("New Machine %s:\n%s", klog.KObj(&obj), resourceYAML)
+			}
+		}
 	}
-	s2 := sets.Set[string]{}
-	for _, i := range l2.Items {
-		s2.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
+
+	if len(deletedMachines) > 0 {
+		log.Logf("Detected deleted Machines")
+		for _, obj := range preMachineList.Items {
+			obj := obj
+			if deletedMachines.Has(obj.GetName()) {
+				resourceYAML, err := yaml.Marshal(obj)
+				Expect(err).ToNot(HaveOccurred())
+				log.Logf("Deleted Machine %s:\n%s", klog.KObj(&obj), resourceYAML)
+			}
+		}
 	}
-	return s1.Equal(s2)
+	return false
+}
+
+func names(objs *unstructured.UnstructuredList) sets.Set[string] {
+	ret := sets.Set[string]{}
+	for _, obj := range objs.Items {
+		ret.Insert(obj.GetName())
+	}
+	return ret
 }
 
 // getValueOrFallback returns the input value unless it is empty, then it returns the fallback input.

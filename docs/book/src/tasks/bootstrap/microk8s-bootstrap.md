@@ -85,7 +85,7 @@ Some of the configuration options available via `MicroK8sConfig` are:
 
 ### How does CABPM work?
 
-The main purpose of the MicroK8s bootstrap provider is to translate the users needs to the a number of cloud-init files applicable for each type of cluster nodes. There are three types of cloud-inits:
+The main purpose of the MicroK8s bootstrap provider is to translate the users needs to a number of cloud-init files applicable for each type of cluster nodes. There are three types of cloud-inits:
 
   - The first node cloud-init. That node will be a control plane node and will be the one where the addons are enabled.
   - The control plane node cloud-init. The control plane nodes need to join a cluster and contribute to its HA.

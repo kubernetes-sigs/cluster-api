@@ -1,0 +1,6 @@
+resources:
+- ../bases/cluster-with-topology.yaml
+- ../bases/crs.yaml
+
+patches:
+- path: cluster.yaml

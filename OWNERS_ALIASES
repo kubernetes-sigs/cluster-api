@@ -14,12 +14,12 @@ aliases:
   # active folks who can be contacted to perform admin-related
   # tasks on the repo, or otherwise approve any PRS.
   cluster-api-admins:
-  - CecileRobertMichon
+  - fabriziopandini
   - vincepri
 
   # non-admin folks who have write-access and can approve any PRs in the repo
   cluster-api-maintainers:
-  - CecileRobertMichon
+  - chrischdi
   - enxebre
   - fabriziopandini
   - killianmuldoon
@@ -32,7 +32,6 @@ aliases:
   - JoelSpeed
   - richardcase
   - stmcginnis
-  - ykakarap
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controllers/topology
@@ -40,7 +39,6 @@ aliases:
 
   cluster-api-topology-maintainers:
   cluster-api-topology-reviewers:
-  - chrischdi
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm
@@ -73,7 +71,6 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-clusterctl-maintainers:
-  - ykakarap
   cluster-api-clusterctl-reviewers:
   - Jont828
 
@@ -83,7 +80,6 @@ aliases:
 
   cluster-api-test-maintainers:
   cluster-api-test-reviewers:
-  - chrischdi
   - elmiko
 
   # -----------------------------------------------------------
@@ -92,7 +88,6 @@ aliases:
 
   cluster-api-test-framework-maintainers:
   cluster-api-test-framework-reviewers:
-  - chrischdi
   - elmiko
 
   # -----------------------------------------------------------
@@ -101,8 +96,14 @@ aliases:
 
   cluster-api-provider-docker-maintainers:
   cluster-api-provider-docker-reviewers:
-  - chrischdi
   - elmiko
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for test/infrastructure/inmemory
+  # -----------------------------------------------------------
+
+  cluster-api-provider-inmemory-maintainers:
+  cluster-api-provider-inmemory-reviewers:
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs
@@ -112,3 +113,31 @@ aliases:
   - oscr
   cluster-api-docs-reviewers:
   - elmiko
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for v1.6 release-team
+  # -----------------------------------------------------------
+
+  cluster-api-release-lead:
+  - adilGhaffarDev
+
+  cluster-api-release-team:
+  # members added in commented lines have a pending membership
+  # and will be added back once it is acquired.
+  - adilGhaffarDev # release lead
+  # - chandankumar4 # release comms lead
+  - chiukapoor
+  # - dhij
+  - hackeramitkumar
+  - jayesh-srivastava
+  # - kperath
+  # - meatballhat
+  # - Nivedita-coder
+  - pravarag
+  # - rajankumary2k
+  # - shipra101
+  # - smoshiur1237
+  # - Sunnatillo # release ci lead
+  - troy0820
+  - vishalanarase
+  - willie-yao

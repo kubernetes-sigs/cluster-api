@@ -1,5 +1,13 @@
 # clusterctl alpha topology plan
 
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+"clusterctl alpha topology plan" is deprecated and will be removed in one of the upcoming releases. For more details, please see [#10138](https://github.com/kubernetes-sigs/cluster-api/issues/10138). 
+
+</aside>
+
 The `clusterctl alpha topology plan` command can be used to get a plan of how a Cluster topology evolves given
 file(s) containing resources to be applied to a Cluster.
 
@@ -127,22 +135,12 @@ spec:
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:
         clusterConfiguration:
-          controllerManager:
-            extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:
             certSANs: [ localhost, 127.0.0.1 ]
         initConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
         joinConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -174,10 +172,7 @@ spec:
   template:
     spec:
       joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs:
-            cgroup-driver: cgroupfs
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ```
 
 </details>
@@ -485,4 +480,3 @@ If only one cluster is affected or if a Cluster is in the input it defaults as t
 Namespace used for objects with missing namespaces in the input.
 
 If not provided, the namespace defined in kubeconfig is used. If a kubeconfig is not available the value `default` is used.
-

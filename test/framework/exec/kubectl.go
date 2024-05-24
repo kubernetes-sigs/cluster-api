@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // KubectlApply shells out to kubectl apply.
@@ -34,13 +35,16 @@ func KubectlApply(ctx context.Context, kubeconfigPath string, resources []byte, 
 		WithArgs(aargs...),
 		WithStdin(rbytes),
 	)
+
+	fmt.Printf("Running kubectl %s\n", strings.Join(aargs, " "))
 	stdout, stderr, err := applyCmd.Run(ctx)
-	if err != nil {
-		fmt.Println(string(stderr))
-		return err
+	if len(stderr) > 0 {
+		fmt.Printf("stderr:\n%s\n", string(stderr))
 	}
-	fmt.Println(string(stdout))
-	return nil
+	if len(stdout) > 0 {
+		fmt.Printf("stdout:\n%s\n", string(stdout))
+	}
+	return err
 }
 
 // KubectlWait shells out to kubectl wait.

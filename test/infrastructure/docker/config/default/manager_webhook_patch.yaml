@@ -19,5 +19,5 @@ spec:
       volumes:
       - name: cert
         secret:
-          secretName: $(SERVICE_NAME)-cert # this secret will not be prefixed, since it's not managed by kustomize
+          secretName: capd-webhook-service-cert # this secret will not be prefixed, since it's not managed by kustomize
 

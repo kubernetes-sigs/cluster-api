@@ -2,14 +2,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: manager-role
 rules:
 - apiGroups:
   - ""
   resources:
   - configmaps
-  - events
   - secrets
   verbs:
   - create
@@ -20,10 +18,21 @@ rules:
   - update
   - watch
 - apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+- apiGroups:
   - bootstrap.cluster.x-k8s.io
   resources:
   - kubeadmconfigs
-  - kubeadmconfigs/finalizers
   - kubeadmconfigs/status
   verbs:
   - create
@@ -47,3 +56,9 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create

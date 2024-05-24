@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -68,7 +68,7 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 	}
 
 	out, err := NewInitControlPlane(cpinput)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedFiles := []string{
 		`-   path: /tmp/my-path
@@ -114,7 +114,7 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 	}
 
 	out, err := NewInitControlPlane(cpinput)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedCommands := []string{
 		`"\"echo $(date) ': hello world!'\""`,
@@ -141,8 +141,8 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 					{
 						Device:    "test-device",
 						Layout:    true,
-						Overwrite: pointer.Bool(false),
-						TableType: pointer.String("gpt"),
+						Overwrite: ptr.To(false),
+						TableType: ptr.To("gpt"),
 					},
 				},
 				Filesystems: []bootstrapv1.Filesystem{
@@ -164,7 +164,7 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 	}
 
 	out, err := NewInitControlPlane(cpinput)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedDiskSetup := `disk_setup:
   test-device:
@@ -224,7 +224,7 @@ func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {
 	}
 
 	out, err := NewJoinControlPlane(cpinput)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedFiles := []string{
 		`-   path: /tmp/my-path
@@ -266,7 +266,7 @@ func TestNewJoinControlPlaneExperimentalRetry(t *testing.T) {
 	}
 
 	out, err := NewJoinControlPlane(cpinput)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedFiles := []string{
 		`-   path: ` + retriableJoinScriptName + `

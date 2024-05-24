@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: metadata.clusterctl.cluster.x-k8s.io
 spec:
   group: clusterctl.cluster.x-k8s.io
@@ -21,14 +20,19 @@ spec:
         description: Metadata for a provider repository.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -38,8 +42,11 @@ spec:
                 with a API Version of Cluster API (contract).
               properties:
                 contract:
-                  description: "Contract defines the Cluster API contract supported
-                    by this series. \n The value is an API Version, e.g. `v1alpha3`."
+                  description: |-
+                    Contract defines the Cluster API contract supported by this series.
+
+
+                    The value is an API Version, e.g. `v1alpha3`.
                   type: string
                 major:
                   description: Major version of the release series

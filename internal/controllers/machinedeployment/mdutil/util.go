@@ -18,6 +18,7 @@ limitations under the License.
 package mdutil
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
@@ -33,6 +34,7 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/integer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conversion"
@@ -114,13 +116,14 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 }
 
 // MaxRevision finds the highest revision in the machine sets.
-func MaxRevision(allMSs []*clusterv1.MachineSet, logger logr.Logger) int64 {
+func MaxRevision(ctx context.Context, allMSs []*clusterv1.MachineSet) int64 {
+	log := ctrl.LoggerFrom(ctx)
+
 	max := int64(0)
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
 			// Skip the machine sets when it failed to parse their revision information
-			logger.Error(err, "Couldn't parse revision for machine set, deployment controller will skip it when reconciling revisions",
-				"machineset", ms.Name)
+			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", ms.Name))
 		} else if v > max {
 			max = v
 		}
@@ -185,7 +188,7 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 
 // ComputeMachineSetAnnotations computes the annotations that should be set on the MachineSet.
 // Note: The passed in newMS is nil if the new MachineSet doesn't exist in the apiserver yet.
-func ComputeMachineSetAnnotations(log logr.Logger, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (map[string]string, error) {
+func ComputeMachineSetAnnotations(ctx context.Context, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (map[string]string, error) {
 	// Copy annotations from Deployment annotations while filtering out some annotations
 	// that we don't want to propagate.
 	annotations := map[string]string{}
@@ -199,7 +202,7 @@ func ComputeMachineSetAnnotations(log logr.Logger, deployment *clusterv1.Machine
 	// The newMS's revision should be the greatest among all MSes. Usually, its revision number is newRevision (the max revision number
 	// of all old MSes + 1). However, it's possible that some old MSes are deleted after the newMS revision being updated, and
 	// newRevision becomes smaller than newMS's revision. We will never decrease a revision of a MachineSet.
-	maxOldRevision := MaxRevision(oldMSs, log)
+	maxOldRevision := MaxRevision(ctx, oldMSs)
 	newRevisionInt := maxOldRevision + 1
 	newRevision := strconv.FormatInt(newRevisionInt, 10)
 	if newMS != nil {
@@ -322,42 +325,42 @@ func MaxSurge(deployment clusterv1.MachineDeployment) int32 {
 // GetProportion will estimate the proportion for the provided machine set using 1. the current size
 // of the parent deployment, 2. the replica count that needs be added on the machine sets of the
 // deployment, and 3. the total replicas added in the machine sets of the deployment so far.
-func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32, logger logr.Logger) int32 {
+func GetProportion(ms *clusterv1.MachineSet, md clusterv1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32, logger logr.Logger) int32 {
 	if ms == nil || *(ms.Spec.Replicas) == 0 || deploymentReplicasToAdd == 0 || deploymentReplicasToAdd == deploymentReplicasAdded {
 		return int32(0)
 	}
 
-	msFraction := getMachineSetFraction(*ms, d, logger)
+	msFraction := getMachineSetFraction(*ms, md, logger)
 	allowed := deploymentReplicasToAdd - deploymentReplicasAdded
 
 	if deploymentReplicasToAdd > 0 {
 		// Use the minimum between the machine set fraction and the maximum allowed replicas
 		// when scaling up. This way we ensure we will not scale up more than the allowed
 		// replicas we can add.
-		return integer.Int32Min(msFraction, allowed)
+		return min(msFraction, allowed)
 	}
 	// Use the maximum between the machine set fraction and the maximum allowed replicas
 	// when scaling down. This way we ensure we will not scale down more than the allowed
 	// replicas we can remove.
-	return integer.Int32Max(msFraction, allowed)
+	return max(msFraction, allowed)
 }
 
 // getMachineSetFraction estimates the fraction of replicas a machine set can have in
 // 1. a scaling event during a rollout or 2. when scaling a paused deployment.
-func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeployment, logger logr.Logger) int32 {
+func getMachineSetFraction(ms clusterv1.MachineSet, md clusterv1.MachineDeployment, logger logr.Logger) int32 {
 	// If we are scaling down to zero then the fraction of this machine set is its whole size (negative)
-	if *(d.Spec.Replicas) == int32(0) {
+	if *(md.Spec.Replicas) == int32(0) {
 		return -*(ms.Spec.Replicas)
 	}
 
-	deploymentReplicas := *(d.Spec.Replicas) + MaxSurge(d)
+	deploymentReplicas := *(md.Spec.Replicas) + MaxSurge(md)
 	annotatedReplicas, ok := getMaxReplicasAnnotation(&ms, logger)
 	if !ok {
 		// If we cannot find the annotation then fallback to the current deployment size. Note that this
 		// will not be an accurate proportion estimation in case other machine sets have different values
 		// which means that the deployment was scaled at some point but we at least will stay in limits
 		// due to the min-max comparisons in getProportion.
-		annotatedReplicas = d.Status.Replicas
+		annotatedReplicas = md.Status.Replicas
 	}
 
 	// We should never proportionally scale up from zero which means ms.spec.replicas and annotatedReplicas
@@ -400,7 +403,10 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 	return templateCopy
 }
 
-// FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template, ignoring in-place mutable fields).
+// FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template, ignoring
+// in-place mutable fields).
+// Note: If the reconciliation time is after the deployment's `rolloutAfter` time, a MS has to be newer than
+// `rolloutAfter` to be considered as matching the deployment's intent.
 // NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
 // fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
 // Thus we don't have to create a new MachineSet and we can avoid an unnecessary rollout.
@@ -409,10 +415,11 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 // not face a case where there exists a machine set matching the old logic but there does not exist a machineset matching the new logic.
 // In fact previously not matching MS can now start matching the target. Since there could be multiple matches, lets choose the
 // MS with the most replicas so that there is minimum machine churn.
-func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) *clusterv1.MachineSet {
+func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime *metav1.Time) *clusterv1.MachineSet {
 	sort.Sort(MachineSetsByDecreasingReplicas(msList))
 	for i := range msList {
-		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) {
+		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) &&
+			!shouldRolloutAfter(msList[i], reconciliationTime, deployment.Spec.RolloutAfter) {
 			// In rare cases, such as after cluster upgrades, Deployment may end up with
 			// having more than one new MachineSets that have the same template,
 			// see https://github.com/kubernetes/kubernetes/issues/40415
@@ -424,25 +431,29 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	return nil
 }
 
+func shouldRolloutAfter(ms *clusterv1.MachineSet, reconciliationTime *metav1.Time, rolloutAfter *metav1.Time) bool {
+	if ms == nil {
+		return false
+	}
+	if reconciliationTime == nil || rolloutAfter == nil {
+		return false
+	}
+	return ms.CreationTimestamp.Before(rolloutAfter) && rolloutAfter.Before(reconciliationTime)
+}
+
 // FindOldMachineSets returns the old machine sets targeted by the given Deployment, within the given slice of MSes.
-// Returns two list of machine sets
-//   - the first contains all old machine sets with non-zero replicas
-//   - the second contains all old machine sets
-func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
-	var requiredMSs []*clusterv1.MachineSet
+// Returns a list of machine sets which contains all old machine sets.
+func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime *metav1.Time) []*clusterv1.MachineSet {
 	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))
-	newMS := FindNewMachineSet(deployment, msList)
+	newMS := FindNewMachineSet(deployment, msList, reconciliationTime)
 	for _, ms := range msList {
 		// Filter out new machine set
 		if newMS != nil && ms.UID == newMS.UID {
 			continue
 		}
 		allMSs = append(allMSs, ms)
-		if *(ms.Spec.Replicas) != 0 {
-			requiredMSs = append(requiredMSs, ms)
-		}
 	}
-	return requiredMSs, allMSs
+	return allMSs
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.
@@ -477,7 +488,7 @@ func TotalMachineSetsReplicaSum(machineSets []*clusterv1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
 		if ms != nil {
-			totalReplicas += integer.Int32Max(*(ms.Spec.Replicas), ms.Status.Replicas)
+			totalReplicas += max(*(ms.Spec.Replicas), ms.Status.Replicas)
 		}
 	}
 	return totalReplicas
@@ -542,7 +553,7 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 		// Scale up.
 		scaleUpCount := maxTotalMachines - currentMachineCount
 		// Do not exceed the number of desired replicas.
-		scaleUpCount = integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-newMSReplicas)
+		scaleUpCount = min(scaleUpCount, *(deployment.Spec.Replicas)-newMSReplicas)
 		return newMSReplicas + scaleUpCount, nil
 	case clusterv1.OnDeleteMachineDeploymentStrategyType:
 		// Find the total number of machines

@@ -92,7 +92,7 @@ func (fom *fieldOwnershipMatcher) Match(actual interface{}) (bool, error) {
 			FilterIntent(&FilterIntentInput{
 				Path:         contract.Path{},
 				Value:        fieldsV1,
-				ShouldFilter: IsNotAllowedPath([]contract.Path{fom.path}),
+				ShouldFilter: IsPathNotAllowed([]contract.Path{fom.path}),
 			})
 			return len(fieldsV1) > 0, nil
 		}

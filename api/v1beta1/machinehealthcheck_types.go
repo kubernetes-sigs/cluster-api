@@ -17,9 +17,19 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+var (
+	// DefaultNodeStartupTimeout is the time allowed for a node to start up.
+	// Can be made longer as part of spec if required for particular provider.
+	// 10 minutes should allow the instance to start and the node to join the
+	// cluster on most providers.
+	DefaultNodeStartupTimeout = metav1.Duration{Duration: 10 * time.Minute}
 )
 
 // ANCHOR: MachineHealthCheckSpec
@@ -37,8 +47,8 @@ type MachineHealthCheckSpec struct {
 	// whether a node is considered unhealthy.  The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
-	// +kubebuilder:validation:MinItems=1
-	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions"`
+	// +optional
+	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
 
 	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
 	// "selector" are not healthy.
@@ -169,5 +179,5 @@ type MachineHealthCheckList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&MachineHealthCheck{}, &MachineHealthCheckList{})
+	objectTypes = append(objectTypes, &MachineHealthCheck{}, &MachineHealthCheckList{})
 }

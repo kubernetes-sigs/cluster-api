@@ -10,6 +10,10 @@ flexible enough to be used in as many Clusters as possible by supporting variant
 * [Basic ClusterClass](#basic-clusterclass)
 * [ClusterClass with MachineHealthChecks](#clusterclass-with-machinehealthchecks)
 * [ClusterClass with patches](#clusterclass-with-patches)
+* [ClusterClass with custom naming strategies](#clusterclass-with-custom-naming-strategies)
+    * [Defining a custom naming strategy for ControlPlane objects](#defining-a-custom-naming-strategy-for-controlplane-objects)
+    * [Defining a custom naming strategy for MachineDeployment objects](#defining-a-custom-naming-strategy-for-machinedeployment-objects)
+    * [Defining a custom naming strategy for MachinePool objects](#defining-a-custom-naming-strategy-for-machinepool-objects)
 * [Advanced features of ClusterClass with patches](#advanced-features-of-clusterclass-with-patches)
     * [MachineDeployment variable overrides](#machinedeployment-variable-overrides)
     * [Builtin variables](#builtin-variables)
@@ -18,7 +22,6 @@ flexible enough to be used in as many Clusters as possible by supporting variant
     * [Optional patches](#optional-patches)
     * [Version-aware patches](#version-aware-patches)
 * [JSON patches tips &amp; tricks](#json-patches-tips--tricks)
-    
 
 ## Basic ClusterClass
 
@@ -83,7 +86,7 @@ metadata:
   name: my-docker-cluster
 spec:
   topology:
-    class: docker-clusterclass
+    class: docker-clusterclass-v0.1.0
     version: v1.22.4
     controlPlane:
       replicas: 3
@@ -133,6 +136,55 @@ you how the resulting Cluster will look like, but without actually creating it.
 For more details please see: [clusterctl alpha topology plan].
 
 </aside>
+
+## ClusterClass with MachinePools
+
+ClusterClass also supports MachinePool workers. They work very similar to MachineDeployments. MachinePools
+can be specified in the ClusterClass template under the workers section like so:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  workers:
+    machinePools:
+    - class: default-worker
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: quick-start-default-worker-machinepooltemplate
+```
+
+They can then be similarly defined as workers in the cluster template like so:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: my-docker-cluster
+spec:
+  topology:
+    workers:
+      machinePools:
+      - class: default-worker
+        name: mp-0
+        replicas: 4
+        metadata:
+          labels:
+            mpLabel: mpLabelValue
+          annotations:
+            mpAnnotation: mpAnnotationValue
+        failureDomain: region
+```
 
 ## ClusterClass with MachineHealthChecks
 
@@ -289,15 +341,112 @@ a default value, the value is automatically added to the variables list.
 
 </aside>
 
+## ClusterClass with custom naming strategies
+
+The controller needs to generate names for new objects when a Cluster is getting created
+from a ClusterClass. These names have to be unique for each namespace. The naming
+strategy enables this by concatenating the cluster name with a random suffix.
+
+It is possible to provide a custom template for the name generation of ControlPlane, MachineDeployment
+and MachinePool objects.
+
+The generated names must comply with the [RFC 1123](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names) standard.
+
+### Defining a custom naming strategy for ControlPlane objects
+
+The naming strategy for ControlPlane supports the following properties:
+
+- `template`: Custom template which is used when generating the name of the ControlPlane object.
+
+The following variables can be referenced in templates:
+
+- `.cluster.name`: The name of the cluster object.
+- `.random`: A random alphanumeric string, without vowels, of length 5.
+
+Example which would match the default behavior:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  controlPlane:
+    ...
+    namingStrategy:
+      template: "{{ .cluster.name }}-{{ .random }}"
+  ...
+```
+
+### Defining a custom naming strategy for MachineDeployment objects
+
+The naming strategy for MachineDeployments supports the following properties:
+
+- `template`: Custom template which is used when generating the name of the MachineDeployment object.
+
+The following variables can be referenced in templates:
+
+- `.cluster.name`: The name of the cluster object.
+- `.random`: A random alphanumeric string, without vowels, of length 5.
+- `.machineDeployment.topologyName`: The name of the MachineDeployment topology (`Cluster.spec.topology.workers.machineDeployments[].name`)
+
+Example which would match the default behavior:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  controlPlane:
+    ...
+  workers:
+    machineDeployments:
+    - class: default-worker
+      ...
+      namingStrategy:
+        template: "{{ .cluster.name }}-{{ .machineDeployment.topologyName }}-{{ .random }}"
+```
+
+### Defining a custom naming strategy for MachinePool objects
+
+The naming strategy for MachinePools supports the following properties:
+
+- `template`: Custom template which is used when generating the name of the MachinePool object.
+
+The following variables can be referenced in templates:
+
+- `.cluster.name`: The name of the cluster object.
+- `.random`: A random alphanumeric string, without vowels, of length 5.
+- `.machinePool.topologyName`: The name of the MachinePool topology (`Cluster.spec.topology.workers.machinePools[].name`).
+
+Example which would match the default behavior:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  controlPlane:
+    ...
+  workers:
+    machinePools:
+    - class: default-worker
+      ...
+      namingStrategy:
+        template: "{{ .cluster.name }}-{{ .machinePool.topologyName }}-{{ .random }}"
+```
+
 ## Advanced features of ClusterClass with patches
 
 This section will explain more advanced features of ClusterClass patches.
 
-### MachineDeployment variable overrides
+### MachineDeployment & MachinePool variable overrides
 
 If you want to use many variations of MachineDeployments in Clusters, you can either define
 a MachineDeployment class for every variation or you can define patches and variables to
-make a single MachineDeployment class more flexible.
+make a single MachineDeployment class more flexible. The same applies for MachinePools.
 
 In the following example we make the `instanceType` of a `AWSMachineTemplate` customizable.
 First we define the `workerMachineType` variable and the corresponding patch:
@@ -346,7 +495,7 @@ spec:
 ```
 
 In the Cluster resource the `workerMachineType` variable can then be set cluster-wide and
-it can also be overridden for an individual MachineDeployment.
+it can also be overridden for an individual MachineDeployment or MachinePool.
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -386,6 +535,7 @@ referenced in patches:
 - `builtin.cluster.{name,namespace}`
 - `builtin.cluster.topology.{version,class}`
 - `builtin.cluster.network.{serviceDomain,services,pods,ipFamily}`
+    - Note: ipFamily is deprecated and will be removed in a future release. see https://github.com/kubernetes-sigs/cluster-api/issues/7521.
 - `builtin.controlPlane.{replicas,version,name}`
     - Please note, these variables are only available when patching control plane or control plane 
       machine templates.
@@ -398,6 +548,12 @@ referenced in patches:
 - `builtin.machineDeployment.{infrastructureRef.name,bootstrap.configRef.name}`
     - Please note, these variables are only available when patching the templates of a MachineDeployment
       and contain the values of the current `MachineDeployment` topology.
+- `builtin.machinePool.{replicas,version,class,name,topologyName}`
+    - Please note, these variables are only available when patching the templates of a MachinePool 
+      and contain the values of the current `MachinePool` topology.
+- `builtin.machinePool.{infrastructureRef.name,bootstrap.configRef.name}`
+    - Please note, these variables are only available when patching the templates of a MachinePool
+      and contain the values of the current `MachinePool` topology.
 
 Builtin variables can be referenced just like regular variables, e.g.:
 ```yaml
@@ -422,8 +578,8 @@ spec:
 **Tips & Tricks**
 
 Builtin variables can be used to dynamically calculate image names. The version used in the patch 
-will always be the same as the one we set in the corresponding MachineDeployment (works the same way 
-with `.builtin.controlPlane.version`).
+will always be the same as the one we set in the corresponding MachineDeployment or MachinePool 
+(works the same way with `.builtin.controlPlane.version`).
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -713,6 +869,9 @@ accessible via built in variables:
 - `builtin.machineDeployment.version`, represent the desired version for each specific MachineDeployment object;
   this version changes only after the upgrade for the control plane is completed, and in case of many
   MachineDeployments in the same cluster, they are upgraded sequentially.
+- `builtin.machinePool.version`, represent the desired version for each specific MachinePool object;
+  this version changes only after the upgrade for the control plane is completed, and in case of many
+  MachinePools in the same cluster, they are upgraded sequentially.
 
 This info should provide the bases for developing version-aware patches, allowing the patch author to determine when a
 patch should adapt to the new Kubernetes version by choosing one of the above variables. In practice the
@@ -720,6 +879,7 @@ following rules applies to the most common use cases:
 
 - When developing a version-aware patch for the control plane, `builtin.controlPlane.version` must be used.
 - When developing a version-aware patch for MachineDeployments, `builtin.machineDeployment.version` must be used.
+- When developing a version-aware patch for MachinePools, `builtin.machinePool.version` must be used.
 
 **Tips & Tricks**:
 

@@ -51,7 +51,7 @@ const (
 	GroupItemsSeparator = ", "
 
 	// ObjectZOrderAnnotation contains an integer that defines the sorting of child objects when the object tree is printed.
-	// Objects are sorted by their z-order from highest to lowest, and then by their name in alphaebetical order if the
+	// Objects are sorted by their z-order from highest to lowest, and then by their name in alphabetical order if the
 	// z-order is the same. Objects with no z-order set are assumed to have a default z-order of 0.
 	ObjectZOrderAnnotation = "tree.cluster.x-k8s.io.io/z-order"
 )

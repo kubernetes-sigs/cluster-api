@@ -40,7 +40,7 @@ func TestGetNestedRef(t *testing.T) {
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
 		err := SetNestedRef(obj, refObj, "spec", "machineTemplate", "infrastructureRef")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ref, err := GetNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())
@@ -86,7 +86,7 @@ func TestSetNestedRef(t *testing.T) {
 		obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
 
 		err := SetNestedRef(obj, refObj, "spec", "machineTemplate", "infrastructureRef")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		ref, err := GetNestedRef(obj, "spec", "machineTemplate", "infrastructureRef")
 		g.Expect(err).ToNot(HaveOccurred())

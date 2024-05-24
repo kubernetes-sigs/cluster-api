@@ -45,7 +45,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-initializecontrolplane")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		return ns
 	}
@@ -78,28 +78,28 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		KCP:     kcp,
 	}
 
-	result, err := r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
-	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-	g.Expect(err).NotTo(HaveOccurred())
+	result, err := r.initializeControlPlane(ctx, controlPlane)
+	g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
+	g.Expect(err).ToNot(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).To(HaveLen(1))
 
-	res, err := collections.GetFilteredMachinesForCluster(ctx, env, cluster, collections.OwnedMachines(kcp))
+	res, err := collections.GetFilteredMachinesForCluster(ctx, env.GetAPIReader(), cluster, collections.OwnedMachines(kcp))
 	g.Expect(res).To(HaveLen(1))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(machineList.Items[0].Namespace).To(Equal(cluster.Namespace))
 	g.Expect(machineList.Items[0].Name).To(HavePrefix(kcp.Name))
 
 	g.Expect(machineList.Items[0].Spec.InfrastructureRef.Namespace).To(Equal(cluster.Namespace))
-	g.Expect(machineList.Items[0].Spec.InfrastructureRef.Name).To(HavePrefix(genericInfrastructureMachineTemplate.GetName()))
+	g.Expect(machineList.Items[0].Spec.InfrastructureRef.Name).To(Equal(machineList.Items[0].Name))
 	g.Expect(machineList.Items[0].Spec.InfrastructureRef.APIVersion).To(Equal(genericInfrastructureMachineTemplate.GetAPIVersion()))
 	g.Expect(machineList.Items[0].Spec.InfrastructureRef.Kind).To(Equal("GenericInfrastructureMachine"))
 
 	g.Expect(machineList.Items[0].Spec.Bootstrap.ConfigRef.Namespace).To(Equal(cluster.Namespace))
-	g.Expect(machineList.Items[0].Spec.Bootstrap.ConfigRef.Name).To(HavePrefix(kcp.Name))
+	g.Expect(machineList.Items[0].Spec.Bootstrap.ConfigRef.Name).To(Equal(machineList.Items[0].Name))
 	g.Expect(machineList.Items[0].Spec.Bootstrap.ConfigRef.APIVersion).To(Equal(bootstrapv1.GroupVersion.String()))
 	g.Expect(machineList.Items[0].Spec.Bootstrap.ConfigRef.Kind).To(Equal("KubeadmConfig"))
 }
@@ -111,7 +111,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 			t.Log("Creating the namespace")
 			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			return ns
 		}
@@ -155,8 +155,8 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Machines: fmc.Machines,
 		}
 
-		result, err := r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
-		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		result, err := r.scaleUpControlPlane(ctx, controlPlane)
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 		g.Expect(err).ToNot(HaveOccurred())
 
 		controlPlaneMachines := clusterv1.MachineList{}
@@ -172,7 +172,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 			t.Log("Creating the namespace")
 			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			return ns
 		}
@@ -209,16 +209,19 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    env,
-			APIReader:                 env.GetAPIReader(),
+			SecretCachingClient:       secretCachingClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 			recorder:                  record.NewFakeRecorder(32),
-			disableInPlacePropagation: true,
 		}
 
-		result, err := r.reconcile(context.Background(), cluster, kcp)
+		controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
+		g.Expect(adoptableMachineFound).To(BeFalse())
+
+		result, err := r.scaleUpControlPlane(context.Background(), controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 
 		// scaleUpControlPlane is never called due to health check failure and new machine is not created to scale up.
 		controlPlaneMachines := &clusterv1.MachineList{}
@@ -226,13 +229,13 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		// No new machine should be created.
 		// Note: expected length is 0 because no machine is created and hence no machine is on the API server.
 		// Other machines are in-memory only during the test.
-		g.Expect(controlPlaneMachines.Items).To(HaveLen(0))
+		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
 
 		endMachines := collections.FromMachineList(controlPlaneMachines)
 		for _, m := range endMachines {
 			bm, ok := beforeMachines[m.Name]
 			g.Expect(ok).To(BeTrue())
-			g.Expect(m).To(Equal(bm))
+			g.Expect(m).To(BeComparableTo(bm))
 		}
 	})
 }
@@ -248,8 +251,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		fakeClient := newFakeClient(machines["one"])
 
 		r := &KubeadmControlPlaneReconciler{
-			recorder: record.NewFakeRecorder(32),
-			Client:   fakeClient,
+			recorder:            record.NewFakeRecorder(32),
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{},
 			},
@@ -267,10 +271,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Cluster:  cluster,
 			Machines: machines,
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
@@ -289,8 +294,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		fakeClient := newFakeClient(machines["one"], machines["two"], machines["three"])
 
 		r := &KubeadmControlPlaneReconciler{
-			recorder: record.NewFakeRecorder(32),
-			Client:   fakeClient,
+			recorder:            record.NewFakeRecorder(32),
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{},
 			},
@@ -307,10 +313,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Cluster:  cluster,
 			Machines: machines,
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{Requeue: true}))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
@@ -329,8 +336,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 		fakeClient := newFakeClient(machines["one"], machines["two"], machines["three"])
 
 		r := &KubeadmControlPlaneReconciler{
-			recorder: record.NewFakeRecorder(32),
-			Client:   fakeClient,
+			recorder:            record.NewFakeRecorder(32),
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Workload: fakeWorkloadCluster{},
 			},
@@ -343,10 +351,11 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Cluster:  cluster,
 			Machines: machines,
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
+		g.Expect(result).To(BeComparableTo(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
@@ -359,17 +368,26 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{},
 	}
 	startDate := time.Date(2000, 1, 1, 1, 0, 0, 0, time.UTC)
-	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)))
-	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)))
-	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)))
-	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)))
-	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)))
-	m6 := machine("machine-6", withFailureDomain("two"), withTimestamp(startDate.Add(-7*time.Hour)))
-	m7 := machine("machine-7", withFailureDomain("two"), withTimestamp(startDate.Add(-5*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
-	m8 := machine("machine-8", withFailureDomain("two"), withTimestamp(startDate.Add(-6*time.Hour)), withAnnotation("cluster.x-k8s.io/delete-machine"))
+	m1 := machine("machine-1", withFailureDomain("one"), withTimestamp(startDate.Add(time.Hour)), machineOpt(withNodeRef("machine-1")))
+	m2 := machine("machine-2", withFailureDomain("one"), withTimestamp(startDate.Add(-3*time.Hour)), machineOpt(withNodeRef("machine-2")))
+	m3 := machine("machine-3", withFailureDomain("one"), withTimestamp(startDate.Add(-4*time.Hour)), machineOpt(withNodeRef("machine-3")))
+	m4 := machine("machine-4", withFailureDomain("two"), withTimestamp(startDate.Add(-time.Hour)), machineOpt(withNodeRef("machine-4")))
+	m5 := machine("machine-5", withFailureDomain("two"), withTimestamp(startDate.Add(-2*time.Hour)), machineOpt(withNodeRef("machine-5")))
+	m6 := machine("machine-6", withFailureDomain("two"), withTimestamp(startDate.Add(-7*time.Hour)), machineOpt(withNodeRef("machine-6")))
+	m7 := machine("machine-7", withFailureDomain("two"), withTimestamp(startDate.Add(-5*time.Hour)),
+		withAnnotation("cluster.x-k8s.io/delete-machine"), machineOpt(withNodeRef("machine-7")))
+	m8 := machine("machine-8", withFailureDomain("two"), withTimestamp(startDate.Add(-6*time.Hour)),
+		withAnnotation("cluster.x-k8s.io/delete-machine"), machineOpt(withNodeRef("machine-8")))
+	m9 := machine("machine-9", withFailureDomain("two"), withTimestamp(startDate.Add(-5*time.Hour)),
+		machineOpt(withNodeRef("machine-9")))
+	m10 := machine("machine-10", withFailureDomain("two"), withTimestamp(startDate.Add(-4*time.Hour)),
+		machineOpt(withNodeRef("machine-10")), machineOpt(withUnhealthyAPIServerPod()))
+	m11 := machine("machine-11", withFailureDomain("two"), withTimestamp(startDate.Add(-3*time.Hour)),
+		machineOpt(withNodeRef("machine-11")), machineOpt(withUnhealthyEtcdMember()))
 
 	mc3 := collections.FromMachines(m1, m2, m3, m4, m5)
 	mc6 := collections.FromMachines(m6, m7, m8)
+	mc9 := collections.FromMachines(m9, m10, m11)
 	fd := clusterv1.FailureDomains{
 		"one": failureDomain(true),
 		"two": failureDomain(true),
@@ -379,6 +397,11 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		KCP:      &kcp,
 		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
 		Machines: mc3,
+	}
+	needsUpgradeControlPlane1 := &internal.ControlPlane{
+		KCP:      &kcp,
+		Cluster:  &clusterv1.Cluster{Status: clusterv1.ClusterStatus{FailureDomains: fd}},
+		Machines: mc9,
 	}
 	upToDateControlPlane := &internal.ControlPlane{
 		KCP:     &kcp,
@@ -443,11 +466,25 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-7"}},
 		},
 		{
-			name:             "when there is an up to date machine with delete annotation, while there are any outdated machines without annotatio that still exist, it returns oldest marked machine first",
+			name:             "when there is an up to date machine with delete annotation, while there are any outdated machines without annotation that still exist, it returns oldest marked machine first",
 			cp:               upToDateControlPlane,
 			outDatedMachines: collections.FromMachines(m5, m3, m8, m7, m6, m1, m2),
 			expectErr:        false,
 			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-8"}},
+		},
+		{
+			name:             "when there are machines needing upgrade, it returns the single unhealthy machine with MachineAPIServerPodHealthyCondition set to False",
+			cp:               needsUpgradeControlPlane1,
+			outDatedMachines: collections.FromMachines(m9, m10),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-10"}},
+		},
+		{
+			name:             "when there are machines needing upgrade, it returns the oldest unhealthy machine with MachineEtcdMemberHealthyCondition set to False",
+			cp:               needsUpgradeControlPlane1,
+			outDatedMachines: collections.FromMachines(m9, m10, m11),
+			expectErr:        false,
+			expectedMachine:  clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine-10"}},
 		},
 	}
 
@@ -455,14 +492,14 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			selectedMachine, err := selectMachineForScaleDown(tc.cp, tc.outDatedMachines)
+			selectedMachine, err := selectMachineForScaleDown(ctx, tc.cp, tc.outDatedMachines)
 
 			if tc.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(tc.expectedMachine.Name).To(Equal(selectedMachine.Name))
 		})
 	}
@@ -493,11 +530,27 @@ func TestPreflightChecks(t *testing.T) {
 			expectResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
 		},
 		{
+			name: "control plane without a nodeRef should requeue",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{
+					Status: clusterv1.MachineStatus{
+						NodeRef: nil,
+					},
+				},
+			},
+			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+		},
+		{
 			name: "control plane with an unhealthy machine condition should requeue",
 			kcp:  &controlplanev1.KubeadmControlPlane{},
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
+						NodeRef: &corev1.ObjectReference{
+							Kind: "Node",
+							Name: "node-1",
+						},
 						Conditions: clusterv1.Conditions{
 							*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
 							*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
@@ -523,6 +576,10 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
+						NodeRef: &corev1.ObjectReference{
+							Kind: "Node",
+							Name: "node-1",
+						},
 						Conditions: clusterv1.Conditions{
 							*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
 							*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
@@ -550,8 +607,8 @@ func TestPreflightChecks(t *testing.T) {
 				Machines: collections.FromMachines(tt.machines...),
 			}
 			result, err := r.preflightChecks(context.TODO(), controlPlane)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(result).To(Equal(tt.expectResult))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(result).To(BeComparableTo(tt.expectResult))
 		})
 	}
 }
@@ -613,7 +670,7 @@ func TestPreflightCheckCondition(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

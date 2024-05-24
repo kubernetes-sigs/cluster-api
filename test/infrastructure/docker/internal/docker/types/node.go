@@ -109,7 +109,7 @@ func (n *Node) Delete(ctx context.Context) error {
 		var buffer bytes.Buffer
 		err = containerRuntime.ContainerDebugInfo(debugCtx, n.Name, &buffer)
 		if err != nil {
-			log.Error(err, "failed to get logs from the machine container")
+			log.Error(err, "Failed to get logs from the machine container")
 		} else {
 			log.Info("Got logs from the machine container", "output", strings.ReplaceAll(buffer.String(), "\\n", "\n"))
 		}
@@ -118,6 +118,21 @@ func (n *Node) Delete(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// ReadFile reads a file from a running container.
+func (n *Node) ReadFile(ctx context.Context, dest string) ([]byte, error) {
+	command := n.Commander.Command("cp", dest, "/dev/stdout")
+	stdout := bytes.Buffer{}
+
+	command.SetStdout(&stdout)
+	// Also set stderr so it does not pollute stdout.
+	command.SetStderr(&bytes.Buffer{})
+
+	if err := command.Run(ctx); err != nil {
+		return nil, errors.Wrapf(err, "failed to read file %s", dest)
+	}
+	return stdout.Bytes(), nil
 }
 
 // WriteFile puts a file inside a running container.

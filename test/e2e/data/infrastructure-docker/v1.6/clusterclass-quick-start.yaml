@@ -1,0 +1,649 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: quick-start
+spec:
+  controlPlane:
+    metadata:
+      labels:
+        ClusterClass.controlPlane.label: "ClusterClass.controlPlane.labelValue"
+      annotations:
+        ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: quick-start-control-plane
+    machineInfrastructure:
+      ref:
+        kind: DockerMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: quick-start-control-plane
+    machineHealthCheck:
+      maxUnhealthy: 100%
+      unhealthyConditions:
+      - type: e2e.remediation.condition
+        status: "False"
+        timeout: 20s
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: quick-start-cluster
+  workers:
+    machineDeployments:
+    - class: default-worker
+      template:
+        metadata:
+          labels:
+            ClusterClass.machineDeployment.label: "ClusterClass.machineDeployment.labelValue"
+          annotations:
+            ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-md-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachineTemplate
+            name: quick-start-default-worker-machinetemplate
+      machineHealthCheck:
+        maxUnhealthy: 100%
+        unhealthyConditions:
+        - type: e2e.remediation.condition
+          status: "False"
+          timeout: 20s
+    machinePools:
+    - class: default-worker
+      template:
+        metadata:
+          labels:
+            ClusterClass.machinePool.label: "ClusterClass.machinePool.labelValue"
+          annotations:
+            ClusterClass.machinePool.annotation: "ClusterClass.machinePool.annotationValue"
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-mp-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: quick-start-default-worker-machinepooltemplate
+  variables:
+  - name: lbImageRepository
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: kindest
+  - name: etcdImageTag
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "3.5.3-0"
+        description: "etcdImageTag sets the tag for the etcd image."
+  - name: coreDNSImageTag
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "v1.8.5"
+        description: "coreDNSImageTag sets the tag for the coreDNS image."
+  - name: kubeadmControlPlaneMaxSurge
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "0"
+        description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines."
+  - name: preLoadImages
+    required: false
+    schema:
+      openAPIV3Schema:
+        default: []
+        type: array
+        items:
+          type: string
+        description: "preLoadImages sets the images for the docker machines to preload."
+  - name: controlPlaneTaint
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+        default: true
+  - name: externalCloudProvider
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+        default: false
+  - name: ipv6Primary
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+        default: false
+  - name: kubeControlPlaneLogLevel
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: "Log level for kube-apiserver, kube-scheduler and kube-controller-manager"
+        example: "2"
+  - name: kubeletLogLevel
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        description: "Log level for kubelets on control plane and worker nodes"
+        example: "2"
+  patches:
+  - name: lbImageRepository
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/loadBalancer"
+        valueFrom:
+          template: |
+            imageRepository: {{ .lbImageRepository }}
+  - name: etcdImageTag
+    description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/etcd"
+        valueFrom:
+          template: |
+            local:
+              imageTag: {{ .etcdImageTag }}
+  - name: coreDNSImageTag
+    description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/dns"
+        valueFrom:
+          template: |
+            imageTag: {{ .coreDNSImageTag }}
+  - name: customImage
+    description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            valueFrom:
+              template: |
+                kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            valueFrom:
+              template: |
+                kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachinePoolTemplate
+          matchResources:
+            machinePoolClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/template/customImage"
+            valueFrom:
+              template: |
+                kindest/node:{{ .builtin.machinePool.version | replace "+" "_" }}
+  - name: preloadImages
+    description: |
+      Sets the container images to preload to the node that is used for running dockerMachines.
+      This is especially required for self-hosted e2e tests to ensure the required controller images to be available
+      and reduce load to public registries.
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        matchResources:
+          controlPlane: true
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/preLoadImages"
+        valueFrom:
+          variable: preLoadImages
+  - name: preloadImagesMP
+    description: |
+      Sets the container images to preload to the node that is used for running dockerMachines.
+      This is especially required for self-hosted e2e tests to ensure the required controller images to be available
+      and reduce load to public registries.
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachinePoolTemplate
+          matchResources:
+            machinePoolClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/template/preLoadImages"
+            valueFrom:
+              variable: preLoadImages
+  - name: kubeadmControlPlaneMaxSurge
+    description: "Sets the maxSurge value used for rolloutStrategy in the KubeadmControlPlane."
+    enabledIf: '{{ ne .kubeadmControlPlaneMaxSurge "" }}'
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/rolloutStrategy/rollingUpdate/maxSurge
+        valueFrom:
+          template: "{{ .kubeadmControlPlaneMaxSurge }}"
+  - name: controlPlaneTaint
+    enabledIf: "{{ not .controlPlaneTaint }}"
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/taints"
+        value: []
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/taints"
+        value: []
+  - name: controlPlaneExternalCloudProvider
+    enabledIf: "{{ .externalCloudProvider }}"
+    description: "Configures kubelet to run with an external cloud provider for control plane nodes."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
+            value: "external"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
+            value: "external"
+  - name: machineDeploymentExternalCloudProvider
+    enabledIf: "{{ .externalCloudProvider }}"
+    description: "Configures kubelet to run with an external cloud provider for machineDeployment nodes."
+    definitions:
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - '*-worker'
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
+            value: "external"
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machinePoolClass:
+              names:
+                - '*-worker'
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cloud-provider"
+            value: "external"
+  - name: localEndpointIPv6
+    enabledIf: "{{ .ipv6Primary }}"
+    description: "Configures KCP to use IPv6 for its localAPIEndpoint."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/localAPIEndpoint"
+            value:
+              advertiseAddress: '::'
+  - name: podSecurityStandard
+    description: "Adds an admission configuration for PodSecurity to the kube-apiserver."
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/admission-control-config-file"
+        value: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
+        value:
+        - name: admission-pss
+          hostPath: /etc/kubernetes/kube-apiserver-admission-pss.yaml
+          mountPath: /etc/kubernetes/kube-apiserver-admission-pss.yaml
+          readOnly: true
+          pathType: "File"
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/files"
+        valueFrom:
+          template: |
+            - content: |
+                apiVersion: apiserver.config.k8s.io/v1
+                kind: AdmissionConfiguration
+                plugins:
+                - name: PodSecurity
+                  configuration:
+                    apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25" .builtin.controlPlane.version }}beta1{{ end }}
+                    kind: PodSecurityConfiguration
+                    defaults:
+                      enforce: "baseline"
+                      enforce-version: "latest"
+                      audit: "baseline"
+                      audit-version: "latest"
+                      warn: "baseline"
+                      warn-version: "latest"
+                    exemptions:
+                      usernames: []
+                      runtimeClasses: []
+                      namespaces: [kube-system]
+              path: /etc/kubernetes/kube-apiserver-admission-pss.yaml
+    enabledIf: '{{ semverCompare ">= v1.24" .builtin.controlPlane.version }}'
+  - name: controlPlaneLogLevel
+    enabledIf: "{{ if .kubeControlPlaneLogLevel }}true{{end}}"
+    description: "Configures control plane components and kubelet to run at the log level specified in the variable `kubeControlPlaneLogLevel`."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs/v"
+            valueFrom:
+              variable: kubeControlPlaneLogLevel
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/v"
+            valueFrom:
+              variable: kubeControlPlaneLogLevel
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/scheduler/extraArgs/v"
+            valueFrom:
+              variable: kubeControlPlaneLogLevel
+  - name: controlPlaneKubeletLogLevel
+    enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
+    description: "Configures control plane kubelets to log at the level set in the variable `kubeletLogLevel`."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/v"
+            valueFrom:
+              variable: kubeletLogLevel
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/v"
+            valueFrom:
+              variable: kubeletLogLevel
+  - name: workerKubeletLogLevel
+    enabledIf: "{{ if .kubeletLogLevel }}true{{end}}"
+    description: "Configures worker kubelets to log at the level set in the variable `kubeletLogLevel`."
+    definitions:
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - '*-worker'
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/v"
+            valueFrom:
+              variable: kubeletLogLevel
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machinePoolClass:
+              names:
+                - '*-worker'
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/v"
+            valueFrom:
+              variable: kubeletLogLevel
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerClusterTemplate
+metadata:
+  name: quick-start-cluster
+  labels:
+    InfrastructureClusterTemplate.label: "InfrastructureClusterTemplate.labelValue"
+  annotations:
+    InfrastructureClusterTemplate.annotation: "InfrastructureClusterTemplate.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        InfrastructureClusterTemplate.template.label: "InfrastructureClusterTemplate.template.labelValue"
+      annotations:
+        InfrastructureClusterTemplate.template.annotation: "InfrastructureClusterTemplate.template.annotationValue"
+    spec:
+      failureDomains:
+        fd1:
+          controlPlane: true
+        fd2:
+          controlPlane: true
+        fd3:
+          controlPlane: true
+        fd4:
+          controlPlane: false
+        fd5:
+          controlPlane: false
+        fd6:
+          controlPlane: false
+        fd7:
+          controlPlane: false
+        fd8:
+          controlPlane: false
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: quick-start-control-plane
+  labels:
+    ControlPlaneTemplate.label: "ControlPlaneTemplate.labelValue"
+  annotations:
+    ControlPlaneTemplate.annotation: "ControlPlaneTemplate.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        ControlPlaneTemplate.template.label: "ControlPlaneTemplate.template.labelValue"
+      annotations:
+        ControlPlaneTemplate.template.annotation: "ControlPlaneTemplate.template.annotationValue"
+    spec:
+      rolloutBefore:
+        certificatesExpiryDays: 21
+      machineTemplate:
+        metadata:
+          labels:
+            ControlPlaneTemplate.machineTemplate.label: "ControlPlaneTemplate.machineTemplate.labelValue"
+          annotations:
+            ControlPlaneTemplate.machineTemplate.annotation: "ControlPlaneTemplate.machineTemplate.annotationValue"
+        nodeDrainTimeout: 1s
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          # extraArgs must be non-empty for control plane components to enable patches from ClusterClass to work.
+          controllerManager:
+            extraArgs:
+              v: "0"
+          scheduler:
+            extraArgs:
+              v: "0"
+          apiServer:
+            extraArgs:
+              v: "0"
+            # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+            certSANs: [localhost, host.docker.internal, "::", "::1", "127.0.0.1", "0.0.0.0"]
+        initConfiguration:
+          nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+            kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider patch to work
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        joinConfiguration:
+          nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+            kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider patch to work
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: quick-start-control-plane
+  labels:
+    InfraMachineTemplate.controlPlane.label: "InfraMachineTemplate.controlPlane.labelValue"
+  annotations:
+    InfraMachineTemplate.controlPlane.annotation: "InfraMachineTemplate.controlPlane.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        InfraMachineTemplate.controlPlane.template.label: "InfraMachineTemplate.controlPlane.template.labelValue"
+      annotations:
+        InfraMachineTemplate.controlPlane.template.annotation: "InfraMachineTemplate.controlPlane.template.annotationValue"
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: quick-start-default-worker-machinetemplate
+  labels:
+    InfraMachineTemplate.machineDeployment.label: "InfraMachineTemplate.machineDeployment.labelValue"
+  annotations:
+    InfraMachineTemplate.machineDeployment.annotation: "InfraMachineTemplate.machineDeployment.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        InfraMachineTemplate.machineDeployment.template.label: "InfraMachineTemplate.machineDeployment.template.labelValue"
+      annotations:
+        InfraMachineTemplate.machineDeployment.template.annotation: "InfraMachineTemplate.machineDeployment.template.annotationValue"
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: quick-start-default-worker-machinepooltemplate
+  labels:
+    InfraMachinePoolTemplate.machinePool.label: "InfraMachinePoolTemplate.machinePool.labelValue"
+  annotations:
+    InfraMachinePoolTemplate.machinePool.annotation: "InfraMachinePoolTemplate.machinePool.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        InfraMachinePoolTemplate.machinePool.template.label: "InfraMachinePoolTemplate.machinePool.template.labelValue"
+      annotations:
+        InfraMachinePoolTemplate.machinePool.template.annotation: "InfraMachinePoolTemplate.machinePool.template.annotationValue"
+    spec:
+      template:
+        extraMounts:
+        - containerPath: "/var/run/docker.sock"
+          hostPath: "/var/run/docker.sock"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: quick-start-md-default-worker-bootstraptemplate
+  labels:
+    BootstrapConfigTemplate.machineDeployment.label: "BootstrapConfigTemplate.machineDeployment.labelValue"
+  annotations:
+    BootstrapConfigTemplate.machineDeployment.annotation: "BootstrapConfigTemplate.machineDeployment.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        BootstrapConfigTemplate.machineDeployment.template.label: "BootstrapConfigTemplate.machineDeployment.template.labelValue"
+      annotations:
+        BootstrapConfigTemplate.machineDeployment.template.annotation: "BootstrapConfigTemplate.machineDeployment.template.annotationValue"
+    spec:
+      joinConfiguration:
+        nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+          kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
+            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: quick-start-mp-default-worker-bootstraptemplate
+  labels:
+    BootstrapConfigTemplate.machinePool.label: "BootstrapConfigTemplate.machinePool.labelValue"
+  annotations:
+    BootstrapConfigTemplate.machinePool.annotation: "BootstrapConfigTemplate.machinePool.annotationValue"
+spec:
+  template:
+    metadata:
+      labels:
+        BootstrapConfigTemplate.machinePool.template.label: "BootstrapConfigTemplate.machinePool.template.labelValue"
+      annotations:
+        BootstrapConfigTemplate.machinePool.template.annotation: "BootstrapConfigTemplate.machinePool.template.annotationValue"
+    spec:
+      joinConfiguration:
+        nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+          kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
+            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'

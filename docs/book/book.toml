@@ -12,6 +12,13 @@ additional-css = ["theme/css/custom.css"]
 
 [output.html.redirect]
 "/tasks/upgrade.html" = "/tasks/upgrading-cluster-api-versions.html"
+"/agenda.html" = "/agenda/2024.html"
+"/agenda/2024.html" = "https://docs.google.com/document/d/1GgFbaYs-H6J5HSQ6a7n4aKpk0nDLE2hgG2NSOM9YIRw"
+"/agenda/2023.html" = "https://docs.google.com/document/d/1Ov_rbxOV_O4HeAuwTev1lSwkiLJoBc_HDS1NyI93AcY"
+"/agenda/2022.html" = "https://docs.google.com/document/d/1Bk_1581mriNUlwOFpt7SAC3WnaM_gBqLy8aWoiWG-9A"
+"/agenda/2021.html" = ""
+"/agenda/2020.html" = "https://docs.google.com/document/d/1r8ydd2g2NFE4giD9MqLspv0CJcjzC17e4UUQyyNLx2M"
+"/agenda/2019.html" = "https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY"
 
 [preprocessor.tabulate]
 command = "./util-tabulate.sh"

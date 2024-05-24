@@ -36,15 +36,16 @@ type IPAddressSpec struct {
 	Prefix int `json:"prefix"`
 
 	// Gateway is the network gateway of the network the address is from.
-	Gateway string `json:"gateway"`
+	// +optional
+	Gateway string `json:"gateway,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=ipaddresses,scope=Namespaced,categories=cluster-api
-// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Address",type="string",JSONPath=".spec.address",description="Address"
 // +kubebuilder:printcolumn:name="Pool Name",type="string",JSONPath=".spec.poolRef.name",description="Name of the pool the address is from"
 // +kubebuilder:printcolumn:name="Pool Kind",type="string",JSONPath=".spec.poolRef.kind",description="Kind of the pool the address is from"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of IPAdress"
 
 // IPAddress is the Schema for the ipaddress API.
 type IPAddress struct {
@@ -64,5 +65,5 @@ type IPAddressList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IPAddress{}, &IPAddressList{})
+	objectTypes = append(objectTypes, &IPAddress{}, &IPAddressList{})
 }

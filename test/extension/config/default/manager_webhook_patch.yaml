@@ -1,7 +1,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: manager
+  name: controller-manager
+  namespace: system
 spec:
   template:
     spec:
@@ -18,4 +19,4 @@ spec:
       volumes:
       - name: cert
         secret:
-          secretName: $(SERVICE_NAME)-cert
+          secretName: test-extension-webhook-service-cert

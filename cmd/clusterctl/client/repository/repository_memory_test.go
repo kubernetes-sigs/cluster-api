@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -124,15 +125,17 @@ releaseSeries:
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			r := tt.repo
 			g.Expect(r.RootPath()).To(Equal(""))
 
-			g.Expect(r.GetFile(r.DefaultVersion(), r.ComponentsPath())).To(Equal(tt.want.defaultVersion))
-			g.Expect(r.GetFile("", r.ComponentsPath())).To(Equal(tt.want.defaultVersion))
-			g.Expect(r.GetFile("latest", r.ComponentsPath())).To(Equal(tt.want.latestVersion))
+			g.Expect(r.GetFile(ctx, r.DefaultVersion(), r.ComponentsPath())).To(Equal(tt.want.defaultVersion))
+			g.Expect(r.GetFile(ctx, "", r.ComponentsPath())).To(Equal(tt.want.defaultVersion))
+			g.Expect(r.GetFile(ctx, "latest", r.ComponentsPath())).To(Equal(tt.want.latestVersion))
 
-			got, err := r.GetVersions()
-			g.Expect(err).NotTo(HaveOccurred())
+			got, err := r.GetVersions(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(ConsistOf(tt.want.versions))
 		})
 	}

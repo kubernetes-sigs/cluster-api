@@ -24,11 +24,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 )
 
 func TestIPAddressValidateCreate(t *testing.T) {
@@ -45,7 +45,7 @@ func TestIPAddressValidateCreate(t *testing.T) {
 			PoolRef: corev1.TypedLocalObjectReference{
 				Kind:     "TestPool",
 				Name:     "pool",
-				APIGroup: pointer.String("ipam.cluster.x-k8s.io"),
+				APIGroup: ptr.To("ipam.cluster.x-k8s.io"),
 			},
 		},
 	}
@@ -80,13 +80,13 @@ func TestIPAddressValidateCreate(t *testing.T) {
 	}{
 		{
 			name:      "a valid IPv4 Address should be accepted",
-			ip:        getAddress(false, func(addr *ipamv1.IPAddress) {}),
+			ip:        getAddress(false, func(*ipamv1.IPAddress) {}),
 			extraObjs: []client.Object{claim},
 			expectErr: false,
 		},
 		{
 			name:      "a valid IPv6 Address should be accepted",
-			ip:        getAddress(true, func(addr *ipamv1.IPAddress) {}),
+			ip:        getAddress(true, func(*ipamv1.IPAddress) {}),
 			extraObjs: []client.Object{claim},
 			expectErr: false,
 		},
@@ -131,6 +131,14 @@ func TestIPAddressValidateCreate(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name: "an empty gateway should be allowed",
+			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
+				addr.Spec.Gateway = ""
+			}),
+			extraObjs: []client.Object{claim},
+			expectErr: false,
+		},
+		{
 			name: "a pool reference that does not match the claim should be rejected",
 			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
 				addr.Spec.PoolRef.Name = "nothing"
@@ -148,7 +156,8 @@ func TestIPAddressValidateCreate(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			scheme := runtime.NewScheme()
@@ -192,13 +201,13 @@ func TestIPAddressValidateUpdate(t *testing.T) {
 	}{
 		{
 			name:      "should accept objects with identical spec",
-			oldIP:     getAddress(func(addr *ipamv1.IPAddress) {}),
-			newIP:     getAddress(func(addr *ipamv1.IPAddress) {}),
+			oldIP:     getAddress(func(*ipamv1.IPAddress) {}),
+			newIP:     getAddress(func(*ipamv1.IPAddress) {}),
 			expectErr: false,
 		},
 		{
 			name:  "should reject objects with different spec",
-			oldIP: getAddress(func(addr *ipamv1.IPAddress) {}),
+			oldIP: getAddress(func(*ipamv1.IPAddress) {}),
 			newIP: getAddress(func(addr *ipamv1.IPAddress) {
 				addr.Spec.Address = "10.0.0.2"
 			}),
@@ -206,7 +215,8 @@ func TestIPAddressValidateUpdate(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i := range tests {
+		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			scheme := runtime.NewScheme()
@@ -214,11 +224,13 @@ func TestIPAddressValidateUpdate(t *testing.T) {
 			wh := IPAddress{
 				Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.extraObjs...).Build(),
 			}
+			warnings, err := wh.ValidateUpdate(context.Background(), &tt.oldIP, &tt.newIP)
 			if tt.expectErr {
-				g.Expect(wh.ValidateUpdate(context.Background(), &tt.oldIP, &tt.newIP)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(wh.ValidateUpdate(context.Background(), &tt.oldIP, &tt.newIP)).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

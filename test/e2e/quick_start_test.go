@@ -21,46 +21,112 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/pointer"
+	. "github.com/onsi/gomega"
+	"k8s.io/utils/ptr"
 
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 )
 
-var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
+var _ = Describe("When following the Cluster API quick-start", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: ptr.To("docker"),
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
+				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+				// This check ensures that owner references are correctly updated to the correct apiVersion.
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
+				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					framework.CoreFinalizersAssertion,
+					framework.KubeadmControlPlaneFinalizersAssertion,
+					framework.ExpFinalizersAssertion,
+					framework.DockerInfraFinalizersAssertion,
+				)
+				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+				// continuous reconciles when everything should be stable.
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+			},
 		}
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Informing] [ClusterClass]", func() {
+var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Blocking] [ClusterClass]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                pointer.String("topology"),
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 ptr.To("topology"),
+			InfrastructureProvider: ptr.To("docker"),
+			// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+				// This check ensures that owner references are correctly updated to the correct apiVersion.
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
+				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
+					framework.CoreFinalizersAssertion,
+					framework.KubeadmControlPlaneFinalizersAssertion,
+					framework.ExpFinalizersAssertion,
+					framework.DockerInfraFinalizersAssertion,
+				)
+				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
+				// continuous reconciles when everything should be stable.
+				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
+			},
 		}
 	})
 })
 
 // NOTE: This test requires an IPv6 management cluster (can be configured via IP_FAMILY=IPv6).
-var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6] [PR-Informing]", func() {
+var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                pointer.String("ipv6"),
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 ptr.To("ipv6"),
+			InfrastructureProvider: ptr.To("docker"),
 		}
 	})
 })
@@ -68,56 +134,66 @@ var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6] [P
 var _ = Describe("When following the Cluster API quick-start with Ignition", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                pointer.String("ignition"),
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 ptr.To("ignition"),
+			InfrastructureProvider: ptr.To("docker"),
 		}
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start check owner references are correctly reconciled and rereconciled if deleted", func() {
+var _ = Describe("When following the Cluster API quick-start with dualstack and ipv4 primary [IPv6]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 ptr.To("topology-dualstack-ipv4-primary"),
+			InfrastructureProvider: ptr.To("docker"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
-					framework.CoreTypeOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
+				By("Running kubetest dualstack tests")
+				// Start running the dualstack test suite from kubetest.
+				Expect(kubetest.Run(
+					ctx,
+					kubetest.RunInput{
+						ClusterProxy:       proxy.GetWorkloadCluster(ctx, namespace, clusterName),
+						ArtifactsDirectory: artifactFolder,
+						ConfigFilePath:     "./data/kubetest/dualstack.yaml",
+						ClusterName:        clusterName,
+					},
+				)).To(Succeed())
 			},
 		}
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass check owner references are correctly reconciled and rereconciled if deleted [ClusterClass]", func() {
+var _ = Describe("When following the Cluster API quick-start with dualstack and ipv6 primary [IPv6]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                pointer.String("topology"),
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 ptr.To("topology-dualstack-ipv6-primary"),
+			InfrastructureProvider: ptr.To("docker"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
-					framework.CoreTypeOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
+				By("Running kubetest dualstack tests")
+				// Start running the dualstack test suite from kubetest.
+				Expect(kubetest.Run(
+					ctx,
+					kubetest.RunInput{
+						ClusterProxy:       proxy.GetWorkloadCluster(ctx, namespace, clusterName),
+						ArtifactsDirectory: artifactFolder,
+						ConfigFilePath:     "./data/kubetest/dualstack.yaml",
+						ClusterName:        clusterName,
+					},
+				)).To(Succeed())
 			},
 		}
 	})

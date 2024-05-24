@@ -19,17 +19,12 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega/types"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 // Test suite constants for e2e config variables.
@@ -47,54 +42,10 @@ const (
 	IPFamily                        = "IP_FAMILY"
 )
 
+var releaseMarkerPrefix = "go://sigs.k8s.io/cluster-api@v%s"
+
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
-}
-
-func setupSpecNamespace(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string) (*corev1.Namespace, context.CancelFunc) {
-	Byf("Creating a namespace for hosting the %q test spec", specName)
-	namespace, cancelWatches := framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
-		Creator:   clusterProxy.GetClient(),
-		ClientSet: clusterProxy.GetClientSet(),
-		Name:      fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-		LogFolder: filepath.Join(artifactFolder, "clusters", clusterProxy.GetName()),
-	})
-
-	return namespace, cancelWatches
-}
-
-func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace *corev1.Namespace, cancelWatches context.CancelFunc, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, skipCleanup bool) {
-	Byf("Dumping logs from the %q workload cluster", cluster.Name)
-
-	// Dump all the logs from the workload cluster before deleting them.
-	clusterProxy.CollectWorkloadClusterLogs(ctx, cluster.Namespace, cluster.Name, filepath.Join(artifactFolder, "clusters", cluster.Name))
-
-	Byf("Dumping all the Cluster API resources in the %q namespace", namespace.Name)
-
-	// Dump all Cluster API related resources to artifacts before deleting them.
-	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    clusterProxy.GetClient(),
-		Namespace: namespace.Name,
-		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
-	})
-
-	if !skipCleanup {
-		Byf("Deleting cluster %s", klog.KObj(cluster))
-		// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
-		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
-		// instead of DeleteClusterAndWait
-		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    clusterProxy.GetClient(),
-			Namespace: namespace.Name,
-		}, intervalsGetter(specName, "wait-delete-cluster")...)
-
-		Byf("Deleting namespace used for hosting the %q test spec", specName)
-		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-			Deleter: clusterProxy.GetClient(),
-			Name:    namespace.Name,
-		})
-	}
-	cancelWatches()
 }
 
 // HaveValidVersion succeeds if version is a valid semver version.
@@ -117,4 +68,10 @@ func (m *validVersionMatcher) FailureMessage(_ interface{}) (message string) {
 
 func (m *validVersionMatcher) NegatedFailureMessage(_ interface{}) (message string) {
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " not to be a valid version ")
+}
+
+// GetStableReleaseOfMinor returns latest stable version of minorRelease.
+func GetStableReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
+	releaseMarker := fmt.Sprintf(releaseMarkerPrefix, minorRelease)
+	return clusterctl.ResolveRelease(ctx, releaseMarker)
 }

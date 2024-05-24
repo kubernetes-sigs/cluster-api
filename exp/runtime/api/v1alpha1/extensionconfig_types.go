@@ -197,7 +197,7 @@ type ExtensionConfigList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&ExtensionConfig{}, &ExtensionConfigList{})
+	objectTypes = append(objectTypes, &ExtensionConfig{}, &ExtensionConfigList{})
 }
 
 const (

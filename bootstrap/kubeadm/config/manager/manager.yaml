@@ -20,14 +20,31 @@ spec:
             - /manager
           args:
             - "--leader-elect"
-            - "--metrics-bind-addr=localhost:8080"
-            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
+            - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
+            - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
+            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=true},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
             - "--bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}"
           image: controller:latest
           name: manager
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
           ports:
             - containerPort: 9440
               name: healthz
+              protocol: TCP
+            - containerPort: 8443
+              name: metrics
               protocol: TCP
           readinessProbe:
             httpGet:
@@ -45,6 +62,7 @@ spec:
             privileged: false
             runAsUser: 65532
             runAsGroup: 65532
+          terminationMessagePolicy: FallbackToLogsOnError
       terminationGracePeriodSeconds: 10
       serviceAccountName: manager
       tolerations:

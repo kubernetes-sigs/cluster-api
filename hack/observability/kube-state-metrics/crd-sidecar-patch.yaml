@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-state-metrics
+spec:
+  template:
+    spec:
+      containers:
+      - env:
+        - name: LABEL
+          value: kube-state-metrics/custom-resource
+        - name: FOLDER
+          value: /tmp
+        - name: RESOURCE
+          value: configmap
+        - name: NAMESPACE
+          value: observability
+        - name: SCRIPT
+          value: /script/compile.sh
+        # This image continuously collects config maps with the specified label and
+        # updates the configuration for kube-state-metrics using a script.
+        image: kiwigrid/k8s-sidecar:latest
+        name: crd-sidecar
+        volumeMounts:
+        - mountPath: /etc/config
+          name: config-volume
+        - mountPath: /script
+          name: compile-script
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          cat << EOF > "/etc/config/crd-metrics-config.yaml"
+          kind: CustomResourceStateMetrics
+          spec:
+            resources: []
+          EOF
+        # This container initializes an empty configuration for kube-state-metrics
+        # to have a smooth start.
+        image: kiwigrid/k8s-sidecar:latest
+        name: init-crd-config
+        volumeMounts:
+        - mountPath: /etc/config
+          name: config-volume
+      volumes:
+      - configMap:
+          defaultMode: 511
+          name: kube-state-metrics-crd-sidecar-script
+        name: compile-script

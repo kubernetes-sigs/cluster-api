@@ -33,6 +33,30 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+// GetMachinesByClusterInput is the input for GetMachinesByCluster.
+type GetMachinesByClusterInput struct {
+	Lister      Lister
+	ClusterName string
+	Namespace   string
+}
+
+// GetMachinesByCluster returns Machine objects for a cluster.
+func GetMachinesByCluster(ctx context.Context, input GetMachinesByClusterInput) []clusterv1.Machine {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetMachinesByCluster")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling GetMachinesByCluster")
+	Expect(input.ClusterName).ToNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling GetMachinesByCluster")
+	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling GetMachinesByCluster")
+
+	opts := byClusterOptions(input.ClusterName, input.Namespace)
+
+	machineList := &clusterv1.MachineList{}
+	Eventually(func() error {
+		return input.Lister.List(ctx, machineList, opts...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Machines for Cluster %s", klog.KRef(input.ClusterName, input.Namespace))
+
+	return machineList.Items
+}
+
 // GetMachinesByMachineDeploymentsInput is the input for GetMachinesByMachineDeployments.
 type GetMachinesByMachineDeploymentsInput struct {
 	Lister            Lister
@@ -57,7 +81,7 @@ func GetMachinesByMachineDeployments(ctx context.Context, input GetMachinesByMac
 	machineList := &clusterv1.MachineList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, machineList, opts...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Machines for MachineDeployment %s of Cluster %s", klog.KObj(&input.MachineDeployment), klog.KRef(input.Namespace, input.ClusterName))
 
 	return machineList.Items
 }
@@ -103,7 +127,13 @@ func GetControlPlaneMachinesByCluster(ctx context.Context, input GetControlPlane
 	Expect(input.ClusterName).ToNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling GetControlPlaneMachinesByCluster")
 	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling GetControlPlaneMachinesByCluster")
 
-	options := append(byClusterOptions(input.ClusterName, input.Namespace), controlPlaneMachineOptions()...)
+	options := []client.ListOption{
+		client.InNamespace(input.Namespace),
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel:         input.ClusterName,
+			clusterv1.MachineControlPlaneLabel: "",
+		},
+	}
 
 	machineList := &clusterv1.MachineList{}
 	Eventually(func() error {
@@ -145,7 +175,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 			}
 		}
 		if len(machines) > upgraded {
-			return 0, errors.New("old nodes remain")
+			return 0, errors.New("old Machines remain")
 		}
 		return upgraded, nil
 	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all control-plane machines in Cluster %s to be upgraded to kubernetes version %s", klog.KObj(input.Cluster), input.KubernetesUpgradeVersion)
@@ -185,7 +215,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 			}
 		}
 		if len(machines) > upgraded {
-			return 0, errors.New("old nodes remain")
+			return 0, errors.New("old Machines remain")
 		}
 		return upgraded, nil
 	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachineDeployment %s Machines to be upgraded to kubernetes version %s", klog.KObj(&input.MachineDeployment), input.KubernetesUpgradeVersion)
@@ -244,7 +274,7 @@ func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCh
 			Name:      input.Machine.Name,
 		}
 		err := input.Getter.Get(ctx, key, machine)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
 		for _, statusCheck := range input.StatusChecks {
 			err := statusCheck(machine)

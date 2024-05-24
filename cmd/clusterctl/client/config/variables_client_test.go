@@ -61,7 +61,6 @@ func Test_variables_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
 			p := &variablesClient{
 				reader: reader,
 			}
@@ -71,7 +70,7 @@ func Test_variables_Get(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

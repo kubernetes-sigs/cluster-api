@@ -3,7 +3,6 @@ Minimalistic Machines API
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Capabilities](#capabilities)
 - [Proposal](#proposal)
 - [In-place vs. Replace](#in-place-vs-replace)
@@ -42,7 +41,7 @@ performed in-place or via Node replacement.
 ## Proposal
 
 This proposal introduces a new API type: Machine. See the full definition in
-[machine_types.go](../../api/v1alpha4/machine_types.go).
+[machine_types.go](https://github.com/kubernetes-sigs/cluster-api/blob/release-0.4/api/v1alpha4/machine_types.go).
 
 A "Machine" is the declarative spec for a Node, as represented in Kubernetes
 core. If a new Machine object is created, a provider-specific controller will
@@ -143,4 +142,4 @@ revisit the specifics when new patterns start to emerge in core.
 
 ## Types
 
-Please see the full types [here](../../api/v1alpha4/machine_types.go).
+Please see the full types [here](https://github.com/kubernetes-sigs/cluster-api/blob/release-0.4/api/v1alpha4/machine_types.go).

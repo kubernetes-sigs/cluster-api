@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-state-metrics-crd-sidecar-script
+data:
+  compile.sh: |
+    #!/bin/sh
+    set -x
+    
+    SOURCE_DIR="/tmp"
+    TARGET_FILE="/etc/config/crd-metrics-config.yaml"
+    # This script will use a temporary file to only overwrite the target file once.
+    TARGET_FILE_TMP="${TARGET_FILE}.tmp"
+    # Create header
+    cat << EOF > "${TARGET_FILE_TMP}"
+    kind: CustomResourceStateMetrics
+    spec:
+      resources:
+    EOF
+    # Append custom resource config of all files but remove headers
+    for f in $(ls -1 ${SOURCE_DIR}/*.yaml); do
+      cat $f | grep -v -E -e '^(-|kind: CustomResourceStateMetrics|spec:| +resources:)' \
+        >> "${TARGET_FILE_TMP}"
+    done
+    # Overwrite target file
+    mv "${TARGET_FILE_TMP}" "${TARGET_FILE}"

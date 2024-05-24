@@ -19,15 +19,15 @@ package framework
 import (
 	"context"
 	"fmt"
-	"strings"
+	"time"
 
-	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -150,23 +150,6 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 		// Upgrade to new Version.
 		mp.Spec.Template.Spec.Version = &input.UpgradeVersion
 
-		// Drop "-cgroupfs" suffix from BootstrapConfig ref name, i.e. we switch from a
-		// BootstrapConfig with pinned cgroupfs cgroupDriver to the regular BootstrapConfig.
-		// This is a workaround for CAPD, because kind and CAPD only support:
-		// * cgroupDriver cgroupfs for Kubernetes < v1.24
-		// * cgroupDriver systemd for Kubernetes >= v1.24.
-		// We can remove this as soon as we don't test upgrades from Kubernetes < v1.24 anymore with CAPD
-		// or MachinePools are supported in ClusterClass.
-		if mp.Spec.Template.Spec.InfrastructureRef.Kind == "DockerMachinePool" {
-			version, err := semver.ParseTolerant(input.UpgradeVersion)
-			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to parse UpgradeVersion %q", input.UpgradeVersion))
-			if version.GTE(semver.MustParse("1.24.0")) && strings.HasSuffix(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name, "-cgroupfs") {
-				mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name = strings.TrimSuffix(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name, "-cgroupfs")
-				// We have to set DataSecretName to nil, so the secret of the new bootstrap ConfigRef gets picked up.
-				mp.Spec.Template.Spec.Bootstrap.DataSecretName = nil
-			}
-		}
-
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch the new Kubernetes version to Machine Pool %s", klog.KObj(mp))
@@ -219,6 +202,56 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 	}
 }
 
+type ScaleMachinePoolTopologyAndWaitInput struct {
+	ClusterProxy        ClusterProxy
+	Cluster             *clusterv1.Cluster
+	Replicas            int32
+	WaitForMachinePools []interface{}
+	Getter              Getter
+}
+
+// ScaleMachinePoolTopologyAndWait scales a machine pool and waits for its instances to scale up.
+func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePoolTopologyAndWaitInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for ScaleMachinePoolTopologyAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleMachinePoolTopologyAndWait")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleMachinePoolTopologyAndWait")
+	Expect(input.Cluster.Spec.Topology.Workers).ToNot(BeNil(), "Invalid argument. input.Cluster must have MachinePool topologies")
+	Expect(input.Cluster.Spec.Topology.Workers.MachinePools).NotTo(BeEmpty(), "Invalid argument. input.Cluster must have at least one MachinePool topology")
+
+	mpTopology := input.Cluster.Spec.Topology.Workers.MachinePools[0]
+	if mpTopology.Replicas != nil {
+		log.Logf("Scaling machine pool topology %s from %d to %d replicas", mpTopology.Name, *mpTopology.Replicas, input.Replicas)
+	} else {
+		log.Logf("Scaling machine pool topology %s to %d replicas", mpTopology.Name, input.Replicas)
+	}
+	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())
+	Expect(err).ToNot(HaveOccurred())
+	mpTopology.Replicas = ptr.To[int32](input.Replicas)
+	input.Cluster.Spec.Topology.Workers.MachinePools[0] = mpTopology
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.Cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine pool topology %s", mpTopology.Name)
+
+	log.Logf("Waiting for correct number of replicas to exist")
+	mpList := &expv1.MachinePoolList{}
+	Eventually(func() error {
+		return input.ClusterProxy.GetClient().List(ctx, mpList,
+			client.InNamespace(input.Cluster.Namespace),
+			client.MatchingLabels{
+				clusterv1.ClusterNameLabel:                    input.Cluster.Name,
+				clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
+			},
+		)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+
+	Expect(mpList.Items).To(HaveLen(1))
+	mp := mpList.Items[0]
+	WaitForMachinePoolNodesToExist(ctx, WaitForMachinePoolNodesToExistInput{
+		Getter:      input.Getter,
+		MachinePool: &mp,
+	}, input.WaitForMachinePools...)
+}
+
 // WaitForMachinePoolInstancesToBeUpgradedInput is the input for WaitForMachinePoolInstancesToBeUpgraded.
 type WaitForMachinePoolInstancesToBeUpgradedInput struct {
 	Getter                   Getter
@@ -240,11 +273,11 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 
 	log.Logf("Ensuring all MachinePool Instances have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
 	Eventually(func() (int, error) {
-		nn := client.ObjectKey{
+		mpKey := client.ObjectKey{
 			Namespace: input.MachinePool.Namespace,
 			Name:      input.MachinePool.Name,
 		}
-		if err := input.Getter.Get(ctx, nn, input.MachinePool); err != nil {
+		if err := input.Getter.Get(ctx, mpKey, input.MachinePool); err != nil {
 			return 0, err
 		}
 		versions := getMachinePoolInstanceVersions(ctx, GetMachinesPoolInstancesInput{
@@ -261,7 +294,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		if matches != len(versions) {
-			return 0, errors.New("old version instances remain")
+			return 0, errors.Errorf("old version instances remain. Expected %d instances at version %v. Got version list: %v", len(versions), input.KubernetesUpgradeVersion, versions)
 		}
 
 		return matches, nil
@@ -286,19 +319,49 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 	versions := make([]string, len(instances))
 	for i, instance := range instances {
 		node := &corev1.Node{}
-		err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
-			err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
-			if err != nil {
+		var nodeGetError error
+		err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 10*time.Second, true, func(ctx context.Context) (bool, error) {
+			nodeGetError = input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+			if nodeGetError != nil {
 				return false, nil //nolint:nilerr
 			}
 			return true, nil
 		})
 		if err != nil {
 			versions[i] = "unknown"
+			if nodeGetError != nil {
+				// Dump the instance name and error here so that we can log it as part of the version array later on.
+				versions[i] = fmt.Sprintf("%s error: %s", instance.Name, errors.Wrap(err, nodeGetError.Error()))
+			}
 		} else {
 			versions[i] = node.Status.NodeInfo.KubeletVersion
 		}
 	}
 
 	return versions
+}
+
+type AssertMachinePoolReplicasInput struct {
+	Getter             Getter
+	MachinePool        *expv1.MachinePool
+	Replicas           int32
+	WaitForMachinePool []interface{}
+}
+
+func AssertMachinePoolReplicas(ctx context.Context, input AssertMachinePoolReplicasInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for AssertMachinePoolReplicas")
+	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling AssertMachinePoolReplicas")
+	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling AssertMachinePoolReplicas")
+
+	Eventually(func(g Gomega) {
+		// Get the MachinePool
+		mp := &expv1.MachinePool{}
+		key := client.ObjectKey{
+			Namespace: input.MachinePool.Namespace,
+			Name:      input.MachinePool.Name,
+		}
+		g.Expect(input.Getter.Get(ctx, key, mp)).To(Succeed(), fmt.Sprintf("failed to get MachinePool %s", klog.KObj(input.MachinePool)))
+		g.Expect(mp.Spec.Replicas).Should(Not(BeNil()), fmt.Sprintf("MachinePool %s replicas should not be nil", klog.KObj(mp)))
+		g.Expect(*mp.Spec.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachinePool %s replicas should match expected replicas", klog.KObj(mp)))
+	}, input.WaitForMachinePool...).Should(Succeed())
 }

@@ -1,0 +1,149 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: in-memory
+spec:
+  controlPlane:
+    metadata:
+      annotations:
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        kind: InMemoryMachineTemplate
+        name: in-memory-control-plane
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: in-memory-control-plane
+    machineHealthCheck:
+      unhealthyConditions:
+        - type: Ready
+          status: Unknown
+          timeout: 300s
+        - type: Ready
+          status: "False"
+          timeout: 300s
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+      kind: InMemoryClusterTemplate
+      name: in-memory-cluster
+  workers:
+    machineDeployments:
+      - class: default-worker
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: KubeadmConfigTemplate
+              name: in-memory-default-worker-bootstraptemplate
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+              kind: InMemoryMachineTemplate
+              name: in-memory-default-worker-machinetemplate
+        machineHealthCheck:
+          unhealthyConditions:
+            - type: Ready
+              status: Unknown
+              timeout: 300s
+            - type: Ready
+              status: "False"
+              timeout: 300s
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: InMemoryClusterTemplate
+metadata:
+  name: in-memory-cluster
+spec:
+  template:
+    spec: {}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: in-memory-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            certSANs:
+              - localhost
+              - 127.0.0.1
+              - 0.0.0.0
+              - host.docker.internal
+        initConfiguration:
+          nodeRegistration:
+            criSocket: unix:///var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: unix:///var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: InMemoryMachineTemplate
+metadata:
+  name: in-memory-control-plane
+spec:
+  template:
+    spec:
+      behaviour:
+        vm:
+          provisioning:
+            startupDuration: "30s"
+            startupJitter: "0.2"
+        node:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        apiServer:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        etcd:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: InMemoryMachineTemplate
+metadata:
+  name: in-memory-default-worker-machinetemplate
+spec:
+  template:
+    spec:
+      behaviour:
+        vm:
+          provisioning:
+            startupDuration: "30s"
+            startupJitter: "0.2"
+        node:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        apiServer:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        etcd:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: in-memory-default-worker-bootstraptemplate
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: unix:///var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

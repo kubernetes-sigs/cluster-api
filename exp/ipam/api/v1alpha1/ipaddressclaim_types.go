@@ -32,7 +32,8 @@ type IPAddressClaimSpec struct {
 // IPAddressClaimStatus is the observed status of a IPAddressClaim.
 type IPAddressClaimStatus struct {
 	// AddressRef is a reference to the address that was created for this claim.
-	AddressRef corev1.LocalObjectReference `json:"addressRef"`
+	// +optional
+	AddressRef corev1.LocalObjectReference `json:"addressRef,omitempty"`
 
 	// Conditions summarises the current state of the IPAddressClaim
 	// +optional
@@ -42,9 +43,9 @@ type IPAddressClaimStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=ipaddressclaims,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pool Name",type="string",JSONPath=".spec.poolRef.name",description="Name of the pool to allocate an address from"
 // +kubebuilder:printcolumn:name="Pool Kind",type="string",JSONPath=".spec.poolRef.kind",description="Kind of the pool to allocate an address from"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of IPAdressClaim"
 
 // IPAddressClaim is the Schema for the ipaddressclaim API.
 type IPAddressClaim struct {
@@ -53,6 +54,16 @@ type IPAddressClaim struct {
 
 	Spec   IPAddressClaimSpec   `json:"spec,omitempty"`
 	Status IPAddressClaimStatus `json:"status,omitempty"`
+}
+
+// GetConditions returns the set of conditions for this object.
+func (m *IPAddressClaim) GetConditions() clusterv1.Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (m *IPAddressClaim) SetConditions(conditions clusterv1.Conditions) {
+	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true
@@ -65,5 +76,5 @@ type IPAddressClaimList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&IPAddressClaim{}, &IPAddressClaimList{})
+	objectTypes = append(objectTypes, &IPAddressClaim{}, &IPAddressClaimList{})
 }

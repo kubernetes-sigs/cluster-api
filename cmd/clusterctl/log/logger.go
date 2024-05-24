@@ -106,7 +106,7 @@ func (l *logger) V(level int) logr.LogSink {
 // WithName adds a new element to the logger's name.
 func (l *logger) WithName(name string) logr.LogSink {
 	nl := l.clone()
-	if len(l.prefix) > 0 {
+	if l.prefix != "" {
 		nl.prefix = l.prefix + "/"
 	}
 	nl.prefix += name

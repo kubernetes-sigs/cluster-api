@@ -19,7 +19,7 @@ package version
 import (
 	"testing"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 )
 
@@ -68,10 +68,10 @@ func TestParseMajorMinorPatch(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			out, err := ParseMajorMinorPatch(tc.input)
 			g.Expect(err != nil).To(Equal(tc.expectError))
-			g.Expect(out).To(Equal(tc.output))
+			g.Expect(out).To(BeComparableTo(tc.output))
 		})
 	}
 }
@@ -116,10 +116,10 @@ func TestParseMajorMinorPatchTolerant(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			out, err := ParseMajorMinorPatchTolerant(tc.input)
 			g.Expect(err != nil).To(Equal(tc.expectError))
-			g.Expect(out).To(Equal(tc.output))
+			g.Expect(out).To(BeComparableTo(tc.output))
 		})
 	}
 }

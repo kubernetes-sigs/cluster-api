@@ -28,8 +28,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/blang/semver"
-	"golang.org/x/tools/go/vcs"
+	"github.com/blang/semver/v4"
 	"sigs.k8s.io/kubebuilder/docs/book/utils/plugin"
 
 	"sigs.k8s.io/cluster-api/internal/goproxy"
@@ -48,11 +47,20 @@ func (ReleaseLink) SupportsOutput(_ string) bool { return true }
 
 // Process modifies the book in the input, which gets returned as the result of the plugin.
 func (l ReleaseLink) Process(input *plugin.Input) error {
-	return plugin.EachCommand(&input.Book, "releaselink", func(chapter *plugin.BookChapter, args string) (string, error) {
-		tags := reflect.StructTag(strings.TrimSpace(args))
+	return plugin.EachCommand(&input.Book, "releaselink", func(_ *plugin.BookChapter, args string) (string, error) {
+		var gomodule, asset, repo string
+		var found bool
 
-		gomodule := tags.Get("gomodule")
-		asset := tags.Get("asset")
+		tags := reflect.StructTag(strings.TrimSpace(args))
+		if gomodule, found = tags.Lookup("gomodule"); !found {
+			return "", fmt.Errorf("releaselink requires tag \"gomodule\" to be set")
+		}
+		if asset, found = tags.Lookup("asset"); !found {
+			return "", fmt.Errorf("releaselink requires tag \"asset\" to be set")
+		}
+		if repo, found = tags.Lookup("repo"); !found {
+			return "", fmt.Errorf("releaselink requires tag \"repo\" to be set")
+		}
 		versionRange := semver.MustParseRange(tags.Get("version"))
 		includePrereleases := tags.Get("prereleases") == "true"
 
@@ -65,11 +73,6 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 		}
 
 		goproxyClient := goproxy.NewClient(scheme, host)
-
-		repo, err := vcs.RepoRootForImportPath(gomodule, false)
-		if err != nil {
-			return "", err
-		}
 
 		parsedTags, err := goproxyClient.GetVersions(context.Background(), gomodule)
 		if err != nil {
@@ -86,7 +89,7 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 			}
 		}
 
-		return fmt.Sprintf("%s/releases/download/v%s/%s", repo.Repo, picked, asset), nil
+		return fmt.Sprintf("%s/releases/download/v%s/%s", repo, picked, asset), nil
 	})
 }
 

@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,22 +47,22 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
+func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	endpoint := cluster.Spec.ControlPlaneEndpoint
+	endpoint := controlPlane.Cluster.Spec.ControlPlaneEndpoint
 	if endpoint.IsZero() {
 		return ctrl.Result{}, nil
 	}
 
-	controllerOwnerRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
-	clusterName := util.ObjectKey(cluster)
-	configSecret, err := secret.GetFromNamespacedName(ctx, r.Client, clusterName, secret.Kubeconfig)
+	controllerOwnerRef := *metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
+	clusterName := util.ObjectKey(controlPlane.Cluster)
+	configSecret, err := secret.GetFromNamespacedName(ctx, r.SecretCachingClient, clusterName, secret.Kubeconfig)
 	switch {
 	case apierrors.IsNotFound(err):
 		createErr := kubeconfig.CreateSecretWithOwner(
 			ctx,
-			r.Client,
+			r.SecretCachingClient,
 			clusterName,
 			endpoint.String(),
 			controllerOwnerRef,
@@ -77,12 +76,12 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return ctrl.Result{}, errors.Wrap(err, "failed to retrieve kubeconfig Secret")
 	}
 
-	if err := r.adoptKubeconfigSecret(ctx, cluster, configSecret, kcp); err != nil {
+	if err := r.adoptKubeconfigSecret(ctx, configSecret, controlPlane.KCP); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// only do rotation on owned secrets
-	if !util.IsControlledBy(configSecret, kcp) {
+	if !util.IsControlledBy(configSecret, controlPlane.KCP) {
 		return ctrl.Result{}, nil
 	}
 
@@ -92,7 +91,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	}
 
 	if needsRotation {
-		log.Info("rotating kubeconfig secret")
+		log.Info("Rotating kubeconfig secret")
 		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}
@@ -102,46 +101,32 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 }
 
 // Ensure the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
-func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) error {
-	log := ctrl.LoggerFrom(ctx)
+func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) (reterr error) {
+	patchHelper, err := patch.NewHelper(configSecret, r.Client)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := patchHelper.Patch(ctx, configSecret); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+	}()
 	controller := metav1.GetControllerOf(configSecret)
 
-	// If the Type doesn't match the CAPI-created secret type this is a no-op.
-	if configSecret.Type != clusterv1.ClusterSecretType {
+	// If the current controller is KCP, ensure the owner reference is up to date and return early.
+	// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
+	if controller != nil && controller.Kind == kubeadmControlPlaneKind {
+		configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))))
 		return nil
 	}
-	// If the secret is already controlled by KCP this is a no-op.
-	if controller != nil && controller.Kind == "KubeadmControlPlane" {
-		return nil
-	}
-	log.Info("Adopting KubeConfig secret", "Secret", klog.KObj(configSecret))
-	patch, err := patch.NewHelper(configSecret, r.Client)
-	if err != nil {
-		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
-	}
 
-	// If the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP.
-	// In this case remove the ownerReference to the Cluster.
-	if util.IsOwnedByObject(configSecret, cluster) {
-		configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.OwnerReferences, metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		}))
-	}
-
-	// Remove the current controller if one exists.
-	if controller != nil {
-		configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.OwnerReferences, *controller))
-	}
-
-	// Add the KubeadmControlPlane as the controller for this secret.
-	configSecret.OwnerReferences = util.EnsureOwnerRef(configSecret.OwnerReferences,
-		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")))
-
-	if err := patch.Patch(ctx, configSecret); err != nil {
-		return errors.Wrap(err, "failed to patch the kubeconfig secret")
+	// If secret type is a CAPI-created secret ensure the owner reference is to KCP.
+	if configSecret.Type == clusterv1.ClusterSecretType {
+		// Remove the current controller if one exists and ensure KCP is the controller of the secret.
+		if controller != nil {
+			configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.GetOwnerReferences(), *controller))
+		}
+		configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))))
 	}
 	return nil
 }
@@ -180,20 +165,31 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, bootstrapSpec *bootstrapv1.KubeadmConfigSpec, failureDomain *string) error {
 	var errs []error
 
+	// Compute desired Machine
+	machine, err := r.computeDesiredMachine(kcp, cluster, failureDomain, nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to create Machine: failed to compute desired Machine")
+	}
+
 	// Since the cloned resource should eventually have a controller ref for the Machine, we create an
 	// OwnerReference here without the Controller field set
 	infraCloneOwner := &metav1.OwnerReference{
 		APIVersion: controlplanev1.GroupVersion.String(),
-		Kind:       "KubeadmControlPlane",
+		Kind:       kubeadmControlPlaneKind,
 		Name:       kcp.Name,
 		UID:        kcp.UID,
 	}
 
+	infraMachineName := machine.Name
+	if r.DeprecatedInfraMachineNaming {
+		infraMachineName = names.SimpleNameGenerator.GenerateName(kcp.Spec.MachineTemplate.InfrastructureRef.Name + "-")
+	}
 	// Clone the infrastructure template
 	infraRef, err := external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 		Client:      r.Client,
 		TemplateRef: &kcp.Spec.MachineTemplate.InfrastructureRef,
 		Namespace:   kcp.Namespace,
+		Name:        infraMachineName,
 		OwnerRef:    infraCloneOwner,
 		ClusterName: cluster.Name,
 		Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
@@ -205,9 +201,10 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 			clusterv1.ConditionSeverityError, err.Error())
 		return errors.Wrap(err, "failed to clone infrastructure template")
 	}
+	machine.Spec.InfrastructureRef = *infraRef
 
 	// Clone the bootstrap configuration
-	bootstrapRef, err := r.generateKubeadmConfig(ctx, kcp, cluster, bootstrapSpec)
+	bootstrapRef, err := r.generateKubeadmConfig(ctx, kcp, cluster, bootstrapSpec, machine.Name)
 	if err != nil {
 		conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedCondition, controlplanev1.BootstrapTemplateCloningFailedReason,
 			clusterv1.ConditionSeverityError, err.Error())
@@ -216,7 +213,9 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 
 	// Only proceed to generating the Machine if we haven't encountered an error
 	if len(errs) == 0 {
-		if err := r.createMachine(ctx, kcp, cluster, infraRef, bootstrapRef, failureDomain); err != nil {
+		machine.Spec.Bootstrap.ConfigRef = bootstrapRef
+
+		if err := r.createMachine(ctx, kcp, machine); err != nil {
 			conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedCondition, controlplanev1.MachineGenerationFailedReason,
 				clusterv1.ConditionSeverityError, err.Error())
 			errs = append(errs, errors.Wrap(err, "failed to create Machine"))
@@ -256,18 +255,18 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 	return kerrors.NewAggregate(errs)
 }
 
-func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec) (*corev1.ObjectReference, error) {
+func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, spec *bootstrapv1.KubeadmConfigSpec, name string) (*corev1.ObjectReference, error) {
 	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	owner := metav1.OwnerReference{
 		APIVersion: controlplanev1.GroupVersion.String(),
-		Kind:       "KubeadmControlPlane",
+		Kind:       kubeadmControlPlaneKind,
 		Name:       kcp.Name,
 		UID:        kcp.UID,
 	}
 
 	bootstrapConfig := &bootstrapv1.KubeadmConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
+			Name:            name,
 			Namespace:       kcp.Namespace,
 			Labels:          internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 			Annotations:     kcp.Spec.MachineTemplate.ObjectMeta.Annotations,
@@ -306,17 +305,13 @@ func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context
 	// Update annotations
 	updatedObject.SetAnnotations(kcp.Spec.MachineTemplate.ObjectMeta.Annotations)
 
-	if err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedObject); err != nil {
+	if err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) error {
-	machine, err := r.computeDesiredMachine(kcp, cluster, infraRef, bootstrapRef, failureDomain, nil)
-	if err != nil {
-		return errors.Wrap(err, "failed to create Machine: failed to compute desired Machine")
-	}
+func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) error {
 	if err := ssa.Patch(ctx, r.Client, kcpManagerName, machine); err != nil {
 		return errors.Wrap(err, "failed to create Machine")
 	}
@@ -327,11 +322,7 @@ func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *
 }
 
 func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
-	updatedMachine, err := r.computeDesiredMachine(
-		kcp, cluster,
-		&machine.Spec.InfrastructureRef, machine.Spec.Bootstrap.ConfigRef,
-		machine.Spec.FailureDomain, machine,
-	)
+	updatedMachine, err := r.computeDesiredMachine(kcp, cluster, machine.Spec.FailureDomain, machine)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update Machine: failed to compute desired Machine")
 	}
@@ -351,7 +342,7 @@ func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machi
 // There are small differences in how we calculate the Machine depending on if it
 // is a create or update. Example: for a new Machine we have to calculate a new name,
 // while for an existing Machine we have to use the name of the existing Machine.
-func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string, existingMachine *clusterv1.Machine) (*clusterv1.Machine, error) {
+func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, failureDomain *string, existingMachine *clusterv1.Machine) (*clusterv1.Machine, error) {
 	var machineName string
 	var machineUID types.UID
 	var version *string
@@ -408,19 +399,15 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 			Namespace: kcp.Namespace,
 			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind)),
 			},
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName:       cluster.Name,
-			Version:           version,
-			FailureDomain:     failureDomain,
-			InfrastructureRef: *infraRef,
-			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: bootstrapRef,
-			},
+			ClusterName:   cluster.Name,
+			Version:       version,
+			FailureDomain: failureDomain,
 		},
 	}
 
@@ -445,6 +432,11 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 	desiredMachine.Spec.NodeDrainTimeout = kcp.Spec.MachineTemplate.NodeDrainTimeout
 	desiredMachine.Spec.NodeDeletionTimeout = kcp.Spec.MachineTemplate.NodeDeletionTimeout
 	desiredMachine.Spec.NodeVolumeDetachTimeout = kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout
+
+	if existingMachine != nil {
+		desiredMachine.Spec.InfrastructureRef = existingMachine.Spec.InfrastructureRef
+		desiredMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef
+	}
 
 	return desiredMachine, nil
 }

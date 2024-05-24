@@ -66,6 +66,8 @@ const (
 	// As a result, we use the hash of the machine template while ignoring all in-place mutable fields, i.e. the
 	// machine template with only fields that could trigger a rollout for the machine-template-hash, making it
 	// independent of the changes to any in-place mutable fields.
+	// A random string is appended at the end of the label value (label value format is "<hash>-<random string>"))
+	// to distinguish duplicate MachineSets that have the exact same spec but were created as a result of rolloutAfter.
 	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
 
@@ -97,6 +99,15 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
+	// RolloutAfter is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the
+	// MachineDeployment.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
+	// +optional
+	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
+
 	// Label selector for machines. Existing MachineSets whose machines are
 	// selected by this will be the ones affected by this deployment.
 	// It must match the machine template's labels.
@@ -110,10 +121,8 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 
-	// Minimum number of seconds for which a newly created machine should
-	// be ready.
-	// Defaults to 0 (machine will be considered available as soon as it
-	// is ready)
+	// MinReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
+	// Defaults to 0 (machine will be considered available as soon as the Node is ready)
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
@@ -143,8 +152,8 @@ type MachineDeploymentSpec struct {
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
-	// Type of deployment.
-	// Default is RollingUpdate.
+	// Type of deployment. Allowed values are RollingUpdate and OnDelete.
+	// The default is RollingUpdate.
 	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
 	// +optional
 	Type MachineDeploymentStrategyType `json:"type,omitempty"`
@@ -328,7 +337,7 @@ type MachineDeploymentList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&MachineDeployment{}, &MachineDeploymentList{})
+	objectTypes = append(objectTypes, &MachineDeployment{}, &MachineDeploymentList{})
 }
 
 // GetConditions returns the set of conditions for the machinedeployment.

@@ -51,10 +51,13 @@ type ControlPlane struct {
 	// See discussion on https://github.com/kubernetes-sigs/cluster-api/pull/3405
 	KubeadmConfigs map[string]*bootstrapv1.KubeadmConfig
 	InfraResources map[string]*unstructured.Unstructured
+
+	managementCluster ManagementCluster
+	workloadCluster   WorkloadCluster
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
-func NewControlPlane(ctx context.Context, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
+func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
 	infraObjects, err := getInfraResources(ctx, client, ownedMachines)
 	if err != nil {
 		return nil, err
@@ -67,7 +70,7 @@ func NewControlPlane(ctx context.Context, client client.Client, cluster *cluster
 	for _, machine := range ownedMachines {
 		patchHelper, err := patch.NewHelper(machine, client)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to create patch helper for machine %s", machine.Name)
+			return nil, err
 		}
 		patchHelpers[machine.Name] = patchHelper
 	}
@@ -80,6 +83,7 @@ func NewControlPlane(ctx context.Context, client client.Client, cluster *cluster
 		KubeadmConfigs:       kubeadmConfigs,
 		InfraResources:       infraObjects,
 		reconciliationTime:   metav1.Now(),
+		managementCluster:    managementCluster,
 	}, nil
 }
 
@@ -92,8 +96,8 @@ func (c *ControlPlane) FailureDomains() clusterv1.FailureDomains {
 }
 
 // MachineInFailureDomainWithMostMachines returns the first matching failure domain with machines that has the most control-plane machines on it.
-func (c *ControlPlane) MachineInFailureDomainWithMostMachines(machines collections.Machines) (*clusterv1.Machine, error) {
-	fd := c.FailureDomainWithMostMachines(machines)
+func (c *ControlPlane) MachineInFailureDomainWithMostMachines(ctx context.Context, machines collections.Machines) (*clusterv1.Machine, error) {
+	fd := c.FailureDomainWithMostMachines(ctx, machines)
 	machinesInFailureDomain := machines.Filter(collections.InFailureDomains(fd))
 	machineToMark := machinesInFailureDomain.Oldest()
 	if machineToMark == nil {
@@ -112,7 +116,7 @@ func (c *ControlPlane) MachineWithDeleteAnnotation(machines collections.Machines
 
 // FailureDomainWithMostMachines returns a fd which exists both in machines and control-plane machines and has the most
 // control-plane machines on it.
-func (c *ControlPlane) FailureDomainWithMostMachines(machines collections.Machines) *string {
+func (c *ControlPlane) FailureDomainWithMostMachines(ctx context.Context, machines collections.Machines) *string {
 	// See if there are any Machines that are not in currently defined failure domains first.
 	notInFailureDomains := machines.Filter(
 		collections.Not(collections.InFailureDomains(c.FailureDomains().FilterControlPlane().GetIDs()...)),
@@ -123,15 +127,19 @@ func (c *ControlPlane) FailureDomainWithMostMachines(machines collections.Machin
 		// in the cluster status.
 		return notInFailureDomains.Oldest().Spec.FailureDomain
 	}
-	return failuredomains.PickMost(c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines, machines)
+	return failuredomains.PickMost(ctx, c.Cluster.Status.FailureDomains.FilterControlPlane(), c.Machines, machines)
 }
 
 // NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date machines.
-func (c *ControlPlane) NextFailureDomainForScaleUp() *string {
+func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) (*string, error) {
 	if len(c.Cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
-		return nil
+		return nil, nil
 	}
-	return failuredomains.PickFewest(c.FailureDomains().FilterControlPlane(), c.UpToDateMachines())
+	upToDateMachines, err := c.UpToDateMachines()
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to determine next failure domain for scale up")
+	}
+	return failuredomains.PickFewest(ctx, c.FailureDomains().FilterControlPlane(), upToDateMachines), nil
 }
 
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.
@@ -163,22 +171,40 @@ func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.Kubead
 }
 
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
-func (c *ControlPlane) MachinesNeedingRollout() collections.Machines {
+func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string]string, error) {
 	// Ignore machines to be deleted.
 	machines := c.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
 
 	// Return machines if they are scheduled for rollout or if with an outdated configuration.
-	return machines.Filter(
-		NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP),
-	)
+	machinesNeedingRollout := make(collections.Machines, len(machines))
+	rolloutReasons := map[string]string{}
+	for _, m := range machines {
+		reason, needsRollout, err := NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP, m)
+		if err != nil {
+			return nil, nil, err
+		}
+		if needsRollout {
+			machinesNeedingRollout.Insert(m)
+			rolloutReasons[m.Name] = reason
+		}
+	}
+	return machinesNeedingRollout, rolloutReasons, nil
 }
 
 // UpToDateMachines returns the machines that are up to date with the control
 // plane's configuration and therefore do not require rollout.
-func (c *ControlPlane) UpToDateMachines() collections.Machines {
-	return c.Machines.Filter(
-		collections.Not(NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP)),
-	)
+func (c *ControlPlane) UpToDateMachines() (collections.Machines, error) {
+	upToDateMachines := make(collections.Machines, len(c.Machines))
+	for _, m := range c.Machines {
+		_, needsRollout, err := NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP, m)
+		if err != nil {
+			return nil, err
+		}
+		if !needsRollout {
+			upToDateMachines.Insert(m)
+		}
+	}
+	return upToDateMachines, nil
 }
 
 // getInfraResources fetches the external infrastructure resource for each machine in the collection and returns a map of machine.Name -> infraResource.
@@ -222,19 +248,31 @@ func (c *ControlPlane) IsEtcdManaged() bool {
 	return c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration == nil || c.KCP.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.External == nil
 }
 
-// UnhealthyMachines returns the list of control plane machines marked as unhealthy by MHC.
-func (c *ControlPlane) UnhealthyMachines() collections.Machines {
+// UnhealthyMachinesWithUnhealthyControlPlaneComponents returns all unhealthy control plane machines that
+// have unhealthy control plane components.
+// It differs from UnhealthyMachinesByHealthCheck which checks `MachineHealthCheck` conditions.
+func (c *ControlPlane) UnhealthyMachinesWithUnhealthyControlPlaneComponents(machines collections.Machines) collections.Machines {
+	return machines.Filter(collections.HasUnhealthyControlPlaneComponents(c.IsEtcdManaged()))
+}
+
+// UnhealthyMachinesByMachineHealthCheck returns the list of control plane machines marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) UnhealthyMachinesByMachineHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.HasUnhealthyCondition)
 }
 
-// HealthyMachines returns the list of control plane machines not marked as unhealthy by MHC.
-func (c *ControlPlane) HealthyMachines() collections.Machines {
+// HealthyMachinesByMachineHealthCheck returns the list of control plane machines not marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HealthyMachinesByMachineHealthCheck() collections.Machines {
 	return c.Machines.Filter(collections.Not(collections.HasUnhealthyCondition))
 }
 
-// HasUnhealthyMachine returns true if any machine in the control plane is marked as unhealthy by MHC.
-func (c *ControlPlane) HasUnhealthyMachine() bool {
-	return len(c.UnhealthyMachines()) > 0
+// HasUnhealthyMachineByMachineHealthCheck returns true if any machine in the control plane is marked as unhealthy by Machine Health Check.
+func (c *ControlPlane) HasUnhealthyMachineByMachineHealthCheck() bool {
+	return len(c.UnhealthyMachinesByMachineHealthCheck()) > 0
+}
+
+// HasHealthyMachineStillProvisioning returns true if any healthy machine in the control plane is still in the process of being provisioned.
+func (c *ControlPlane) HasHealthyMachineStillProvisioning() bool {
+	return len(c.HealthyMachinesByMachineHealthCheck().Filter(collections.Not(collections.HasNode()))) > 0
 }
 
 // PatchMachines patches all the machines conditions.
@@ -250,7 +288,7 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 				controlplanev1.MachineEtcdPodHealthyCondition,
 				controlplanev1.MachineEtcdMemberHealthyCondition,
 			}}); err != nil {
-				errList = append(errList, errors.Wrapf(err, "failed to patch machine %s", machine.Name))
+				errList = append(errList, err)
 			}
 			continue
 		}
@@ -261,5 +299,35 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 
 // SetPatchHelpers updates the patch helpers.
 func (c *ControlPlane) SetPatchHelpers(patchHelpers map[string]*patch.Helper) {
-	c.machinesPatchHelpers = patchHelpers
+	if c.machinesPatchHelpers == nil {
+		c.machinesPatchHelpers = map[string]*patch.Helper{}
+	}
+	for machineName, patchHelper := range patchHelpers {
+		c.machinesPatchHelpers[machineName] = patchHelper
+	}
+}
+
+// GetWorkloadCluster builds a cluster object.
+// The cluster comes with an etcd client generator to connect to any etcd pod living on a managed machine.
+func (c *ControlPlane) GetWorkloadCluster(ctx context.Context) (WorkloadCluster, error) {
+	if c.workloadCluster != nil {
+		return c.workloadCluster, nil
+	}
+
+	workloadCluster, err := c.managementCluster.GetWorkloadCluster(ctx, client.ObjectKeyFromObject(c.Cluster))
+	if err != nil {
+		return nil, err
+	}
+	c.workloadCluster = workloadCluster
+	return c.workloadCluster, nil
+}
+
+// InjectTestManagementCluster allows to inject a test ManagementCluster during tests.
+// NOTE: This approach allows to keep the managementCluster field private, which will
+// prevent people from using managementCluster.GetWorkloadCluster because it creates a new
+// instance of WorkloadCluster at every call. People instead should use ControlPlane.GetWorkloadCluster
+// that creates only a single instance of WorkloadCluster for each reconcile.
+func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementCluster) {
+	c.managementCluster = managementCluster
+	c.workloadCluster = nil
 }

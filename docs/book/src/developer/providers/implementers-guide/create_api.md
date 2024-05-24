@@ -62,3 +62,68 @@ As the deleted comments request, run `make manager manifests` to regenerate some
 git add .
 git commit -m "Added cluster types"
 ```
+
+# Registering APIs in the scheme
+
+To enable clients to encode and decode your API, your types must be able to be registered within a [scheme].
+
+[scheme]: https://pkg.go.dev/k8s.io/apimachinery/pkg/runtime#Scheme
+
+By default, Kubebuilder will provide you with a scheme builder like:
+
+```go
+import "sigs.k8s.io/controller-runtime/pkg/scheme"
+
+var (
+	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
+	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
+
+	// AddToScheme adds the types in this group-version to the given scheme.
+	AddToScheme = SchemeBuilder.AddToScheme
+)
+```
+
+and scheme registration that looks like:
+
+```go
+func init() {
+	SchemeBuilder.Register(&Captain{}, &CaptainList{})
+}
+```
+
+This pattern introduces a dependency on controller-runtime to your API types, which is discouraged for
+API packages as it makes it more difficult for consumers of your API to import your API types.
+In general, you should minimise the imports within the API folder of your package to allow your API types
+to be imported cleanly into other projects.
+
+To mitigate this, use the following schemebuilder pattern:
+
+```go
+import "k8s.io/apimachinery/pkg/runtime"
+
+var (
+	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
+	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+
+	// AddToScheme adds the types in this group-version to the given scheme.
+	AddToScheme = schemeBuilder.AddToScheme
+
+	objectTypes = []runtime.Object{}
+)
+
+func addKnownTypes(scheme *runtime.Scheme) error {
+	scheme.AddKnownTypes(GroupVersion, objectTypes...)
+	metav1.AddToGroupVersion(scheme, GroupVersion)
+	return nil
+}
+```
+
+and register types as below:
+
+```go
+func init() {
+	objectTypes = append(objectTypes, &Captain{}, &CaptainList{})
+}
+```
+
+This pattern reduces the number of dependencies being introduced into the API package within your project.

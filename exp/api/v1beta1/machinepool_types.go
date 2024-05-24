@@ -49,6 +49,7 @@ type MachinePoolSpec struct {
 	// be ready.
 	// Defaults to 0 (machine instance will be considered available as soon as it
 	// is ready)
+	// NOTE: No logic is implemented for this field and it currently has no behaviour.
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
@@ -197,6 +198,7 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 		MachinePoolPhaseRunning,
 		MachinePoolPhaseScalingUp,
 		MachinePoolPhaseScalingDown,
+		MachinePoolPhaseScaling,
 		MachinePoolPhaseDeleting,
 		MachinePoolPhaseFailed:
 		return phase
@@ -247,5 +249,5 @@ type MachinePoolList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&MachinePool{}, &MachinePoolList{})
+	objectTypes = append(objectTypes, &MachinePool{}, &MachinePoolList{})
 }

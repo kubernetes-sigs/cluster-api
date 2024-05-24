@@ -80,18 +80,18 @@ clusterctl upgrade apply \
 <h1>Clusterctl upgrade test coverage</h1>
 
 Cluster API only tests a subset of possible clusterctl upgrade paths as otherwise the test matrix would be overwhelming.
-Untested upgrade paths are not blocked by clusterctl and should work in general, they are just not tested. Users 
+Untested upgrade paths are not blocked by clusterctl and should work in general, they are just not tested. Users
 intending to use an upgrade path not tested by us should do their own validation to ensure the operation works correctly.
 
-The following is an example of the tested upgrade paths while v1.4 is being developed:
+The following is an example of the tested upgrade paths for v1.7:
 
-| From | To     | Note                                                                                                                                                                                    |
-|------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| v0.3 | latest | v0.3 is the latest supported minor release with the v1alpha3 contract (v0.3 is EOL since 2022-02-23). This test will be removed once the v1alpha3 apiVersion has been entirely removed. |
-| v0.4 | latest | v0.4 is the latest supported minor release with the v1alpha4 contract (v0.4 is EOL since 2022-04-06). This test will be removed once the v1alpha4 apiVersion has been entirely removed. |
-| v1.0 | latest | v1.0 is the first release with the v1beta1 contract.                                                                                                                                    |
-| v1.2 | latest | v1.2 is a currently supported release. This test will be removed when v1.4 is released and a new test for v1.4 is added.                                                                |
-| v1.3 | latest | v1.3 is a currently supported release. This test will be removed when v1.5 is released and a new test for v1.5 is added.                                                                |
+| From | To   | Note                                                 |
+|------|------|------------------------------------------------------|
+| v1.0 | v1.7 | v1.0 is the first release with the v1beta1 contract. |
+| v1.5 | v1.7 | v1.5 is v1.7 - 2.                                    |
+| v1.6 | v1.7 | v1.6 is v1.7 - 1.                                    |
+
+The idea is to always test upgrade from v1.0 and the previous two minor releases.
 
 </aside>
 
@@ -124,3 +124,32 @@ clusterctl upgrade apply \
 In this case, all the provider's versions must be explicitly stated.
 
 </aside>
+
+<aside class="note warning">
+
+<h1> Upgrading to Cluster API core components pre-release versions </h1>
+
+Use `clusterctl` CLI options to target the [desired version](https://github.com/kubernetes-sigs/cluster-api/releases).  
+
+The following shows an example of upgrading `bootrap`, `kubeadm` and `core` components to version `v1.6.0-rc.1`:
+
+```bash
+TARGET_VERSION=v1.6.0-rc.1
+
+clusterctl upgrade apply \
+    --bootstrap=kubeadm:${TARGET_VERSION} \
+    --control-plane=kubeadm:${TARGET_VERSION} \
+    --core=cluster-api:${TARGET_VERSION}
+```
+
+</aside>
+
+<aside class="note warning">
+
+<h1> Deploying nightly release images </h1>
+
+Cluster API publishes nightly versions of the project components' manifests from the `main` branch to a Google storage bucket for user consumption. The syntax for the URL is: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_<YYYYMMDD>/<COMPENENT_NAME>-components.yaml`.
+
+Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
+
+For example, to retrieve the core component manifest published April 25, 2024, the following URL can be used: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425/core-components.yaml`.

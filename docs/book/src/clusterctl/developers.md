@@ -66,7 +66,7 @@ cmd/clusterctl/hack/create-local-repository.py
 ```
 
 The script reads from the source folders for the providers you want to install, builds the providers' assets,
-and places them in a local repository folder located under `$HOME/.cluster-api/dev-repository/`.
+and places them in a local repository folder located under `$XDG_CONFIG_HOME/cluster-api/dev-repository/`.
 Additionally, the command output provides you the `clusterctl init` command with all the necessary flags.
 The output should be similar to:
 
@@ -80,24 +80,39 @@ clusterctl init \
    --control-plane kubeadm:v0.3.8 \
    --infrastructure aws:v0.5.0 \
    --infrastructure docker:v0.3.8 \
-   --config ~/.cluster-api/dev-repository/config.yaml
+   --config $XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml
 ```
 
-As you might notice, the command is using the `$HOME/.cluster-api/dev-repository/config.yaml` config file,
-containing all the required setting to make clusterctl use the local repository.
+As you might notice, the command is using the `$XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml` config file,
+containing all the required setting to make clusterctl use the local repository (it fallbacks to `$HOME` if `$XDG_CONFIG_HOME` 
+is not set on your machine).
 
 <aside class="note warning">
 
 <h1>Warnings</h1>
 
-You must pass `--config ~/.cluster-api/dev-repository/config.yaml` to all the clusterctl commands you are running
-during your dev session.
+You must pass `--config ...` to all the clusterctl commands you are running during your dev session.
 
 The above config file changes the location of the [overrides layer] folder thus ensuring
 you dev session isn't hijacked by other local artifacts.
 
-With the only exception of the Docker provider, the local repository folder does not contain cluster templates,
-so the `clusterctl generate cluster` command will fail.
+With the exceptions of the Docker and the in memory provider, the local repository folder does not contain cluster templates,
+so the `clusterctl generate cluster` command will fail if you don't copy a template into the local repository.
+
+</aside>
+
+<aside class="note warning">
+
+<h1>Nightly builds</h1>
+
+if you want to run your tests using a Cluster API nightly build, you can run the hack passing the nightly build folder
+(change the date at the end of the bucket name according to your needs):
+
+```bash
+cmd/clusterctl/hack/create-local-repository.py https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_20240425
+```
+
+Note: this works only with core Cluster API nightly builds. 
 
 </aside>
 
@@ -151,11 +166,10 @@ exact components are dependent on which providers you have initialized. Below
 is an example output with the Docker provider being installed.
 
 ```bash
-kubectl get deploy -A | grep  "cap\|cert"
-capd-system
+kubectl get deploy -A | grep "cap\|cert"
 ```
 ```bash
-capd-controller-manager                         1/1     1            1           25m
+capd-system                         capd-controller-manager                         1/1     1            1           25m
 capi-kubeadm-bootstrap-system       capi-kubeadm-bootstrap-controller-manager       1/1     1            1           25m
 capi-kubeadm-control-plane-system   capi-kubeadm-control-plane-controller-manager   1/1     1            1           25m
 capi-system                         capi-controller-manager                         1/1     1            1           25m

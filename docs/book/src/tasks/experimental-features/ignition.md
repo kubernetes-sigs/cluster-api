@@ -10,6 +10,18 @@ This initial implementation uses Ignition **v2** and was tested with **Flatcar C
 
 </aside>
 
+<aside class="note warning">
+
+<h1>Note</h1>
+
+If using ignition with CAPD you should take care of setting `kubeletExtraArgs` for the `kindest/node` image in use,
+because default CAPD templates do not include anymore those settings since when the cloud-init shim for CAPD is automatically taking care of this.
+An example of how to set `kubeletExtraArgs` for the `kindest/node` can be found under `cluster-api/test/e2e/data/infrastructure-docker/main/cluster-template-ignition`.
+
+Hopefully, this will be automated for Ignition too in a future release.
+
+</aside>
+
 This guide explains how to deploy an AWS workload cluster using Ignition.
 
 ## Prerequisites
@@ -48,7 +60,7 @@ export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-a
 
 # Enable the feature gates controlling Ignition bootstrap.
 export EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION=true # Used by the kubeadm bootstrap provider
-export BOOTSTRAP_FORMAT_IGNITION=true # Used by the AWS provider
+export EXP_BOOTSTRAP_FORMAT_IGNITION=true # Used by the AWS provider
 
 # Initialize the management cluster.
 clusterctl init --infrastructure aws
@@ -71,13 +83,14 @@ export AWS_S3_BUCKET_NAME=my-bucket
 export AWS_CONTROL_PLANE_MACHINE_TYPE=t3a.small
 export AWS_NODE_MACHINE_TYPE=t3a.small
 
-# TODO: Update --from URL once https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/2271 is merged.
 clusterctl generate cluster ignition-cluster \
-    --from https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/e7c89c9add92a4b233b26a1712518d9616d99e7a/templates/cluster-template-flatcar.yaml \
-    --kubernetes-version v1.22.2 \
+    --from https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-flatcar.yaml \
+    --kubernetes-version v1.28.0 \
     --worker-machine-count 2 \
     > ignition-cluster.yaml
 ```
+
+NOTE: Only certain Kubernetes versions have pre-built Kubernetes AMIs. See [list](https://cluster-api-aws.sigs.k8s.io/topics/images/built-amis) of published pre-built Kubernetes AMIs.
 
 ## Apply the workload cluster
 

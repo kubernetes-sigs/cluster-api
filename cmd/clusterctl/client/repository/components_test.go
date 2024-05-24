@@ -95,7 +95,7 @@ func Test_inspectTargetNamespace(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(Equal(tt.want))
 		})
@@ -632,7 +632,7 @@ func Test_addNamespaceIfMissing(t *testing.T) {
 			got := addNamespaceIfMissing(tt.args.objs, tt.args.targetNamespace)
 
 			wgot, err := inspectTargetNamespace(got)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(wgot).To(Equal(tt.args.targetNamespace))
 		})
 	}
@@ -682,7 +682,7 @@ func Test_addCommonLabels(t *testing.T) {
 			g := NewWithT(t)
 
 			got := addCommonLabels(tt.args.objs, config.NewProvider(tt.args.name, "", tt.args.providerType))
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -721,5 +721,5 @@ func TestAlterComponents(t *testing.T) {
 	if err := AlterComponents(c, alterFn); err != nil {
 		t.Errorf("AlterComponents() error = %v", err)
 	}
-	g.Expect(c.objs).To(Equal(want))
+	g.Expect(c.objs).To(BeComparableTo(want))
 }

@@ -21,11 +21,10 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 )
 
 func TestIndexMachineByNodeName(t *testing.T) {
@@ -62,9 +61,7 @@ func TestIndexMachineByNodeName(t *testing.T) {
 }
 
 func TestIndexMachineByProviderID(t *testing.T) {
-	validProviderID, err := noderefutil.NewProviderID("aws://region/zone/id")
-	g := NewWithT(t)
-	g.Expect(err).ToNot(HaveOccurred())
+	validProviderID := "aws://region/zone/id"
 
 	testCases := []struct {
 		name     string
@@ -80,7 +77,7 @@ func TestIndexMachineByProviderID(t *testing.T) {
 			name: "Machine has invalid providerID",
 			object: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					ProviderID: pointer.String("invalid"),
+					ProviderID: ptr.To(""),
 				},
 			},
 			expected: nil,
@@ -89,10 +86,10 @@ func TestIndexMachineByProviderID(t *testing.T) {
 			name: "Machine has valid providerID",
 			object: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					ProviderID: pointer.String(validProviderID.String()),
+					ProviderID: ptr.To(validProviderID),
 				},
 			},
-			expected: []string{validProviderID.IndexKey()},
+			expected: []string{validProviderID},
 		},
 	}
 

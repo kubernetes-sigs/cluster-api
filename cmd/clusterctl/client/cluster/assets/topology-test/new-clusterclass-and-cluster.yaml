@@ -62,6 +62,31 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachineTemplate
             name: docker-worker-machinetemplate
+    machinePools:
+    - class: "default-worker"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: docker-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: docker-worker-machinepooltemplate
+    - class: "default-worker-2"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: docker-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: docker-worker-machinepooltemplate
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
@@ -90,26 +115,12 @@ spec:
           namespace: default
       kubeadmConfigSpec:
         clusterConfiguration:
-          controllerManager:
-            extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:
             certSANs: [ localhost, 127.0.0.1 ]
         initConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
         joinConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
       version: v1.21.2
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -137,6 +148,17 @@ spec:
       preLoadImages: 
       - gcr.io/kakaraparthy-devel/kindest/kindnetd:0.5.4
 ---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: "docker-worker-machinepooltemplate"
+  namespace: default
+spec:
+  template:
+    spec:
+      preLoadImages: 
+      - gcr.io/kakaraparthy-devel/kindest/kindnetd:0.5.4
+---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
@@ -146,12 +168,7 @@ spec:
   template:
     spec:
       joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs:
-            # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-            # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-            cgroup-driver: cgroupfs
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -181,4 +198,11 @@ spec:
         replicas: 1
       - class: "default-worker"
         name: "md-1"
+        replicas: 1
+      machinePools:
+      - class: "default-worker"
+        name: "mp-0"
+        replicas: 1
+      - class: "default-worker"
+        name: "mp-1"
         replicas: 1

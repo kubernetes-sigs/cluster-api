@@ -118,7 +118,7 @@ v3: default3
 // the filepath and a cleanup function for the temp directory.
 func createTempFile(g *WithT, contents string) (string, func()) {
 	dir, err := os.MkdirTemp("", "clusterctl")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	templateFile := filepath.Join(dir, "templ.yaml")
 	g.Expect(os.WriteFile(templateFile, []byte(contents), 0600)).To(Succeed())

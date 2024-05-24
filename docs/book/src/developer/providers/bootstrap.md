@@ -4,6 +4,8 @@
 
 A bootstrap provider generates bootstrap data that is used to bootstrap a Kubernetes node.
 
+For example, the Kubeadm bootstrap provider uses a [cloud-init](https://cloudinit.readthedocs.io/en/latest/) file for bootstrapping a node.
+
 ## Data Types
 
 ### Bootstrap API resource
@@ -24,6 +26,10 @@ A bootstrap provider must define an API type for bootstrap resources. The type:
             meant to be suitable for programmatic interpretation
         2. `failureMessage` (string): indicates there is a fatal problem reconciling the bootstrap data;
             meant to be a more descriptive value than `failureReason`
+
+Note: once any of `failureReason` or `failureMessage` surface on the machine/machine pool who is referencing the bootstrap config object, 
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine/machine pool). 
+Also, if the machine is under control of a MachineHealthCheck instance, the machine will be automatically remediated.
 
 Note: because the `dataSecretName` is part of `status`, this value must be deterministically recreatable from the data in the
 `Cluster`, `Machine`, and/or bootstrap resource. If the name is randomly generated, it is not always possible to move
@@ -122,6 +128,13 @@ The following diagram shows the typical logic for a bootstrap provider:
 ## Sentinel File
 
 A bootstrap provider's bootstrap data must create `/run/cluster-api/bootstrap-success.complete` (or `C:\run\cluster-api\bootstrap-success.complete` for Windows machines) upon successful bootstrapping of a Kubernetes node. This allows infrastructure providers to detect and act on bootstrap failures.
+
+## Taint Nodes at creation
+
+A bootstrap provider can optionally taint worker nodes at creation with `node.cluster.x-k8s.io/uninitialized:NoSchedule`.
+This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.
+As of today the Node initialization consists of syncing labels from Machines to Nodes. Once the labels have been 
+initially synced the taint is removed form the Node.
 
 ## RBAC
 

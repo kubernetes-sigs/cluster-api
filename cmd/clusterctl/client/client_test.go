@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -42,12 +43,14 @@ func TestNewFakeClient(_ *testing.T) {
 	// create a fake config with a provider named P1 and a variable named var
 	repository1Config := config.NewProvider("p1", "url", clusterctlv1.CoreProviderType)
 
-	config1 := newFakeConfig().
+	ctx := context.Background()
+
+	config1 := newFakeConfig(ctx).
 		WithVar("var", "value").
 		WithProvider(repository1Config)
 
 	// create a fake repository with some YAML files in it (usually matching the list of providers defined in the config)
-	repository1 := newFakeRepository(repository1Config, config1).
+	repository1 := newFakeRepository(ctx, repository1Config, config1).
 		WithPaths("root", "components").
 		WithDefaultVersion("v1.0").
 		WithFile("v1.0", "components.yaml", []byte("content"))
@@ -57,7 +60,7 @@ func TestNewFakeClient(_ *testing.T) {
 		WithObjs()
 
 	// create a new fakeClient that allows to execute tests on the fake config, the fake repositories and the fake cluster.
-	newFakeClient(config1).
+	newFakeClient(context.Background(), config1).
 		WithRepository(repository1).
 		WithCluster(cluster1)
 }
@@ -76,81 +79,81 @@ func (f fakeClient) GetProvidersConfig() ([]Provider, error) {
 	return f.internalClient.GetProvidersConfig()
 }
 
-func (f fakeClient) GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
-	return f.internalClient.GetProviderComponents(provider, providerType, options)
+func (f fakeClient) GetProviderComponents(ctx context.Context, provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
+	return f.internalClient.GetProviderComponents(ctx, provider, providerType, options)
 }
 
-func (f fakeClient) GenerateProvider(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
-	return f.internalClient.GenerateProvider(provider, providerType, options)
+func (f fakeClient) GenerateProvider(ctx context.Context, provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
+	return f.internalClient.GenerateProvider(ctx, provider, providerType, options)
 }
 
-func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Template, error) {
-	return f.internalClient.GetClusterTemplate(options)
+func (f fakeClient) GetClusterTemplate(ctx context.Context, options GetClusterTemplateOptions) (Template, error) {
+	return f.internalClient.GetClusterTemplate(ctx, options)
 }
 
-func (f fakeClient) GetKubeconfig(options GetKubeconfigOptions) (string, error) {
-	return f.internalClient.GetKubeconfig(options)
+func (f fakeClient) GetKubeconfig(ctx context.Context, options GetKubeconfigOptions) (string, error) {
+	return f.internalClient.GetKubeconfig(ctx, options)
 }
 
-func (f fakeClient) Init(options InitOptions) ([]Components, error) {
-	return f.internalClient.Init(options)
+func (f fakeClient) Init(ctx context.Context, options InitOptions) ([]Components, error) {
+	return f.internalClient.Init(ctx, options)
 }
 
-func (f fakeClient) InitImages(options InitOptions) ([]string, error) {
-	return f.internalClient.InitImages(options)
+func (f fakeClient) InitImages(ctx context.Context, options InitOptions) ([]string, error) {
+	return f.internalClient.InitImages(ctx, options)
 }
 
-func (f fakeClient) Delete(options DeleteOptions) error {
-	return f.internalClient.Delete(options)
+func (f fakeClient) Delete(ctx context.Context, options DeleteOptions) error {
+	return f.internalClient.Delete(ctx, options)
 }
 
-func (f fakeClient) Move(options MoveOptions) error {
-	return f.internalClient.Move(options)
+func (f fakeClient) Move(ctx context.Context, options MoveOptions) error {
+	return f.internalClient.Move(ctx, options)
 }
 
-func (f fakeClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
-	return f.internalClient.PlanUpgrade(options)
+func (f fakeClient) PlanUpgrade(ctx context.Context, options PlanUpgradeOptions) ([]UpgradePlan, error) {
+	return f.internalClient.PlanUpgrade(ctx, options)
 }
 
-func (f fakeClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
-	return f.internalClient.PlanCertManagerUpgrade(options)
+func (f fakeClient) PlanCertManagerUpgrade(ctx context.Context, options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
+	return f.internalClient.PlanCertManagerUpgrade(ctx, options)
 }
 
-func (f fakeClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
-	return f.internalClient.ApplyUpgrade(options)
+func (f fakeClient) ApplyUpgrade(ctx context.Context, options ApplyUpgradeOptions) error {
+	return f.internalClient.ApplyUpgrade(ctx, options)
 }
 
-func (f fakeClient) ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error) {
-	return f.internalClient.ProcessYAML(options)
+func (f fakeClient) ProcessYAML(ctx context.Context, options ProcessYAMLOptions) (YamlPrinter, error) {
+	return f.internalClient.ProcessYAML(ctx, options)
 }
 
-func (f fakeClient) RolloutRestart(options RolloutRestartOptions) error {
-	return f.internalClient.RolloutRestart(options)
+func (f fakeClient) RolloutRestart(ctx context.Context, options RolloutRestartOptions) error {
+	return f.internalClient.RolloutRestart(ctx, options)
 }
 
-func (f fakeClient) DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error) {
-	return f.internalClient.DescribeCluster(options)
+func (f fakeClient) DescribeCluster(ctx context.Context, options DescribeClusterOptions) (*tree.ObjectTree, error) {
+	return f.internalClient.DescribeCluster(ctx, options)
 }
 
-func (f fakeClient) RolloutPause(options RolloutPauseOptions) error {
-	return f.internalClient.RolloutPause(options)
+func (f fakeClient) RolloutPause(ctx context.Context, options RolloutPauseOptions) error {
+	return f.internalClient.RolloutPause(ctx, options)
 }
 
-func (f fakeClient) RolloutResume(options RolloutResumeOptions) error {
-	return f.internalClient.RolloutResume(options)
+func (f fakeClient) RolloutResume(ctx context.Context, options RolloutResumeOptions) error {
+	return f.internalClient.RolloutResume(ctx, options)
 }
 
-func (f fakeClient) RolloutUndo(options RolloutUndoOptions) error {
-	return f.internalClient.RolloutUndo(options)
+func (f fakeClient) RolloutUndo(ctx context.Context, options RolloutUndoOptions) error {
+	return f.internalClient.RolloutUndo(ctx, options)
 }
 
-func (f fakeClient) TopologyPlan(options TopologyPlanOptions) (*cluster.TopologyPlanOutput, error) {
-	return f.internalClient.TopologyPlan(options)
+func (f fakeClient) TopologyPlan(ctx context.Context, options TopologyPlanOptions) (*cluster.TopologyPlanOutput, error) {
+	return f.internalClient.TopologyPlan(ctx, options)
 }
 
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
-func newFakeClient(configClient config.Client) *fakeClient {
+func newFakeClient(ctx context.Context, configClient config.Client) *fakeClient {
 	fake := &fakeClient{
 		clusters:     map[cluster.Kubeconfig]cluster.Client{},
 		repositories: map[string]repository.Client{},
@@ -158,7 +161,7 @@ func newFakeClient(configClient config.Client) *fakeClient {
 
 	fake.configClient = configClient
 	if fake.configClient == nil {
-		fake.configClient = newFakeConfig()
+		fake.configClient = newFakeConfig(ctx)
 	}
 
 	var clusterClientFactory = func(i ClusterClientFactoryInput) (cluster.Client, error) {
@@ -170,10 +173,10 @@ func newFakeClient(configClient config.Client) *fakeClient {
 		return fake.clusters[k], nil
 	}
 
-	fake.internalClient, _ = newClusterctlClient("fake-config",
+	fake.internalClient, _ = newClusterctlClient(ctx, "fake-config",
 		InjectConfig(fake.configClient),
 		InjectClusterClientFactory(clusterClientFactory),
-		InjectRepositoryFactory(func(input RepositoryClientFactoryInput) (repository.Client, error) {
+		InjectRepositoryFactory(func(_ context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
 			if _, ok := fake.repositories[input.Provider.ManifestLabel()]; !ok {
 				return nil, errors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
 			}
@@ -209,14 +212,14 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 	}
 
 	fake.fakeProxy = test.NewFakeProxy()
-	pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+	pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 		return nil
 	}
 
 	fake.internalclient = cluster.New(kubeconfig, configClient,
 		cluster.InjectProxy(fake.fakeProxy),
 		cluster.InjectPollImmediateWaiter(pollImmediateWaiter),
-		cluster.InjectRepositoryFactory(func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+		cluster.InjectRepositoryFactory(func(_ context.Context, provider config.Provider, _ config.Client, _ ...repository.Option) (repository.Client, error) {
 			if _, ok := fake.repositories[provider.Name()]; !ok {
 				return nil, errors.Errorf("repository for kubeconfig %q does not exist", provider.Name())
 			}
@@ -243,19 +246,19 @@ type fakeCertManagerClient struct {
 
 var _ cluster.CertManagerClient = &fakeCertManagerClient{}
 
-func (p *fakeCertManagerClient) EnsureInstalled() error {
+func (p *fakeCertManagerClient) EnsureInstalled(_ context.Context) error {
 	return nil
 }
 
-func (p *fakeCertManagerClient) EnsureLatestVersion() error {
+func (p *fakeCertManagerClient) EnsureLatestVersion(_ context.Context) error {
 	return nil
 }
 
-func (p *fakeCertManagerClient) PlanUpgrade() (cluster.CertManagerUpgradePlan, error) {
+func (p *fakeCertManagerClient) PlanUpgrade(_ context.Context) (cluster.CertManagerUpgradePlan, error) {
 	return p.certManagerPlan, nil
 }
 
-func (p *fakeCertManagerClient) Images() ([]string, error) {
+func (p *fakeCertManagerClient) Images(_ context.Context) ([]string, error) {
 	return p.images, p.imagesError
 }
 
@@ -350,10 +353,10 @@ func (f *fakeClusterClient) WithCertManagerClient(client cluster.CertManagerClie
 // newFakeConfig return a fake implementation of the client for low-level config library.
 // The implementation uses a FakeReader that stores configuration settings in a map; you can use
 // the WithVar or WithProvider methods to set the map values.
-func newFakeConfig() *fakeConfigClient {
+func newFakeConfig(ctx context.Context) *fakeConfigClient {
 	fakeReader := test.NewFakeReader()
 
-	client, _ := config.New("fake-config", config.InjectReader(fakeReader))
+	client, _ := config.New(ctx, "fake-config", config.InjectReader(fakeReader))
 
 	return &fakeConfigClient{
 		fakeReader:     fakeReader,
@@ -397,11 +400,11 @@ func (f *fakeConfigClient) WithProvider(provider config.Provider) *fakeConfigCli
 // newFakeRepository return a fake implementation of the client for low-level repository library.
 // The implementation stores configuration settings in a map; you can use
 // the WithPaths or WithDefaultVersion methods to configure the repository and WithFile to set the map values.
-func newFakeRepository(provider config.Provider, configClient config.Client) *fakeRepositoryClient {
+func newFakeRepository(ctx context.Context, provider config.Provider, configClient config.Client) *fakeRepositoryClient {
 	fakeRepository := repository.NewMemoryRepository()
 
 	if configClient == nil {
-		configClient = newFakeConfig()
+		configClient = newFakeConfig(ctx)
 	}
 
 	return &fakeRepositoryClient{
@@ -425,8 +428,8 @@ func (f fakeRepositoryClient) DefaultVersion() string {
 	return f.fakeRepository.DefaultVersion()
 }
 
-func (f fakeRepositoryClient) GetVersions() ([]string, error) {
-	return f.fakeRepository.GetVersions()
+func (f fakeRepositoryClient) GetVersions(ctx context.Context) ([]string, error) {
+	return f.fakeRepository.GetVersions(ctx)
 }
 
 func (f fakeRepositoryClient) Components() repository.ComponentsClient {
@@ -500,14 +503,14 @@ type fakeTemplateClient struct {
 	processor             yaml.Processor
 }
 
-func (f *fakeTemplateClient) Get(flavor, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
+func (f *fakeTemplateClient) Get(ctx context.Context, flavor, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	name := "cluster-template"
 	if flavor != "" {
 		name = fmt.Sprintf("%s-%s", name, flavor)
 	}
 	name = fmt.Sprintf("%s.yaml", name)
 
-	content, err := f.fakeRepository.GetFile(f.version, name)
+	content, err := f.fakeRepository.GetFile(ctx, f.version, name)
 	if err != nil {
 		return nil, err
 	}
@@ -528,9 +531,9 @@ type fakeClusterClassClient struct {
 	processor             yaml.Processor
 }
 
-func (f *fakeClusterClassClient) Get(class, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
+func (f *fakeClusterClassClient) Get(ctx context.Context, class, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	name := fmt.Sprintf("clusterclass-%s.yaml", class)
-	content, err := f.fakeRepository.GetFile(f.version, name)
+	content, err := f.fakeRepository.GetFile(ctx, f.version, name)
 	if err != nil {
 		return nil, err
 	}
@@ -549,8 +552,8 @@ type fakeMetadataClient struct {
 	fakeRepository *repository.MemoryRepository
 }
 
-func (f *fakeMetadataClient) Get() (*clusterctlv1.Metadata, error) {
-	content, err := f.fakeRepository.GetFile(f.version, "metadata.yaml")
+func (f *fakeMetadataClient) Get(ctx context.Context) (*clusterctlv1.Metadata, error) {
+	content, err := f.fakeRepository.GetFile(ctx, f.version, "metadata.yaml")
 	if err != nil {
 		return nil, err
 	}
@@ -572,12 +575,12 @@ type fakeComponentClient struct {
 	processor      yaml.Processor
 }
 
-func (f *fakeComponentClient) Raw(options repository.ComponentsOptions) ([]byte, error) {
-	return f.getRawBytes(&options)
+func (f *fakeComponentClient) Raw(ctx context.Context, options repository.ComponentsOptions) ([]byte, error) {
+	return f.getRawBytes(ctx, &options)
 }
 
-func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (repository.Components, error) {
-	content, err := f.getRawBytes(&options)
+func (f *fakeComponentClient) Get(ctx context.Context, options repository.ComponentsOptions) (repository.Components, error) {
+	content, err := f.getRawBytes(ctx, &options)
 	if err != nil {
 		return nil, err
 	}
@@ -593,11 +596,11 @@ func (f *fakeComponentClient) Get(options repository.ComponentsOptions) (reposit
 	)
 }
 
-func (f *fakeComponentClient) getRawBytes(options *repository.ComponentsOptions) ([]byte, error) {
+func (f *fakeComponentClient) getRawBytes(ctx context.Context, options *repository.ComponentsOptions) ([]byte, error) {
 	if options.Version == "" {
 		options.Version = f.fakeRepository.DefaultVersion()
 	}
 	path := f.fakeRepository.ComponentsPath()
 
-	return f.fakeRepository.GetFile(options.Version, path)
+	return f.fakeRepository.GetFile(ctx, options.Version, path)
 }

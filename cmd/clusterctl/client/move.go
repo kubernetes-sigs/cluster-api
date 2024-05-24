@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"os"
 
 	"github.com/pkg/errors"
@@ -38,6 +39,10 @@ type MoveOptions struct {
 	// namespace will be used.
 	Namespace string
 
+	// ExperimentalResourceMutatorFn accepts any number of resource mutator functions that are applied on all resources being moved.
+	// This is an experimental feature and is exposed only from the library and not (yet) through the CLI.
+	ExperimentalResourceMutators []cluster.ResourceMutatorFunc
+
 	// FromDirectory apply configuration from directory.
 	FromDirectory string
 
@@ -48,7 +53,7 @@ type MoveOptions struct {
 	DryRun bool
 }
 
-func (c *clusterctlClient) Move(options MoveOptions) error {
+func (c *clusterctlClient) Move(ctx context.Context, options MoveOptions) error {
 	// Both backup and restore makes no sense. It's a complete move.
 	if options.FromDirectory != "" && options.ToDirectory != "" {
 		return errors.Errorf("can't set both FromDirectory and ToDirectory")
@@ -62,17 +67,17 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 	}
 
 	if options.ToDirectory != "" {
-		return c.toDirectory(options)
+		return c.toDirectory(ctx, options)
 	} else if options.FromDirectory != "" {
-		return c.fromDirectory(options)
-	} else {
-		return c.move(options)
+		return c.fromDirectory(ctx, options)
 	}
+
+	return c.move(ctx, options)
 }
 
-func (c *clusterctlClient) move(options MoveOptions) error {
+func (c *clusterctlClient) move(ctx context.Context, options MoveOptions) error {
 	// Get the client for interacting with the source management cluster.
-	fromCluster, err := c.getClusterClient(options.FromKubeconfig)
+	fromCluster, err := c.getClusterClient(ctx, options.FromKubeconfig)
 	if err != nil {
 		return err
 	}
@@ -89,16 +94,16 @@ func (c *clusterctlClient) move(options MoveOptions) error {
 	var toCluster cluster.Client
 	if !options.DryRun {
 		// Get the client for interacting with the target management cluster.
-		if toCluster, err = c.getClusterClient(options.ToKubeconfig); err != nil {
+		if toCluster, err = c.getClusterClient(ctx, options.ToKubeconfig); err != nil {
 			return err
 		}
 	}
 
-	return fromCluster.ObjectMover().Move(options.Namespace, toCluster, options.DryRun)
+	return fromCluster.ObjectMover().Move(ctx, options.Namespace, toCluster, options.DryRun, options.ExperimentalResourceMutators...)
 }
 
-func (c *clusterctlClient) fromDirectory(options MoveOptions) error {
-	toCluster, err := c.getClusterClient(options.ToKubeconfig)
+func (c *clusterctlClient) fromDirectory(ctx context.Context, options MoveOptions) error {
+	toCluster, err := c.getClusterClient(ctx, options.ToKubeconfig)
 	if err != nil {
 		return err
 	}
@@ -107,11 +112,11 @@ func (c *clusterctlClient) fromDirectory(options MoveOptions) error {
 		return err
 	}
 
-	return toCluster.ObjectMover().FromDirectory(toCluster, options.FromDirectory)
+	return toCluster.ObjectMover().FromDirectory(ctx, toCluster, options.FromDirectory)
 }
 
-func (c *clusterctlClient) toDirectory(options MoveOptions) error {
-	fromCluster, err := c.getClusterClient(options.FromKubeconfig)
+func (c *clusterctlClient) toDirectory(ctx context.Context, options MoveOptions) error {
+	fromCluster, err := c.getClusterClient(ctx, options.FromKubeconfig)
 	if err != nil {
 		return err
 	}
@@ -129,22 +134,22 @@ func (c *clusterctlClient) toDirectory(options MoveOptions) error {
 		return err
 	}
 
-	return fromCluster.ObjectMover().ToDirectory(options.Namespace, options.ToDirectory)
+	return fromCluster.ObjectMover().ToDirectory(ctx, options.Namespace, options.ToDirectory)
 }
 
-func (c *clusterctlClient) getClusterClient(kubeconfig Kubeconfig) (cluster.Client, error) {
+func (c *clusterctlClient) getClusterClient(ctx context.Context, kubeconfig Kubeconfig) (cluster.Client, error) {
 	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: kubeconfig})
 	if err != nil {
 		return nil, err
 	}
 
 	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := cluster.ProviderInventory().CheckCAPIContract(); err != nil {
+	if err := cluster.ProviderInventory().CheckCAPIContract(ctx); err != nil {
 		return nil, err
 	}
 
 	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(ctx); err != nil {
 		return nil, err
 	}
 	return cluster, nil

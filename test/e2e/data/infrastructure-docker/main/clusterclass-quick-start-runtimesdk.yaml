@@ -13,6 +13,8 @@ spec:
         kind: DockerMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         name: quick-start-control-plane
+    namingStrategy:
+      template: "{{ .cluster.name }}-cp-{{ .random }}"
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -21,6 +23,8 @@ spec:
   workers:
     machineDeployments:
     - class: default-worker
+      namingStrategy:
+        template: "{{ .cluster.name }}-md-{{ .machineDeployment.topologyName }}-{{ .random }}"
       template:
         bootstrap:
           ref:
@@ -32,6 +36,21 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
+    machinePools:
+    - class: default-worker
+      namingStrategy:
+        template: "{{ .cluster.name }}-mp-{{ .machinePool.topologyName }}-{{ .random }}"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-worker-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: quick-start-default-worker-machinepooltemplate
   variables:
   # This variable is not used in any patch, but is here to ensure the variable discovered from the runtime hook is correctly
   # used.
@@ -86,23 +105,13 @@ spec:
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:
         clusterConfiguration:
-          controllerManager:
-            extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
             certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
         initConfiguration:
-          nodeRegistration:
-            # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
         joinConfiguration:
-          nodeRegistration:
-            # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -126,6 +135,18 @@ spec:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
 ---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: quick-start-default-worker-machinepooltemplate
+spec:
+  template:
+    spec:
+      template:
+        extraMounts:
+        - containerPath: "/var/run/docker.sock"
+          hostPath: "/var/run/docker.sock"
+---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
@@ -134,9 +155,4 @@ spec:
   template:
     spec:
       joinConfiguration:
-        nodeRegistration:
-          # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
-          criSocket: unix:///var/run/containerd/containerd.sock
-          kubeletExtraArgs:
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-
+        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.

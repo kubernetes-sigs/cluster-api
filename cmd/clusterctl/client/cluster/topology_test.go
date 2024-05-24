@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"strings"
@@ -51,9 +52,13 @@ var (
 	//go:embed assets/topology-test/modified-my-cluster.yaml
 	modifiedMyClusterYAML []byte
 
-	// modifiedDockerMachineTemplateYAML adds metadat to the docker machine used by the control plane template..
+	// modifiedDockerMachineTemplateYAML adds metadata to the docker machine used by the control plane template..
 	//go:embed assets/topology-test/modified-CP-dockermachinetemplate.yaml
 	modifiedDockerMachineTemplateYAML []byte
+
+	// modifiedDockerMachinePoolTemplateYAML adds metadata to the docker machine pool used by the control plane template..
+	//go:embed assets/topology-test/modified-CP-dockermachinepooltemplate.yaml
+	modifiedDockerMachinePoolTemplateYAML []byte
 
 	//go:embed assets/topology-test/objects-in-different-namespaces.yaml
 	objsInDifferentNamespacesYAML []byte
@@ -95,12 +100,16 @@ func Test_topologyClient_Plan(t *testing.T) {
 					{kind: "DockerCluster", namespace: "default", namePrefix: "my-cluster-"},
 					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-md-0-"},
 					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-md-1-"},
-					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
-					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-0-bootstrap-"},
-					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-1-bootstrap-"},
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-"},
+					{kind: "DockerMachinePool", namespace: "default", namePrefix: "my-cluster-mp-0-"},
+					{kind: "DockerMachinePool", namespace: "default", namePrefix: "my-cluster-mp-1-"},
+					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-0-"},
+					{kind: "KubeadmConfigTemplate", namespace: "default", namePrefix: "my-cluster-md-1-"},
 					{kind: "KubeadmControlPlane", namespace: "default", namePrefix: "my-cluster-"},
 					{kind: "MachineDeployment", namespace: "default", namePrefix: "my-cluster-md-0-"},
 					{kind: "MachineDeployment", namespace: "default", namePrefix: "my-cluster-md-1-"},
+					{kind: "MachinePool", namespace: "default", namePrefix: "my-cluster-mp-0-"},
+					{kind: "MachinePool", namespace: "default", namePrefix: "my-cluster-mp-1-"},
 				},
 				modified: []item{
 					{kind: "Cluster", namespace: "default", namePrefix: "my-cluster"},
@@ -169,7 +178,7 @@ func Test_topologyClient_Plan(t *testing.T) {
 				created: []item{
 					// Modifying the DockerClusterTemplate will result in template rotation. A new template will be created
 					// and used by KCP.
-					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-"},
 				},
 				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
 			},
@@ -186,6 +195,35 @@ func Test_topologyClient_Plan(t *testing.T) {
 			args: args{
 				in: &TopologyPlanInput{
 					Objs: mustToUnstructured(modifiedDockerMachineTemplateYAML),
+				},
+			},
+			want: out{
+				affectedClusters: func() []client.ObjectKey {
+					cluster := client.ObjectKey{Namespace: "default", Name: "my-cluster"}
+					cluster2 := client.ObjectKey{Namespace: "default", Name: "my-second-cluster"}
+					return []client.ObjectKey{cluster, cluster2}
+				}(),
+				affectedClusterClasses: func() []client.ObjectKey {
+					cc := client.ObjectKey{Namespace: "default", Name: "my-cluster-class"}
+					return []client.ObjectKey{cc}
+				}(),
+				modified:          []item{},
+				created:           []item{},
+				reconciledCluster: nil,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Modifying an existing DockerMachinePoolTemplate. Affects multiple clusters. Target Cluster not specified.",
+			existingObjects: mustToUnstructured(
+				mockCRDsYAML,
+				existingMyClusterClassYAML,
+				existingMyClusterYAML,
+				existingMySecondClusterYAML,
+			),
+			args: args{
+				in: &TopologyPlanInput{
+					Objs: mustToUnstructured(modifiedDockerMachinePoolTemplateYAML),
 				},
 			},
 			want: out{
@@ -234,7 +272,38 @@ func Test_topologyClient_Plan(t *testing.T) {
 				created: []item{
 					// Modifying the DockerClusterTemplate will result in template rotation. A new template will be created
 					// and used by KCP.
-					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-"},
+				},
+				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Modifying an existing DockerMachinePoolTemplate. Affects multiple clusters. Target Cluster specified.",
+			existingObjects: mustToUnstructured(
+				mockCRDsYAML,
+				existingMyClusterClassYAML,
+				existingMyClusterYAML,
+				existingMySecondClusterYAML,
+			),
+			args: args{
+				in: &TopologyPlanInput{
+					Objs:              mustToUnstructured(modifiedDockerMachinePoolTemplateYAML),
+					TargetClusterName: "my-cluster",
+				},
+			},
+			want: out{
+				affectedClusters: func() []client.ObjectKey {
+					cluster := client.ObjectKey{Namespace: "default", Name: "my-cluster"}
+					cluster2 := client.ObjectKey{Namespace: "default", Name: "my-second-cluster"}
+					return []client.ObjectKey{cluster, cluster2}
+				}(),
+				affectedClusterClasses: func() []client.ObjectKey {
+					cc := client.ObjectKey{Namespace: "default", Name: "my-cluster-class"}
+					return []client.ObjectKey{cc}
+				}(),
+				created: []item{
+					{kind: "DockerMachinePool", namespace: "default", namePrefix: "my-cluster-"},
 				},
 				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
 			},
@@ -264,6 +333,8 @@ func Test_topologyClient_Plan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			existingObjects := []client.Object{}
 			for _, o := range tt.existingObjects {
 				existingObjects = append(existingObjects, o)
@@ -275,13 +346,13 @@ func Test_topologyClient_Plan(t *testing.T) {
 				inventoryClient,
 			)
 
-			res, err := tc.Plan(tt.args.in)
+			res, err := tc.Plan(ctx, tt.args.in)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			// The plan should function should not return any error.
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check affected ClusterClasses.
 			g.Expect(res.ClusterClasses).To(HaveLen(len(tt.want.affectedClusterClasses)))
@@ -300,7 +371,7 @@ func Test_topologyClient_Plan(t *testing.T) {
 				g.Expect(res.ReconciledCluster).To(BeNil())
 			} else {
 				g.Expect(res.ReconciledCluster).NotTo(BeNil())
-				g.Expect(*res.ReconciledCluster).To(Equal(*tt.want.reconciledCluster))
+				g.Expect(*res.ReconciledCluster).To(BeComparableTo(*tt.want.reconciledCluster))
 			}
 
 			// Check the created objects.

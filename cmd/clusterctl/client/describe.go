@@ -60,7 +60,7 @@ type DescribeClusterOptions struct {
 }
 
 // DescribeCluster returns the object tree representing the status of a Cluster API cluster.
-func (c *clusterctlClient) DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error) {
+func (c *clusterctlClient) DescribeCluster(ctx context.Context, options DescribeClusterOptions) (*tree.ObjectTree, error) {
 	// gets access to the management cluster
 	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
@@ -68,7 +68,7 @@ func (c *clusterctlClient) DescribeCluster(options DescribeClusterOptions) (*tre
 	}
 
 	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := cluster.ProviderInventory().CheckCAPIContract(); err != nil {
+	if err := cluster.ProviderInventory().CheckCAPIContract(ctx); err != nil {
 		return nil, err
 	}
 
@@ -82,13 +82,13 @@ func (c *clusterctlClient) DescribeCluster(options DescribeClusterOptions) (*tre
 	}
 
 	// Fetch the Cluster client.
-	client, err := cluster.Proxy().NewClient()
+	client, err := cluster.Proxy().NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Gets the object tree representing the status of a Cluster API cluster.
-	return tree.Discovery(context.TODO(), client, options.Namespace, options.ClusterName, tree.DiscoverOptions{
+	return tree.Discovery(ctx, client, options.Namespace, options.ClusterName, tree.DiscoverOptions{
 		ShowOtherConditions:     options.ShowOtherConditions,
 		ShowMachineSets:         options.ShowMachineSets,
 		ShowClusterResourceSets: options.ShowClusterResourceSets,

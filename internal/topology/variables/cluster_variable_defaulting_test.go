@@ -656,7 +656,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				return
 			}
 			g.Expect(errList).To(BeEmpty())
-			g.Expect(vars).To(Equal(tt.want))
+			g.Expect(vars).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -929,7 +929,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "object",
-
 							Properties: map[string]clusterv1.JSONSchemaProps{
 								"enabled": {
 									Type:    "boolean",
@@ -948,6 +947,76 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			},
 			createVariable: true,
 			want:           nil,
+		},
+		{
+			name: "Default new object variable if there is a top-level default",
+			clusterClassVariable: &statusVariableDefinition{
+				Name: "httpProxy",
+				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "object",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`{"url":"test-url"}`)},
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+								"url": {
+									Type: "string",
+								},
+								"noProxy": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			createVariable: true,
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					// Defaulting first adds the top-level object and then the enabled field.
+					Raw: []byte(`{"enabled":false,"url":"test-url"}`),
+				},
+			},
+		},
+		{
+			name: "Default new object variable if there is a top-level default (which is an empty object)",
+			clusterClassVariable: &statusVariableDefinition{
+				Name: "httpProxy",
+				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "object",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+								"url": {
+									Type: "string",
+								},
+								"noProxy": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			createVariable: true,
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					// Defaulting first adds the top-level empty object and then the enabled field.
+					Raw: []byte(`{"enabled":false}`),
+				},
+			},
 		},
 		{
 			name: "Don't default existing object variable",
@@ -1195,14 +1264,14 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			}
 			g.Expect(errList).To(BeEmpty())
 
-			g.Expect(defaultedVariable).To(Equal(tt.want))
+			g.Expect(defaultedVariable).To(BeComparableTo(tt.want))
 		})
 	}
 }
 
 func Test_getAllVariables(t *testing.T) {
 	g := NewWithT(t)
-	t.Run("Expect values to be correctly consolidated in allVariables", func(t *testing.T) {
+	t.Run("Expect values to be correctly consolidated in allVariables", func(*testing.T) {
 		expectedValues := []clusterv1.ClusterVariable{
 			// var1 has a value with no DefinitionFrom set and only one definition. It should be retained as is.
 			{
@@ -1335,8 +1404,8 @@ func Test_getAllVariables(t *testing.T) {
 		}
 
 		valuesIndex, err := newValuesIndex(values)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		got := getAllVariables(values, valuesIndex, definitions)
-		g.Expect(got).To(Equal(expectedValues))
+		g.Expect(got).To(BeComparableTo(expectedValues))
 	})
 }

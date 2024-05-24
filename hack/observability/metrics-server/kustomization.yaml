@@ -1,0 +1,16 @@
+resources:
+- ../namespace.yaml
+
+helmCharts:
+- name: metrics-server
+  repo: https://kubernetes-sigs.github.io/metrics-server/
+  releaseName: metrics-server
+  namespace: observability
+  valuesFile: values.yaml
+  version: 3.10.0
+
+helmGlobals:
+  # Store chart in ".charts" folder instead of "charts".
+  # Otherwise "go mod tidy" picks up dependencies of go files contained in the Helm Chart.
+  # "go mod tidy" ignores folders that begin with ".": https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
+  chartHome: .charts

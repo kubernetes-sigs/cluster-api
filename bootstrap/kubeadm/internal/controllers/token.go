@@ -87,17 +87,6 @@ func getToken(ctx context.Context, c client.Client, token string) (*corev1.Secre
 	return secret, nil
 }
 
-// refreshToken extends the TTL for an existing token.
-func refreshToken(ctx context.Context, c client.Client, token string, ttl time.Duration) error {
-	secret, err := getToken(ctx, c, token)
-	if err != nil {
-		return err
-	}
-	secret.Data[bootstrapapi.BootstrapTokenExpirationKey] = []byte(time.Now().UTC().Add(ttl).Format(time.RFC3339))
-
-	return c.Update(ctx, secret)
-}
-
 // shouldRotate returns true if an existing token is past half of its TTL and should to be rotated.
 func shouldRotate(ctx context.Context, c client.Client, token string, ttl time.Duration) (bool, error) {
 	secret, err := getToken(ctx, c, token)

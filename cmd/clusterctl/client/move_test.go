@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -129,12 +130,14 @@ func Test_clusterctlClient_Move(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.Move(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.Move(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -192,12 +195,14 @@ func Test_clusterctlClient_ToDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.Move(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.Move(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -255,21 +260,25 @@ func Test_clusterctlClient_FromDirectory(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.Move(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.Move(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
 
 func fakeClientForMove() *fakeClient {
+	ctx := context.Background()
+
 	core := config.NewProvider("cluster-api", "https://somewhere.com", clusterctlv1.CoreProviderType)
 	infra := config.NewProvider("infra", "https://somewhere.com", clusterctlv1.InfrastructureProviderType)
 
-	config1 := newFakeConfig().
+	config1 := newFakeConfig(ctx).
 		WithProvider(core).
 		WithProvider(infra)
 
@@ -285,7 +294,7 @@ func fakeClientForMove() *fakeClient {
 		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system").
 		WithObjs(test.FakeCAPISetupObjects()...)
 
-	client := newFakeClient(config1).
+	client := newFakeClient(ctx, config1).
 		WithCluster(cluster1).
 		WithCluster(cluster2)
 
@@ -298,22 +307,22 @@ type fakeObjectMover struct {
 	fromDirectoryErr error
 }
 
-func (f *fakeObjectMover) Move(_ string, _ cluster.Client, _ bool) error {
+func (f *fakeObjectMover) Move(_ context.Context, _ string, _ cluster.Client, _ bool, _ ...cluster.ResourceMutatorFunc) error {
 	return f.moveErr
 }
 
-func (f *fakeObjectMover) ToDirectory(_ string, _ string) error {
+func (f *fakeObjectMover) ToDirectory(_ context.Context, _ string, _ string) error {
 	return f.toDirectoryErr
 }
 
-func (f *fakeObjectMover) Backup(_ string, _ string) error {
+func (f *fakeObjectMover) Backup(_ context.Context, _ string, _ string) error {
 	return f.toDirectoryErr
 }
 
-func (f *fakeObjectMover) FromDirectory(_ cluster.Client, _ string) error {
+func (f *fakeObjectMover) FromDirectory(_ context.Context, _ cluster.Client, _ string) error {
 	return f.fromDirectoryErr
 }
 
-func (f *fakeObjectMover) Restore(_ cluster.Client, _ string) error {
+func (f *fakeObjectMover) Restore(_ context.Context, _ cluster.Client, _ string) error {
 	return f.fromDirectoryErr
 }

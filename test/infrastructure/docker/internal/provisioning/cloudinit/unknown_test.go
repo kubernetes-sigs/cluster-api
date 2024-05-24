@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 func TestUnknown_Run(t *testing.T) {
@@ -29,7 +31,7 @@ func TestUnknown_Run(t *testing.T) {
 		lines: []string{},
 	}
 	lines, err := u.Commands()
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(lines).To(BeEmpty())
 }
 
@@ -40,6 +42,6 @@ func TestUnknown_Unmarshal(t *testing.T) {
 	expected := []string{"test 1", "test 2", "test 3"}
 	input := `["test 1", "test 2", "test 3"]`
 
-	g.Expect(u.Unmarshal([]byte(input))).To(Succeed())
+	g.Expect(u.Unmarshal([]byte(input), kind.Mapping{})).To(Succeed())
 	g.Expect(u.lines).To(Equal(expected))
 }

@@ -117,7 +117,7 @@ func (g *gitLabRepository) DefaultVersion() string {
 }
 
 // GetVersions returns the list of versions that are available in a provider repository.
-func (g *gitLabRepository) GetVersions() ([]string, error) {
+func (g *gitLabRepository) GetVersions(_ context.Context) ([]string, error) {
 	// FIXME Get versions from GitLab API
 	return []string{g.defaultVersion}, nil
 }
@@ -133,8 +133,7 @@ func (g *gitLabRepository) ComponentsPath() string {
 }
 
 // GetFile returns a file for a given provider version.
-func (g *gitLabRepository) GetFile(version, path string) ([]byte, error) {
-	ctx := context.TODO()
+func (g *gitLabRepository) GetFile(ctx context.Context, version, path string) ([]byte, error) {
 	url := fmt.Sprintf(
 		"https://%s/api/v4/projects/%s/packages/generic/%s/%s/%s",
 		g.host,

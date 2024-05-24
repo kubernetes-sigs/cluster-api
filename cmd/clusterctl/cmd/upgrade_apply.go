@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
@@ -35,6 +36,7 @@ type upgradeApplyOptions struct {
 	infrastructureProviders   []string
 	ipamProviders             []string
 	runtimeExtensionProviders []string
+	addonProviders            []string
 	waitProviders             bool
 	waitProviderTimeout       int
 }
@@ -60,7 +62,7 @@ var upgradeApplyCmd = &cobra.Command{
 		# Upgrades only the aws provider to the v2.0.1 version.
 		clusterctl upgrade apply --infrastructure aws:v2.0.1`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runUpgradeApply()
 	},
 }
@@ -85,6 +87,8 @@ func init() {
 		"IPAM providers and versions (e.g. infoblox:v0.0.1) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVar(&ua.runtimeExtensionProviders, "runtime-extension", nil,
 		"Runtime extension providers and versions (e.g. test:v0.0.1) to upgrade to. This flag can be used as alternative to --contract.")
+	upgradeApplyCmd.Flags().StringSliceVar(&ua.addonProviders, "addon", nil,
+		"Add-on providers and versions (e.g. helm:v0.1.0) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().BoolVar(&ua.waitProviders, "wait-providers", false,
 		"Wait for providers to be upgraded.")
 	upgradeApplyCmd.Flags().IntVar(&ua.waitProviderTimeout, "wait-provider-timeout", 5*60,
@@ -92,7 +96,9 @@ func init() {
 }
 
 func runUpgradeApply() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -102,16 +108,17 @@ func runUpgradeApply() error {
 		(len(ua.controlPlaneProviders) > 0) ||
 		(len(ua.infrastructureProviders) > 0) ||
 		(len(ua.ipamProviders) > 0) ||
-		(len(ua.runtimeExtensionProviders) > 0)
+		(len(ua.runtimeExtensionProviders) > 0) ||
+		(len(ua.addonProviders) > 0)
 
 	if ua.contract == "" && !hasProviderNames {
-		return errors.New("Either the --contract flag or at least one of the following flags has to be set: --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension")
+		return errors.New("Either the --contract flag or at least one of the following flags has to be set: --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 	if ua.contract != "" && hasProviderNames {
-		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension")
+		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 
-	return c.ApplyUpgrade(client.ApplyUpgradeOptions{
+	return c.ApplyUpgrade(ctx, client.ApplyUpgradeOptions{
 		Kubeconfig:                client.Kubeconfig{Path: ua.kubeconfig, Context: ua.kubeconfigContext},
 		Contract:                  ua.contract,
 		CoreProvider:              ua.coreProvider,
@@ -120,6 +127,7 @@ func runUpgradeApply() error {
 		InfrastructureProviders:   ua.infrastructureProviders,
 		IPAMProviders:             ua.ipamProviders,
 		RuntimeExtensionProviders: ua.runtimeExtensionProviders,
+		AddonProviders:            ua.addonProviders,
 		WaitProviders:             ua.waitProviders,
 		WaitProviderTimeout:       time.Duration(ua.waitProviderTimeout) * time.Second,
 	})

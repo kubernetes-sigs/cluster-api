@@ -164,7 +164,7 @@ The following recommendations should be followed to write portable E2E tests:
 
 - Create different [E2E config file], one for each target infrastructure provider,
   providing different sets of env variables and timeout intervals.
-- Use the [InitManagementCluster method] for setting up the management cluster.
+- Use the [InitManagementClusterAndWatchControllerLogs method] for setting up the management cluster.
 - Use the [ClusterTemplate method] and the [Apply method]
   for creating objects in the cluster using `cluster-templates.yaml` files instead
   of hard coding object creation.
@@ -191,7 +191,6 @@ test specs for the most common Cluster API use cases.
 <!-- links -->
 [Cluster API quick start]:  ../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
-[deprecated E2E config file]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Config
 [Apply method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Applier
 [CAPA E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/scripts/ci-e2e.sh
 [CAPG E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/main/scripts/ci-e2e.sh

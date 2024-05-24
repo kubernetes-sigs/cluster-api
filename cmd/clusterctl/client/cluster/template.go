@@ -26,7 +26,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
@@ -40,17 +40,17 @@ import (
 // TemplateClient has methods to work with templates stored in the cluster/out of the provider repository.
 type TemplateClient interface {
 	// GetFromConfigMap returns a workload cluster template from the given ConfigMap.
-	GetFromConfigMap(namespace, name, dataKey, targetNamespace string, skipTemplateProcess bool) (repository.Template, error)
+	GetFromConfigMap(ctx context.Context, namespace, name, dataKey, targetNamespace string, skipTemplateProcess bool) (repository.Template, error)
 
 	// GetFromURL returns a workload cluster template from the given URL.
-	GetFromURL(templateURL, targetNamespace string, skipTemplateProcess bool) (repository.Template, error)
+	GetFromURL(ctx context.Context, templateURL, targetNamespace string, skipTemplateProcess bool) (repository.Template, error)
 }
 
 // templateClient implements TemplateClient.
 type templateClient struct {
 	proxy               Proxy
 	configClient        config.Client
-	gitHubClientFactory func(configVariablesClient config.VariablesClient) (*github.Client, error)
+	gitHubClientFactory func(ctx context.Context, configVariablesClient config.VariablesClient) (*github.Client, error)
 	processor           yaml.Processor
 	httpClient          *http.Client
 }
@@ -76,7 +76,7 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 	}
 }
 
-func (t *templateClient) GetFromConfigMap(configMapNamespace, configMapName, configMapDataKey, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
+func (t *templateClient) GetFromConfigMap(ctx context.Context, configMapNamespace, configMapName, configMapDataKey, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	if configMapNamespace == "" {
 		return nil, errors.New("invalid GetFromConfigMap operation: missing configMapNamespace value")
 	}
@@ -84,7 +84,7 @@ func (t *templateClient) GetFromConfigMap(configMapNamespace, configMapName, con
 		return nil, errors.New("invalid GetFromConfigMap operation: missing configMapName value")
 	}
 
-	c, err := t.proxy.NewClient()
+	c, err := t.proxy.NewClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -113,12 +113,12 @@ func (t *templateClient) GetFromConfigMap(configMapNamespace, configMapName, con
 	})
 }
 
-func (t *templateClient) GetFromURL(templateURL, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
+func (t *templateClient) GetFromURL(ctx context.Context, templateURL, targetNamespace string, skipTemplateProcess bool) (repository.Template, error) {
 	if templateURL == "" {
 		return nil, errors.New("invalid GetFromURL operation: missing templateURL value")
 	}
 
-	content, err := t.getURLContent(templateURL)
+	content, err := t.getURLContent(ctx, templateURL)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid GetFromURL operation")
 	}
@@ -132,7 +132,7 @@ func (t *templateClient) GetFromURL(templateURL, targetNamespace string, skipTem
 	})
 }
 
-func (t *templateClient) getURLContent(templateURL string) ([]byte, error) {
+func (t *templateClient) getURLContent(ctx context.Context, templateURL string) ([]byte, error) {
 	if templateURL == "-" {
 		b, err := io.ReadAll(os.Stdin)
 		if err != nil {
@@ -148,9 +148,9 @@ func (t *templateClient) getURLContent(templateURL string) ([]byte, error) {
 
 	if rURL.Scheme == "https" {
 		if rURL.Host == "github.com" {
-			return t.getGitHubFileContent(rURL)
+			return t.getGitHubFileContent(ctx, rURL)
 		}
-		return t.getRawURLFileContent(templateURL)
+		return t.getRawURLFileContent(ctx, templateURL)
 	}
 
 	if rURL.Scheme == "file" || rURL.Scheme == "" {
@@ -176,7 +176,7 @@ func (t *templateClient) getLocalFileContent(rURL *url.URL) ([]byte, error) {
 	return content, nil
 }
 
-func (t *templateClient) getGitHubFileContent(rURL *url.URL) ([]byte, error) {
+func (t *templateClient) getGitHubFileContent(ctx context.Context, rURL *url.URL) ([]byte, error) {
 	// Check if the path is in the expected format,
 	urlSplit := strings.Split(strings.TrimPrefix(rURL.Path, "/"), "/")
 	if len(urlSplit) < 5 {
@@ -193,7 +193,7 @@ func (t *templateClient) getGitHubFileContent(rURL *url.URL) ([]byte, error) {
 	linkType := urlSplit[2]
 
 	// gets the GitHub client
-	ghClient, err := t.gitHubClientFactory(t.configClient.Variables())
+	ghClient, err := t.gitHubClientFactory(ctx, t.configClient.Variables())
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (t *templateClient) getGitHubFileContent(rURL *url.URL) ([]byte, error) {
 		branch := urlSplit[3]
 		path := strings.Join(urlSplit[4:], "/")
 
-		return getGithubFileContentFromCode(ghClient, rURL.Path, owner, repo, path, branch)
+		return getGithubFileContentFromCode(ctx, ghClient, rURL.Path, owner, repo, path, branch)
 
 	case "releases": // get a github release asset
 		if urlSplit[3] != "download" {
@@ -213,13 +213,13 @@ func (t *templateClient) getGitHubFileContent(rURL *url.URL) ([]byte, error) {
 		tag := urlSplit[4]
 		assetName := urlSplit[5]
 
-		return getGithubAssetFromRelease(ghClient, rURL.Path, owner, repo, tag, assetName)
+		return getGithubAssetFromRelease(ctx, ghClient, rURL.Path, owner, repo, tag, assetName)
 	}
 
 	return nil, fmt.Errorf("unknown github URL: %v", rURL)
 }
 
-func getGithubFileContentFromCode(ghClient *github.Client, fullPath string, owner string, repo string, path string, branch string) ([]byte, error) {
+func getGithubFileContentFromCode(ctx context.Context, ghClient *github.Client, fullPath string, owner string, repo string, path string, branch string) ([]byte, error) {
 	fileContent, _, _, err := ghClient.Repositories.GetContents(ctx, owner, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
 		return nil, handleGithubErr(err, "failed to get %q", fullPath)
@@ -237,7 +237,7 @@ func getGithubFileContentFromCode(ghClient *github.Client, fullPath string, owne
 	return content, nil
 }
 
-func (t *templateClient) getRawURLFileContent(rURL string) ([]byte, error) {
+func (t *templateClient) getRawURLFileContent(ctx context.Context, rURL string) ([]byte, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rURL, http.NoBody)
 	if err != nil {
 		return nil, err
@@ -261,7 +261,7 @@ func (t *templateClient) getRawURLFileContent(rURL string) ([]byte, error) {
 	return content, nil
 }
 
-func getGithubAssetFromRelease(ghClient *github.Client, path string, owner string, repo string, tag string, assetName string) ([]byte, error) {
+func getGithubAssetFromRelease(ctx context.Context, ghClient *github.Client, path string, owner string, repo string, tag string, assetName string) ([]byte, error) {
 	release, _, err := ghClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 	if err != nil {
 		return nil, handleGithubErr(err, "failed to get release '%s' from %s/%s repository", tag, owner, repo)
@@ -291,13 +291,13 @@ func getGithubAssetFromRelease(ghClient *github.Client, path string, owner strin
 	return io.ReadAll(rc)
 }
 
-func getGitHubClient(configVariablesClient config.VariablesClient) (*github.Client, error) {
+func getGitHubClient(ctx context.Context, configVariablesClient config.VariablesClient) (*github.Client, error) {
 	var authenticatingHTTPClient *http.Client
 	if token, err := configVariablesClient.Get(config.GitHubTokenVariable); err == nil {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
 		)
-		authenticatingHTTPClient = oauth2.NewClient(context.TODO(), ts)
+		authenticatingHTTPClient = oauth2.NewClient(ctx, ts)
 	}
 
 	return github.NewClient(authenticatingHTTPClient), nil

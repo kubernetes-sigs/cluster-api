@@ -34,7 +34,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
-	"k8s.io/api/policy/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -45,7 +44,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	toolscache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -127,12 +126,12 @@ func WatchDeploymentLogsByLabelSelector(ctx context.Context, input WatchDeployme
 
 	for _, deployment := range deploymentList.Items {
 		watchPodLogs(ctx, watchPodLogsInput{
-			Cache:          input.Cache,
-			ClientSet:      input.ClientSet,
-			Namespace:      deployment.Namespace,
-			DeploymentName: deployment.Name,
-			LabelSelector:  deployment.Spec.Selector,
-			LogPath:        input.LogPath,
+			Cache:                input.Cache,
+			ClientSet:            input.ClientSet,
+			Namespace:            deployment.Namespace,
+			ManagingResourceName: deployment.Name,
+			LabelSelector:        deployment.Spec.Selector,
+			LogPath:              input.LogPath,
 		})
 	}
 }
@@ -163,23 +162,23 @@ func WatchDeploymentLogsByName(ctx context.Context, input WatchDeploymentLogsByN
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s", klog.KObj(input.Deployment))
 
 	watchPodLogs(ctx, watchPodLogsInput{
-		Cache:          input.Cache,
-		ClientSet:      input.ClientSet,
-		Namespace:      deployment.Namespace,
-		DeploymentName: deployment.Name,
-		LabelSelector:  deployment.Spec.Selector,
-		LogPath:        input.LogPath,
+		Cache:                input.Cache,
+		ClientSet:            input.ClientSet,
+		Namespace:            deployment.Namespace,
+		ManagingResourceName: deployment.Name,
+		LabelSelector:        deployment.Spec.Selector,
+		LogPath:              input.LogPath,
 	})
 }
 
 // watchPodLogsInput is the input for watchPodLogs.
 type watchPodLogsInput struct {
-	Cache          toolscache.Cache
-	ClientSet      *kubernetes.Clientset
-	Namespace      string
-	DeploymentName string
-	LabelSelector  *metav1.LabelSelector
-	LogPath        string
+	Cache                toolscache.Cache
+	ClientSet            *kubernetes.Clientset
+	Namespace            string
+	ManagingResourceName string
+	LabelSelector        *metav1.LabelSelector
+	LogPath              string
 }
 
 // watchPodLogs streams logs for all containers for all pods belonging to a deployment with the given label. Each container's logs are streamed
@@ -193,12 +192,12 @@ func watchPodLogs(ctx context.Context, input watchPodLogsInput) {
 	Expect(err).ToNot(HaveOccurred(), "Failed to create controller-runtime informer from cache")
 
 	selector, err := metav1.LabelSelectorAsSelector(input.LabelSelector)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	eventHandler := newWatchPodLogsEventHandler(ctx, input, selector)
 
 	handlerRegistration, err := podInformer.AddEventHandler(eventHandler)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
 		defer GinkgoRecover()
@@ -224,7 +223,7 @@ func newWatchPodLogsEventHandler(ctx context.Context, input watchPodLogsInput, s
 	}
 }
 
-func (eh *watchPodLogsEventHandler) OnAdd(obj interface{}) {
+func (eh *watchPodLogsEventHandler) OnAdd(obj interface{}, _ bool) {
 	pod := obj.(*corev1.Pod)
 	eh.streamPodLogs(pod)
 }
@@ -251,34 +250,34 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 	}
 
 	for _, container := range pod.Spec.Containers {
-		log.Logf("Creating log watcher for controller %s, pod %s, container %s", klog.KRef(eh.input.Namespace, eh.input.DeploymentName), pod.Name, container.Name)
+		log.Logf("Creating log watcher for controller %s, pod %s, container %s", klog.KRef(eh.input.Namespace, eh.input.ManagingResourceName), pod.Name, container.Name)
 
 		// Create log metadata file.
-		logMetadataFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.DeploymentName, pod.Name, container.Name+"-log-metadata.json"))
+		logMetadataFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.ManagingResourceName, pod.Name, container.Name+"-log-metadata.json"))
 		Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0750)).To(Succeed())
 
 		metadata := logMetadata{
-			Job:       eh.input.Namespace + "/" + eh.input.DeploymentName,
+			Job:       eh.input.Namespace + "/" + eh.input.ManagingResourceName,
 			Namespace: eh.input.Namespace,
-			App:       eh.input.DeploymentName,
+			App:       eh.input.ManagingResourceName,
 			Pod:       pod.Name,
 			Container: container.Name,
 			NodeName:  pod.Spec.NodeName,
 			Stream:    "stderr",
 		}
 		metadataBytes, err := json.Marshal(&metadata)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(os.WriteFile(logMetadataFile, metadataBytes, 0600)).To(Succeed())
 
 		// Watch each container's logs in a goroutine so we can stream them all concurrently.
 		go func(pod *corev1.Pod, container corev1.Container) {
 			defer GinkgoRecover()
 
-			logFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.DeploymentName, pod.Name, container.Name+".log"))
+			logFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.ManagingResourceName, pod.Name, container.Name+".log"))
 			Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
 
 			f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			defer f.Close()
 
 			opts := &corev1.PodLogOptions{
@@ -287,7 +286,7 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 			}
 
 			// Retry streaming the logs of the pods unless ctx.Done() or if the pod does not exist anymore.
-			err = wait.PollInfiniteWithContext(eh.ctx, 2*time.Second, func(ctx context.Context) (done bool, err error) {
+			err = wait.PollUntilContextCancel(eh.ctx, 2*time.Second, false, func(ctx context.Context) (done bool, err error) {
 				// Wait for pod to be in running state
 				actual, err := eh.input.ClientSet.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 				if err != nil {
@@ -464,7 +463,7 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 			Namespace: input.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Int32(4),
+			Replicas: ptr.To[int32](4),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "nonstop",
@@ -528,72 +527,34 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		Deployment: workloadDeployment,
 	})
 
-	// TODO(oscr): Remove when Kubernetes 1.20 support is dropped.
-	serverVersion, err := workloadClient.ServerVersion()
-	Expect(err).ToNot(HaveOccurred(), "Failed to get Kubernetes version for workload")
-
-	// If Kubernetes < 1.21.0 we need to use PDB from v1beta1
-	if utilversion.MustParseGeneric(serverVersion.String()).LessThan(utilversion.MustParseGeneric("v1.21.0")) {
-		budgetV1Beta1 := &v1beta1.PodDisruptionBudget{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PodDisruptionBudget",
-				APIVersion: "policy/v1beta1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      input.DeploymentName,
-				Namespace: input.Namespace,
-			},
-			Spec: v1beta1.PodDisruptionBudgetSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "nonstop",
-					},
-				},
-				MaxUnavailable: &intstr.IntOrString{
-					Type:   intstr.Int,
-					IntVal: 1,
-					StrVal: "1",
-				},
-			},
-		}
-
-		AddPodDisruptionBudgetV1Beta1(ctx, AddPodDisruptionBudgetInputV1Beta1{
+	budget := &policyv1.PodDisruptionBudget{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "PodDisruptionBudget",
+			APIVersion: "policy/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      input.DeploymentName,
 			Namespace: input.Namespace,
-			ClientSet: workloadClient,
-			Budget:    budgetV1Beta1,
-		})
-
-		// If Kubernetes >= 1.21.0 then we need to use PDB from v1
-	} else {
-		budget := &policyv1.PodDisruptionBudget{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "PodDisruptionBudget",
-				APIVersion: "policy/v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      input.DeploymentName,
-				Namespace: input.Namespace,
-			},
-			Spec: policyv1.PodDisruptionBudgetSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "nonstop",
-					},
-				},
-				MaxUnavailable: &intstr.IntOrString{
-					Type:   intstr.Int,
-					IntVal: 1,
-					StrVal: "1",
+		},
+		Spec: policyv1.PodDisruptionBudgetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": "nonstop",
 				},
 			},
-		}
-
-		AddPodDisruptionBudget(ctx, AddPodDisruptionBudgetInput{
-			Namespace: input.Namespace,
-			ClientSet: workloadClient,
-			Budget:    budget,
-		})
+			MaxUnavailable: &intstr.IntOrString{
+				Type:   intstr.Int,
+				IntVal: 1,
+				StrVal: "1",
+			},
+		},
 	}
+
+	AddPodDisruptionBudget(ctx, AddPodDisruptionBudgetInput{
+		Namespace: input.Namespace,
+		ClientSet: workloadClient,
+		Budget:    budget,
+	})
 
 	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
 		Getter:     input.WorkloadClusterProxy.GetClient(),
@@ -626,24 +587,6 @@ type AddPodDisruptionBudgetInput struct {
 func AddPodDisruptionBudget(ctx context.Context, input AddPodDisruptionBudgetInput) {
 	Eventually(func() error {
 		budget, err := input.ClientSet.PolicyV1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
-		if budget != nil && err == nil {
-			return nil
-		}
-		return fmt.Errorf("podDisruptionBudget needs to be successfully deployed: %v", err)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "podDisruptionBudget needs to be successfully deployed")
-}
-
-// TODO(oscr): Delete below when Kubernetes 1.20 support is dropped.
-
-type AddPodDisruptionBudgetInputV1Beta1 struct {
-	ClientSet *kubernetes.Clientset
-	Budget    *v1beta1.PodDisruptionBudget
-	Namespace string
-}
-
-func AddPodDisruptionBudgetV1Beta1(ctx context.Context, input AddPodDisruptionBudgetInputV1Beta1) {
-	Eventually(func() error {
-		budget, err := input.ClientSet.PolicyV1beta1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
 		if budget != nil && err == nil {
 			return nil
 		}

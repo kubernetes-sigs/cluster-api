@@ -52,7 +52,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1"}, // No storage version as storage is not set.
+						{Name: "v1alpha1", Served: true}, // No storage version as storage is not set.
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -61,7 +61,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1"},
+						{Name: "v1alpha1", Served: true},
 					},
 				},
 			},
@@ -69,12 +69,12 @@ func Test_CRDMigrator(t *testing.T) {
 			wantIsMigrated: false,
 		},
 		{
-			name: "No-op if new CRD supports same versions",
+			name: "No-op if new CRD uses the same storage version",
 			currentCRD: &apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -83,19 +83,19 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 			},
 			wantIsMigrated: false,
 		},
 		{
-			name: "No-op if new CRD adds a new versions",
+			name: "No-op if new CRD adds a new versions and stored versions is only the old storage version",
 			currentCRD: &apiextensionsv1.CustomResourceDefinition{
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -104,8 +104,8 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1beta1", Storage: true}, // v1beta1 is being added
-						{Name: "v1alpha1"},               // v1alpha1 still exists
+						{Name: "v1beta1", Storage: true, Served: false}, // v1beta1 is being added
+						{Name: "v1alpha1", Served: true},                // v1alpha1 still exists
 					},
 				},
 			},
@@ -117,7 +117,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -126,14 +126,14 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1", Storage: true}, // CRD is jumping to v1, but dropping current storage version without allowing migration.
+						{Name: "v1", Storage: true, Served: true}, // CRD is jumping to v1, but dropping current storage version without allowing migration.
 					},
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "Migrate",
+			name: "Migrate CRs if there are stored versions is not only the current storage version",
 			CRs: []unstructured.Unstructured{
 				{
 					Object: map[string]interface{}{
@@ -172,8 +172,8 @@ func Test_CRDMigrator(t *testing.T) {
 					Group: "foo",
 					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1beta1", Storage: true},
-						{Name: "v1alpha1"},
+						{Name: "v1beta1", Storage: true, Served: true},
+						{Name: "v1alpha1", Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1beta1", "v1alpha1"}},
@@ -184,8 +184,8 @@ func Test_CRDMigrator(t *testing.T) {
 					Group: "foo",
 					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1", Storage: true}, // v1 is being added
-						{Name: "v1beta1"},           // v1beta1 still there (required for migration)
+						{Name: "v1", Storage: true, Served: true}, // v1 is being added
+						{Name: "v1beta1", Served: true},           // v1beta1 still there
 						// v1alpha1 is being dropped
 					},
 				},
@@ -203,7 +203,7 @@ func Test_CRDMigrator(t *testing.T) {
 				objs = append(objs, &tt.CRs[i])
 			}
 
-			c, err := test.NewFakeProxy().WithObjs(objs...).NewClient()
+			c, err := test.NewFakeProxy().WithObjs(objs...).NewClient(context.Background())
 			g.Expect(err).ToNot(HaveOccurred())
 			countingClient := newUpgradeCountingClient(c)
 
@@ -211,7 +211,7 @@ func Test_CRDMigrator(t *testing.T) {
 				Client: countingClient,
 			}
 
-			isMigrated, err := m.run(ctx, tt.newCRD)
+			isMigrated, err := m.run(context.Background(), tt.newCRD)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -228,7 +228,7 @@ func Test_CRDMigrator(t *testing.T) {
 
 				// Check storage versions has been cleaned up.
 				currentCRD := &apiextensionsv1.CustomResourceDefinition{}
-				err = c.Get(ctx, client.ObjectKeyFromObject(tt.newCRD), currentCRD)
+				err = c.Get(context.Background(), client.ObjectKeyFromObject(tt.newCRD), currentCRD)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(currentCRD.Status.StoredVersions).To(Equal(tt.wantStoredVersions))
 			}

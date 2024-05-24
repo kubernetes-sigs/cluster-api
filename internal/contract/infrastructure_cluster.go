@@ -137,7 +137,7 @@ func (d *FailureDomains) Get(obj *unstructured.Unstructured) (*clusterv1.Failure
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(d.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(d.path, "."))
+		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(d.path, "."))
 	}
 
 	domains := make(clusterv1.FailureDomains, len(domainMap))

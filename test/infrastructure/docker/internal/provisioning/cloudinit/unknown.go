@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 type unknown struct {
@@ -34,7 +35,7 @@ func newUnknown(module string) action {
 }
 
 // Unmarshal will unmarshal unknown actions and slurp the value.
-func (u *unknown) Unmarshal(data []byte) error {
+func (u *unknown) Unmarshal(data []byte, _ kind.Mapping) error {
 	// try unmarshalling to a slice of strings
 	var s1 []string
 	if err := json.Unmarshal(data, &s1); err != nil {

@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,6 +34,7 @@ type initOptions struct {
 	infrastructureProviders   []string
 	ipamProviders             []string
 	runtimeExtensionProviders []string
+	addonProviders            []string
 	targetNamespace           string
 	validate                  bool
 	waitProviders             bool
@@ -54,11 +56,12 @@ var initCmd = &cobra.Command{
 		The management cluster must be an existing Kubernetes cluster, make sure
 		to have enough privileges to install the desired components.
 
-		Use 'clusterctl config repositories' to get a list of available providers; if necessary, edit
-		$HOME/.cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.
+		Use 'clusterctl config repositories' to get a list of available providers and their configuration; if
+		necessary, edit $XDG_CONFIG_HOME/cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.
 
 		Some providers require environment variables to be set before running clusterctl init.
-		Refer to the provider documentation, or use 'clusterctl config provider [name]' to get a list of required variables.
+		Refer to the provider documentation, or use 'clusterctl generate provider --infrastructure [name] --describe'
+		to get a list of required variables.
 
 		See https://cluster-api.sigs.k8s.io for more details.`),
 
@@ -73,7 +76,7 @@ var initCmd = &cobra.Command{
 		clusterctl init --infrastructure=aws:v0.4.1
 
 		# Initialize a management cluster with a custom kubeconfig path and the given infrastructure provider.
-		clusterctl init --kubeconfig=foo.yaml  --infrastructure=aws
+		clusterctl init --kubeconfig=foo.yaml --infrastructure=aws
 
 		# Initialize a management cluster with multiple infrastructure providers.
 		clusterctl init --infrastructure=aws,vsphere
@@ -81,7 +84,7 @@ var initCmd = &cobra.Command{
 		# Initialize a management cluster with a custom target namespace for the provider resources.
 		clusterctl init --infrastructure aws --target-namespace foo`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runInit()
 	},
 }
@@ -100,9 +103,11 @@ func init() {
 	initCmd.PersistentFlags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
 		"Control plane providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.ipamProviders, "ipam", nil,
-		"IPAM providers and versions (e.g. infoblox:v0.0.1) to add to the management cluster.")
+		"IPAM providers and versions (e.g. in-cluster:v0.1.0) to add to the management cluster.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.runtimeExtensionProviders, "runtime-extension", nil,
-		"Runtime extension providers and versions (e.g. test:v0.0.1) to add to the management cluster.")
+		"Runtime extension providers and versions to add to the management cluster; please note that clusterctl doesn't include any default runtime extensions and thus it is required to use custom configuration files to register runtime extensions.")
+	initCmd.PersistentFlags().StringSliceVar(&initOpts.addonProviders, "addon", nil,
+		"Add-on providers and versions (e.g. helm:v0.1.0) to add to the management cluster.")
 	initCmd.Flags().StringVarP(&initOpts.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
 	initCmd.Flags().BoolVar(&initOpts.waitProviders, "wait-providers", false,
@@ -117,7 +122,9 @@ func init() {
 }
 
 func runInit() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -130,6 +137,7 @@ func runInit() error {
 		InfrastructureProviders:   initOpts.infrastructureProviders,
 		IPAMProviders:             initOpts.ipamProviders,
 		RuntimeExtensionProviders: initOpts.runtimeExtensionProviders,
+		AddonProviders:            initOpts.addonProviders,
 		TargetNamespace:           initOpts.targetNamespace,
 		LogUsageInstructions:      true,
 		WaitProviders:             initOpts.waitProviders,
@@ -137,7 +145,7 @@ func runInit() error {
 		IgnoreValidationErrors:    !initOpts.validate,
 	}
 
-	if _, err := c.Init(options); err != nil {
+	if _, err := c.Init(ctx, options); err != nil {
 		return err
 	}
 	return nil

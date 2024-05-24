@@ -17,6 +17,7 @@ limitations under the License.
 package alpha
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
@@ -27,21 +28,24 @@ import (
 )
 
 // ObjectRestarter will issue a restart on the specified cluster-api resource.
-func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReference) error {
+func (r *rollout) ObjectRestarter(ctx context.Context, proxy cluster.Proxy, ref corev1.ObjectReference) error {
 	switch ref.Kind {
 	case MachineDeployment:
-		deployment, err := getMachineDeployment(proxy, ref.Name, ref.Namespace)
+		deployment, err := getMachineDeployment(ctx, proxy, ref.Name, ref.Namespace)
 		if err != nil || deployment == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if deployment.Spec.Paused {
 			return errors.Errorf("can't restart paused MachineDeployment (run rollout resume first): %v/%v", ref.Kind, ref.Name)
 		}
-		if err := setRestartedAtAnnotation(proxy, ref.Name, ref.Namespace); err != nil {
+		if deployment.Spec.RolloutAfter != nil && deployment.Spec.RolloutAfter.After(time.Now()) {
+			return errors.Errorf("can't update MachineDeployment (remove 'spec.rolloutAfter' first): %v/%v", ref.Kind, ref.Name)
+		}
+		if err := setRolloutAfterOnMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
 	case KubeadmControlPlane:
-		kcp, err := getKubeadmControlPlane(proxy, ref.Name, ref.Namespace)
+		kcp, err := getKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace)
 		if err != nil || kcp == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
@@ -51,7 +55,7 @@ func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReferenc
 		if kcp.Spec.RolloutAfter != nil && kcp.Spec.RolloutAfter.After(time.Now()) {
 			return errors.Errorf("can't update KubeadmControlPlane (remove 'spec.rolloutAfter' first): %v/%v", ref.Kind, ref.Name)
 		}
-		if err := setRolloutAfter(proxy, ref.Name, ref.Namespace); err != nil {
+		if err := setRolloutAfterOnKCP(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
 	default:

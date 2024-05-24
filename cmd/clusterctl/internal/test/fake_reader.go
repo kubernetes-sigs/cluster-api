@@ -17,6 +17,8 @@ limitations under the License.
 package test
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
@@ -55,7 +57,7 @@ type imageMeta struct {
 	Tag        string `json:"tag,omitempty"`
 }
 
-func (f *FakeReader) Init(_ string) error {
+func (f *FakeReader) Init(_ context.Context, _ string) error {
 	f.initialized = true
 	return nil
 }

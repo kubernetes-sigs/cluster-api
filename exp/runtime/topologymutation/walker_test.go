@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -32,7 +33,6 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
 
 var (
@@ -51,7 +51,7 @@ func Test_WalkTemplates(t *testing.T) {
 		controlplanev1.GroupVersion,
 		bootstrapv1.GroupVersion,
 	)
-	mutatingFunc := func(ctx context.Context, obj runtime.Object, variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error {
+	mutatingFunc := func(_ context.Context, obj runtime.Object, _ map[string]apiextensionsv1.JSON, _ runtimehooksv1.HolderReference) error {
 		switch obj := obj.(type) {
 		case *controlplanev1.KubeadmControlPlaneTemplate:
 			obj.Annotations = map[string]string{"a": "a"}
@@ -82,21 +82,21 @@ func Test_WalkTemplates(t *testing.T) {
 		{
 			name: "Fails for invalid builtin variables",
 			globalVariables: []runtimehooksv1.Variable{
-				newVariable(variables.BuiltinsName, variables.Builtins{
-					Cluster: &variables.ClusterBuiltins{
+				newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
+					Cluster: &runtimehooksv1.ClusterBuiltins{
 						Name: "test",
 					},
 				}),
 			},
 			requestItems: []runtimehooksv1.GeneratePatchesRequestItem{
 				requestItem("1", kubeadmControlPlaneTemplate, []runtimehooksv1.Variable{
-					newVariable(variables.BuiltinsName, "{invalid-builtin-value}"),
+					newVariable(runtimehooksv1.BuiltinsName, "{invalid-builtin-value}"),
 				}),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status:  runtimehooksv1.ResponseStatusFailure,
-					Message: "failed to merge builtin variables: failed to unmarshal builtin variable: json: cannot unmarshal string into Go value of type variables.Builtins",
+					Message: fmt.Sprintf("failed to merge builtin variables: failed to unmarshal builtin variable: json: cannot unmarshal string into Go value of type %s.Builtins", runtimehooksv1.GroupVersion.Version),
 				},
 			},
 		},
@@ -218,7 +218,7 @@ func Test_WalkTemplates(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			response := &runtimehooksv1.GeneratePatchesResponse{}
 			request := &runtimehooksv1.GeneratePatchesRequest{Variables: tt.globalVariables, Items: tt.requestItems}
 

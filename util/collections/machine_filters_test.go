@@ -21,8 +21,9 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -179,13 +180,13 @@ func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 	})
 	t.Run("if machine is nil it should return false", func(t *testing.T) {
 		g := NewWithT(t)
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(nil)).To(BeFalse())
 	})
 	t.Run("if the machine certificate expiry information is not available it should return false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
 	})
 	t.Run("if the machine certificates are not going to expire within the expiry time it should return false", func(t *testing.T) {
@@ -196,7 +197,7 @@ func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
 			},
 		}
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
 	})
 	t.Run("if machine certificates will expire within the expiry time then it should return true", func(t *testing.T) {
@@ -207,7 +208,7 @@ func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
 				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
 			},
 		}
-		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: ptr.To[int32](10)}
 		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeTrue())
 	})
 }
@@ -235,27 +236,27 @@ func TestHashAnnotationKey(t *testing.T) {
 func TestInFailureDomain(t *testing.T) {
 	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		g.Expect(collections.InFailureDomains(pointer.String("test"))(nil)).To(BeFalse())
+		g.Expect(collections.InFailureDomains(ptr.To("test"))(nil)).To(BeFalse())
 	})
 	t.Run("machine with given failure domain returns true", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.String("test")}}
-		g.Expect(collections.InFailureDomains(pointer.String("test"))(m)).To(BeTrue())
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: ptr.To("test")}}
+		g.Expect(collections.InFailureDomains(ptr.To("test"))(m)).To(BeTrue())
 	})
 	t.Run("machine with a different failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.String("notTest")}}
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: ptr.To("notTest")}}
 		g.Expect(collections.InFailureDomains(
-			pointer.String("test"),
-			pointer.String("test2"),
-			pointer.String("test3"),
+			ptr.To("test"),
+			ptr.To("test2"),
+			ptr.To("test3"),
 			nil,
-			pointer.String("foo"))(m)).To(BeFalse())
+			ptr.To("foo"))(m)).To(BeFalse())
 	})
 	t.Run("machine without failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.InFailureDomains(pointer.String("test"))(m)).To(BeFalse())
+		g.Expect(collections.InFailureDomains(ptr.To("test"))(m)).To(BeFalse())
 	})
 	t.Run("machine without failure domain returns true, when nil used for failure domain", func(t *testing.T) {
 		g := NewWithT(t)
@@ -264,8 +265,8 @@ func TestInFailureDomain(t *testing.T) {
 	})
 	t.Run("machine with failure domain returns true, when one of multiple failure domains match", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.String("test")}}
-		g.Expect(collections.InFailureDomains(pointer.String("foo"), pointer.String("test"))(m)).To(BeTrue())
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: ptr.To("test")}}
+		g.Expect(collections.InFailureDomains(ptr.To("foo"), ptr.To("test"))(m)).To(BeTrue())
 	})
 }
 
@@ -350,7 +351,7 @@ func TestWithVersion(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: pointer.String(""),
+				Version: ptr.To(""),
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
@@ -360,7 +361,7 @@ func TestWithVersion(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: pointer.String("1..20"),
+				Version: ptr.To("1..20"),
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeFalse())
@@ -370,14 +371,14 @@ func TestWithVersion(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			Spec: clusterv1.MachineSpec{
-				Version: pointer.String("1.20"),
+				Version: ptr.To("1.20"),
 			},
 		}
 		g.Expect(collections.WithVersion()(machine)).To(BeTrue())
 	})
 }
 
-func TestHealtyAPIServer(t *testing.T) {
+func TestHealthyAPIServer(t *testing.T) {
 	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		g.Expect(collections.HealthyAPIServer()(nil)).To(BeFalse())
@@ -415,12 +416,12 @@ func TestGetFilteredMachinesForCluster(t *testing.T) {
 		Build()
 
 	machines, err := collections.GetFilteredMachinesForCluster(ctx, c, cluster)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(3))
 
 	// Test the ControlPlaneMachines works
 	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
 	// Test that the filters use AND logic instead of OR logic
@@ -428,8 +429,123 @@ func TestGetFilteredMachinesForCluster(t *testing.T) {
 		return cluster.Name == "first-machine"
 	}
 	machines, err = collections.GetFilteredMachinesForCluster(ctx, c, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
+}
+
+func TestHasNode(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(collections.HasNode()(nil)).To(BeFalse())
+	})
+
+	t.Run("machine without node returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		g.Expect(collections.HasNode()(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with node returns true", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Name: "foo"}},
+		}
+		g.Expect(collections.HasNode()(machine)).To(BeTrue())
+	})
+}
+
+func TestHasUnhealthyControlPlaneComponentCondition(t *testing.T) {
+	t.Run("nil machine returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(nil)).To(BeFalse())
+	})
+
+	t.Run("machine without node returns false", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with all healthy controlPlane component conditions returns false when the Etcd is not managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with unhealthy 'APIServerPodHealthy' condition returns true when the Etcd is not managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeTrue())
+	})
+
+	t.Run("machine with unhealthy etcd component conditions returns false when Etcd is not managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(false)(machine)).To(BeFalse())
+	})
+
+	t.Run("machine with unhealthy etcd conditions returns true when Etcd is managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdPodHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+			*conditions.FalseCondition(controlplanev1.MachineEtcdMemberHealthyCondition, "",
+				clusterv1.ConditionSeverityWarning, ""),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeTrue())
+	})
+
+	t.Run("machine with all healthy controlPlane and the Etcd component conditions returns false when Etcd is managed", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{}
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Name: "node1",
+		}
+		machine.Status.Conditions = clusterv1.Conditions{
+			*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineSchedulerPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineEtcdPodHealthyCondition),
+			*conditions.TrueCondition(controlplanev1.MachineEtcdMemberHealthyCondition),
+		}
+		g.Expect(collections.HasUnhealthyControlPlaneComponents(true)(machine)).To(BeFalse())
+	})
 }
 
 func testControlPlaneMachine(name string) *clusterv1.Machine {

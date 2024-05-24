@@ -72,7 +72,7 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, r.warmupTimeout)
 	defer cancel()
 
-	err := wait.PollImmediateWithContext(ctx, r.warmupInterval, r.warmupTimeout, func(ctx context.Context) (done bool, err error) {
+	err := wait.PollUntilContextTimeout(ctx, r.warmupInterval, r.warmupTimeout, true, func(ctx context.Context) (done bool, err error) {
 		if err = warmupRegistry(ctx, r.Client, r.APIReader, r.RuntimeClient); err != nil {
 			log.Error(err, "ExtensionConfig registry warmup failed")
 			return false, nil

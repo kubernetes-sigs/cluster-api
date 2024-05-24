@@ -70,6 +70,10 @@ type CreateFromTemplateInput struct {
 	// Namespace is the Kubernetes namespace the cloned object should be created into.
 	Namespace string
 
+	// Name is used as the name of the generated object, if set.
+	// If it isn't set the template name will be used as prefix to generate a name instead.
+	Name string
+
 	// ClusterName is the cluster this object is linked to.
 	ClusterName string
 
@@ -96,6 +100,7 @@ func CreateFromTemplate(ctx context.Context, in *CreateFromTemplateInput) (*core
 		Template:    from,
 		TemplateRef: in.TemplateRef,
 		Namespace:   in.Namespace,
+		Name:        in.Name,
 		ClusterName: in.ClusterName,
 		OwnerRef:    in.OwnerRef,
 		Labels:      in.Labels,
@@ -124,6 +129,10 @@ type GenerateTemplateInput struct {
 
 	// Namespace is the Kubernetes namespace the cloned object should be created into.
 	Namespace string
+
+	// Name is used as the name of the generated object, if set.
+	// If it isn't set the template name will be used as prefix to generate a name instead.
+	Name string
 
 	// ClusterName is the cluster this object is linked to.
 	ClusterName string
@@ -156,7 +165,10 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 	to.SetFinalizers(nil)
 	to.SetUID("")
 	to.SetSelfLink("")
-	to.SetName(names.SimpleNameGenerator.GenerateName(in.Template.GetName() + "-"))
+	to.SetName(in.Name)
+	if to.GetName() == "" {
+		to.SetName(names.SimpleNameGenerator.GenerateName(in.Template.GetName() + "-"))
+	}
 	to.SetNamespace(in.Namespace)
 
 	// Set annotations.

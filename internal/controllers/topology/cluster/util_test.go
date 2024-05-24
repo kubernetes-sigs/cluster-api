@@ -107,7 +107,7 @@ func TestGetReference(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(EqualObject(tt.want))
 			g.Expect(tt.ref).To(EqualObject(tt.wantRef))

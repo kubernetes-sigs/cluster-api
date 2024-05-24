@@ -20,7 +20,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -122,7 +122,7 @@ func TestCluster_ReconcileKubeletRBACBinding_NoError(t *testing.T) {
 				// Role exists
 				g.Expect(tt.client.Get(ctx, tt.want.role, r)).To(Succeed())
 				// Role ensure grants for the KubeletConfig config map
-				g.Expect(r.Rules).To(Equal([]rbacv1.PolicyRule{
+				g.Expect(r.Rules).To(BeComparableTo([]rbacv1.PolicyRule{
 					{
 						Verbs:         []string{"get"},
 						APIGroups:     []string{""},

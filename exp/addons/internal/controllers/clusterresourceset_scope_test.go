@@ -242,7 +242,7 @@ func TestReconcileApplyOnceScopeApplyObj(t *testing.T) {
 			scope := &reconcileApplyOnceScope{}
 			err := scope.applyObj(ctx, client, tt.obj)
 			if tt.wantErr == "" {
-				gs.Expect(err).NotTo(HaveOccurred())
+				gs.Expect(err).ToNot(HaveOccurred())
 			} else {
 				gs.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
 			}

@@ -49,7 +49,7 @@ func TestMetadata(t *testing.T) {
 		got, err := m.Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(got).To(Equal(metadata))
+		g.Expect(got).To(BeComparableTo(metadata))
 	})
 	t.Run("Manages empty metadata", func(t *testing.T) {
 		g := NewWithT(t)
@@ -68,6 +68,6 @@ func TestMetadata(t *testing.T) {
 		got, err := m.Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(got).To(Equal(metadata))
+		g.Expect(got).To(BeComparableTo(metadata))
 	})
 }

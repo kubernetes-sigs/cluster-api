@@ -23,17 +23,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"regexp"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -182,7 +182,7 @@ func TestClient_httpCall(t *testing.T) {
 		},
 	}
 	for _, tt := range tableTests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// a http server is only required if we have a valid catalog, otherwise httpCall will not reach out to the server
 			if tt.opts != nil && tt.opts.catalog != nil {
 				// create http server with fakeHookHandler
@@ -194,7 +194,7 @@ func TestClient_httpCall(t *testing.T) {
 				defer srv.Close()
 
 				// set url to srv for in tt.opts
-				tt.opts.config.URL = pointer.String(srv.URL)
+				tt.opts.config.URL = ptr.To(srv.URL)
 				tt.opts.config.CABundle = testcerts.CACert
 			}
 
@@ -202,7 +202,7 @@ func TestClient_httpCall(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -257,7 +257,7 @@ func TestURLForExtension(t *testing.T) {
 					Service: &runtimev1.ServiceReference{
 						Namespace: "test1",
 						Name:      "extension-service",
-						Port:      pointer.Int32(8443),
+						Port:      ptr.To[int32](8443),
 					},
 				},
 				gvh:                  gvh,
@@ -277,7 +277,7 @@ func TestURLForExtension(t *testing.T) {
 					Service: &runtimev1.ServiceReference{
 						Namespace: "test1",
 						Name:      "extension-service",
-						Port:      pointer.Int32(8443),
+						Port:      ptr.To[int32](8443),
 					},
 					CABundle: []byte("some-ca-data"),
 				},
@@ -295,7 +295,7 @@ func TestURLForExtension(t *testing.T) {
 			name: "ClientConfig using URL should have correct URL values",
 			args: args{
 				config: runtimev1.ClientConfig{
-					URL: pointer.String("https://extension-host.com"),
+					URL: ptr.To("https://extension-host.com"),
 				},
 				gvh:                  gvh,
 				extensionHandlerName: "test-handler",
@@ -325,7 +325,7 @@ func TestURLForExtension(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(u.Scheme).To(Equal(tt.want.scheme))
 				g.Expect(u.Host).To(Equal(tt.want.host))
 				g.Expect(u.Path).To(Equal(tt.want.path))
@@ -362,7 +362,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "error with name violating DNS1123",
+			name: "error if handler name has capital letters",
 			discovery: &runtimehooksv1.DiscoveryResponse{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "DiscoveryResponse",
@@ -370,6 +370,23 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 				},
 				Handlers: []runtimehooksv1.ExtensionHandler{{
 					Name: "HAS-CAPITAL-LETTERS",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook:       "FakeHook",
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+					},
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error if handler name has full stops",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "has.full.stops",
 					RequestHook: runtimehooksv1.GroupVersionHook{
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),
@@ -391,7 +408,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 					},
-					TimeoutSeconds: pointer.Int32(100),
+					TimeoutSeconds: ptr.To[int32](100),
 				}},
 			},
 			wantErr: true,
@@ -409,7 +426,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 					},
-					TimeoutSeconds: pointer.Int32(-1),
+					TimeoutSeconds: ptr.To[int32](-1),
 				}},
 			},
 			wantErr: true,
@@ -427,7 +444,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 					},
-					TimeoutSeconds: pointer.Int32(20),
+					TimeoutSeconds: ptr.To[int32](20),
 					FailurePolicy:  &invalidFailurePolicy,
 				}},
 			},
@@ -529,7 +546,7 @@ func TestClient_CallExtension(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      pointer.String("https://127.0.0.1/"),
+				URL:      ptr.To("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -542,7 +559,7 @@ func TestClient_CallExtension(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 			},
@@ -552,7 +569,7 @@ func TestClient_CallExtension(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      pointer.String("https://127.0.0.1/"),
+				URL:      ptr.To("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{}},
@@ -564,7 +581,7 @@ func TestClient_CallExtension(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpIgnore,
 				},
 			},
@@ -738,7 +755,7 @@ func TestClient_CallExtension(t *testing.T) {
 
 				// Set the URL to the real address of the test server.
 				for i := range tt.registeredExtensionConfigs {
-					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = pointer.String(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = ptr.To(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
 				}
 			}
 
@@ -766,7 +783,7 @@ func TestClient_CallExtension(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -867,7 +884,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
-				URL:      pointer.String("https://127.0.0.1/"),
+				URL:      ptr.To("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -880,7 +897,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 				{
@@ -889,7 +906,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 				{
@@ -898,7 +915,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 						APIVersion: fakev1alpha1.GroupVersion.String(),
 						Hook:       "FakeHook",
 					},
-					TimeoutSeconds: pointer.Int32(1),
+					TimeoutSeconds: ptr.To[int32](1),
 					FailurePolicy:  &fpFail,
 				},
 			},
@@ -1023,7 +1040,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 
 				// Set the URL to the real address of the test server.
 				for i := range tt.registeredExtensionConfigs {
-					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = pointer.String(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = ptr.To(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
 				}
 			}
 
@@ -1050,7 +1067,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -1091,7 +1108,7 @@ func Test_client_matchNamespace(t *testing.T) {
 			},
 		},
 	})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	notMatchingMatchExpressions, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
@@ -1101,7 +1118,7 @@ func Test_client_matchNamespace(t *testing.T) {
 			},
 		},
 	})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	tests := []struct {
 		name               string
 		selector           labels.Selector
@@ -1210,7 +1227,7 @@ func Test_aggregateResponses(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			aggregateSuccessfulResponses(tt.aggregateResponse, tt.responses)
 
-			if !reflect.DeepEqual(tt.aggregateResponse, tt.want) {
+			if !cmp.Equal(tt.aggregateResponse, tt.want) {
 				t.Errorf("aggregateSuccessfulResponses() got = %v, want %v", tt.aggregateResponse, tt.want)
 			}
 		})
@@ -1316,4 +1333,72 @@ func newUnstartedTLSServer(handler http.Handler) *httptest.Server {
 		Certificates: []tls.Certificate{cert},
 	}
 	return srv
+}
+
+func TestNameForHandler(t *testing.T) {
+	tests := []struct {
+		name            string
+		handler         runtimehooksv1.ExtensionHandler
+		extensionConfig *runtimev1.ExtensionConfig
+		want            string
+		wantErr         bool
+	}{
+		{
+			name:            "return well formatted name",
+			handler:         runtimehooksv1.ExtensionHandler{Name: "discover-variables"},
+			extensionConfig: &runtimev1.ExtensionConfig{ObjectMeta: metav1.ObjectMeta{Name: "runtime1"}},
+			want:            "discover-variables.runtime1",
+		},
+		{
+			name:            "return well formatted name",
+			handler:         runtimehooksv1.ExtensionHandler{Name: "discover-variables"},
+			extensionConfig: nil,
+			wantErr:         true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NameForHandler(tt.handler, tt.extensionConfig)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NameForHandler() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("NameForHandler() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtensionNameFromHandlerName(t *testing.T) {
+	tests := []struct {
+		name                  string
+		registeredHandlerName string
+		want                  string
+		wantErr               bool
+	}{
+		{
+			name:                  "Get name from correctly formatted handler name",
+			registeredHandlerName: "discover-variables.runtime1",
+			want:                  "runtime1",
+		},
+		{
+			name: "error from incorrectly formatted handler name",
+			// Two periods make this name badly formed.
+			registeredHandlerName: "discover-variables.runtime.1",
+			wantErr:               true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ExtensionNameFromHandlerName(tt.registeredHandlerName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ExtensionNameFromHandlerName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ExtensionNameFromHandlerName() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

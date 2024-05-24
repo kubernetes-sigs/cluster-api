@@ -234,6 +234,9 @@ The `status` object **may** define several fields:
   exist in the cluster. For example, managed control plane providers for AKS, EKS, GKE, etc, should
   set this to `true`. Leaving the field undefined is equivalent to setting the value to `false`.
 
+Note: once any of `failureReason` or `failureMessage` surface on the cluster who is referencing the control plane object,
+they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the cluster).
+
 ## Example usage
 
 ```yaml
@@ -258,7 +261,9 @@ spec:
 ## Kubeconfig management
 
 Control Plane providers are expected to create and maintain a Kubeconfig
-secret for operators to gain initial access to the cluster. If a provider uses
+secret for operators to gain initial access to the cluster.
+The given secret must be labelled with the key-pair `cluster.x-k8s.io/cluster-name=${CLUSTER_NAME}`
+to make it stored and retrievable in the cache used by CAPI managers. If a provider uses
 client certificates for authentication in these Kubeconfigs, the client
 certificate should be kept with a reasonably short expiration period and
 periodically regenerated to keep a valid set of credentials available. As an

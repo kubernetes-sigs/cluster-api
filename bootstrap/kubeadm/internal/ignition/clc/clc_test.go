@@ -23,7 +23,7 @@ import (
 	ignition "github.com/flatcar/ignition/config/v2_3"
 	"github.com/flatcar/ignition/config/v2_3/types"
 	"github.com/google/go-cmp/cmp"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
@@ -77,7 +77,7 @@ func TestRender(t *testing.T) {
 				PostKubeadmCommands: postKubeadmCommands,
 				KubeadmCommand:      "kubeadm join",
 				NTP: &bootstrapv1.NTP{
-					Enabled: pointer.Bool(true),
+					Enabled: ptr.To(true),
 					Servers: []string{
 						"foo.bar",
 						"baz",
@@ -86,13 +86,13 @@ func TestRender(t *testing.T) {
 				Users: []bootstrapv1.User{
 					{
 						Name:         "foo",
-						Gecos:        pointer.String("Foo B. Bar"),
-						Groups:       pointer.String("foo, bar"),
-						HomeDir:      pointer.String("/home/foo"),
-						Shell:        pointer.String("/bin/false"),
-						Passwd:       pointer.String("$6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/"),
-						PrimaryGroup: pointer.String("foo"),
-						Sudo:         pointer.String("ALL=(ALL) NOPASSWD:ALL"),
+						Gecos:        ptr.To("Foo B. Bar"),
+						Groups:       ptr.To("foo, bar"),
+						HomeDir:      ptr.To("/home/foo"),
+						Shell:        ptr.To("/bin/false"),
+						Passwd:       ptr.To("$6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/"),
+						PrimaryGroup: ptr.To("foo"),
+						Sudo:         ptr.To("ALL=(ALL) NOPASSWD:ALL"),
 						SSHAuthorizedKeys: []string{
 							"foo",
 							"bar",
@@ -104,8 +104,8 @@ func TestRender(t *testing.T) {
 						{
 							Device:    "/dev/disk/azure/scsi1/lun0",
 							Layout:    true,
-							Overwrite: pointer.Bool(true),
-							TableType: pointer.String("gpt"),
+							Overwrite: ptr.To(true),
+							TableType: ptr.To("gpt"),
 						},
 					},
 					Filesystems: []bootstrapv1.Filesystem{
@@ -114,7 +114,7 @@ func TestRender(t *testing.T) {
 							Filesystem: "ext4",
 							Label:      "test_disk",
 							ExtraOpts:  []string{"-F", "-E", "lazy_itable_init=1,lazy_journal_init=1"},
-							Overwrite:  pointer.Bool(true),
+							Overwrite:  ptr.To(true),
 						},
 					},
 				},
@@ -147,7 +147,7 @@ func TestRender(t *testing.T) {
 							},
 							HomeDir:      "/home/foo",
 							Name:         "foo",
-							PasswordHash: pointer.String("$6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/"),
+							PasswordHash: ptr.To("$6$j212wezy$7H/1LT4f9/N3wpgNunhsIqtMj62OKiS3nyNwuizouQc3u7MbYCarYeAHWYPYb2FT.lbioDm2RrkJPb9BZMN1O/"),
 							PrimaryGroup: "foo",
 							SSHAuthorizedKeys: []types.SSHAuthorizedKey{
 								"foo",
@@ -175,7 +175,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,foo%20ALL%3D(ALL)%20NOPASSWD%3AALL%0A",
 								},
-								Mode: pointer.Int(384),
+								Mode: ptr.To(384),
 							},
 						},
 						{
@@ -189,7 +189,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,foo%0A",
 								},
-								Mode: pointer.Int(384),
+								Mode: ptr.To(384),
 							},
 						},
 						{
@@ -201,7 +201,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 								},
-								Mode: pointer.Int(448),
+								Mode: ptr.To(448),
 							},
 						},
 						{
@@ -213,7 +213,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,---%0Afoo%0A",
 								},
-								Mode: pointer.Int(384),
+								Mode: ptr.To(384),
 							},
 						},
 						{
@@ -225,7 +225,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,%23%20Common%20pool%0Aserver%20foo.bar%0Aserver%20baz%0A%0A%23%20Warning%3A%20Using%20default%20NTP%20settings%20will%20leave%20your%20NTP%0A%23%20server%20accessible%20to%20all%20hosts%20on%20the%20Internet.%0A%0A%23%20If%20you%20want%20to%20deny%20all%20machines%20(including%20your%20own)%0A%23%20from%20accessing%20the%20NTP%20server%2C%20uncomment%3A%0A%23restrict%20default%20ignore%0A%0A%23%20Default%20configuration%3A%0A%23%20-%20Allow%20only%20time%20queries%2C%20at%20a%20limited%20rate%2C%20sending%20KoD%20when%20in%20excess.%0A%23%20-%20Allow%20all%20local%20queries%20(IPv4%2C%20IPv6)%0Arestrict%20default%20nomodify%20nopeer%20noquery%20notrap%20limited%20kod%0Arestrict%20127.0.0.1%0Arestrict%20%5B%3A%3A1%5D%0A",
 								},
-								Mode: pointer.Int(420),
+								Mode: ptr.To(420),
 							},
 						},
 					},
@@ -234,7 +234,7 @@ func TestRender(t *testing.T) {
 							Mount: &types.Mount{
 								Device: "/dev/disk/azure/scsi1/lun0",
 								Format: "ext4",
-								Label:  pointer.String("test_disk"),
+								Label:  ptr.To("test_disk"),
 								Options: []types.MountOption{
 									"-F",
 									"-E",
@@ -249,17 +249,17 @@ func TestRender(t *testing.T) {
 				Systemd: types.Systemd{
 					Units: []types.Unit{
 						{
-							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
-							Enabled:  pointer.Bool(true),
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\nAfter=network.target\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  ptr.To(true),
 							Name:     "kubeadm.service",
 						},
 						{
-							Enabled: pointer.Bool(true),
+							Enabled: ptr.To(true),
 							Name:    "ntpd.service",
 						},
 						{
 							Contents: "[Unit]\nDescription = Mount test_disk\n\n[Mount]\nWhat=/dev/disk/azure/scsi1/lun0\nWhere=/var/lib/testdir\nOptions=foo\n\n[Install]\nWantedBy=multi-user.target\n",
-							Enabled:  pointer.Bool(true),
+							Enabled:  ptr.To(true),
 							Name:     "var-lib-testdir.mount",
 						},
 					},
@@ -275,11 +275,11 @@ func TestRender(t *testing.T) {
 				Users: []bootstrapv1.User{
 					{
 						Name:         "foo",
-						LockPassword: pointer.Bool(false),
+						LockPassword: ptr.To(false),
 					},
 					{
 						Name:         "bar",
-						LockPassword: pointer.Bool(false),
+						LockPassword: ptr.To(false),
 					},
 				},
 			},
@@ -308,7 +308,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,%23%20Use%20most%20defaults%20for%20sshd%20configuration.%0ASubsystem%20sftp%20internal-sftp%0AClientAliveInterval%20180%0AUseDNS%20no%0AUsePAM%20yes%0APrintLastLog%20no%20%23%20handled%20by%20PAM%0APrintMotd%20no%20%23%20handled%20by%20PAM%0A%0AMatch%20User%20foo%2Cbar%0A%20%20PasswordAuthentication%20yes%0A",
 								},
-								Mode: pointer.Int(384),
+								Mode: ptr.To(384),
 							},
 						},
 						{
@@ -320,7 +320,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 								},
-								Mode: pointer.Int(448),
+								Mode: ptr.To(448),
 							},
 						},
 						{
@@ -332,7 +332,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,---%0Afoo%0A",
 								},
-								Mode: pointer.Int(384),
+								Mode: ptr.To(384),
 							},
 						},
 					},
@@ -340,8 +340,8 @@ func TestRender(t *testing.T) {
 				Systemd: types.Systemd{
 					Units: []types.Unit{
 						{
-							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
-							Enabled:  pointer.Bool(true),
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\nAfter=network.target\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  ptr.To(true),
 							Name:     "kubeadm.service",
 						},
 					},
@@ -381,7 +381,7 @@ func TestRender(t *testing.T) {
 							},
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{Source: "data:,foo%0A"},
-								Mode:     pointer.Int(384),
+								Mode:     ptr.To(384),
 							},
 						},
 						{
@@ -391,7 +391,7 @@ func TestRender(t *testing.T) {
 							},
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{Source: "data:,foo%0A"},
-								Mode:     pointer.Int(384),
+								Mode:     ptr.To(384),
 							},
 						},
 						{
@@ -403,7 +403,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 								},
-								Mode: pointer.Int(448),
+								Mode: ptr.To(448),
 							},
 						},
 						{
@@ -415,7 +415,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,---%0Afoo%0A",
 								},
-								Mode: pointer.Int(384),
+								Mode: ptr.To(384),
 							},
 						},
 					},
@@ -423,8 +423,8 @@ func TestRender(t *testing.T) {
 				Systemd: types.Systemd{
 					Units: []types.Unit{
 						{
-							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
-							Enabled:  pointer.Bool(true),
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\nAfter=network.target\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  ptr.To(true),
 							Name:     "kubeadm.service",
 						},
 					},
@@ -479,7 +479,7 @@ func TestRender(t *testing.T) {
 							},
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{Source: "data:,"},
-								Mode:     pointer.Int(384),
+								Mode:     ptr.To(384),
 							},
 						},
 						{
@@ -492,7 +492,7 @@ func TestRender(t *testing.T) {
 							},
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{Source: "data:,"},
-								Mode:     pointer.Int(384),
+								Mode:     ptr.To(384),
 							},
 						},
 						{
@@ -505,7 +505,7 @@ func TestRender(t *testing.T) {
 							},
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{Source: "data:,"},
-								Mode:     pointer.Int(384),
+								Mode:     ptr.To(384),
 							},
 						},
 						{
@@ -518,7 +518,7 @@ func TestRender(t *testing.T) {
 							},
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{Source: "data:,"},
-								Mode:     pointer.Int(384),
+								Mode:     ptr.To(384),
 							},
 						},
 						{
@@ -530,7 +530,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
 								},
-								Mode: pointer.Int(448),
+								Mode: ptr.To(448),
 							},
 						},
 						{
@@ -542,7 +542,7 @@ func TestRender(t *testing.T) {
 								Contents: types.FileContents{
 									Source: "data:,---%0Afoo%0A",
 								},
-								Mode: pointer.Int(384),
+								Mode: ptr.To(384),
 							},
 						},
 					},
@@ -550,8 +550,8 @@ func TestRender(t *testing.T) {
 				Systemd: types.Systemd{
 					Units: []types.Unit{
 						{
-							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
-							Enabled:  pointer.Bool(true),
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\nAfter=network.target\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  ptr.To(true),
 							Name:     "kubeadm.service",
 						},
 					},

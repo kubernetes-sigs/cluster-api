@@ -17,6 +17,7 @@ limitations under the License.
 package util
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -24,7 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -34,136 +36,146 @@ import (
 )
 
 func TestGetConfigOwner(t *testing.T) {
-	t.Run("should get the owner when present (Machine)", func(t *testing.T) {
-		g := NewWithT(t)
-		myMachine := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-machine",
-				Namespace: metav1.NamespaceDefault,
-				Labels: map[string]string{
-					clusterv1.MachineControlPlaneLabel: "",
-				},
-			},
-			Spec: clusterv1.MachineSpec{
-				ClusterName: "my-cluster",
-				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: pointer.String("my-data-secret"),
-				},
-				Version: pointer.String("v1.19.6"),
-			},
-			Status: clusterv1.MachineStatus{
-				InfrastructureReady: true,
-			},
-		}
+	doTests := func(t *testing.T, getFn func(context.Context, client.Client, metav1.Object) (*ConfigOwner, error)) {
+		t.Helper()
 
-		c := fake.NewClientBuilder().WithObjects(myMachine).Build()
-		obj := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Kind:       "Machine",
-						APIVersion: clusterv1.GroupVersion.String(),
-						Name:       "my-machine",
+		t.Run("should get the owner when present (Machine)", func(t *testing.T) {
+			g := NewWithT(t)
+			myMachine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "my-machine",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
-				Namespace: metav1.NamespaceDefault,
-				Name:      "my-resource-owned-by-machine",
-			},
-		}
-		configOwner, err := GetConfigOwner(ctx, c, obj)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(configOwner).ToNot(BeNil())
-		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
-		g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
-		g.Expect(configOwner.IsControlPlaneMachine()).To(BeTrue())
-		g.Expect(configOwner.IsMachinePool()).To(BeFalse())
-		g.Expect(configOwner.KubernetesVersion()).To(Equal("v1.19.6"))
-		g.Expect(*configOwner.DataSecretName()).To(BeEquivalentTo("my-data-secret"))
+				Spec: clusterv1.MachineSpec{
+					ClusterName: "my-cluster",
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To("my-data-secret"),
+					},
+					Version: ptr.To("v1.19.6"),
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: true,
+				},
+			}
+
+			c := fake.NewClientBuilder().WithObjects(myMachine).Build()
+			obj := &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Machine",
+							APIVersion: clusterv1.GroupVersion.String(),
+							Name:       "my-machine",
+						},
+					},
+					Namespace: metav1.NamespaceDefault,
+					Name:      "my-resource-owned-by-machine",
+				},
+			}
+			configOwner, err := getFn(ctx, c, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(configOwner).ToNot(BeNil())
+			g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
+			g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
+			g.Expect(configOwner.IsControlPlaneMachine()).To(BeTrue())
+			g.Expect(configOwner.IsMachinePool()).To(BeFalse())
+			g.Expect(configOwner.KubernetesVersion()).To(Equal("v1.19.6"))
+			g.Expect(*configOwner.DataSecretName()).To(BeEquivalentTo("my-data-secret"))
+		})
+
+		t.Run("should get the owner when present (MachinePool)", func(t *testing.T) {
+			_ = feature.MutableGates.Set("MachinePool=true")
+
+			g := NewWithT(t)
+			myPool := &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "my-machine-pool",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					},
+				},
+				Spec: expv1.MachinePoolSpec{
+					ClusterName: "my-cluster",
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Version: ptr.To("v1.19.6"),
+						},
+					},
+				},
+				Status: expv1.MachinePoolStatus{
+					InfrastructureReady: true,
+				},
+			}
+
+			c := fake.NewClientBuilder().WithObjects(myPool).Build()
+			obj := &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "MachinePool",
+							APIVersion: expv1.GroupVersion.String(),
+							Name:       "my-machine-pool",
+						},
+					},
+					Namespace: metav1.NamespaceDefault,
+					Name:      "my-resource-owned-by-machine-pool",
+				},
+			}
+			configOwner, err := getFn(ctx, c, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(configOwner).ToNot(BeNil())
+			g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
+			g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
+			g.Expect(configOwner.IsControlPlaneMachine()).To(BeFalse())
+			g.Expect(configOwner.IsMachinePool()).To(BeTrue())
+			g.Expect(configOwner.KubernetesVersion()).To(Equal("v1.19.6"))
+			g.Expect(configOwner.DataSecretName()).To(BeNil())
+		})
+
+		t.Run("return an error when not found", func(t *testing.T) {
+			g := NewWithT(t)
+			c := fake.NewClientBuilder().Build()
+			obj := &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "Machine",
+							APIVersion: clusterv1.GroupVersion.String(),
+							Name:       "my-machine",
+						},
+					},
+					Namespace: metav1.NamespaceDefault,
+					Name:      "my-resource-owned-by-machine",
+				},
+			}
+			_, err := getFn(ctx, c, obj)
+			g.Expect(err).To(HaveOccurred())
+		})
+
+		t.Run("return nothing when there is no owner", func(t *testing.T) {
+			g := NewWithT(t)
+			c := fake.NewClientBuilder().Build()
+			obj := &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{},
+					Namespace:       metav1.NamespaceDefault,
+					Name:            "my-resource-owned-by-machine",
+				},
+			}
+			configOwner, err := getFn(ctx, c, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(configOwner).To(BeNil())
+		})
+	}
+	t.Run("uncached", func(t *testing.T) {
+		doTests(t, GetConfigOwner)
 	})
-
-	t.Run("should get the owner when present (MachinePool)", func(t *testing.T) {
-		_ = feature.MutableGates.Set("MachinePool=true")
-
-		g := NewWithT(t)
-		myPool := &expv1.MachinePool{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-machine-pool",
-				Namespace: metav1.NamespaceDefault,
-				Labels: map[string]string{
-					clusterv1.MachineControlPlaneLabel: "",
-				},
-			},
-			Spec: expv1.MachinePoolSpec{
-				ClusterName: "my-cluster",
-				Template: clusterv1.MachineTemplateSpec{
-					Spec: clusterv1.MachineSpec{
-						Version: pointer.String("v1.19.6"),
-					},
-				},
-			},
-			Status: expv1.MachinePoolStatus{
-				InfrastructureReady: true,
-			},
-		}
-
-		c := fake.NewClientBuilder().WithObjects(myPool).Build()
-		obj := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Kind:       "MachinePool",
-						APIVersion: expv1.GroupVersion.String(),
-						Name:       "my-machine-pool",
-					},
-				},
-				Namespace: metav1.NamespaceDefault,
-				Name:      "my-resource-owned-by-machine-pool",
-			},
-		}
-		configOwner, err := GetConfigOwner(ctx, c, obj)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(configOwner).ToNot(BeNil())
-		g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
-		g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
-		g.Expect(configOwner.IsControlPlaneMachine()).To(BeFalse())
-		g.Expect(configOwner.IsMachinePool()).To(BeTrue())
-		g.Expect(configOwner.KubernetesVersion()).To(Equal("v1.19.6"))
-		g.Expect(configOwner.DataSecretName()).To(BeNil())
-	})
-
-	t.Run("return an error when not found", func(t *testing.T) {
-		g := NewWithT(t)
-		c := fake.NewClientBuilder().Build()
-		obj := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						Kind:       "Machine",
-						APIVersion: clusterv1.GroupVersion.String(),
-						Name:       "my-machine",
-					},
-				},
-				Namespace: metav1.NamespaceDefault,
-				Name:      "my-resource-owned-by-machine",
-			},
-		}
-		_, err := GetConfigOwner(ctx, c, obj)
-		g.Expect(err).To(HaveOccurred())
-	})
-
-	t.Run("return nothing when there is no owner", func(t *testing.T) {
-		g := NewWithT(t)
-		c := fake.NewClientBuilder().Build()
-		obj := &bootstrapv1.KubeadmConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				OwnerReferences: []metav1.OwnerReference{},
-				Namespace:       metav1.NamespaceDefault,
-				Name:            "my-resource-owned-by-machine",
-			},
-		}
-		configOwner, err := GetConfigOwner(ctx, c, obj)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(configOwner).To(BeNil())
+	t.Run("cached", func(t *testing.T) {
+		doTests(t, GetTypedConfigOwner)
 	})
 }
 
@@ -172,7 +184,8 @@ func TestHasNodeRefs(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machine-name",
@@ -193,7 +206,8 @@ func TestHasNodeRefs(t *testing.T) {
 		g := NewWithT(t)
 		machine := &clusterv1.Machine{
 			TypeMeta: metav1.TypeMeta{
-				Kind: "Machine",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Machine",
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machine-name",
@@ -225,7 +239,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// No replicas specified (default is 1). No nodeRefs either.
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
@@ -235,27 +250,29 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 1 replica but no nodeRefs
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32(1),
+					Replicas: ptr.To[int32](1),
 				},
 			},
 			{
 				// 2 replicas but only 1 nodeRef
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				},
 				Status: expv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
@@ -288,7 +305,8 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 1 replica (default) and 1 nodeRef
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
@@ -307,14 +325,15 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 2 replicas and nodeRefs
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32(2),
+					Replicas: ptr.To[int32](2),
 				},
 				Status: expv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
@@ -334,14 +353,15 @@ func TestHasNodeRefs(t *testing.T) {
 			{
 				// 0 replicas and 0 nodeRef
 				TypeMeta: metav1.TypeMeta{
-					Kind: "MachinePool",
+					APIVersion: expv1.GroupVersion.String(),
+					Kind:       "MachinePool",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32(0),
+					Replicas: ptr.To[int32](0),
 				},
 			},
 		}

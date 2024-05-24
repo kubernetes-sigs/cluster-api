@@ -36,6 +36,9 @@ type DockerMachinePoolReconciler struct {
 	Scheme           *runtime.Scheme
 	ContainerRuntime container.Runtime
 	Tracker          *remote.ClusterCacheTracker
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
 }
 
 // SetupWithManager will add watches for this controller.
@@ -45,5 +48,6 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		Scheme:           r.Scheme,
 		ContainerRuntime: r.ContainerRuntime,
 		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

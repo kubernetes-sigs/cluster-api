@@ -12,9 +12,7 @@ hack/tools/bin
 
 # E2E test templates
 test/e2e/data/infrastructure-docker/**/cluster-template*.yaml
-
-# E2e test extension deployment
-test/e2e/data/test-extension/deployment.yaml
+test/e2e/data/infrastructure-inmemory/**/cluster-template*.yaml
 
 # Output of Makefile targets using sed on MacOS systems
 *.yaml-e
@@ -29,6 +27,10 @@ test/e2e/data/test-extension/deployment.yaml
 # VSCode
 .vscode/
 *.code-workspace
+
+# go.work files
+go.work
+go.work.sum
 
 # kubeconfigs
 minikube.kubeconfig
@@ -74,7 +76,6 @@ _artifacts
 
 # release artifacts
 out
-_releasenotes
 
 # Helm
 .helm
@@ -85,3 +86,6 @@ tmp
 
 # asdf (not a typo! ;) used to manage multiple versions of tools
 .tool-versions
+
+# Development container configurations (https://containers.dev/)
+.devcontainer

@@ -17,6 +17,7 @@ limitations under the License.
 package test
 
 import (
+	"context"
 	"errors"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -25,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -78,7 +79,7 @@ func (f *FakeProxy) GetConfig() (*rest.Config, error) {
 	return nil, nil
 }
 
-func (f *FakeProxy) NewClient() (client.Client, error) {
+func (f *FakeProxy) NewClient(_ context.Context) (client.Client, error) {
 	if f.cs != nil {
 		return f.cs, nil
 	}
@@ -86,7 +87,7 @@ func (f *FakeProxy) NewClient() (client.Client, error) {
 	return f.cs, nil
 }
 
-func (f *FakeProxy) CheckClusterAvailable() error {
+func (f *FakeProxy) CheckClusterAvailable(_ context.Context) error {
 	// default to considering the cluster as available unless explicitly set to be
 	// unavailable.
 	if f.available == nil || *f.available {
@@ -96,7 +97,7 @@ func (f *FakeProxy) CheckClusterAvailable() error {
 }
 
 // ListResources returns all the resources known by the FakeProxy.
-func (f *FakeProxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
+func (f *FakeProxy) ListResources(_ context.Context, labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured //nolint:prealloc
 	for _, o := range f.objs {
 		u := unstructured.Unstructured{}
@@ -142,7 +143,7 @@ func (f *FakeProxy) GetContexts(_ string) ([]string, error) {
 	return nil, nil
 }
 
-func (f *FakeProxy) GetResourceNames(_, _ string, _ []client.ListOption, _ string) ([]string, error) {
+func (f *FakeProxy) GetResourceNames(_ context.Context, _, _ string, _ []client.ListOption, _ string) ([]string, error) {
 	return nil, nil
 }
 
@@ -202,7 +203,7 @@ func (f *FakeProxy) WithFakeCAPISetup() *FakeProxy {
 }
 
 func (f *FakeProxy) WithClusterAvailable(available bool) *FakeProxy {
-	f.available = pointer.Bool(available)
+	f.available = ptr.To(available)
 	return f
 }
 

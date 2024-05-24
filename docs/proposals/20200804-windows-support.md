@@ -17,38 +17,41 @@ see-also:
 
 ## Table of Contents
 
-- [Windows kubeadm-based worker nodes support](#windows-kubeadm-based-worker-nodes-support)
-  - [Table of Contents](#table-of-contents)
-  - [Glossary](#glossary)
-  - [Summary](#summary)
-  - [Motivation](#motivation)
-    - [Goals](#goals)
-    - [Non-Goals/Future Work](#non-goalsfuture-work)
-  - [Proposal](#proposal)
-    - [Cluster API Bootstrap Provider Kubeadm](#cluster-api-bootstrap-provider-kubeadm)
-      - [cloud-init and cloudbase-init](#cloud-init-and-cloudbase-init)
-      - [Image Creation](#image-creation)
-      - [Kubelet and other component configuration](#kubelet-and-other-component-configuration)
-      - [netbios names](#netbios-names)
-    - [Infrastructure provider implementation](#infrastructure-provider-implementation)
-    - [User Stories](#user-stories)
-      - [As an operator, I would like to create Windows OS worker nodes with the CAPI API.](#as-an-operator-i-would-like-to-create-windows-os-worker-nodes-with-the-capi-api)
-      - [As an operator, I would like to manage Windows OS worker nodes with the CAPI API.](#as-an-operator-i-would-like-to-manage-windows-os-worker-nodes-with-the-capi-api)
-    - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-      - [Signing of the components.](#signing-of-the-components)
-      - [Known prototypes and prior work:](#known-prototypes-and-prior-work)
-    - [Security Model](#security-model)
-    - [Risks and Mitigations](#risks-and-mitigations)
-  - [Alternatives](#alternatives)
-  - [Upgrade Strategy](#upgrade-strategy)
-  - [Additional Details](#additional-details)
-    - [Test Plan [optional]](#test-plan-optional)
-    - [Graduation Criteria [optional]](#graduation-criteria-optional)
-      - [Alpha](#alpha)
-      - [Beta](#beta)
-      - [Stable](#stable)
-    - [Version Skew Strategy](#version-skew-strategy)
-  - [Implementation History](#implementation-history)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals/Future Work](#non-goalsfuture-work)
+- [Proposal](#proposal)
+  - [Cluster API Bootstrap Provider Kubeadm](#cluster-api-bootstrap-provider-kubeadm)
+    - [cloud-init and cloudbase-init](#cloud-init-and-cloudbase-init)
+    - [Image Creation](#image-creation)
+    - [Kubelet and other component configuration](#kubelet-and-other-component-configuration)
+    - [netbios names](#netbios-names)
+  - [Infrastructure provider implementation](#infrastructure-provider-implementation)
+  - [User Stories](#user-stories)
+    - [As an operator, I would like to create Windows OS worker nodes with the CAPI API.](#as-an-operator-i-would-like-to-create-windows-os-worker-nodes-with-the-capi-api)
+    - [As an operator, I would like to manage Windows OS worker nodes with the CAPI API.](#as-an-operator-i-would-like-to-manage-windows-os-worker-nodes-with-the-capi-api)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [Signing of the components.](#signing-of-the-components)
+    - [Known prototypes and prior work:](#known-prototypes-and-prior-work)
+  - [Security Model](#security-model)
+  - [Risks and Mitigations](#risks-and-mitigations)
+- [Alternatives](#alternatives)
+- [Upgrade Strategy](#upgrade-strategy)
+- [Additional Details](#additional-details)
+  - [Test Plan [optional]](#test-plan-optional)
+  - [Graduation Criteria [optional]](#graduation-criteria-optional)
+    - [Alpha](#alpha)
+    - [Beta](#beta)
+    - [Stable](#stable)
+  - [Version Skew Strategy](#version-skew-strategy)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 
@@ -112,7 +115,7 @@ Using cloudbase-init requires the creation of an image with the tooling installe
 provided out of the box by any cloud providers.  We'll provide packer scripts as part of 
 the [image-builder project](https://github.com/kubernetes-sigs/image-builder) that pre-installs 
 `cloudbase-init`.  It is important to note that while scripts can be provided to build an image, all images 
-built need to adhere to [Windows licensing requirements](https://www.microsoft.com/en-us/licensing/product-licensing/windows-server).
+built need to adhere to [Windows licensing requirements](https://learn.microsoft.com/windows-server/windows-server-licensing/windows-server-licensing).
 
 There is prior art for building Windows base images. For example, AKS-Engine has an example implementation for using packer and scripts to do image configuration: https://github.com/Azure/aks-engine/blob/master/vhd/packer/windows-vhd-builder.json.  
 Another example is the [sig-windows-tools](https://github.com/kubernetes-sigs/sig-windows-tools) which provide scripts for image configuration when using Kubeadm.
@@ -209,7 +212,7 @@ to issue [#3761](https://github.com/kubernetes-sigs/cluster-api/issues/3761) for
   - This project is under Apache 2.0 License : https://github.com/cloudbase/cloudbase-init which is cleared under the CNCF Allow list: https://github.com/cncf/foundation/blob/master/allowed-third-party-license-policy.md
 - Windows image Distribution
   - Infrastructure providers can provide the ability to use user provided images and images provided by image-promoter are recommended for testing and demonstration purposes. It is recommended the user creates their own image. 
-  - Users using the image scripts must ensure they are following [Windows licensing requirements](https://www.microsoft.com/en-us/licensing/product-licensing/windows-server)
+  - Users using the image scripts must ensure they are following [Windows licensing requirements](https://learn.microsoft.com/windows-server/windows-server-licensing/windows-server-licensing)
 - Wins.exe is a third party dependency
   - The project is under the Apache 2.0 License
 

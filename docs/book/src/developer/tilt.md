@@ -8,14 +8,14 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer
-1. [kind](https://kind.sigs.k8s.io): v0.17 or newer
-1. [Tilt](https://docs.tilt.dev/install.html): v0.30.8 or newer
-1. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
-1. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
-1. [helm](https://github.com/helm/helm): v3.7.1 or newer
-1. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
+2. [kind](https://kind.sigs.k8s.io): v0.23.0 or newer
+3. [Tilt](https://docs.tilt.dev/install.html): v0.30.8 or newer
+4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
+5. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
+6. [helm](https://github.com/helm/helm): v3.7.1 or newer
+7. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
    locally
-1. Clone the provider(s) you want to deploy locally as well
+8. Clone the provider(s) you want to deploy locally as well
 
 ## Getting started
 
@@ -69,8 +69,10 @@ If you prefer JSON, you can create a `tilt-settings.json` file instead. YAML wil
 **allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
 [allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
 
-**default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
+**default_registry** (String, default=[]): The image registry to use if you need to push images. See the [Tilt
 documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
+Please note that, in case you are not using a local registry, this value is required; additionally, the Cluster API
+Tiltfile protects you from accidental push on `gcr.io/k8s-staging-cluster-api`.
 
 **build_engine** (String, default="docker"): The engine used to build images. Can either be `docker` or `podman`.
 NB: the default is dynamic and will be "podman" if the string "Podman Engine" is found in `docker version` (or in `podman version` if the command fails).
@@ -106,10 +108,9 @@ provider's yaml. These substitutions are also used when deploying cluster templa
 ```yaml
 kustomize_substitutions:
   CLUSTER_TOPOLOGY: "true"
-  EXP_MACHINE_POOL: "true"
-  EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_RUNTIME_SDK: "true"
+  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
 ```
 
 {{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP,vSphere"}}
@@ -199,14 +200,24 @@ Important! This feature requires the `helm` command to be available in the user'
 
 Supported values are:
 
-  * `grafana`*: To create dashboards and query `loki` as well as `prometheus`.
+  * `grafana`*: To create dashboards and query `loki`, `prometheus` and `tempo`.
   * `kube-state-metrics`: For exposing metrics for Kubernetes and CAPI resources to `prometheus`.
   * `loki`: To receive and store logs.
+  * `metrics-server`: To enable `kubectl top node/pod`.
   * `prometheus`*: For collecting metrics from Kubernetes.
   * `promtail`: For providing pod logs to `loki`.
+  * `parca`*: For visualizing profiling data.
+  * `tempo`: To store traces.
   * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
 
 \*: Note: the UI will be accessible via a link in the tilt console
+
+**additional_kustomizations** (map[string]string, default={}): If set, install the additional resources built using kustomize to the cluster.
+Example:
+```yaml
+additional_kustomizations:
+  capv-metrics: ../cluster-api-provider-vsphere/config/metrics
+```
 
 **debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
 
@@ -323,10 +334,11 @@ Custom values for variable substitutions can be set using `kustomize_substitutio
 
 ```yaml
 kustomize_substitutions:
-  NAMESPACE: default
-  KUBERNETES_VERSION: v1.26.0
-  CONTROL_PLANE_MACHINE_COUNT: 1
-  WORKER_MACHINE_COUNT: 3
+  NAMESPACE: "default"
+  KUBERNETES_VERSION: "v1.30.0"
+  CONTROL_PLANE_MACHINE_COUNT: "1"
+  WORKER_MACHINE_COUNT: "3"
+# Note: kustomize substitutions expects the values to be strings. This can be achieved by wrapping the values in quotation marks.
 ```
 
 ### Cleaning up your kind cluster and development environment
@@ -363,6 +375,7 @@ The following providers are currently defined in the Tiltfile:
 * **kubeadm-bootstrap**: kubeadm bootstrap provider
 * **kubeadm-control-plane**: kubeadm control-plane provider
 * **docker**: Docker infrastructure provider
+* **in-memory**: In-memory infrastructure provider
 * **test-extension**: Runtime extension used by CAPI E2E tests
 
 Additional providers can be added by following the procedure described in following paragraphs:
@@ -414,7 +427,13 @@ COPY --from=tilt-helper /usr/bin/docker /usr/bin/docker
 COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
 ```
 
-**kustomize_config** (Bool, default=true): Whether or not running kustomize on the ./config folder of the provider.
+**kustomize_folder** (String, default=config/default): The folder where the kustomize file for a provider
+is defined; the path is relative to the provider root folder.
+
+**kustomize_options** ([]String, default=[]): Options to be applied when running kustomize for generating the
+yaml manifest for a provider. e.g. `"kustomize_options": [ "--load-restrictor=LoadRestrictionsNone" ]`
+
+**apply_provider_yaml** (Bool, default=true): Whether to apply the provider yaml.
 Set to `false` if your provider does not have a ./config folder or you do not want it to be applied in the cluster.
 
 **go_main** (String, default="main.go"): The go main file if not located at the root of the folder
@@ -477,8 +496,70 @@ syntax highlighting and auto-formatting. To enable it for Tiltfile a file associ
 
 [Podman](https://podman.io) can be used instead of Docker by following these actions:
 
-1. Enable the podman unix socket (eg. `systemctl --user enable --now podman.socket` on Fedora)
+1. Enable the podman unix socket:
+   - on Linux/systemd: `systemctl --user enable --now podman.socket`
+   - on macOS: create a podman machine with `podman machine init`
 1. Set `build_engine` to `podman` in `tilt-settings.yaml` (optional, only if both Docker & podman are installed)
-1. Define the env variable `DOCKER_HOST` to the right socket while running tilt (eg. `DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock tilt up`)
+1. Define the env variable `DOCKER_HOST` to the right socket:
+   - on Linux/systemd: `export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock`
+   - on macOS: `export DOCKER_HOST=$(podman machine inspect <machine> | jq -r '.[0].ConnectionInfo.PodmanSocket.Path')` where `<machine>` is the podman machine name
+1. Run `tilt up`
 
-NB: The socket defined by `DOCKER_HOST` is used only for the `hack/tools/tilt-prepare` command, the image build is running the `podman build`/`podman push` commands.
+NB: The socket defined by `DOCKER_HOST` is used only for the `hack/tools/internal/tilt-prepare` command, the image build is running the `podman build`/`podman push` commands.
+
+## Troubleshooting Tilt
+
+### Tilt is stuck
+
+Sometimes tilt looks stuck when it's waiting on connections.
+
+Ensure that docker/podman is up and running and your kubernetes cluster is reachable.
+
+### Errors running tilt-prepare
+
+#### `failed to get current context from the KubeConfig file`
+
+- Ensure the cluster in the default context is reachable by running `kubectl cluster-info`
+- Switch to the right context with `kubectl config use-context`
+- Ensure the context is allowed, see [**allowed_contexts** field](#tilt-settings-fields)
+
+#### `Cannot connect to the Docker daemon`
+
+- Ensure the docker daemon is running ;) or for podman see [Using Podman](#using-podman)
+- If a DOCKER_HOST is specified:
+  - check that the DOCKER_HOST has the correct prefix (usually `unix://`)
+  - ensure docker/podman is listening on $DOCKER_HOST using `fuser` / `lsof` / `netstat -u`
+
+### Errors pulling/pushing to the registry
+
+#### `connection refused` / `denied` / `not found`
+
+Ensure the [**default_registry** field](#tilt-settings-fields) is a valid registry where you can pull and push images.
+
+#### `server gave HTTP response to HTTPS client`
+
+By default all registries except localhost:5000 are accessed via HTTPS.
+
+If you run a HTTP registry you may have to configure the registry in docker/podman.
+
+For example, in podman a `localhost:5001` registry configuration should be declared in `/etc/containers/registries.conf.d` with this content:
+````
+[[registry]]
+location = "localhost:5001"
+insecure = true
+````
+
+NB: on macOS this configuration should be done **in the podman machine** by running `podman machine ssh <machine>`.
+
+### Errors loading images in kind
+
+You may try manually to load images in kind by running:
+````
+kind load docker-image --name=<kind_cluster> <image>
+````
+
+#### `image: "..." not present locally`
+
+If you are running podman, you may have hit this bug: https://github.com/kubernetes-sigs/kind/issues/2760
+
+The workaround is to create a `docker` symlink to your `podman` executable and try to load the images again.

@@ -19,7 +19,6 @@ package clusterclass
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -28,11 +27,15 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -46,7 +49,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	timeout := 30 * time.Second
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-reconciler")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	clusterClassName := "class1"
 	workerClassName1 := "linux-worker-1"
@@ -61,6 +64,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	// InfraMachineTemplates for the workers and the control plane.
 	infraMachineTemplateControlPlane := builder.InfrastructureMachineTemplate(ns.Name, "inframachinetemplate-control-plane").Build()
 	infraMachineTemplateWorker := builder.InfrastructureMachineTemplate(ns.Name, "inframachinetemplate-worker").Build()
+	infraMachinePoolTemplateWorker := builder.InfrastructureMachinePoolTemplate(ns.Name, "inframachinepooltemplate-worker").Build()
 
 	// Control plane template.
 	controlPlaneTemplate := builder.ControlPlaneTemplate(ns.Name, "controlplanetemplate").Build()
@@ -78,12 +82,23 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 		WithInfrastructureTemplate(infraMachineTemplateWorker).
 		Build()
 
+	// MachinePoolClasses that will be part of the ClusterClass.
+	machinePoolClass1 := builder.MachinePoolClass(workerClassName1).
+		WithBootstrapTemplate(bootstrapTemplate).
+		WithInfrastructureTemplate(infraMachinePoolTemplateWorker).
+		Build()
+	machinePoolClass2 := builder.MachinePoolClass(workerClassName2).
+		WithBootstrapTemplate(bootstrapTemplate).
+		WithInfrastructureTemplate(infraMachinePoolTemplateWorker).
+		Build()
+
 	// ClusterClass.
 	clusterClass := builder.ClusterClass(ns.Name, clusterClassName).
 		WithInfrastructureClusterTemplate(infraClusterTemplate).
 		WithControlPlaneTemplate(controlPlaneTemplate).
 		WithControlPlaneInfrastructureMachineTemplate(infraMachineTemplateControlPlane).
 		WithWorkerMachineDeploymentClasses(*machineDeploymentClass1, *machineDeploymentClass2).
+		WithWorkerMachinePoolClasses(*machinePoolClass1, *machinePoolClass2).
 		WithVariables(
 			clusterv1.ClusterClassVariable{
 				Name:     "hdd",
@@ -101,6 +116,14 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 						Type: "integer",
 					},
 				},
+				Metadata: clusterv1.ClusterClassVariableMetadata{
+					Labels: map[string]string{
+						"some-label": "some-label-value",
+					},
+					Annotations: map[string]string{
+						"some-annotation": "some-annotation-value",
+					},
+				},
 			}).
 		Build()
 
@@ -108,6 +131,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	initObjs := []client.Object{
 		bootstrapTemplate,
 		infraMachineTemplateWorker,
+		infraMachinePoolTemplateWorker,
 		infraMachineTemplateControlPlane,
 		controlPlaneTemplate,
 		infraClusterTemplate,
@@ -115,7 +139,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	}
 
 	for _, obj := range initObjs {
-		g.Expect(env.Create(ctx, obj)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, obj)).To(Succeed())
 	}
 	defer func() {
 		for _, obj := range initObjs {
@@ -132,6 +156,8 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 		g.Expect(assertControlPlaneTemplate(ctx, actualClusterClass, ns)).Should(Succeed())
 
 		g.Expect(assertMachineDeploymentClasses(ctx, actualClusterClass, ns)).Should(Succeed())
+
+		g.Expect(assertMachinePoolClasses(ctx, actualClusterClass, ns)).Should(Succeed())
 
 		g.Expect(assertStatusVariables(actualClusterClass)).Should(Succeed())
 		return nil
@@ -161,8 +187,11 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 			if specVar.Required != statusVarDefinition.Required {
 				return errors.Errorf("ClusterClass status variable %s required field does not match. Expecte %v. Got %v", specVar.Name, statusVarDefinition.Required, statusVarDefinition.Required)
 			}
-			if !reflect.DeepEqual(specVar.Schema, statusVarDefinition.Schema) {
+			if !cmp.Equal(specVar.Schema, statusVarDefinition.Schema) {
 				return errors.Errorf("ClusterClass status variable %s schema does not match. Expected %v. Got %v", specVar.Name, specVar.Schema, statusVarDefinition.Schema)
+			}
+			if !cmp.Equal(specVar.Metadata, statusVarDefinition.Metadata) {
+				return errors.Errorf("ClusterClass status variable %s metadata does not match. Expected %v. Got %v", specVar.Name, specVar.Metadata, statusVarDefinition.Metadata)
 			}
 		}
 		if !found {
@@ -181,7 +210,7 @@ func assertInfrastructureClusterTemplate(ctx context.Context, actualClusterClass
 	if err := env.Get(ctx, actualInfraClusterTemplateKey, actualInfraClusterTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfraClusterTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualInfraClusterTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 
@@ -201,7 +230,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 	if err := env.Get(ctx, actualControlPlaneTemplateKey, actualControlPlaneTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualControlPlaneTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualControlPlaneTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 
@@ -222,7 +251,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 		if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 			return err
 		}
-		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 			return err
 		}
 
@@ -256,7 +285,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 
@@ -276,12 +305,61 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
 		return err
 	}
 
 	// Assert the MachineDeploymentClass has the expected APIVersion and Kind to the bootstrap template
 	return referenceExistsWithCorrectKindAndAPIVersion(mdClass.Template.Bootstrap.Ref,
+		builder.GenericBootstrapConfigTemplateKind,
+		builder.BootstrapGroupVersion)
+}
+
+func assertMachinePoolClasses(ctx context.Context, actualClusterClass *clusterv1.ClusterClass, ns *corev1.Namespace) error {
+	for _, mpClass := range actualClusterClass.Spec.Workers.MachinePools {
+		if err := assertMachinePoolClass(ctx, actualClusterClass, mpClass, ns); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func assertMachinePoolClass(ctx context.Context, actualClusterClass *clusterv1.ClusterClass, mpClass clusterv1.MachinePoolClass, ns *corev1.Namespace) error {
+	// Assert the infrastructure machinepool template in the MachinePoolClass has an owner reference to the ClusterClass.
+	actualInfrastructureMachinePoolTemplate := builder.InfrastructureMachinePoolTemplate("", "").Build()
+	actualInfrastructureMachinePoolTemplateKey := client.ObjectKey{
+		Namespace: ns.Name,
+		Name:      mpClass.Template.Infrastructure.Ref.Name,
+	}
+	if err := env.Get(ctx, actualInfrastructureMachinePoolTemplateKey, actualInfrastructureMachinePoolTemplate); err != nil {
+		return err
+	}
+	if err := assertHasOwnerReference(actualInfrastructureMachinePoolTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+		return err
+	}
+
+	// Assert the MachinePoolClass has the expected APIVersion and Kind to the infrastructure machinepool template
+	if err := referenceExistsWithCorrectKindAndAPIVersion(mpClass.Template.Infrastructure.Ref,
+		builder.GenericInfrastructureMachinePoolTemplateKind,
+		builder.InfrastructureGroupVersion); err != nil {
+		return err
+	}
+
+	// Assert the bootstrap template in the MachinePoolClass has an owner reference to the ClusterClass.
+	actualBootstrapTemplate := builder.BootstrapTemplate("", "").Build()
+	actualBootstrapTemplateKey := client.ObjectKey{
+		Namespace: ns.Name,
+		Name:      mpClass.Template.Bootstrap.Ref.Name,
+	}
+	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
+		return err
+	}
+	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass, clusterv1.GroupVersion.WithKind("ClusterClass"))); err != nil {
+		return err
+	}
+
+	// Assert the MachinePoolClass has the expected APIVersion and Kind to the bootstrap template
+	return referenceExistsWithCorrectKindAndAPIVersion(mpClass.Template.Bootstrap.Ref,
 		builder.GenericBootstrapConfigTemplateKind,
 		builder.BootstrapGroupVersion)
 }
@@ -319,7 +397,6 @@ func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {
 func TestReconciler_reconcileVariables(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
 
-	g := NewWithT(t)
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
 
@@ -331,6 +408,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "integer",
+						},
+					},
+					Metadata: clusterv1.ClusterClassVariableMetadata{
+						Labels: map[string]string{
+							"some-label": "some-label-value",
+						},
+						Annotations: map[string]string{
+							"some-annotation": "some-annotation-value",
 						},
 					},
 				},
@@ -365,6 +450,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									Type: "integer",
 								},
 							},
+							Metadata: clusterv1.ClusterClassVariableMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
+								},
+							},
 						},
 					},
 				},
@@ -390,7 +483,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: pointer.String("variables-one"),
+							DiscoverVariablesExtension: ptr.To("variables-one"),
 						}}}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
@@ -421,6 +514,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 								Type: "string",
 							},
 						},
+						Metadata: clusterv1.ClusterClassVariableMetadata{
+							Labels: map[string]string{
+								"some-label": "some-label-value",
+							},
+							Annotations: map[string]string{
+								"some-annotation": "some-annotation-value",
+							},
+						},
 					},
 				},
 			},
@@ -434,6 +535,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
+								},
+							},
+							Metadata: clusterv1.ClusterClassVariableMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
 								},
 							},
 						},
@@ -456,6 +565,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
+								},
+							},
+							Metadata: clusterv1.ClusterClassVariableMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
 								},
 							},
 						},
@@ -493,7 +610,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					{
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
-							DiscoverVariablesExtension: pointer.String("variables-one"),
+							DiscoverVariablesExtension: ptr.To("variables-one"),
 						}}}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
@@ -523,6 +640,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
 				WithCallExtensionResponses(
 					map[string]runtimehooksv1.ResponseObject{
@@ -540,8 +658,76 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(tt.clusterClass.Status.Variables).To(Equal(tt.want), cmp.Diff(tt.clusterClass.Status.Variables, tt.want))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(tt.clusterClass.Status.Variables).To(BeComparableTo(tt.want), cmp.Diff(tt.clusterClass.Status.Variables, tt.want))
 		})
 	}
+}
+
+func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
+	firstExtConfig := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "runtime1",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ExtensionConfig",
+			APIVersion: runtimev1.GroupVersion.String(),
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			NamespaceSelector: &metav1.LabelSelector{},
+		},
+	}
+	secondExtConfig := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "runtime2",
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ExtensionConfig",
+			APIVersion: runtimev1.GroupVersion.String(),
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			NamespaceSelector: &metav1.LabelSelector{},
+		},
+	}
+
+	// These ClusterClasses will be reconciled as they both reference the passed ExtensionConfig `runtime1`.
+	onePatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc1").
+		WithPatches([]clusterv1.ClusterClassPatch{
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime1")}}}).
+		Build()
+	twoPatchClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc2").
+		WithPatches([]clusterv1.ClusterClassPatch{
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime1")}},
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.runtime2")}}}).
+		Build()
+
+	// This ClusterClasses will not be reconciled as it does not reference the passed ExtensionConfig `runtime1`.
+	notReconciledClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "cc3").
+		WithPatches([]clusterv1.ClusterClassPatch{
+			{External: &clusterv1.ExternalPatchDefinition{DiscoverVariablesExtension: ptr.To("discover-variables.other-runtime-class")}}}).
+		Build()
+
+	t.Run("test", func(t *testing.T) {
+		fakeClient := fake.NewClientBuilder().WithObjects(onePatchClusterClass, notReconciledClusterClass, twoPatchClusterClass).Build()
+		r := &Reconciler{
+			Client: fakeClient,
+		}
+
+		// Expect both onePatchClusterClass and twoPatchClusterClass to trigger a reconcile as both reference ExtensionCopnfig `runtime1`.
+		firstExtConfigExpected := []reconcile.Request{
+			{NamespacedName: types.NamespacedName{Namespace: onePatchClusterClass.Namespace, Name: onePatchClusterClass.Name}},
+			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
+		}
+		if got := r.extensionConfigToClusterClass(context.Background(), firstExtConfig); !cmp.Equal(got, firstExtConfigExpected) {
+			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, firstExtConfigExpected)
+		}
+
+		// Expect only twoPatchClusterClass to trigger a reconcile as it's the only class with a reference to ExtensionCopnfig `runtime2`.
+		secondExtConfigExpected := []reconcile.Request{
+			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
+		}
+		if got := r.extensionConfigToClusterClass(context.Background(), secondExtConfig); !cmp.Equal(got, secondExtConfigExpected) {
+			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, secondExtConfigExpected)
+		}
+	})
 }

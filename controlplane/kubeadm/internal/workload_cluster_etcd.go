@@ -19,7 +19,7 @@ package internal
 import (
 	"context"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -92,23 +92,22 @@ loopmembers:
 	return removedMembers, errs
 }
 
-// UpdateEtcdVersionInKubeadmConfigMap sets the imageRepository or the imageTag or both in the kubeadm config map.
-func (w *Workload) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string, version semver.Version) error {
-	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
+// UpdateEtcdLocalInKubeadmConfigMap sets etcd local configuration in the kubeadm config map.
+func (w *Workload) UpdateEtcdLocalInKubeadmConfigMap(etcdLocal *bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
 		if c.Etcd.Local != nil {
-			c.Etcd.Local.ImageRepository = imageRepository
-			c.Etcd.Local.ImageTag = imageTag
+			c.Etcd.Local = etcdLocal
 		}
-	}, version)
+	}
 }
 
-// UpdateEtcdExtraArgsInKubeadmConfigMap sets extraArgs in the kubeadm config map.
-func (w *Workload) UpdateEtcdExtraArgsInKubeadmConfigMap(ctx context.Context, extraArgs map[string]string, version semver.Version) error {
-	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
-		if c.Etcd.Local != nil {
-			c.Etcd.Local.ExtraArgs = extraArgs
+// UpdateEtcdExternalInKubeadmConfigMap sets etcd external configuration in the kubeadm config map.
+func (w *Workload) UpdateEtcdExternalInKubeadmConfigMap(etcdExternal *bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
+		if c.Etcd.External != nil {
+			c.Etcd.External = etcdExternal
 		}
-	}, version)
+	}
 }
 
 // RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.

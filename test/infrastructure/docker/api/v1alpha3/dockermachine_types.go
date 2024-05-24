@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha3"
 )
 
 const (
@@ -93,6 +93,8 @@ type DockerMachineStatus struct {
 
 // +kubebuilder:resource:path=dockermachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:subresource:status
 
 // DockerMachine is the Schema for the dockermachines API.
@@ -128,5 +130,5 @@ type DockerMachineList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerMachine{}, &DockerMachineList{})
+	objectTypes = append(objectTypes, &DockerMachine{}, &DockerMachineList{})
 }

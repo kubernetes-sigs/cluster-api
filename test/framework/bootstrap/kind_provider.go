@@ -37,7 +37,7 @@ const (
 	DefaultNodeImageRepository = "kindest/node"
 
 	// DefaultNodeImageVersion is the default Kubernetes version to be used for creating a kind cluster.
-	DefaultNodeImageVersion = "v1.26.0"
+	DefaultNodeImageVersion = "v1.30.0@sha256:047357ac0cfea04663786a612ba1eaba9702bef25227a794b52890dd8bcd692e"
 )
 
 // KindClusterOption is a NewKindClusterProvider option.
@@ -74,6 +74,21 @@ func WithIPv6Family() KindClusterOption {
 	})
 }
 
+// WithDualStackFamily implements a New Option that instruct the kindClusterProvider to set the IPFamily to dual in
+// the new kind cluster.
+func WithDualStackFamily() KindClusterOption {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
+		k.ipFamily = clusterv1.DualStackIPFamily
+	})
+}
+
+// WithExtraPortMappings implements a New Option that instruct the kindClusterProvider to set extra port forward mappings.
+func WithExtraPortMappings(mappings []kindv1.PortMapping) KindClusterOption {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
+		k.extraPortMappings = mappings
+	})
+}
+
 // LogFolder implements a New Option that instruct the kindClusterProvider to dump bootstrap logs in a folder in case of errors.
 func LogFolder(path string) KindClusterOption {
 	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
@@ -96,12 +111,13 @@ func NewKindClusterProvider(name string, options ...KindClusterOption) *KindClus
 
 // KindClusterProvider implements a ClusterProvider that can create a kind cluster.
 type KindClusterProvider struct {
-	name           string
-	withDockerSock bool
-	kubeconfigPath string
-	nodeImage      string
-	ipFamily       clusterv1.ClusterIPFamily
-	logFolder      string
+	name              string
+	withDockerSock    bool
+	kubeconfigPath    string
+	nodeImage         string
+	ipFamily          clusterv1.ClusterIPFamily
+	logFolder         string
+	extraPortMappings []kindv1.PortMapping
 }
 
 // Create a Kubernetes cluster using kind.
@@ -131,10 +147,18 @@ func (k *KindClusterProvider) createKindCluster() {
 			APIVersion: "kind.x-k8s.io/v1alpha4",
 			Kind:       "Cluster",
 		},
+		Nodes: []kindv1.Node{
+			{
+				ExtraPortMappings: k.extraPortMappings,
+			},
+		},
 	}
 
 	if k.ipFamily == clusterv1.IPv6IPFamily {
 		cfg.Networking.IPFamily = kindv1.IPv6Family
+	}
+	if k.ipFamily == clusterv1.DualStackIPFamily {
+		cfg.Networking.IPFamily = kindv1.DualStackFamily
 	}
 	kindv1.SetDefaultsCluster(cfg)
 

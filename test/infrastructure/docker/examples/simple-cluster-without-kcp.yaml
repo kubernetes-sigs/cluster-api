@@ -32,7 +32,7 @@ metadata:
   name: controlplane-0
   namespace: default
 spec:
-  version: v1.26.0
+  version: v1.30.0
   clusterName: my-cluster
   bootstrap:
     configRef:
@@ -52,10 +52,6 @@ metadata:
   name: controlplane-0-config
   namespace: default
 spec:
-  clusterConfiguration:
-    controllerManager:
-      extraArgs:
-        enable-hostpath-provisioner: "true"
   initConfiguration:
     nodeRegistration:
       kubeletExtraArgs:
@@ -80,7 +76,7 @@ spec:
       cluster.x-k8s.io/cluster-name: my-cluster
   template:
     spec:
-      version: v1.26.0
+      version: v1.30.0
       clusterName: my-cluster
       bootstrap:
         configRef:

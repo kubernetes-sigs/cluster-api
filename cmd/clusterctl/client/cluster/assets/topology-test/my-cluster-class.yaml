@@ -22,6 +22,22 @@ spec:
       kind: DockerClusterTemplate
       name: my-cluster
       namespace: default
+  workers:
+    machinePools:
+    - class: "default-worker"
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: docker-worker-bootstraptemplate
+            namespace: default
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePoolTemplate
+            name: docker-worker-machinepooltemplate
+            namespace: default
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
@@ -50,26 +66,12 @@ spec:
           namespace: default
       kubeadmConfigSpec:
         clusterConfiguration:
-          controllerManager:
-            extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:
             certSANs: [ localhost, 127.0.0.1 ]
         initConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
         joinConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
       version: v1.21.2
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -83,3 +85,26 @@ spec:
       extraMounts:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePoolTemplate
+metadata:
+  name: "docker-worker-machinepooltemplate"
+  namespace: default
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "docker-worker-bootstraptemplate"
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.

@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -62,7 +62,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 				NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
 			},
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
 				Type: controlplanev1.RollingUpdateStrategyType,
 				RollingUpdate: &controlplanev1.RollingUpdate{
@@ -121,7 +121,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 				NTP: &bootstrapv1.NTP{
 					Servers: []string{"test-server-1", "test-server-2"},
-					Enabled: pointer.Bool(true),
+					Enabled: ptr.To(true),
 				},
 			},
 			Version: "v1.16.6",
@@ -136,12 +136,12 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		name              string
 		admissionRequest  admission.Request
 		expectRespAllowed bool
-		expectRespReason  string
+		expectRespMessage string
 	}{
 		{
 			name:              "should return error when trying to scale to zero",
 			expectRespAllowed: false,
-			expectRespReason:  "replicas cannot be 0",
+			expectRespMessage: "replicas cannot be 0",
 			admissionRequest: admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
 				UID:       uuid.NewUUID(),
 				Kind:      metav1.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "Scale"},
@@ -152,7 +152,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		{
 			name:              "should return error when trying to scale to even number of replicas with managed etcd",
 			expectRespAllowed: false,
-			expectRespReason:  "replicas cannot be an even number when etcd is stacked",
+			expectRespMessage: "replicas cannot be an even number when etcd is stacked",
 			admissionRequest: admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
 				UID:       uuid.NewUUID(),
 				Kind:      metav1.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "Scale"},
@@ -163,7 +163,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		{
 			name:              "should allow odd number of replicas with managed etcd",
 			expectRespAllowed: true,
-			expectRespReason:  "",
+			expectRespMessage: "",
 			admissionRequest: admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
 				UID:       uuid.NewUUID(),
 				Kind:      metav1.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "Scale"},
@@ -174,7 +174,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		{
 			name:              "should allow even number of replicas with external etcd",
 			expectRespAllowed: true,
-			expectRespReason:  "",
+			expectRespMessage: "",
 			admissionRequest: admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
 				UID:       uuid.NewUUID(),
 				Kind:      metav1.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "Scale"},
@@ -185,7 +185,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		{
 			name:              "should allow odd number of replicas with external etcd",
 			expectRespAllowed: true,
-			expectRespReason:  "",
+			expectRespMessage: "",
 			admissionRequest: admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{
 				UID:       uuid.NewUUID(),
 				Kind:      metav1.GroupVersionKind{Group: "autoscaling", Version: "v1", Kind: "Scale"},
@@ -198,18 +198,17 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			decoder, _ := admission.NewDecoder(scheme)
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(kcpManagedEtcd, kcpExternalEtcd).Build()
 
 			// Create the webhook and add the fakeClient as its client.
 			scaleHandler := ScaleValidator{
 				Client:  fakeClient,
-				decoder: decoder,
+				decoder: admission.NewDecoder(scheme),
 			}
 
 			resp := scaleHandler.Handle(context.Background(), tt.admissionRequest)
 			g.Expect(resp.Allowed).Should(Equal(tt.expectRespAllowed))
-			g.Expect(string(resp.Result.Reason)).Should(Equal(tt.expectRespReason))
+			g.Expect(resp.Result.Message).Should(Equal(tt.expectRespMessage))
 		})
 	}
 }

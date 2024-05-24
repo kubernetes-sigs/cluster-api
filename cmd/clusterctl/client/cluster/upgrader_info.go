@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -46,19 +47,19 @@ type upgradeInfo struct {
 
 // getUpgradeInfo returns all the info required for taking upgrade decisions for a provider.
 // NOTE: This could contain also versions for the previous or next Cluster API contract (not supported in current clusterctl release, but upgrade plan should report this options).
-func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgradeInfo, error) {
+func (u *providerUpgrader) getUpgradeInfo(ctx context.Context, provider clusterctlv1.Provider) (*upgradeInfo, error) {
 	// Gets the list of versions available in the provider repository.
 	configRepository, err := u.configClient.Providers().Get(provider.ProviderName, provider.GetProviderType())
 	if err != nil {
 		return nil, err
 	}
 
-	providerRepository, err := u.repositoryClientFactory(configRepository, u.configClient)
+	providerRepository, err := u.repositoryClientFactory(ctx, configRepository, u.configClient)
 	if err != nil {
 		return nil, err
 	}
 
-	repositoryVersions, err := providerRepository.GetVersions()
+	repositoryVersions, err := providerRepository.GetVersions(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +81,7 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 		}
 	}
 
-	latestMetadata, err := providerRepository.Metadata(versionTag(latestVersion)).Get()
+	latestMetadata, err := providerRepository.Metadata(versionTag(latestVersion)).Get(ctx)
 	if err != nil {
 		return nil, err
 	}

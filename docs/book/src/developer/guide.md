@@ -81,7 +81,7 @@ The generated binary can be found at ./hack/tools/bin/envsubst
 You'll need to deploy [cert-manager] components on your [management cluster][mcluster], using `kubectl`
 
 ```bash
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.11.0/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml
 ```
 
 Ensure the cert-manager webhook service is ready before creating the Cluster API components.
@@ -114,8 +114,8 @@ make docker-push
 
 # Apply the manifests
 kustomize build config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build bootstrap/kubeadm/config | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build controlplane/kubeadm/config | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build bootstrap/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build controlplane/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
 kustomize build test/infrastructure/docker/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
 ```
 
@@ -146,6 +146,16 @@ To test another iteration, you'll need to follow the steps to build, push, updat
 
 **Additional ClusterAPI KubeCon talks**
 
+* [SIG Cluster Lifecycle Intro & Future - November 2023](https://www.youtube.com/watch?v=MM0YPhIel2M)
+* [Cluster API Deep Dive: Improving Performance up to 2k Clusters - November 2023](https://www.youtube.com/watch?v=bRPfmviTi3s)
+* [Leveraging Cluster-API for Production-Ready Multi-Regional Infrastructures - November 2023](https://www.youtube.com/watch?v=BDjhGEVJ0Gs)
+* [The Stars Look Very Different Today”: Kubernetes and Cloud Native at the SKA Observatory - November 2023](https://www.youtube.com/watch?v=quW8FbW1fVM)
+* [15,000 Minecraft Players Vs One K8s Cluster. Who Wins? - November 2023](https://www.youtube.com/watch?v=4YNp2vb9NTA)
+* [Cluster API Providers: Intro, Deep Dive, and Community! - April 2023](https://www.youtube.com/watch?v=QA4OhqLKJn4)
+* [Ephemeral Clusters as a Service with ClusterAPI and GitOps - April 2023](https://www.youtube.com/watch?v=cXIo8C7yWvg)
+* [The Power of Self-Managing Clusters - April 2023](https://www.youtube.com/watch?v=tNUH_8MFyTc)
+* [How to Turn Release Management from Duty to Fun - April 2023](https://www.youtube.com/watch?v=sgP3tyGJ5tQ)
+* [Tilt Your World! Lessons Learned in Improving Dev Productivity with Tilt - April 2023](https://www.youtube.com/watch?v=h6llT5Bg97g)
 * [How Adobe Planned For Scale With Argo CD, Cluster API, And VCluster - October 2022](https://www.youtube.com/watch?v=p8BluR5WT5w)
 * [Bare-Metal Chronicles: Intertwinement Of Tinkerbell, Cluster API And GitOps - October 2022](https://www.youtube.com/watch?v=NCFUUjTw6hA)
 * [Running Isolated VirtualClusters With Kata & Cluster API - October 2022](https://www.youtube.com/watch?v=T6w3YrExorY)
@@ -169,8 +179,8 @@ To test another iteration, you'll need to follow the steps to build, push, updat
 
 **Let's chat about ...**
 
-We are currently hosting "Let's chat about ..." sessions where we are talking about topics relevant to 
-contributors and users of the Cluster API project. For more details and an up-to-date list of recordings of past sessions please 
+We are currently hosting "Let's chat about ..." sessions where we are talking about topics relevant to
+contributors and users of the Cluster API project. For more details and an up-to-date list of recordings of past sessions please
 see [Let's chat about ...](https://github.com/kubernetes-sigs/cluster-api/discussions/6106).
 
 * [Local CAPI development and debugging with Tilt (EMEA/Americas) - February 2022](https://www.youtube.com/watch?v=tEIRGmJahWs)

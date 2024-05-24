@@ -115,6 +115,12 @@ This hook is called after the Cluster object has been updated with a new `spec.t
 immediately before the new version is going to be propagated to the control plane (*). Runtime Extension implementers 
 can use this hook to execute pre-upgrade add-on tasks and block upgrades of the ControlPlane and Workers.
 
+Note: While the upgrade is blocked changes made to the Cluster Topology will be delayed propagating to the underlying
+objects while the object is waiting for upgrade. Example: modifying ControlPlane/MachineDeployments (think scale up),
+or creating new MachineDeployments will be delayed until the target ControlPlane/MachineDeployment is ready to pick up the upgrade. 
+This ensures that the ControlPlane and MachineDeployments do not perform a rollout prematurely while waiting to be rolled out again for the version upgrade (no double rollouts).
+This also ensures that any version specific changes are only pushed to the underlying objects also at the correct version.
+
 #### Example Request:
 
 ```yaml
@@ -157,6 +163,12 @@ This hook is called after the control plane has been upgraded to the version spe
 and immediately before the new version is going to be propagated to the MachineDeployments of the Cluster. 
 Runtime Extension implementers can use this hook to execute post-upgrade add-on tasks and block upgrades to workers
 until everything is ready.
+
+Note: While the MachineDeployments upgrade is blocked changes made to existing MachineDeployments and creating new MachineDeployments
+will be delayed while the object is waiting for upgrade. Example: modifying MachineDeployments (think scale up),
+or creating new MachineDeployments will be delayed until the target MachineDeployment is ready to pick up the upgrade.
+This ensures that the MachineDeployments do not perform a rollout prematurely while waiting to be rolled out again for the version upgrade (no double rollouts).
+This also ensures that any version specific changes are only pushed to the underlying objects also at the correct version.
 
 #### Example Request:
 

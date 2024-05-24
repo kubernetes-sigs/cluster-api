@@ -1,0 +1,32 @@
+name: Weekly security scan
+
+on:
+  schedule:
+    # Cron for every Monday at 12:00 UTC.
+    - cron: "0 12 * * 1"
+
+# Remove all permissions from GITHUB_TOKEN except metadata.
+permissions: {}
+
+jobs:
+  scan:
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [ main, release-1.7, release-1.6 ]
+    name: Trivy
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # tag=v4.1.6
+      with:
+        ref: ${{ matrix.branch }}
+    - name: Calculate go version
+      id: vars
+      run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
+    - name: Set up Go
+      uses: actions/setup-go@cdcb36043654635271a94b9a6d1392de5bb323a7 # tag=v5.0.1
+      with:
+        go-version: ${{ steps.vars.outputs.go_version }}
+    - name: Run verify security target
+      run: make verify-security

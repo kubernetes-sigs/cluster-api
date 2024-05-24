@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -71,7 +71,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 						Name:       "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("data-secret-name"),
+						DataSecretName: ptr.To("data-secret-name"),
 					},
 				},
 			},
@@ -150,7 +150,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 										Name:       "md-template-rollback",
 									},
 									Bootstrap: clusterv1.Bootstrap{
-										DataSecretName: pointer.String("data-secret-name-rollback"),
+										DataSecretName: ptr.To("data-secret-name-rollback"),
 									},
 								},
 							},
@@ -241,13 +241,13 @@ func Test_ObjectRollbacker(t *testing.T) {
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			err := r.ObjectRollbacker(proxy, tt.fields.ref, tt.fields.toRevision)
+			err := r.ObjectRollbacker(context.Background(), proxy, tt.fields.ref, tt.fields.toRevision)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			cl, err := proxy.NewClient()
+			cl, err := proxy.NewClient(context.Background())
 			g.Expect(err).ToNot(HaveOccurred())
 			key := client.ObjectKeyFromObject(deployment)
 			md := &clusterv1.MachineDeployment{}

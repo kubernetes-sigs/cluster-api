@@ -48,18 +48,21 @@ func CustomDefaultValidateTest(ctx context.Context, obj runtime.Object, webhook 
 		t.Run("validate-on-create", func(t *testing.T) {
 			g := gomega.NewWithT(t)
 			g.Expect(webhook.Default(ctx, createCopy)).To(gomega.Succeed())
-			g.Expect(webhook.ValidateCreate(ctx, createCopy)).To(gomega.Succeed())
+			_, err := webhook.ValidateCreate(ctx, createCopy)
+			g.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 		t.Run("validate-on-update", func(t *testing.T) {
 			g := gomega.NewWithT(t)
 			g.Expect(webhook.Default(ctx, defaultingUpdateCopy)).To(gomega.Succeed())
 			g.Expect(webhook.Default(ctx, updateCopy)).To(gomega.Succeed())
-			g.Expect(webhook.ValidateUpdate(ctx, createCopy, defaultingUpdateCopy)).To(gomega.Succeed())
+			_, err := webhook.ValidateUpdate(ctx, createCopy, defaultingUpdateCopy)
+			g.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 		t.Run("validate-on-delete", func(t *testing.T) {
 			g := gomega.NewWithT(t)
 			g.Expect(webhook.Default(ctx, deleteCopy)).To(gomega.Succeed())
-			g.Expect(webhook.ValidateDelete(ctx, deleteCopy)).To(gomega.Succeed())
+			_, err := webhook.ValidateDelete(ctx, deleteCopy)
+			g.Expect(err).ToNot(gomega.HaveOccurred())
 		})
 	}
 }

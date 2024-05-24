@@ -95,7 +95,7 @@ func TestClusterIPFamily(t *testing.T) {
 			g := NewWithT(t)
 			ipFamily, err := tt.c.GetIPFamily()
 			g.Expect(ipFamily).To(Equal(tt.expectRes))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 
@@ -129,7 +129,7 @@ func TestClusterIPFamily(t *testing.T) {
 			g := NewWithT(t)
 			ipFamily, err := tt.c.GetIPFamily()
 			g.Expect(ipFamily).To(Equal(tt.expectRes))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 

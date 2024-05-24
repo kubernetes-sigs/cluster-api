@@ -181,8 +181,8 @@ func (s *semaphore) setMetadata(cluster *clusterv1.Cluster) {
 		},
 		OwnerReferences: []metav1.OwnerReference{
 			{
-				APIVersion: cluster.APIVersion,
-				Kind:       cluster.Kind,
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
 				Name:       cluster.Name,
 				UID:        cluster.UID,
 			},

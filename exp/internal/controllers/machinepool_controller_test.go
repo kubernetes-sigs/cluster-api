@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -52,7 +52,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -71,7 +71,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			Finalizers: []string{"some-other-finalizer"},
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -147,7 +147,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas:    pointer.Int32(1),
+			Replicas:    ptr.To[int32](1),
 			ClusterName: "invalid",
 		},
 	}
@@ -158,7 +158,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -179,7 +179,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			},
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -223,7 +223,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				machinePoolInvalidCluster,
 				machinePoolValidCluster,
 				machinePoolValidMachinePool,
-			).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 			mr := &MachinePoolReconciler{
 				Client:    fakeClient,
 				APIReader: fakeClient,
@@ -234,8 +234,8 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 
 			// this first requeue is to add finalizer
 			result, err := mr.Reconcile(ctx, tc.request)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(result).To(Equal(ctrl.Result{}))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 			g.Expect(actual.Finalizers).To(ContainElement(expv1.MachinePoolFinalizer))
 
@@ -243,7 +243,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 
 			if len(tc.expectedOR) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
-				g.Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
+				g.Expect(actual.OwnerReferences).To(BeComparableTo(tc.expectedOR))
 			} else {
 				g.Expect(actual.OwnerReferences).To(BeEmpty())
 			}
@@ -313,7 +313,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Spec: expv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
 					ProviderIDList: []string{"test://id-1"},
-					Replicas:       pointer.Int32(1),
+					Replicas:       ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 
@@ -322,7 +322,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
 					},
 				},
@@ -350,7 +350,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				Spec: expv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
 					ProviderIDList: []string{"test://id-1"},
-					Replicas:       pointer.Int32(1),
+					Replicas:       ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: corev1.ObjectReference{
@@ -358,7 +358,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
 					},
 				},
@@ -389,7 +389,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				},
 				Spec: expv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
-					Replicas:    pointer.Int32(1),
+					Replicas:    ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							InfrastructureRef: corev1.ObjectReference{
@@ -397,7 +397,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
-							Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
 					},
 				},
@@ -409,7 +409,8 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		t.Run("machinePool should be "+tc.machinePool.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -420,7 +421,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				bootstrapConfig,
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachineTemplateCRD,
-			).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
@@ -431,10 +432,10 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
-			g.Expect(result).To(Equal(tc.expected.result))
+			g.Expect(result).To(BeComparableTo(tc.expected.result))
 		})
 	}
 }
@@ -473,7 +474,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
-			Replicas:    pointer.Int32(1),
+			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -552,7 +553,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -576,7 +577,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
-			Replicas:    pointer.Int32(1),
+			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -584,14 +585,14 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 			},
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachinePoolReconciler{
-		Client: fake.NewClientBuilder().WithObjects(testCluster, m).Build(),
+		Client: fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build(),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -653,7 +654,7 @@ func TestMachinePoolConditions(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
-			Replicas:    pointer.Int32(2),
+			Replicas:    ptr.To[int32](2),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -708,7 +709,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "all conditions true",
 			bootstrapReady:      true,
 			infrastructureReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
 				mp.Status = expv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
@@ -733,7 +734,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "boostrap not ready",
 			bootstrapReady:      false,
 			infrastructureReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -774,7 +775,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "infrastructure not ready",
 			bootstrapReady:      true,
 			infrastructureReady: false,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(_, infra *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -816,7 +817,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:           "incorrect infrastructure reference",
 			bootstrapReady: true,
 			expectError:    true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Kind:       builder.TestInfrastructureMachineTemplateKind,
@@ -858,7 +859,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				&nodes.Items[1],
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachineTemplateCRD,
-			).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
@@ -867,12 +868,12 @@ func TestMachinePoolConditions(t *testing.T) {
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})
 			if !tt.expectError {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			m := &expv1.MachinePool{}
 			machinePoolKey := client.ObjectKeyFromObject(machinePool)
-			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).NotTo(HaveOccurred())
+			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).ToNot(HaveOccurred())
 
 			tt.conditionAssertFunc(t, m)
 		})

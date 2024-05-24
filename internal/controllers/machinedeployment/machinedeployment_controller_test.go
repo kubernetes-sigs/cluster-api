@@ -17,6 +17,7 @@ limitations under the License.
 package machinedeployment
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -25,7 +26,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -35,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 const (
@@ -49,7 +52,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, machineDeploymentNamespace)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: "test-cluster"}}
@@ -90,9 +93,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName:          testCluster.Name,
-				MinReadySeconds:      pointer.Int32(0),
-				Replicas:             pointer.Int32(2),
-				RevisionHistoryLimit: pointer.Int32(0),
+				MinReadySeconds:      ptr.To[int32](0),
+				Replicas:             ptr.To[int32](2),
+				RevisionHistoryLimit: ptr.To[int32](0),
 				Selector: metav1.LabelSelector{
 					// We're using the same labels for spec.selector and spec.template.labels.
 					// The labels are later changed and we will use the initial labels later to
@@ -104,7 +107,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 						MaxUnavailable: intOrStrPtr(0),
 						MaxSurge:       intOrStrPtr(1),
-						DeletePolicy:   pointer.String("Oldest"),
+						DeletePolicy:   ptr.To("Oldest"),
 					},
 				},
 				Template: clusterv1.MachineTemplateSpec{
@@ -120,7 +123,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 							Name:       "md-template",
 						},
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.String("data-secret-name"),
+							DataSecretName: ptr.To("data-secret-name"),
 						},
 					},
 				},
@@ -256,7 +259,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		t.Log("Scaling the MachineDeployment to 3 replicas")
 		desiredMachineDeploymentReplicas := int32(3)
 		modifyFunc := func(d *clusterv1.MachineDeployment) {
-			d.Spec.Replicas = pointer.Int32(desiredMachineDeploymentReplicas)
+			d.Spec.Replicas = ptr.To[int32](desiredMachineDeploymentReplicas)
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() int {
@@ -365,7 +368,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// expect the Reconcile to be called and the MachineSet to be updated in-place.
 		t.Log("Updating deletePolicy on the MachineDeployment")
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Strategy.RollingUpdate.DeletePolicy = pointer.String("Newest")
+			d.Spec.Strategy.RollingUpdate.DeletePolicy = ptr.To("Newest")
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func(g Gomega) {
@@ -473,7 +476,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, machineDeploymentNamespace)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: "test-cluster"}}
@@ -514,9 +517,9 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 		Spec: clusterv1.MachineDeploymentSpec{
 			Paused:               true, // Set this to true as we do not want to test the other parts of the reconciler in this test.
 			ClusterName:          testCluster.Name,
-			MinReadySeconds:      pointer.Int32(0),
-			Replicas:             pointer.Int32(2),
-			RevisionHistoryLimit: pointer.Int32(0),
+			MinReadySeconds:      ptr.To[int32](0),
+			Replicas:             ptr.To[int32](2),
+			RevisionHistoryLimit: ptr.To[int32](0),
 			Selector: metav1.LabelSelector{
 				// We're using the same labels for spec.selector and spec.template.labels.
 				MatchLabels: labels,
@@ -526,7 +529,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   pointer.String("Oldest"),
+					DeletePolicy:   ptr.To("Oldest"),
 				},
 			},
 			Template: clusterv1.MachineTemplateSpec{
@@ -542,7 +545,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 						Name:       "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("data-secret-name"),
+						DataSecretName: ptr.To("data-secret-name"),
 					},
 				},
 			},
@@ -595,7 +598,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 		},
 		Spec: clusterv1.MachineSetSpec{
 			ClusterName:     testCluster.Name,
-			Replicas:        pointer.Int32(0),
+			Replicas:        ptr.To[int32](0),
 			MinReadySeconds: 0,
 			Selector: metav1.LabelSelector{
 				MatchLabels: labels,
@@ -612,7 +615,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 						Name:       "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("data-secret-name"),
+						DataSecretName: ptr.To("data-secret-name"),
 					},
 					Version: &version,
 				},
@@ -735,8 +738,8 @@ func TestMachineSetToDeployments(t *testing.T) {
 	}
 
 	for _, tc := range testsCases {
-		got := r.MachineSetToDeployments(tc.mapObject)
-		g.Expect(got).To(Equal(tc.expected))
+		got := r.MachineSetToDeployments(ctx, tc.mapObject)
+		g.Expect(got).To(BeComparableTo(tc.expected))
 	}
 }
 
@@ -799,12 +802,13 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		var got []client.Object
 		for _, x := range r.getMachineDeploymentsForMachineSet(ctx, &tc.machineSet) {
 			got = append(got, x)
 		}
-		g.Expect(got).To(Equal(tc.expected))
+		g.Expect(got).To(BeComparableTo(tc.expected))
 	}
 }
 
@@ -948,7 +952,8 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -958,7 +963,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			}
 
 			got, err := r.getMachineSetsForDeployment(ctx, &tc.machineDeployment)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(HaveLen(len(tc.expected)))
 
 			for idx, res := range got {
@@ -967,4 +972,24 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			}
 		})
 	}
+}
+
+// We have this as standalone variant to be able to use it from the tests.
+func updateMachineDeployment(ctx context.Context, c client.Client, md *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
+	mdObjectKey := util.ObjectKey(md)
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		// Note: We intentionally don't re-use the passed in MachineDeployment md here as that would
+		// overwrite any local changes we might have previously made to the MachineDeployment with the version
+		// we get here from the apiserver.
+		md := &clusterv1.MachineDeployment{}
+		if err := c.Get(ctx, mdObjectKey, md); err != nil {
+			return err
+		}
+		patchHelper, err := patch.NewHelper(md, c)
+		if err != nil {
+			return err
+		}
+		modify(md)
+		return patchHelper.Patch(ctx, md)
+	})
 }

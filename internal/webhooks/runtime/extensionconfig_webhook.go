@@ -27,9 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -64,57 +65,65 @@ func (webhook *ExtensionConfig) Default(_ context.Context, obj runtime.Object) e
 	}
 	if extensionConfig.Spec.ClientConfig.Service != nil {
 		if extensionConfig.Spec.ClientConfig.Service.Port == nil {
-			extensionConfig.Spec.ClientConfig.Service.Port = pointer.Int32(443)
+			extensionConfig.Spec.ClientConfig.Service.Port = ptr.To[int32](443)
 		}
 	}
 	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (webhook *ExtensionConfig) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	extensionConfig, ok := obj.(*runtimev1.ExtensionConfig)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", obj))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", obj))
 	}
 	return webhook.validate(ctx, nil, extensionConfig)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) ValidateUpdate(ctx context.Context, old, updated runtime.Object) error {
+func (webhook *ExtensionConfig) ValidateUpdate(ctx context.Context, old, updated runtime.Object) (admission.Warnings, error) {
 	oldExtensionConfig, ok := old.(*runtimev1.ExtensionConfig)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", old))
 	}
 	newExtensionConfig, ok := updated.(*runtimev1.ExtensionConfig)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", updated))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", updated))
 	}
 	return webhook.validate(ctx, oldExtensionConfig, newExtensionConfig)
 }
 
 // validate validates an ExtensionConfig create or update.
-func (webhook *ExtensionConfig) validate(_ context.Context, _, newExtensionConfig *runtimev1.ExtensionConfig) error {
+func (webhook *ExtensionConfig) validate(_ context.Context, _, newExtensionConfig *runtimev1.ExtensionConfig) (admission.Warnings, error) {
 	// NOTE: ExtensionConfig is behind the RuntimeSDK feature gate flag; the web hook
 	// must prevent creating and updating objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.RuntimeSDK) {
-		return field.Forbidden(
+		return nil, field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the RuntimeSDK feature flag is enabled",
 		)
 	}
 
 	var allErrs field.ErrorList
+
+	// Name should match Kubernetes naming conventions - validated based on DNS1123 label rules.
+	if errStrings := validation.IsDNS1123Label(newExtensionConfig.Name); len(errStrings) > 0 {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("metadata", "name"),
+			newExtensionConfig.Name,
+			fmt.Sprintf("ExtensionConfig name should be a valid DNS1123 label name: %s", errStrings)))
+	}
 	allErrs = append(allErrs, validateExtensionConfigSpec(newExtensionConfig)...)
 
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(runtimev1.GroupVersion.WithKind("ExtensionConfig").GroupKind(), newExtensionConfig.Name, allErrs)
+		return nil, apierrors.NewInvalid(runtimev1.GroupVersion.WithKind("ExtensionConfig").GroupKind(), newExtensionConfig.Name, allErrs)
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) ValidateDelete(_ context.Context, _ runtime.Object) error {
-	return nil
+func (webhook *ExtensionConfig) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
 
 func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {

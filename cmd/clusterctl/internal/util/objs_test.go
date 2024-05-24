@@ -169,7 +169,7 @@ func Test_inspectImages(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -265,10 +265,10 @@ func TestFixImages(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			gotImages, err := InspectImages(got)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gotImages).To(Equal(tt.want))
 		})
 	}

@@ -45,18 +45,24 @@ func DefaultValidateTest(object DefaultingValidator) func(*testing.T) {
 		t.Run("validate-on-create", func(t *testing.T) {
 			g := NewWithT(t)
 			createCopy.Default()
-			g.Expect(createCopy.ValidateCreate()).To(Succeed())
+			warnings, err := createCopy.ValidateCreate()
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		})
 		t.Run("validate-on-update", func(t *testing.T) {
 			g := NewWithT(t)
 			defaultingUpdateCopy.Default()
 			updateCopy.Default()
-			g.Expect(defaultingUpdateCopy.ValidateUpdate(updateCopy)).To(Succeed())
+			warnings, err := defaultingUpdateCopy.ValidateUpdate(updateCopy)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		})
 		t.Run("validate-on-delete", func(t *testing.T) {
 			g := NewWithT(t)
 			deleteCopy.Default()
-			g.Expect(deleteCopy.ValidateDelete()).To(Succeed())
+			warnings, err := deleteCopy.ValidateDelete()
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

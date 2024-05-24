@@ -25,7 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -139,7 +139,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		}, 10*time.Second).Should(BeTrue())
 
 		// Wait until InfraMachine has the ownerReference.
-		g.Eventually(func() bool {
+		g.Eventually(func(g Gomega) bool {
 			if err := env.Get(ctx, client.ObjectKeyFromObject(infraMachine), infraMachine); err != nil {
 				return false
 			}
@@ -213,12 +213,12 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		modifiedMachine := machine.DeepCopy()
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -235,7 +235,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -281,14 +281,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -322,7 +321,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -345,7 +344,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 
@@ -367,14 +366,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -394,10 +392,10 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
-			g.Expect(machine.Status.Addresses).To(HaveLen(0))
+			g.Expect(machine.Status.Addresses).To(BeEmpty())
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -420,7 +418,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 
@@ -442,14 +440,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -471,7 +468,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -494,11 +491,11 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 		// Set Machine ProviderID.
-		machine.Spec.ProviderID = pointer.String(nodeProviderID)
+		machine.Spec.ProviderID = ptr.To(nodeProviderID)
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
@@ -506,15 +503,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
-
-		modifiedMachine := machine.DeepCopy()
-		// Set NodeRef to nil.
-		machine.Status.NodeRef = nil
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
-		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
@@ -535,7 +526,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -558,7 +549,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 
@@ -580,6 +571,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		// Set bootstrap ready.
@@ -604,9 +597,6 @@ func TestReconcileMachinePhases(t *testing.T) {
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		modifiedMachine = machine.DeepCopy()
@@ -628,7 +618,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -725,7 +715,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				"spec":   map[string]interface{}{},
 				"status": map[string]interface{}{},
 			},
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
+			expectResult: ctrl.Result{},
 			expectError:  false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
@@ -791,7 +781,7 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:       "GenericBootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
-						DataSecretName: pointer.String("secret-data"),
+						DataSecretName: ptr.To("secret-data"),
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -846,7 +836,7 @@ func TestReconcileBootstrap(t *testing.T) {
 					BootstrapReady: true,
 				},
 			},
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
+			expectResult: ctrl.Result{},
 			expectError:  false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.GetOwnerReferences()).NotTo(ContainRefOfGroupKind("cluster.x-k8s.io", "MachineSet"))
@@ -910,21 +900,24 @@ func TestReconcileBootstrap(t *testing.T) {
 			}
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
+			c := fake.NewClientBuilder().
+				WithObjects(tc.machine,
+					builder.GenericBootstrapConfigCRD.DeepCopy(),
+					builder.GenericInfrastructureMachineCRD.DeepCopy(),
+					bootstrapConfig,
+				).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().
-					WithObjects(tc.machine,
-						builder.GenericBootstrapConfigCRD.DeepCopy(),
-						builder.GenericInfrastructureMachineCRD.DeepCopy(),
-						bootstrapConfig,
-					).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
-			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machine)
-			g.Expect(res).To(Equal(tc.expectResult))
+			s := &scope{cluster: defaultCluster, machine: tc.machine}
+			res, err := r.reconcileBootstrap(ctx, s)
+			g.Expect(res).To(BeComparableTo(tc.expectResult))
 			if tc.expectError {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			if tc.expected != nil {
@@ -1120,22 +1113,24 @@ func TestReconcileInfrastructure(t *testing.T) {
 			}
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
+			c := fake.NewClientBuilder().
+				WithObjects(tc.machine,
+					builder.GenericBootstrapConfigCRD.DeepCopy(),
+					builder.GenericInfrastructureMachineCRD.DeepCopy(),
+					infraConfig,
+				).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().
-					WithObjects(tc.machine,
-						builder.GenericBootstrapConfigCRD.DeepCopy(),
-						builder.GenericInfrastructureMachineCRD.DeepCopy(),
-						infraConfig,
-					).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
-
-			result, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machine)
+			s := &scope{cluster: defaultCluster, machine: tc.machine}
+			result, err := r.reconcileInfrastructure(ctx, s)
 			r.reconcilePhase(ctx, tc.machine)
-			g.Expect(result).To(Equal(tc.expectResult))
+			g.Expect(result).To(BeComparableTo(tc.expectResult))
 			if tc.expectError {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			if tc.expected != nil {
@@ -1154,41 +1149,46 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 	fakeTime2, _ := time.Parse(time.RFC3339, fakeTimeString2)
 	fakeMetaTime2 := &metav1.Time{Time: fakeTime2}
 
-	bootstrapConfigWithExpiry := map[string]interface{}{
-		"kind":       "GenericBootstrapConfig",
-		"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-		"metadata": map[string]interface{}{
-			"name":      "bootstrap-config-with-expiry",
-			"namespace": metav1.NamespaceDefault,
-			"annotations": map[string]interface{}{
-				clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
+	bootstrapConfigWithExpiry := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericBootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config-with-expiry",
+				"namespace": metav1.NamespaceDefault,
+				"annotations": map[string]interface{}{
+					clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
+				},
 			},
-		},
-		"spec": map[string]interface{}{},
-		"status": map[string]interface{}{
-			"ready":          true,
-			"dataSecretName": "secret-data",
+			"spec": map[string]interface{}{},
+			"status": map[string]interface{}{
+				"ready":          true,
+				"dataSecretName": "secret-data",
+			},
 		},
 	}
 
-	bootstrapConfigWithoutExpiry := map[string]interface{}{
-		"kind":       "GenericBootstrapConfig",
-		"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-		"metadata": map[string]interface{}{
-			"name":      "bootstrap-config-without-expiry",
-			"namespace": metav1.NamespaceDefault,
-		},
-		"spec": map[string]interface{}{},
-		"status": map[string]interface{}{
-			"ready":          true,
-			"dataSecretName": "secret-data",
+	bootstrapConfigWithoutExpiry := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericBootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config-without-expiry",
+				"namespace": metav1.NamespaceDefault,
+			},
+			"spec": map[string]interface{}{},
+			"status": map[string]interface{}{
+				"ready":          true,
+				"dataSecretName": "secret-data",
+			},
 		},
 	}
 
 	tests := []struct {
-		name     string
-		machine  *clusterv1.Machine
-		expected func(g *WithT, m *clusterv1.Machine)
+		name            string
+		machine         *clusterv1.Machine
+		bootstrapConfig *unstructured.Unstructured
+		expected        func(g *WithT, m *clusterv1.Machine)
 	}{
 		{
 			name: "worker machine with certificate expiry annotation should not update expiry date",
@@ -1246,6 +1246,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					},
 				},
 			},
+			bootstrapConfig: bootstrapConfigWithoutExpiry,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
 			},
@@ -1270,6 +1271,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					},
 				},
 			},
+			bootstrapConfig: bootstrapConfigWithExpiry,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.CertificatesExpiryDate).To(Equal(fakeMetaTime))
 			},
@@ -1297,6 +1299,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					},
 				},
 			},
+			bootstrapConfig: bootstrapConfigWithoutExpiry,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.CertificatesExpiryDate).To(Equal(fakeMetaTime))
 			},
@@ -1324,6 +1327,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					},
 				},
 			},
+			bootstrapConfig: bootstrapConfigWithExpiry,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.CertificatesExpiryDate).To(Equal(fakeMetaTime2))
 			},
@@ -1351,6 +1355,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					CertificatesExpiryDate: fakeMetaTime,
 				},
 			},
+			bootstrapConfig: bootstrapConfigWithoutExpiry,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
 			},
@@ -1361,16 +1366,9 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			r := &Reconciler{
-				Client: fake.NewClientBuilder().
-					WithObjects(
-						tc.machine,
-						&unstructured.Unstructured{Object: bootstrapConfigWithExpiry},
-						&unstructured.Unstructured{Object: bootstrapConfigWithoutExpiry},
-					).Build(),
-			}
-
-			_, _ = r.reconcileCertificateExpiry(ctx, nil, tc.machine)
+			r := &Reconciler{}
+			s := &scope{machine: tc.machine, bootstrapConfig: tc.bootstrapConfig}
+			_, _ = r.reconcileCertificateExpiry(ctx, s)
 			if tc.expected != nil {
 				tc.expected(g, tc.machine)
 			}

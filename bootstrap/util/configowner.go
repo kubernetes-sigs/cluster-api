@@ -24,7 +24,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -123,8 +125,20 @@ func (co ConfigOwner) KubernetesVersion() string {
 	return version
 }
 
-// GetConfigOwner returns the Unstructured object owning the current resource.
+// GetConfigOwner returns the Unstructured object owning the current resource
+// using the uncached unstructured client. For performance-sensitive uses,
+// consider GetTypedConfigOwner.
 func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
+	return getConfigOwner(ctx, c, obj, GetOwnerByRef)
+}
+
+// GetTypedConfigOwner returns the Unstructured object owning the current
+// resource. The implementation ensures a typed client is used, so the objects are read from the cache.
+func GetTypedConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
+	return getConfigOwner(ctx, c, obj, GetTypedOwnerByRef)
+}
+
+func getConfigOwner(ctx context.Context, c client.Client, obj metav1.Object, getFn func(context.Context, client.Client, *corev1.ObjectReference) (*ConfigOwner, error)) (*ConfigOwner, error) {
 	allowedGKs := []schema.GroupKind{
 		{
 			Group: clusterv1.GroupVersion.Group,
@@ -148,7 +162,7 @@ func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*C
 
 		for _, gk := range allowedGKs {
 			if refGVK.Group == gk.Group && refGVK.Kind == gk.Kind {
-				return GetOwnerByRef(ctx, c, &corev1.ObjectReference{
+				return getFn(ctx, c, &corev1.ObjectReference{
 					APIVersion: ref.APIVersion,
 					Kind:       ref.Kind,
 					Name:       ref.Name,
@@ -167,4 +181,36 @@ func GetOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 		return nil, err
 	}
 	return &ConfigOwner{obj}, nil
+}
+
+// GetTypedOwnerByRef finds and returns the owner by looking at the object
+// reference. The implementation ensures a typed client is used, so the objects are read from the cache.
+func GetTypedOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectReference) (*ConfigOwner, error) {
+	objGVK := ref.GroupVersionKind()
+	obj, err := c.Scheme().New(objGVK)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to construct object of type %s", ref.GroupVersionKind())
+	}
+	clientObj, ok := obj.(client.Object)
+	if !ok {
+		return nil, errors.Errorf("expected owner reference to refer to a client.Object, is actually %T", obj)
+	}
+	key := types.NamespacedName{
+		Namespace: ref.Namespace,
+		Name:      ref.Name,
+	}
+	err = c.Get(ctx, key, clientObj)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(clientObj)
+	if err != nil {
+		return nil, err
+	}
+	u := unstructured.Unstructured{}
+	u.SetUnstructuredContent(content)
+	u.SetGroupVersionKind(objGVK)
+
+	return &ConfigOwner{&u}, nil
 }

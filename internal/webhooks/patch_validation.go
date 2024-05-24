@@ -167,7 +167,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 
 	// Return an error if none of the possible selectors are enabled.
 	if !(selector.MatchResources.InfrastructureCluster || selector.MatchResources.ControlPlane ||
-		(selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0)) {
+		(selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0) ||
+		(selector.MatchResources.MachinePoolClass != nil && len(selector.MatchResources.MachinePoolClass.Names) > 0)) {
 		return append(allErrs,
 			field.Invalid(
 				path,
@@ -207,33 +208,10 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 	if selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0 {
 		for i, name := range selector.MatchResources.MachineDeploymentClass.Names {
 			match := false
-			if strings.Contains(name, "*") {
-				// selector can at most have a single * rune
-				if strings.Count(name, "*") > 1 {
-					allErrs = append(allErrs, field.Invalid(
-						path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
-						name,
-						"selector can at most contain a single \"*\" rune"))
-					break
-				}
-
-				// the * rune can appear only at the beginning, or ending of the selector.
-				if strings.Contains(name, "*") && !(strings.HasPrefix(name, "*") || strings.HasSuffix(name, "*")) {
-					// templateMDClass can only have "*" rune at the start or end of the string
-					allErrs = append(allErrs, field.Invalid(
-						path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
-						name,
-						"\"*\" rune can only appear at the beginning, or ending of the selector"))
-					break
-				}
-				// a valid selector without "*" should comply with Kubernetes naming standards.
-				if validation.IsQualifiedName(strings.ReplaceAll(name, "*", "a")) != nil {
-					allErrs = append(allErrs, field.Invalid(
-						path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
-						name,
-						"selector does not comply with the Kubernetes naming standards"))
-					break
-				}
+			err := validateSelectorName(name, path, "machineDeploymentClass", i)
+			if err != nil {
+				allErrs = append(allErrs, err)
+				break
 			}
 			for _, md := range class.Spec.Workers.MachineDeployments {
 				var matches bool
@@ -263,7 +241,73 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 		}
 	}
 
+	if selector.MatchResources.MachinePoolClass != nil && len(selector.MatchResources.MachinePoolClass.Names) > 0 {
+		for i, name := range selector.MatchResources.MachinePoolClass.Names {
+			match := false
+			err := validateSelectorName(name, path, "machinePoolClass", i)
+			if err != nil {
+				allErrs = append(allErrs, err)
+				break
+			}
+			for _, mp := range class.Spec.Workers.MachinePools {
+				var matches bool
+				if mp.Class == name || name == "*" {
+					matches = true
+				} else if strings.HasPrefix(name, "*") && strings.HasSuffix(mp.Class, strings.TrimPrefix(name, "*")) {
+					matches = true
+				} else if strings.HasSuffix(name, "*") && strings.HasPrefix(mp.Class, strings.TrimSuffix(name, "*")) {
+					matches = true
+				}
+
+				if matches {
+					if selectorMatchTemplate(selector, mp.Template.Infrastructure.Ref) ||
+						selectorMatchTemplate(selector, mp.Template.Bootstrap.Ref) {
+						match = true
+						break
+					}
+				}
+			}
+			if !match {
+				allErrs = append(allErrs, field.Invalid(
+					path.Child("matchResources", "machinePoolClass", "names").Index(i),
+					name,
+					"selector is enabled but matches neither the bootstrap ref nor the infrastructure ref of a MachinePool class",
+				))
+			}
+		}
+	}
+
 	return allErrs
+}
+
+// validateSelectorName validates if the selector name is valid.
+func validateSelectorName(name string, path *field.Path, resourceName string, index int) *field.Error {
+	if strings.Contains(name, "*") {
+		// selector can at most have a single * rune
+		if strings.Count(name, "*") > 1 {
+			return field.Invalid(
+				path.Child("matchResources", resourceName, "names").Index(index),
+				name,
+				"selector can at most contain a single \"*\" rune")
+		}
+
+		// the * rune can appear only at the beginning, or ending of the selector.
+		if strings.Contains(name, "*") && !(strings.HasPrefix(name, "*") || strings.HasSuffix(name, "*")) {
+			// templateMDClass or templateMPClass can only have "*" rune at the start or end of the string
+			return field.Invalid(
+				path.Child("matchResources", resourceName, "names").Index(index),
+				name,
+				"\"*\" rune can only appear at the beginning, or ending of the selector")
+		}
+		// a valid selector without "*" should comply with Kubernetes naming standards.
+		if validation.IsQualifiedName(strings.ReplaceAll(name, "*", "a")) != nil {
+			return field.Invalid(
+				path.Child("matchResources", resourceName, "names").Index(index),
+				name,
+				"selector does not comply with the Kubernetes naming standards")
+		}
+	}
+	return nil
 }
 
 // selectorMatchTemplate returns true if APIVersion and Kind for the given selector match the reference.
@@ -458,6 +502,17 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	// MachineDeployment ref builtins.
 	"builtin.machineDeployment.bootstrap.configRef.name",
 	"builtin.machineDeployment.infrastructureRef.name",
+
+	// MachinePool builtins.
+	"builtin.machinePool",
+	"builtin.machinePool.class",
+	"builtin.machinePool.name",
+	"builtin.machinePool.replicas",
+	"builtin.machinePool.topologyName",
+	"builtin.machinePool.version",
+	// MachinePool ref builtins.
+	"builtin.machinePool.bootstrap.configRef.name",
+	"builtin.machinePool.infrastructureRef.name",
 )
 
 // validateIndexAccess checks to see if the jsonPath is attempting to add an element in the array i.e. access by number

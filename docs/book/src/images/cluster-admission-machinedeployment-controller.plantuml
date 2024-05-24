@@ -21,6 +21,7 @@ repeat
   else 
     if (RollingUpdate Deployment Strategy) then (yes)
       :Select newest MachineSet;
+      :Propagate in-place changes to newest MachineSet;
       if (Too Many replicas) then (yes)
         #LightBlue:Scale machineSet down;
       elseif (Not Enough Replicas)
@@ -33,6 +34,7 @@ repeat
       endif
     elseif (OnDelete Deployment Strategy) then (yes)
       :Select newest MachineSet;
+      :Propagate in-place changes to newest MachineSet;
       if (Too Many replicas) then (yes)
         #LightBlue:Scale machineSet down;
       elseif (Not Enough Replicas)

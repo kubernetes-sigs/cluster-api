@@ -17,22 +17,45 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env                 *envtest.Environment
+	ctx                 = ctrl.SetupSignalHandler()
+	secretCachingClient client.Client
 )
 
 func TestMain(m *testing.M) {
+	setupReconcilers := func(_ context.Context, mgr ctrl.Manager) {
+		var err error
+		secretCachingClient, err = client.New(mgr.GetConfig(), client.Options{
+			HTTPClient: mgr.GetHTTPClient(),
+			Cache: &client.CacheOptions{
+				Reader: mgr.GetCache(),
+			},
+		})
+		if err != nil {
+			panic(fmt.Sprintf("unable to create secretCachingClient: %v", err))
+		}
+	}
+
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
-		M:        m,
-		SetupEnv: func(e *envtest.Environment) { env = e },
+		M: m,
+		ManagerUncachedObjs: []client.Object{
+			&corev1.ConfigMap{},
+			&corev1.Secret{},
+		},
+		SetupEnv:         func(e *envtest.Environment) { env = e },
+		SetupReconcilers: setupReconcilers,
 	}))
 }

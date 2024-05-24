@@ -196,11 +196,15 @@ func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespa
 // 1) InfrastructureCluster Templates are compatible.
 // 2) ControlPlane Templates are compatible.
 // 3) ControlPlane InfrastructureMachineTemplates are compatible.
-// 4) MachineDeploymentClasses have not been deleted and are compatible.
+// 4) MachineDeploymentClasses are compatible.
+// 5) MachinePoolClasses are compatible.
 func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if current == nil {
-		return nil
+		return append(allErrs, field.Invalid(field.NewPath(""), "", "could not compare ClusterClass compatibility: current ClusterClass must not be nil"))
+	}
+	if desired == nil {
+		return append(allErrs, field.Invalid(field.NewPath(""), "", "could not compare ClusterClass compatibility: desired ClusterClass must not be nil"))
 	}
 
 	// Validate InfrastructureClusterTemplate changes desired a compatible way.
@@ -218,13 +222,14 @@ func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field
 	// Validate changes to MachineDeployments.
 	allErrs = append(allErrs, MachineDeploymentClassesAreCompatible(current, desired)...)
 
+	// Validate changes to MachinePools.
+	allErrs = append(allErrs, MachinePoolClassesAreCompatible(current, desired)...)
+
 	return allErrs
 }
 
 // MachineDeploymentClassesAreCompatible checks if each MachineDeploymentClass in the new ClusterClass is a compatible change from the previous ClusterClass.
-// It checks if:
-// 1) Any MachineDeploymentClass has been removed.
-// 2) If the MachineDeploymentClass.Template.Infrastructure reference has changed its Group or Kind.
+// It checks if the MachineDeploymentClass.Template.Infrastructure reference has changed its Group or Kind.
 func MachineDeploymentClassesAreCompatible(current, desired *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
@@ -264,6 +269,47 @@ func MachineDeploymentClassesAreUnique(clusterClass *clusterv1.ClusterClass) fie
 	return allErrs
 }
 
+// MachinePoolClassesAreCompatible checks if each MachinePoolClass in the new ClusterClass is a compatible change from the previous ClusterClass.
+// It checks if the MachinePoolClass.Template.Infrastructure reference has changed its Group or Kind.
+func MachinePoolClassesAreCompatible(current, desired *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Ensure previous MachinePool class was modified in a compatible way.
+	for _, class := range desired.Spec.Workers.MachinePools {
+		for i, oldClass := range current.Spec.Workers.MachinePools {
+			if class.Class == oldClass.Class {
+				// NOTE: class.Template.Metadata and class.Template.Bootstrap are allowed to change;
+
+				// class.Template.Bootstrap is ensured syntactically correct by LocalObjectTemplateIsValid.
+
+				// Validates class.Template.Infrastructure template changes in a compatible way
+				allErrs = append(allErrs, LocalObjectTemplatesAreCompatible(oldClass.Template.Infrastructure, class.Template.Infrastructure,
+					field.NewPath("spec", "workers", "machinePools").Index(i))...)
+			}
+		}
+	}
+	return allErrs
+}
+
+// MachinePoolClassesAreUnique checks that no two MachinePoolClasses in a ClusterClass share a name.
+func MachinePoolClassesAreUnique(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+	classes := sets.Set[string]{}
+	for i, class := range clusterClass.Spec.Workers.MachinePools {
+		if classes.Has(class.Class) {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("spec", "workers", "machinePools").Index(i).Child("class"),
+					class.Class,
+					fmt.Sprintf("MachinePool class must be unique. MachinePool with class %q is defined more than once", class.Class),
+				),
+			)
+		}
+		classes.Insert(class.Class)
+	}
+	return allErrs
+}
+
 // MachineDeploymentTopologiesAreValidAndDefinedInClusterClass checks that each MachineDeploymentTopology name is not empty
 // and unique, and each class in use is defined in ClusterClass.spec.Workers.MachineDeployments.
 func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
@@ -275,7 +321,7 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 		return nil
 	}
 	// MachineDeployment clusterClass must be defined in the ClusterClass.
-	machineDeploymentClasses := classNamesFromWorkerClass(clusterClass.Spec.Workers)
+	machineDeploymentClasses := mdClassNamesFromWorkerClass(clusterClass.Spec.Workers)
 	names := sets.Set[string]{}
 	for i, md := range desired.Spec.Topology.Workers.MachineDeployments {
 		if errs := validation.IsValidLabelValue(md.Name); len(errs) != 0 {
@@ -328,6 +374,70 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 	return allErrs
 }
 
+// MachinePoolTopologiesAreValidAndDefinedInClusterClass checks that each MachinePoolTopology name is not empty
+// and unique, and each class in use is defined in ClusterClass.spec.Workers.MachinePools.
+func MachinePoolTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+	if desired.Spec.Topology.Workers == nil {
+		return nil
+	}
+	if len(desired.Spec.Topology.Workers.MachinePools) == 0 {
+		return nil
+	}
+	// MachinePool clusterClass must be defined in the ClusterClass.
+	machinePoolClasses := mpClassNamesFromWorkerClass(clusterClass.Spec.Workers)
+	names := sets.Set[string]{}
+	for i, mp := range desired.Spec.Topology.Workers.MachinePools {
+		if errs := validation.IsValidLabelValue(mp.Name); len(errs) != 0 {
+			for _, err := range errs {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("name"),
+						mp.Name,
+						fmt.Sprintf("must be a valid label value %s", err),
+					),
+				)
+			}
+		}
+
+		if !machinePoolClasses.Has(mp.Class) {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("class"),
+					mp.Class,
+					fmt.Sprintf("MachinePoolClass with name %q does not exist in ClusterClass %q",
+						mp.Class, clusterClass.Name),
+				),
+			)
+		}
+
+		// MachinePoolTopology name should not be empty.
+		if mp.Name == "" {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("name"),
+					"name must not be empty",
+				),
+			)
+			continue
+		}
+
+		if names.Has(mp.Name) {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("name"),
+					mp.Name,
+					fmt.Sprintf("name must be unique. MachinePool with name %q is defined more than once", mp.Name),
+				),
+			)
+		}
+		names.Insert(mp.Name)
+	}
+	return allErrs
+}
+
 // ClusterClassReferencesAreValid checks that each template reference in the ClusterClass is valid .
 func ClusterClassReferencesAreValid(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
@@ -340,19 +450,38 @@ func ClusterClassReferencesAreValid(clusterClass *clusterv1.ClusterClass) field.
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(clusterClass.Spec.ControlPlane.MachineInfrastructure, clusterClass.Namespace, field.NewPath("spec", "controlPlane", "machineInfrastructure"))...)
 	}
 
-	for i, mdc := range clusterClass.Spec.Workers.MachineDeployments {
+	for i := range clusterClass.Spec.Workers.MachineDeployments {
+		mdc := clusterClass.Spec.Workers.MachineDeployments[i]
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mdc.Template.Bootstrap, clusterClass.Namespace,
 			field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "bootstrap"))...)
 		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mdc.Template.Infrastructure, clusterClass.Namespace,
 			field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("template", "infrastructure"))...)
 	}
+
+	for i := range clusterClass.Spec.Workers.MachinePools {
+		mpc := clusterClass.Spec.Workers.MachinePools[i]
+		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mpc.Template.Bootstrap, clusterClass.Namespace,
+			field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "bootstrap"))...)
+		allErrs = append(allErrs, LocalObjectTemplateIsValid(&mpc.Template.Infrastructure, clusterClass.Namespace,
+			field.NewPath("spec", "workers", "machinePools").Index(i).Child("template", "infrastructure"))...)
+	}
+
 	return allErrs
 }
 
-// classNames returns the set of MachineDeployment class names.
-func classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
+// mdClassNamesFromWorkerClass returns the set of MachineDeployment class names.
+func mdClassNamesFromWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
 	classes := sets.Set[string]{}
 	for _, class := range w.MachineDeployments {
+		classes.Insert(class.Class)
+	}
+	return classes
+}
+
+// mpClassNamesFromWorkerClass returns the set of MachinePool class names.
+func mpClassNamesFromWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
+	classes := sets.Set[string]{}
+	for _, class := range w.MachinePools {
 		classes.Insert(class.Class)
 	}
 	return classes

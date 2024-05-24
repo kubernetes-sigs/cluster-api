@@ -4,6 +4,8 @@
 <!-- join kubernetes slack channel for cluster-api -->
 <a href="http://slack.k8s.io/">
 <img src="https://img.shields.io/badge/join%20slack-%23cluster--api-brightgreen"></a>
+<!-- latest stable release badge -->
+<img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/kubernetes-sigs/cluster-api">
 </p>
 
 # Cluster API
@@ -11,9 +13,7 @@
 ### 👋 Welcome to our project! Our [Book](https://cluster-api.sigs.k8s.io) can help you get started and provides lots of in-depth information.
 
 #### Useful links
-- [Scope, objectives, goals and requirements](./docs/scope-and-objectives.md)
 - [Feature proposals](./docs/proposals)
-- [Reference use cases](./docs/staging-use-cases.md)
 - [Quick Start](https://cluster-api.sigs.k8s.io/user/quick-start.html)
 
 ## ✨ What is the Cluster API?

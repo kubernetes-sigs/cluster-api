@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package noderefutil implements noderef utilities.
 package noderefutil
 
 import (

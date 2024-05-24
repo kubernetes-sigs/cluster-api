@@ -18,8 +18,9 @@ spec:
       containers:
       - args:
         - "--leader-elect"
-        - "--metrics-bind-addr=localhost:8080"
-        - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterTopology=${CLUSTER_TOPOLOGY:=false}"
+        - "--diagnostics-address=${CAPI_DIAGNOSTICS_ADDRESS:=:8443}"
+        - "--insecure-diagnostics=${CAPI_INSECURE_DIAGNOSTICS:=false}"
+        - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=true},ClusterTopology=${CLUSTER_TOPOLOGY:=false}"
         image: controller:latest
         name: manager
         env:
@@ -41,6 +42,9 @@ spec:
         - containerPort: 9440
           name: healthz
           protocol: TCP
+        - containerPort: 8443
+          name: metrics
+          protocol: TCP
         readinessProbe:
           httpGet:
             path: /readyz
@@ -54,6 +58,7 @@ spec:
             name: dockersock
         securityContext:
           privileged: true
+        terminationMessagePolicy: FallbackToLogsOnError
       terminationGracePeriodSeconds: 10
       serviceAccountName: manager
       tolerations:

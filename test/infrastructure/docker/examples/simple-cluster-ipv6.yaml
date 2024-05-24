@@ -35,7 +35,7 @@ metadata:
   namespace: default
 spec:
   replicas: 1
-  version: v1.26.0
+  version: v1.30.0
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -51,9 +51,6 @@ spec:
         - 0.0.0.0
         - "::"
         - "::1"
-      controllerManager:
-        extraArgs:
-          enable-hostpath-provisioner: "true"
     initConfiguration:
       localAPIEndpoint:
         advertiseAddress: '::'
@@ -90,7 +87,7 @@ spec:
       cluster.x-k8s.io/cluster-name: my-cluster
   template:
     spec:
-      version: v1.26.0
+      version: v1.30.0
       clusterName: my-cluster
       bootstrap:
         configRef:

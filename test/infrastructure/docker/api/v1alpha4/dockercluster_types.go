@@ -19,7 +19,7 @@ package v1alpha4
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 )
 
 const (
@@ -95,6 +95,8 @@ type APIEndpoint struct {
 // +kubebuilder:resource:path=dockerclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerCluster"
 
 // DockerCluster is the Schema for the dockerclusters API.
@@ -130,5 +132,5 @@ type DockerClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerCluster{}, &DockerClusterList{})
+	objectTypes = append(objectTypes, &DockerCluster{}, &DockerClusterList{})
 }

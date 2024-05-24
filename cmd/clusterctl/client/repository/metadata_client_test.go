@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -121,14 +122,14 @@ func Test_metadataClient_Get(t *testing.T) {
 				version:         tt.fields.version,
 				repository:      tt.fields.repository,
 			}
-			got, err := f.Get()
+			got, err := f.Get(context.Background())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(got).To(Equal(tt.want))
+			g.Expect(got).To(BeComparableTo(tt.want))
 		})
 	}
 }

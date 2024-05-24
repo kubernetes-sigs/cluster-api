@@ -17,6 +17,8 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -26,7 +28,7 @@ import (
 // WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 type WorkloadCluster interface {
 	// GetKubeconfig returns the kubeconfig of the workload cluster.
-	GetKubeconfig(workloadClusterName string, namespace string) (string, error)
+	GetKubeconfig(ctx context.Context, workloadClusterName string, namespace string) (string, error)
 }
 
 // workloadCluster implements WorkloadCluster.
@@ -41,8 +43,8 @@ func newWorkloadCluster(proxy Proxy) *workloadCluster {
 	}
 }
 
-func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace string) (string, error) {
-	cs, err := p.proxy.NewClient()
+func (p *workloadCluster) GetKubeconfig(ctx context.Context, workloadClusterName string, namespace string) (string, error) {
+	cs, err := p.proxy.NewClient(ctx)
 	if err != nil {
 		return "", err
 	}

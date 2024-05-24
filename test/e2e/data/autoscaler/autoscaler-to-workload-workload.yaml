@@ -1,0 +1,203 @@
+# This yaml deploys the autoscaler on a workload cluster and configures it to match
+# against the corresponding Cluster API cluster which is defined into the management cluster.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cluster-autoscaler-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
+---
+# Specify kubeconfig for management cluster
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kubeconfig-management-cluster
+  namespace: cluster-autoscaler-system
+stringData:
+  kubeconfig: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - name: management-cluster
+      cluster:
+        certificate-authority-data: ${MANAGEMENT_CLUSTER_CA}
+        server: ${MANAGEMENT_CLUSTER_ADDRESS}
+    contexts:
+    - name: management-context
+      context:
+        cluster: management-cluster
+        namespace: ${CLUSTER_NAMESPACE}
+        user: cluster-autoscaler-sa
+    current-context: management-context
+    users:
+    - name: cluster-autoscaler-sa
+      user:
+        token: "${MANAGEMENT_CLUSTER_TOKEN}"
+---
+# Defines the service used by the cluster autoscaler and gives it
+# RBAC permissions to look at all the workloads running in this cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-autoscaler
+  namespace: cluster-autoscaler-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-autoscaler-workload
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-autoscaler-workload
+subjects:
+  - kind: ServiceAccount
+    name: cluster-autoscaler
+    namespace: cluster-autoscaler-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-autoscaler-workload
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods
+      - replicationcontrollers
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods/eviction
+    verbs:
+      - create
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - storage.k8s.io
+    resources:
+      - csinodes
+      - storageclasses
+      - csidrivers
+      - csistoragecapacities
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+      - delete
+      - get
+      - update
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - get
+      - update
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: cluster-autoscaler-system
+  labels:
+    app: cluster-autoscaler
+spec:
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+    spec:
+      containers:
+        - image: registry.k8s.io/autoscaling/cluster-autoscaler:${AUTOSCALER_VERSION}
+          name: cluster-autoscaler
+          command:
+            - /cluster-autoscaler
+          args:
+            - --cloud-provider=clusterapi
+            # Specify kubeconfig for management cluster
+            - --cloud-config=/management-cluster/kubeconfig
+            # Limit cluster autoscaler to only match against resources belonging to a single Cluster API cluster
+            - --node-group-auto-discovery=clusterapi:namespace=${CLUSTER_NAMESPACE},clusterName=${CLUSTER_NAME}
+            # Set a short scale down unneeded time, so we don't have to wait too long during e2e testing
+            - --scale-down-unneeded-time=1m
+            #  Set a short scale down delay after add time, so we don't have to wait too long during e2e testing
+            - --scale-down-delay-after-add=1m
+            # Set a short scale down delay after delete time, so we don't have to wait too long during e2e testing
+            - --scale-down-delay-after-delete=1m
+            # Set a short scale down delay after failure time, so we don't have to wait too long during e2e testing
+            - --scale-down-delay-after-failure=1m
+            # Set a max nodes limit as safeguard so that the test does not scale up unbounded.
+            # Note: The E2E test should only go up to 4 (assuming it starts with a min node group size of 2).
+            # Using 6 for additional some buffer and to allow different starting min node group sizes.
+            - --max-nodes-total=6
+          volumeMounts:
+            - name: kubeconfig-management-cluster
+              mountPath: /management-cluster
+              readOnly: true
+      serviceAccountName: cluster-autoscaler
+      terminationGracePeriodSeconds: 10
+      volumes:
+        - name: kubeconfig-management-cluster
+          secret:
+            secretName: kubeconfig-management-cluster
+            optional: false

@@ -24,6 +24,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
@@ -42,6 +43,12 @@ type requestItemBuilder struct {
 	holder   runtimehooksv1.HolderReference
 }
 
+// requestTopologyName is used to specify the topology name to match in a GeneratePatchesRequest.
+type requestTopologyName struct {
+	mdTopologyName string
+	mpTopologyName string
+}
+
 // newRequestItemBuilder returns a new requestItemBuilder.
 func newRequestItemBuilder(template *unstructured.Unstructured) *requestItemBuilder {
 	return &requestItemBuilder{
@@ -50,10 +57,12 @@ func newRequestItemBuilder(template *unstructured.Unstructured) *requestItemBuil
 }
 
 // WithHolder adds holder to the requestItemBuilder.
-func (t *requestItemBuilder) WithHolder(object client.Object, fieldPath string) *requestItemBuilder {
+// Note: We pass in gvk explicitly as we can't rely on GVK being set on all objects
+// (only on Unstructured).
+func (t *requestItemBuilder) WithHolder(object client.Object, gvk schema.GroupVersionKind, fieldPath string) *requestItemBuilder {
 	t.holder = runtimehooksv1.HolderReference{
-		APIVersion: object.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-		Kind:       object.GetObjectKind().GroupVersionKind().Kind,
+		APIVersion: gvk.GroupVersion().String(),
+		Kind:       gvk.Kind,
 		Namespace:  object.GetNamespace(),
 		Name:       object.GetName(),
 		FieldPath:  fieldPath,
@@ -85,13 +94,13 @@ func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem
 }
 
 // getTemplateAsUnstructured is a utility func that returns a template matching the holderKind, holderFieldPath
-// and mdTopologyName from a GeneratePatchesRequest.
-func getTemplateAsUnstructured(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath, mdTopologyName string) (*unstructured.Unstructured, error) {
+// and topologyNames from a GeneratePatchesRequest.
+func getTemplateAsUnstructured(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath string, topologyNames requestTopologyName) (*unstructured.Unstructured, error) {
 	// Find the requestItem.
-	requestItem := getRequestItem(req, holderKind, holderFieldPath, mdTopologyName)
+	requestItem := getRequestItem(req, holderKind, holderFieldPath, topologyNames)
 
 	if requestItem == nil {
-		return nil, errors.Errorf("failed to get request item with holder kind %q, holder field path %q and MD topology name %q", holderKind, holderFieldPath, mdTopologyName)
+		return nil, errors.Errorf("failed to get request item with holder kind %q, holder field path %q, MD topology name %q, and MP topology name %q", holderKind, holderFieldPath, topologyNames.mdTopologyName, topologyNames.mpTopologyName)
 	}
 
 	// Unmarshal the template.
@@ -113,8 +122,8 @@ func getRequestItemByUID(req *runtimehooksv1.GeneratePatchesRequest, uid types.U
 	return nil
 }
 
-// getRequestItem is a utility func that returns a template matching the holderKind, holderFiledPath and mdTopologyName from a GeneratePatchesRequest.
-func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath, mdTopologyName string) *runtimehooksv1.GeneratePatchesRequestItem {
+// getRequestItem is a utility func that returns a template matching the holderKind, holderFiledPath and topologyNames from a GeneratePatchesRequest.
+func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath string, topologyNames requestTopologyName) *runtimehooksv1.GeneratePatchesRequestItem {
 	for _, template := range req.Items {
 		if holderKind != "" && template.HolderReference.Kind != holderKind {
 			continue
@@ -122,11 +131,17 @@ func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, hold
 		if holderFieldPath != "" && template.HolderReference.FieldPath != holderFieldPath {
 			continue
 		}
-		if mdTopologyName != "" {
+		if topologyNames.mdTopologyName != "" {
 			templateVariables := toMap(template.Variables)
-
 			v, err := variables.GetVariableValue(templateVariables, "builtin.machineDeployment.topologyName")
-			if err != nil || string(v.Raw) != strconv.Quote(mdTopologyName) {
+			if err != nil || string(v.Raw) != strconv.Quote(topologyNames.mdTopologyName) {
+				continue
+			}
+		}
+		if topologyNames.mpTopologyName != "" {
+			templateVariables := toMap(template.Variables)
+			v, err := variables.GetVariableValue(templateVariables, "builtin.machinePool.topologyName")
+			if err != nil || string(v.Raw) != strconv.Quote(topologyNames.mpTopologyName) {
 				continue
 			}
 		}

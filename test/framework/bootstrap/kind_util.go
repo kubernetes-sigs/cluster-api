@@ -18,12 +18,12 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	kindnodes "sigs.k8s.io/kind/pkg/cluster/nodes"
 	kindnodesutils "sigs.k8s.io/kind/pkg/cluster/nodeutils"
@@ -31,6 +31,8 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	kindmapper "sigs.k8s.io/cluster-api/test/infrastructure/kind"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // CreateKindBootstrapClusterAndLoadImagesInput is the input for CreateKindBootstrapClusterAndLoadImages.
@@ -52,6 +54,9 @@ type CreateKindBootstrapClusterAndLoadImagesInput struct {
 
 	// LogFolder where to dump logs in case of errors
 	LogFolder string
+
+	// ExtraPortMappings specifies the port forward configuration of the kind node.
+	ExtraPortMappings []kindv1.PortMapping
 }
 
 // CreateKindBootstrapClusterAndLoadImages returns a new Kubernetes cluster with pre-loaded images.
@@ -63,7 +68,13 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 
 	options := []KindClusterOption{}
 	if input.KubernetesVersion != "" {
-		options = append(options, WithNodeImage(fmt.Sprintf("%s:%s", DefaultNodeImageRepository, input.KubernetesVersion)))
+		semVer, err := version.ParseMajorMinorPatchTolerant(input.KubernetesVersion)
+		if err != nil {
+			Expect(err).ToNot(HaveOccurred(), "could not parse KubernetesVersion version")
+		}
+		kindMapping := kindmapper.GetMapping(semVer, "")
+
+		options = append(options, WithNodeImage(kindMapping.Image))
 	}
 	if input.RequiresDockerSock {
 		options = append(options, WithDockerSockMount())
@@ -71,9 +82,13 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	if input.IPFamily == "IPv6" {
 		options = append(options, WithIPv6Family())
 	}
+	if input.IPFamily == "dual" {
+		options = append(options, WithDualStackFamily())
+	}
 	if input.LogFolder != "" {
 		options = append(options, LogFolder(input.LogFolder))
 	}
+	options = append(options, WithExtraPortMappings(input.ExtraPortMappings))
 
 	clusterProvider := NewKindClusterProvider(input.Name, options...)
 	Expect(clusterProvider).ToNot(BeNil(), "Failed to create a kind cluster")
@@ -89,7 +104,7 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	})
 	if err != nil {
 		clusterProvider.Dispose(ctx)
-		Expect(err).NotTo(HaveOccurred()) // re-surface the error to fail the test
+		Expect(err).ToNot(HaveOccurred()) // re-surface the error to fail the test
 	}
 
 	return clusterProvider

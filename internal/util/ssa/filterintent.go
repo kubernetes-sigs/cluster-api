@@ -41,7 +41,7 @@ func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 		FilterIntent(&FilterIntentInput{
 			Path:         contract.Path{},
 			Value:        obj.Object,
-			ShouldFilter: IsNotAllowedPath(input.AllowedPaths),
+			ShouldFilter: IsPathNotAllowed(input.AllowedPaths),
 		})
 	}
 
@@ -51,7 +51,7 @@ func FilterObject(obj *unstructured.Unstructured, input *FilterObjectInput) {
 		FilterIntent(&FilterIntentInput{
 			Path:         contract.Path{},
 			Value:        obj.Object,
-			ShouldFilter: IsIgnorePath(input.IgnorePaths),
+			ShouldFilter: IsPathIgnored(input.IgnorePaths),
 		})
 	}
 }
@@ -111,8 +111,8 @@ type FilterIntentInput struct {
 	ShouldFilter func(path contract.Path) bool
 }
 
-// IsAllowedPath returns true when the Path is one of the AllowedPaths.
-func IsAllowedPath(allowedPaths []contract.Path) func(path contract.Path) bool {
+// IsPathAllowed returns true when the Path is one of the AllowedPaths.
+func IsPathAllowed(allowedPaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
 		for _, p := range allowedPaths {
 			// NOTE: we allow everything Equal or one IsParentOf one of the allowed paths.
@@ -126,16 +126,16 @@ func IsAllowedPath(allowedPaths []contract.Path) func(path contract.Path) bool {
 	}
 }
 
-// IsNotAllowedPath returns true when the Path is NOT one of the AllowedPaths.
-func IsNotAllowedPath(allowedPaths []contract.Path) func(path contract.Path) bool {
+// IsPathNotAllowed returns true when the Path is NOT one of the AllowedPaths.
+func IsPathNotAllowed(allowedPaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
-		isAllowed := IsAllowedPath(allowedPaths)
+		isAllowed := IsPathAllowed(allowedPaths)
 		return !isAllowed(path)
 	}
 }
 
-// IsIgnorePath returns true when the Path is one of the IgnorePaths.
-func IsIgnorePath(ignorePaths []contract.Path) func(path contract.Path) bool {
+// IsPathIgnored returns true when the Path is one of the IgnorePaths.
+func IsPathIgnored(ignorePaths []contract.Path) func(path contract.Path) bool {
 	return func(path contract.Path) bool {
 		for _, p := range ignorePaths {
 			if path.Equal(p) {

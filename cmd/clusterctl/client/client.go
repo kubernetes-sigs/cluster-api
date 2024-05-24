@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"context"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/alpha"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -31,46 +33,44 @@ type Client interface {
 	GetProvidersConfig() ([]Provider, error)
 
 	// GetProviderComponents returns the provider components for a given provider with options including targetNamespace.
-	GetProviderComponents(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error)
+	GetProviderComponents(ctx context.Context, provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error)
 
 	// GenerateProvider returns the provider components for a given provider with options including targetNamespace.
-	GenerateProvider(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error)
+	GenerateProvider(ctx context.Context, provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error)
 
 	// Init initializes a management cluster by adding the requested list of providers.
-	Init(options InitOptions) ([]Components, error)
+	Init(ctx context.Context, options InitOptions) ([]Components, error)
 
 	// InitImages returns the list of images required for executing the init command.
-	InitImages(options InitOptions) ([]string, error)
+	InitImages(ctx context.Context, options InitOptions) ([]string, error)
 
 	// GetClusterTemplate returns a workload cluster template.
-	GetClusterTemplate(options GetClusterTemplateOptions) (Template, error)
+	GetClusterTemplate(ctx context.Context, options GetClusterTemplateOptions) (Template, error)
 
 	// GetKubeconfig returns the kubeconfig of the workload cluster.
-	GetKubeconfig(options GetKubeconfigOptions) (string, error)
+	GetKubeconfig(ctx context.Context, options GetKubeconfigOptions) (string, error)
 
 	// Delete deletes providers from a management cluster.
-	Delete(options DeleteOptions) error
+	Delete(ctx context.Context, options DeleteOptions) error
 
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-	Move(options MoveOptions) error
+	Move(ctx context.Context, options MoveOptions) error
 
-	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster, and more specifically:
-	// - Upgrade to the latest version in the v1alpha3 series: ....
-	// - Upgrade to the latest version in the v1alpha4 series: ....
-	PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error)
+	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster.
+	PlanUpgrade(ctx context.Context, options PlanUpgradeOptions) ([]UpgradePlan, error)
 
 	// PlanCertManagerUpgrade returns a CertManagerUpgradePlan.
-	PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error)
+	PlanCertManagerUpgrade(ctx context.Context, options PlanUpgradeOptions) (CertManagerUpgradePlan, error)
 
 	// ApplyUpgrade executes an upgrade plan.
-	ApplyUpgrade(options ApplyUpgradeOptions) error
+	ApplyUpgrade(ctx context.Context, options ApplyUpgradeOptions) error
 
 	// ProcessYAML provides a direct way to process a yaml and inspect its
 	// variables.
-	ProcessYAML(options ProcessYAMLOptions) (YamlPrinter, error)
+	ProcessYAML(ctx context.Context, options ProcessYAMLOptions) (YamlPrinter, error)
 
 	// DescribeCluster returns the object tree representing the status of a Cluster API cluster.
-	DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error)
+	DescribeCluster(ctx context.Context, options DescribeClusterOptions) (*tree.ObjectTree, error)
 
 	// AlphaClient is an Interface for alpha features in clusterctl
 	AlphaClient
@@ -79,15 +79,17 @@ type Client interface {
 // AlphaClient exposes the alpha features in clusterctl high-level client library.
 type AlphaClient interface {
 	// RolloutRestart provides rollout restart of cluster-api resources
-	RolloutRestart(options RolloutRestartOptions) error
+	RolloutRestart(ctx context.Context, options RolloutRestartOptions) error
 	// RolloutPause provides rollout pause of cluster-api resources
-	RolloutPause(options RolloutPauseOptions) error
+	RolloutPause(ctx context.Context, options RolloutPauseOptions) error
 	// RolloutResume provides rollout resume of paused cluster-api resources
-	RolloutResume(options RolloutResumeOptions) error
+	RolloutResume(ctx context.Context, options RolloutResumeOptions) error
 	// RolloutUndo provides rollout rollback of cluster-api resources
-	RolloutUndo(options RolloutUndoOptions) error
+	RolloutUndo(ctx context.Context, options RolloutUndoOptions) error
 	// TopologyPlan dry runs the topology reconciler
-	TopologyPlan(options TopologyPlanOptions) (*TopologyPlanOutput, error)
+	//
+	// Deprecated: TopologyPlan is deprecated and will be removed in one of the upcoming releases.
+	TopologyPlan(ctx context.Context, options TopologyPlanOptions) (*TopologyPlanOutput, error)
 }
 
 // YamlPrinter exposes methods that prints the processed template and
@@ -115,7 +117,7 @@ type RepositoryClientFactoryInput struct {
 }
 
 // RepositoryClientFactory is a factory of repository.Client from a given input.
-type RepositoryClientFactory func(RepositoryClientFactoryInput) (repository.Client, error)
+type RepositoryClientFactory func(context.Context, RepositoryClientFactoryInput) (repository.Client, error)
 
 // ClusterClientFactoryInput represents the inputs required by the factory.
 type ClusterClientFactoryInput struct {
@@ -156,11 +158,11 @@ func InjectClusterClientFactory(factory ClusterClientFactory) Option {
 }
 
 // New returns a configClient.
-func New(path string, options ...Option) (Client, error) {
-	return newClusterctlClient(path, options...)
+func New(ctx context.Context, path string, options ...Option) (Client, error) {
+	return newClusterctlClient(ctx, path, options...)
 }
 
-func newClusterctlClient(path string, options ...Option) (*clusterctlClient, error) {
+func newClusterctlClient(ctx context.Context, path string, options ...Option) (*clusterctlClient, error) {
 	client := &clusterctlClient{}
 	for _, o := range options {
 		o(client)
@@ -169,7 +171,7 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 	// if there is an injected config, use it, otherwise use the default one
 	// provided by the config low level library.
 	if client.configClient == nil {
-		c, err := config.New(path)
+		c, err := config.New(ctx, path)
 		if err != nil {
 			return nil, err
 		}
@@ -197,8 +199,9 @@ func newClusterctlClient(path string, options ...Option) (*clusterctlClient, err
 
 // defaultRepositoryFactory is a RepositoryClientFactory func the uses the default client provided by the repository low level library.
 func defaultRepositoryFactory(configClient config.Client) RepositoryClientFactory {
-	return func(input RepositoryClientFactoryInput) (repository.Client, error) {
+	return func(ctx context.Context, input RepositoryClientFactoryInput) (repository.Client, error) {
 		return repository.New(
+			ctx,
 			input.Provider,
 			configClient,
 			repository.InjectYamlProcessor(input.Processor),

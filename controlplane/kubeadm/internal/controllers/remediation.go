@@ -22,20 +22,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -49,14 +48,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// Cleanup pending remediation actions not completed for any reasons (e.g. number of current replicas is less or equal to 1)
 	// if the underlying machine is now back to healthy / not deleting.
 	errList := []error{}
-	healthyMachines := controlPlane.HealthyMachines()
+	healthyMachines := controlPlane.HealthyMachinesByMachineHealthCheck()
 	for _, m := range healthyMachines {
 		if conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) &&
 			conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition) &&
 			m.DeletionTimestamp.IsZero() {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				errList = append(errList, errors.Wrapf(err, "failed to get PatchHelper for machine %s", m.Name))
+				errList = append(errList, err)
 				continue
 			}
 
@@ -65,7 +64,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.MachineOwnerRemediatedCondition,
 			}}); err != nil {
-				errList = append(errList, errors.Wrapf(err, "failed to patch machine %s", m.Name))
+				errList = append(errList, err)
 			}
 		}
 	}
@@ -75,19 +74,20 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	// Gets all machines that have `MachineHealthCheckSucceeded=False` (indicating a problem was detected on the machine)
 	// and `MachineOwnerRemediated` present, indicating that this controller is responsible for performing remediation.
-	unhealthyMachines := controlPlane.UnhealthyMachines()
+	unhealthyMachines := controlPlane.UnhealthyMachinesByMachineHealthCheck()
 
 	// If there are no unhealthy machines, return so KCP can proceed with other operations (ctrl.Result nil).
 	if len(unhealthyMachines) == 0 {
 		return ctrl.Result{}, nil
 	}
 
-	// Select the machine to be remediated, which is the oldest machine marked as unhealthy.
+	// Select the machine to be remediated, which is the oldest machine marked as unhealthy not yet provisioned (if any)
+	// or the oldest machine marked as unhealthy.
 	//
 	// NOTE: The current solution is considered acceptable for the most frequent use case (only one unhealthy machine),
 	// however, in the future this could potentially be improved for the scenario where more than one unhealthy machine exists
 	// by considering which machine has lower impact on etcd quorum.
-	machineToBeRemediated := unhealthyMachines.Oldest()
+	machineToBeRemediated := getMachineToBeRemediated(unhealthyMachines)
 
 	// Returns if the machine is in the process of being deleted.
 	if !machineToBeRemediated.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -99,9 +99,29 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// Returns if another remediation is in progress but the new Machine is not yet created.
 	// Note: This condition is checked after we check for unhealthy Machines and if machineToBeRemediated
 	// is being deleted to avoid unnecessary logs if no further remediation should be done.
-	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
-		log.Info("Another remediation is already in progress. Skipping remediation.")
-		return ctrl.Result{}, nil
+	if v, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
+		// Check if the annotation is stale; this might happen in case there is a crash in the controller in between
+		// when a new Machine is created and the annotation is eventually removed from KCP via defer patch at the end
+		// of KCP reconcile.
+		remediationData, err := RemediationDataFromAnnotation(v)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		staleAnnotation := false
+		for _, m := range controlPlane.Machines.UnsortedList() {
+			if m.CreationTimestamp.After(remediationData.Timestamp.Time) {
+				// Remove the annotation tracking that a remediation is in progress (the annotation is stale).
+				delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
+				staleAnnotation = true
+				break
+			}
+		}
+
+		if !staleAnnotation {
+			log.Info("Another remediation is already in progress. Skipping remediation.")
+			return ctrl.Result{}, nil
+		}
 	}
 
 	patchHelper, err := patch.NewHelper(machineToBeRemediated, r.Client)
@@ -143,8 +163,15 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 		// The cluster MUST have more than one replica, because this is the smallest cluster size that allows any etcd failure tolerance.
 		if controlPlane.Machines.Len() <= 1 {
-			log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "Replicas", controlPlane.Machines.Len())
+			log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "replicas", controlPlane.Machines.Len())
 			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate if current replicas are less or equal to 1")
+			return ctrl.Result{}, nil
+		}
+
+		// The cluster MUST NOT have healthy machines still being provisioned. This rule prevents KCP taking actions while the cluster is in a transitional state.
+		if controlPlane.HasHealthyMachineStillProvisioning() {
+			log.Info("A control plane machine needs remediation, but there are other control-plane machines being provisioned. Skipping remediation")
+			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP waiting for control plane machine provisioning to complete before triggering remediation")
 			return ctrl.Result{}, nil
 		}
 
@@ -177,7 +204,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		// - if the machine hosts the etcd leader, forward etcd leadership to another machine.
 		// - delete the etcd member hosted on the machine being deleted.
 		// - remove the etcd member from the kubeadm config map (only for kubernetes version older than v1.22.0)
-		workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))
+		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 		if err != nil {
 			log.Error(err, "Failed to create client to workload cluster")
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
@@ -185,7 +212,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 		// If the machine that is about to be deleted is the etcd leader, move it to the newest member available.
 		if controlPlane.IsEtcdManaged() {
-			etcdLeaderCandidate := controlPlane.HealthyMachines().Newest()
+			etcdLeaderCandidate := controlPlane.HealthyMachinesByMachineHealthCheck().Newest()
 			if etcdLeaderCandidate == nil {
 				log.Info("A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to")
 				conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,
@@ -238,6 +265,16 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	})
 
 	return ctrl.Result{Requeue: true}, nil
+}
+
+// Gets the machine to be remediated, which is the oldest machine marked as unhealthy not yet provisioned (if any)
+// or the oldest machine marked as unhealthy.
+func getMachineToBeRemediated(unhealthyMachines collections.Machines) *clusterv1.Machine {
+	machineToBeRemediated := unhealthyMachines.Filter(collections.Not(collections.HasNode())).Oldest()
+	if machineToBeRemediated == nil {
+		machineToBeRemediated = unhealthyMachines.Oldest()
+	}
+	return machineToBeRemediated
 }
 
 // checkRetryLimits checks if KCP is allowed to remediate considering retry limits:
@@ -295,7 +332,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	var retryForSameMachineInProgress bool
 	if lastRemediationTime.Add(minHealthyPeriod).After(reconciliationTime) {
 		retryForSameMachineInProgress = true
-		log = log.WithValues("RemediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, lastRemediationData.Machine))
+		log = log.WithValues("remediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, lastRemediationData.Machine))
 	}
 
 	// If the retry for the same machine is not in progress, this is the first try of a new retry sequence.
@@ -329,14 +366,6 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	return remediationInProgressData, true, nil
 }
 
-// max calculates the maximum duration.
-func max(x, y time.Duration) time.Duration {
-	if x < y {
-		return y
-	}
-	return x
-}
-
 // canSafelyRemoveEtcdMember assess if it is possible to remove the member hosted on the machine to be remediated
 // without loosing etcd quorum.
 //
@@ -355,10 +384,7 @@ func max(x, y time.Duration) time.Duration {
 func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Context, controlPlane *internal.ControlPlane, machineToBeRemediated *clusterv1.Machine) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, client.ObjectKey{
-		Namespace: controlPlane.Cluster.Namespace,
-		Name:      controlPlane.Cluster.Name,
-	})
+	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get client for workload cluster %s", controlPlane.Cluster.Name)
 	}
@@ -406,7 +432,7 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		//
 		// NOTE: This should not happen given that KCP is running reconcileEtcdMembers before calling this method.
 		if machine == nil {
-			log.Info("An etcd member does not have a corresponding machine, assuming this member is unhealthy", "MemberName", etcdMember)
+			log.Info("An etcd member does not have a corresponding machine, assuming this member is unhealthy", "memberName", etcdMember)
 			targetUnhealthyMembers++
 			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (no machine)", etcdMember))
 			continue

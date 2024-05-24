@@ -1,5 +1,4 @@
 ---
-
 title: Label Sync Between Machines and underlying Kubernetes Nodes
 authors:
 - "@arvinderpal" (original proposal author)
@@ -14,10 +13,36 @@ last-updated: 2022-02-26
 status: implementable
 replaces:
 superseded-by:
-
 ---
 
 # Label Sync Between Machines and underlying Kubernetes Nodes
+
+## Table of Contents
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals](#non-goals)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Story 1](#story-1)
+    - [Story 2](#story-2)
+    - [Story 3](#story-3)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+  - [Label domains & prefixes](#label-domains--prefixes)
+    - [Synchronization of CAPI Labels](#synchronization-of-capi-labels)
+    - [Delay between Node Create and Label Sync](#delay-between-node-create-and-label-sync)
+- [Alternatives](#alternatives)
+  - [Use KubeadmConfigTemplate capabilities](#use-kubeadmconfigtemplate-capabilities)
+  - [Apply labels using kubectl](#apply-labels-using-kubectl)
+  - [Apply label using external label synchronizer tools](#apply-label-using-external-label-synchronizer-tools)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 
@@ -101,19 +126,22 @@ Kubernetes supports both equality and inequality requirements in label selection
 
 In an inequality based selection, the user wants to place a workload on node(s) that do not contain a specific label (e.g. Node.Labels not contain `my.prefix/foo=bar`). The case is potentially problematic because it relies on the absence of a label and this can occur if the pod scheduler runs during the delay interval.
 
-One way to address this is to use kubelet's `--register-with-taints` flag. Newly minted nodes can be tainted via the taint `node.cluster.x-k8s.io=uninitialized:NoSchedule`. Assuming workloads don't have this specific toleration, then nothing should be scheduled. KubeadmConfigTemplate provides the means to set taints on nodes (see  JoinConfiguration.NodeRegistration.Taints).
+One way to address this is to use kubelet's `--register-with-taints` flag. Newly minted nodes can be tainted via the taint `node.cluster.x-k8s.io/uninitialized:NoSchedule`. Assuming workloads don't have this specific toleration, then nothing should be scheduled. KubeadmConfigTemplate provides the means to set taints on nodes (see  JoinConfiguration.NodeRegistration.Taints).
 
 The process of tainting the nodes, can be carried out by the user and can be documented as follows:
 
 ```
 If you utilize inequality based selection for workload placement, to prevent unintended scheduling of pods during the initial node startup phase, it is recommend that you specify the following taint in your KubeadmConfigTemplate:
-`node.cluster.x-k8s.io=uninitialized:NoSchedule`
+`node.cluster.x-k8s.io/uninitialized:NoSchedule`
 ```
 
 After the node has come up and the machine controller has applied the labels, the machine controller will also remove this specific taint if it's present.
 
 During the implementation we will consider also automating the insertion of the taint via CABPK in order to simplify UX;
 in this case, the new behaviour should be documented in the contract as optional requirement for bootstrap providers.
+
+The `node.cluster.x-k8s.io/uninitialized:NoSchedule` taint should only be applied on the worker nodes. It should not be applied on the control plane nodes as it could prevent other components like CPI from initializing which will block cluster creation.
+
 
 ## Alternatives
 

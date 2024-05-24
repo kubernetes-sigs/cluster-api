@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	goproxytest "sigs.k8s.io/cluster-api/internal/goproxy/test"
 )
 
 func Test_gitLabRepository_newGitLabRepository(t *testing.T) {
@@ -135,7 +137,7 @@ func Test_gitLabRepository_newGitLabRepository(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gitLab).To(Equal(tt.want))
 		})
 	}
@@ -151,7 +153,7 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 	providerConfig := config.NewProvider("test", providerURL, clusterctlv1.CoreProviderType)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		testMethod(t, r, "GET")
+		goproxytest.HTTPTestMethod(t, r, "GET")
 		if r.URL.RawPath == "/api/v4/projects/group%2Fproject/packages/generic/my-package/v0.4.1/file.yaml" {
 			w.Header().Set("Content-Type", "application/octet-stream")
 			w.Header().Set("Content-Disposition", "attachment; filename=file.yaml")
@@ -193,15 +195,15 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 
 			gitLab, err := NewGitLabRepository(providerConfig, configVariablesClient)
 			gitLab.(*gitLabRepository).httpClient = client
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gitLab.GetFile(tt.version, tt.fileName)
+			got, err := gitLab.GetFile(context.Background(), tt.version, tt.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

@@ -53,19 +53,13 @@ spec:
       name: "${CLUSTER_NAME}-control-plane"
   kubeadmConfigSpec:
     clusterConfiguration:
-      controllerManager:
-        extraArgs: {enable-hostpath-provisioner: 'true'}
       apiServer:
         # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
         certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
     initConfiguration:
-      nodeRegistration:
-        kubeletExtraArgs:
-          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
     joinConfiguration:
-      nodeRegistration:
-        kubeletExtraArgs:
-          eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
     files:
     - path: /wait-signal.sh
       content: |

@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -25,9 +26,11 @@ import (
 	"strings"
 
 	"github.com/MakeNowJust/heredoc"
+	"github.com/adrg/xdg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/util/homedir"
+	kubectlcmd "k8s.io/kubectl/pkg/cmd"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -56,20 +59,12 @@ var RootCmd = &cobra.Command{
 	Long: LongDesc(`
 		Get started with Cluster API using clusterctl to create a management cluster,
 		install providers, and create templates for your workload cluster.`),
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Check if Config folder (~/.cluster-api) exist and if not create it
-		configFolderPath := filepath.Join(homedir.HomeDir(), config.ConfigFolder)
-		if _, err := os.Stat(configFolderPath); os.IsNotExist(err) {
-			if err := os.MkdirAll(filepath.Dir(configFolderPath), os.ModePerm); err != nil {
-				return errors.Wrapf(err, "failed to create the clusterctl config directory: %s", configFolderPath)
-			}
-		}
-		return nil
-	},
-	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+	PersistentPostRunE: func(*cobra.Command, []string) error {
+		ctx := context.Background()
+
 		// Check if clusterctl needs an upgrade "AFTER" running each command
 		// and sub-command.
-		configClient, err := config.New(cfgFile)
+		configClient, err := config.New(ctx, cfgFile)
 		if err != nil {
 			return err
 		}
@@ -78,7 +73,11 @@ var RootCmd = &cobra.Command{
 			// version check is disabled. Return early.
 			return nil
 		}
-		output, err := newVersionChecker(configClient.Variables()).Check()
+		checker, err := newVersionChecker(ctx, configClient.Variables())
+		if err != nil {
+			return err
+		}
+		output, err := checker.Check(ctx)
 		if err != nil {
 			return errors.Wrap(err, "unable to verify clusterctl version")
 		}
@@ -87,8 +86,13 @@ var RootCmd = &cobra.Command{
 			fmt.Fprintf(os.Stderr, "\033[33m%s\033[0m", output)
 		}
 
+		configDirectory, err := xdg.ConfigFile(config.ConfigFolderXDG)
+		if err != nil {
+			return err
+		}
+
 		// clean the downloaded config if was fetched from remote
-		downloadConfigFile := filepath.Join(homedir.HomeDir(), config.ConfigFolder, config.DownloadConfigFile)
+		downloadConfigFile := filepath.Join(configDirectory, config.DownloadConfigFile)
 		if _, err := os.Stat(downloadConfigFile); err == nil {
 			if verbosity != nil && *verbosity >= 5 {
 				fmt.Fprintf(os.Stdout, "Removing downloaded clusterctl config file: %s\n", config.DownloadConfigFile)
@@ -102,6 +106,8 @@ var RootCmd = &cobra.Command{
 
 // Execute executes the root command.
 func Execute() {
+	handlePlugins()
+
 	if err := RootCmd.Execute(); err != nil {
 		if verbosity != nil && *verbosity >= 5 {
 			if err, ok := err.(stackTracer); ok {
@@ -122,7 +128,7 @@ func init() {
 
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
-		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`) or to a remote location (i.e. https://example.com/clusterctl.yaml)")
+		"Path to clusterctl configuration (default is `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`) or to a remote location (i.e. https://example.com/clusterctl.yaml)")
 
 	RootCmd.AddGroup(
 		&cobra.Group{
@@ -145,9 +151,11 @@ func init() {
 }
 
 func initConfig() {
+	ctx := context.Background()
+
 	// check if the CLUSTERCTL_LOG_LEVEL was set via env var or in the config file
 	if *verbosity == 0 {
-		configClient, err := config.New(cfgFile)
+		configClient, err := config.New(ctx, cfgFile)
 		if err == nil {
 			v, err := configClient.Variables().Get("CLUSTERCTL_LOG_LEVEL")
 			if err == nil && v != "" {
@@ -161,7 +169,9 @@ func initConfig() {
 		}
 	}
 
-	logf.SetLogger(logf.NewLogger(logf.WithThreshold(verbosity)))
+	log := logf.NewLogger(logf.WithThreshold(verbosity))
+	logf.SetLogger(log)
+	ctrl.SetLogger(log)
 }
 
 func registerCompletionFuncForCommonFlags() {
@@ -180,6 +190,39 @@ func registerCompletionFuncForCommonFlags() {
 			}
 		}
 	})
+}
+
+func handlePlugins() {
+	args := os.Args
+	pluginHandler := kubectlcmd.NewDefaultPluginHandler([]string{"clusterctl"})
+	if len(args) > 1 {
+		cmdPathPieces := args[1:]
+
+		// only look for suitable extension executables if
+		// the specified command does not already exist
+		if _, _, err := RootCmd.Find(cmdPathPieces); err != nil {
+			// Also check the commands that will be added by Cobra.
+			// These commands are only added once rootCmd.Execute() is called, so we
+			// need to check them explicitly here.
+			var cmdName string // first "non-flag" arguments
+			for _, arg := range cmdPathPieces {
+				if !strings.HasPrefix(arg, "-") {
+					cmdName = arg
+					break
+				}
+			}
+
+			switch cmdName {
+			case "help", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
+				// Don't search for a plugin
+			default:
+				if err := kubectlcmd.HandlePluginCommand(pluginHandler, cmdPathPieces, false); err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
+			}
+		}
+	}
 }
 
 const indentation = `  `

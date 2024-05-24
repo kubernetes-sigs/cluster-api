@@ -21,16 +21,18 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
 	MachineDeploymentRolloutSpec(ctx, func() MachineDeploymentRolloutSpecInput {
 		return MachineDeploymentRolloutSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: ptr.To("docker"),
 		}
 	})
 })

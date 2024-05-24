@@ -84,15 +84,20 @@ one of the above practices is really important for Cluster API developers
 
 - Developers MUST use `klog.KObj` or `klog.KRef` functions when logging key value pairs for Kubernetes objects, thus
   ensuring a key value pair representing a Kubernetes object is formatted consistently in all the logs.
+- Developers MUST use consistent log keys:
+  - kinds should be written in upper camel case, e.g. `MachineDeployment`, `MachineSet`
+    - Note: we cannot use lower camel case for kinds consistently because there is no way to 
+      automatically calculate the correct log key for provider CRDs like `AWSCluster`
+  - all other keys should use lower camel case, e.g. `resourceVersion`, `oldReplicas` to align to Kubernetes log conventions
 
 Please note that, in order to ensure logs can be easily searched it is important to ensure consistency for the following
 key value pairs (in order of importance):
 
-- Key value pairs identifying the object being reconciled, e.g. a Machine Deployment.
-- Key value pairs identifying the hierarchy of objects being reconciled, e.g. the Cluster a Machine Deployment belongs
+- Key value pairs identifying the object being reconciled, e.g. a MachineDeployment.
+- Key value pairs identifying the hierarchy of objects being reconciled, e.g. the Cluster a MachineDeployment belongs
   to.
 - Key value pairs identifying side effects on other objects, e.g. while reconciling a MachineDeployment, the controller 
-  creates a MachinesSet.
+  creates a MachineSet.
 - Other Key value pairs.
 
 ## Log Messages
@@ -117,7 +122,7 @@ for log levels; as a small integration on the above guidelines we would like to 
   the code; a person reading those logs usually has deep knowledge of the codebase. 
 - Don’t use verbosity higher than 5.
 
-Ideally, in a future release of Cluster API we will switch to use 2 as a default verbosity (currently it is 0) for all the Cluster API
+We are using log level 2 as a default verbosity for all core Cluster API
 controllers as recommended by the Kubernetes guidelines.
 
 ## Trade-offs
@@ -176,28 +181,28 @@ In the Log browser the following queries can be used to browse logs by controlle
 Will return logs from the `capi-controller-manager` which are parsed in json. Passing the query through the json parser allows filtering by key-value pairs that are part of nested json objects. For example `.cluster.name` becomes `cluster_name`.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster"
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster"
 ```
 Will return logs from the `capi-controller-manager` that are associated with the Cluster `my-cluster`.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster" | v <= 2
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster" | v <= 2
 ```
 Will return logs from the `capi-controller-manager` that are associated with the Cluster `my-cluster` with log level <= 2.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx"
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx"
 ```
 
 Will return logs from the `capi-controller-manager`, associated with the Cluster `my-cluster` and the Reconcile ID `6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx`. Each reconcile loop will have a unique Reconcile ID.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-ef81c5c8f9d0" controller="cluster" | line_format "{{ .msg }}"
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-ef81c5c8f9d0" controller="cluster" | line_format "{{ .msg }}"
 ```
 Will return logs from the `capi-controller-manager`, associated with the Cluster `my-cluster` and the Reconcile ID `6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx` it further selects only those logs which come from the Cluster controller. It will then format the logs so only the message is displayed.
 
 ```
-{app=~"capd-controller-manager|capi-kubeadm-bootstrap-controller-manager|capi-kubeadm-control-plane-controller-manager"} | json | cluster_name="my-cluster" machine_name="my-cluster-linux-worker-1" | line_format "{{.controller}} {{.msg}}"
+{app=~"capd-controller-manager|capi-kubeadm-bootstrap-controller-manager|capi-kubeadm-control-plane-controller-manager"} | json | Cluster_name="my-cluster" Machine_name="my-cluster-linux-worker-1" | line_format "{{.controller}} {{.msg}}"
 ```
 
 Will return the logs from four CAPI providers - the Core provider, Kubeadm Control Plane provider, Kubeadm Bootstrap provider and the Docker infrastructure provider. It filters by the cluster name and the machine name and then formats the log lines to show just the source controller and the message. This allows us to correlate logs and see actions taken by each of these four providers related to the machine `my-cluster-linux-worker-1`.

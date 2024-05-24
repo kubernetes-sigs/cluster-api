@@ -1,0 +1,45 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: default
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
+  topology:
+    class: "quick-start"
+    version: "${KUBERNETES_VERSION}"
+    controlPlane:
+      metadata: {}
+      nodeDeletionTimeout: "30s"
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    workers:
+      machineDeployments:
+        - class: "default-worker"
+          name: "md-0"
+          nodeDeletionTimeout: "30s"
+          failureDomain: fd4
+          metadata:
+            annotations:
+              cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size: "5"
+              cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size: "2"
+      machinePools:
+        - class: "default-worker"
+          name: "mp-0"
+          nodeDeletionTimeout: "30s"
+          failureDomains:
+          - fd4
+    variables:
+      - name: etcdImageTag
+        value: ""
+      - name: coreDNSImageTag
+        value: ""
+      - name: preLoadImages
+        value: ${DOCKER_PRELOAD_IMAGES:-[]}
+

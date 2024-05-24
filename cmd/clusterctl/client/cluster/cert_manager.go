@@ -21,7 +21,7 @@ import (
 	_ "embed"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -67,18 +67,18 @@ type CertManagerUpgradePlan struct {
 type CertManagerClient interface {
 	// EnsureInstalled makes sure cert-manager is running and its API is available.
 	// This is required to install a new provider.
-	EnsureInstalled() error
+	EnsureInstalled(ctx context.Context) error
 
 	// EnsureLatestVersion checks the cert-manager version currently installed, and if it is
 	// older than the version currently suggested by clusterctl, upgrades it.
-	EnsureLatestVersion() error
+	EnsureLatestVersion(ctx context.Context) error
 
 	// PlanUpgrade retruns a CertManagerUpgradePlan with information regarding
 	// a cert-manager upgrade if necessary.
-	PlanUpgrade() (CertManagerUpgradePlan, error)
+	PlanUpgrade(ctx context.Context) (CertManagerUpgradePlan, error)
 
 	// Images return the list of images required for installing the cert-manager.
-	Images() ([]string, error)
+	Images(ctx context.Context) ([]string, error)
 }
 
 // certManagerClient implements CertManagerClient .
@@ -103,9 +103,9 @@ func newCertManagerClient(configClient config.Client, repositoryClientFactory Re
 }
 
 // Images return the list of images required for installing the cert-manager.
-func (cm *certManagerClient) Images() ([]string, error) {
+func (cm *certManagerClient) Images(ctx context.Context) ([]string, error) {
 	// If cert manager already exists in the cluster, there is no need of additional images for cert-manager.
-	exists, err := cm.certManagerNamespaceExists()
+	exists, err := cm.certManagerNamespaceExists(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func (cm *certManagerClient) Images() ([]string, error) {
 		return nil, err
 	}
 
-	objs, err := cm.getManifestObjs(config)
+	objs, err := cm.getManifestObjs(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -131,10 +131,10 @@ func (cm *certManagerClient) Images() ([]string, error) {
 	return images, nil
 }
 
-func (cm *certManagerClient) certManagerNamespaceExists() (bool, error) {
+func (cm *certManagerClient) certManagerNamespaceExists(ctx context.Context) (bool, error) {
 	ns := &corev1.Namespace{}
 	key := client.ObjectKey{Name: certManagerNamespace}
-	c, err := cm.proxy.NewClient()
+	c, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -150,7 +150,7 @@ func (cm *certManagerClient) certManagerNamespaceExists() (bool, error) {
 
 // EnsureInstalled makes sure cert-manager is running and its API is available.
 // This is required to install a new provider.
-func (cm *certManagerClient) EnsureInstalled() error {
+func (cm *certManagerClient) EnsureInstalled(ctx context.Context) error {
 	log := logf.Log
 
 	// Checking if a version of cert manager supporting cert-manager-test-resources.yaml is already installed and properly working.
@@ -159,26 +159,25 @@ func (cm *certManagerClient) EnsureInstalled() error {
 		return nil
 	}
 
-	// Otherwise install cert manager.
-	// NOTE: this instance of cert-manager will have clusterctl specific annotations that will be used to
-	// manage the lifecycle of all the components.
-	return cm.install()
-}
-
-func (cm *certManagerClient) install() error {
-	log := logf.Log
-
 	config, err := cm.configClient.CertManager().Get()
 	if err != nil {
 		return err
 	}
-	log.Info("Installing cert-manager", "Version", config.Version())
-
-	// Gets the cert-manager components from the repository.
-	objs, err := cm.getManifestObjs(config)
+	objs, err := cm.getManifestObjs(ctx, config)
 	if err != nil {
 		return err
 	}
+
+	// Otherwise install cert manager.
+	// NOTE: this instance of cert-manager will have clusterctl specific annotations that will be used to
+	// manage the lifecycle of all the components.
+	return cm.install(ctx, config.Version(), objs)
+}
+
+func (cm *certManagerClient) install(ctx context.Context, version string, objs []unstructured.Unstructured) error {
+	log := logf.Log
+
+	log.Info("Installing cert-manager", "version", version)
 
 	// Install all cert-manager manifests
 	createCertManagerBackoff := newWriteBackoff()
@@ -187,8 +186,8 @@ func (cm *certManagerClient) install() error {
 		o := objs[i]
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make ensureCerts more resilient to unexpected conditions.
-		if err := retryWithExponentialBackoff(createCertManagerBackoff, func() error {
-			return cm.createObj(o)
+		if err := retryWithExponentialBackoff(ctx, createCertManagerBackoff, func(ctx context.Context) error {
+			return cm.createObj(ctx, o)
 		}); err != nil {
 			return err
 		}
@@ -198,12 +197,12 @@ func (cm *certManagerClient) install() error {
 	return cm.waitForAPIReady(ctx, true)
 }
 
-// PlanUpgrade retruns a CertManagerUpgradePlan with information regarding
+// PlanUpgrade returns a CertManagerUpgradePlan with information regarding
 // a cert-manager upgrade if necessary.
-func (cm *certManagerClient) PlanUpgrade() (CertManagerUpgradePlan, error) {
+func (cm *certManagerClient) PlanUpgrade(ctx context.Context) (CertManagerUpgradePlan, error) {
 	log := logf.Log
 
-	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
+	objs, err := cm.proxy.ListResources(ctx, map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
 	if err != nil {
 		return CertManagerUpgradePlan{}, errors.Wrap(err, "failed get cert manager components")
 	}
@@ -214,25 +213,35 @@ func (cm *certManagerClient) PlanUpgrade() (CertManagerUpgradePlan, error) {
 		return CertManagerUpgradePlan{ExternallyManaged: true}, nil
 	}
 
-	log.Info("Checking cert-manager version...")
-	currentVersion, targetVersion, shouldUpgrade, err := cm.shouldUpgrade(objs)
+	// Get the list of objects to install.
+	config, err := cm.configClient.CertManager().Get()
+	if err != nil {
+		return CertManagerUpgradePlan{}, err
+	}
+	installObjs, err := cm.getManifestObjs(ctx, config)
+	if err != nil {
+		return CertManagerUpgradePlan{}, err
+	}
+
+	log.Info("Checking if cert-manager needs upgrade...")
+	currentVersion, shouldUpgrade, err := cm.shouldUpgrade(config.Version(), objs, installObjs)
 	if err != nil {
 		return CertManagerUpgradePlan{}, err
 	}
 
 	return CertManagerUpgradePlan{
 		From:          currentVersion,
-		To:            targetVersion,
+		To:            config.Version(),
 		ShouldUpgrade: shouldUpgrade,
 	}, nil
 }
 
 // EnsureLatestVersion checks the cert-manager version currently installed, and if it is
 // older than the version currently suggested by clusterctl, upgrades it.
-func (cm *certManagerClient) EnsureLatestVersion() error {
+func (cm *certManagerClient) EnsureLatestVersion(ctx context.Context) error {
 	log := logf.Log
 
-	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
+	objs, err := cm.proxy.ListResources(ctx, map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
 	if err != nil {
 		return errors.Wrap(err, "failed get cert manager components")
 	}
@@ -243,8 +252,18 @@ func (cm *certManagerClient) EnsureLatestVersion() error {
 		return nil
 	}
 
-	log.Info("Checking cert-manager version...")
-	currentVersion, _, shouldUpgrade, err := cm.shouldUpgrade(objs)
+	// Get the list of objects to install.
+	config, err := cm.configClient.CertManager().Get()
+	if err != nil {
+		return err
+	}
+	installObjs, err := cm.getManifestObjs(ctx, config)
+	if err != nil {
+		return err
+	}
+
+	log.Info("Checking if cert-manager needs upgrade...")
+	currentVersion, shouldUpgrade, err := cm.shouldUpgrade(config.Version(), objs, installObjs)
 	if err != nil {
 		return err
 	}
@@ -256,43 +275,32 @@ func (cm *certManagerClient) EnsureLatestVersion() error {
 
 	// Migrate CRs to latest CRD storage version, if necessary.
 	// Note: We have to do this before cert-manager is deleted so conversion webhooks still work.
-	if err := cm.migrateCRDs(); err != nil {
+	if err := cm.migrateCRDs(ctx, installObjs); err != nil {
 		return err
 	}
 
 	// delete the cert-manager version currently installed (because it should be upgraded);
 	// NOTE: CRDs, and namespace are preserved in order to avoid deletion of user objects;
 	// web-hooks are preserved to avoid a user attempting to CREATE a cert-manager resource while the upgrade is in progress.
-	log.Info("Deleting cert-manager", "Version", currentVersion)
-	if err := cm.deleteObjs(objs); err != nil {
+	log.Info("Deleting cert-manager", "version", currentVersion)
+	if err := cm.deleteObjs(ctx, objs); err != nil {
 		return err
 	}
 
 	// Install cert-manager.
-	return cm.install()
+	return cm.install(ctx, config.Version(), installObjs)
 }
 
-func (cm *certManagerClient) migrateCRDs() error {
-	config, err := cm.configClient.CertManager().Get()
+func (cm *certManagerClient) migrateCRDs(ctx context.Context, installObj []unstructured.Unstructured) error {
+	c, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Gets the new cert-manager components from the repository.
-	objs, err := cm.getManifestObjs(config)
-	if err != nil {
-		return err
-	}
-
-	c, err := cm.proxy.NewClient()
-	if err != nil {
-		return err
-	}
-
-	return newCRDMigrator(c).Run(ctx, objs)
+	return NewCRDMigrator(c).Run(ctx, installObj)
 }
 
-func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error {
+func (cm *certManagerClient) deleteObjs(ctx context.Context, objs []unstructured.Unstructured) error {
 	deleteCertManagerBackoff := newWriteBackoff()
 	for i := range objs {
 		obj := objs[i]
@@ -306,8 +314,8 @@ func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error 
 			continue
 		}
 
-		if err := retryWithExponentialBackoff(deleteCertManagerBackoff, func() error {
-			if err := cm.deleteObj(obj); err != nil {
+		if err := retryWithExponentialBackoff(ctx, deleteCertManagerBackoff, func(ctx context.Context) error {
+			if err := cm.deleteObj(ctx, obj); err != nil {
 				// tolerate NotFound errors when deleting the test resources
 				if apierrors.IsNotFound(err) {
 					return nil
@@ -322,16 +330,10 @@ func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error 
 	return nil
 }
 
-func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (string, string, bool, error) {
-	config, err := cm.configClient.CertManager().Get()
-	if err != nil {
-		return "", "", false, err
-	}
-
-	desiredVersion := config.Version()
+func (cm *certManagerClient) shouldUpgrade(desiredVersion string, objs, installObjs []unstructured.Unstructured) (string, bool, error) {
 	desiredSemVersion, err := semver.ParseTolerant(desiredVersion)
 	if err != nil {
-		return "", "", false, errors.Wrapf(err, "failed to parse config version [%s] for cert-manager component", desiredVersion)
+		return "", false, errors.Wrapf(err, "failed to parse config version [%s] for cert-manager component", desiredVersion)
 	}
 
 	needUpgrade := false
@@ -358,17 +360,23 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 
 		objSemVersion, err := semver.ParseTolerant(objVersion)
 		if err != nil {
-			return "", "", false, errors.Wrapf(err, "failed to parse version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
+			return "", false, errors.Wrapf(err, "failed to parse version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
 		}
 
 		c := version.Compare(objSemVersion, desiredSemVersion, version.WithBuildTags())
 		switch {
 		case c < 0 || c == 2:
-			// if version < current or same version and different non-numeric build metadata, then upgrade
+			// The installed version is lower than the desired version or they are equal, but their metadata
+			// is different non-numerically (see version.WithBuildTags()). Upgrade is required.
 			currentVersion = objVersion
 			needUpgrade = true
-		case c >= 0:
-			// the installed version is greater than or equal to one required by clusterctl, so we are ok
+		case c == 0:
+			// The installed version is equal to the desired version. Upgrade is required only if the number
+			// of available objects and objects to install differ. This would act as a re-install.
+			currentVersion = objVersion
+			needUpgrade = len(objs) != len(installObjs)
+		case c > 0:
+			// The installed version is greater than the desired version. Upgrade is not required.
 			currentVersion = objVersion
 		}
 
@@ -376,7 +384,7 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 			break
 		}
 	}
-	return currentVersion, desiredVersion, needUpgrade, nil
+	return currentVersion, needUpgrade, nil
 }
 
 func (cm *certManagerClient) getWaitTimeout() time.Duration {
@@ -394,18 +402,18 @@ func (cm *certManagerClient) getWaitTimeout() time.Duration {
 	return timeoutDuration
 }
 
-func (cm *certManagerClient) getManifestObjs(certManagerConfig config.CertManager) ([]unstructured.Unstructured, error) {
+func (cm *certManagerClient) getManifestObjs(ctx context.Context, certManagerConfig config.CertManager) ([]unstructured.Unstructured, error) {
 	// Given that cert manager components yaml are stored in a repository like providers components yaml,
 	// we are using the same machinery to retrieve the file by using a fake provider object using
 	// the cert manager repository url.
 	certManagerFakeProvider := config.NewProvider("cert-manager", certManagerConfig.URL(), "")
-	certManagerRepository, err := cm.repositoryClientFactory(certManagerFakeProvider, cm.configClient)
+	certManagerRepository, err := cm.repositoryClientFactory(ctx, certManagerFakeProvider, cm.configClient)
 	if err != nil {
 		return nil, err
 	}
 
 	// Gets the cert-manager component yaml from the repository.
-	file, err := certManagerRepository.Components().Raw(repository.ComponentsOptions{
+	file, err := certManagerRepository.Components().Raw(ctx, repository.ComponentsOptions{
 		Version: certManagerConfig.Version(),
 	})
 	if err != nil {
@@ -468,10 +476,10 @@ func getTestResourcesManifestObjs() ([]unstructured.Unstructured, error) {
 	return objs, nil
 }
 
-func (cm *certManagerClient) createObj(obj unstructured.Unstructured) error {
+func (cm *certManagerClient) createObj(ctx context.Context, obj unstructured.Unstructured) error {
 	log := logf.Log
 
-	c, err := cm.proxy.NewClient()
+	c, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -508,11 +516,11 @@ func (cm *certManagerClient) createObj(obj unstructured.Unstructured) error {
 	return nil
 }
 
-func (cm *certManagerClient) deleteObj(obj unstructured.Unstructured) error {
+func (cm *certManagerClient) deleteObj(ctx context.Context, obj unstructured.Unstructured) error {
 	log := logf.Log
 	log.V(5).Info("Deleting", logf.UnstructuredToValues(obj)...)
 
-	cl, err := cm.proxy.NewClient()
+	cl, err := cm.proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -526,7 +534,7 @@ func (cm *certManagerClient) deleteObj(obj unstructured.Unstructured) error {
 // cert-manager API group.
 // If retry is true, the createObj call will be retried if it fails. Otherwise, the
 // 'create' operations will only be attempted once.
-func (cm *certManagerClient) waitForAPIReady(_ context.Context, retry bool) error {
+func (cm *certManagerClient) waitForAPIReady(ctx context.Context, retry bool) error {
 	log := logf.Log
 	// Waits for the cert-manager to be available.
 	if retry {
@@ -544,8 +552,8 @@ func (cm *certManagerClient) waitForAPIReady(_ context.Context, retry bool) erro
 		// Create the Kubernetes object.
 		// This is wrapped with a retry as the cert-manager API may not be available
 		// yet, so we need to keep retrying until it is.
-		if err := cm.pollImmediateWaiter(waitCertManagerInterval, cm.getWaitTimeout(), func() (bool, error) {
-			if err := cm.createObj(o); err != nil {
+		if err := cm.pollImmediateWaiter(ctx, waitCertManagerInterval, cm.getWaitTimeout(), func(ctx context.Context) (bool, error) {
+			if err := cm.createObj(ctx, o); err != nil {
 				// If retrying is disabled, return the error here.
 				if !retry {
 					return false, err
@@ -560,8 +568,8 @@ func (cm *certManagerClient) waitForAPIReady(_ context.Context, retry bool) erro
 	deleteCertManagerBackoff := newWriteBackoff()
 	for i := range testObjs {
 		obj := testObjs[i]
-		if err := retryWithExponentialBackoff(deleteCertManagerBackoff, func() error {
-			if err := cm.deleteObj(obj); err != nil {
+		if err := retryWithExponentialBackoff(ctx, deleteCertManagerBackoff, func(ctx context.Context) error {
+			if err := cm.deleteObj(ctx, obj); err != nil {
 				// tolerate NotFound errors when deleting the test resources
 				if apierrors.IsNotFound(err) {
 					return nil

@@ -216,6 +216,86 @@ func Test_Discovery(t *testing.T) {
 			},
 		},
 		{
+			name: "Discovery with MachinePool Machines with echo enabled",
+			args: args{
+				discoverOptions: DiscoverOptions{
+					Grouping: false,
+					Echo:     true,
+				},
+				objs: test.NewFakeCluster("ns1", "cluster1").
+					WithControlPlane(
+						test.NewFakeControlPlane("cp").
+							WithMachines(
+								test.NewFakeMachine("cp1"),
+							),
+					).
+					WithMachinePools(
+						test.NewFakeMachinePool("mp1").
+							WithMachines(
+								test.NewFakeMachine("mp1m1"),
+								test.NewFakeMachine("mp1m2"),
+							),
+					).
+					Objs(),
+			},
+			wantTree: map[string][]string{
+				// Cluster should be parent of InfrastructureCluster, ControlPlane, and WorkerNodes
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp",
+					"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers",
+				},
+				// InfrastructureCluster should be leaf
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {},
+				// ControlPlane should have a machine
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": {
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1",
+				},
+				// Workers should have a machine deployment
+				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
+					"cluster.x-k8s.io/v1beta1, Kind=MachinePool, ns1/mp1",
+				},
+				// Machine Pool should have a group of machines
+				"cluster.x-k8s.io/v1beta1, Kind=MachinePool, ns1/mp1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/mp1",
+					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/mp1",
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m1",
+					"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m2",
+				},
+				// Machine should have infra machine and bootstrap (echo)
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/cp1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/cp1",
+					"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/cp1",
+				},
+				// MachinePool Machine should only have infra machine
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m1": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/mp1m1",
+				},
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/mp1m2": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/mp1m2",
+				},
+			},
+			wantNodeCheck: map[string]nodeCheck{
+				// InfrastructureCluster should have a meta name
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": func(g *WithT, obj client.Object) {
+					g.Expect(GetMetaName(obj)).To(Equal("ClusterInfrastructure"))
+				},
+				// ControlPlane should have a meta name, should NOT be a grouping object
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlane, ns1/cp": func(g *WithT, obj client.Object) {
+					g.Expect(GetMetaName(obj)).To(Equal("ControlPlane"))
+					g.Expect(IsGroupingObject(obj)).To(BeFalse())
+				},
+				// Workers should be a virtual node
+				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": func(g *WithT, obj client.Object) {
+					g.Expect(IsVirtualObject(obj)).To(BeTrue())
+				},
+				// Machine pool should NOT be a grouping object
+				"cluster.x-k8s.io/v1beta1, Kind=MachinePool, ns1/mp1": func(g *WithT, obj client.Object) {
+					g.Expect(IsGroupingObject(obj)).To(BeFalse())
+				},
+			},
+		},
+		{
 			name: "Discovery with grouping and no-echo disabled",
 			args: args{
 				discoverOptions: DiscoverOptions{
@@ -397,6 +477,17 @@ func Test_Discovery(t *testing.T) {
 								test.NewFakeInfrastructureTemplate("md1"),
 							),
 					).
+					WithMachineDeployments(
+						test.NewFakeMachineDeployment("md2").
+							WithStaticBootstrapConfig().
+							WithMachineSets(
+								test.NewFakeMachineSet("ms2").
+									WithMachines(
+										test.NewFakeMachine("m3"),
+										test.NewFakeMachine("m4"),
+									),
+							),
+					).
 					Objs(),
 			},
 			wantTree: map[string][]string{
@@ -418,6 +509,7 @@ func Test_Discovery(t *testing.T) {
 				// Workers should have a machine deployment
 				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
 					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2",
 				},
 				// Machine deployment should have a group of machines (grouping) and templates group
 				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
@@ -433,6 +525,17 @@ func Test_Discovery(t *testing.T) {
 				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
 				// MachineDeployment BootstrapConfigRef should be a leaf
 				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
+				// Machine deployment should have a group of machines (grouping) and templates group
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2": {
+					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
+					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2",
+				},
+				// MachineDeployment TemplateGroup using static bootstrap will only have InfrastructureRef
+				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2",
+				},
+				// MachineDeployment InfrastructureRef should be a leaf
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2": {},
 				// ControlPlane TemplateGroup should have a InfrastructureRef
 				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp": {
 					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp",
@@ -738,7 +841,7 @@ func Test_Discovery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			client, err := test.NewFakeProxy().WithObjs(tt.args.objs...).NewClient()
+			client, err := test.NewFakeProxy().WithObjs(tt.args.objs...).NewClient(context.Background())
 			g.Expect(client).ToNot(BeNil())
 			g.Expect(err).ToNot(HaveOccurred())
 

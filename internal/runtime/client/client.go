@@ -40,7 +40,7 @@ import (
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/transport"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -154,10 +154,14 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 	modifiedExtensionConfig.Status.Handlers = []runtimev1.ExtensionHandler{}
 
 	for _, handler := range response.Handlers {
+		handlerName, err := NameForHandler(handler, extensionConfig)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
+		}
 		modifiedExtensionConfig.Status.Handlers = append(
 			modifiedExtensionConfig.Status.Handlers,
 			runtimev1.ExtensionHandler{
-				Name: handler.Name + "." + extensionConfig.Name, // Uniquely identifies a handler of an Extension.
+				Name: handlerName, // Uniquely identifies a handler of an Extension.
 				RequestHook: runtimev1.GroupVersionHook{
 					APIVersion: handler.RequestHook.APIVersion,
 					Hook:       handler.RequestHook.Hook,
@@ -586,8 +590,8 @@ func defaultAndValidateDiscoveryResponse(cat *runtimecatalog.Catalog, discovery 
 		}
 		names[handler.Name] = true
 
-		// Name should match Kubernetes naming conventions - validated based on Kubernetes DNS1123 Subdomain rules.
-		if errStrings := validation.IsDNS1123Subdomain(handler.Name); len(errStrings) > 0 {
+		// Name should match Kubernetes naming conventions - validated based on DNS1123 label rules.
+		if errStrings := validation.IsDNS1123Label(handler.Name); len(errStrings) > 0 {
 			errs = append(errs, errors.Errorf("handler name %s is not valid: %s", handler.Name, errStrings))
 		}
 
@@ -627,7 +631,7 @@ func defaultDiscoveryResponse(discovery *runtimehooksv1.DiscoveryResponse) *runt
 
 		// If TimeoutSeconds is not defined set to 10.
 		if handler.TimeoutSeconds == nil {
-			handler.TimeoutSeconds = pointer.Int32(runtimehooksv1.DefaultHandlersTimeoutSeconds)
+			handler.TimeoutSeconds = ptr.To[int32](runtimehooksv1.DefaultHandlersTimeoutSeconds)
 		}
 
 		discovery.Handlers[i] = handler
@@ -654,4 +658,21 @@ func (c *client) matchNamespace(ctx context.Context, selector labels.Selector, n
 	}
 
 	return selector.Matches(labels.Set(ns.GetLabels())), nil
+}
+
+// NameForHandler constructs a canonical name for a registered runtime extension handler.
+func NameForHandler(handler runtimehooksv1.ExtensionHandler, extensionConfig *runtimev1.ExtensionConfig) (string, error) {
+	if extensionConfig == nil {
+		return "", errors.New("extensionConfig was nil")
+	}
+	return handler.Name + "." + extensionConfig.Name, nil
+}
+
+// ExtensionNameFromHandlerName extracts the extension name from the canonical name of a registered runtime extension handler.
+func ExtensionNameFromHandlerName(registeredHandlerName string) (string, error) {
+	parts := strings.Split(registeredHandlerName, ".")
+	if len(parts) != 2 {
+		return "", errors.Errorf("registered handler name %s was not in the expected format (`HANDLER_NAME.EXTENSION_NAME)", registeredHandlerName)
+	}
+	return parts[1], nil
 }

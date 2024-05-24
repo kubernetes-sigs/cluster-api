@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -37,6 +38,7 @@ import (
 )
 
 const clusterTopologyNameKey = "cluster.spec.topology.class"
+const clusterResourceSetBindingClusterNameKey = "clusterresourcesetbinding.spec.clustername"
 
 type empty struct{}
 
@@ -90,6 +92,10 @@ type node struct {
 	// E.g. for the cluster object we capture information to see if the cluster uses a manged topology
 	// and the cluster class used.
 	additionalInfo map[string]interface{}
+
+	// blockingMove is true when the object should prevent a move operation from proceeding as indicated by
+	// the presence of the block-move annotation.
+	blockingMove bool
 }
 
 type discoveryTypeInfo struct {
@@ -146,6 +152,17 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 		}
 	}
 
+	// If the node is a ClusterResourceSetBinding capture the name of the cluster it is referencing to.
+	if n.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
+		binding := &addonsv1.ClusterResourceSetBinding{}
+		if err := localScheme.Convert(obj, binding, nil); err != nil {
+			return errors.Wrapf(err, "failed to convert object %s to ClusterResourceSetBinding", n.identityStr())
+		}
+		if n.additionalInfo == nil {
+			n.additionalInfo = map[string]interface{}{}
+		}
+		n.additionalInfo[clusterResourceSetBindingClusterNameKey] = binding.Spec.ClusterName
+	}
 	return nil
 }
 
@@ -307,15 +324,17 @@ func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
 			n.isGlobal = true
 		}
 	}
+
+	_, n.blockingMove = obj.GetAnnotations()[clusterctlv1.BlockMoveAnnotation]
 }
 
 // getDiscoveryTypes returns the list of TypeMeta to be considered for the move discovery phase.
 // This list includes all the types defines by the CRDs installed by clusterctl and the ConfigMap/Secret core types.
-func (o *objectGraph) getDiscoveryTypes() error {
+func (o *objectGraph) getDiscoveryTypes(ctx context.Context) error {
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	getDiscoveryTypesBackoff := newReadBackoff()
-	if err := retryWithExponentialBackoff(getDiscoveryTypesBackoff, func() error {
-		return getCRDList(o.proxy, crdList)
+	if err := retryWithExponentialBackoff(ctx, getDiscoveryTypesBackoff, func(ctx context.Context) error {
+		return getCRDList(ctx, o.proxy, crdList)
 	}); err != nil {
 		return err
 	}
@@ -385,8 +404,8 @@ func getKindAPIString(typeMeta metav1.TypeMeta) string {
 	return fmt.Sprintf("%ss.%s", strings.ToLower(typeMeta.Kind), api)
 }
 
-func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionList) error {
-	c, err := proxy.NewClient()
+func getCRDList(ctx context.Context, proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionList) error {
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -399,7 +418,7 @@ func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionLi
 
 // Discovery reads all the Kubernetes objects existing in a namespace (or in all namespaces if empty) for the types received in input, and then adds
 // everything to the objects graph.
-func (o *objectGraph) Discovery(namespace string) error {
+func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 	log := logf.Log
 	log.Info("Discovering Cluster API objects")
 
@@ -413,15 +432,15 @@ func (o *objectGraph) Discovery(namespace string) error {
 		typeMeta := discoveryType.typeMeta
 		objList := new(unstructured.UnstructuredList)
 
-		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
-			return getObjList(o.proxy, typeMeta, selectors, objList)
+		if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
+			return getObjList(ctx, o.proxy, typeMeta, selectors, objList)
 		}); err != nil {
 			return err
 		}
 
 		// if we are discovering Secrets, also secrets from the providers namespace should be included.
-		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("SecretList").GroupKind() {
-			providers, err := o.providerInventory.List()
+		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("Secret").GroupKind() {
+			providers, err := o.providerInventory.List(ctx)
 			if err != nil {
 				return err
 			}
@@ -429,8 +448,8 @@ func (o *objectGraph) Discovery(namespace string) error {
 				if p.Type == string(clusterctlv1.InfrastructureProviderType) {
 					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
 					providerNamespaceSecretList := new(unstructured.UnstructuredList)
-					if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
-						return getObjList(o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
+					if err := retryWithExponentialBackoff(ctx, discoveryBackoff, func(ctx context.Context) error {
+						return getObjList(ctx, o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
 					}); err != nil {
 						return err
 					}
@@ -443,7 +462,7 @@ func (o *objectGraph) Discovery(namespace string) error {
 			continue
 		}
 
-		log.V(5).Info(typeMeta.Kind, "Count", len(objList.Items))
+		log.V(5).Info(typeMeta.Kind, "count", len(objList.Items))
 		for i := range objList.Items {
 			obj := objList.Items[i]
 			if err := o.addObj(&obj); err != nil {
@@ -452,7 +471,7 @@ func (o *objectGraph) Discovery(namespace string) error {
 		}
 	}
 
-	log.V(1).Info("Total objects", "Count", len(o.uidToNode))
+	log.V(1).Info("Total objects", "count", len(o.uidToNode))
 
 	// Completes the graph by searching for soft ownership relations such as secrets linked to the cluster
 	// by a naming convention (without any explicit OwnerReference).
@@ -464,8 +483,8 @@ func (o *objectGraph) Discovery(namespace string) error {
 	return nil
 }
 
-func getObjList(proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
-	c, err := proxy.NewClient()
+func getObjList(ctx context.Context, proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
+	c, err := proxy.NewClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -502,6 +521,17 @@ func (o *objectGraph) getClusterClasses() []*node {
 		}
 	}
 	return clusterClasses
+}
+
+// getClusterResourceSetBinding returns the list of ClusterResourceSetBinding existing in the object graph.
+func (o *objectGraph) getClusterResourceSetBinding() []*node {
+	crs := []*node{}
+	for _, node := range o.uidToNode {
+		if node.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
+			crs = append(crs, node)
+		}
+	}
+	return crs
 }
 
 // getClusters returns the list of Secrets existing in the object graph.
@@ -588,12 +618,27 @@ func (o *objectGraph) setSoftOwnership() {
 	// Cluster that uses a ClusterClass are soft owned by that ClusterClass.
 	for _, clusterClass := range clusterClasses {
 		for _, cluster := range clusters {
-			// if the cluster uses a managed topoloy and uses the clusterclass
+			// if the cluster uses a managed topology and uses the clusterclass
 			// set the clusterclass as a soft owner of the cluster.
 			if className, ok := cluster.additionalInfo[clusterTopologyNameKey]; ok {
 				if className == clusterClass.identity.Name && clusterClass.identity.Namespace == cluster.identity.Namespace {
 					cluster.addSoftOwner(clusterClass)
 				}
+			}
+		}
+	}
+
+	crsBindings := o.getClusterResourceSetBinding()
+	// ClusterResourceSetBinding that refers to a Cluster are soft owned by that Cluster.
+	for _, binding := range crsBindings {
+		clusterName, ok := binding.additionalInfo[clusterResourceSetBindingClusterNameKey]
+		if !ok {
+			continue
+		}
+
+		for _, cluster := range clusters {
+			if clusterName == cluster.identity.Name && binding.identity.Namespace == cluster.identity.Namespace {
+				binding.addSoftOwner(cluster)
 			}
 		}
 	}

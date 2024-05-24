@@ -55,7 +55,7 @@ const (
 
 // TopologyClient has methods to work with ClusterClass and ManagedTopologies.
 type TopologyClient interface {
-	Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error)
+	Plan(ctx context.Context, in *TopologyPlanInput) (*TopologyPlanOutput, error)
 }
 
 // topologyClient implements TopologyClient.
@@ -106,8 +106,7 @@ type TopologyPlanOutput struct {
 
 // Plan performs a dry run execution of the topology reconciler using the given inputs.
 // It returns a summary of the changes observed during the execution.
-func (t *topologyClient) Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error) {
-	ctx := context.TODO()
+func (t *topologyClient) Plan(ctx context.Context, in *TopologyPlanInput) (*TopologyPlanOutput, error) {
 	log := logf.Log
 
 	// Make sure the inputs are valid.
@@ -121,9 +120,9 @@ func (t *topologyClient) Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error
 	// Example: This client will be used to fetch the underlying ClusterClass when the input
 	// only has a Cluster object.
 	var c client.Client
-	if err := t.proxy.CheckClusterAvailable(); err == nil {
-		if initialized, err := t.inventoryClient.CheckCAPIInstalled(); err == nil && initialized {
-			c, err = t.proxy.NewClient()
+	if err := t.proxy.CheckClusterAvailable(ctx); err == nil {
+		if initialized, err := t.inventoryClient.CheckCAPIInstalled(ctx); err == nil && initialized {
+			c, err = t.proxy.NewClient(ctx)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to create a client to the cluster")
 			}
@@ -264,7 +263,7 @@ func (t *topologyClient) validateInput(in *TopologyPlanInput) error {
 //   - Prepare cluster objects so that the state of the cluster, if modified, correctly represents
 //     the expected changes.
 func (t *topologyClient) prepareInput(ctx context.Context, in *TopologyPlanInput, apiReader client.Reader) error {
-	if err := t.setMissingNamespaces(in.TargetNamespace, in.Objs); err != nil {
+	if err := t.setMissingNamespaces(ctx, in.TargetNamespace, in.Objs); err != nil {
 		return errors.Wrap(err, "failed to set missing namespaces")
 	}
 
@@ -276,12 +275,12 @@ func (t *topologyClient) prepareInput(ctx context.Context, in *TopologyPlanInput
 
 // setMissingNamespaces sets the object to the current namespace on objects
 // that are missing the namespace field.
-func (t *topologyClient) setMissingNamespaces(currentNamespace string, objs []*unstructured.Unstructured) error {
+func (t *topologyClient) setMissingNamespaces(ctx context.Context, currentNamespace string, objs []*unstructured.Unstructured) error {
 	if currentNamespace == "" {
 		// If TargetNamespace is not provided use "default" namespace.
 		currentNamespace = metav1.NamespaceDefault
 		// If a cluster is available use the current namespace as defined in its kubeconfig.
-		if err := t.proxy.CheckClusterAvailable(); err == nil {
+		if err := t.proxy.CheckClusterAvailable(ctx); err == nil {
 			currentNamespace, err = t.proxy.CurrentNamespace()
 			if err != nil {
 				return errors.Wrap(err, "failed to get current namespace")
@@ -481,7 +480,7 @@ func (t *topologyClient) reconcileClusterClasses(ctx context.Context, inputObjec
 	// This is required as Clusters are validated based of variable definitions in the ClusterClass `.status.variables`.
 	reconciledClusterClasses := []client.Object{}
 	for _, class := range allClusterClasses {
-		reconciledClusterClass, err := reconcileClusterClass(apiReader, class, reconciliationObjects)
+		reconciledClusterClass, err := reconcileClusterClass(ctx, apiReader, class, reconciliationObjects)
 		if err != nil {
 			return nil, errors.Wrapf(err, "ClusterClass %s could not be reconciled for dry run", class.GetName())
 		}
@@ -507,7 +506,7 @@ func (t *topologyClient) reconcileClusterClasses(ctx context.Context, inputObjec
 	return reconciledClusterClasses, nil
 }
 
-func reconcileClusterClass(apiReader client.Reader, class client.Object, reconciliationObjects []client.Object) (*unstructured.Unstructured, error) {
+func reconcileClusterClass(ctx context.Context, apiReader client.Reader, class client.Object, reconciliationObjects []client.Object) (*unstructured.Unstructured, error) {
 	targetClusterClass := client.ObjectKey{Namespace: class.GetNamespace(), Name: class.GetName()}
 	reconciliationObjects = append(reconciliationObjects, class)
 
@@ -517,7 +516,6 @@ func reconcileClusterClass(apiReader client.Reader, class client.Object, reconci
 
 	clusterClassReconciler := &clusterclasscontroller.Reconciler{
 		Client:                    reconcilerClient,
-		APIReader:                 reconcilerClient,
 		UnstructuredCachingClient: reconcilerClient,
 	}
 
@@ -567,11 +565,11 @@ func (t *topologyClient) defaultAndValidateObjs(ctx context.Context, objs []*uns
 			}
 		}
 		if oldObject != nil {
-			if err := validator.ValidateUpdate(ctx, oldObject, object); err != nil {
+			if _, err := validator.ValidateUpdate(ctx, oldObject, object); err != nil {
 				return errors.Wrapf(err, "failed validation of %s %s/%s", obj.GroupVersionKind().String(), obj.GetNamespace(), obj.GetName())
 			}
 		} else {
-			if err := validator.ValidateCreate(ctx, object); err != nil {
+			if _, err := validator.ValidateCreate(ctx, object); err != nil {
 				return errors.Wrapf(err, "failed validation of %s %s/%s", obj.GroupVersionKind().String(), obj.GetNamespace(), obj.GetName())
 			}
 		}
@@ -799,6 +797,17 @@ func clusterClassUsesTemplate(cc *clusterv1.ClusterClass, templateRef *corev1.Ob
 		}
 		// Check the infrastructure ref.
 		if equalRef(mdClass.Template.Infrastructure.Ref, templateRef) {
+			return true
+		}
+	}
+
+	for _, mpClass := range cc.Spec.Workers.MachinePools {
+		// Check the bootstrap ref
+		if equalRef(mpClass.Template.Bootstrap.Ref, templateRef) {
+			return true
+		}
+		// Check the infrastructure ref.
+		if equalRef(mpClass.Template.Infrastructure.Ref, templateRef) {
 			return true
 		}
 	}

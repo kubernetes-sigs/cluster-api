@@ -12,10 +12,21 @@ If using a [provider] that does not support v1beta1 or v1alpha4 yet, please foll
 
 ## Installation
 
+There are two major quickstart paths:  Using clusterctl or the Cluster API Operator.
+
+ This article describes a path that uses the `clusterctl` CLI tool to handle the lifecycle of a Cluster API [management cluster](https://cluster-api.sigs.k8s.io/reference/glossary#management-cluster).
+
+The clusterctl command line interface is specifically designed for providing a simple “day 1 experience” and a quick start with Cluster API. It automates fetching the YAML files defining [provider components](https://cluster-api.sigs.k8s.io/reference/glossary#provider-components) and installing them.
+
+Additionally it encodes a set of best practices in managing providers, that helps the user in avoiding mis-configurations or in managing day 2 operations such as upgrades.
+
+The Cluster API Operator is a Kubernetes Operator built on top of clusterctl and designed to empower cluster administrators to handle the lifecycle of Cluster API providers within a management cluster using a declarative approach. It aims to improve user experience in deploying and managing Cluster API, making it easier to handle day-to-day tasks and automate workflows with GitOps. Visit the [CAPI Operator quickstart] if you want to experiment with this tool.
+
 ### Common Prerequisites
 
 - Install and setup [kubectl] in your local environment
 - Install [kind] and [Docker]
+- Install [Helm]
 
 ### Install and/or configure a Kubernetes cluster
 
@@ -45,7 +56,7 @@ a target [management cluster] on the selected [infrastructure provider].
 
    [kind] is not designed for production use.
 
-   **Minimum [kind] supported version**: v0.17.0
+   **Minimum [kind] supported version**: v0.23.0
 
    **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
 
@@ -82,6 +93,8 @@ a target [management cluster] on the selected [infrastructure provider].
    cat > kind-cluster-with-extramounts.yaml <<EOF
    kind: Cluster
    apiVersion: kind.x-k8s.io/v1alpha4
+   networking:
+     ipFamily: dual
    nodes:
    - role: control-plane
      extraMounts:
@@ -158,17 +171,17 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.3.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.7.x"}} -o clusterctl
 ```
 
 Download for ARM64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.3.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.7.x"}} -o clusterctl
 ```
 
 Download for PPC64LE:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.3.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.7.x"}} -o clusterctl
 ```
 
 Install clusterctl:
@@ -188,12 +201,12 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.3.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.7.x"}} -o clusterctl
 ```
 
 Download for M1 CPU ("Apple Silicon") / ARM64:
 ```bash
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.3.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.7.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.
@@ -232,7 +245,7 @@ Go to the working directory where you want clusterctl downloaded.
 
 Download the latest release; on Windows, type:
 ```powershell
-curl.exe -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.3.x"}} -o clusterctl.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.7.x"}} -o clusterctl.exe
 ```
 Append or prepend the path of that directory to the `PATH` environment variable.
 
@@ -268,7 +281,16 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
+{{#tab Akamai (Linode)}}
+
+```bash
+export LINODE_TOKEN=<your-access-token>
+
+# Initialize the management cluster
+clusterctl init --infrastructure linode-linode
+```
+{{#/tab }}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases]. The [clusterawsadm] command line utility assists with identity and access management (IAM) for [Cluster API Provider AWS][capa].
@@ -278,7 +300,7 @@ Download the latest binary of `clusterawsadm` from the [AWS provider releases]. 
 
 Download the latest release; on Linux, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:">=2.0.0"}} -o clusterawsadm
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api-provider-aws" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
 Make it executable
@@ -322,12 +344,12 @@ clusterctl init --infrastructure aws
 
 Download the latest release; on macOs, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=2.0.0"}} -o clusterawsadm
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api-provider-aws" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
 Or if your Mac has an M1 CPU (”Apple Silicon”):
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=2.0.0"}} -o clusterawsadm
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api-provider-aws" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
 Make it executable
@@ -404,7 +426,7 @@ clusterctl init --infrastructure aws
 
 Download the latest release; on Windows, type:
 ```
-curl.exe -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-windows-amd64" version:">=2.0.0"}} -o clusterawsadm.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api-provider-aws" gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-windows-amd64.exe" version:">=2.0.0"}} -o clusterawsadm.exe
 ```
 
 Append or prepend the path of that directory to the `PATH` environment variable.
@@ -517,8 +539,8 @@ The Docker provider is not designed for production use and is intended for devel
 
 </aside>
 
-The Docker provider requires the `ClusterTopology` feature to deploy ClusterClass-based clusters. We are
-only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to
+The Docker provider requires the `ClusterTopology` and `MachinePool` features to deploy ClusterClass-based clusters.
+We are only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to
 adapt configuration based on Kubernetes version. This is required to install Kubernetes clusters < v1.24 and
 for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers depending on Kubernetes version.
 
@@ -536,7 +558,7 @@ clusterctl init --infrastructure docker
 In order to initialize the Equinix Metal Provider (formerly Packet) you have to expose the environment
 variable `PACKET_API_KEY`. This variable is used to authorize the infrastructure
 provider manager against the Equinix Metal API. You can retrieve your token directly
-from the [Equinix Metal Console](https://console.equinix.com/).
+from the Equinix Metal Console.
 
 ```bash
 export PACKET_API_KEY="34ts3g4s5g45gd45dhdh"
@@ -563,6 +585,11 @@ clusterctl init --infrastructure gcp
 Please visit the [Hetzner project][Hetzner provider].
 
 {{#/tab }}
+{{#tab Hivelocity}}
+
+Please visit the [Hivelocity project][Hivelocity provider].
+
+{{#/tab }}
 {{#tab IBM Cloud}}
 
 In order to initialize the IBM Cloud Provider you have to expose the environment
@@ -574,6 +601,14 @@ export IBMCLOUD_API_KEY=<you_api_key>
 
 # Finally, initialize the management cluster
 clusterctl init --infrastructure ibmcloud
+```
+
+{{#/tab }}
+{{#tab K0smotron}}
+
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure k0sproject-k0smotron
 ```
 
 {{#/tab }}
@@ -682,11 +717,41 @@ clusterctl init --infrastructure outscale
 
 {{#/tab }}
 
+{{#tab Proxmox}}
+
+First, we need to add the IPAM provider to your [clusterctl config file](../clusterctl/configuration.md) (`$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`):
+
+```yaml
+providers:
+  - name: in-cluster
+    url: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml
+    type: IPAMProvider
+```
+
+```bash
+# The host for the Proxmox cluster
+export PROXMOX_URL="https://pve.example:8006"
+# The Proxmox token ID to access the remote Proxmox endpoint
+export PROXMOX_TOKEN='root@pam!capi'
+# The secret associated with the token ID
+# You may want to set this in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml` so your password is not in
+# bash history
+export PROXMOX_SECRET="1234-1234-1234-1234"
+
+
+# Finally, initialize the management cluster
+clusterctl init --infrastructure proxmox --ipam in-cluster
+```
+
+For more information about the CAPI provider for Proxmox, see the [Proxmox
+project][Proxmox getting started guide].
+
+{{#/tab }}
+
 {{#tab VCD}}
 
 Please follow the Cluster API Provider for [Cloud Director Getting Started Guide](https://github.com/vmware/cluster-api-provider-cloud-director/blob/main/README.md)
 
-EXP_CLUSTER_RESOURCE_SET: "true"
 ```bash
 # Initialize the management cluster
 clusterctl init --infrastructure vcd
@@ -716,7 +781,7 @@ clusterctl init --infrastructure virtink
 # The username used to access the remote vSphere endpoint
 export VSPHERE_USERNAME="vi-admin@vsphere.local"
 # The password used to access the remote vSphere endpoint
-# You may want to set this in ~/.cluster-api/clusterctl.yaml so your password is not in
+# You may want to set this in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml` so your password is not in
 # bash history
 export VSPHERE_PASSWORD="admin!23"
 
@@ -753,7 +818,7 @@ You can now create your first workload cluster by running the following:
 <h1>Alternatives to environment variables</h1>
 
 Throughout this quickstart guide we've given instructions on setting parameters using environment variables. For most
-environment variables in the rest of the guide, you can also set them in ~/.cluster-api/clusterctl.yaml
+environment variables in the rest of the guide, you can also set them in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`
 
 See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
 
@@ -796,7 +861,19 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
+{{#tab Akamai (Linode)}}
+
+```bash
+export LINODE_REGION=us-ord
+export LINODE_TOKEN=<your linode PAT>
+export LINODE_CONTROL_PLANE_MACHINE_TYPE=g6-standard-2
+export LINODE_MACHINE_TYPE=g6-standard-2
+```
+
+See the [Akamai (Linode) provider] for more information.
+
+{{#/tab }}
 {{#tab AWS}}
 
 ```bash
@@ -925,8 +1002,8 @@ are also a few optional tunables if you'd like to change the OS or CIDRs used.
 # The project where your cluster will be placed to.
 # You have to get one from the Equinix Metal Console if you don't have one already.
 export PROJECT_ID="2b59569f-10d1-49a6-a000-c2fb95a959a1"
-# The facility where you want your cluster to be provisioned
-export FACILITY="da11"
+# This can help to take advantage of automated, interconnected bare metal across our global metros.
+export METRO="da"
 # What plan to use for your control plane nodes
 export CONTROLPLANE_NODE_TYPE="m3.small.x86"
 # What plan to use for your worker nodes
@@ -994,6 +1071,11 @@ export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
 ```
 
 Please visit the [IBM Cloud provider] for more information.
+
+{{#/tab }}
+{{#tab K0smotron}}
+
+Please visit the [K0smotron provider] for more information.
 
 {{#/tab }}
 {{#tab KubeKey}}
@@ -1129,6 +1211,45 @@ export OSC_IMAGE_NAME="<IMAGE_NAME>"
 ```
 
 {{#/tab }}
+{{#tab Proxmox}}
+
+A ClusterAPI compatible image must be available in your Proxmox cluster. For instructions on how to build a compatible VM template
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+```bash
+# The node that hosts the VM template to be used to provision VMs
+export PROXMOX_SOURCENODE="pve"
+# The template VM ID used for cloning VMs
+export TEMPLATE_VMID=100
+# The ssh authorized keys used to ssh to the machines.
+export VM_SSH_KEYS="ssh-ed25519 ..., ssh-ed25519 ..."
+# The IP address used for the control plane endpoint
+export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
+# The IP ranges for Cluster nodes
+export NODE_IP_RANGES="[10.10.10.5-10.10.10.50, 10.10.10.55-10.10.10.70]"
+# The gateway for the machines network-config.
+export GATEWAY="10.10.10.1"
+# Subnet Mask in CIDR notation for your node IP ranges
+export IP_PREFIX=24
+# The Proxmox network device for VMs
+export BRIDGE="vmbr1"
+# The dns nameservers for the machines network-config.
+export DNS_SERVERS="[8.8.8.8,8.8.4.4]"
+# The Proxmox nodes used for VM deployments
+export ALLOWED_NODES="[pve1,pve2,pve3]"
+```
+
+For more information about prerequisites and advanced setups for Proxmox, see the [Proxmox getting started guide].
+
+{{#/tab }}
+{{#tab Tinkerbell}}
+
+```bash
+export TINKERBELL_IP=<hegel ip>
+```
+For more information please visit [Tinkerbell getting started guide].
+
+{{#/tab }}
 {{#tab VCD}}
 
 A ClusterAPI compatible image must be available in your VCD catalog. For instructions on how to build and upload a compatible image
@@ -1201,7 +1322,7 @@ For more information about prerequisites, credentials management, or permissions
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, others..."}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Other providers..."}}
 {{#tab Docker}}
 
 <aside class="note warning">
@@ -1214,7 +1335,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.26.0 \
+  --kubernetes-version v1.30.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1226,7 +1347,7 @@ clusterctl generate cluster capi-quickstart --flavor development \
 ```bash
 export CLUSTER_NAME=kind
 export CLUSTER_NAMESPACE=vcluster
-export KUBERNETES_VERSION=1.26.0
+export KUBERNETES_VERSION=1.28.0
 export HELM_VALUES="service:\n  type: NodePort"
 
 kubectl create namespace ${CLUSTER_NAMESPACE}
@@ -1253,11 +1374,11 @@ clusterctl generate cluster capi-quickstart \
 ```
 
 {{#/tab }}
-{{#tab others...}}
+{{#tab Other providers...}}
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.26.0 \
+  --kubernetes-version v1.30.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1307,6 +1428,13 @@ You can also get an "at glance" view of the cluster and its resources by running
 clusterctl describe cluster capi-quickstart
 ```
 
+and see an output similar to this:
+
+```bash
+NAME              PHASE         AGE   VERSION
+capi-quickstart   Provisioned   8s    v1.30.0
+```
+
 To verify the first control plane is up:
 
 ```bash
@@ -1317,7 +1445,7 @@ You should see an output is similar to this:
 
 ```bash
 NAME                    CLUSTER           INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE    VERSION
-capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.26.0
+capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.30.0
 ```
 
 <aside class="note warning">
@@ -1357,18 +1485,71 @@ Note: To use the default clusterctl method to retrieve kubeconfig for a workload
 {{#/tab }}
 {{#/tabs }}
 
+### Install a Cloud Provider
+
+The Kubernetes in-tree cloud provider implementations are being [removed](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cloud-provider/2395-removing-in-tree-cloud-providers) in favor of external cloud providers (also referred to as "out-of-tree"). This requires deploying a new component called the cloud-controller-manager which is responsible for running all the cloud specific controllers that were previously run in the kube-controller-manager. To learn more, see [this blog post](https://kubernetes.io/blog/2019/04/17/the-future-of-cloud-providers-in-kubernetes/).
+
+{{#tabs name:"tab-install-cloud-provider" tabs:"Azure,OpenStack"}}
+{{#tab Azure}}
+
+Install the official cloud-provider-azure Helm chart on the workload cluster:
+
+```bash
+helm install --kubeconfig=./capi-quickstart.kubeconfig --repo https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo cloud-provider-azure --generate-name --set infra.clusterName=capi-quickstart --set cloudControllerManager.clusterCIDR="192.168.0.0/16"
+```
+
+For more information, see the [CAPZ book](https://capz.sigs.k8s.io/topics/addons.html).
+
+{{#/tab }}
+{{#tab OpenStack}}
+
+Before deploying the OpenStack external cloud provider, configure the `cloud.conf` file for integration with your OpenStack environment:
+
+```bash
+cat > cloud.conf <<EOF
+[Global]
+auth-url=<your_auth_url>
+application-credential-id=<your_credential_id>
+application-credential-secret=<your_credential_secret>
+region=<your_region>
+domain-name=<your_domain_name>
+EOF
+```
+
+For more detailed information on configuring the `cloud.conf` file, see the [OpenStack Cloud Controller Manager documentation](https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/openstack-cloud-controller-manager/using-openstack-cloud-controller-manager.md#config-openstack-cloud-controller-manager).
+
+Next, create a Kubernetes secret using this configuration to securely store your cloud environment details.
+You can create this secret for example with:
+
+```bash
+kubectl -n kube-system create secret generic cloud-config --from-file=cloud.conf
+```
+
+Now, you are ready to deploy the external cloud provider!
+
+```bash
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-roles.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-role-bindings.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/openstack-cloud-controller-manager-ds.yaml
+```
+
+Alternatively, refer to the [helm chart](https://github.com/kubernetes/cloud-provider-openstack/tree/master/charts/openstack-cloud-controller-manager).
+
+{{#/tab }}
+{{#/tabs }}
+
 ### Deploy a CNI solution
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"Azure,vcluster,KubeVirt,others..."}}
+{{#tabs name:"tab-deploy-cni" tabs:"Azure,vcluster,KubeVirt,Other providers..."}}
 {{#tab Azure}}
 
-Azure [does not currently support Calico networking](https://docs.projectcalico.org/reference/public-cloud/azure). As a workaround, it is recommended that Azure clusters use the Calico spec below that uses VXLAN.
+Install the official Calico Helm chart on the workload cluster:
 
 ```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/main/templates/addons/calico.yaml
+helm repo add projectcalico https://docs.tigera.io/calico/charts --kubeconfig=./capi-quickstart.kubeconfig && \
+helm install calico projectcalico/tigera-operator --kubeconfig=./capi-quickstart.kubeconfig -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/main/templates/addons/calico/values.yaml --namespace tigera-operator --create-namespace
 ```
 
 After a short while, our nodes should be running and in `Ready` state,
@@ -1504,11 +1685,11 @@ kube-scheduler-capi-quickstart-control-plane-kjjbb            1/1     Running   
 </aside>
 
 {{#/tab }}
-{{#tab others...}}
+{{#tab Other providers...}}
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml
+  apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
 ```
 
 After a short while, our nodes should be running and in `Ready` state,
@@ -1518,13 +1699,13 @@ let's check the status using `kubectl get nodes`:
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
 ```bash
-NAME                                          STATUS   ROLES           AGE   VERSION
-capi-quickstart-g2trk-9xrjv                   Ready    control-plane   12m   v1.26.0
-capi-quickstart-g2trk-bmm9v                   Ready    control-plane   11m   v1.26.0
-capi-quickstart-g2trk-hvs9q                   Ready    control-plane   13m   v1.26.0
-capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          12m   v1.26.0
-capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          12m   v1.26.0
-capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          12m   v1.26.0
+NAME                                          STATUS   ROLES           AGE    VERSION
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.30.0
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.30.0
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.30.0
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.30.0
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.30.0
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.30.0
 ```
 
 {{#/tab }}
@@ -1548,10 +1729,13 @@ kind delete cluster
 
 ## Next steps
 
-See the [clusterctl] documentation for more detail about clusterctl supported actions.
+- Create a second workload cluster. Simply follow the steps outlined above, but remember to provide a different name for your second workload cluster.
+- Deploy applications to your workload cluster. Use the [CNI deployment steps](#deploy-a-cni-solution) for pointers.
+- See the [clusterctl] documentation for more detail about clusterctl supported actions.
 
 <!-- links -->
 [Experimental Features]: ../tasks/experimental-features/experimental-features.md
+[Akamai (Linode) provider]: https://linode.github.io/cluster-api-provider-linode/introduction.html
 [AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
 [Azure Provider Prerequisites]: https://capz.sigs.k8s.io/topics/getting-started.html#prerequisites
@@ -1563,8 +1747,10 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [clusterctl get kubeconfig]: ../clusterctl/commands/get-kubeconfig.md
 [clusterctl]: ../clusterctl/overview.md
 [Docker]: https://www.docker.com/
-[GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+[GCP provider]: https://cluster-api-gcp.sigs.k8s.io/
+[Helm]: https://helm.sh/docs/intro/install/
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
+[Hivelocity provider]: https://github.com/hivelocity/cluster-api-provider-hivelocity
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [kind]: https://kind.sigs.k8s.io/
@@ -1573,6 +1759,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[K0smotron provider]: https://github.com/k0sproject/k0smotron
 [KubeKey provider]: https://github.com/kubesphere/kubekey
 [KubeVirt provider]: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/
 [KubeVirt]: https://kubevirt.io/
@@ -1582,3 +1769,6 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [provider components]: ../reference/glossary.md#provider-components
 [vSphere getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/blob/master/docs/getting_started.md
 [workload cluster]: ../reference/glossary.md#workload-cluster
+[CAPI Operator quickstart]: ./quick-start-operator.md
+[Proxmox getting started guide]: https://github.com/ionos-cloud/cluster-api-provider-proxmox/blob/main/docs/Usage.md
+[Tinkerbell getting started guide]: https://github.com/tinkerbell/cluster-api-provider-tinkerbell/blob/main/docs/QUICK-START.md

@@ -20,15 +20,20 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
+var (
+	ctx = ctrl.SetupSignalHandler()
+)
+
 func TestNewFailureDomainPicker(t *testing.T) {
-	a := pointer.String("us-west-1a")
-	b := pointer.String("us-west-1b")
+	a := ptr.To("us-west-1a")
+	b := ptr.To("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
 		*a: clusterv1.FailureDomainSpec{},
@@ -87,7 +92,7 @@ func TestNewFailureDomainPicker(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fd := PickFewest(tc.fds, tc.machines)
+			fd := PickFewest(ctx, tc.fds, tc.machines)
 			if tc.expected == nil {
 				g.Expect(fd).To(BeNil())
 			} else {
@@ -98,8 +103,8 @@ func TestNewFailureDomainPicker(t *testing.T) {
 }
 
 func TestNewFailureDomainPickMost(t *testing.T) {
-	a := pointer.String("us-west-1a")
-	b := pointer.String("us-west-1b")
+	a := ptr.To("us-west-1a")
+	b := ptr.To("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
 		*a: clusterv1.FailureDomainSpec{ControlPlane: true},
@@ -167,7 +172,7 @@ func TestNewFailureDomainPickMost(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fd := PickMost(tc.fds, tc.machines, tc.machines)
+			fd := PickMost(ctx, tc.fds, tc.machines, tc.machines)
 			if tc.expected == nil {
 				g.Expect(fd).To(BeNil())
 			} else {

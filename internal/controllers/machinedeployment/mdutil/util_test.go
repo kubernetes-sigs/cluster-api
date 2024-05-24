@@ -30,32 +30,36 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/klog/v2/klogr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func newDControllerRef(d *clusterv1.MachineDeployment) *metav1.OwnerReference {
+var (
+	ctx = ctrl.SetupSignalHandler()
+)
+
+func newDControllerRef(md *clusterv1.MachineDeployment) *metav1.OwnerReference {
 	isController := true
 	return &metav1.OwnerReference{
 		APIVersion: "clusters/v1alpha",
 		Kind:       "MachineDeployment",
-		Name:       d.GetName(),
-		UID:        d.GetUID(),
+		Name:       md.GetName(),
+		UID:        md.GetUID(),
 		Controller: &isController,
 	}
 }
 
 // generateMS creates a machine set, with the input deployment's template as its template.
-func generateMS(deployment clusterv1.MachineDeployment) clusterv1.MachineSet {
-	template := deployment.Spec.Template.DeepCopy()
+func generateMS(md clusterv1.MachineDeployment) clusterv1.MachineSet {
+	template := md.Spec.Template.DeepCopy()
 	return clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			UID:             randomUID(),
 			Name:            names.SimpleNameGenerator.GenerateName("machineset"),
 			Labels:          template.Labels,
-			OwnerReferences: []metav1.OwnerReference{*newDControllerRef(&deployment)},
+			OwnerReferences: []metav1.OwnerReference{*newDControllerRef(&md)},
 		},
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: new(int32),
@@ -78,7 +82,7 @@ func generateDeployment(image string) clusterv1.MachineDeployment {
 			Annotations: make(map[string]string),
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			Replicas: pointer.Int32(3),
+			Replicas: ptr.To[int32](3),
 			Selector: metav1.LabelSelector{MatchLabels: machineLabels},
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
@@ -101,7 +105,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 			Name:              "ms-a",
 		},
 		Spec: clusterv1.MachineSetSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 		},
 	}
 
@@ -111,7 +115,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 			Name:              "ms-aa",
 		},
 		Spec: clusterv1.MachineSetSpec{
-			Replicas: pointer.Int32(3),
+			Replicas: ptr.To[int32](3),
 		},
 	}
 
@@ -121,7 +125,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 			Name:              "ms-b",
 		},
 		Spec: clusterv1.MachineSetSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 		},
 	}
 
@@ -131,7 +135,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 			Name:              "ms-a",
 		},
 		Spec: clusterv1.MachineSetSpec{
-			Replicas: pointer.Int32(1),
+			Replicas: ptr.To[int32](1),
 		},
 	}
 
@@ -162,7 +166,7 @@ func TestMachineSetsByDecreasingReplicas(t *testing.T) {
 			// sort the machine sets and verify the sorted list
 			g := NewWithT(t)
 			sort.Sort(MachineSetsByDecreasingReplicas(tt.machineSets))
-			g.Expect(tt.machineSets).To(Equal(tt.want))
+			g.Expect(tt.machineSets).To(BeComparableTo(tt.want))
 		})
 	}
 }
@@ -304,12 +308,19 @@ func TestEqualMachineTemplate(t *testing.T) {
 }
 
 func TestFindNewMachineSet(t *testing.T) {
+	twoBeforeRolloutAfter := metav1.Now()
+	oneBeforeRolloutAfter := metav1.NewTime(twoBeforeRolloutAfter.Add(time.Minute))
+	rolloutAfter := metav1.NewTime(oneBeforeRolloutAfter.Add(time.Minute))
+	oneAfterRolloutAfter := metav1.NewTime(rolloutAfter.Add(time.Minute))
+	twoAfterRolloutAfter := metav1.NewTime(oneAfterRolloutAfter.Add(time.Minute))
+
 	deployment := generateDeployment("nginx")
+	deployment.Spec.RolloutAfter = &rolloutAfter
 
 	matchingMS := generateMS(deployment)
 
 	matchingMSHigherReplicas := generateMS(deployment)
-	matchingMSHigherReplicas.Spec.Replicas = pointer.Int32(2)
+	matchingMSHigherReplicas.Spec.Replicas = ptr.To[int32](2)
 
 	matchingMSDiffersInPlaceMutableFields := generateMS(deployment)
 	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
@@ -317,11 +328,18 @@ func TestFindNewMachineSet(t *testing.T) {
 	oldMS := generateMS(deployment)
 	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
 
+	msCreatedTwoBeforeRolloutAfter := generateMS(deployment)
+	msCreatedTwoBeforeRolloutAfter.CreationTimestamp = twoBeforeRolloutAfter
+
+	msCreatedAfterRolloutAfter := generateMS(deployment)
+	msCreatedAfterRolloutAfter.CreationTimestamp = oneAfterRolloutAfter
+
 	tests := []struct {
-		Name       string
-		deployment clusterv1.MachineDeployment
-		msList     []*clusterv1.MachineSet
-		expected   *clusterv1.MachineSet
+		Name               string
+		deployment         clusterv1.MachineDeployment
+		msList             []*clusterv1.MachineSet
+		reconciliationTime *metav1.Time
+		expected           *clusterv1.MachineSet
 	}{
 		{
 			Name:       "Get the MachineSet with the MachineTemplate that matches the intent of the MachineDeployment",
@@ -347,88 +365,131 @@ func TestFindNewMachineSet(t *testing.T) {
 			msList:     []*clusterv1.MachineSet{&oldMS},
 			expected:   nil,
 		},
+		{
+			Name:               "Get the MachineSet if reconciliationTime < rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &oneBeforeRolloutAfter,
+			expected:           &msCreatedTwoBeforeRolloutAfter,
+		},
+		{
+			Name:               "Get nil if reconciliationTime is > rolloutAfter and no MachineSet is created after rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &oneAfterRolloutAfter,
+			expected:           nil,
+		},
+		{
+			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedAfterRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &twoAfterRolloutAfter,
+			expected:           &msCreatedAfterRolloutAfter,
+		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ms := FindNewMachineSet(&test.deployment, test.msList)
-			g.Expect(ms).To(Equal(test.expected))
+			ms := FindNewMachineSet(&test.deployment, test.msList, test.reconciliationTime)
+			g.Expect(ms).To(BeComparableTo(test.expected))
 		})
 	}
 }
 
 func TestFindOldMachineSets(t *testing.T) {
+	twoBeforeRolloutAfter := metav1.Now()
+	oneBeforeRolloutAfter := metav1.NewTime(twoBeforeRolloutAfter.Add(time.Minute))
+	rolloutAfter := metav1.NewTime(oneBeforeRolloutAfter.Add(time.Minute))
+	oneAfterRolloutAfter := metav1.NewTime(rolloutAfter.Add(time.Minute))
+	twoAfterRolloutAfter := metav1.NewTime(oneAfterRolloutAfter.Add(time.Minute))
+
 	deployment := generateDeployment("nginx")
+	deployment.Spec.RolloutAfter = &rolloutAfter
 
 	newMS := generateMS(deployment)
 	newMS.Name = "aa"
-	newMS.Spec.Replicas = pointer.Int32(1)
+	newMS.Spec.Replicas = ptr.To[int32](1)
 
 	newMSHigherReplicas := generateMS(deployment)
-	newMSHigherReplicas.Spec.Replicas = pointer.Int32(2)
+	newMSHigherReplicas.Spec.Replicas = ptr.To[int32](2)
 
 	newMSHigherName := generateMS(deployment)
-	newMSHigherName.Spec.Replicas = pointer.Int32(1)
+	newMSHigherName.Spec.Replicas = ptr.To[int32](1)
 	newMSHigherName.Name = "ab"
 
 	oldDeployment := generateDeployment("nginx")
 	oldDeployment.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
 	oldMS := generateMS(oldDeployment)
 
+	msCreatedTwoBeforeRolloutAfter := generateMS(deployment)
+	msCreatedTwoBeforeRolloutAfter.CreationTimestamp = twoBeforeRolloutAfter
+
+	msCreatedAfterRolloutAfter := generateMS(deployment)
+	msCreatedAfterRolloutAfter.CreationTimestamp = oneAfterRolloutAfter
+
 	tests := []struct {
-		Name            string
-		deployment      clusterv1.MachineDeployment
-		msList          []*clusterv1.MachineSet
-		expected        []*clusterv1.MachineSet
-		expectedRequire []*clusterv1.MachineSet
+		Name               string
+		deployment         clusterv1.MachineDeployment
+		msList             []*clusterv1.MachineSet
+		reconciliationTime *metav1.Time
+		expected           []*clusterv1.MachineSet
 	}{
 		{
-			Name:            "Get old MachineSets",
-			deployment:      deployment,
-			msList:          []*clusterv1.MachineSet{&newMS, &oldMS},
-			expected:        []*clusterv1.MachineSet{&oldMS},
-			expectedRequire: nil,
+			Name:       "Get old MachineSets",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&newMS, &oldMS},
+			expected:   []*clusterv1.MachineSet{&oldMS},
 		},
 		{
-			Name:            "Get old MachineSets with no new MachineSet",
-			deployment:      deployment,
-			msList:          []*clusterv1.MachineSet{&oldMS},
-			expected:        []*clusterv1.MachineSet{&oldMS},
-			expectedRequire: nil,
+			Name:       "Get old MachineSets with no new MachineSet",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&oldMS},
+			expected:   []*clusterv1.MachineSet{&oldMS},
 		},
 		{
-			Name:            "Get old MachineSets with two new MachineSets, only the MachineSet with higher replicas is seen as new MachineSet",
-			deployment:      deployment,
-			msList:          []*clusterv1.MachineSet{&oldMS, &newMS, &newMSHigherReplicas},
-			expected:        []*clusterv1.MachineSet{&oldMS, &newMS},
-			expectedRequire: []*clusterv1.MachineSet{&newMS},
+			Name:       "Get old MachineSets with two new MachineSets, only the MachineSet with higher replicas is seen as new MachineSet",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&oldMS, &newMS, &newMSHigherReplicas},
+			expected:   []*clusterv1.MachineSet{&oldMS, &newMS},
 		},
 		{
-			Name:            "Get old MachineSets with two new MachineSets, when replicas are matching only the MachineSet with lower name is seen as new MachineSet",
-			deployment:      deployment,
-			msList:          []*clusterv1.MachineSet{&oldMS, &newMS, &newMSHigherName},
-			expected:        []*clusterv1.MachineSet{&oldMS, &newMSHigherName},
-			expectedRequire: []*clusterv1.MachineSet{&newMSHigherName},
+			Name:       "Get old MachineSets with two new MachineSets, when replicas are matching only the MachineSet with lower name is seen as new MachineSet",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&oldMS, &newMS, &newMSHigherName},
+			expected:   []*clusterv1.MachineSet{&oldMS, &newMSHigherName},
 		},
 		{
-			Name:            "Get empty old MachineSets",
-			deployment:      deployment,
-			msList:          []*clusterv1.MachineSet{&newMS},
-			expected:        []*clusterv1.MachineSet{},
-			expectedRequire: nil,
+			Name:       "Get empty old MachineSets",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&newMS},
+			expected:   []*clusterv1.MachineSet{},
+		},
+		{
+			Name:               "Get old MachineSets with new MachineSets, MachineSets created before rolloutAfter are considered new when reconciliationTime < rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &oneBeforeRolloutAfter,
+			expected:           nil,
+		},
+		{
+			Name:               "Get old MachineSets with new MachineSets, MachineSets created after rolloutAfter are considered new when reconciliationTime > rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedAfterRolloutAfter},
+			reconciliationTime: &twoAfterRolloutAfter,
+			expected:           []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList)
+			allMS := FindOldMachineSets(&test.deployment, test.msList, test.reconciliationTime)
 			g.Expect(allMS).To(ConsistOf(test.expected))
-			// MSs are getting filtered correctly by ms.spec.replicas
-			g.Expect(requireMS).To(ConsistOf(test.expectedRequire))
 		})
 	}
 }
@@ -536,7 +597,7 @@ func TestResolveFenceposts(t *testing.T) {
 			if test.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(surge).To(Equal(test.expectSurge))
 			g.Expect(unavail).To(Equal(test.expectUnavailable))
@@ -587,7 +648,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 			}
 			*(newRC.Spec.Replicas) = test.newMSReplicas
 			ms, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&rs5}, *newRC.Spec.Replicas)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ms).To(Equal(test.expected))
 		})
 	}
@@ -617,32 +678,32 @@ func TestDeploymentComplete(t *testing.T) {
 	tests := []struct {
 		name string
 
-		d *clusterv1.MachineDeployment
+		md *clusterv1.MachineDeployment
 
 		expected bool
 	}{
 		{
 			name: "not complete: min but not all machines become available",
 
-			d:        deployment(5, 5, 5, 4, 1, 0),
+			md:       deployment(5, 5, 5, 4, 1, 0),
 			expected: false,
 		},
 		{
 			name: "not complete: min availability is not honored",
 
-			d:        deployment(5, 5, 5, 3, 1, 0),
+			md:       deployment(5, 5, 5, 3, 1, 0),
 			expected: false,
 		},
 		{
 			name: "complete",
 
-			d:        deployment(5, 5, 5, 5, 0, 0),
+			md:       deployment(5, 5, 5, 5, 0, 0),
 			expected: true,
 		},
 		{
 			name: "not complete: all machines are available but not updated",
 
-			d:        deployment(5, 5, 4, 5, 0, 0),
+			md:       deployment(5, 5, 4, 5, 0, 0),
 			expected: false,
 		},
 		{
@@ -650,22 +711,23 @@ func TestDeploymentComplete(t *testing.T) {
 
 			// old machine set: spec.replicas=1, status.replicas=1, status.availableReplicas=1
 			// new machine set: spec.replicas=1, status.replicas=1, status.availableReplicas=0
-			d:        deployment(1, 2, 1, 1, 0, 1),
+			md:       deployment(1, 2, 1, 1, 0, 1),
 			expected: false,
 		},
 		{
 			name: "not complete: one replica deployment never comes up",
 
-			d:        deployment(1, 1, 1, 0, 1, 1),
+			md:       deployment(1, 1, 1, 0, 1, 1),
 			expected: false,
 		},
 	}
 
-	for _, test := range tests {
+	for i := range tests {
+		test := tests[i]
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(DeploymentComplete(test.d, &test.d.Status)).To(Equal(test.expected))
+			g.Expect(DeploymentComplete(test.md, &test.md.Status)).To(Equal(test.expected))
 		})
 	}
 }
@@ -740,7 +802,7 @@ func TestMaxUnavailable(t *testing.T) {
 func TestAnnotationUtils(t *testing.T) {
 	// Setup
 	tDeployment := generateDeployment("nginx")
-	tDeployment.Spec.Replicas = pointer.Int32(1)
+	tDeployment.Spec.Replicas = ptr.To[int32](1)
 	tMS := generateMS(tDeployment)
 
 	// Test Case 1:  Check if annotations are set properly
@@ -767,7 +829,7 @@ func TestAnnotationUtils(t *testing.T) {
 
 func TestComputeMachineSetAnnotations(t *testing.T) {
 	deployment := generateDeployment("nginx")
-	deployment.Spec.Replicas = pointer.Int32(3)
+	deployment.Spec.Replicas = ptr.To[int32](3)
 	maxSurge := intstr.FromInt(1)
 	maxUnavailable := intstr.FromInt(0)
 	deployment.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{
@@ -881,15 +943,14 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 		},
 	}
 
-	log := klogr.New()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got, err := ComputeMachineSetAnnotations(log, tt.deployment, tt.oldMSs, tt.ms)
+			got, err := ComputeMachineSetAnnotations(ctx, tt.deployment, tt.oldMSs, tt.ms)
 			if tt.wantErr {
-				g.Expect(err).ShouldNot(BeNil())
+				g.Expect(err).ShouldNot(HaveOccurred())
 			} else {
-				g.Expect(err).Should(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(got).Should(Equal(tt.want))
 			}
 		})

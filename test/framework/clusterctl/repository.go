@@ -28,7 +28,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 
@@ -121,7 +121,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			Type: provider.Type,
 		}
 		providers = append(providers, p)
-		if !(clusterctlv1.ProviderType(provider.Type) == clusterctlv1.IPAMProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.RuntimeExtensionProviderType) {
+		if !(clusterctlv1.ProviderType(provider.Type) == clusterctlv1.IPAMProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.RuntimeExtensionProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.AddonProviderType) {
 			providersV1_2 = append(providersV1_2, p)
 		}
 	}
@@ -141,7 +141,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	for key := range input.E2EConfig.Variables {
 		clusterctlConfigFile.Values[key] = input.E2EConfig.GetVariable(key)
 	}
-	clusterctlConfigFile.write()
+	Expect(clusterctlConfigFile.write()).To(Succeed(), "Failed to write clusterctlConfigFile")
 
 	// creates a clusterctl config file to be used for working with such repository with only the providers supported in clusterctl < v1.3
 	clusterctlConfigFileV1_2 := &clusterctlConfig{
@@ -154,26 +154,28 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	for key := range input.E2EConfig.Variables {
 		clusterctlConfigFileV1_2.Values[key] = input.E2EConfig.GetVariable(key)
 	}
-	clusterctlConfigFileV1_2.write()
+	Expect(clusterctlConfigFileV1_2.write()).To(Succeed(), "Failed to write v1.2 clusterctlConfigFile")
 
 	return clusterctlConfigFile.Path
 }
 
-// copyAndAmendClusterctlConfigInput is the input for copyAndAmendClusterctlConfig.
-type copyAndAmendClusterctlConfigInput struct {
+// CopyAndAmendClusterctlConfigInput is the input for copyAndAmendClusterctlConfig.
+type CopyAndAmendClusterctlConfigInput struct {
 	ClusterctlConfigPath string
 	OutputPath           string
 	Variables            map[string]string
 }
 
-// copyAndAmendClusterctlConfig copies the clusterctl-config from ClusterctlConfigPath to
+// CopyAndAmendClusterctlConfig copies the clusterctl-config from ClusterctlConfigPath to
 // OutputPath and adds the given Variables.
-func copyAndAmendClusterctlConfig(_ context.Context, input copyAndAmendClusterctlConfigInput) {
+func CopyAndAmendClusterctlConfig(_ context.Context, input CopyAndAmendClusterctlConfigInput) error {
 	// Read clusterctl config from ClusterctlConfigPath.
 	clusterctlConfigFile := &clusterctlConfig{
 		Path: input.ClusterctlConfigPath,
 	}
-	clusterctlConfigFile.read()
+	if err := clusterctlConfigFile.read(); err != nil {
+		return err
+	}
 
 	// Overwrite variables.
 	if clusterctlConfigFile.Values == nil {
@@ -185,13 +187,23 @@ func copyAndAmendClusterctlConfig(_ context.Context, input copyAndAmendClusterct
 
 	// Write clusterctl config to OutputPath.
 	clusterctlConfigFile.Path = input.OutputPath
-	clusterctlConfigFile.write()
+	return clusterctlConfigFile.write()
 }
 
 // AdjustConfigPathForBinary adjusts the clusterctlConfigPath in case the clusterctl version v1.3.
-func AdjustConfigPathForBinary(clusterctPath, clusterctlConfigPath string) string {
+func AdjustConfigPathForBinary(clusterctlBinaryPath, clusterctlConfigPath string) string {
+	version, err := getClusterCtlVersion(clusterctlBinaryPath)
+	Expect(err).ToNot(HaveOccurred())
+
+	if version.LT(semver.MustParse("1.3.0")) {
+		return strings.Replace(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName, -1)
+	}
+	return clusterctlConfigPath
+}
+
+func getClusterCtlVersion(clusterctlBinaryPath string) (*semver.Version, error) {
 	clusterctl := exec.NewCommand(
-		exec.WithCommand(clusterctPath),
+		exec.WithCommand(clusterctlBinaryPath),
 		exec.WithArgs("version", "--output", "short"),
 	)
 	stdout, stderr, err := clusterctl.Run(context.Background())
@@ -201,13 +213,9 @@ func AdjustConfigPathForBinary(clusterctPath, clusterctlConfigPath string) strin
 	data := stdout
 	version, err := semver.ParseTolerant(string(data))
 	if err != nil {
-		Expect(err).ToNot(HaveOccurred(), "clusterctl version returned an invalid version: %s", string(data))
+		return nil, fmt.Errorf("clusterctl version returned an invalid version: %s", string(data))
 	}
-
-	if version.LT(semver.MustParse("1.3.0")) {
-		return strings.Replace(clusterctlConfigPath, clusterctlConfigFileName, clusterctlConfigV1_2FileName, -1)
-	}
-	return clusterctlConfigPath
+	return &version, nil
 }
 
 // YAMLForComponentSource returns the YAML for the provided component source.
@@ -274,6 +282,9 @@ func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get %s", source.Value)
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, errors.Errorf("failed to get %s: got status code %d", source.Value, resp.StatusCode)
 		}
 		defer resp.Body.Close()
 		buf, err = io.ReadAll(resp.Body)

@@ -1,0 +1,47 @@
+# Configuration for parca chart, see https://github.com/parca-dev/helm-charts/blob/master/charts/parca/values.yaml
+
+object_storage:
+  bucket:
+    type: "FILESYSTEM"
+    config:
+      directory: "./tmp"
+
+server:
+  scrapeConfigs:
+  - job_name: 'capi-providers'
+    scrape_interval: 1m
+    scheme: https
+    authorization:
+      type: Bearer
+      credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: true
+    kubernetes_sd_configs:
+    - role: pod
+    relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_labelpresent_cluster_x_k8s_io_provider]
+      action: keep
+      regex: true
+    - source_labels: [__meta_kubernetes_pod_annotation_parca_dev_path]
+      action: replace
+      target_label: __metrics_path__
+      regex: (.+)
+    - source_labels: [__address__, __meta_kubernetes_pod_annotation_parca_dev_port]
+      action: replace
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+      target_label: __address__
+    - source_labels: [__meta_kubernetes_pod_label_cluster_x_k8s_io_provider]
+      action: replace
+      target_label: provider
+    - source_labels: [__meta_kubernetes_namespace]
+      action: replace
+      target_label: namespace
+    - source_labels: [__meta_kubernetes_pod_name]
+      action: replace
+      target_label: pod
+
+agent:
+  # Doesn't seem to work in kind, not sure why.
+  enabled: false

@@ -30,11 +30,9 @@ type Index struct {
 	ExtractValue client.IndexerFunc
 }
 
-var nodeProviderIDIndex = Index{
+// NodeProviderIDIndex is used to index Nodes by ProviderID.
+var NodeProviderIDIndex = Index{
 	Object:       &corev1.Node{},
 	Field:        index.NodeProviderIDField,
 	ExtractValue: index.NodeByProviderID,
 }
-
-// DefaultIndexes is the default list of indexes on a ClusterCacheTracker.
-var DefaultIndexes = []Index{nodeProviderIDIndex}

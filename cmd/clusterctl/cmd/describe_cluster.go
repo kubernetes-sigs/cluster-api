@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -95,7 +96,7 @@ var describeClusterClusterCmd = &cobra.Command{
 		# also when their status is the same as the status of the corresponding machine object.
 		clusterctl describe cluster test-1 --echo`),
 
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(_ *cobra.Command, args []string) error {
 		if len(args) != 1 {
 			return errors.New("please specify a cluster name")
 		}
@@ -146,12 +147,14 @@ func init() {
 }
 
 func runDescribeCluster(cmd *cobra.Command, name string) error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	tree, err := c.DescribeCluster(client.DescribeClusterOptions{
+	tree, err := c.DescribeCluster(ctx, client.DescribeClusterOptions{
 		Kubeconfig:              client.Kubeconfig{Path: dc.kubeconfig, Context: dc.kubeconfigContext},
 		Namespace:               dc.namespace,
 		ClusterName:             name,

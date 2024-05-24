@@ -1,0 +1,19 @@
+name: PR verify
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  checks: write # Allow access to checks to write check runs.
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    name: verify PR contents
+    steps:
+    - name: Verifier action
+      id: verifier
+      uses: kubernetes-sigs/kubebuilder-release-tools@012269a88fa4c034a0acf1ba84c26b195c0dbab4 # tag=v0.4.3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}

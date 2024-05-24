@@ -35,6 +35,16 @@ var (
 	// GenericInfrastructureMachineTemplateCRD is a generic infrastructure machine template CRD.
 	GenericInfrastructureMachineTemplateCRD = untypedCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachineTemplateKind))
 
+	// GenericInfrastructureMachinePoolTemplateKind is the Kind for the GenericInfrastructureMachinePoolTemplate.
+	GenericInfrastructureMachinePoolTemplateKind = "GenericInfrastructureMachinePoolTemplate"
+	// GenericInfrastructureMachinePoolTemplateCRD is a generic infrastructure machine pool template CRD.
+	GenericInfrastructureMachinePoolTemplateCRD = untypedCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachinePoolTemplateKind))
+
+	// GenericInfrastructureMachinePoolKind is the Kind for the GenericInfrastructureMachinePool.
+	GenericInfrastructureMachinePoolKind = "GenericInfrastructureMachinePool"
+	// GenericInfrastructureMachinePoolCRD is a generic infrastructure machine pool CRD.
+	GenericInfrastructureMachinePoolCRD = untypedCRD(InfrastructureGroupVersion.WithKind(GenericInfrastructureMachinePoolKind))
+
 	// GenericInfrastructureClusterKind is the kind for the GenericInfrastructureCluster type.
 	GenericInfrastructureClusterKind = "GenericInfrastructureCluster"
 	// GenericInfrastructureClusterCRD is a generic infrastructure machine CRD.
@@ -61,6 +71,16 @@ var (
 	TestInfrastructureMachineTemplateKind = "TestInfrastructureMachineTemplate"
 	// TestInfrastructureMachineTemplateCRD is a test infrastructure machine template CRD.
 	TestInfrastructureMachineTemplateCRD = testInfrastructureMachineTemplateCRD(InfrastructureGroupVersion.WithKind(TestInfrastructureMachineTemplateKind))
+
+	// TestInfrastructureMachinePoolTemplateKind is the kind for the TestInfrastructureMachinePoolTemplate type.
+	TestInfrastructureMachinePoolTemplateKind = "TestInfrastructureMachinePoolTemplate"
+	// TestInfrastructureMachinePoolTemplateCRD is a test infrastructure machine pool template CRD.
+	TestInfrastructureMachinePoolTemplateCRD = testInfrastructureMachinePoolTemplateCRD(InfrastructureGroupVersion.WithKind(TestInfrastructureMachinePoolTemplateKind))
+
+	// TestInfrastructureMachinePoolKind is the kind for the TestInfrastructureMachinePool type.
+	TestInfrastructureMachinePoolKind = "TestInfrastructureMachinePool"
+	// TestInfrastructureMachinePoolCRD is a test infrastructure machine CRD.
+	TestInfrastructureMachinePoolCRD = testInfrastructureMachinePoolCRD(InfrastructureGroupVersion.WithKind(TestInfrastructureMachinePoolKind))
 
 	// TestInfrastructureMachineKind is the kind for the TestInfrastructureMachine type.
 	TestInfrastructureMachineKind = "TestInfrastructureMachine"
@@ -135,6 +155,29 @@ func testInfrastructureMachineTemplateCRD(gvk schema.GroupVersionKind) *apiexten
 	})
 }
 
+func testInfrastructureMachinePoolTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
+		"spec": {
+			Type: "object",
+			Properties: map[string]apiextensionsv1.JSONSchemaProps{
+				// Mandatory field from the Cluster API contract
+				"template": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"metadata": metadataSchema,
+						"spec":     machinePoolSpecSchema,
+					},
+				},
+			},
+		},
+	})
+}
+
 func testInfrastructureMachineCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
 	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
 		"metadata": {
@@ -143,6 +186,27 @@ func testInfrastructureMachineCRD(gvk schema.GroupVersionKind) *apiextensionsv1.
 			Type: "object",
 		},
 		"spec": machineSpecSchema,
+		"status": {
+			Type: "object",
+			Properties: map[string]apiextensionsv1.JSONSchemaProps{
+				// mandatory field from the Cluster API contract
+				"ready": {Type: "boolean"},
+				// General purpose fields to be used in different test scenario.
+				"foo": {Type: "string"},
+				"bar": {Type: "string"},
+			},
+		},
+	})
+}
+
+func testInfrastructureMachinePoolCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
+		"spec": machinePoolSpecSchema,
 		"status": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
@@ -198,6 +262,24 @@ var (
 		Properties: map[string]apiextensionsv1.JSONSchemaProps{
 			// Mandatory field from the Cluster API contract
 			"providerID": {Type: "string"},
+			// General purpose fields to be used in different test scenario.
+			"foo": {Type: "string"},
+			"bar": {Type: "string"},
+		},
+	}
+
+	machinePoolSpecSchema = apiextensionsv1.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensionsv1.JSONSchemaProps{
+			// Mandatory field from the Cluster API contract
+			"providerIDList": {
+				Type: "array",
+				Items: &apiextensionsv1.JSONSchemaPropsOrArray{
+					Schema: &apiextensionsv1.JSONSchemaProps{
+						Type: "string",
+					},
+				},
+			},
 			// General purpose fields to be used in different test scenario.
 			"foo": {Type: "string"},
 			"bar": {Type: "string"},

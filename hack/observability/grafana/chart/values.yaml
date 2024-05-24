@@ -1,0 +1,101 @@
+# Configuration for grafana chart, see https://github.com/grafana/helm-charts/tree/main/charts/grafana
+
+# Set a password explicitly to avoid infinite tilt reloads because
+# of a random password.
+adminPassword: admin
+
+grafana.ini:
+  # Disable the grafana login form.
+  auth:
+    disable_login_form: true
+  # Enable anonymous user, and set them as part of the default org.
+  auth.anonymous:
+    enabled: true
+    org_name: Main Org.
+    org_role: Admin
+  feature_toggles:
+    enable: "tempoSearch tempoBackendSearch"
+
+# Adds loki as a datasource.
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+    # https://grafana.com/docs/grafana/latest/datasources/loki/
+    - name: Loki
+      type: loki
+      uid: loki
+      orgId: 1
+      url: http://loki:3100
+      isDefault: true
+      editable: true
+      # This header has to be set as we had to set an OrgID
+      # in promtail to be able to push the logs to Loki.
+      jsonData:
+        maxLines: 1000
+        derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"traceID":"(\w+)"'
+          name: TraceID
+          url: $${__value.raw}
+          urlDisplayLabel: Trace
+        httpHeaderName1: 'X-Scope-OrgID'
+      secureJsonData:
+        httpHeaderValue1: '1'
+    - name: Prometheus
+      type: prometheus
+      uid: prometheus
+      url: http://prometheus-server
+      editable: true
+      jsonData:
+        httpMethod: 'GET'
+        exemplarTraceIdDestinations:
+        - name: 'TraceID'
+          datasourceUid: 'tempo'
+    # https://grafana.com/docs/grafana/latest/datasources/tempo/
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      url: http://tempo:3100
+      editable: true
+      jsonData:
+        tracesToLogs:
+          datasourceUid: 'loki'
+          tags: [ 'app' ]
+          spanEndTimeShift: 1h
+          spanStartTimeShift: -1h
+          filterByTraceID: true
+          filterBySpanID: false
+          lokiSearch: true
+
+        serviceMap:
+          datasourceUid: 'prometheus'
+        search:
+          hide: false
+        nodeGraph:
+          enabled: true
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: true
+      options:
+        path: /var/lib/grafana/dashboards/default
+
+dashboardsConfigMaps:
+  default: grafana-dashboards
+
+# Disable grafana test framework
+testFramework:
+  enabled: false
+
+# Disable PSP because PSPs have been dropped with
+# Kubernetes v1.25
+rbac:
+  pspEnabled: false

@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -26,6 +27,10 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+)
+
+const (
+	metadataContents = "apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\nreleaseSeries:\n  - major: 0\n    minor: 4\n    contract: v1alpha4\n  - major: 0\n    minor: 5\n    contract: v1alpha4\n  - major: 0\n    minor: 3\n    contract: v1alpha3\n"
 )
 
 func Test_localRepository_newLocalRepository(t *testing.T) {
@@ -108,12 +113,12 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
+			got, err := newLocalRepository(context.Background(), tt.fields.provider, tt.fields.configVariablesClient)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got.basepath).To(Equal(tt.want.basepath))
 			g.Expect(got.providerLabel).To(Equal(tt.want.providerLabel))
@@ -156,6 +161,7 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	// Create several release directories
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "foo: bar")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.1/bootstrap-components.yaml", "foo: bar")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.1/metadata.yaml", metadataContents)
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v2.0.0-alpha.0/bootstrap-components.yaml", "foo: bar")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/Foo.Bar/bootstrap-components.yaml", "foo: bar")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/foo.file", "foo: bar")
@@ -165,8 +171,8 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	p2URLLatestAbs := filepath.Join(tmpDir, p2URLLatest)
 	p2 := config.NewProvider("foo", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
-	got, err := newLocalRepository(p2, test.NewFakeVariableClient())
-	g.Expect(err).NotTo(HaveOccurred())
+	got, err := newLocalRepository(context.Background(), p2, test.NewFakeVariableClient())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(got.basepath).To(Equal(tmpDir))
 	g.Expect(got.providerLabel).To(Equal("bootstrap-foo"))
@@ -184,8 +190,10 @@ func Test_localRepository_GetFile(t *testing.T) {
 	p1 := config.NewProvider("foo", dst1, clusterctlv1.BootstrapProviderType)
 
 	// Provider 2: URL is for the latest release
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-baz/v1.0.0-alpha.0/metadata.yaml", metadataContents)
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.0/bootstrap-components.yaml", "version: v1.0.0")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.1/bootstrap-components.yaml", "version: v1.0.1")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.1/metadata.yaml", metadataContents)
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.0-alpha.0/bootstrap-components.yaml", "version: v2.0.0-alpha.0")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/Foo.Bar/bootstrap-components.yaml", "version: Foo.Bar")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/foo.file", "foo: bar")
@@ -295,16 +303,16 @@ func Test_localRepository_GetFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
-			g.Expect(err).NotTo(HaveOccurred())
+			r, err := newLocalRepository(context.Background(), tt.fields.provider, tt.fields.configVariablesClient)
+			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := r.GetFile(tt.args.version, tt.args.fileName)
+			got, err := r.GetFile(context.Background(), tt.args.version, tt.args.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(string(got)).To(Equal(tt.want.contents))
 		})
 	}
@@ -322,6 +330,7 @@ func Test_localRepository_GetVersions(t *testing.T) {
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.0/bootstrap-components.yaml", "version: v1.0.0")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v1.0.1/bootstrap-components.yaml", "version: v1.0.1")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.1/bootstrap-components.yaml", "version: v2.0.1")
+	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.2+exp.sha.5114f85/metadata.yaml", metadataContents)
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.2+exp.sha.5114f85/bootstrap-components.yaml", "version: v2.0.2+exp.sha.5114f85")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.3-alpha/bootstrap-components.yaml", "version: v2.0.3-alpha")
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/Foo.Bar/bootstrap-components.yaml", "version: Foo.Bar")
@@ -370,15 +379,17 @@ func Test_localRepository_GetVersions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
-			g.Expect(err).NotTo(HaveOccurred())
+			ctx := context.Background()
 
-			got, err := r.GetVersions()
+			r, err := newLocalRepository(ctx, tt.fields.provider, tt.fields.configVariablesClient)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			got, err := r.GetVersions(ctx)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(ConsistOf(tt.want.versions))
 		})

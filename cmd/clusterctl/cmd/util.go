@@ -27,7 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
@@ -63,7 +63,7 @@ func printVariablesOutput(template client.Template, options client.GetClusterTem
 		if variableMap[name] != nil {
 			v := *variableMap[name]
 			// Add quotes around any unquoted strings
-			if len(v) > 0 && !strings.HasPrefix(v, "\"") {
+			if v != "" && !strings.HasPrefix(v, "\"") {
 				v = fmt.Sprintf("%q", v)
 				variableMap[name] = &v
 			}
@@ -74,42 +74,42 @@ func printVariablesOutput(template client.Template, options client.GetClusterTem
 		switch name {
 		case "CLUSTER_NAME":
 			// Cluster name from the cmd arguments is used instead of template default.
-			variableMap[name] = pointer.String(options.ClusterName)
+			variableMap[name] = ptr.To(options.ClusterName)
 		case "NAMESPACE":
 			// Namespace name from the cmd flags or from the kubeconfig is used instead of template default.
 			if options.TargetNamespace != "" {
-				variableMap[name] = pointer.String(options.TargetNamespace)
+				variableMap[name] = ptr.To(options.TargetNamespace)
 			} else {
-				variableMap[name] = pointer.String("current Namespace in the KubeConfig file")
+				variableMap[name] = ptr.To("current Namespace in the KubeConfig file")
 			}
 		case "CONTROL_PLANE_MACHINE_COUNT":
 			// Control plane machine count uses the cmd flag, env variable or a constant is used instead of template default.
 			if options.ControlPlaneMachineCount == nil {
 				if val, ok := os.LookupEnv("CONTROL_PLANE_MACHINE_COUNT"); ok {
-					variableMap[name] = pointer.String(val)
+					variableMap[name] = ptr.To(val)
 				} else {
-					variableMap[name] = pointer.String("1")
+					variableMap[name] = ptr.To("1")
 				}
 			} else {
-				variableMap[name] = pointer.String(strconv.FormatInt(*options.ControlPlaneMachineCount, 10))
+				variableMap[name] = ptr.To(strconv.FormatInt(*options.ControlPlaneMachineCount, 10))
 			}
 		case "WORKER_MACHINE_COUNT":
 			// Worker machine count uses the cmd flag, env variable or a constant is used instead of template default.
 			if options.WorkerMachineCount == nil {
 				if val, ok := os.LookupEnv("WORKER_MACHINE_COUNT"); ok {
-					variableMap[name] = pointer.String(val)
+					variableMap[name] = ptr.To(val)
 				} else {
-					variableMap[name] = pointer.String("0")
+					variableMap[name] = ptr.To("0")
 				}
 			} else {
-				variableMap[name] = pointer.String(strconv.FormatInt(*options.WorkerMachineCount, 10))
+				variableMap[name] = ptr.To(strconv.FormatInt(*options.WorkerMachineCount, 10))
 			}
 		case "KUBERNETES_VERSION":
 			// Kubernetes version uses the cmd flag, env variable, or the template default.
 			if options.KubernetesVersion != "" {
-				variableMap[name] = pointer.String(options.KubernetesVersion)
+				variableMap[name] = ptr.To(options.KubernetesVersion)
 			} else if val, ok := os.LookupEnv("KUBERNETES_VERSION"); ok {
-				variableMap[name] = pointer.String(val)
+				variableMap[name] = ptr.To(val)
 			}
 		}
 

@@ -17,19 +17,26 @@ limitations under the License.
 package webhooks
 
 import (
+	"context"
 	"testing"
 
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
@@ -57,8 +64,8 @@ func TestClusterDefaultNamespaces(t *testing.T) {
 	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(Equal(c.Namespace))
 }
 
-// TestClusterDefaultVariables cases where cluster.spec.topology.class is altered.
-func TestClusterDefaultVariables(t *testing.T) {
+// TestClusterDefaultAndValidateVariables cases where cluster.spec.topology.class is altered.
+func TestClusterDefaultAndValidateVariables(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 
 	tests := []struct {
@@ -66,6 +73,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 		clusterClass *clusterv1.ClusterClass
 		topology     *clusterv1.Topology
 		expect       *clusterv1.Topology
+		wantErr      bool
 	}{
 		{
 			name: "default a single variable to its correct values",
@@ -200,6 +208,9 @@ func TestClusterDefaultVariables(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("default-worker").Build(),
 				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("default-worker").Build(),
+				).
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
@@ -224,6 +235,12 @@ func TestClusterDefaultVariables(t *testing.T) {
 							Name:  "md-1",
 						},
 					},
+					MachinePools: []clusterv1.MachinePoolTopology{
+						{
+							Class: "default-worker",
+							Name:  "mp-1",
+						},
+					},
 				},
 			},
 			expect: &clusterv1.Topology{
@@ -232,6 +249,13 @@ func TestClusterDefaultVariables(t *testing.T) {
 						{
 							Class: "default-worker",
 							Name:  "md-1",
+							// "location" has not been added to .variables.overrides.
+						},
+					},
+					MachinePools: []clusterv1.MachinePoolTopology{
+						{
+							Class: "default-worker",
+							Name:  "mp-1",
 							// "location" has not been added to .variables.overrides.
 						},
 					},
@@ -251,6 +275,9 @@ func TestClusterDefaultVariables(t *testing.T) {
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("default-worker").Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("default-worker").Build(),
 				).
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name: "httpProxy",
@@ -292,6 +319,20 @@ func TestClusterDefaultVariables(t *testing.T) {
 							},
 						},
 					},
+					MachinePools: []clusterv1.MachinePoolTopology{
+						{
+							Class: "default-worker",
+							Name:  "md-1",
+							Variables: &clusterv1.MachinePoolVariables{
+								Overrides: []clusterv1.ClusterVariable{
+									{
+										Name:  "httpProxy",
+										Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)},
+									},
+								},
+							},
+						},
+					},
 				},
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -307,6 +348,21 @@ func TestClusterDefaultVariables(t *testing.T) {
 							Class: "default-worker",
 							Name:  "md-1",
 							Variables: &clusterv1.MachineDeploymentVariables{
+								Overrides: []clusterv1.ClusterVariable{
+									{
+										Name: "httpProxy",
+										// url has been added by defaulting.
+										Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`)},
+									},
+								},
+							},
+						},
+					},
+					MachinePools: []clusterv1.MachinePoolTopology{
+						{
+							Class: "default-worker",
+							Name:  "md-1",
+							Variables: &clusterv1.MachinePoolVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name: "httpProxy",
@@ -526,6 +582,247 @@ func TestClusterDefaultVariables(t *testing.T) {
 				},
 			},
 		},
+		// Testing validation of variables.
+		{
+			name: "should fail when required variable is missing top-level",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					},
+				}).Build(),
+			topology: builder.ClusterTopology().Build(),
+			expect:   builder.ClusterTopology().Build(),
+			wantErr:  true,
+		},
+		{
+			name: "should fail when top-level variable is invalid",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					}},
+				).Build(),
+			topology: builder.ClusterTopology().
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
+				}).
+				Build(),
+			expect:  builder.ClusterTopology().Build(),
+			wantErr: true,
+		},
+		{
+			name: "should fail when variable override is invalid",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("aa").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("aa").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
+					}).
+					Build()).
+				Build(),
+			expect:  builder.ClusterTopology().Build(),
+			wantErr: true,
+		},
+		{
+			name: "should pass when required variable exists top-level",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				// Variable is not required in MachineDeployment or MachinePool topologies.
+				Build(),
+			expect: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				// Variable is not required in MachineDeployment or MachinePool topologies.
+				Build(),
+		},
+		{
+			name: "should pass when top-level variable and override are valid",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md1").Build()).
+				WithWorkerMachinePoolClasses(*builder.MachinePoolClass("mp1").Build()).
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				Build(),
+			expect: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name: "should pass even when variable override is missing the corresponding top-level variable",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md1").Build()).
+				WithWorkerMachinePoolClasses(*builder.MachinePoolClass("mp1").Build()).
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: false,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				Build(),
+			expect: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables([]clusterv1.ClusterVariable{}...).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+					}).
+					Build()).
+				Build(),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -548,14 +845,23 @@ func TestClusterDefaultVariables(t *testing.T) {
 			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
 			webhook := &Cluster{Client: fakeClient}
 
-			// Test if defaulting works in combination with validation.
-			util.CustomDefaultValidateTest(ctx, cluster, webhook)(t)
 			// Test defaulting.
 			t.Run("default", func(t *testing.T) {
 				g := NewWithT(t)
+				if tt.wantErr {
+					g.Expect(webhook.Default(ctx, cluster)).To(Not(Succeed()))
+					return
+				}
 				g.Expect(webhook.Default(ctx, cluster)).To(Succeed())
-				g.Expect(cluster.Spec.Topology).To(Equal(tt.expect))
+				g.Expect(cluster.Spec.Topology).To(BeEquivalentTo(tt.expect))
 			})
+
+			// Test if defaulting works in combination with validation.
+			// Note this test is not run for the case where the webhook should fail.
+			if tt.wantErr {
+				t.Skip("skipping test for combination of defaulting and validation (not supported by the test)")
+			}
+			util.CustomDefaultValidateTest(ctx, cluster, webhook)(t)
 		})
 	}
 }
@@ -790,7 +1096,8 @@ func TestClusterValidation(t *testing.T) {
 			// Create the webhook.
 			webhook := &Cluster{}
 
-			err := webhook.validate(ctx, tt.old, tt.in)
+			warnings, err := webhook.validate(ctx, tt.old, tt.in)
+			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -810,7 +1117,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 		clusterClassStatusVariables []clusterv1.ClusterClassStatusVariable
 		in                          *clusterv1.Cluster
 		old                         *clusterv1.Cluster
+		additionalObjects           []client.Object
 		expectErr                   bool
+		expectWarning               bool
 	}{
 		{
 			name:      "should return error when topology does not have class",
@@ -943,6 +1252,24 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name:      "should return error when duplicated MachinePools names exists in a Topology",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("workers1").
+							WithClass("aa").
+							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("workers1").
+							WithClass("bb").
+							Build()).
+					Build()).
+				Build(),
+		},
+		{
 			name:      "should pass when MachineDeployments names in a Topology are unique",
 			expectErr: false,
 			in: builder.Cluster("fooboo", "cluster1").
@@ -955,6 +1282,24 @@ func TestClusterTopologyValidation(t *testing.T) {
 							Build()).
 					WithMachineDeployment(
 						builder.MachineDeploymentTopology("workers2").
+							WithClass("bb").
+							Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should pass when MachinePools names in a Topology are unique",
+			expectErr: false,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("workers1").
+							WithClass("aa").
+							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("workers2").
 							WithClass("bb").
 							Build()).
 					Build()).
@@ -975,6 +1320,14 @@ func TestClusterTopologyValidation(t *testing.T) {
 						builder.MachineDeploymentTopology("workers2").
 							WithClass("bb").
 							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("workers1").
+							WithClass("aa").
+							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("workers2").
+							WithClass("bb").
+							Build()).
 					Build()).
 				Build(),
 			in: builder.Cluster("fooboo", "cluster1").
@@ -989,205 +1342,206 @@ func TestClusterTopologyValidation(t *testing.T) {
 						builder.MachineDeploymentTopology("workers2").
 							WithClass("bb").
 							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("workers1").
+							WithClass("aa").
+							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("workers2").
+							WithClass("bb").
+							Build()).
 					Build()).
 				Build(),
 		},
 		{
-			name: "should pass when required variable exists top-level",
-			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Required: true,
-							From:     clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
-			in: builder.Cluster("fooboo", "cluster1").
-				WithTopology(builder.ClusterTopology().
-					WithClass("foo").
-					WithVersion("v1.19.1").
-					WithVariables(clusterv1.ClusterVariable{
-						Name:  "cpu",
-						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
-					}).
-					// Variable is not required in MachineDeployment topologies.
-					Build()).
-				Build(),
-			expectErr: false,
-		},
-		{
-			name: "should fail when required variable is missing top-level",
-			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Required: true,
-							From:     clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
-			in: builder.Cluster("fooboo", "cluster1").
-				WithTopology(builder.ClusterTopology().
-					WithClass("foo").
-					WithVersion("v1.19.1").
-					Build()).
-				Build(),
+			name:      "should return error when upgrade concurrency annotation value is < 1",
 			expectErr: true,
-		},
-		{
-			name: "should fail when top-level variable is invalid",
-			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Required: true,
-							From:     clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
 			in: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "-1",
+				}).
 				WithTopology(builder.ClusterTopology().
 					WithClass("foo").
-					WithVersion("v1.19.1").
-					WithVariables(clusterv1.ClusterVariable{
-						Name:  "cpu",
-						Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
-					}).
+					WithVersion("v1.19.2").
 					Build()).
 				Build(),
+		},
+		{
+			name:      "should return error when upgrade concurrency annotation value is not numeric",
 			expectErr: true,
-		},
-		{
-			name: "should pass when top-level variable and override are valid",
-			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Required: true,
-							From:     clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
 			in: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "abc",
+				}).
 				WithTopology(builder.ClusterTopology().
 					WithClass("foo").
-					WithVersion("v1.19.1").
-					WithVariables(clusterv1.ClusterVariable{
-						Name:  "cpu",
-						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
-					}).
-					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
-						WithClass("aa").
-						WithVariables(clusterv1.ClusterVariable{
-							Name:  "cpu",
-							Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
-						}).
-						Build()).
+					WithVersion("v1.19.2").
 					Build()).
 				Build(),
+		},
+		{
+			name:      "should pass upgrade concurrency annotation value is >= 1",
 			expectErr: false,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "2",
+				}).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.2").
+					Build()).
+				Build(),
 		},
 		{
-			name: "should fail when variable override is invalid",
-			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Required: true,
-							From:     clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
-			in: builder.Cluster("fooboo", "cluster1").
+			name:      "should update if cluster is fully upgraded and up to date",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
 				WithTopology(builder.ClusterTopology().
 					WithClass("foo").
 					WithVersion("v1.19.1").
-					WithVariables(clusterv1.ClusterVariable{
-						Name:  "cpu",
-						Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
-					}).
-					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
-						WithClass("aa").
-						WithVariables(clusterv1.ClusterVariable{
-							Name:  "cpu",
-							Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
-						}).
-						Build()).
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							Build()).
 					Build()).
 				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.20.2").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					Build(),
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.19.1").Build(),
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.19.1").Build(),
+			},
+		},
+		{
+			name:          "should skip validation if cluster kcp is not yet provisioned but annotation is set",
+			expectErr:     false,
+			expectWarning: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithAnnotations(map[string]string{clusterv1.ClusterTopologyUnsafeUpdateVersionAnnotation: "true"}).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.20.2").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").Build(),
+			},
+		},
+		{
+			name:      "should block update if cluster kcp is not yet provisioned",
 			expectErr: true,
-		},
-		{
-			name: "should pass even when variable override is missing the corresponding top-level variable",
-			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Required: false,
-							From:     clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
-			in: builder.Cluster("fooboo", "cluster1").
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
 				WithTopology(builder.ClusterTopology().
 					WithClass("foo").
 					WithVersion("v1.19.1").
-					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
-						WithClass("aa").
-						WithVariables(clusterv1.ClusterVariable{
-							Name:  "cpu",
-							Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
-						}).
-						Build()).
 					Build()).
 				Build(),
-			expectErr: false,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.20.2").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").Build(),
+			},
+		},
+		{
+			name:      "should block update if md is not yet upgraded",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.20.2").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					Build(),
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.18.1").Build(),
+			},
+		},
+		{
+			name:      "should block update if mp is not yet upgraded",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.20.2").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					Build(),
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.18.1").Build(),
+			},
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -1195,6 +1549,10 @@ func TestClusterTopologyValidation(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("bb").Build(),
 					*builder.MachineDeploymentClass("aa").Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("bb").Build(),
+					*builder.MachinePoolClass("aa").Build(),
 				).
 				WithStatusVariables(tt.clusterClassStatusVariables...).
 				Build()
@@ -1204,18 +1562,27 @@ func TestClusterTopologyValidation(t *testing.T) {
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(class).
+				WithObjects(tt.additionalObjects...).
 				WithScheme(fakeScheme).
 				Build()
 
-			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
-			webhook := &Cluster{Client: fakeClient}
+			// Use an empty fakeClusterCacheTracker here because the real cases are tested in Test_validateTopologyMachinePoolVersions.
+			fakeClusterCacheTrackerReader := &fakeClusterCacheTracker{client: fake.NewFakeClient()}
 
-			err := webhook.validate(ctx, tt.old, tt.in)
+			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
+			webhook := &Cluster{Client: fakeClient, Tracker: fakeClusterCacheTrackerReader}
+
+			warnings, err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
-				return
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(err).ToNot(HaveOccurred())
+			if tt.expectWarning {
+				g.Expect(warnings).ToNot(BeEmpty())
+			} else {
+				g.Expect(warnings).To(BeEmpty())
+			}
 		})
 	}
 }
@@ -1226,11 +1593,13 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
-		name    string
-		cluster *clusterv1.Cluster
-		class   *clusterv1.ClusterClass
-		objects []client.Object
-		wantErr bool
+		name            string
+		cluster         *clusterv1.Cluster
+		class           *clusterv1.ClusterClass
+		classReconciled bool
+		objects         []client.Object
+		wantErr         bool
+		wantWarnings    bool
 	}{
 		{
 			name: "Accept a cluster with an existing ClusterClass named in cluster.spec.topology.class",
@@ -1244,10 +1613,11 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
-			name: "Accept a cluster with non-existent ClusterClass referenced cluster.spec.topology.class",
+			name: "Warning for a cluster with non-existent ClusterClass referenced cluster.spec.topology.class",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1258,7 +1628,26 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: false,
+			// There should be a warning for a ClusterClass which can not be found.
+			wantWarnings: true,
+			wantErr:      false,
+		},
+		{
+			name: "Warning for a cluster with an unreconciled ClusterClass named in cluster.spec.topology.class",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				Build(),
+			classReconciled: false,
+			// There should be a warning for a ClusterClass which is not yet reconciled.
+			wantWarnings: true,
+			wantErr:      false,
 		},
 		{
 			name: "Reject a cluster that has MHC enabled for control plane but is missing MHC definition in cluster topology and clusterclass",
@@ -1269,16 +1658,17 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-							Enable: pointer.Bool(true),
+							Enable: ptr.To(true),
 						}).
 						Build()).
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
-			name: "Reject a cluster that MHC override defined for control plane but is missing unhealthy conditions",
+			name: "Accept a cluster that has MHC override defined for control plane and does not set unhealthy conditions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1293,8 +1683,10 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						Build()).
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Reject a cluster that MHC override defined for control plane but is set when control plane is missing machineInfrastructure",
@@ -1318,7 +1710,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for control plane with control plane MHC defined in ClusterClass",
@@ -1329,14 +1722,15 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-							Enable: pointer.Bool(true),
+							Enable: ptr.To(true),
 						}).
 						Build()).
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for control plane with control plane MHC defined in cluster topology",
@@ -1347,7 +1741,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						WithVersion("v1.22.2").
 						WithControlPlaneReplicas(3).
 						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-							Enable: pointer.Bool(true),
+							Enable: ptr.To(true),
 							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 								UnhealthyConditions: []clusterv1.UnhealthyCondition{
 									{
@@ -1362,7 +1756,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Reject a cluster that has MHC enabled for machine deployment but is missing MHC definition in cluster topology and ClusterClass",
@@ -1376,7 +1771,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-									Enable: pointer.Bool(true),
+									Enable: ptr.To(true),
 								}).
 								Build(),
 						).
@@ -1387,10 +1782,11 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 					*builder.MachineDeploymentClass("worker-class").Build(),
 				).
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
-			name: "Reject a cluster that has MHC override defined for machine deployment but is missing unhealthy conditions",
+			name: "Accept a cluster that has MHC override defined for machine deployment and does not set unhealthy conditions",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1414,7 +1810,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 					*builder.MachineDeploymentClass("worker-class").Build(),
 				).
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in ClusterClass",
@@ -1428,7 +1825,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-									Enable: pointer.Bool(true),
+									Enable: ptr.To(true),
 								}).
 								Build(),
 						).
@@ -1441,7 +1838,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						Build(),
 				).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in cluster topology",
@@ -1455,7 +1853,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 							builder.MachineDeploymentTopology("md1").
 								WithClass("worker-class").
 								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
-									Enable: pointer.Bool(true),
+									Enable: ptr.To(true),
 									MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
 										UnhealthyConditions: []clusterv1.UnhealthyCondition{
 											{
@@ -1474,13 +1872,16 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 					*builder.MachineDeploymentClass("worker-class").Build(),
 				).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
-			conditions.MarkTrue(tt.class, clusterv1.ClusterClassVariablesReconciledCondition)
+			if tt.classReconciled {
+				conditions.MarkTrue(tt.class, clusterv1.ClusterClassVariablesReconciledCondition)
+			}
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(tt.class).
@@ -1491,10 +1892,16 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			c := &Cluster{Client: fakeClient}
 
 			// Checks the return error.
+			warnings, err := c.ValidateCreate(ctx, tt.cluster)
 			if tt.wantErr {
-				g.Expect(c.ValidateCreate(ctx, tt.cluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.ValidateCreate(ctx, tt.cluster)).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			if tt.wantWarnings {
+				g.Expect(warnings).ToNot(BeEmpty())
+			} else {
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -1726,15 +2133,21 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			wantErr: true,
 		},
 
-		// MachineDeploymentClass changes
+		// MachineDeploymentClass & MachinePoolClass changes
 		{
-			name: "Accept cluster.topology.class change with a compatible MachineDeploymentClass InfrastructureTemplate",
+			name: "Accept cluster.topology.class change with a compatible MachineDeploymentClass and MachinePoolClass InfrastructureTemplate",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).
 				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(refToUnstructured(ref)).
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
@@ -1750,17 +2163,29 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
 				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(compatibleNameChangeRef)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
 				Build(),
 			wantErr: false,
 		},
 		{
-			name: "Accept cluster.topology.class change with an incompatible MachineDeploymentClass BootstrapTemplate",
+			name: "Accept cluster.topology.class change with an incompatible MachineDeploymentClass and MachinePoolClass BootstrapTemplate",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).
 				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(refToUnstructured(ref)).
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
@@ -1776,11 +2201,17 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 						WithBootstrapTemplate(refToUnstructured(incompatibleKindRef)).
 						Build(),
 				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(compatibleNameChangeRef)).
+						WithBootstrapTemplate(refToUnstructured(incompatibleKindRef)).
+						Build(),
+				).
 				Build(),
 			wantErr: false,
 		},
 		{
-			name: "Accept cluster.topology.class change with a deleted MachineDeploymentClass",
+			name: "Accept cluster.topology.class change with a deleted MachineDeploymentClass and MachinePoolClass",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).
@@ -1791,6 +2222,16 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+					*builder.MachinePoolClass("bb").
 						WithInfrastructureTemplate(refToUnstructured(ref)).
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
@@ -1806,17 +2247,29 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
 				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
 				Build(),
 			wantErr: false,
 		},
 		{
-			name: "Accept cluster.topology.class change with an added MachineDeploymentClass",
+			name: "Accept cluster.topology.class change with an added MachineDeploymentClass and MachinePoolClass",
 			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
 				WithControlPlaneTemplate(refToUnstructured(ref)).
 				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
 						WithInfrastructureTemplate(refToUnstructured(ref)).
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
@@ -1832,6 +2285,16 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
 					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+					*builder.MachinePoolClass("bb").
 						WithInfrastructureTemplate(refToUnstructured(ref)).
 						WithBootstrapTemplate(refToUnstructured(ref)).
 						Build(),
@@ -1891,9 +2354,63 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 				Build(),
 			wantErr: true,
 		},
+
+		// MachinePoolClass reject changes
+		{
+			name: "Reject cluster.topology.class change with an incompatible Kind change to MachinePoolClass InfrastructureTemplate",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(incompatibleKindRef)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject cluster.topology.class change with an incompatible APIGroup change to MachinePoolClass InfrastructureTemplate",
+			firstClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(ref)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			secondClass: builder.ClusterClass(metav1.NamespaceDefault, "class2").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				WithWorkerMachinePoolClasses(
+					*builder.MachinePoolClass("aa").
+						WithInfrastructureTemplate(refToUnstructured(incompatibleAPIGroupRef)).
+						WithBootstrapTemplate(refToUnstructured(ref)).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			conditions.MarkTrue(tt.firstClass, clusterv1.ClusterClassVariablesReconciledCondition)
 			conditions.MarkTrue(tt.secondClass, clusterv1.ClusterClassVariablesReconciledCondition)
@@ -1912,11 +2429,13 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			secondCluster.Spec.Topology.Class = tt.secondClass.Name
 
 			// Checks the return error.
+			warnings, err := c.ValidateUpdate(ctx, cluster, secondCluster)
 			if tt.wantErr {
-				g.Expect(c.ValidateUpdate(ctx, cluster, secondCluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.ValidateUpdate(ctx, cluster, secondCluster)).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -2016,7 +2535,7 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
 			conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 			// Sets up the fakeClient for the test case.
@@ -2033,10 +2552,13 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 			updatedCluster.Spec.Topology = tt.updatedTopology
 
 			// Checks the return error.
+			warnings, err := c.ValidateUpdate(ctx, tt.cluster, updatedCluster)
 			if tt.wantErr {
-				g.Expect(c.ValidateUpdate(ctx, tt.cluster, updatedCluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.ValidateUpdate(ctx, tt.cluster, updatedCluster)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
+				// Errors may be duplicated as warnings. There should be no warnings in this case if there are no errors.
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -2087,7 +2609,9 @@ func TestClusterClassPollingErrors(t *testing.T) {
 		cluster        *clusterv1.Cluster
 		oldCluster     *clusterv1.Cluster
 		clusterClasses []*clusterv1.ClusterClass
+		injectedErr    interceptor.Funcs
 		wantErr        bool
+		wantWarnings   bool
 	}{
 		{
 			name:           "Pass on create if ClusterClass is fully reconciled",
@@ -2100,18 +2624,21 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccGenerationMismatch},
 			wantErr:        false,
+			wantWarnings:   true,
 		},
 		{
 			name:           "Pass on create if ClusterClass generation matches observedGeneration but VariablesReconciled=False",
 			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccVariablesReconciledFalse},
 			wantErr:        false,
+			wantWarnings:   true,
 		},
 		{
 			name:           "Pass on create if ClusterClass is not found",
 			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(notFoundTopology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
 			wantErr:        false,
+			wantWarnings:   true,
 		},
 		{
 			name:           "Pass on update if oldCluster ClusterClass is fully reconciled",
@@ -2140,26 +2667,554 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
 			wantErr:        true,
+			wantWarnings:   true,
+		},
+		{
+			name:           "Fail on update if new ClusterClass returns connection error",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(secondTopology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled, secondFullyReconciled},
+			injectedErr: interceptor.Funcs{
+				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+					// Throw an error if the second ClusterClass `class2` used as the new ClusterClass is being retrieved.
+					if key.Name == secondTopology.Class {
+						return errors.New("connection error")
+					}
+					return client.Get(ctx, key, obj)
+				},
+			},
+			wantErr:      true,
+			wantWarnings: false,
+		},
+		{
+			name:           "Fail on update if old ClusterClass returns connection error",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(secondTopology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled, secondFullyReconciled},
+			injectedErr: interceptor.Funcs{
+				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, _ ...client.GetOption) error {
+					// Throw an error if the ClusterClass `class1` used as the old ClusterClass is being retrieved.
+					if key.Name == topology.Class {
+						return errors.New("connection error")
+					}
+					return client.Get(ctx, key, obj)
+				},
+			},
+			wantErr:      true,
+			wantWarnings: false,
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			// Sets up a reconcile with a fakeClient for the test case.
 			objs := []client.Object{}
 			for _, cc := range tt.clusterClasses {
 				objs = append(objs, cc)
 			}
 			c := &Cluster{Client: fake.NewClientBuilder().
-				WithObjects(objs...).
+				WithInterceptorFuncs(tt.injectedErr).
 				WithScheme(fakeScheme).
-				Build()}
+				WithObjects(objs...).
+				Build(),
+			}
 
 			// Checks the return error.
+			warnings, err := c.validate(ctx, tt.oldCluster, tt.cluster)
 			if tt.wantErr {
-				g.Expect(c.validate(ctx, tt.oldCluster, tt.cluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.validate(ctx, tt.oldCluster, tt.cluster)).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			if tt.wantWarnings {
+				g.Expect(warnings).NotTo(BeEmpty())
+			} else {
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func Test_validateTopologyControlPlaneVersion(t *testing.T) {
+	tests := []struct {
+		name              string
+		expectErr         bool
+		old               *clusterv1.Cluster
+		additionalObjects []client.Object
+	}{
+		{
+			name:      "should update if kcp is fully upgraded and up to date",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.19.1"}).
+					Build(),
+			},
+		},
+		{
+			name:      "should block update if kcp is provisioning",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.19.1").
+					Build(),
+			},
+		},
+		{
+			name:      "should block update if kcp is upgrading",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.17.1"}).
+					Build(),
+			},
+		},
+		{
+			name:      "should block update if kcp is not yet upgraded",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithControlPlane(builder.ControlPlane("fooboo", "cluster1-cp").Build()).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.ControlPlane("fooboo", "cluster1-cp").WithVersion("v1.18.1").
+					WithStatusFields(map[string]interface{}{"status.version": "v1.18.1"}).
+					Build(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.additionalObjects...).
+				WithScheme(fakeScheme).
+				Build()
+
+			oldVersion, err := semver.ParseTolerant(tt.old.Spec.Topology.Version)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			err = validateTopologyControlPlaneVersion(ctx, fakeClient, tt.old, oldVersion)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func Test_validateTopologyMachineDeploymentVersions(t *testing.T) {
+	tests := []struct {
+		name              string
+		expectErr         bool
+		old               *clusterv1.Cluster
+		additionalObjects []client.Object
+	}{
+		{
+			name:      "should update if no machine deployment is exists",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{},
+		},
+		{
+			name:      "should update if machine deployments are fully upgraded and up to date",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.19.1").Build(),
+			},
+		},
+		{
+			name:      "should block update if machine deployment is not yet upgraded",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.18.1").Build(),
+			},
+		},
+		{
+			name:      "should block update if machine deployment is upgrading",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("workers1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachineDeployment("fooboo", "cluster1-workers1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                          "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.19.1").WithSelector(*metav1.SetAsLabelSelector(labels.Set{clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1"})).Build(),
+				builder.Machine("fooboo", "cluster1-workers1-1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel: "cluster1",
+					// clusterv1.ClusterTopologyOwnedLabel:                 "",
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: "workers1",
+				}).WithVersion("v1.18.1").Build(),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.additionalObjects...).
+				WithScheme(fakeScheme).
+				Build()
+
+			oldVersion, err := semver.ParseTolerant(tt.old.Spec.Topology.Version)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			err = validateTopologyMachineDeploymentVersions(ctx, fakeClient, tt.old, oldVersion)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func Test_validateTopologyMachinePoolVersions(t *testing.T) {
+	tests := []struct {
+		name              string
+		expectErr         bool
+		old               *clusterv1.Cluster
+		additionalObjects []client.Object
+		workloadObjects   []client.Object
+	}{
+		{
+			name:      "should update if no machine pool is exists",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{},
+			workloadObjects:   []client.Object{},
+		},
+		{
+			name:      "should update if machine pools are fully upgraded and up to date",
+			expectErr: false,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.19.1").Build(),
+			},
+			workloadObjects: []client.Object{},
+		},
+		{
+			name:      "should block update if machine pool is not yet upgraded",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.18.1").Build(),
+			},
+			workloadObjects: []client.Object{},
+		},
+		{
+			name:      "should block update machine pool is upgrading",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.19.1").WithStatus(expv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
+			},
+			workloadObjects: []client.Object{
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{Name: "mp-node-1"},
+					Status:     corev1.NodeStatus{NodeInfo: corev1.NodeSystemInfo{KubeletVersion: "v1.18.1"}},
+				},
+			},
+		},
+		{
+			name:      "should block update if it cannot get the node of a machine pool",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachinePool(
+						builder.MachinePoolTopology("pool1").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			additionalObjects: []client.Object{
+				builder.MachinePool("fooboo", "cluster1-pool1").WithLabels(map[string]string{
+					clusterv1.ClusterNameLabel:                    "cluster1",
+					clusterv1.ClusterTopologyOwnedLabel:           "",
+					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
+				}).WithVersion("v1.19.1").WithStatus(expv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
+			},
+			workloadObjects: []client.Object{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.additionalObjects...).
+				WithScheme(fakeScheme).
+				Build()
+
+			oldVersion, err := semver.ParseTolerant(tt.old.Spec.Topology.Version)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			fakeClusterCacheTracker := &fakeClusterCacheTracker{
+				client: fake.NewClientBuilder().
+					WithObjects(tt.workloadObjects...).
+					Build(),
+			}
+
+			err = validateTopologyMachinePoolVersions(ctx, fakeClient, fakeClusterCacheTracker, tt.old, oldVersion)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func TestValidateAutoscalerAnnotationsForCluster(t *testing.T) {
+	tests := []struct {
+		name         string
+		expectErr    bool
+		cluster      *clusterv1.Cluster
+		clusterClass *clusterv1.ClusterClass
+	}{
+		{
+			name:      "no workers in topology",
+			expectErr: false,
+			cluster:   &clusterv1.Cluster{},
+		},
+		{
+			name:      "replicas is not set",
+			expectErr: false,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set but there are no autoscaler annotations",
+			expectErr: false,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set on an MD that has only one annotation",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers2").
+						WithReplicas(2).
+						WithAnnotations(map[string]string{
+							clusterv1.AutoscalerMinSizeAnnotation: "2",
+						}).
+						Build(),
+					).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set on an MD that has two annotations",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithReplicas(2).
+						Build(),
+					).
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers2").
+						WithReplicas(2).
+						WithAnnotations(map[string]string{
+							clusterv1.AutoscalerMinSizeAnnotation: "2",
+							clusterv1.AutoscalerMaxSizeAnnotation: "20",
+						}).
+						Build(),
+					).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set, there are no autoscaler annotations on the Cluster MDT, but there is no matching ClusterClass MDC",
+			expectErr: false,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("mdc1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+			clusterClass: builder.ClusterClass("ns", "name").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc2").Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set, there are no autoscaler annotations on the Cluster MDT, but there is only one on the ClusterClass MDC",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("mdc1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+			clusterClass: builder.ClusterClass("ns", "name").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc1").
+					WithAnnotations(map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "2",
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "replicas is set, there are no autoscaler annotations on the Cluster MDT, but there are two on the ClusterClass MDC",
+			expectErr: true,
+			cluster: builder.Cluster("ns", "name").WithTopology(
+				builder.ClusterTopology().
+					WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+						WithClass("mdc1").
+						WithReplicas(2).
+						Build(),
+					).
+					Build()).
+				Build(),
+			clusterClass: builder.ClusterClass("ns", "name").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("mdc1").
+					WithAnnotations(map[string]string{
+						clusterv1.AutoscalerMinSizeAnnotation: "2",
+						clusterv1.AutoscalerMaxSizeAnnotation: "20",
+					}).
+					Build()).
+				Build(),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := validateAutoscalerAnnotationsForCluster(tt.cluster, tt.clusterClass)
+			if tt.expectErr {
+				g.Expect(err).ToNot(BeEmpty())
+			} else {
+				g.Expect(err).To(BeEmpty())
 			}
 		})
 	}
@@ -2173,4 +3228,12 @@ func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
 	output.SetName(ref.Name)
 	output.SetNamespace(ref.Namespace)
 	return output
+}
+
+type fakeClusterCacheTracker struct {
+	client client.Reader
+}
+
+func (f *fakeClusterCacheTracker) GetReader(_ context.Context, _ types.NamespacedName) (client.Reader, error) {
+	return f.client, nil
 }

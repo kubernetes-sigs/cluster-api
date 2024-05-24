@@ -30,11 +30,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -106,11 +107,11 @@ func TestWatches(t *testing.T) {
 		},
 	}
 
-	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	g.Expect(env.Create(ctx, defaultBootstrap)).To(BeNil())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
 	g.Expect(env.Create(ctx, node)).To(Succeed())
-	g.Expect(env.Create(ctx, infraMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -150,10 +151,11 @@ func TestWatches(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 	}
 
-	g.Expect(env.Create(ctx, machine)).To(BeNil())
+	g.Expect(env.Create(ctx, machine)).To(Succeed())
 	defer func() {
 		g.Expect(env.Cleanup(ctx, machine)).To(Succeed())
 	}()
@@ -181,6 +183,185 @@ func TestWatches(t *testing.T) {
 		}
 		return machine.Status.FailureMessage != nil
 	}, timeout).Should(BeTrue())
+}
+
+func TestWatchesDelete(t *testing.T) {
+	g := NewWithT(t)
+	ns, err := env.CreateNamespace(ctx, "test-machine-watches-delete")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	infraMachine := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericInfrastructureMachine",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": ns.Name,
+			},
+			"spec": map[string]interface{}{
+				"providerID": "test://id-1",
+			},
+			"status": map[string]interface{}{
+				"ready": true,
+				"addresses": []interface{}{
+					map[string]interface{}{
+						"type":    "InternalIP",
+						"address": "10.0.0.1",
+					},
+				},
+			},
+		},
+	}
+	infraMachineFinalizer := "test.infrastructure.cluster.x-k8s.io"
+	controllerutil.AddFinalizer(infraMachine, infraMachineFinalizer)
+
+	defaultBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericBootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config-machinereconcile",
+				"namespace": ns.Name,
+			},
+			"spec":   map[string]interface{}{},
+			"status": map[string]interface{}{},
+		},
+	}
+	bootstrapFinalizer := "test.bootstrap.cluster.x-k8s.io"
+	controllerutil.AddFinalizer(defaultBootstrap, bootstrapFinalizer)
+
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "machine-reconcile-",
+			Namespace:    ns.Name,
+		},
+		Spec: clusterv1.ClusterSpec{
+			// we create the cluster in paused state so we don't reconcile
+			// the machine immediately after creation.
+			// This avoids going through reconcileExternal, which adds watches
+			// for the provider machine and the bootstrap config objects.
+			Paused: true,
+		},
+	}
+
+	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
+	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+
+	defer func(do ...client.Object) {
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+	}(ns, testCluster, defaultBootstrap)
+
+	// Patch infra machine ready
+	patchHelper, err := patch.NewHelper(infraMachine, env)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+	// Patch bootstrap ready
+	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "machine-created-",
+			Namespace:    ns.Name,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: testCluster.Name,
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericBootstrapConfig",
+					Name:       "bootstrap-config-machinereconcile",
+				},
+			},
+		},
+	}
+	// We create the machine with a finalizer so the machine is not deleted immediately.
+	controllerutil.AddFinalizer(machine, clusterv1.MachineFinalizer)
+
+	g.Expect(env.Create(ctx, machine)).To(Succeed())
+	defer func() {
+		g.Expect(env.Cleanup(ctx, machine)).To(Succeed())
+	}()
+
+	// We mark the machine for deletion
+	g.Expect(env.Delete(ctx, machine)).To(Succeed())
+
+	// We unpause the cluster so the machine can be reconciled.
+	testCluster.Spec.Paused = false
+	g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+	// Wait for reconciliation to happen.
+	// The first reconciliation should add the cluster name label.
+	key := client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
+	g.Eventually(func() bool {
+		if err := env.Get(ctx, key, machine); err != nil {
+			return false
+		}
+		return machine.Labels[clusterv1.ClusterNameLabel] == testCluster.Name
+	}, timeout).Should(BeTrue())
+
+	// Deleting the machine should mark the infra machine for deletion
+	infraMachineKey := client.ObjectKey{Name: infraMachine.GetName(), Namespace: infraMachine.GetNamespace()}
+	g.Eventually(func() bool {
+		if err := env.Get(ctx, infraMachineKey, infraMachine); err != nil {
+			return false
+		}
+		return infraMachine.GetDeletionTimestamp() != nil
+	}, timeout).Should(BeTrue(), "infra machine should be marked for deletion")
+
+	// We wait a bit and remove the finalizer, simulating the infra machine controller.
+	time.Sleep(2 * time.Second)
+	infraMachine.SetFinalizers([]string{})
+	g.Expect(env.Update(ctx, infraMachine)).To(Succeed())
+
+	// This should delete the infra machine
+	g.Eventually(func() bool {
+		err := env.Get(ctx, infraMachineKey, infraMachine)
+		return apierrors.IsNotFound(err)
+	}, timeout).Should(BeTrue(), "infra machine should be deleted")
+
+	// If the watch on infra machine works, deleting of the infra machine will trigger another
+	// reconcile, which will mark the bootstrap config for deletion
+	bootstrapKey := client.ObjectKey{Name: defaultBootstrap.GetName(), Namespace: defaultBootstrap.GetNamespace()}
+	g.Eventually(func() bool {
+		if err := env.Get(ctx, bootstrapKey, defaultBootstrap); err != nil {
+			return false
+		}
+		return defaultBootstrap.GetDeletionTimestamp() != nil
+	}, timeout).Should(BeTrue(), "bootstrap config should be marked for deletion")
+
+	// We wait a bit a remove the finalizer, simulating the bootstrap config controller.
+	time.Sleep(2 * time.Second)
+	defaultBootstrap.SetFinalizers([]string{})
+	g.Expect(env.Update(ctx, defaultBootstrap)).To(Succeed())
+
+	// This should delete the bootstrap config.
+	g.Eventually(func() bool {
+		err := env.Get(ctx, bootstrapKey, defaultBootstrap)
+		return apierrors.IsNotFound(err)
+	}, timeout).Should(BeTrue(), "bootstrap config should be deleted")
+
+	// If the watch on bootstrap config works, the deleting of the bootstrap config will trigger another
+	// reconcile, which will remove the finalizer and delete the machine
+	g.Eventually(func() bool {
+		err := env.Get(ctx, key, machine)
+		return apierrors.IsNotFound(err)
+	}, timeout).Should(BeTrue(), "machine should be deleted")
 }
 
 func TestMachine_Reconcile(t *testing.T) {
@@ -223,9 +404,9 @@ func TestMachine_Reconcile(t *testing.T) {
 		},
 	}
 
-	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
-	g.Expect(env.Create(ctx, infraMachine)).To(BeNil())
-	g.Expect(env.Create(ctx, defaultBootstrap)).To(BeNil())
+	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
 
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -250,14 +431,15 @@ func TestMachine_Reconcile(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{
 				Name: "test",
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, machine)).To(BeNil())
+	g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 	key := client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 
@@ -271,7 +453,7 @@ func TestMachine_Reconcile(t *testing.T) {
 
 	// Set bootstrap ready.
 	bootstrapPatch := client.MergeFrom(defaultBootstrap.DeepCopy())
-	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).NotTo(HaveOccurred())
+	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).ToNot(HaveOccurred())
 	g.Expect(env.Status().Patch(ctx, defaultBootstrap, bootstrapPatch)).To(Succeed())
 
 	// Set infrastructure ready.
@@ -291,7 +473,7 @@ func TestMachine_Reconcile(t *testing.T) {
 		return readyCondition.Status == corev1.ConditionTrue
 	}, timeout).Should(BeTrue())
 
-	g.Expect(env.Delete(ctx, machine)).NotTo(HaveOccurred())
+	g.Expect(env.Delete(ctx, machine)).ToNot(HaveOccurred())
 	// Wait for Machine to be deleted.
 	g.Eventually(func() bool {
 		if err := env.Get(ctx, key, machine); err != nil {
@@ -389,12 +571,14 @@ func TestMachineFinalizer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			c := fake.NewClientBuilder().WithObjects(
+				clusterCorrectMeta,
+				machineValidCluster,
+				machineWithFinalizer,
+			).Build()
 			mr := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(
-					clusterCorrectMeta,
-					machineValidCluster,
-					machineWithFinalizer,
-				).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			_, _ = mr.Reconcile(ctx, tc.request)
@@ -454,7 +638,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       "valid-machineset",
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 				},
 			},
 		},
@@ -479,7 +663,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: "test.group",
 					Kind:       "KubeadmControlPlane",
 					Name:       "valid-controlplane",
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 				},
 			},
 		},
@@ -523,7 +707,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       "valid-machineset",
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 				},
 			},
 		},
@@ -538,7 +722,7 @@ func TestMachineOwnerReference(t *testing.T) {
 					APIVersion: "test.group",
 					Kind:       "KubeadmControlPlane",
 					Name:       "valid-controlplane",
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 				},
 			},
 		},
@@ -554,10 +738,11 @@ func TestMachineOwnerReference(t *testing.T) {
 				machineValidCluster,
 				machineValidMachine,
 				machineValidControlled,
-			).Build()
+			).WithStatusSubresource(&clusterv1.Machine{}).Build()
 			mr := &Reconciler{
-				Client:    c,
-				APIReader: c,
+				Client:                    c,
+				UnstructuredCachingClient: c,
+				APIReader:                 c,
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
@@ -565,8 +750,8 @@ func TestMachineOwnerReference(t *testing.T) {
 
 			// this first requeue is to add finalizer
 			result, err := mr.Reconcile(ctx, tc.request)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(result).To(Equal(ctrl.Result{}))
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 			g.Expect(actual.Finalizers).To(ContainElement(clusterv1.MachineFinalizer))
 
@@ -574,7 +759,7 @@ func TestMachineOwnerReference(t *testing.T) {
 
 			if len(tc.expectedOR) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
-				g.Expect(actual.OwnerReferences).To(Equal(tc.expectedOR))
+				g.Expect(actual.OwnerReferences).To(BeComparableTo(tc.expectedOR))
 			} else {
 				g.Expect(actual.OwnerReferences).To(BeEmpty())
 			}
@@ -644,7 +829,7 @@ func TestReconcileRequest(t *testing.T) {
 						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -672,7 +857,7 @@ func TestReconcileRequest(t *testing.T) {
 						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -704,7 +889,7 @@ func TestReconcileRequest(t *testing.T) {
 						Kind:       "GenericInfrastructureMachine",
 						Name:       "infra-config1",
 					},
-					Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 			},
 			expected: expected{
@@ -714,7 +899,8 @@ func TestReconcileRequest(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i := range testCases {
+		tc := testCases[i]
 		t.Run("machine should be "+tc.machine.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -724,22 +910,23 @@ func TestReconcileRequest(t *testing.T) {
 				&tc.machine,
 				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				&infraConfig,
-			).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
+			).WithStatusSubresource(&clusterv1.Machine{}).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			r := &Reconciler{
-				Client:   clientFake,
-				Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache: ssa.NewCache(),
+				Client:                    clientFake,
+				UnstructuredCachingClient: clientFake,
+				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				ssaCache:                  ssa.NewCache(),
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
-			g.Expect(result).To(Equal(tc.expected.result))
+			g.Expect(result).To(BeComparableTo(tc.expected.result))
 		})
 	}
 }
@@ -807,7 +994,7 @@ func TestMachineConditions(t *testing.T) {
 			Finalizers: []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
-			ProviderID:  pointer.String("test://id-1"),
+			ProviderID:  ptr.To("test://id-1"),
 			ClusterName: "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -842,13 +1029,15 @@ func TestMachineConditions(t *testing.T) {
 		infraReady         bool
 		bootstrapReady     bool
 		beforeFunc         func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine)
+		additionalObjects  []client.Object
 		conditionsToAssert []*clusterv1.Condition
+		wantErr            bool
 	}{
 		{
 			name:           "all conditions true",
 			infraReady:     true,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				// since these conditions are set by an external controller
 				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededCondition)
 				conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
@@ -865,7 +1054,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "infra condition consumes reason from the infra config",
 			infraReady:     false,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, infra *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -892,7 +1081,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "bootstrap condition consumes reason from the bootstrap config",
 			infraReady:     true,
 			bootstrapReady: false,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *clusterv1.Machine) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -929,7 +1118,7 @@ func TestMachineConditions(t *testing.T) {
 			name:           "ready condition summary consumes reason from the machine owner remediated condition",
 			infraReady:     true,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "MHC failed")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
@@ -940,11 +1129,42 @@ func TestMachineConditions(t *testing.T) {
 			name:           "ready condition summary consumes reason from the MHC succeeded condition",
 			infraReady:     true,
 			bootstrapReady: true,
-			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
 				conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
 				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, ""),
+			},
+		},
+		{
+			name:           "machine ready and MachineNodeHealthy unknown",
+			infraReady:     true,
+			bootstrapReady: true,
+			additionalObjects: []client.Object{&corev1.Node{
+				// This is a duplicate node with the same providerID
+				// This should lead to an error when trying to get the Node for a Machine.
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-duplicate",
+				},
+				Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+			}},
+			wantErr: true,
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.TrueCondition(clusterv1.InfrastructureReadyCondition),
+				conditions.TrueCondition(clusterv1.BootstrapReadyCondition),
+				conditions.TrueCondition(clusterv1.ReadyCondition),
+				conditions.UnknownCondition(clusterv1.MachineNodeHealthyCondition, clusterv1.NodeInspectionFailedReason, "Failed to get the Node for this Machine by ProviderID"),
+			},
+		},
+		{
+			name:           "ready condition summary consumes reason from the draining succeeded condition",
+			infraReady:     true,
+			bootstrapReady: true,
+			beforeFunc: func(_, _ *unstructured.Unstructured, m *clusterv1.Machine) {
+				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, "")
+			},
+			conditionsToAssert: []*clusterv1.Condition{
+				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, ""),
 			},
 		},
 	}
@@ -961,29 +1181,34 @@ func TestMachineConditions(t *testing.T) {
 				tt.beforeFunc(bootstrap, infra, m)
 			}
 
-			clientFake := fake.NewClientBuilder().WithObjects(
-				&testCluster,
-				m,
-				builder.GenericInfrastructureMachineCRD.DeepCopy(),
-				infra,
-				builder.GenericBootstrapConfigCRD.DeepCopy(),
-				bootstrap,
-				node,
-			).
+			objs := []client.Object{&testCluster, m, node,
+				builder.GenericInfrastructureMachineCRD.DeepCopy(), infra,
+				builder.GenericBootstrapConfigCRD.DeepCopy(), bootstrap,
+			}
+			objs = append(objs, tt.additionalObjects...)
+
+			clientFake := fake.NewClientBuilder().WithObjects(objs...).
 				WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
+				WithStatusSubresource(&clusterv1.Machine{}).
 				Build()
 
 			r := &Reconciler{
-				Client:   clientFake,
-				Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache: ssa.NewCache(),
+				Client:                    clientFake,
+				UnstructuredCachingClient: clientFake,
+				recorder:                  record.NewFakeRecorder(10),
+				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				ssaCache:                  ssa.NewCache(),
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
-			g.Expect(err).NotTo(HaveOccurred())
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
 
 			m = &clusterv1.Machine{}
-			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).NotTo(HaveOccurred())
+			g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(&machine), m)).ToNot(HaveOccurred())
 
 			assertConditions(t, m, tt.conditionsToAssert...)
 		})
@@ -1063,17 +1288,19 @@ func TestReconcileDeleteExternal(t *testing.T) {
 				objs = append(objs, bootstrapConfig)
 			}
 
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
-			obj, err := r.reconcileDeleteExternal(ctx, machine, machine.Spec.Bootstrap.ConfigRef)
-			g.Expect(obj).To(Equal(tc.expected))
+			obj, err := r.reconcileDeleteExternal(ctx, testCluster, machine, machine.Spec.Bootstrap.ConfigRef)
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(obj).To(BeComparableTo(tc.expected))
 		})
 	}
 }
@@ -1101,12 +1328,14 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 			},
-			Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
+	c := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&clusterv1.Machine{}).Build()
 	mr := &Reconciler{
-		Client: fake.NewClientBuilder().WithObjects(testCluster, m).Build(),
+		Client:                    c,
+		UnstructuredCachingClient: c,
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1139,7 +1368,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1156,7 +1385,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
 				},
 
@@ -1183,7 +1412,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1209,7 +1438,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: clusterv1.Conditions{
@@ -1231,8 +1460,10 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			got := r.isNodeDrainAllowed(tt.machine)
@@ -1264,7 +1495,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1281,7 +1512,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             "test-cluster",
 					InfrastructureRef:       corev1.ObjectReference{},
-					Bootstrap:               clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second * 30},
 				},
 
@@ -1308,7 +1539,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             "test-cluster",
 					InfrastructureRef:       corev1.ObjectReference{},
-					Bootstrap:               clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:               clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 					NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second * 60},
 				},
 				Status: clusterv1.MachineStatus{
@@ -1334,7 +1565,7 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					Conditions: clusterv1.Conditions{
@@ -1356,8 +1587,10 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			got := r.isNodeVolumeDetachingAllowed(tt.machine)
@@ -1395,7 +1628,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{},
 			},
@@ -1421,7 +1654,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1453,7 +1686,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1483,7 +1716,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1500,6 +1733,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:              "test-cluster",
 					Namespace:         metav1.NamespaceDefault,
 					DeletionTimestamp: &deletionts,
+					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
 			},
 			machine:       &clusterv1.Machine{},
@@ -1533,7 +1767,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1571,7 +1805,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1609,7 +1843,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1641,6 +1875,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	mcpBeingDeleted.SetName("test-cluster-2")
 	mcpBeingDeleted.SetNamespace("test-cluster")
 	mcpBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+	mcpBeingDeleted.SetFinalizers([]string{"block-deletion"})
 
 	empBeingDeleted := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -1654,6 +1889,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	empBeingDeleted.SetName("test-cluster-3")
 	empBeingDeleted.SetNamespace("test-cluster")
 	empBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+	empBeingDeleted.SetFinalizers([]string{"block-deletion"})
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1671,7 +1907,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1691,7 +1927,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       "test-cluster",
 					InfrastructureRef: corev1.ObjectReference{},
-					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
 					NodeRef: &corev1.ObjectReference{
@@ -1705,21 +1941,23 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				m2.Labels[clusterv1.MachineControlPlaneLabel] = ""
 			}
 
+			c := fake.NewClientBuilder().WithObjects(
+				tc.cluster,
+				tc.machine,
+				m1,
+				m2,
+				emp,
+				mcpBeingDeleted,
+				empBeingDeleted,
+			).Build()
 			mr := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(
-					tc.cluster,
-					tc.machine,
-					m1,
-					m2,
-					emp,
-					mcpBeingDeleted,
-					empBeingDeleted,
-				).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine)
 			if tc.expectedError == nil {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			} else {
 				g.Expect(err).To(Equal(tc.expectedError))
 			}
@@ -1817,13 +2055,13 @@ func TestNodeToMachine(t *testing.T) {
 		},
 	}
 
-	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-	g.Expect(env.Create(ctx, defaultBootstrap)).To(BeNil())
+	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
 	g.Expect(env.Create(ctx, targetNode)).To(Succeed())
 	g.Expect(env.Create(ctx, randomNode)).To(Succeed())
-	g.Expect(env.Create(ctx, infraMachine)).To(BeNil())
-	g.Expect(env.Create(ctx, infraMachine2)).To(BeNil())
+	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+	g.Expect(env.Create(ctx, infraMachine2)).To(Succeed())
 
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -1869,10 +2107,11 @@ func TestNodeToMachine(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 	}
 
-	g.Expect(env.Create(ctx, expectedMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, expectedMachine)).To(Succeed())
 	defer func() {
 		g.Expect(env.Cleanup(ctx, expectedMachine)).To(Succeed())
 	}()
@@ -1908,10 +2147,11 @@ func TestNodeToMachine(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 	}
 
-	g.Expect(env.Create(ctx, randomMachine)).To(BeNil())
+	g.Expect(env.Create(ctx, randomMachine)).To(Succeed())
 	defer func() {
 		g.Expect(env.Cleanup(ctx, randomMachine)).To(Succeed())
 	}()
@@ -1977,10 +2217,11 @@ func TestNodeToMachine(t *testing.T) {
 	}
 
 	r := &Reconciler{
-		Client: env,
+		Client:                    env,
+		UnstructuredCachingClient: env,
 	}
 	for _, node := range fakeNodes {
-		request := r.nodeToMachine(node)
+		request := r.nodeToMachine(ctx, node)
 		g.Expect(request).To(BeEquivalentTo([]reconcile.Request{
 			{
 				NamespacedName: client.ObjectKeyFromObject(expectedMachine),
@@ -2040,7 +2281,7 @@ func TestNodeDeletion(t *testing.T) {
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
 			},
-			Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{
@@ -2062,7 +2303,7 @@ func TestNodeDeletion(t *testing.T) {
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       "test-cluster",
 			InfrastructureRef: corev1.ObjectReference{},
-			Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.String("data")},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{
@@ -2087,6 +2328,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 			},
 		},
@@ -2098,6 +2340,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},
@@ -2110,6 +2353,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},
@@ -2122,6 +2366,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},
@@ -2135,6 +2380,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},
@@ -2142,18 +2388,19 @@ func TestNodeDeletion(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(*testing.T) {
 			m := testMachine.DeepCopy()
 			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
-			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
+			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
 
 			r := &Reconciler{
-				Client:                   fakeClient,
-				Tracker:                  tracker,
-				recorder:                 record.NewFakeRecorder(10),
-				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+				Client:                    fakeClient,
+				UnstructuredCachingClient: fakeClient,
+				Tracker:                   tracker,
+				recorder:                  record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout:  10 * time.Millisecond,
 			}
 
 			cluster := testCluster.DeepCopy()
@@ -2166,7 +2413,7 @@ func TestNodeDeletion(t *testing.T) {
 			if tc.resultErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				if tc.expectNodeDeletion {
 					n := &corev1.Node{}
 					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
@@ -2206,7 +2453,7 @@ func assertCondition(t *testing.T, from conditions.Getter, condition *clusterv1.
 	g.Expect(conditions.Has(from, condition.Type)).To(BeTrue())
 
 	if condition.Status == corev1.ConditionTrue {
-		conditions.IsTrue(from, condition.Type)
+		g.Expect(conditions.IsTrue(from, condition.Type)).To(BeTrue())
 	} else {
 		conditionToBeAsserted := conditions.Get(from, condition.Type)
 		g.Expect(conditionToBeAsserted.Status).To(Equal(condition.Status))

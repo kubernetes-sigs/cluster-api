@@ -26,6 +26,8 @@ type DockerClusterTemplateSpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerClusterTemplate"
 
 // DockerClusterTemplate is the Schema for the dockerclustertemplates API.
@@ -51,7 +53,7 @@ type DockerClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerClusterTemplate{}, &DockerClusterTemplateList{})
+	objectTypes = append(objectTypes, &DockerClusterTemplate{}, &DockerClusterTemplateList{})
 }
 
 // DockerClusterTemplateResource describes the data needed to create a DockerCluster from a template.

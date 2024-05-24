@@ -17,17 +17,13 @@ limitations under the License.
 package builder
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
-	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -163,6 +159,12 @@ func (c *ClusterTopologyBuilder) WithMachineDeployment(mdc clusterv1.MachineDepl
 	return c
 }
 
+// WithMachinePool passes the full MachinePoolTopology and adds it to an existing list in the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithMachinePool(mpc clusterv1.MachinePoolTopology) *ClusterTopologyBuilder {
+	c.workers.MachinePools = append(c.workers.MachinePools, mpc)
+	return c
+}
+
 // WithVariables adds the passed variables to the ClusterTopologyBuilder.
 func (c *ClusterTopologyBuilder) WithVariables(vars ...clusterv1.ClusterVariable) *ClusterTopologyBuilder {
 	c.variables = vars
@@ -185,11 +187,12 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 
 // MachineDeploymentTopologyBuilder holds the values needed to create a testable MachineDeploymentTopology.
 type MachineDeploymentTopologyBuilder struct {
-	class     string
-	name      string
-	replicas  *int32
-	mhc       *clusterv1.MachineHealthCheckTopology
-	variables []clusterv1.ClusterVariable
+	annotations map[string]string
+	class       string
+	name        string
+	replicas    *int32
+	mhc         *clusterv1.MachineHealthCheckTopology
+	variables   []clusterv1.ClusterVariable
 }
 
 // MachineDeploymentTopology returns a builder used to create a testable MachineDeploymentTopology.
@@ -197,6 +200,12 @@ func MachineDeploymentTopology(name string) *MachineDeploymentTopologyBuilder {
 	return &MachineDeploymentTopologyBuilder{
 		name: name,
 	}
+}
+
+// WithAnnotations adds annotations map used as the MachineDeploymentTopology annotations.
+func (m *MachineDeploymentTopologyBuilder) WithAnnotations(annotations map[string]string) *MachineDeploymentTopologyBuilder {
+	m.annotations = annotations
+	return m
 }
 
 // WithClass adds a class string used as the MachineDeploymentTopology class.
@@ -226,6 +235,9 @@ func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc *clusterv1
 // Build returns a testable MachineDeploymentTopology with any values passed to the builder.
 func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTopology {
 	md := clusterv1.MachineDeploymentTopology{
+		Metadata: clusterv1.ObjectMeta{
+			Annotations: m.annotations,
+		},
 		Class:              m.class,
 		Name:               m.name,
 		Replicas:           m.replicas,
@@ -241,6 +253,64 @@ func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTo
 	return md
 }
 
+// MachinePoolTopologyBuilder holds the values needed to create a testable MachinePoolTopology.
+type MachinePoolTopologyBuilder struct {
+	class          string
+	name           string
+	replicas       *int32
+	failureDomains []string
+	variables      []clusterv1.ClusterVariable
+}
+
+// MachinePoolTopology returns a builder used to create a testable MachinePoolTopology.
+func MachinePoolTopology(name string) *MachinePoolTopologyBuilder {
+	return &MachinePoolTopologyBuilder{
+		name: name,
+	}
+}
+
+// WithClass adds a class string used as the MachinePoolTopology class.
+func (m *MachinePoolTopologyBuilder) WithClass(class string) *MachinePoolTopologyBuilder {
+	m.class = class
+	return m
+}
+
+// WithReplicas adds a replicas value used as the MachinePoolTopology replicas value.
+func (m *MachinePoolTopologyBuilder) WithReplicas(replicas int32) *MachinePoolTopologyBuilder {
+	m.replicas = &replicas
+	return m
+}
+
+// WithFailureDomains adds a failureDomains value used as the MachinePoolTopology failureDomains value.
+func (m *MachinePoolTopologyBuilder) WithFailureDomains(failureDomains ...string) *MachinePoolTopologyBuilder {
+	m.failureDomains = failureDomains
+	return m
+}
+
+// WithVariables adds variables used as the MachinePoolTopology variables value.
+func (m *MachinePoolTopologyBuilder) WithVariables(variables ...clusterv1.ClusterVariable) *MachinePoolTopologyBuilder {
+	m.variables = variables
+	return m
+}
+
+// Build returns a testable MachinePoolTopology with any values passed to the builder.
+func (m *MachinePoolTopologyBuilder) Build() clusterv1.MachinePoolTopology {
+	mp := clusterv1.MachinePoolTopology{
+		Class:          m.class,
+		Name:           m.name,
+		Replicas:       m.replicas,
+		FailureDomains: m.failureDomains,
+	}
+
+	if len(m.variables) > 0 {
+		mp.Variables = &clusterv1.MachinePoolVariables{
+			Overrides: m.variables,
+		}
+	}
+
+	return mp
+}
+
 // ClusterClassBuilder holds the variables and objects required to build a clusterv1.ClusterClass.
 type ClusterClassBuilder struct {
 	namespace                                 string
@@ -253,7 +323,9 @@ type ClusterClassBuilder struct {
 	controlPlaneNodeDrainTimeout              *metav1.Duration
 	controlPlaneNodeVolumeDetachTimeout       *metav1.Duration
 	controlPlaneNodeDeletionTimeout           *metav1.Duration
+	controlPlaneNamingStrategy                *clusterv1.ControlPlaneClassNamingStrategy
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
+	machinePoolClasses                        []clusterv1.MachinePoolClass
 	variables                                 []clusterv1.ClusterClassVariable
 	statusVariables                           []clusterv1.ClusterClassStatusVariable
 	patches                                   []clusterv1.ClusterClassPatch
@@ -318,6 +390,12 @@ func (c *ClusterClassBuilder) WithControlPlaneNodeDeletionTimeout(t *metav1.Dura
 	return c
 }
 
+// WithControlPlaneNamingStrategy sets the NamingStrategy for the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneNamingStrategy(n *clusterv1.ControlPlaneClassNamingStrategy) *ClusterClassBuilder {
+	c.controlPlaneNamingStrategy = n
+	return c
+}
+
 // WithVariables adds the Variables to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithVariables(vars ...clusterv1.ClusterClassVariable) *ClusterClassBuilder {
 	c.variables = vars
@@ -342,6 +420,15 @@ func (c *ClusterClassBuilder) WithWorkerMachineDeploymentClasses(mdcs ...cluster
 		c.machineDeploymentClasses = make([]clusterv1.MachineDeploymentClass, 0)
 	}
 	c.machineDeploymentClasses = append(c.machineDeploymentClasses, mdcs...)
+	return c
+}
+
+// WithWorkerMachinePoolClasses adds the variables and objects needed to create MachinePoolTemplates for a ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithWorkerMachinePoolClasses(mpcs ...clusterv1.MachinePoolClass) *ClusterClassBuilder {
+	if c.machinePoolClasses == nil {
+		c.machinePoolClasses = make([]clusterv1.MachinePoolClass, 0)
+	}
+	c.machinePoolClasses = append(c.machinePoolClasses, mpcs...)
 	return c
 }
 
@@ -394,8 +481,12 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Ref: objToRef(c.controlPlaneInfrastructureMachineTemplate),
 		}
 	}
+	if c.controlPlaneNamingStrategy != nil {
+		obj.Spec.ControlPlane.NamingStrategy = c.controlPlaneNamingStrategy
+	}
 
 	obj.Spec.Workers.MachineDeployments = c.machineDeploymentClasses
+	obj.Spec.Workers.MachinePools = c.machinePoolClasses
 	return obj
 }
 
@@ -413,6 +504,7 @@ type MachineDeploymentClassBuilder struct {
 	nodeDeletionTimeout           *metav1.Duration
 	minReadySeconds               *int32
 	strategy                      *clusterv1.MachineDeploymentStrategy
+	namingStrategy                *clusterv1.MachineDeploymentClassNamingStrategy
 }
 
 // MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
@@ -488,6 +580,12 @@ func (m *MachineDeploymentClassBuilder) WithStrategy(s *clusterv1.MachineDeploym
 	return m
 }
 
+// WithNamingStrategy sets the NamingStrategy for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithNamingStrategy(n *clusterv1.MachineDeploymentClassNamingStrategy) *MachineDeploymentClassBuilder {
+	m.namingStrategy = n
+	return m
+}
+
 // Build creates a full MachineDeploymentClass object with the variables passed to the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClass {
 	obj := &clusterv1.MachineDeploymentClass{
@@ -525,6 +623,129 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	if m.strategy != nil {
 		obj.Strategy = m.strategy
+	}
+	if m.namingStrategy != nil {
+		obj.NamingStrategy = m.namingStrategy
+	}
+	return obj
+}
+
+// MachinePoolClassBuilder holds the variables and objects required to build a clusterv1.MachinePoolClass.
+type MachinePoolClassBuilder struct {
+	class                             string
+	infrastructureMachinePoolTemplate *unstructured.Unstructured
+	bootstrapTemplate                 *unstructured.Unstructured
+	labels                            map[string]string
+	annotations                       map[string]string
+	failureDomains                    []string
+	nodeDrainTimeout                  *metav1.Duration
+	nodeVolumeDetachTimeout           *metav1.Duration
+	nodeDeletionTimeout               *metav1.Duration
+	minReadySeconds                   *int32
+	namingStrategy                    *clusterv1.MachinePoolClassNamingStrategy
+}
+
+// MachinePoolClass returns a MachinePoolClassBuilder with the given name and namespace.
+func MachinePoolClass(class string) *MachinePoolClassBuilder {
+	return &MachinePoolClassBuilder{
+		class: class,
+	}
+}
+
+// WithInfrastructureTemplate registers the passed Unstructured object as the InfrastructureMachinePoolTemplate for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithInfrastructureTemplate(t *unstructured.Unstructured) *MachinePoolClassBuilder {
+	m.infrastructureMachinePoolTemplate = t
+	return m
+}
+
+// WithBootstrapTemplate registers the passed Unstructured object as the BootstrapTemplate for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithBootstrapTemplate(t *unstructured.Unstructured) *MachinePoolClassBuilder {
+	m.bootstrapTemplate = t
+	return m
+}
+
+// WithLabels sets the labels for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithLabels(labels map[string]string) *MachinePoolClassBuilder {
+	m.labels = labels
+	return m
+}
+
+// WithAnnotations sets the annotations for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithAnnotations(annotations map[string]string) *MachinePoolClassBuilder {
+	m.annotations = annotations
+	return m
+}
+
+// WithFailureDomains sets the FailureDomains for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithFailureDomains(failureDomains ...string) *MachinePoolClassBuilder {
+	m.failureDomains = failureDomains
+	return m
+}
+
+// WithNodeDrainTimeout sets the NodeDrainTimeout for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithNodeDrainTimeout(t *metav1.Duration) *MachinePoolClassBuilder {
+	m.nodeDrainTimeout = t
+	return m
+}
+
+// WithNodeVolumeDetachTimeout sets the NodeVolumeDetachTimeout for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithNodeVolumeDetachTimeout(t *metav1.Duration) *MachinePoolClassBuilder {
+	m.nodeVolumeDetachTimeout = t
+	return m
+}
+
+// WithNodeDeletionTimeout sets the NodeDeletionTimeout for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithNodeDeletionTimeout(t *metav1.Duration) *MachinePoolClassBuilder {
+	m.nodeDeletionTimeout = t
+	return m
+}
+
+// WithMinReadySeconds sets the MinReadySeconds for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithMinReadySeconds(t *int32) *MachinePoolClassBuilder {
+	m.minReadySeconds = t
+	return m
+}
+
+// WithNamingStrategy sets the NamingStrategy for the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) WithNamingStrategy(n *clusterv1.MachinePoolClassNamingStrategy) *MachinePoolClassBuilder {
+	m.namingStrategy = n
+	return m
+}
+
+// Build creates a full MachinePoolClass object with the variables passed to the MachinePoolClassBuilder.
+func (m *MachinePoolClassBuilder) Build() *clusterv1.MachinePoolClass {
+	obj := &clusterv1.MachinePoolClass{
+		Class: m.class,
+		Template: clusterv1.MachinePoolClassTemplate{
+			Metadata: clusterv1.ObjectMeta{
+				Labels:      m.labels,
+				Annotations: m.annotations,
+			},
+		},
+	}
+	if m.bootstrapTemplate != nil {
+		obj.Template.Bootstrap.Ref = objToRef(m.bootstrapTemplate)
+	}
+	if m.infrastructureMachinePoolTemplate != nil {
+		obj.Template.Infrastructure.Ref = objToRef(m.infrastructureMachinePoolTemplate)
+	}
+	if m.failureDomains != nil {
+		obj.FailureDomains = m.failureDomains
+	}
+	if m.nodeDrainTimeout != nil {
+		obj.NodeDrainTimeout = m.nodeDrainTimeout
+	}
+	if m.nodeVolumeDetachTimeout != nil {
+		obj.NodeVolumeDetachTimeout = m.nodeVolumeDetachTimeout
+	}
+	if m.nodeDeletionTimeout != nil {
+		obj.NodeDeletionTimeout = m.nodeDeletionTimeout
+	}
+	if m.minReadySeconds != nil {
+		obj.MinReadySeconds = m.minReadySeconds
+	}
+	if m.namingStrategy != nil {
+		obj.NamingStrategy = m.namingStrategy
 	}
 	return obj
 }
@@ -605,6 +826,158 @@ func (i *TestInfrastructureMachineTemplateBuilder) Build() *unstructured.Unstruc
 	return i.obj
 }
 
+// InfrastructureMachinePoolTemplateBuilder holds the variables and objects needed to build an InfrastructureMachinePoolTemplate.
+type InfrastructureMachinePoolTemplateBuilder struct {
+	obj *unstructured.Unstructured
+}
+
+// InfrastructureMachinePoolTemplate creates an InfrastructureMachinePoolTemplateBuilder with the given name and namespace.
+func InfrastructureMachinePoolTemplate(namespace, name string) *InfrastructureMachinePoolTemplateBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetName(name)
+	obj.SetNamespace(namespace)
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(GenericInfrastructureMachinePoolTemplateKind)
+	// Set the mandatory spec fields for the object.
+	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
+	return &InfrastructureMachinePoolTemplateBuilder{
+		obj,
+	}
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
+func (i *InfrastructureMachinePoolTemplateBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureMachinePoolTemplateBuilder {
+	setSpecFields(i.obj, fields)
+	return i
+}
+
+// Build takes the objects and variables in the  InfrastructureMachineTemplateBuilder and generates an unstructured object.
+func (i *InfrastructureMachinePoolTemplateBuilder) Build() *unstructured.Unstructured {
+	return i.obj
+}
+
+// TestInfrastructureMachinePoolTemplateBuilder holds the variables and objects needed to build an TestInfrastructureMachinePoolTemplate.
+type TestInfrastructureMachinePoolTemplateBuilder struct {
+	obj *unstructured.Unstructured
+}
+
+// TestInfrastructureMachinePoolTemplate creates an TestInfrastructureMachinePoolTemplateBuilder with the given name and namespace.
+func TestInfrastructureMachinePoolTemplate(namespace, name string) *TestInfrastructureMachinePoolTemplateBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetName(name)
+	obj.SetNamespace(namespace)
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(TestInfrastructureMachinePoolTemplateKind)
+	// Set the mandatory spec fields for the object.
+	if err := unstructured.SetNestedField(obj.Object, map[string]interface{}{}, "spec", "template", "spec"); err != nil {
+		panic(err)
+	}
+	return &TestInfrastructureMachinePoolTemplateBuilder{
+		obj,
+	}
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
+//
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
+func (i *TestInfrastructureMachinePoolTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureMachinePoolTemplateBuilder {
+	setSpecFields(i.obj, fields)
+	return i
+}
+
+// Build takes the objects and variables in the TestInfrastructureMachineTemplateBuilder and generates an unstructured object.
+func (i *TestInfrastructureMachinePoolTemplateBuilder) Build() *unstructured.Unstructured {
+	return i.obj
+}
+
+// InfrastructureMachinePoolBuilder holds the variables and objects needed to build an InfrastructureMachinePool.
+type InfrastructureMachinePoolBuilder struct {
+	obj *unstructured.Unstructured
+}
+
+// InfrastructureMachinePool creates an InfrastructureMachinePoolBuilder with the given name and namespace.
+func InfrastructureMachinePool(namespace, name string) *InfrastructureMachinePoolBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetName(name)
+	obj.SetNamespace(namespace)
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(GenericInfrastructureMachinePoolKind)
+	// Set the mandatory spec fields for the object.
+	setSpecFields(obj, map[string]interface{}{"spec": map[string]interface{}{}})
+	return &InfrastructureMachinePoolBuilder{
+		obj,
+	}
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."
+//
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
+func (i *InfrastructureMachinePoolBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureMachinePoolBuilder {
+	setSpecFields(i.obj, fields)
+	return i
+}
+
+// Build takes the objects and variables in the InfrastructureMachinePoolBuilder and generates an unstructured object.
+func (i *InfrastructureMachinePoolBuilder) Build() *unstructured.Unstructured {
+	return i.obj
+}
+
+// TestInfrastructureMachinePoolBuilder holds the variables and objects needed to build an TestInfrastructureMachinePool.
+type TestInfrastructureMachinePoolBuilder struct {
+	obj *unstructured.Unstructured
+}
+
+// TestInfrastructureMachinePool creates an TestInfrastructureMachinePoolBuilder with the given name and namespace.
+func TestInfrastructureMachinePool(namespace, name string) *TestInfrastructureMachinePoolBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetName(name)
+	obj.SetNamespace(namespace)
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(TestInfrastructureMachinePoolKind)
+	// Set the mandatory spec fields for the object.
+	if err := unstructured.SetNestedField(obj.Object, map[string]interface{}{}, "spec"); err != nil {
+		panic(err)
+	}
+	return &TestInfrastructureMachinePoolBuilder{
+		obj,
+	}
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
+//
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
+func (i *TestInfrastructureMachinePoolBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureMachinePoolBuilder {
+	setSpecFields(i.obj, fields)
+	return i
+}
+
+// Build takes the objects and variables in the TestInfrastructureMachinePoolBuilder and generates an unstructured object.
+func (i *TestInfrastructureMachinePoolBuilder) Build() *unstructured.Unstructured {
+	return i.obj
+}
+
 // BootstrapTemplateBuilder holds the variables needed to build a generic BootstrapTemplate.
 type BootstrapTemplateBuilder struct {
 	obj *unstructured.Unstructured
@@ -661,6 +1034,65 @@ func (b *TestBootstrapTemplateBuilder) WithSpecFields(fields map[string]interfac
 
 // Build creates a new Unstructured object with the information passed to the BootstrapTemplateBuilder.
 func (b *TestBootstrapTemplateBuilder) Build() *unstructured.Unstructured {
+	return b.obj
+}
+
+// BootstrapConfigBuilder holds the variables needed to build a generic BootstrapConfig.
+type BootstrapConfigBuilder struct {
+	obj *unstructured.Unstructured
+}
+
+// BootstrapConfig creates a BootstrapConfigBuilder with the given name and namespace.
+func BootstrapConfig(namespace, name string) *BootstrapConfigBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(BootstrapGroupVersion.String())
+	obj.SetKind(GenericBootstrapConfigKind)
+	obj.SetNamespace(namespace)
+	obj.SetName(name)
+	setSpecFields(obj, map[string]interface{}{"spec": map[string]interface{}{}})
+
+	return &BootstrapConfigBuilder{obj: obj}
+}
+
+// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+func (b *BootstrapConfigBuilder) WithSpecFields(fields map[string]interface{}) *BootstrapConfigBuilder {
+	setSpecFields(b.obj, fields)
+	return b
+}
+
+// Build creates a new Unstructured object with the information passed to the BootstrapConfigBuilder.
+func (b *BootstrapConfigBuilder) Build() *unstructured.Unstructured {
+	return b.obj
+}
+
+// TestBootstrapConfigBuilder holds the variables needed to build a generic TestBootstrapConfig.
+type TestBootstrapConfigBuilder struct {
+	obj *unstructured.Unstructured
+}
+
+// TestBootstrapConfig creates a TestBootstrapConfigBuilder with the given name and namespace.
+func TestBootstrapConfig(namespace, name string) *TestBootstrapConfigBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(BootstrapGroupVersion.String())
+	obj.SetKind(TestBootstrapConfigKind)
+	obj.SetNamespace(namespace)
+	obj.SetName(name)
+	setSpecFields(obj, map[string]interface{}{"spec": map[string]interface{}{}})
+
+	return &TestBootstrapConfigBuilder{
+		obj: obj,
+	}
+}
+
+// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+// NOTE: The path should correspond to a field defined in the CRD.
+func (b *TestBootstrapConfigBuilder) WithSpecFields(fields map[string]interface{}) *TestBootstrapConfigBuilder {
+	setSpecFields(b.obj, fields)
+	return b
+}
+
+// Build creates a new Unstructured object with the information passed to the BootstrapConfigBuilder.
+func (b *TestBootstrapConfigBuilder) Build() *unstructured.Unstructured {
 	return b.obj
 }
 
@@ -1045,17 +1477,48 @@ func (c *TestControlPlaneBuilder) Build() *unstructured.Unstructured {
 	return c.obj
 }
 
+// NodeBuilder holds the variables required to build a Node.
+type NodeBuilder struct {
+	name   string
+	status corev1.NodeStatus
+}
+
+// Node returns a NodeBuilder.
+func Node(name string) *NodeBuilder {
+	return &NodeBuilder{
+		name: name,
+	}
+}
+
+// WithStatus adds Status to the NodeBuilder.
+func (n *NodeBuilder) WithStatus(status corev1.NodeStatus) *NodeBuilder {
+	n.status = status
+	return n
+}
+
+// Build produces a new Node from the information passed to the NodeBuilder.
+func (n *NodeBuilder) Build() *corev1.Node {
+	obj := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: n.name,
+		},
+		Status: n.status,
+	}
+	return obj
+}
+
 // MachinePoolBuilder holds the variables and objects needed to build a generic MachinePool.
 type MachinePoolBuilder struct {
-	namespace              string
-	name                   string
-	bootstrapTemplate      *unstructured.Unstructured
-	infrastructureTemplate *unstructured.Unstructured
-	version                *string
-	clusterName            string
-	replicas               *int32
-	labels                 map[string]string
-	status                 *expv1.MachinePoolStatus
+	namespace       string
+	name            string
+	bootstrap       *unstructured.Unstructured
+	infrastructure  *unstructured.Unstructured
+	version         *string
+	clusterName     string
+	replicas        *int32
+	labels          map[string]string
+	status          *expv1.MachinePoolStatus
+	minReadySeconds *int32
 }
 
 // MachinePool creates a MachinePoolBuilder with the given name and namespace.
@@ -1066,15 +1529,15 @@ func MachinePool(namespace, name string) *MachinePoolBuilder {
 	}
 }
 
-// WithBootstrapTemplate adds the passed Unstructured object to the MachinePoolBuilder as a bootstrapTemplate.
-func (m *MachinePoolBuilder) WithBootstrapTemplate(ref *unstructured.Unstructured) *MachinePoolBuilder {
-	m.bootstrapTemplate = ref
+// WithBootstrap adds the passed Unstructured object to the MachinePoolBuilder as a bootstrap.
+func (m *MachinePoolBuilder) WithBootstrap(ref *unstructured.Unstructured) *MachinePoolBuilder {
+	m.bootstrap = ref
 	return m
 }
 
-// WithInfrastructureTemplate adds the passed unstructured object to the MachinePool builder as an infrastructureMachineTemplate.
-func (m *MachinePoolBuilder) WithInfrastructureTemplate(ref *unstructured.Unstructured) *MachinePoolBuilder {
-	m.infrastructureTemplate = ref
+// WithInfrastructure adds the passed Unstructured object to the MachinePool builder as an InfrastructureMachinePool.
+func (m *MachinePoolBuilder) WithInfrastructure(ref *unstructured.Unstructured) *MachinePoolBuilder {
+	m.infrastructure = ref
 	return m
 }
 
@@ -1108,6 +1571,12 @@ func (m *MachinePoolBuilder) WithStatus(status expv1.MachinePoolStatus) *Machine
 	return m
 }
 
+// WithMinReadySeconds sets the passed value on the machine pool spec.
+func (m *MachinePoolBuilder) WithMinReadySeconds(minReadySeconds int32) *MachinePoolBuilder {
+	m.minReadySeconds = &minReadySeconds
+	return m
+}
+
 // Build creates a new MachinePool with the variables and objects passed to the MachinePoolBuilder.
 func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 	obj := &expv1.MachinePool{
@@ -1121,18 +1590,22 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 			Labels:    m.labels,
 		},
 		Spec: expv1.MachinePoolSpec{
-			ClusterName: m.clusterName,
-			Replicas:    m.replicas,
+			ClusterName:     m.clusterName,
+			Replicas:        m.replicas,
+			MinReadySeconds: m.minReadySeconds,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Version:     m.version,
+					ClusterName: m.clusterName,
+				},
+			},
 		},
 	}
-	if m.bootstrapTemplate != nil {
-		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)
+	if m.bootstrap != nil {
+		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrap)
 	}
-	if m.infrastructureTemplate != nil {
-		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
-	}
-	if m.version != nil {
-		obj.Spec.Template.Spec.Version = m.version
+	if m.infrastructure != nil {
+		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructure)
 	}
 	if m.status != nil {
 		obj.Status = *m.status
@@ -1147,12 +1620,13 @@ type MachineDeploymentBuilder struct {
 	clusterName            string
 	bootstrapTemplate      *unstructured.Unstructured
 	infrastructureTemplate *unstructured.Unstructured
+	selector               *metav1.LabelSelector
 	version                *string
 	replicas               *int32
-	defaulter              bool
 	generation             *int64
 	labels                 map[string]string
 	status                 *clusterv1.MachineDeploymentStatus
+	minReadySeconds        *int32
 }
 
 // MachineDeployment creates a MachineDeploymentBuilder with the given name and namespace.
@@ -1172,6 +1646,12 @@ func (m *MachineDeploymentBuilder) WithBootstrapTemplate(ref *unstructured.Unstr
 // WithInfrastructureTemplate adds the passed unstructured object to the MachineDeployment builder as an infrastructureMachineTemplate.
 func (m *MachineDeploymentBuilder) WithInfrastructureTemplate(ref *unstructured.Unstructured) *MachineDeploymentBuilder {
 	m.infrastructureTemplate = ref
+	return m
+}
+
+// WithSelector adds the passed selector to the MachineDeployment as the selector.
+func (m *MachineDeploymentBuilder) WithSelector(selector metav1.LabelSelector) *MachineDeploymentBuilder {
+	m.selector = &selector
 	return m
 }
 
@@ -1199,12 +1679,6 @@ func (m *MachineDeploymentBuilder) WithReplicas(replicas int32) *MachineDeployme
 	return m
 }
 
-// WithDefaulter runs the Default function on the MachineDeploymentClassBuilder object.
-func (m *MachineDeploymentBuilder) WithDefaulter(defaulter bool) *MachineDeploymentBuilder {
-	m.defaulter = defaulter
-	return m
-}
-
 // WithGeneration sets the passed value on the machine deployments object metadata.
 func (m *MachineDeploymentBuilder) WithGeneration(generation int64) *MachineDeploymentBuilder {
 	m.generation = &generation
@@ -1214,6 +1688,12 @@ func (m *MachineDeploymentBuilder) WithGeneration(generation int64) *MachineDepl
 // WithStatus sets the passed status object as the status of the machine deployment object.
 func (m *MachineDeploymentBuilder) WithStatus(status clusterv1.MachineDeploymentStatus) *MachineDeploymentBuilder {
 	m.status = &status
+	return m
+}
+
+// WithMinReadySeconds sets the passed value on the machine deployment spec.
+func (m *MachineDeploymentBuilder) WithMinReadySeconds(minReadySeconds int32) *MachineDeploymentBuilder {
+	m.minReadySeconds = &minReadySeconds
 	return m
 }
 
@@ -1243,33 +1723,25 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	if m.infrastructureTemplate != nil {
 		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
 	}
+	if m.selector != nil {
+		obj.Spec.Selector = *m.selector
+	}
 	if m.status != nil {
 		obj.Status = *m.status
 	}
 	if m.clusterName != "" {
 		obj.Spec.Template.Spec.ClusterName = m.clusterName
 		obj.Spec.ClusterName = m.clusterName
-		obj.Spec.Selector.MatchLabels = map[string]string{
-			clusterv1.ClusterNameLabel: m.clusterName,
+		if obj.Spec.Selector.MatchLabels == nil {
+			obj.Spec.Selector.MatchLabels = map[string]string{}
 		}
+		obj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = m.clusterName
 		obj.Spec.Template.Labels = map[string]string{
 			clusterv1.ClusterNameLabel: m.clusterName,
 		}
 	}
-	if m.defaulter {
-		scheme, err := clusterv1.SchemeBuilder.Build()
-		if err != nil {
-			panic(err)
-		}
-		ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
-			AdmissionRequest: admissionv1.AdmissionRequest{
-				Operation: admissionv1.Create,
-			},
-		})
-		if err := clusterv1.MachineDeploymentDefaulter(scheme).Default(ctx, obj); err != nil {
-			panic(err)
-		}
-	}
+	obj.Spec.MinReadySeconds = m.minReadySeconds
+
 	return obj
 }
 
@@ -1344,6 +1816,7 @@ func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 		},
 	}
 	obj.Spec.ClusterName = m.clusterName
+	obj.Spec.Template.Spec.ClusterName = m.clusterName
 	obj.Spec.Replicas = m.replicas
 	if m.bootstrapTemplate != nil {
 		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)
@@ -1426,7 +1899,9 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 }
 
 // objToRef returns a reference to the given object.
-func objToRef(obj client.Object) *corev1.ObjectReference {
+// Note: This function only operates on Unstructured instead of client.Object
+// because it is only safe to assume for Unstructured that the GVK is set.
+func objToRef(obj *unstructured.Unstructured) *corev1.ObjectReference {
 	gvk := obj.GetObjectKind().GroupVersionKind()
 	return &corev1.ObjectReference{
 		Kind:       gvk.Kind,
@@ -1488,7 +1963,6 @@ type MachineHealthCheckBuilder struct {
 	clusterName  string
 	conditions   []clusterv1.UnhealthyCondition
 	maxUnhealthy *intstr.IntOrString
-	defaulter    bool
 }
 
 // MachineHealthCheck returns a MachineHealthCheckBuilder with the given name and namespace.
@@ -1529,12 +2003,6 @@ func (m *MachineHealthCheckBuilder) WithMaxUnhealthy(maxUnhealthy *intstr.IntOrS
 	return m
 }
 
-// WithDefaulter runs the Default function on the MachineHealthCheck object.
-func (m *MachineHealthCheckBuilder) WithDefaulter(defaulter bool) *MachineHealthCheckBuilder {
-	m.defaulter = defaulter
-	return m
-}
-
 // Build returns a MachineHealthCheck with the supplied details.
 func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 	// create a MachineHealthCheck with the spec given in the ClusterClass
@@ -1558,8 +2026,6 @@ func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 	if m.clusterName != "" {
 		mhc.Labels = map[string]string{clusterv1.ClusterNameLabel: m.clusterName}
 	}
-	if m.defaulter {
-		mhc.Default()
-	}
+
 	return mhc
 }

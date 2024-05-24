@@ -32,13 +32,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
 	utilresource "sigs.k8s.io/cluster-api/util/resource"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
@@ -120,9 +120,16 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 		}
 		clusterResourceSetBinding.Name = cluster.Name
 		clusterResourceSetBinding.Namespace = cluster.Namespace
-		clusterResourceSetBinding.OwnerReferences = ensureOwnerRefs(clusterResourceSetBinding, clusterResourceSet, cluster)
+		clusterResourceSetBinding.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: addonsv1.GroupVersion.String(),
+				Kind:       "ClusterResourceSet",
+				Name:       clusterResourceSet.Name,
+				UID:        clusterResourceSet.UID,
+			},
+		}
 		clusterResourceSetBinding.Spec.Bindings = []*addonsv1.ResourceSetBinding{}
-
+		clusterResourceSetBinding.Spec.ClusterName = cluster.Name
 		if err := r.Client.Create(ctx, clusterResourceSetBinding); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				if err = r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
@@ -134,26 +141,6 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 		}
 	}
 	return clusterResourceSetBinding, nil
-}
-
-// ensureOwnerRefs ensures Cluster and ClusterResourceSet owner references are set on the ClusterResourceSetBinding.
-func ensureOwnerRefs(clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet, cluster *clusterv1.Cluster) []metav1.OwnerReference {
-	ownerRefs := make([]metav1.OwnerReference, len(clusterResourceSetBinding.GetOwnerReferences()))
-	copy(ownerRefs, clusterResourceSetBinding.GetOwnerReferences())
-	ownerRefs = util.EnsureOwnerRef(ownerRefs, metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Cluster",
-		Name:       cluster.Name,
-		UID:        cluster.UID,
-	})
-	ownerRefs = util.EnsureOwnerRef(ownerRefs,
-		metav1.OwnerReference{
-			APIVersion: clusterResourceSet.GroupVersionKind().GroupVersion().String(),
-			Kind:       clusterResourceSet.GroupVersionKind().Kind,
-			Name:       clusterResourceSet.Name,
-			UID:        clusterResourceSet.UID,
-		})
-	return ownerRefs
 }
 
 // getConfigMap retrieves any ConfigMap from the given name and namespace.
@@ -233,4 +220,37 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	}
 
 	return dataList, nil
+}
+
+func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {
+	for _, ref := range obj.GetOwnerReferences() {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to find cluster name in ownerRefs")
+		}
+
+		if gv.Group != clusterv1.GroupVersion.Group {
+			continue
+		}
+		if ref.Name == "" {
+			return "", errors.New("failed to find cluster name in ownerRefs: ref name is empty")
+		}
+		return ref.Name, nil
+	}
+	return "", errors.New("failed to find cluster name in ownerRefs: no cluster ownerRef")
+}
+
+// ensureKubernetesServiceCreated ensures that the Service for Kubernetes API Server has been created.
+func ensureKubernetesServiceCreated(ctx context.Context, client client.Client) error {
+	err := client.Get(ctx, types.NamespacedName{
+		Namespace: metav1.NamespaceDefault,
+		Name:      "kubernetes",
+	}, &corev1.Service{})
+	if err != nil {
+		return err
+	}
+	return nil
 }

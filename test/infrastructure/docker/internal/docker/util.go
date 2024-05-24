@@ -87,7 +87,7 @@ func getContainer(ctx context.Context, filters container.FilterBuilder) (*types.
 // https://docs.docker.com/engine/reference/commandline/ps/#filtering
 func List(ctx context.Context, filters container.FilterBuilder) ([]*types.Node, error) {
 	res := []*types.Node{}
-	visit := func(ctx context.Context, cluster string, node *types.Node) {
+	visit := func(_ context.Context, _ string, node *types.Node) {
 		res = append(res, node)
 	}
 	return res, list(ctx, visit, filters)

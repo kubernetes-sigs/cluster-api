@@ -17,61 +17,56 @@ limitations under the License.
 // Package resource implements resource utilites.
 package resource
 
-import "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+import (
+	"sort"
 
-var defaultCreatePriorities = []string{
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+)
+
+// orderMapping maps resource kinds to their creation order,
+// the lower the number, the earlier the resource should be created.
+var orderMapping = map[string]int{
 	// Namespaces go first because all namespaced resources depend on them.
-	"Namespace",
+	"Namespace": -100,
 	// Custom Resource Definitions come before Custom Resource so that they can be
 	// restored with their corresponding CRD.
-	"CustomResourceDefinition",
+	"CustomResourceDefinition": -99,
 	// Storage Classes are needed to create PVs and PVCs correctly.
-	"StorageClass",
+	"StorageClass": -98,
 	// PVs go before PVCs because PVCs depend on them.
-	"PersistentVolume",
+	"PersistentVolume": -97,
 	// PVCs go before pods or controllers so they can be mounted as volumes.
-	"PersistentVolumeClaim",
+	"PersistentVolumeClaim": -96,
 	// Secrets and ConfigMaps go before pods or controllers so they can be mounted as volumes.
-	"Secret",
-	"ConfigMap",
+	"Secret":    -95,
+	"ConfigMap": -94,
 	// Service accounts go before pods or controllers so pods can use them.
-	"ServiceAccount",
+	"ServiceAccount": -93,
 	// Limit ranges go before pods or controllers so pods can use them.
-	"LimitRange",
+	"LimitRange": -92,
 	// Pods go before ReplicaSets
-	"Pods",
+	"Pod": -91,
 	// ReplicaSets go before Deployments
-	"ReplicaSet",
-	// Endpoints go before Services
-	"Endpoints",
+	"ReplicaSet": -90,
+	// Endpoints go before Services (and everything else)
+	"Endpoint": -89,
+}
+
+// priorityLess returns true if o1 should be created before o2.
+// To be used in sort.{Slice,SliceStable} to sort manifests in place.
+func priorityLess(o1, o2 unstructured.Unstructured) bool {
+	p1 := orderMapping[o1.GetKind()]
+	p2 := orderMapping[o2.GetKind()]
+	return p1 < p2
 }
 
 // SortForCreate sorts objects by creation priority.
 func SortForCreate(resources []unstructured.Unstructured) []unstructured.Unstructured {
-	var ret []unstructured.Unstructured
-
-	// First get resources by priority
-	for _, p := range defaultCreatePriorities {
-		for _, o := range resources {
-			if o.GetKind() == p {
-				ret = append(ret, o)
-			}
-		}
-	}
-
-	// Then get all the other resources
-	for _, o := range resources {
-		found := false
-		for _, r := range ret {
-			if o.GroupVersionKind() == r.GroupVersionKind() && o.GetNamespace() == r.GetNamespace() && o.GetName() == r.GetName() {
-				found = true
-				break
-			}
-		}
-		if !found {
-			ret = append(ret, o)
-		}
-	}
+	ret := make([]unstructured.Unstructured, len(resources))
+	copy(ret, resources)
+	sort.SliceStable(ret, func(i, j int) bool {
+		return priorityLess(ret[i], ret[j])
+	})
 
 	return ret
 }

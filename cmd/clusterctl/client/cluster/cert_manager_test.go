@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -60,8 +61,8 @@ var certManagerNamespaceYaml = []byte("apiVersion: v1\n" +
 func Test_getManifestObjs(t *testing.T) {
 	g := NewWithT(t)
 
-	defaultConfigClient, err := config.New("", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
-	g.Expect(err).NotTo(HaveOccurred())
+	defaultConfigClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
+	g.Expect(err).ToNot(HaveOccurred())
 
 	type fields struct {
 		configClient config.Client
@@ -108,7 +109,7 @@ func Test_getManifestObjs(t *testing.T) {
 			name: "successfully gets the cert-manager components for a custom release",
 			fields: fields{
 				configClient: func() config.Client {
-					configClient, err := config.New("", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "").WithCertManager("", "v1.0.0", "")))
+					configClient, err := config.New(context.Background(), "", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "").WithCertManager("", "v1.0.0", "")))
 					g.Expect(err).ToNot(HaveOccurred())
 					return configClient
 				}(),
@@ -124,22 +125,24 @@ func Test_getManifestObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			cm := &certManagerClient{
 				configClient: defaultConfigClient,
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository))
 				},
 			}
 
 			certManagerConfig, err := cm.configClient.CertManager().Get()
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := cm.getManifestObjs(certManagerConfig)
+			got, err := cm.getManifestObjs(ctx, certManagerConfig)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for i := range got {
 				o := &got[i]
@@ -165,7 +168,7 @@ func Test_getManifestObjs(t *testing.T) {
 }
 
 func Test_GetTimeout(t *testing.T) {
-	pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+	pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 		return nil
 	}
 
@@ -193,6 +196,7 @@ func Test_GetTimeout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
 			cm := newCertManagerClient(tt.config, nil, nil, pollImmediateWaiter)
 
 			tm := cm.getWaitTimeout()
@@ -207,16 +211,17 @@ func Test_shouldUpgrade(t *testing.T) {
 		objs []unstructured.Unstructured
 	}
 	tests := []struct {
-		name            string
-		configVersion   string
-		args            args
-		wantFromVersion string
-		wantToVersion   string
-		want            bool
-		wantErr         bool
+		name               string
+		configVersion      string
+		args               args
+		wantFromVersion    string
+		hasDiffInstallObjs bool
+		want               bool
+		wantErr            bool
 	}{
 		{
-			name: "Version is not defined (e.g. cluster created with clusterctl < v0.3.9), should upgrade",
+			name:          "Version is not defined (e.g. cluster created with clusterctl < v0.3.9), should upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -225,12 +230,12 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v0.11.0",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            true,
 			wantErr:         false,
 		},
 		{
-			name: "Version is equal, should not upgrade",
+			name:          "Version is equal, should not upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -245,7 +250,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: config.CertManagerDefaultVersion,
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            false,
 			wantErr:         false,
 		},
@@ -266,7 +270,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3",
-			wantToVersion:   "v1.5.3+h4fd4",
 			want:            true,
 			wantErr:         false,
 		},
@@ -287,7 +290,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+h4fd5",
-			wantToVersion:   "v1.5.3+h4fd4",
 			want:            true,
 			wantErr:         false,
 		},
@@ -308,7 +310,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+h4fd5",
-			wantToVersion:   "v1.5.3+h4fd5",
 			want:            false,
 			wantErr:         false,
 		},
@@ -329,7 +330,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+build.2",
-			wantToVersion:   "v1.5.3+build.1",
 			want:            false,
 			wantErr:         false,
 		},
@@ -350,12 +350,33 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v1.5.3+build.2",
-			wantToVersion:   "v1.5.3+build.3",
 			want:            true,
 			wantErr:         false,
 		},
 		{
-			name: "Version is older, should upgrade",
+			name:          "Version is equal, but should upgrade because objects to install are a different size",
+			configVersion: config.CertManagerDefaultVersion,
+			args: args{
+				objs: []unstructured.Unstructured{
+					{
+						Object: map[string]interface{}{
+							"metadata": map[string]interface{}{
+								"annotations": map[string]interface{}{
+									clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantFromVersion:    config.CertManagerDefaultVersion,
+			hasDiffInstallObjs: true,
+			want:               true,
+			wantErr:            false,
+		},
+		{
+			name:          "Version is older, should upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -370,12 +391,12 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v0.11.0",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            true,
 			wantErr:         false,
 		},
 		{
-			name: "Version is newer, should not upgrade",
+			name:          "Version is newer, should not upgrade",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -390,12 +411,13 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "v100.0.0",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            false,
 			wantErr:         false,
 		},
+
 		{
-			name: "Endpoint are ignored",
+			name:          "Endpoint are ignored",
+			configVersion: config.CertManagerDefaultVersion,
 			args: args{
 				objs: []unstructured.Unstructured{
 					{
@@ -411,7 +433,6 @@ func Test_shouldUpgrade(t *testing.T) {
 				},
 			},
 			wantFromVersion: "",
-			wantToVersion:   config.CertManagerDefaultVersion,
 			want:            false,
 			wantErr:         false,
 		},
@@ -419,14 +440,24 @@ func Test_shouldUpgrade(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
 			proxy := test.NewFakeProxy()
 			fakeConfigClient := newFakeConfig().WithCertManager("", tt.configVersion, "")
-			pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+			pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 				return nil
 			}
 			cm := newCertManagerClient(fakeConfigClient, nil, proxy, pollImmediateWaiter)
 
-			fromVersion, toVersion, got, err := cm.shouldUpgrade(tt.args.objs)
+			// By default, make the installed and to-be-installed objects the same, but if hasDiffInstallObjs is set,
+			// just append an empty unstructured object at the end to make them different.
+			installObjs := tt.args.objs
+			if tt.hasDiffInstallObjs {
+				installObjs = make([]unstructured.Unstructured, len(tt.args.objs))
+				copy(installObjs, tt.args.objs)
+				installObjs = append(installObjs, unstructured.Unstructured{})
+			}
+
+			fromVersion, got, err := cm.shouldUpgrade(tt.configVersion, tt.args.objs, installObjs)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -435,7 +466,6 @@ func Test_shouldUpgrade(t *testing.T) {
 
 			g.Expect(got).To(Equal(tt.want))
 			g.Expect(fromVersion).To(Equal(tt.wantFromVersion))
-			g.Expect(toVersion).To(Equal(tt.wantToVersion))
 		})
 	}
 }
@@ -560,16 +590,18 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
 			cm := &certManagerClient{
 				pollImmediateWaiter: fakePollImmediateWaiter,
 				proxy:               proxy,
 			}
 
-			objBefore, err := proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue})
+			objBefore, err := proxy.ListResources(ctx, map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue})
 			g.Expect(err).ToNot(HaveOccurred())
 
-			err = cm.deleteObjs(objBefore)
+			err = cm.deleteObjs(ctx, objBefore)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -587,10 +619,10 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 					}
 				}
 
-				cl, err := proxy.NewClient()
+				cl, err := proxy.NewClient(ctx)
 				g.Expect(err).ToNot(HaveOccurred())
 
-				err = cl.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+				err = cl.Get(context.Background(), client.ObjectKeyFromObject(obj), obj)
 				switch objShouldStillExist {
 				case true:
 					g.Expect(err).ToNot(HaveOccurred())
@@ -704,17 +736,29 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			ctx := context.Background()
+
 			proxy := test.NewFakeProxy().WithObjs(tt.objs...)
 			fakeConfigClient := newFakeConfig()
-			pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+			pollImmediateWaiter := func(context.Context, time.Duration, time.Duration, wait.ConditionWithContextFunc) error {
 				return nil
 			}
-			cm := newCertManagerClient(fakeConfigClient, nil, proxy, pollImmediateWaiter)
 
-			actualPlan, err := cm.PlanUpgrade()
+			// Prepare a fake memory repo from which getManifestObjs(), called from PlanUpgrade() will fetch to-be-installed objects.
+			fakeRepositoryClientFactory := func(ctx context.Context, provider config.Provider, configClient config.Client, _ ...repository.Option) (repository.Client, error) {
+				repo := repository.NewMemoryRepository().
+					WithPaths("root", "components.yaml").
+					WithDefaultVersion(config.CertManagerDefaultVersion).
+					WithFile(config.CertManagerDefaultVersion, "components.yaml", certManagerDeploymentYaml)
+				return repository.New(ctx, provider, configClient, repository.InjectRepository(repo))
+			}
+
+			cm := newCertManagerClient(fakeConfigClient, fakeRepositoryClientFactory, proxy, pollImmediateWaiter)
+
+			actualPlan, err := cm.PlanUpgrade(ctx)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
-				g.Expect(actualPlan).To(Equal(CertManagerUpgradePlan{}))
+				g.Expect(actualPlan).To(BeComparableTo(CertManagerUpgradePlan{}))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
@@ -754,7 +798,7 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 				proxy: tt.fields.proxy,
 			}
 
-			err := cm.EnsureLatestVersion()
+			err := cm.EnsureLatestVersion(context.Background())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -767,7 +811,7 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 func newFakeConfig() *fakeConfigClient {
 	fakeReader := test.NewFakeReader()
 
-	client, _ := config.New("fake-config", config.InjectReader(fakeReader))
+	client, _ := config.New(context.Background(), "fake-config", config.InjectReader(fakeReader))
 	return &fakeConfigClient{
 		fakeReader:     fakeReader,
 		internalclient: client,

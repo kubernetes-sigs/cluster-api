@@ -18,7 +18,7 @@ limitations under the License.
 package utils
 
 import (
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -27,50 +27,41 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
 var (
-	v1beta1KubeadmVersion = semver.MustParse("1.13.0")
 	v1beta2KubeadmVersion = semver.MustParse("1.15.0")
 	v1beta3KubeadmVersion = semver.MustParse("1.22.0")
 
 	clusterConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.ClusterConfiguration{},
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.ClusterConfiguration{},
-		upstreamv1beta1.GroupVersion: &upstreamv1beta1.ClusterConfiguration{},
 	}
 
 	clusterStatusVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		// ClusterStatus has been removed in v1beta3, so we don't need an entry for v1beta3
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.ClusterStatus{},
-		upstreamv1beta1.GroupVersion: &upstreamv1beta1.ClusterStatus{},
 	}
 
 	initConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.InitConfiguration{},
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.InitConfiguration{},
-		upstreamv1beta1.GroupVersion: &upstreamv1beta1.InitConfiguration{},
 	}
 
 	joinConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.JoinConfiguration{},
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.JoinConfiguration{},
-		upstreamv1beta1.GroupVersion: &upstreamv1beta1.JoinConfiguration{},
 	}
 )
 
 // KubeVersionToKubeadmAPIGroupVersion maps a Kubernetes version to the correct Kubeadm API Group supported.
 func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion, error) {
 	switch {
-	case version.Compare(v, v1beta1KubeadmVersion, version.WithoutPreReleases()) < 0:
-		return schema.GroupVersion{}, errors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.13.0")
 	case version.Compare(v, v1beta2KubeadmVersion, version.WithoutPreReleases()) < 0:
-		// NOTE: All the Kubernetes version >= v1.13 and < v1.15 should use the kubeadm API version v1beta1
-		return upstreamv1beta1.GroupVersion, nil
+		return schema.GroupVersion{}, errors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.15.0")
 	case version.Compare(v, v1beta3KubeadmVersion, version.WithoutPreReleases()) < 0:
 		// NOTE: All the Kubernetes version >= v1.15 and < v1.22 should use the kubeadm API version v1beta2
 		return upstreamv1beta2.GroupVersion, nil
@@ -181,6 +172,26 @@ func UnmarshalClusterStatus(yaml string) (*bootstrapv1.ClusterStatus, error) {
 	return obj, nil
 }
 
+// UnmarshalInitConfiguration tries to translate a Kubeadm API yaml back to the InitConfiguration type.
+// NOTE: The yaml could be any of the known formats for the kubeadm InitConfiguration type.
+func UnmarshalInitConfiguration(yaml string) (*bootstrapv1.InitConfiguration, error) {
+	obj := &bootstrapv1.InitConfiguration{}
+	if err := unmarshalFromVersions(yaml, initConfigurationVersionTypeMap, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+// UnmarshalJoinConfiguration tries to translate a Kubeadm API yaml back to the JoinConfiguration type.
+// NOTE: The yaml could be any of the known formats for the kubeadm JoinConfiguration type.
+func UnmarshalJoinConfiguration(yaml string) (*bootstrapv1.JoinConfiguration, error) {
+	obj := &bootstrapv1.JoinConfiguration{}
+	if err := unmarshalFromVersions(yaml, joinConfigurationVersionTypeMap, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
 func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersion]conversion.Convertible, capiObj conversion.Hub) error {
 	// For each know kubeadm API version
 	for gv, obj := range kubeadmAPIVersions {
@@ -192,7 +203,8 @@ func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersi
 			return errors.Wrapf(err, "failed to build scheme for kubeadm types conversions")
 		}
 
-		if _, _, err := codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj); err == nil {
+		_, _, err = codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj)
+		if err == nil {
 			// If conversion worked, then converts the kubeadmObj (spoke) back to the Cluster API ClusterConfiguration type (hub).
 			if err := kubeadmObj.(conversion.Convertible).ConvertTo(capiObj); err != nil {
 				return errors.Wrapf(err, "failed to convert kubeadm types to Cluster API types")

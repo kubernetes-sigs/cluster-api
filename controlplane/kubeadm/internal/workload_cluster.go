@@ -29,7 +29,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -105,13 +105,14 @@ type WorkloadCluster interface {
 	// Upgrade related tasks.
 	ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error
 	ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error
-	UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error
-	UpdateImageRepositoryInKubeadmConfigMap(ctx context.Context, imageRepository string, version semver.Version) error
-	UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string, version semver.Version) error
-	UpdateEtcdExtraArgsInKubeadmConfigMap(ctx context.Context, extraArgs map[string]string, version semver.Version) error
-	UpdateAPIServerInKubeadmConfigMap(ctx context.Context, apiServer bootstrapv1.APIServer, version semver.Version) error
-	UpdateControllerManagerInKubeadmConfigMap(ctx context.Context, controllerManager bootstrapv1.ControlPlaneComponent, version semver.Version) error
-	UpdateSchedulerInKubeadmConfigMap(ctx context.Context, scheduler bootstrapv1.ControlPlaneComponent, version semver.Version) error
+	UpdateKubernetesVersionInKubeadmConfigMap(version semver.Version) func(*bootstrapv1.ClusterConfiguration)
+	UpdateImageRepositoryInKubeadmConfigMap(imageRepository string) func(*bootstrapv1.ClusterConfiguration)
+	UpdateFeatureGatesInKubeadmConfigMap(featureGates map[string]bool) func(*bootstrapv1.ClusterConfiguration)
+	UpdateEtcdLocalInKubeadmConfigMap(localEtcd *bootstrapv1.LocalEtcd) func(*bootstrapv1.ClusterConfiguration)
+	UpdateEtcdExternalInKubeadmConfigMap(externalEtcd *bootstrapv1.ExternalEtcd) func(*bootstrapv1.ClusterConfiguration)
+	UpdateAPIServerInKubeadmConfigMap(apiServer bootstrapv1.APIServer) func(*bootstrapv1.ClusterConfiguration)
+	UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration)
+	UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration)
 	UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error
 	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error
@@ -120,6 +121,8 @@ type WorkloadCluster interface {
 	RemoveNodeFromKubeadmConfigMap(ctx context.Context, nodeName string, version semver.Version) error
 	ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error
 	AllowBootstrapTokensToGetNodes(ctx context.Context) error
+	AllowClusterAdminPermissions(ctx context.Context, version semver.Version) error
+	UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error
 
 	// State recovery tasks.
 	ReconcileEtcdMembers(ctx context.Context, nodeNames []string, version semver.Version) ([]string, error)
@@ -172,20 +175,30 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.Object
 }
 
 // UpdateImageRepositoryInKubeadmConfigMap updates the image repository in the kubeadm config map.
-func (w *Workload) UpdateImageRepositoryInKubeadmConfigMap(ctx context.Context, imageRepository string, version semver.Version) error {
-	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateImageRepositoryInKubeadmConfigMap(imageRepository string) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
 		if imageRepository == "" {
 			return
 		}
+
 		c.ImageRepository = imageRepository
-	}, version)
+	}
+}
+
+// UpdateFeatureGatesInKubeadmConfigMap updates the feature gates in the kubeadm config map.
+func (w *Workload) UpdateFeatureGatesInKubeadmConfigMap(featureGates map[string]bool) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
+		// Even if featureGates is nil, reset it to ClusterConfiguration
+		// to override any previously set feature gates.
+		c.FeatureGates = featureGates
+	}
 }
 
 // UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
-func (w *Workload) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error {
-	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateKubernetesVersionInKubeadmConfigMap(version semver.Version) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.KubernetesVersion = fmt.Sprintf("v%s", version.String())
-	}, version)
+	}
 }
 
 // UpdateKubeletConfigMap will create a new kubelet-config-1.x config map for a new version of the kubelet.
@@ -269,24 +282,24 @@ func (w *Workload) UpdateKubeletConfigMap(ctx context.Context, version semver.Ve
 }
 
 // UpdateAPIServerInKubeadmConfigMap updates api server configuration in kubeadm config map.
-func (w *Workload) UpdateAPIServerInKubeadmConfigMap(ctx context.Context, apiServer bootstrapv1.APIServer, version semver.Version) error {
-	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateAPIServerInKubeadmConfigMap(apiServer bootstrapv1.APIServer) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.APIServer = apiServer
-	}, version)
+	}
 }
 
 // UpdateControllerManagerInKubeadmConfigMap updates controller manager configuration in kubeadm config map.
-func (w *Workload) UpdateControllerManagerInKubeadmConfigMap(ctx context.Context, controllerManager bootstrapv1.ControlPlaneComponent, version semver.Version) error {
-	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateControllerManagerInKubeadmConfigMap(controllerManager bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.ControllerManager = controllerManager
-	}, version)
+	}
 }
 
 // UpdateSchedulerInKubeadmConfigMap updates scheduler configuration in kubeadm config map.
-func (w *Workload) UpdateSchedulerInKubeadmConfigMap(ctx context.Context, scheduler bootstrapv1.ControlPlaneComponent, version semver.Version) error {
-	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
+func (w *Workload) UpdateSchedulerInKubeadmConfigMap(scheduler bootstrapv1.ControlPlaneComponent) func(*bootstrapv1.ClusterConfiguration) {
+	return func(c *bootstrapv1.ClusterConfiguration) {
 		c.Scheduler = scheduler
-	}, version)
+	}
 }
 
 // RemoveMachineFromKubeadmConfigMap removes the entry for the machine from the kubeadm configmap.
@@ -349,11 +362,11 @@ func (w *Workload) updateClusterStatus(ctx context.Context, mutator func(status 
 	})
 }
 
-// updateClusterConfiguration gets the ClusterConfiguration kubeadm-config ConfigMap, converts it to the
+// UpdateClusterConfiguration gets the ClusterConfiguration kubeadm-config ConfigMap, converts it to the
 // Cluster API representation, and then applies a mutation func; if changes are detected, the
 // data are converted back into the Kubeadm API version in use for the target Kubernetes version and the
 // kubeadm-config ConfigMap updated.
-func (w *Workload) updateClusterConfiguration(ctx context.Context, mutator func(*bootstrapv1.ClusterConfiguration), version semver.Version) error {
+func (w *Workload) UpdateClusterConfiguration(ctx context.Context, version semver.Version, mutators ...func(*bootstrapv1.ClusterConfiguration)) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		key := ctrlclient.ObjectKey{Name: kubeadmConfigKey, Namespace: metav1.NamespaceSystem}
 		configMap, err := w.getConfigMap(ctx, key)
@@ -372,7 +385,9 @@ func (w *Workload) updateClusterConfiguration(ctx context.Context, mutator func(
 		}
 
 		updatedObj := currentObj.DeepCopy()
-		mutator(updatedObj)
+		for i := range mutators {
+			mutators[i](updatedObj)
+		}
 
 		if !reflect.DeepEqual(currentObj, updatedObj) {
 			updatedData, err := kubeadmtypes.MarshalClusterConfigurationForVersion(updatedObj, version)
@@ -381,7 +396,7 @@ func (w *Workload) updateClusterConfiguration(ctx context.Context, mutator func(
 			}
 			configMap.Data[clusterConfigurationKey] = updatedData
 			if err := w.Client.Update(ctx, configMap); err != nil {
-				return errors.Wrap(err, "failed to upgrade the kubeadmConfigMap")
+				return errors.Wrap(err, "failed to upgrade cluster configuration in the kubeadmConfigMap")
 			}
 		}
 		return nil
@@ -489,11 +504,7 @@ func calculateAPIServerPort(config *bootstrapv1.KubeadmConfig) int32 {
 	return 6443
 }
 
-func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, error) {
-	privKey, err := certs.NewPrivateKey()
-	if err != nil {
-		return tls.Certificate{}, err
-	}
+func generateClientCert(caCertEncoded, caKeyEncoded []byte, clientKey *rsa.PrivateKey) (tls.Certificate, error) {
 	caCert, err := certs.DecodeCertPEM(caCertEncoded)
 	if err != nil {
 		return tls.Certificate{}, err
@@ -502,11 +513,11 @@ func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, er
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	x509Cert, err := newClientCert(caCert, privKey, caKey)
+	x509Cert, err := newClientCert(caCert, clientKey, caKey)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), certs.EncodePrivateKeyPEM(privKey))
+	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), certs.EncodePrivateKeyPEM(clientKey))
 }
 
 func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey crypto.Signer) (*x509.Certificate, error) {

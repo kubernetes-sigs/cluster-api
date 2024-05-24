@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -56,7 +58,7 @@ var moveCmd = &cobra.Command{
 		clusterctl move --from-directory /tmp/backup-directory
 	`),
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(*cobra.Command, []string) error {
 		return runMove()
 	},
 }
@@ -87,6 +89,8 @@ func init() {
 }
 
 func runMove() error {
+	ctx := context.Background()
+
 	if mo.toDirectory == "" &&
 		mo.fromDirectory == "" &&
 		mo.toKubeconfig == "" &&
@@ -94,12 +98,12 @@ func runMove() error {
 		return errors.New("please specify a target cluster using the --to-kubeconfig flag when not using --dry-run, --to-directory or --from-directory")
 	}
 
-	c, err := client.New(cfgFile)
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	return c.Move(client.MoveOptions{
+	return c.Move(ctx, client.MoveOptions{
 		FromKubeconfig: client.Kubeconfig{Path: mo.fromKubeconfig, Context: mo.fromKubeconfigContext},
 		ToKubeconfig:   client.Kubeconfig{Path: mo.toKubeconfig, Context: mo.toKubeconfigContext},
 		FromDirectory:  mo.fromDirectory,

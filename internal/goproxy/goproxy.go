@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -81,7 +81,7 @@ func (g *Client) GetVersions(ctx context.Context, gomodulePath string) (semver.V
 		var rawResponse []byte
 		var responseStatusCode int
 		var retryError error
-		_ = wait.PollImmediateWithContext(ctx, retryableOperationInterval, retryableOperationTimeout, func(ctx context.Context) (bool, error) {
+		_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
 			retryError = nil
 
 			resp, err := http.DefaultClient.Do(req)

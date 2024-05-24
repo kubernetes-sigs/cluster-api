@@ -30,10 +30,10 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -55,16 +55,16 @@ var (
 // in the MachineDeployment controller.
 const machineDeploymentManagerName = "capi-machinedeployment"
 
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinedeployments/status;machinedeployments/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinedeployments/status,verbs=get;list;watch;create;update;patch;delete
 
 // Reconciler reconciles a MachineDeployment object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client                    client.Client
+	UnstructuredCachingClient client.Client
+	APIReader                 client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -74,36 +74,33 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	clusterToMachineDeployments, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
+	clusterToMachineDeployments, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
 
-	c, err := ctrl.NewControllerManagedBy(mgr).
+	err = ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
 		Owns(&clusterv1.MachineSet{}).
+		// Watches enqueues MachineDeployment for corresponding MachineSet resources, if no managed controller reference (owner) exists.
 		Watches(
-			&source.Kind{Type: &clusterv1.MachineSet{}},
+			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Watches(
+			&clusterv1.Cluster{},
+			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
+			builder.WithPredicates(
+				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
+				predicates.All(ctrl.LoggerFrom(ctx),
+					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+				),
+			),
+		).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
-	}
-
-	err = c.Watch(
-		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
-		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-		predicates.All(ctrl.LoggerFrom(ctx),
-			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
-		),
-	)
-	if err != nil {
-		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
@@ -164,17 +161,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	result, err := r.reconcile(ctx, cluster, deployment)
+	err = r.reconcile(ctx, cluster, deployment)
 	if err != nil {
-		log.Error(err, "Failed to reconcile MachineDeployment")
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
-	return result, err
+	return ctrl.Result{}, err
 }
 
-func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, d *clusterv1.MachineDeployment, options ...patch.Option) error {
+func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *clusterv1.MachineDeployment, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
-	conditions.SetSummary(d,
+	conditions.SetSummary(md,
 		conditions.WithConditions(
 			clusterv1.MachineDeploymentAvailableCondition,
 		),
@@ -187,51 +183,48 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, d *c
 			clusterv1.MachineDeploymentAvailableCondition,
 		}},
 	)
-	return patchHelper.Patch(ctx, d, options...)
+	return patchHelper.Patch(ctx, md, options...)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, md *clusterv1.MachineDeployment) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineDeployment")
 
 	// Reconcile and retrieve the Cluster object.
-	if d.Labels == nil {
-		d.Labels = make(map[string]string)
+	if md.Labels == nil {
+		md.Labels = make(map[string]string)
 	}
-	if d.Spec.Selector.MatchLabels == nil {
-		d.Spec.Selector.MatchLabels = make(map[string]string)
+	if md.Spec.Selector.MatchLabels == nil {
+		md.Spec.Selector.MatchLabels = make(map[string]string)
 	}
-	if d.Spec.Template.Labels == nil {
-		d.Spec.Template.Labels = make(map[string]string)
+	if md.Spec.Template.Labels == nil {
+		md.Spec.Template.Labels = make(map[string]string)
 	}
 
-	d.Labels[clusterv1.ClusterNameLabel] = d.Spec.ClusterName
+	md.Labels[clusterv1.ClusterNameLabel] = md.Spec.ClusterName
 
-	// Set the MachineDeployment as directly owned by the Cluster (if not already present).
-	if r.shouldAdopt(d) {
-		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		})
-		return ctrl.Result{}, nil
-	}
+	// Ensure the MachineDeployment is owned by the Cluster.
+	md.SetOwnerReferences(util.EnsureOwnerRef(md.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &d.Spec.Template.Spec.InfrastructureRef); err != nil {
-		return ctrl.Result{}, err
+	if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
+		return err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
-	if d.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, d.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
-			return ctrl.Result{}, err
+	if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+		if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, md.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+			return err
 		}
 	}
 
-	msList, err := r.getMachineSetsForDeployment(ctx, d)
+	msList, err := r.getMachineSetsForDeployment(ctx, md)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// If not already present, add a label specifying the MachineDeployment name to MachineSets.
@@ -241,17 +234,17 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	// to all MachineSets created by a MachineDeployment or if a user manually removed the label.
 	for idx := range msList {
 		machineSet := msList[idx]
-		if name, ok := machineSet.Labels[clusterv1.MachineDeploymentNameLabel]; ok && name == d.Name {
+		if name, ok := machineSet.Labels[clusterv1.MachineDeploymentNameLabel]; ok && name == md.Name {
 			continue
 		}
 
 		helper, err := patch.NewHelper(machineSet, r.Client)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
-		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = d.Name
+		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
 		if err := helper.Patch(ctx, machineSet); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
 
@@ -264,39 +257,39 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	for idx := range msList {
 		machineSet := msList[idx]
 		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, machineSet, machineDeploymentManagerName); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
+			return errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
 		}
 	}
 
-	if d.Spec.Paused {
-		return ctrl.Result{}, r.sync(ctx, d, msList)
+	if md.Spec.Paused {
+		return r.sync(ctx, md, msList)
 	}
 
-	if d.Spec.Strategy == nil {
-		return ctrl.Result{}, errors.Errorf("missing MachineDeployment strategy")
+	if md.Spec.Strategy == nil {
+		return errors.Errorf("missing MachineDeployment strategy")
 	}
 
-	if d.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
-		if d.Spec.Strategy.RollingUpdate == nil {
-			return ctrl.Result{}, errors.Errorf("missing MachineDeployment settings for strategy type: %s", d.Spec.Strategy.Type)
+	if md.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
+		if md.Spec.Strategy.RollingUpdate == nil {
+			return errors.Errorf("missing MachineDeployment settings for strategy type: %s", md.Spec.Strategy.Type)
 		}
-		return ctrl.Result{}, r.rolloutRolling(ctx, d, msList)
+		return r.rolloutRolling(ctx, md, msList)
 	}
 
-	if d.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return ctrl.Result{}, r.rolloutOnDelete(ctx, d, msList)
+	if md.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
+		return r.rolloutOnDelete(ctx, md, msList)
 	}
 
-	return ctrl.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
+	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
-func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
+func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &clusterv1.MachineSetList{}
-	if err := r.Client.List(ctx, machineSets, client.InNamespace(d.Namespace)); err != nil {
+	if err := r.Client.List(ctx, machineSets, client.InNamespace(md.Namespace)); err != nil {
 		return nil, err
 	}
 
@@ -304,7 +297,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
 		log.WithValues("MachineSet", klog.KObj(ms))
-		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
 		if err != nil {
 			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector")
 			continue
@@ -317,23 +310,23 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 		}
 
 		// Skip this MachineSet unless either selector matches or it has a controller ref pointing to this MachineDeployment
-		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, d) {
+		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, md) {
 			log.V(4).Info("Skipping MachineSet, label mismatch")
 			continue
 		}
 
 		// Attempt to adopt MachineSet if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(ms) == nil {
-			if err := r.adoptOrphan(ctx, d, ms); err != nil {
+			if err := r.adoptOrphan(ctx, md, ms); err != nil {
 				log.Error(err, "Failed to adopt MachineSet into MachineDeployment")
-				r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
+				r.recorder.Eventf(md, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
 				continue
 			}
 			log.Info("Adopted MachineSet into MachineDeployment")
-			r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
+			r.recorder.Eventf(md, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
 		}
 
-		if !metav1.IsControlledBy(ms, d) {
+		if !metav1.IsControlledBy(ms, md) {
 			continue
 		}
 
@@ -347,7 +340,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 func (r *Reconciler) adoptOrphan(ctx context.Context, deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
 	patch := client.MergeFrom(machineSet.DeepCopy())
 	newRef := *metav1.NewControllerRef(deployment, machineDeploymentKind)
-	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
+	machineSet.SetOwnerReferences(util.EnsureOwnerRef(machineSet.GetOwnerReferences(), newRef))
 	return r.Client.Patch(ctx, machineSet, patch)
 }
 
@@ -367,8 +360,8 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 	}
 
 	deployments := make([]*clusterv1.MachineDeployment, 0, len(dList.Items))
-	for idx, d := range dList.Items {
-		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
+	for idx := range dList.Items {
+		selector, err := metav1.LabelSelectorAsSelector(&dList.Items[idx].Spec.Selector)
 		if err != nil {
 			continue
 		}
@@ -386,7 +379,7 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 
 // MachineSetToDeployments is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineDeployments that might adopt an orphaned MachineSet.
-func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
+func (r *Reconciler) MachineSetToDeployments(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	ms, ok := o.(*clusterv1.MachineSet)
@@ -396,13 +389,13 @@ func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.
-	for _, ref := range ms.ObjectMeta.OwnerReferences {
+	for _, ref := range ms.ObjectMeta.GetOwnerReferences() {
 		if ref.Controller != nil && *ref.Controller {
 			return result
 		}
 	}
 
-	mds := r.getMachineDeploymentsForMachineSet(context.TODO(), ms)
+	mds := r.getMachineDeploymentsForMachineSet(ctx, ms)
 	if len(mds) == 0 {
 		return nil
 	}
@@ -413,10 +406,6 @@ func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 	}
 
 	return result
-}
-
-func (r *Reconciler) shouldAdopt(md *clusterv1.MachineDeployment) bool {
-	return !util.HasOwner(md.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
 }
 
 func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {

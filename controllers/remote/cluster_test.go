@@ -89,13 +89,18 @@ func TestNewClusterClient(t *testing.T) {
 		gs := NewWithT(t)
 
 		client := fake.NewClientBuilder().WithObjects(validSecret).Build()
-		_, err := NewClusterClient(ctx, "test-source", client, clusterWithValidKubeConfig)
+		c, err := NewClusterClient(ctx, "test-source", client, clusterWithValidKubeConfig)
+		gs.Expect(err).ToNot(HaveOccurred())
+
 		// Since we do not have a remote server to connect to, we should expect to get
 		// an error to that effect for the purpose of this test.
+		// Note: The error occurs here and not in `NewClusterClient` as with the lazy
+		// restmapper only the List call actually communicates with the server.
+		err = c.List(ctx, &corev1.NodeList{})
 		gs.Expect(err).To(MatchError(ContainSubstring("no such host")))
 
 		restConfig, err := RESTConfig(ctx, "test-source", client, clusterWithValidKubeConfig)
-		gs.Expect(err).NotTo(HaveOccurred())
+		gs.Expect(err).ToNot(HaveOccurred())
 		gs.Expect(restConfig.Host).To(Equal("https://test-cluster-api.nodomain.example.com:6443"))
 		gs.Expect(restConfig.UserAgent).To(MatchRegexp("remote.test/unknown test-source (.*) cluster.x-k8s.io/unknown"))
 		gs.Expect(restConfig.Timeout).To(Equal(10 * time.Second))

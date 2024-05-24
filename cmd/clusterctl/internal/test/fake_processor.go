@@ -16,7 +16,9 @@ limitations under the License.
 
 package test
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type FakeProcessor struct {
 	errGetVariables   error

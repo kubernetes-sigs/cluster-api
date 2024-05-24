@@ -1,0 +1,19 @@
+@startuml machinepool-reconcile
+:begin reconciling MachinePool;
+if (status.InfrastructureMachineKind is set on InfraMachinePool) then (no)
+  :reconcile MachinePool replicas without MachinePool Machines;
+else (yes)
+  :find the InfraMachinePoolMachines matching the kind
+  with the matching MachinePool name and Cluster name label;
+  while (for each InfraMachinePoolMachines)
+    if (a owner Machine exists for a InfraMachinePoolMachine) then (no)
+      :create a Machine with infraRef pointing
+      to the InfraMachinePoolMachine;
+    else (yes)
+    endif
+    :ensure Machine has an ownerRef to the MachinePool;
+  endwhile 
+endif
+:continue reconciling MachinePool...;
+stop
+@enduml

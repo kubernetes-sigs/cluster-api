@@ -26,6 +26,8 @@ type DockerMachineTemplateSpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=dockermachinetemplates,scope=Namespaced,categories=cluster-api
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachineTemplate"
 
@@ -51,7 +53,7 @@ type DockerMachineTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&DockerMachineTemplate{}, &DockerMachineTemplateList{})
+	objectTypes = append(objectTypes, &DockerMachineTemplate{}, &DockerMachineTemplateList{})
 }
 
 // DockerMachineTemplateResource describes the data needed to create a DockerMachine from a template.

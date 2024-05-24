@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -67,12 +68,14 @@ func TestClusterClassExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			config := newFakeConfig()
-			client := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config).WithObjs(tt.objs...)
-			c, _ := client.Proxy().NewClient()
+			ctx := context.Background()
 
-			actual, err := clusterClassExists(c, tt.clusterClass, metav1.NamespaceDefault)
-			g.Expect(err).NotTo(HaveOccurred())
+			config := newFakeConfig(ctx)
+			client := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config).WithObjs(tt.objs...)
+			c, _ := client.Proxy().NewClient(ctx)
+
+			actual, err := clusterClassExists(ctx, c, tt.clusterClass, metav1.NamespaceDefault)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(actual).To(Equal(tt.want))
 		})
 	}
@@ -152,8 +155,10 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config1 := newFakeConfig().WithProvider(infraProviderConfig)
-			repository1 := newFakeRepository(infraProviderConfig, config1).
+			ctx := context.Background()
+
+			config1 := newFakeConfig(ctx).WithProvider(infraProviderConfig)
+			repository1 := newFakeRepository(ctx, infraProviderConfig, config1).
 				WithPaths("root", "").
 				WithDefaultVersion("v1.0.0").
 				WithFile("v1.0.0", "clusterclass-dev.yaml", tt.clusterClassTemplateContent)
@@ -205,7 +210,7 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 			}
 
 			g := NewWithT(t)
-			template, err := addClusterClassIfMissing(baseTemplate, clusterClassClient, cluster, tt.targetNamespace, tt.listVariablesOnly)
+			template, err := addClusterClassIfMissing(ctx, baseTemplate, clusterClassClient, cluster, tt.targetNamespace, tt.listVariablesOnly)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

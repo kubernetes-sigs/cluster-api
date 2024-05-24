@@ -22,8 +22,8 @@ When there is more than one way to obtain resources from the same Infrastructure
 A component responsible for turning a server into a Kubernetes node as well as for:
 
 1. Generating the cluster certificates, if not otherwise specified
-1. Initializing the control plane, and gating the creation of other nodes until it is complete
-1. Joining control plane and worker nodes to the cluster
+2. Initializing the control plane, and gating the creation of other nodes until it is complete
+3. Joining control plane and worker nodes to the cluster
 
 ## Control plane
 
@@ -69,9 +69,9 @@ A MachineSet works similarly to a core Kubernetes [ReplicaSet](https://kubernete
 
 ### MachineHealthCheck
 
-A MachineHealthCheck defines the conditions when a Node should be considered unhealthy.
+A MachineHealthCheck defines the conditions when a Node should be considered missing or unhealthy.
 
-If the Node matches these unhealthy conditions for a given user-configured time, the MachineHealthCheck initiates remediation of the Node. Remediation of Nodes is performed by deleting the corresponding Machine.
+If the Node matches these unhealthy conditions for a given user-configured time, the MachineHealthCheck initiates remediation of the Node. Remediation of Nodes is performed by replacing the corresponding Machine.
 
 MachineHealthChecks will only remediate Nodes if they are owned by a MachineSet. This ensures that the Kubernetes cluster does not lose capacity, since the MachineSet will create a new Machine to replace the failed Machine.
 

@@ -17,6 +17,7 @@
 set -o errexit
 set -o pipefail
 
+
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "${REPO_ROOT}" || exit 1
 
@@ -36,6 +37,15 @@ export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 # Builds CAPI (and CAPD) images.
 capi:buildDockerImages
 
+# Configure e2e tests
+export GINKGO_NODES=3
+export GINKGO_NOCOLOR=true
+export GINKGO_ARGS="${GINKGO_ARGS:-""}"
+export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
+export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
+export SKIP_RESOURCE_CLEANUP=${SKIP_RESOURCE_CLEANUP:-"false"}
+export USE_EXISTING_CLUSTER=false
+
 # Prepare kindest/node images for all the required Kubernetes version; this implies
 # 1. Kubernetes version labels (e.g. latest) to the corresponding version numbers.
 # 2. Pre-pulling the corresponding kindest/node image if available; if not, building the image locally.
@@ -43,21 +53,15 @@ capi:buildDockerImages
 # - KUBERNETES_VERSION
 # - KUBERNETES_VERSION_UPGRADE_TO
 # - KUBERNETES_VERSION_UPGRADE_FROM
+# - KUBERNETES_VERSION_LATEST_CI
+# - KUBERNETES_VERSION_MANAGEMENT
+k8s::prepareKindestImagesVariables
 k8s::prepareKindestImages
 
 # pre-pull all the images that will be used in the e2e, thus making the actual test run
 # less sensible to the network speed. This includes:
 # - cert-manager images
 kind:prepullAdditionalImages
-
-# Configure e2e tests
-export GINKGO_NODES=3
-export GINKGO_NOCOLOR=true
-export GINKGO_ARGS="--fail-fast" # Other ginkgo args that need to be appended to the command.
-export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
-export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
-export SKIP_RESOURCE_CLEANUP=false
-export USE_EXISTING_CLUSTER=false
 
 # Setup local output directory
 ARTIFACTS_LOCAL="${ARTIFACTS}/localhost"
@@ -86,6 +90,16 @@ cleanup() {
   ctr -n moby containers list > "${ARTIFACTS_LOCAL}/containerd-containers.txt" || true
   ctr -n moby images list > "${ARTIFACTS_LOCAL}/containerd-images.txt" || true
   ctr -n moby version > "${ARTIFACTS_LOCAL}/containerd-version.txt" || true
+
+  ps -ef > "${ARTIFACTS_LOCAL}/processes-ps-ef.txt" || true
+
+  for PID in $(ps -eo pid=); do
+    echo "> PID=$PID"
+    echo ">> /proc/${PID}/status" 
+    cat "/proc/${PID}/status" || true
+    echo ">> /proc/${PID}/stack" 
+    cat "/proc/${PID}/stack" || true
+  done >> "${ARTIFACTS_LOCAL}/processes-proc-information.txt"
 
   # Verify that no containers are running at this time
   # Note: This verifies that all our tests clean up clusters correctly.

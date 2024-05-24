@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -82,11 +83,11 @@ func (r *localRepository) ComponentsPath() string {
 }
 
 // GetFile returns a file for a given provider version.
-func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
+func (r *localRepository) GetFile(ctx context.Context, version, fileName string) ([]byte, error) {
 	var err error
 
 	if version == latestVersionTag {
-		version, err = latestRelease(r)
+		version, err = latestRelease(ctx, r)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get the latest release")
 		}
@@ -111,7 +112,7 @@ func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
 }
 
 // GetVersions returns the list of versions that are available for a local repository.
-func (r *localRepository) GetVersions() ([]string, error) {
+func (r *localRepository) GetVersions(_ context.Context) ([]string, error) {
 	// get all the sub-directories under {basepath}/{provider-id}/
 	releasesPath := filepath.Join(r.basepath, r.providerLabel)
 	files, err := os.ReadDir(releasesPath)
@@ -135,7 +136,7 @@ func (r *localRepository) GetVersions() ([]string, error) {
 }
 
 // newLocalRepository returns a new localRepository.
-func newLocalRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient) (*localRepository, error) {
+func newLocalRepository(ctx context.Context, providerConfig config.Provider, configVariablesClient config.VariablesClient) (*localRepository, error) {
 	url, err := url.Parse(providerConfig.URL())
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid url")
@@ -189,7 +190,7 @@ func newLocalRepository(providerConfig config.Provider, configVariablesClient co
 	}
 
 	if defaultVersion == latestVersionTag {
-		repo.defaultVersion, err = latestContractRelease(repo, clusterv1.GroupVersion.Version)
+		repo.defaultVersion, err = latestContractRelease(ctx, repo, clusterv1.GroupVersion.Version)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get latest version")
 		}

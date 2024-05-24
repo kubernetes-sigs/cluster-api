@@ -24,12 +24,16 @@ clusterctl move --to-kubeconfig="path-to-target-kubeconfig.yaml"
 To move the Cluster API objects existing in the current namespace of the source management cluster; in case if you want
 to move the Cluster API objects defined in another namespace, you can use the `--namespace` flag.
 
+The discovery mechanism for determining the objects to be moved is in the [provider contract](../provider-contract.md#move)
+
 <aside class="note">
 
 <h1> Pause Reconciliation </h1>
 
 Before moving a `Cluster`, clusterctl sets the `Cluster.Spec.Paused` field to `true` stopping
 the controllers from reconciling the workload cluster _in the source management cluster_.
+clusterctl will wait until the `clusterctl.cluster.x-k8s.io/block-move` annotation is not
+present on any resource targeted by the move operation.
 
 The `Cluster` object created in the target management cluster instead will be actively reconciled as soon as the move
 process completes.

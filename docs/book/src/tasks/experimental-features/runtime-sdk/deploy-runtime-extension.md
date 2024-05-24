@@ -15,6 +15,7 @@ controllers. The recommended deployment model is to deploy a Runtime Extension i
 - Using a Kubernetes Deployment to run the above container inside the Management Cluster.
 - Using a Cluster IP Service to make the Runtime Extension instances accessible via a stable DNS name.
 - Using a cert-manager generated Certificate to protect the endpoint.
+- Register the Runtime Extension using ExtensionConfig.
 
 For an example, please see our [test extension](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/extension)
 which follows, as closely as possible, the kubebuilder setup used for controllers in Cluster API.

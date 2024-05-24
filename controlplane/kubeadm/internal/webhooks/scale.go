@@ -32,6 +32,8 @@ import (
 )
 
 func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	v.decoder = admission.NewDecoder(mgr.GetScheme())
+
 	mgr.GetWebhookServer().Register("/validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane", &webhook.Admission{
 		Handler: v,
 	})
@@ -43,7 +45,7 @@ func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // ScaleValidator validates KCP for replicas.
 type ScaleValidator struct {
 	Client  client.Reader
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // Handle will validate for number of replicas.
@@ -79,12 +81,4 @@ func (v *ScaleValidator) Handle(ctx context.Context, req admission.Request) admi
 	}
 
 	return admission.Allowed("")
-}
-
-// InjectDecoder injects the decoder.
-// ScaleValidator implements admission.DecoderInjector.
-// A decoder will be automatically injected.
-func (v *ScaleValidator) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
-	return nil
 }

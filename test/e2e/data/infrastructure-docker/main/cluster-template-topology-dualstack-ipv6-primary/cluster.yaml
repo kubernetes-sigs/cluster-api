@@ -1,0 +1,26 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  topology:
+    class: quick-start
+    variables:
+       - name: ipv6Primary
+         value: true
+       - name: externalCloudProvider
+         value: true
+       - name: kubeControlPlaneLogLevel
+         value: "2"
+       - name: kubeletLogLevel
+         value: "4"
+  clusterNetwork:
+    services:
+      cidrBlocks:
+        - '${DOCKER_SERVICE_IPV6_CIDRS}'
+        - '${DOCKER_SERVICE_CIDRS}'
+    pods:
+      cidrBlocks:
+        - '${DOCKER_POD_IPV6_CIDRS}'
+        - '${DOCKER_POD_CIDRS}'

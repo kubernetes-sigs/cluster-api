@@ -143,6 +143,7 @@ def file_passes(filename, refs, regexs):
             for line in difflib.unified_diff(ref, data, 'reference', filename, lineterm=''):
                 print(line, file=verbose_out)
             print(file=verbose_out)
+
         return False
 
     return True
@@ -154,7 +155,12 @@ skipped_dirs = ['_output', '.git', "hack/boilerplate/test"]
 
 # list all the files contain 'DO NOT EDIT', but are not generated
 skipped_ungenerated_files = [
-    'hack/lib/swagger.sh', 'hack/boilerplate/boilerplate.py']
+    'hack/lib/swagger.sh',
+    'hack/boilerplate/boilerplate.py',
+    # The generator injects `DO NOT EDIT` and thus needs to get excluded to not
+    # get detected as false positive.
+    'hack/tools/prowjob-gen/generator.go',
+    ]
 
 def normalize_files(files):
     newfiles = []

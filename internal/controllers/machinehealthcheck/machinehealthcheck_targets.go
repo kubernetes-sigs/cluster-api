@@ -82,6 +82,7 @@ func (t *healthCheckTarget) nodeName() string {
 
 // Determine whether or not a given target needs remediation.
 // The node will need remediation if any of the following are true:
+// - The Machine has the remediate machine annotation
 // - The Machine has failed for some reason
 // - The Machine did not get a node before `timeoutForMachineToHaveNode` elapses
 // - The Node has gone away
@@ -92,6 +93,12 @@ func (t *healthCheckTarget) nodeName() string {
 func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) (bool, time.Duration) {
 	var nextCheckTimes []time.Duration
 	now := time.Now()
+
+	if annotations.HasRemediateMachine(t.Machine) {
+		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.HasRemediateMachineAnnotationReason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
+		logger.V(3).Info("Target is marked for remediation via remediate-machine annotation")
+		return true, time.Duration(0)
+	}
 
 	if t.Machine.Status.FailureReason != nil {
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "FailureReason: %v", *t.Machine.Status.FailureReason)
@@ -203,16 +210,16 @@ func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, 
 
 	targets := []healthCheckTarget{}
 	for k := range machines {
-		logger.WithValues("Machine", klog.KObj(&machines[k]))
+		logger := logger.WithValues("Machine", klog.KObj(&machines[k]))
 		skip, reason := shouldSkipRemediation(&machines[k])
 		if skip {
-			logger.Info("skipping remediation", "reason", reason)
+			logger.Info("Skipping remediation", "reason", reason)
 			continue
 		}
 
 		patchHelper, err := patch.NewHelper(&machines[k], r.Client)
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to initialize patch helper")
+			return nil, err
 		}
 		target := healthCheckTarget{
 			Cluster:     cluster,
@@ -286,7 +293,7 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 	var healthy []healthCheckTarget
 
 	for _, t := range targets {
-		logger = logger.WithValues("Target", t.string())
+		logger := logger.WithValues("target", t.string())
 		logger.V(3).Info("Health checking target")
 		needsRemediation, nextCheck := t.needsRemediation(logger, timeoutForMachineToHaveNode)
 

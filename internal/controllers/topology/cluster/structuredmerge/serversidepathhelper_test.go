@@ -34,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -484,7 +484,7 @@ func TestServerSideApply(t *testing.T) {
 		_, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssa.NewCache())
 		g.Expect(err).To(HaveOccurred())
 	})
-	t.Run("Error on object which does not exist (anymore) but was expected to get updated", func(t *testing.T) {
+	t.Run("Error on object which does not exist (anymore) but was expected to get updated", func(*testing.T) {
 		original := builder.TestInfrastructureCluster(ns.Name, "obj3").WithSpecFields(map[string]interface{}{
 			"spec.controlPlaneEndpoint.host": "1.2.3.4",
 			"spec.controlPlaneEndpoint.port": int64(1234),
@@ -651,6 +651,11 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 				g.Expect(env.CleanupAndWait(ctx, kct.DeepCopy())).To(Succeed())
 			}()
 
+			// Wait until the initial KubeadmConfigTemplate is visible in the local cache. Otherwise the test fails below.
+			g.Eventually(ctx, func(g Gomega) {
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), &bootstrapv1.KubeadmConfigTemplate{})).To(Succeed())
+			}, 5*time.Second).Should(Succeed())
+
 			// Enable the new defaulting logic (i.e. simulate the Cluster API update).
 			// The webhook will default the users field to `[{Name: "default-user"}]`.
 			g.Expect(env.Create(ctx, mutatingWebhookConfiguration)).To(Succeed())
@@ -664,7 +669,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			if tt.defaultOriginal {
 				g.Eventually(ctx, func(g Gomega) {
 					patchKCT := &bootstrapv1.KubeadmConfigTemplate{}
-					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT))
+					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
 
 					if patchKCT.Labels == nil {
 						patchKCT.Labels = map[string]string{}
@@ -674,13 +679,13 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 					g.Expect(env.Patch(ctx, patchKCT, client.MergeFrom(kct))).To(Succeed())
 
 					// Ensure patchKCT was defaulted.
-					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT))
-					g.Expect(patchKCT.Spec.Template.Spec.Users).To(Equal([]bootstrapv1.User{{Name: "default-user"}}))
+					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
+					g.Expect(patchKCT.Spec.Template.Spec.Users).To(BeComparableTo([]bootstrapv1.User{{Name: "default-user"}}))
 				}, 5*time.Second).Should(Succeed())
 			}
 			// Get original for the update.
 			original := kct.DeepCopy()
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original))
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 			// Calculate modified for the update.
 			modified := kct.DeepCopy()
@@ -703,7 +708,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			// Note: It might take a bit for the cache to be up-to-date.
 			g.Eventually(func(g Gomega) {
 				got := original.DeepCopy()
-				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(got), got))
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(got), got)).To(Succeed())
 
 				// topology controller should express opinions on spec.template.spec.
 				fieldV1 := getTopologyManagedFields(got)
@@ -734,7 +739,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 
 				// Get original.
 				original = kct.DeepCopy()
-				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original))
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 				countBefore := defaulter.Counter
 
@@ -761,7 +766,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 
 			// Get original.
 			original = kct.DeepCopy()
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original))
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 			countBefore := defaulter.Counter
 
@@ -785,7 +790,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 // It also calculates and returns the corresponding MutatingWebhookConfiguration.
 // Note: To activate the webhook, the MutatingWebhookConfiguration has to be deployed.
 func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDefaulter, *admissionv1.MutatingWebhookConfiguration, error) {
-	webhookServer := env.Manager.GetWebhookServer()
+	webhookServer := env.Manager.GetWebhookServer().(*webhook.DefaultServer)
 
 	// Calculate webhook host and path.
 	// Note: This is done the same way as in our envtest package.
@@ -799,10 +804,10 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 	// Note: This should only ever be called once with the same path, otherwise we get a panic.
 	defaulter := &KubeadmConfigTemplateTestDefaulter{}
 	webhookServer.Register(webhookPath,
-		admission.WithCustomDefaulter(&bootstrapv1.KubeadmConfigTemplate{}, defaulter))
+		admission.WithCustomDefaulter(env.Manager.GetScheme(), &bootstrapv1.KubeadmConfigTemplate{}, defaulter))
 
 	// Calculate the MutatingWebhookConfiguration
-	caBundle, err := os.ReadFile(filepath.Join(webhookServer.CertDir, webhookServer.CertName))
+	caBundle, err := os.ReadFile(filepath.Join(webhookServer.Options.CertDir, webhookServer.Options.CertName))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -816,7 +821,7 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 			{
 				Name: ns.Name + ".kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io",
 				ClientConfig: admissionv1.WebhookClientConfig{
-					URL:      pointer.String(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Port)), webhookPath)),
+					URL:      ptr.To(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Options.Port)), webhookPath)),
 					CABundle: caBundle,
 				},
 				Rules: []admissionv1.RuleWithOperations{

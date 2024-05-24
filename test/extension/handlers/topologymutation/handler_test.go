@@ -33,8 +33,8 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
 
 var (
@@ -85,14 +85,14 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := patchDockerClusterTemplate(context.Background(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }
@@ -118,8 +118,8 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			name:     "sets KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.23.0",
 					},
 				})},
@@ -149,8 +149,8 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.24.0",
 					},
 				})},
@@ -161,8 +161,8 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 			name:     "sets RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.24.0",
 					},
 				})},
@@ -182,14 +182,14 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := patchKubeadmControlPlaneTemplate(context.Background(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }
@@ -205,7 +205,7 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		expectedErr      bool
 	}{
 		{
-			name:             "fails if builtin.machineDeployment.class is not set",
+			name:             "fails if builtin variable is not set",
 			template:         &bootstrapv1.KubeadmConfigTemplate{},
 			variables:        nil,
 			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
@@ -215,8 +215,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "no op for MachineDeployment class != default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 						Class: "another-class",
 					},
 				})},
@@ -227,8 +227,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "fails if builtin.machineDeployment.version is not set for MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 						Class: "default-worker",
 					},
 				})},
@@ -240,8 +240,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24 and MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
 						Class:   "default-worker",
 						Version: "v1.23.0",
 					},
@@ -265,8 +265,71 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24 and MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
+						Class:   "default-worker",
+						Version: "v1.24.0",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+		},
+		{
+			name:     "no op for MachinePool class != default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class: "another-class",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+		},
+		{
+			name:     "fails if builtin.machinePool.version is not set for MachinePool class == default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class: "default-worker",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
+			expectedErr:      true,
+		},
+		{
+			name:     "set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24 and MachinePool class == default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class:   "default-worker",
+						Version: "v1.23.0",
+					},
+				})},
+			},
+			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{
+				Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+					Template: bootstrapv1.KubeadmConfigTemplateResource{
+						Spec: bootstrapv1.KubeadmConfigSpec{
+							JoinConfiguration: &bootstrapv1.JoinConfiguration{
+								NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+									KubeletExtraArgs: map[string]string{"cgroup-driver": "cgroupfs"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24 and MachinePool class == default-worker",
+			template: &bootstrapv1.KubeadmConfigTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
 						Class:   "default-worker",
 						Version: "v1.24.0",
 					},
@@ -276,14 +339,14 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := patchKubeadmConfigTemplate(context.Background(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }
@@ -309,8 +372,8 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 			name:     "sets customImage for templates linked to ControlPlane",
 			template: &infrav1.DockerMachineTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 						Version: "v1.23.0",
 					},
 				})},
@@ -325,16 +388,93 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "sets customImage for templates linked to ControlPlane for pre versions",
+			template: &infrav1.DockerMachineTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
+						Version: "v1.23.0-rc.0",
+					},
+				})},
+			},
+			expectedTemplate: &infrav1.DockerMachineTemplate{
+				Spec: infrav1.DockerMachineTemplateSpec{
+					Template: infrav1.DockerMachineTemplateResource{
+						Spec: infrav1.DockerMachineSpec{
+							CustomImage: "kindest/node:v1.23.0-rc.0",
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			err := patchDockerMachineTemplate(context.Background(), tt.template, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
+		})
+	}
+}
+
+func Test_patchDockerMachinePoolTemplate(t *testing.T) {
+	g := NewWithT(t)
+
+	tests := []struct {
+		name             string
+		template         *infraexpv1.DockerMachinePoolTemplate
+		variables        map[string]apiextensionsv1.JSON
+		expectedTemplate *infraexpv1.DockerMachinePoolTemplate
+		expectedErr      bool
+	}{
+		{
+			name:             "fails if builtin.controlPlane.version nor builtin.machinePool.version is not set",
+			template:         &infraexpv1.DockerMachinePoolTemplate{},
+			variables:        nil,
+			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{},
+			expectedErr:      true,
+		},
+		{
+			name:     "sets customImage for templates linked to ControlPlane",
+			template: &infraexpv1.DockerMachinePoolTemplate{},
+			variables: map[string]apiextensionsv1.JSON{
+				runtimehooksv1.BuiltinsName: {Raw: toJSON(runtimehooksv1.Builtins{
+					ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
+						Version: "v1.23.0",
+					},
+					MachinePool: &runtimehooksv1.MachinePoolBuiltins{
+						Class:   "default-worker",
+						Version: "v1.23.0",
+					},
+				})},
+			},
+			expectedTemplate: &infraexpv1.DockerMachinePoolTemplate{
+				Spec: infraexpv1.DockerMachinePoolTemplateSpec{
+					Template: infraexpv1.DockerMachinePoolTemplateResource{
+						Spec: infraexpv1.DockerMachinePoolSpec{
+							Template: infraexpv1.DockerMachinePoolMachineTemplate{
+								CustomImage: "kindest/node:v1.23.0",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(*testing.T) {
+			err := patchDockerMachinePoolTemplate(context.Background(), tt.template, tt.variables)
+			if tt.expectedErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(tt.template).To(BeComparableTo(tt.expectedTemplate))
 		})
 	}
 }
@@ -346,8 +486,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 	g := NewWithT(t)
 	h := NewExtensionHandlers(testScheme)
 	controlPlaneVarsV123WithMaxSurge := []runtimehooksv1.Variable{
-		newVariable(variables.BuiltinsName, variables.Builtins{
-			ControlPlane: &variables.ControlPlaneBuiltins{
+		newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
+			ControlPlane: &runtimehooksv1.ControlPlaneBuiltins{
 				Version: "v1.23.0",
 			},
 		}),
@@ -357,8 +497,16 @@ func TestHandler_GeneratePatches(t *testing.T) {
 		newVariable("imageRepository", "docker.io"),
 	}
 	machineDeploymentVars123 := []runtimehooksv1.Variable{
-		newVariable(variables.BuiltinsName, variables.Builtins{
-			MachineDeployment: &variables.MachineDeploymentBuiltins{
+		newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
+			MachineDeployment: &runtimehooksv1.MachineDeploymentBuiltins{
+				Class:   "default-worker",
+				Version: "v1.23.0",
+			},
+		}),
+	}
+	machinePoolVars123 := []runtimehooksv1.Variable{
+		newVariable(runtimehooksv1.BuiltinsName, runtimehooksv1.Builtins{
+			MachinePool: &runtimehooksv1.MachinePoolBuiltins{
 				Class:   "default-worker",
 				Version: "v1.23.0",
 			},
@@ -373,6 +521,12 @@ func TestHandler_GeneratePatches(t *testing.T) {
 	dockerMachineTemplate := infrav1.DockerMachineTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "DockerMachineTemplate",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+	}
+	dockerMachinePoolTemplate := infraexpv1.DockerMachinePoolTemplate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "DockerMachinePoolTemplate",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 	}
@@ -401,6 +555,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				requestItem("3", dockerMachineTemplate, machineDeploymentVars123),
 				requestItem("4", dockerClusterTemplate, imageRepositoryVar),
 				requestItem("5", kubeadmConfigTemplate, machineDeploymentVars123),
+				requestItem("6", dockerMachinePoolTemplate, machinePoolVars123),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -425,12 +580,15 @@ func TestHandler_GeneratePatches(t *testing.T) {
 					responseItem("5", `[
 {"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}}
 ]`),
+					responseItem("6", `[
+{"op":"add","path":"/spec/template/spec/customImage","value":"kindest/node:v1.23.0"}
+]`),
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			response := &runtimehooksv1.GeneratePatchesResponse{}
 			request := &runtimehooksv1.GeneratePatchesRequest{Items: tt.requestItems}
 			h.GeneratePatches(context.Background(), request, response)

@@ -26,52 +26,55 @@ status: implementable
 
 ## Table of Contents
 
-   * [Kubeadm Based Control Plane Management](#kubeadm-based-control-plane-management)
-      * [Table of Contents](#table-of-contents)
-      * [Glossary](#glossary)
-         * [References](#references)
-      * [Summary](#summary)
-      * [Motivation](#motivation)
-         * [Goals](#goals)
-         * [Non-Goals / Future Work](#non-goals--future-work)
-      * [Proposal](#proposal)
-         * [User Stories](#user-stories)
-            * [Identified features from user stories](#identified-features-from-user-stories)
-         * [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
-            * [New API Types](#new-api-types)
-            * [Rollout strategy](#rollout-strategy)
-            * [Modifications required to existing API Types](#modifications-required-to-existing-api-types)
-            * [Behavioral Changes from v1alpha2](#behavioral-changes-from-v1alpha2)
-            * [Behaviors](#behaviors)
-               * [Create](#create)
-               * [Scale Up](#scale-up)
-               * [Scale Down](#scale-down)
-               * [Delete of the entire KubeadmControlPlane (kubectl delete controlplane my-controlplane)](#delete-of-the-entire-kubeadmcontrolplane-kubectl-delete-controlplane-my-controlplane)
-               * [KubeadmControlPlane rollout](#kubeadmcontrolplane-rollout)
-               * [Rolling update strategy](#rolling-update-strategy)
-               * [Constraints and Assumptions](#constraints-and-assumptions)
-               * [Remediation (using delete-and-recreate)](#remediation-using-delete-and-recreate)
-                  * [Why delete and recreate](#why-delete-and-recreate)
-                  * [Scenario 1: Three replicas, one machine marked for remediation](#scenario-1-three-replicas-one-machine-marked-for-remediation)
-                  * [Scenario 2: Three replicas, two machines marked for remediation](#scenario-2-three-replicas-two-machines-marked-for-remediation)
-                  * [Scenario 3: Three replicas, one unresponsive etcd member, one (different) unhealthy machine](#scenario-3-three-replicas-one-unresponsive-etcd-member-one-different-unhealthy-machine)
-                  * [Scenario 4: Unhealthy machines combined with rollout](#scenario-4-unhealthy-machines-combined-with-rollout)
-               * [Preflight checks](#preflight-checks)
-                  * [Etcd (external)](#etcd-external)
-                  * [Etcd (stacked)](#etcd-stacked)
-                  * [Kubernetes Control Plane](#kubernetes-control-plane)
-               * [Adoption of pre-v1alpha3 Control Plane Machines](#adoption-of-pre-v1alpha3-control-plane-machines)
-            * [Code organization](#code-organization)
-         * [Risks and Mitigations](#risks-and-mitigations)
-            * [etcd membership](#etcd-membership)
-            * [Upgrade where changes needed to KubeadmConfig are not currently possible](#upgrade-where-changes-needed-to-kubeadmconfig-are-not-currently-possible)
-      * [Design Details](#design-details)
-         * [Test Plan](#test-plan)
-         * [Graduation Criteria](#graduation-criteria)
-            * [Alpha -&gt; Beta Graduation](#alpha---beta-graduation)
-         * [Upgrade Strategy](#upgrade-strategy)
-      * [Alternatives](#alternatives)
-      * [Implementation History](#implementation-history)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Glossary](#glossary)
+  - [References](#references)
+- [Summary](#summary)
+- [Motivation](#motivation)
+  - [Goals](#goals)
+  - [Non-Goals / Future Work](#non-goals--future-work)
+- [Proposal](#proposal)
+  - [User Stories](#user-stories)
+    - [Identified features from user stories](#identified-features-from-user-stories)
+  - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+    - [New API Types](#new-api-types)
+      - [Rollout strategy](#rollout-strategy)
+    - [Modifications required to existing API Types](#modifications-required-to-existing-api-types)
+    - [Behavioral Changes from v1alpha2](#behavioral-changes-from-v1alpha2)
+    - [Behaviors](#behaviors)
+      - [Create](#create)
+      - [Scale Up](#scale-up)
+      - [Scale Down](#scale-down)
+      - [Delete of the entire KubeadmControlPlane (kubectl delete controlplane my-controlplane)](#delete-of-the-entire-kubeadmcontrolplane-kubectl-delete-controlplane-my-controlplane)
+      - [KubeadmControlPlane rollout](#kubeadmcontrolplane-rollout)
+      - [Rolling update strategy](#rolling-update-strategy)
+        - [Constraints and Assumptions](#constraints-and-assumptions)
+      - [Remediation (using delete-and-recreate)](#remediation-using-delete-and-recreate)
+        - [Why delete and recreate](#why-delete-and-recreate)
+        - [Scenario 1: Three replicas, one machine marked for remediation](#scenario-1-three-replicas-one-machine-marked-for-remediation)
+        - [Scenario 2: Three replicas, two machines marked for remediation](#scenario-2-three-replicas-two-machines-marked-for-remediation)
+        - [Scenario 3: Three replicas, one unresponsive etcd member, one (different) unhealthy machine](#scenario-3-three-replicas-one-unresponsive-etcd-member-one-different-unhealthy-machine)
+        - [Scenario 4: Unhealthy machines combined with rollout](#scenario-4-unhealthy-machines-combined-with-rollout)
+      - [Preflight checks](#preflight-checks)
+        - [Etcd (external)](#etcd-external)
+        - [Etcd (stacked)](#etcd-stacked)
+        - [Kubernetes Control Plane](#kubernetes-control-plane)
+      - [Adoption of pre-v1alpha3 Control Plane Machines](#adoption-of-pre-v1alpha3-control-plane-machines)
+    - [Code organization](#code-organization)
+  - [Risks and Mitigations](#risks-and-mitigations)
+    - [etcd membership](#etcd-membership)
+    - [Upgrade where changes needed to KubeadmConfig are not currently possible](#upgrade-where-changes-needed-to-kubeadmconfig-are-not-currently-possible)
+- [Design Details](#design-details)
+  - [Test Plan](#test-plan)
+  - [Graduation Criteria](#graduation-criteria)
+    - [Alpha -> Beta Graduation](#alpha---beta-graduation)
+  - [Upgrade Strategy](#upgrade-strategy)
+- [Alternatives](#alternatives)
+- [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Glossary
 
@@ -165,7 +168,7 @@ Non-Goals listed in this document are intended to scope bound the current v1alph
 
 #### New API Types
 
-See [kubeadm_control_plane_types.go](https://github.com/kubernetes-sigs/cluster-api/blob/main/controlplane/kubeadm/api/v1alpha3/kubeadm_control_plane_types.go)
+See [kubeadm_control_plane_types.go](https://github.com/kubernetes-sigs/cluster-api/blob/release-0.3/controlplane/kubeadm/api/v1alpha3/kubeadm_control_plane_types.go)
 
 With the following validations:
 
@@ -398,8 +401,9 @@ spec:
   - See [Preflight checks](#preflight-checks) below.
 - Scale down operations removes the oldest machine in the failure domain that has the most control-plane machines on it.
 - Allow scaling down of KCP with the possibility of marking specific control plane machine(s) to be deleted with delete annotation key. The presence of the annotation will affect the rollout strategy in a way that, it implements the following prioritization logic in descending order, while selecting machines for scale down:
-  - outdatedMachines with the delete annotation
+  - outdated machines with the delete annotation
   - machines with the delete annotation
+  - outdated machines with unhealthy control plane component pods
   - outdated machines
   - all machines
 
@@ -469,7 +473,8 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
 
 - KCP remediation is triggered by the MachineHealthCheck controller marking a machine for remediation. See
   [machine-health-checking proposal](https://github.com/kubernetes-sigs/cluster-api/blob/11485f4f817766c444840d8ea7e4e7d1a6b94cc9/docs/proposals/20191030-machine-health-checking.md)
-  for additional details. When there are multiple machines that are marked for remediation, the oldest one will be remediated first.
+  for additional details. When there are multiple machines that are marked for remediation, the oldest machine marked as unhealthy not yet provisioned (if any)
+  or the oldest machine marked as unhealthy will be remediated first.
 
 - Following rules should be satisfied in order to start remediation
   - One of the following apply:
@@ -477,6 +482,7 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
     - The cluster MUST have at least two control plane machines, because this is the smallest cluster size that can be remediated.
   - Previous remediation (delete and re-create) MUST have been completed. This rule prevents KCP to remediate more machines while the
     replacement for the previous machine is not yet created. 
+  - The cluster MUST NOT have healthy machines still provisioning (without a node). This rule prevents KCP taking actions while the cluster is in a transitional state.
   - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
   - Remediation MUST preserve etcd quorum. This rule ensures that we will not remove a member that would result in etcd
     losing a majority of members and thus become unable to field new requests (note: this rule applies only to CP already

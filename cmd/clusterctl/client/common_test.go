@@ -60,7 +60,7 @@ func Test_parseProviderName(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(gotName).To(Equal(tt.wantName))
 

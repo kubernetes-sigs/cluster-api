@@ -406,7 +406,12 @@ cite.literate-source > a::before {
 .tabset > input:nth-child(33):checked ~ .tab-panels > .tab-panel:nth-child(17),
 .tabset > input:nth-child(35):checked ~ .tab-panels > .tab-panel:nth-child(18),
 .tabset > input:nth-child(37):checked ~ .tab-panels > .tab-panel:nth-child(19),
-.tabset > input:nth-child(39):checked ~ .tab-panels > .tab-panel:nth-child(20){
+.tabset > input:nth-child(39):checked ~ .tab-panels > .tab-panel:nth-child(20),
+.tabset > input:nth-child(41):checked ~ .tab-panels > .tab-panel:nth-child(21),
+.tabset > input:nth-child(43):checked ~ .tab-panels > .tab-panel:nth-child(22),
+.tabset > input:nth-child(45):checked ~ .tab-panels > .tab-panel:nth-child(23),
+.tabset > input:nth-child(47):checked ~ .tab-panels > .tab-panel:nth-child(24),
+.tabset > input:nth-child(49):checked ~ .tab-panels > .tab-panel:nth-child(25){
   display: block;
 }
 

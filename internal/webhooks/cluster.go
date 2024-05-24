@@ -101,6 +101,18 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		if !strings.HasPrefix(cluster.Spec.Topology.Version, "v") {
 			cluster.Spec.Topology.Version = "v" + cluster.Spec.Topology.Version
 		}
+
+		if cluster.Spec.Topology.Class == "" {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					field.NewPath("spec", "topology", "class"),
+					"class cannot be empty",
+				),
+			)
+			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
+		}
+
 		clusterClass, err := webhook.pollClusterClassForCluster(ctx, cluster)
 		if err != nil {
 			// If the ClusterClass can't be found or is not up to date ignore the error.

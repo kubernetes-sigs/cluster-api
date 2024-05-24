@@ -897,6 +897,23 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 	g.Expect(c.Spec.Topology.Version).To(HavePrefix("v"))
 }
 
+func TestClusterFailOnMissingClassField(t *testing.T) {
+	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	g := NewWithT(t)
+
+	c := builder.Cluster("fooboo", "cluster1").
+		WithTopology(builder.ClusterTopology().
+			WithClass(""). // THis is invalid.
+			WithVersion("1.19.1").
+			Build()).
+		Build()
+
+	g.Expect((&Cluster{}).Default(ctx, c)).ToNot(Succeed())
+}
+
 func TestClusterValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 

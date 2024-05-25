@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -90,10 +91,11 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 	client := fake.NewClientBuilder().WithObjects(nodeList...).Build()
 
 	testCases := []struct {
-		name           string
-		providerIDList []string
-		expected       *getNodeReferencesResult
-		err            error
+		name            string
+		providerIDList  []string
+		expected        *getNodeReferencesResult
+		err             error
+		minReadySeconds int32
 	}{
 		{
 			name:           "valid provider id, valid aws node",
@@ -175,13 +177,33 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:           "valid provider id, valid aws node, with minReadySeconds",
+			providerIDList: []string{"aws://us-east-1/id-node-1"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{{Name: "node-1"}},
+				available:  0,
+				ready:      1,
+			},
+			minReadySeconds: 20,
+		},
+		{
+			name:           "valid provider id, valid aws node, with minReadySeconds equals 0",
+			providerIDList: []string{"aws://us-east-1/id-node-1"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{{Name: "node-1"}},
+				available:  1,
+				ready:      1,
+			},
+			minReadySeconds: 0,
+		},
 	}
 
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result, err := r.getNodeReferences(ctx, client, test.providerIDList)
+			result, err := r.getNodeReferences(ctx, client, test.providerIDList, ptr.To(test.minReadySeconds))
 			if test.err == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

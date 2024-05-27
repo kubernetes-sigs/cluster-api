@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,6 +54,7 @@ func TestMain(m *testing.M) {
 			Scheme:     mgr.GetScheme(),
 			Mapper:     mgr.GetRESTMapper(),
 			HTTPClient: mgr.GetHTTPClient(),
+			SyncPeriod: ptr.To(time.Minute * 10),
 		})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create cache for metadata only Secret watches: %v", err))

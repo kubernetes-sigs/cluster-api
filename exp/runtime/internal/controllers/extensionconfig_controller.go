@@ -74,7 +74,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 				},
 			},
 			handler.TypedEnqueueRequestsFromMapFunc(
-				secretToExtensionConfigFunc(r.Client),
+				r.secretToExtensionConfigFunc,
 			),
 		)).
 		WithOptions(options).
@@ -192,27 +192,25 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, extensionConfig *runti
 
 // secretToExtensionConfigFunc returns a func which maps a secret to ExtensionConfigs with the corresponding
 // InjectCAFromSecretAnnotation to reconcile them on updates of the secrets.
-func secretToExtensionConfigFunc(ctrlClient client.Client) handler.TypedMapFunc[*metav1.PartialObjectMetadata] {
-	return func(ctx context.Context, o *metav1.PartialObjectMetadata) []reconcile.Request {
-		result := []ctrl.Request{}
+func (r *Reconciler) secretToExtensionConfigFunc(ctx context.Context, o *metav1.PartialObjectMetadata) []reconcile.Request {
+	result := []ctrl.Request{}
 
-		extensionConfigs := runtimev1.ExtensionConfigList{}
-		indexKey := o.GetNamespace() + "/" + o.GetName()
+	extensionConfigs := runtimev1.ExtensionConfigList{}
+	indexKey := o.GetNamespace() + "/" + o.GetName()
 
-		if err := ctrlClient.List(
-			ctx,
-			&extensionConfigs,
-			client.MatchingFields{injectCAFromSecretAnnotationField: indexKey},
-		); err != nil {
-			return nil
-		}
-
-		for _, ext := range extensionConfigs.Items {
-			result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Name: ext.Name}})
-		}
-
-		return result
+	if err := r.Client.List(
+		ctx,
+		&extensionConfigs,
+		client.MatchingFields{injectCAFromSecretAnnotationField: indexKey},
+	); err != nil {
+		return nil
 	}
+
+	for _, ext := range extensionConfigs.Items {
+		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Name: ext.Name}})
+	}
+
+	return result
 }
 
 // discoverExtensionConfig attempts to discover the Handlers for an ExtensionConfig.

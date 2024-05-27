@@ -84,6 +84,9 @@ metadata:
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
 				Namespace: namespaceName,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
 			},
 			Type: "addons.cluster.x-k8s.io/resource-set",
 			StringData: map[string]string{
@@ -432,6 +435,9 @@ metadata:
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      newSecretName,
 				Namespace: ns.Name,
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: testCluster.Name,
+				},
 			},
 			Type: addonsv1.ClusterResourceSetSecretType,
 			Data: map[string][]byte{},

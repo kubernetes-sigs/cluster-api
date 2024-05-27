@@ -24,6 +24,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
+	"path"
 	"sync"
 	"testing"
 	"time"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -1400,6 +1402,246 @@ kubernetesVersion: metav1.16.1
 		g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 		// Newly cloned infra objects should have the infraref annotation.
 		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
+		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))
+	}, 30*time.Second).Should(Succeed())
+}
+
+func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
+	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+		t.Helper()
+
+		t.Log("Creating the namespace")
+		ns, err := env.CreateNamespace(ctx, "test-kcp-reconcile-initializecontrolplane")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		return ns
+	}
+
+	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
+		t.Helper()
+
+		t.Log("Deleting the namespace")
+		g.Expect(env.Delete(ctx, ns)).To(Succeed())
+	}
+
+	g := NewWithT(t)
+	namespace := setup(t, g)
+	defer teardown(t, g, namespace)
+
+	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: namespace.Name})
+	cluster.Spec = clusterv1.ClusterSpec{
+		ControlPlaneEndpoint: clusterv1.APIEndpoint{
+			Host: "test.local",
+			Port: 9999,
+		},
+	}
+
+	caCertificate := &secret.Certificate{
+		Purpose:  secret.ClusterCA,
+		CertFile: path.Join(secret.DefaultCertificatesDir, "ca.crt"),
+		KeyFile:  path.Join(secret.DefaultCertificatesDir, "ca.key"),
+	}
+	// The certificate is user provided so no owner references should be added.
+	g.Expect(caCertificate.Generate()).To(Succeed())
+	certSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace.Name,
+			Name:      cluster.Name + "-ca",
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: cluster.Name,
+			},
+		},
+		Data: map[string][]byte{
+			secret.TLSKeyDataName: caCertificate.KeyPair.Key,
+			secret.TLSCrtDataName: caCertificate.KeyPair.Cert,
+		},
+		Type: clusterv1.ClusterSecretType,
+	}
+
+	g.Expect(env.Create(ctx, cluster)).To(Succeed())
+	patchHelper, err := patch.NewHelper(cluster, env)
+	g.Expect(err).ToNot(HaveOccurred())
+	cluster.Status = clusterv1.ClusterStatus{InfrastructureReady: true}
+	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
+
+	g.Expect(env.Create(ctx, certSecret)).To(Succeed())
+
+	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericInfrastructureMachineTemplate",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-foo",
+				"namespace": cluster.Namespace,
+			},
+			"spec": map[string]interface{}{
+				"template": map[string]interface{}{
+					"spec": map[string]interface{}{
+						"hello": "world",
+					},
+				},
+			},
+		},
+	}
+	g.Expect(env.Create(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
+
+	kcp := &controlplanev1.KubeadmControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: cluster.Namespace,
+			Name:      "foo",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Kind:       "Cluster",
+					APIVersion: clusterv1.GroupVersion.String(),
+					Name:       cluster.Name,
+					UID:        cluster.UID,
+				},
+			},
+		},
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			Replicas: nil,
+			Version:  "v1.16.6",
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					Kind:       genericInfrastructureMachineTemplate.GetKind(),
+					APIVersion: genericInfrastructureMachineTemplate.GetAPIVersion(),
+					Name:       genericInfrastructureMachineTemplate.GetName(),
+					Namespace:  cluster.Namespace,
+				},
+			},
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
+		},
+	}
+	g.Expect(env.Create(ctx, kcp)).To(Succeed())
+
+	corednsCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "coredns",
+			Namespace: namespace.Name,
+		},
+		Data: map[string]string{
+			"Corefile": "original-core-file",
+		},
+	}
+	g.Expect(env.Create(ctx, corednsCM)).To(Succeed())
+
+	kubeadmCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubeadm-config",
+			Namespace: namespace.Name,
+		},
+		Data: map[string]string{
+			"ClusterConfiguration": `apiServer:
+dns:
+  type: CoreDNS
+imageRepository: registry.k8s.io
+kind: ClusterConfiguration
+kubernetesVersion: metav1.16.1`,
+		},
+	}
+	g.Expect(env.Create(ctx, kubeadmCM)).To(Succeed())
+
+	corednsDepl := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "coredns",
+			Namespace: namespace.Name,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"coredns": "",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "coredns",
+					Labels: map[string]string{
+						"coredns": "",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "coredns",
+						Image: "registry.k8s.io/coredns:1.6.2",
+					}},
+				},
+			},
+		},
+	}
+	g.Expect(env.Create(ctx, corednsDepl)).To(Succeed())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		recorder:            record.NewFakeRecorder(32),
+		managementCluster: &fakeManagementCluster{
+			Management: &internal.Management{Client: env},
+			Workload: fakeWorkloadCluster{
+				Workload: &internal.Workload{
+					Client: env,
+				},
+				Status: internal.ClusterStatus{},
+			},
+		},
+		managementClusterUncached: &fakeManagementCluster{
+			Management: &internal.Management{Client: env},
+			Workload: fakeWorkloadCluster{
+				Workload: &internal.Workload{
+					Client: env,
+				},
+				Status: internal.ClusterStatus{},
+			},
+		},
+		ssaCache: ssa.NewCache(),
+	}
+
+	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	g.Expect(err).ToNot(HaveOccurred())
+	// this first requeue is to add finalizer
+	g.Expect(result).To(BeComparableTo(ctrl.Result{}))
+	g.Expect(env.GetAPIReader().Get(ctx, util.ObjectKey(kcp), kcp)).To(Succeed())
+	g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
+
+	g.Eventually(func(g Gomega) {
+		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(Succeed())
+		// Expect the referenced infrastructure template to have a Cluster Owner Reference.
+		g.Expect(env.GetAPIReader().Get(ctx, util.ObjectKey(genericInfrastructureMachineTemplate), genericInfrastructureMachineTemplate)).To(Succeed())
+		g.Expect(genericInfrastructureMachineTemplate.GetOwnerReferences()).To(ContainElement(metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		}))
+
+		// Always expect that the Finalizer is set on the passed in resource
+		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
+
+		g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
+		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
+		g.Expect(conditions.IsFalse(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
+
+		// Verify that the kubeconfig is using the custom CA
+		kBytes, err := kubeconfig.FromSecret(ctx, env, util.ObjectKey(cluster))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(kBytes).NotTo(BeEmpty())
+		k, err := clientcmd.Load(kBytes)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(k).NotTo(BeNil())
+		g.Expect(k.Clusters[cluster.Name]).NotTo(BeNil())
+		g.Expect(k.Clusters[cluster.Name].CertificateAuthorityData).To(Equal(caCertificate.KeyPair.Cert))
+
+		machineList := &clusterv1.MachineList{}
+		g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
+		g.Expect(machineList.Items).To(HaveLen(1))
+
+		machine := machineList.Items[0]
+		g.Expect(machine.Name).To(HavePrefix(kcp.Name))
+		// Newly cloned infra objects should have the infraref annotation.
+		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Spec.InfrastructureRef.Namespace)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))

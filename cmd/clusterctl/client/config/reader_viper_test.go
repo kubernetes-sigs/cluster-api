@@ -125,10 +125,10 @@ func Test_viperReader_Init(t *testing.T) {
 func Test_viperReader_Get(t *testing.T) {
 	g := NewWithT(t)
 
-    dir := t.TempDir()
+	dir := t.TempDir()
 	defer os.RemoveAll(dir)
 
-    t.Setenv("FOO", "foo")
+	t.Setenv("FOO", "foo")
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
 	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
@@ -194,7 +194,7 @@ func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
 
 	ctx := context.Background()
 
-    dir := t.TempDir()
+	dir := t.TempDir()
 
 	t.Setenv("FOO_FOO", "bar")
 
@@ -210,7 +210,7 @@ func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
 func Test_viperReader_Set(t *testing.T) {
 	g := NewWithT(t)
 
-    dir := t.TempDir()
+	dir := t.TempDir()
 
 	t.Setenv("FOO", "foo")
 

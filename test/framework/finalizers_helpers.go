@@ -124,10 +124,13 @@ func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace
 		Expect(err).ToNot(HaveOccurred())
 
 		setFinalizers := obj.GetFinalizers()
-		expectedFinalizers := allFinalizerAssertions[node.Object.Kind](types.NamespacedName{Namespace: node.Object.Namespace, Name: node.Object.Name})
 
-		if len(setFinalizers) > 0 || len(expectedFinalizers) > 0 {
+		if len(setFinalizers) > 0 {
 			// assert if the expected finalizers are set on the resource
+			var expectedFinalizers []string
+			if assertion, ok := allFinalizerAssertions[node.Object.Kind]; ok {
+				expectedFinalizers = assertion(types.NamespacedName{Namespace: node.Object.Namespace, Name: node.Object.Name})
+			}
 			Expect(setFinalizers).To(Equal(expectedFinalizers), "for resource type %s", node.Object.Kind)
 			objsWithFinalizers[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
 		}

@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 )
 
-var _ = Describe("When following the Cluster API quick-start", func() {
+var _ = Describe("When following the Cluster API quick-start FP", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,
@@ -40,6 +40,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 			InfrastructureProvider: ptr.To("docker"),
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
+				By("Checking that owner references are resilient")
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
@@ -49,6 +50,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that owner references are correctly updated to the correct apiVersion.
+				By("Checking that owner references are updated to the correct API version")
 				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
@@ -58,6 +60,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
+				By("Checking that finalizers are resilient")
 				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreFinalizersAssertion,
 					framework.KubeadmControlPlaneFinalizersAssertion,
@@ -66,6 +69,7 @@ var _ = Describe("When following the Cluster API quick-start", func() {
 				)
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
+				By("Checking that resourceVersions are stable")
 				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 			},
 		}
@@ -82,8 +86,9 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 			SkipCleanup:            skipCleanup,
 			Flavor:                 ptr.To("topology"),
 			InfrastructureProvider: ptr.To("docker"),
-			// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
+				By("Checking that owner references are resilient")
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
@@ -93,6 +98,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that owner references are correctly updated to the correct apiVersion.
+				By("Checking that owner references are updated to the correct API version")
 				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
@@ -102,6 +108,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 					framework.KubernetesReferenceAssertions,
 				)
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
+				By("Checking that finalizers are resilient")
 				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
 					framework.CoreFinalizersAssertion,
 					framework.KubeadmControlPlaneFinalizersAssertion,
@@ -110,6 +117,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				)
 				// This check ensures that the resourceVersions are stable, i.e. it verifies there are no
 				// continuous reconciles when everything should be stable.
+				By("Checking that resourceVersions are stable")
 				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 			},
 		}

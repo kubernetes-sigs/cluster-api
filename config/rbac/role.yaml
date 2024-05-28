@@ -244,6 +244,7 @@ rules:
   - events
   verbs:
   - create
+  - patch
 - apiGroups:
   - ""
   resources:

@@ -67,9 +67,10 @@ const (
 
 // MachinePoolReconciler reconciles a MachinePool object.
 type MachinePoolReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client                    client.Client
+	UnstructuredCachingClient client.Client
+	APIReader                 client.Reader
+	Tracker                   *remote.ClusterCacheTracker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -295,7 +296,7 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *
 			continue
 		}
 
-		obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
+		obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, m.Namespace)
 		if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 			return false, errors.Wrapf(err, "failed to get %s %q for MachinePool %q in namespace %q",
 				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)

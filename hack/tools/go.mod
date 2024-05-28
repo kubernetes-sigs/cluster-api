@@ -6,6 +6,8 @@ replace sigs.k8s.io/cluster-api => ../../
 
 replace sigs.k8s.io/cluster-api/test => ../../test
 
+replace sigs.k8s.io/controller-runtime => github.com/sbueringer/controller-runtime v0.2.0-beta.1.0.20240528125616-c6053f022f6b
+
 require (
 	cloud.google.com/go/storage v1.41.0
 	github.com/blang/semver/v4 v4.0.0

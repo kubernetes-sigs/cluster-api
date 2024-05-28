@@ -4,6 +4,8 @@ go 1.22.0
 
 replace sigs.k8s.io/cluster-api => ../
 
+replace sigs.k8s.io/controller-runtime => github.com/sbueringer/controller-runtime v0.2.0-beta.1.0.20240528125616-c6053f022f6b
+
 require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/docker/docker v26.1.3+incompatible

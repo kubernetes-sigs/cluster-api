@@ -543,10 +543,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCac
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.MachinePoolReconciler{
-			Client:           mgr.GetClient(),
-			APIReader:        mgr.GetAPIReader(),
-			Tracker:          tracker,
-			WatchFilterValue: watchFilterValue,
+			Client:                    mgr.GetClient(),
+			UnstructuredCachingClient: unstructuredCachingClient,
+			APIReader:                 mgr.GetAPIReader(),
+			Tracker:                   tracker,
+			WatchFilterValue:          watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MachinePool")
 			os.Exit(1)

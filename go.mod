@@ -2,6 +2,8 @@ module sigs.k8s.io/cluster-api
 
 go 1.22.0
 
+replace sigs.k8s.io/controller-runtime => github.com/sbueringer/controller-runtime v0.2.0-beta.1.0.20240528125616-c6053f022f6b
+
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/sprig/v3 v3.2.3

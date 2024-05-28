@@ -45,6 +45,14 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-east-1/id-node-1",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
@@ -52,6 +60,14 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-west-2/id-node-2",
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 		},
 		&corev1.Node{
@@ -61,6 +77,14 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			Spec: corev1.NodeSpec{
 				ProviderID: "gce://us-central1/gce-id-node-2",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
@@ -68,6 +92,14 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "azure://westus2/id-node-4",
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 		},
 		&corev1.Node{
@@ -77,6 +109,14 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			Spec: corev1.NodeSpec{
 				ProviderID: "azure://westus2/id-nodepool1/0",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
@@ -84,6 +124,14 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "azure://westus2/id-nodepool2/0",
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 		},
 	}
@@ -104,6 +152,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "node-1"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -113,6 +163,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "node-2"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -122,6 +174,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "gce-node-2"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -131,6 +185,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "azure-node-4"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -141,6 +197,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "node-1"},
 					{Name: "azure-node-4"},
 				},
+				available: 2,
+				ready:     2,
 			},
 		},
 		{
@@ -165,6 +223,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "azure-nodepool1-0"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -175,6 +235,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "azure-nodepool1-0"},
 					{Name: "azure-nodepool2-0"},
 				},
+				available: 2,
+				ready:     2,
 			},
 		},
 		{
@@ -216,6 +278,9 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			}
 
 			g.Expect(result.references).To(HaveLen(len(test.expected.references)), "Expected NodeRef count to be %v, got %v", len(result.references), len(test.expected.references))
+
+			g.Expect(result.available).To(Equal(test.expected.available), "Expected available node count to be %v, got %v", test.expected.available, result.available)
+			g.Expect(result.ready).To(Equal(test.expected.ready), "Expected ready node count to be %v, got %v", test.expected.ready, result.ready)
 
 			for n := range test.expected.references {
 				g.Expect(result.references[n].Name).To(Equal(test.expected.references[n].Name), "Expected NodeRef's name to be %v, got %v", result.references[n].Name, test.expected.references[n].Name)

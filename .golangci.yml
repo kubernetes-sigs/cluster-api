@@ -51,6 +51,7 @@ linters:
   - rowserrcheck
   - staticcheck
   - stylecheck
+  - tenv
   - thelper
   - typecheck
   - unconvert

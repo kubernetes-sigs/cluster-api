@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -230,11 +229,6 @@ func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *c
 		name, randomSuffix = computeNewMachineSetName(deployment.Name + "-")
 		uniqueIdentifierLabelValue = fmt.Sprintf("%d-%s", templateHash, randomSuffix)
 
-		// Add foregroundDeletion finalizer to MachineSet if the MachineDeployment has it.
-		if sets.New[string](deployment.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
-			finalizers = []string{metav1.FinalizerDeleteDependents}
-		}
-
 		replicas, err = mdutil.NewMSNewReplicas(deployment, oldMSs, 0)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to compute desired MachineSet")
@@ -257,15 +251,8 @@ func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *c
 		name = existingMS.Name
 		uid = existingMS.UID
 
-		// Keep foregroundDeletion finalizer if the existingMS has it.
-		// Note: This case is a little different from the create case. In the update case we preserve
-		// the finalizer on the MachineSet if it already exists. Because of SSA we should not build
-		// the finalizer information from the MachineDeployment when updating a MachineSet because that could lead
-		// to dropping the finalizer from the MachineSet if it is dropped from the MachineDeployment.
-		// We should not drop the finalizer on the MachineSet if the finalizer is dropped from the MachineDeployment.
-		if sets.New[string](existingMS.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
-			finalizers = []string{metav1.FinalizerDeleteDependents}
-		}
+		// Preserve all existing finalizers (including foregroundDeletion finalizer).
+		finalizers = existingMS.Finalizers
 
 		replicas = *existingMS.Spec.Replicas
 

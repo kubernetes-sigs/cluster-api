@@ -62,9 +62,8 @@ const machineDeploymentManagerName = "capi-machinedeployment"
 
 // Reconciler reconciles a MachineDeployment object.
 type Reconciler struct {
-	Client                    client.Client
-	UnstructuredCachingClient client.Client
-	APIReader                 client.Reader
+	Client    client.Client
+	APIReader client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -212,12 +211,12 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}))
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
 		return err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, md.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, md.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
 			return err
 		}
 	}

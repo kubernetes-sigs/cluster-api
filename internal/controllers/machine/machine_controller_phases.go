@@ -125,7 +125,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, m.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			log.Info("could not find external ref, requeuing", ref.Kind, klog.KRef(ref.Namespace, ref.Name))

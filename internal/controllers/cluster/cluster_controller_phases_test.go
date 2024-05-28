@@ -137,9 +137,8 @@ func TestClusterReconcilePhases(t *testing.T) {
 						Build()
 				}
 				r := &Reconciler{
-					Client:                    c,
-					UnstructuredCachingClient: c,
-					recorder:                  record.NewFakeRecorder(32),
+					Client:   c,
+					recorder: record.NewFakeRecorder(32),
 				}
 
 				res, err := r.reconcileInfrastructure(ctx, tt.cluster)
@@ -218,9 +217,8 @@ func TestClusterReconcilePhases(t *testing.T) {
 						Build()
 				}
 				r := &Reconciler{
-					Client:                    c,
-					UnstructuredCachingClient: c,
-					recorder:                  record.NewFakeRecorder(32),
+					Client:   c,
+					recorder: record.NewFakeRecorder(32),
 				}
 				res, err := r.reconcileKubeconfig(ctx, tt.cluster)
 				if tt.wantErr {
@@ -370,9 +368,8 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				Client:                    c,
-				UnstructuredCachingClient: c,
-				recorder:                  record.NewFakeRecorder(32),
+				Client:   c,
+				recorder: record.NewFakeRecorder(32),
 			}
 			r.reconcilePhase(ctx, tt.cluster)
 			g.Expect(tt.cluster.Status.GetTypedPhase()).To(Equal(tt.wantPhase))
@@ -488,9 +485,8 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 
 			c := fake.NewClientBuilder().WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client:                    c,
-				UnstructuredCachingClient: c,
-				recorder:                  record.NewFakeRecorder(32),
+				Client:   c,
+				recorder: record.NewFakeRecorder(32),
 			}
 
 			_, err := r.reconcileInfrastructure(ctx, tt.cluster)

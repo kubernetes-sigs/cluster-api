@@ -68,7 +68,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	timeout := 30 * time.Second
 
 	cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
-	g.Expect(env.Create(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
 	cluster.UID = types.UID(util.RandomString(10))
 	cluster.Spec.ControlPlaneEndpoint.Host = Host
 	cluster.Spec.ControlPlaneEndpoint.Port = 6443

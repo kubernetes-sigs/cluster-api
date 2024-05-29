@@ -349,7 +349,6 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 	}
 	versions := []string{}
 	for _, r := range allReleases {
-		r := r // pin
 		if r.TagName == nil {
 			continue
 		}

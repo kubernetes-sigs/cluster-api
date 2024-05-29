@@ -675,7 +675,6 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 	}
 
 	for _, rt := range useCases {
-		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -753,7 +752,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 	}
 
 	for _, rt := range useCases {
-		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
 			g := NewWithT(t)
 

@@ -632,7 +632,6 @@ func (g *generator) computeMachineDeployment(ctx context.Context, s *scope.Scope
 
 	var machineDeploymentClass *clusterv1.MachineDeploymentClass
 	for _, mdClass := range s.Blueprint.ClusterClass.Spec.Workers.MachineDeployments {
-		mdClass := mdClass
 		if mdClass.Class == className {
 			machineDeploymentClass = &mdClass
 			break
@@ -958,7 +957,6 @@ func (g *generator) computeMachinePool(_ context.Context, s *scope.Scope, machin
 
 	var machinePoolClass *clusterv1.MachinePoolClass
 	for _, mpClass := range s.Blueprint.ClusterClass.Spec.Workers.MachinePools {
-		mpClass := mpClass
 		if mpClass.Class == className {
 			machinePoolClass = &mpClass
 			break

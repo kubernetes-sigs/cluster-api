@@ -474,7 +474,6 @@ func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clust
 
 	// Scale down provider Deployments.
 	for _, deployment := range deploymentList.Items {
-		deployment := deployment
 		log.V(5).Info("Scaling down", "Deployment", klog.KObj(&deployment))
 		if err := scaleDownDeployment(ctx, cs, deployment); err != nil {
 			return err

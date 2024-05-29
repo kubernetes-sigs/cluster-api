@@ -72,6 +72,14 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		},
 		&corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-3",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-west-2/id-node-3",
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "gce-node-2",
 			},
 			Spec: corev1.NodeSpec{
@@ -165,6 +173,17 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				},
 				available: 1,
 				ready:     1,
+			},
+		},
+		{
+			name:           "valid provider id, valid aws node, nodeReady condition set to false",
+			providerIDList: []string{"aws://us-west-2/id-node-3"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{
+					{Name: "node-3"},
+				},
+				available: 0,
+				ready:     0,
 			},
 		},
 		{

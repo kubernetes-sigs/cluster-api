@@ -3741,7 +3741,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ValidationRule(ref common.Referenc
 							Format:      "",
 						},
 					},
-					"FieldValueRequired": {
+					"reason": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule. The currently supported reasons are: \"FieldValueInvalid\", \"FieldValueForbidden\", \"FieldValueRequired\", \"FieldValueDuplicate\". If not set, default to use \"FieldValueInvalid\". All future added reasons must be accepted by clients when reading this value and unknown reasons should be treated as FieldValueInvalid.",
 							Default:     FieldValueInvalid,

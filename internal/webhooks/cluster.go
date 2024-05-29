@@ -133,7 +133,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		var oldCluster *clusterv1.Cluster
 		req, err := admission.RequestFromContext(ctx)
 
-		if err != nil && len(req.OldObject.Raw) > 0 {
+		if err == nil && len(req.OldObject.Raw) > 0 {
 			oldCluster = &clusterv1.Cluster{}
 			if err := webhook.decoder.DecodeRaw(req.OldObject, oldCluster); err != nil {
 				return apierrors.NewBadRequest(errors.Wrap(err, "failed to decode old cluster object").Error())

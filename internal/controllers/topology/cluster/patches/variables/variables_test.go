@@ -405,12 +405,117 @@ func TestControlPlane(t *testing.T) {
 	tests := []struct {
 		name                                      string
 		controlPlaneTopology                      *clusterv1.ControlPlaneTopology
+		forPatch                                  string
+		variableDefinitionsForPatch               map[string]bool
 		controlPlane                              *unstructured.Unstructured
 		controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 		want                                      []runtimehooksv1.Variable
 	}{
 		{
-			name: "Should calculate ControlPlane variables",
+			name:                        "Should calculate ControlPlane variables",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
+			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
+				Replicas: ptr.To[int32](3),
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
+			},
+			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
+				WithReplicas(3).
+				WithVersion("v1.21.1").
+				Build(),
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: runtimehooksv1.BuiltinsName,
+					Value: toJSONCompact(`{
+					"controlPlane":{
+						"version": "v1.21.1",
+						"name":"controlPlane1",
+						"replicas":3
+					}}`),
+				},
+			},
+		},
+		{
+			name:                        "Should calculate ControlPlane variables for a given patch name",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
+			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
+				Replicas: ptr.To[int32](3),
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:           "location",
+							Value:          toJSON("\"us-central\""),
+							DefinitionFrom: "patch1",
+						},
+						{
+							Name:  "location",
+							Value: toJSON("\"us-east\""),
+							// This variable should be excluded because it is defined for a different patch.
+							DefinitionFrom: "anotherPatch",
+						},
+
+						{
+							Name:  "http-proxy",
+							Value: toJSON("\"internal.proxy.com\""),
+							// This variable should be excluded because it is not in variableDefinitionsForPatch.
+							DefinitionFrom: "",
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+							// This variable should be included because it is defined for all patches.
+						},
+					},
+				},
+			},
+			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
+				WithReplicas(3).
+				WithVersion("v1.21.1").
+				Build(),
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: runtimehooksv1.BuiltinsName,
+					Value: toJSONCompact(`{
+					"controlPlane":{
+						"version": "v1.21.1",
+						"name":"controlPlane1",
+						"replicas":3
+					}}`),
+				},
+			},
+		},
+		{
+			name:                        "Should calculate ControlPlane variables (without overrides)",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
 				Replicas: ptr.To[int32](3),
 			},
@@ -431,12 +536,35 @@ func TestControlPlane(t *testing.T) {
 			},
 		},
 		{
-			name:                 "Should calculate ControlPlane variables, replicas not set",
-			controlPlaneTopology: &clusterv1.ControlPlaneTopology{},
+			name:                        "Should calculate ControlPlane variables, replicas not set",
+			forPatch:                    "patch1",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
+			},
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithVersion("v1.21.1").
 				Build(),
 			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
 				{
 					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
@@ -448,9 +576,23 @@ func TestControlPlane(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate ControlPlane variables with InfrastructureMachineTemplate",
+			name:                        "Should calculate ControlPlane variables with InfrastructureMachineTemplate",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
 				Replicas: ptr.To[int32](3),
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
 			},
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithReplicas(3).
@@ -459,6 +601,14 @@ func TestControlPlane(t *testing.T) {
 			controlPlaneInfrastructureMachineTemplate: builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "controlPlaneInfrastructureMachineTemplate1").
 				Build(),
 			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
 				{
 					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
@@ -480,7 +630,7 @@ func TestControlPlane(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := ControlPlane(tt.controlPlaneTopology, tt.controlPlane, tt.controlPlaneInfrastructureMachineTemplate)
+			got, err := ControlPlane(tt.controlPlaneTopology, tt.controlPlane, tt.controlPlaneInfrastructureMachineTemplate, tt.forPatch, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})

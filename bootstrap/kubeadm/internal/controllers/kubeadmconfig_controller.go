@@ -75,7 +75,7 @@ type InitLocker interface {
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machinesets;machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;configmaps,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=events,verbs=create
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 // KubeadmConfigReconciler reconciles a KubeadmConfig object.
 type KubeadmConfigReconciler struct {

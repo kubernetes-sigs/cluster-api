@@ -39,8 +39,8 @@ func ValidateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 }
 
 // ValidateControlPlaneVariables validates ControlPLane variables.
-func ValidateControlPlaneVariables(values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
-	return validateClusterVariables(values, oldValues, definitions, false, fldPath)
+func ValidateControlPlaneVariables(ctx context.Context, values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(ctx, values, oldValues, definitions, false, fldPath)
 }
 
 // ValidateMachineVariables validates MachineDeployment and MachinePool variables.
@@ -66,10 +66,13 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 
 	// Get a map of old ClusterVariable values. We know they are all valid and not duplicate names, etc. as previous
 	// validation has already asserted that.
-	oldValuesMap := make(map[string]*clusterv1.ClusterVariable, len(oldValues))
-	for idx := range oldValues {
-		v := oldValues[idx]
-		oldValuesMap[v.Name] = &v
+	oldValuesMap, err := newValuesIndex(oldValues)
+	if err != nil {
+		var valueStrings []string
+		for _, v := range values {
+			valueStrings = append(valueStrings, fmt.Sprintf("Name: %s DefinitionFrom: %s", v.Name, v.DefinitionFrom))
+		}
+		return append(allErrs, field.Invalid(fldPath, "["+strings.Join(valueStrings, ",")+"]", fmt.Sprintf("old cluster variables not valid: %s", err)))
 	}
 
 	// Get an index of definitions for each variable name and definition from the ClusterClass variable.
@@ -88,11 +91,19 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 			continue
 		}
 
+		// If there is an old variable matching this name and definition from defined in the old Cluster then pass this in
+		// to cluster variable validation.
+		var oldValue clusterv1.ClusterVariable
+		oldValuesForName, found := oldValuesMap[value.Name]
+		if found {
+			oldValue = oldValuesForName[value.DefinitionFrom]
+		}
+
 		// Values must be valid according to the schema in their definition.
 		allErrs = append(allErrs, ValidateClusterVariable(
 			ctx,
 			value.DeepCopy(),
-			oldValuesMap[value.Name],
+			&oldValue,
 			&clusterv1.ClusterClassVariable{
 				Name:     value.Name,
 				Required: definition.Required,

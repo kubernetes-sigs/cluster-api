@@ -313,12 +313,6 @@ func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *fiel
 	if schema.Items != nil {
 		allErrs = append(allErrs, validateSchema(schema.Items.Schema, fldPath.Child("items"))...)
 		allErrs = append(allErrs, validateCELExpressions(schema.Items.Schema, fldPath.Child("items"), celContext.ChildItemsContext(schema.Items.Schema))...)
-		if len(schema.Items.JSONSchemas) != 0 {
-			for i, jsonSchema := range schema.Items.JSONSchemas {
-				itemsSchema := jsonSchema
-				allErrs = append(allErrs, validateCELExpressions(&itemsSchema, fldPath.Child("items").Index(i), celContext.ChildItemsContext(&itemsSchema))...)
-			}
-		}
 	}
 
 	typeInfo, err := celContext.TypeInfo()

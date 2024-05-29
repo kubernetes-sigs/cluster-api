@@ -165,7 +165,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 	req.Variables = globalVariables
 
 	// Calculate the Control Plane variables.
-	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object, desired.ControlPlane.InfrastructureMachineTemplate)
+	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object, desired.ControlPlane.InfrastructureMachineTemplate, definitionFrom, patchVariableDefinitions)
 	if err != nil {
 		return errors.Wrapf(err, "failed to calculate ControlPlane variables")
 	}

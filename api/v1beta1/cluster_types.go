@@ -142,6 +142,10 @@ type ControlPlaneTopology struct {
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+
+	// Variables can be used to customize the ControlPlane through patches.
+	// +optional
+	Variables *ControlPlaneVariables `json:"variables,omitempty"`
 }
 
 // WorkersTopology represents the different sets of worker nodes in the cluster.
@@ -325,6 +329,13 @@ type ClusterVariable struct {
 	// i.e. it is not possible to have no type field.
 	// Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
 	Value apiextensionsv1.JSON `json:"value"`
+}
+
+// ControlPlaneVariables can be used to provide variables for the ControlPlane.
+type ControlPlaneVariables struct {
+	// Overrides can be used to override Cluster level variables.
+	// +optional
+	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
 // MachineDeploymentVariables can be used to provide variables for a specific MachineDeployment.

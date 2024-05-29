@@ -49,6 +49,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneClass":                        schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneClassNamingStrategy":          schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneTopology":                     schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneVariables":                    schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneVariables(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ExternalPatchDefinition":                  schema_sigsk8sio_cluster_api_api_v1beta1_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.FailureDomainSpec":                        schema_sigsk8sio_cluster_api_api_v1beta1_FailureDomainSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatch":                                schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatch(ref),
@@ -1115,11 +1116,46 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
 						},
 					},
+					"variables": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Variables can be used to customize the ControlPlane through patches.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneVariables"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneVariables", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneVariables(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ControlPlaneVariables can be used to provide variables for the ControlPlane.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"overrides": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Overrides can be used to override Cluster level variables.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable"},
 	}
 }
 

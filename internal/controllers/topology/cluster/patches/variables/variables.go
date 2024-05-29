@@ -94,8 +94,21 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, def
 }
 
 // ControlPlane returns variables that apply to templates belonging to the ControlPlane.
-func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructureMachineTemplate *unstructured.Unstructured) ([]runtimehooksv1.Variable, error) {
+func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructureMachineTemplate *unstructured.Unstructured, definitionFrom string, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
 	variables := []runtimehooksv1.Variable{}
+
+	// Add variables overrides for the ControlPlane.
+	if cpTopology.Variables != nil {
+		for _, variable := range cpTopology.Variables.Overrides {
+			// Add the variable if it is defined for the current patch or it is defined for all the patches.
+			if variable.DefinitionFrom == emptyDefinitionFrom || variable.DefinitionFrom == definitionFrom {
+				// Add the variable if it has a definition from this patch in the ClusterClass.
+				if _, ok := patchVariableDefinitions[variable.Name]; ok {
+					variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
+				}
+			}
+		}
+	}
 
 	// Construct builtin variable.
 	builtin := runtimehooksv1.Builtins{

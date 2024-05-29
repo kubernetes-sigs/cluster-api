@@ -39,13 +39,22 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// CoreFinalizersAssertion maps Cluster API core types to their expected finalizers.
-var CoreFinalizersAssertion = map[string]func(types.NamespacedName) []string{
-	clusterKind:           func(_ types.NamespacedName) []string { return []string{clusterv1.ClusterFinalizer} },
-	machineKind:           func(_ types.NamespacedName) []string { return []string{clusterv1.MachineFinalizer} },
-	machineSetKind:        func(_ types.NamespacedName) []string { return []string{clusterv1.MachineSetTopologyFinalizer} },
-	machineDeploymentKind: func(_ types.NamespacedName) []string { return []string{clusterv1.MachineDeploymentTopologyFinalizer} },
+// CoreFinalizersAssertionWithLegacyClusters maps Cluster API core types to their expected finalizers for legacy Clusters.
+var CoreFinalizersAssertionWithLegacyClusters = map[string]func(types.NamespacedName) []string{
+	clusterKind: func(_ types.NamespacedName) []string { return []string{clusterv1.ClusterFinalizer} },
+	machineKind: func(_ types.NamespacedName) []string { return []string{clusterv1.MachineFinalizer} },
 }
+
+// CoreFinalizersAssertionWithClassyClusters maps Cluster API core types to their expected finalizers for classy Clusters.
+var CoreFinalizersAssertionWithClassyClusters = func() map[string]func(types.NamespacedName) []string {
+	r := map[string]func(types.NamespacedName) []string{}
+	for k, v := range CoreFinalizersAssertionWithLegacyClusters {
+		r[k] = v
+	}
+	r[machineSetKind] = func(_ types.NamespacedName) []string { return []string{clusterv1.MachineSetTopologyFinalizer} }
+	r[machineDeploymentKind] = func(_ types.NamespacedName) []string { return []string{clusterv1.MachineDeploymentTopologyFinalizer} }
+	return r
+}()
 
 // ExpFinalizersAssertion maps experimental resource types to their expected finalizers.
 var ExpFinalizersAssertion = map[string]func(types.NamespacedName) []string{
@@ -123,15 +132,15 @@ func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace
 		err = proxy.GetClient().Get(ctx, nodeNamespacedName, obj)
 		Expect(err).ToNot(HaveOccurred())
 
+		// assert if the expected finalizers are set on the resource (including also checking if there are unexpected finalizers)
 		setFinalizers := obj.GetFinalizers()
+		var expectedFinalizers []string
+		if assertion, ok := allFinalizerAssertions[node.Object.Kind]; ok {
+			expectedFinalizers = assertion(types.NamespacedName{Namespace: node.Object.Namespace, Name: node.Object.Name})
+		}
 
+		Expect(setFinalizers).To(Equal(expectedFinalizers), "for resource type %s", node.Object.Kind)
 		if len(setFinalizers) > 0 {
-			// assert if the expected finalizers are set on the resource
-			var expectedFinalizers []string
-			if assertion, ok := allFinalizerAssertions[node.Object.Kind]; ok {
-				expectedFinalizers = assertion(types.NamespacedName{Namespace: node.Object.Namespace, Name: node.Object.Name})
-			}
-			Expect(setFinalizers).To(Equal(expectedFinalizers), "for resource type %s", node.Object.Kind)
 			objsWithFinalizers[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
 		}
 	}
@@ -145,26 +154,38 @@ func assertFinalizersExist(ctx context.Context, proxy ClusterProxy, namespace st
 		var allErrs []error
 		finalObjsWithFinalizers := getObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
 
+		// Check if all the initial objects with finalizers have them back.
 		for objKindNamespacedName, obj := range initialObjsWithFinalizers {
 			// verify if finalizers for this resource were set on reconcile
 			if _, valid := finalObjsWithFinalizers[objKindNamespacedName]; !valid {
-				allErrs = append(allErrs, fmt.Errorf("no finalizers set for %s",
-					objKindNamespacedName))
+				allErrs = append(allErrs, fmt.Errorf("no finalizers set for %s, at the beginning of the test it has %s",
+					objKindNamespacedName, obj.GetFinalizers()))
 				continue
 			}
 
 			// verify if this resource has the appropriate Finalizers set
 			expectedFinalizersF, assert := allFinalizerAssertions[obj.GetKind()]
 			if !assert {
+				// NOTE: this case should never happen because all the initialObjsWithFinalizers have been already checked
+				// against a finalizer assertion.
 				continue
 			}
-
 			parts := strings.Split(objKindNamespacedName, "/")
 			expectedFinalizers := expectedFinalizersF(types.NamespacedName{Namespace: parts[1], Name: parts[2]})
+
 			setFinalizers := finalObjsWithFinalizers[objKindNamespacedName].GetFinalizers()
 			if !reflect.DeepEqual(expectedFinalizers, setFinalizers) {
 				allErrs = append(allErrs, fmt.Errorf("expected finalizers do not exist for %s: expected: %v, found: %v",
 					objKindNamespacedName, expectedFinalizers, setFinalizers))
+			}
+		}
+
+		// Check if there are objects with finalizers not existing initially
+		for objKindNamespacedName, obj := range finalObjsWithFinalizers {
+			// verify if finalizers for this resource were set on reconcile
+			if _, valid := initialObjsWithFinalizers[objKindNamespacedName]; !valid {
+				allErrs = append(allErrs, fmt.Errorf("%s has finalizers not existing at the beginning of the test: %s",
+					objKindNamespacedName, obj.GetFinalizers()))
 			}
 		}
 

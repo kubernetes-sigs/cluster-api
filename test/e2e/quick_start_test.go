@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 )
 
-var _ = Describe("When following the Cluster API quick-start FP", func() {
+var _ = Describe("When following the Cluster API quick-start", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,
@@ -62,7 +62,7 @@ var _ = Describe("When following the Cluster API quick-start FP", func() {
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
 				By("Checking that finalizers are resilient")
 				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
-					framework.CoreFinalizersAssertion,
+					framework.CoreFinalizersAssertionWithLegacyClusters,
 					framework.KubeadmControlPlaneFinalizersAssertion,
 					framework.ExpFinalizersAssertion,
 					framework.DockerInfraFinalizersAssertion,
@@ -110,7 +110,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				// This check ensures that finalizers are resilient - i.e. correctly re-reconciled - when removed.
 				By("Checking that finalizers are resilient")
 				framework.ValidateFinalizersResilience(ctx, proxy, namespace, clusterName, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName),
-					framework.CoreFinalizersAssertion,
+					framework.CoreFinalizersAssertionWithClassyClusters,
 					framework.KubeadmControlPlaneFinalizersAssertion,
 					framework.ExpFinalizersAssertion,
 					framework.DockerInfraFinalizersAssertion,

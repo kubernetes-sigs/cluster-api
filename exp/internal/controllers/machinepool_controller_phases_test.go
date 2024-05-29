@@ -1902,7 +1902,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 func getInfraMachines(replicas int, mpName, clusterName, nsName string) []unstructured.Unstructured {
 	infraMachines := make([]unstructured.Unstructured, replicas)
-	for i := 0; i < replicas; i++ {
+	for i := range replicas {
 		infraMachines[i] = unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"kind":       builder.GenericInfrastructureMachineKind,
@@ -1923,7 +1923,7 @@ func getInfraMachines(replicas int, mpName, clusterName, nsName string) []unstru
 
 func getMachines(replicas int, mpName, clusterName, nsName string) []clusterv1.Machine {
 	machines := make([]clusterv1.Machine, replicas)
-	for i := 0; i < replicas; i++ {
+	for i := range replicas {
 		machines[i] = clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("%s-machine-%d", mpName, i),

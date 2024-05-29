@@ -462,7 +462,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 			errs        []error
 		)
 
-		for i := 0; i < diff; i++ {
+		for i := range diff {
 			// Create a new logger so the global logger is not modified.
 			log := log
 			machine := r.computeDesiredMachine(ms, nil)
@@ -730,7 +730,7 @@ func (r *Reconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.Mach
 func (r *Reconciler) waitForMachineCreation(ctx context.Context, machineList []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	for i := 0; i < len(machineList); i++ {
+	for i := range len(machineList) {
 		machine := machineList[i]
 		pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
@@ -756,7 +756,7 @@ func (r *Reconciler) waitForMachineCreation(ctx context.Context, machineList []*
 func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	for i := 0; i < len(machineList); i++ {
+	for i := range len(machineList) {
 		machine := machineList[i]
 		pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
 			m := &clusterv1.Machine{}

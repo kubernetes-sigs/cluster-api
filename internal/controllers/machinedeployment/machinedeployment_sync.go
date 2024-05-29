@@ -619,7 +619,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
 	log.V(4).Info("Looking to cleanup old machine sets for deployment")
 
-	for i := int32(0); i < diff; i++ {
+	for i := range diff {
 		ms := cleanableMSes[i]
 		if ms.Spec.Replicas == nil {
 			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)

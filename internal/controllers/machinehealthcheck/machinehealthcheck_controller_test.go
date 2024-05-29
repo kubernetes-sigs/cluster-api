@@ -2498,7 +2498,7 @@ func createMachinesWithNodes(
 		infraMachines []*unstructured.Unstructured
 	)
 
-	for i := 0; i < o.count; i++ {
+	for i := range o.count {
 		machine := newRunningMachine(c, o.labels)
 		if i == 0 && o.firstMachineAsControlPlane {
 			if machine.Labels == nil {

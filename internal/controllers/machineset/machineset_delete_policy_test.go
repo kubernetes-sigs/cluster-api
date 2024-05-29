@@ -557,7 +557,7 @@ func TestMachineOldestDelete(t *testing.T) {
 func TestMachineDeleteMultipleSamePriority(t *testing.T) {
 	machines := make([]*clusterv1.Machine, 0, 10)
 	// All of these machines will have the same delete priority because they all have the "must delete" annotation.
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		machines = append(machines, &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("machine-%d", i), Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: "true"}},
 		})

@@ -102,7 +102,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 			cluster.Spec.Topology.Version = "v" + cluster.Spec.Topology.Version
 		}
 
-		if cluster.Spec.Topology.Class == "" {
+		if cluster.GetClassKey().Name == "" {
 			allErrs = append(
 				allErrs,
 				field.Required(
@@ -119,7 +119,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 			if apierrors.IsNotFound(err) || errors.Is(err, errClusterClassNotReconciled) {
 				return nil
 			}
-			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
+			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.GetClassKey().Name))
 		}
 
 		// Doing both defaulting and validating here prevents a race condition where the ClusterClass could be
@@ -254,7 +254,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	var allErrs field.ErrorList
 
 	// class should be defined.
-	if newCluster.Spec.Topology.Class == "" {
+	if newCluster.GetClassKey().Name == "" {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -334,7 +334,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		}
 
 		// Topology or Class can not be added on update unless ClusterTopologyUnsafeUpdateClassNameAnnotation is set.
-		if oldCluster.Spec.Topology == nil || oldCluster.Spec.Topology.Class == "" {
+		if oldCluster.Spec.Topology == nil || oldCluster.GetClassKey().Name == "" {
 			if _, ok := newCluster.Annotations[clusterv1.ClusterTopologyUnsafeUpdateClassNameAnnotation]; ok {
 				return allWarnings, allErrs
 			}
@@ -386,7 +386,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		}
 
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
-		if oldCluster.Spec.Topology.Class != newCluster.Spec.Topology.Class {
+		if oldCluster.GetClassKey() != newCluster.GetClassKey() {
 			// Check to see if the ClusterClass referenced in the old version of the Cluster exists.
 			oldClusterClass, err := webhook.pollClusterClassForCluster(ctx, oldCluster)
 			if err != nil {
@@ -394,7 +394,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 					allErrs, field.Forbidden(
 						fldPath.Child("class"),
 						fmt.Sprintf("valid ClusterClass with name %q could not be retrieved, change from class %[1]q to class %q cannot be validated. Error: %s",
-							oldCluster.Spec.Topology.Class, newCluster.Spec.Topology.Class, err.Error())))
+							oldCluster.GetClassKey(), newCluster.GetClassKey(), err.Error())))
 
 				// Return early with errors if the ClusterClass can't be retrieved.
 				return allWarnings, allErrs
@@ -854,20 +854,20 @@ func (webhook *Cluster) validateClusterClassExistsAndIsReconciled(ctx context.Co
 				fmt.Sprintf(
 					"Cluster refers to ClusterClass %s in the topology but it does not exist. "+
 						"Cluster topology has not been fully validated. "+
-						"The ClusterClass must be created to reconcile the Cluster", newCluster.Spec.Topology.Class),
+						"The ClusterClass must be created to reconcile the Cluster", newCluster.GetClassKey()),
 			)
 		case errors.Is(clusterClassPollErr, errClusterClassNotReconciled):
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
 					"Cluster refers to ClusterClass %s but this object which hasn't yet been reconciled. "+
-						"Cluster topology has not been fully validated. ", newCluster.Spec.Topology.Class),
+						"Cluster topology has not been fully validated. ", newCluster.GetClassKey()),
 			)
 		// If there's any other error return a generic warning with the error message.
 		default:
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
 					"Cluster refers to ClusterClass %s in the topology but it could not be retrieved. "+
-						"Cluster topology has not been fully validated: %s", newCluster.Spec.Topology.Class, clusterClassPollErr.Error()),
+						"Cluster topology has not been fully validated: %s", newCluster.GetClassKey(), clusterClassPollErr.Error()),
 			)
 		}
 	}
@@ -879,7 +879,7 @@ func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster 
 	clusterClass := &clusterv1.ClusterClass{}
 	var clusterClassPollErr error
 	_ = wait.PollUntilContextTimeout(ctx, 200*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
-		if clusterClassPollErr = webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); clusterClassPollErr != nil {
+		if clusterClassPollErr = webhook.Client.Get(ctx, cluster.GetClassKey(), clusterClass); clusterClassPollErr != nil {
 			return false, nil //nolint:nilerr
 		}
 

@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -507,6 +508,14 @@ type Cluster struct {
 
 	Spec   ClusterSpec   `json:"spec,omitempty"`
 	Status ClusterStatus `json:"status,omitempty"`
+}
+
+// GetClassKey returns the namespaced name for the class associated with this object.
+func (c *Cluster) GetClassKey() types.NamespacedName {
+	if c.Spec.Topology == nil {
+		return types.NamespacedName{}
+	}
+	return types.NamespacedName{Namespace: c.GetNamespace(), Name: c.Spec.Topology.Class}
 }
 
 // GetConditions returns the set of conditions for this object.

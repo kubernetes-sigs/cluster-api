@@ -221,9 +221,9 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 
 	// Get ClusterClass.
 	clusterClass := &clusterv1.ClusterClass{}
-	key := client.ObjectKey{Name: s.Current.Cluster.Spec.Topology.Class, Namespace: s.Current.Cluster.Namespace}
+	key := s.Current.Cluster.GetClassKey()
 	if err := r.Client.Get(ctx, key, clusterClass); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", s.Current.Cluster.Spec.Topology.Class)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", key)
 	}
 
 	s.Blueprint.ClusterClass = clusterClass

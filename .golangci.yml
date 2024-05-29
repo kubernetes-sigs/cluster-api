@@ -19,6 +19,7 @@ linters:
   - bidichk
   - bodyclose
   - containedctx
+  - copyloopvar
   - dogsled
   - dupword
   - durationcheck
@@ -38,6 +39,7 @@ linters:
   - govet
   - importas
   - ineffassign
+  - intrange
   - loggercheck
   - misspell
   - nakedret

@@ -781,6 +781,7 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 	// Validate ControlPlane variable overrides.
 	if cluster.Spec.Topology.ControlPlane.Variables != nil && len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
 		allErrs = append(allErrs, variables.ValidateControlPlaneVariables(
+			ctx,
 			cluster.Spec.Topology.ControlPlane.Variables.Overrides,
 			oldCPOverrides,
 			clusterClass.Status.Variables,

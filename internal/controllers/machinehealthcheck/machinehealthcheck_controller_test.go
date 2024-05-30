@@ -2492,11 +2492,9 @@ func createMachinesWithNodes(
 		op(o)
 	}
 
-	var (
-		nodes         []*corev1.Node
-		machines      []*clusterv1.Machine
-		infraMachines []*unstructured.Unstructured
-	)
+	nodes := make([]*corev1.Node, 0, o.count)
+	machines := make([]*clusterv1.Machine, 0, o.count)
+	infraMachines := make([]*unstructured.Unstructured, 0, o.count)
 
 	for i := range o.count {
 		machine := newRunningMachine(c, o.labels)

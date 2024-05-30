@@ -132,9 +132,8 @@ func TestGetNode(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	r := &Reconciler{
-		Tracker:                   tracker,
-		Client:                    env,
-		UnstructuredCachingClient: env,
+		Tracker: tracker,
+		Client:  env,
 	}
 
 	w, err := ctrl.NewControllerManagedBy(env.Manager).For(&corev1.Node{}).Build(r)
@@ -902,8 +901,7 @@ func TestPatchNode(t *testing.T) {
 	}
 
 	r := Reconciler{
-		Client:                    env,
-		UnstructuredCachingClient: env,
+		Client: env,
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

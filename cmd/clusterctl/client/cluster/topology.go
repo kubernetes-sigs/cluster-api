@@ -200,9 +200,8 @@ func (t *topologyClient) Plan(ctx context.Context, in *TopologyPlanInput) (*Topo
 
 	res.ReconciledCluster = targetCluster
 	reconciler := &clustertopologycontroller.Reconciler{
-		Client:                    dryRunClient,
-		APIReader:                 dryRunClient,
-		UnstructuredCachingClient: dryRunClient,
+		Client:    dryRunClient,
+		APIReader: dryRunClient,
 	}
 	reconciler.SetupForDryRun(&noOpRecorder{})
 	request := reconcile.Request{NamespacedName: *targetCluster}
@@ -515,8 +514,7 @@ func reconcileClusterClass(ctx context.Context, apiReader client.Reader, class c
 	reconcilerClient := dryrun.NewClient(apiReader, reconciliationObjects)
 
 	clusterClassReconciler := &clusterclasscontroller.Reconciler{
-		Client:                    reconcilerClient,
-		UnstructuredCachingClient: reconcilerClient,
+		Client: reconcilerClient,
 	}
 
 	if _, err := clusterClassReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: targetClusterClass}); err != nil {

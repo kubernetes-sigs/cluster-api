@@ -91,9 +91,8 @@ func TestHandler(t *testing.T) {
 	fakeClient, mgr, err := createClusterClassFakeClientAndManager(s.Blueprint)
 	g.Expect(err).ToNot(HaveOccurred())
 	clusterClassReconciler := controllers.ClusterClassReconciler{
-		Client:                    fakeClient,
-		UnstructuredCachingClient: fakeClient,
-		RuntimeClient:             runtimeClient,
+		Client:        fakeClient,
+		RuntimeClient: runtimeClient,
 	}
 	err = clusterClassReconciler.SetupWithManager(ctx, mgr, controller.Options{})
 	g.Expect(err).ToNot(HaveOccurred())

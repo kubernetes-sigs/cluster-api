@@ -247,6 +247,8 @@ func main() {
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
 				},
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
 			},
 		},
 		WebhookServer: webhook.NewServer(

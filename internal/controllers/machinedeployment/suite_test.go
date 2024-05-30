@@ -88,37 +88,23 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
 
-		unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
-			HTTPClient: mgr.GetHTTPClient(),
-			Cache: &client.CacheOptions{
-				Reader:       mgr.GetCache(),
-				Unstructured: true,
-			},
-		})
-		if err != nil {
-			panic(fmt.Sprintf("unable to create unstructuredCachineClient: %v", err))
-		}
-
 		if err := (&machinecontroller.Reconciler{
-			Client:                    mgr.GetClient(),
-			UnstructuredCachingClient: unstructuredCachingClient,
-			APIReader:                 mgr.GetAPIReader(),
-			Tracker:                   tracker,
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Tracker:   tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 		}
 		if err := (&machinesetcontroller.Reconciler{
-			Client:                    mgr.GetClient(),
-			UnstructuredCachingClient: unstructuredCachingClient,
-			APIReader:                 mgr.GetAPIReader(),
-			Tracker:                   tracker,
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Tracker:   tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineSetReconciler: %v", err))
 		}
 		if err := (&Reconciler{
-			Client:                    mgr.GetClient(),
-			UnstructuredCachingClient: unstructuredCachingClient,
-			APIReader:                 mgr.GetAPIReader(),
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineDeploymentReconciler: %v", err))
 		}

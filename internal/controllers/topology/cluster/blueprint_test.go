@@ -392,9 +392,8 @@ func TestGetBlueprint(t *testing.T) {
 
 			// Calls getBlueprint.
 			r := &Reconciler{
-				Client:                    fakeClient,
-				patchHelperFactory:        dryRunPatchHelperFactory(fakeClient),
-				UnstructuredCachingClient: fakeClient,
+				Client:             fakeClient,
+				patchHelperFactory: dryRunPatchHelperFactory(fakeClient),
 			}
 			got, err := r.getBlueprint(ctx, scope.New(cluster).Current.Cluster, tt.clusterClass)
 

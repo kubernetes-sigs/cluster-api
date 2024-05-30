@@ -334,6 +334,8 @@ func main() {
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
 				},
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
 			},
 		},
 		WebhookServer: webhook.NewServer(
@@ -434,36 +436,22 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCac
 		})
 	}
 
-	unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
-		HTTPClient: mgr.GetHTTPClient(),
-		Cache: &client.CacheOptions{
-			Reader:       mgr.GetCache(),
-			Unstructured: true,
-		},
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to create unstructured caching client")
-		os.Exit(1)
-	}
-
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		if err := (&controllers.ClusterClassReconciler{
-			Client:                    mgr.GetClient(),
-			RuntimeClient:             runtimeClient,
-			UnstructuredCachingClient: unstructuredCachingClient,
-			WatchFilterValue:          watchFilterValue,
+			Client:           mgr.GetClient(),
+			RuntimeClient:    runtimeClient,
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterClassConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterClass")
 			os.Exit(1)
 		}
 
 		if err := (&controllers.ClusterTopologyReconciler{
-			Client:                    mgr.GetClient(),
-			APIReader:                 mgr.GetAPIReader(),
-			RuntimeClient:             runtimeClient,
-			Tracker:                   tracker,
-			UnstructuredCachingClient: unstructuredCachingClient,
-			WatchFilterValue:          watchFilterValue,
+			Client:           mgr.GetClient(),
+			APIReader:        mgr.GetAPIReader(),
+			RuntimeClient:    runtimeClient,
+			Tracker:          tracker,
+			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
 			os.Exit(1)
@@ -501,28 +489,25 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCac
 	}
 
 	if err := (&controllers.ClusterReconciler{
-		Client:                    mgr.GetClient(),
-		UnstructuredCachingClient: unstructuredCachingClient,
-		APIReader:                 mgr.GetAPIReader(),
-		WatchFilterValue:          watchFilterValue,
+		Client:           mgr.GetClient(),
+		APIReader:        mgr.GetAPIReader(),
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
-		Client:                    mgr.GetClient(),
-		UnstructuredCachingClient: unstructuredCachingClient,
-		APIReader:                 mgr.GetAPIReader(),
-		Tracker:                   tracker,
-		WatchFilterValue:          watchFilterValue,
-		NodeDrainClientTimeout:    nodeDrainClientTimeout,
+		Client:                 mgr.GetClient(),
+		APIReader:              mgr.GetAPIReader(),
+		Tracker:                tracker,
+		WatchFilterValue:       watchFilterValue,
+		NodeDrainClientTimeout: nodeDrainClientTimeout,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineSetReconciler{
 		Client:                       mgr.GetClient(),
-		UnstructuredCachingClient:    unstructuredCachingClient,
 		APIReader:                    mgr.GetAPIReader(),
 		Tracker:                      tracker,
 		WatchFilterValue:             watchFilterValue,
@@ -532,10 +517,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCac
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineDeploymentReconciler{
-		Client:                    mgr.GetClient(),
-		UnstructuredCachingClient: unstructuredCachingClient,
-		APIReader:                 mgr.GetAPIReader(),
-		WatchFilterValue:          watchFilterValue,
+		Client:           mgr.GetClient(),
+		APIReader:        mgr.GetAPIReader(),
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)

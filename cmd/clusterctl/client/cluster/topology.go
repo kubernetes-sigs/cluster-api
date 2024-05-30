@@ -695,7 +695,8 @@ func (t *topologyClient) affectedClusters(ctx context.Context, in *TopologyPlanI
 	// Each of the Cluster that uses the ClusterClass in the input is an affected cluster.
 	for _, cc := range affectedClusterClasses {
 		for i := range clusterList.Items {
-			if clusterList.Items[i].Spec.Topology != nil && clusterList.Items[i].Spec.Topology.Class == cc.Name {
+			cluster := clusterList.Items[i]
+			if cluster.Spec.Topology != nil && cluster.GetClassKey().Name == cc.Name {
 				affectedClusters[client.ObjectKeyFromObject(&clusterList.Items[i])] = true
 			}
 		}

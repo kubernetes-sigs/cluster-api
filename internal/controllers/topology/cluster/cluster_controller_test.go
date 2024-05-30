@@ -303,7 +303,7 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 
 	// Get the clusterClass to update and check if clusterClass updates are being correctly reconciled.
 	clusterClass := &clusterv1.ClusterClass{}
-	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, clusterClass)).To(Succeed())
+	g.Expect(env.Get(ctx, actualCluster.GetClassKey(), clusterClass)).To(Succeed())
 
 	patchHelper, err := patch.NewHelper(clusterClass, env.Client)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -317,7 +317,7 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 		// Check that the clusterClass has been correctly updated to use the new infrastructure template.
 		// This is necessary as sometimes the cache can take a little time to update.
 		class := &clusterv1.ClusterClass{}
-		g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, class)).To(Succeed())
+		g.Expect(env.Get(ctx, actualCluster.GetClassKey(), class)).To(Succeed())
 		g.Expect(class.Spec.Workers.MachineDeployments[0].Template.Infrastructure.Ref.Name).To(Equal(infrastructureMachineTemplateName2))
 		g.Expect(class.Spec.Workers.MachinePools[0].Template.Infrastructure.Ref.Name).To(Equal(infrastructureMachinePoolTemplateName2))
 
@@ -412,7 +412,7 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 			return err
 		}
 		// Check to ensure the spec.topology.class has been successfully updated in the API server and cache.
-		g.Expect(updatedCluster.Spec.Topology.Class).To(Equal(clusterClassName2))
+		g.Expect(updatedCluster.GetClassKey().Name).To(Equal(clusterClassName2))
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
 		g.Expect(assertClusterReconcile(updatedCluster)).Should(Succeed())
 
@@ -633,7 +633,7 @@ func TestClusterReconciler_deleteClusterClass(t *testing.T) {
 
 	// Ensure the clusterClass is available in the API server .
 	clusterClass := &clusterv1.ClusterClass{}
-	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, clusterClass)).To(Succeed())
+	g.Expect(env.Get(ctx, actualCluster.GetClassKey(), clusterClass)).To(Succeed())
 
 	// Attempt to delete the ClusterClass. Expect an error here as the ClusterClass deletion is blocked by the webhook.
 	g.Expect(env.Delete(ctx, clusterClass)).NotTo(Succeed())
@@ -968,7 +968,7 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 		}
 	}
 	clusterClass := &clusterv1.ClusterClass{}
-	if err := env.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); err != nil {
+	if err := env.Get(ctx, cluster.GetClassKey(), clusterClass); err != nil {
 		return err
 	}
 	// Check for the ControlPlaneInfrastructure if it's referenced in the clusterClass.

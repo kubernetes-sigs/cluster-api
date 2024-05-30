@@ -126,7 +126,6 @@ func Test_viperReader_Get(t *testing.T) {
 	g := NewWithT(t)
 
 	dir := t.TempDir()
-	defer os.RemoveAll(dir)
 
 	t.Setenv("FOO", "foo")
 

@@ -1135,7 +1135,6 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(controlPlaneMachineList.Items).To(HaveLen(int(*replicas)))
 	for _, machine := range controlPlaneMachineList.Items {
-		machine := machine
 		res.ControlPlaneMachines = append(res.ControlPlaneMachines, &machine)
 		addMachineObjects(ctx, mgmtClient, workloadClient, g, res, cluster, &machine)
 	}
@@ -1172,7 +1171,6 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 		// Check all MachineDeployment machines already exist.
 		g.Expect(machines).To(HaveLen(int(*md.Spec.Replicas)))
 		for _, machine := range machines {
-			machine := machine
 			res.MachinesByMachineSet[machine.Labels[clusterv1.MachineSetNameLabel]] = append(
 				res.MachinesByMachineSet[machine.Labels[clusterv1.MachineSetNameLabel]], &machine)
 			addMachineObjects(ctx, mgmtClient, workloadClient, g, res, cluster, &machine)

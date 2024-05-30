@@ -165,11 +165,9 @@ func assertFinalizersExist(ctx context.Context, proxy ClusterProxy, namespace st
 
 			// verify if this resource has the appropriate Finalizers set
 			expectedFinalizersF, assert := allFinalizerAssertions[obj.GetKind()]
-			if !assert {
-				// NOTE: this case should never happen because all the initialObjsWithFinalizers have been already checked
-				// against a finalizer assertion.
-				continue
-			}
+			// NOTE: this case should never happen because all the initialObjsWithFinalizers have been already checked
+			// against a finalizer assertion.
+			Expect(assert).To(BeTrue(), "finalizer assertions for %s are missing", objKindNamespacedName)
 			parts := strings.Split(objKindNamespacedName, "/")
 			expectedFinalizers := expectedFinalizersF(types.NamespacedName{Namespace: parts[1], Name: parts[2]})
 

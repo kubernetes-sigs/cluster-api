@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
@@ -446,6 +447,18 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		HTTPClient:        mgr.GetHTTPClient(),
 		SyncPeriod:        syncPeriod,
 		DefaultNamespaces: watchNamespaces,
+		DefaultTransform: func(in interface{}) (interface{}, error) {
+			// Use DefaultTransform to drop objects we don't expect to get into this cache.
+			obj, ok := in.(*metav1.PartialObjectMetadata)
+			if !ok {
+				return nil, fmt.Errorf("cache expected to only get PartialObjectMetadata, got %T", in)
+			}
+			if obj.GetObjectKind().GroupVersionKind() != corev1.SchemeGroupVersion.WithKind("Secret") {
+				return nil, fmt.Errorf("cache expected to only get Secrets, got %s", obj.GetObjectKind())
+			}
+			// Additionally strip managed fields.
+			return cache.TransformStripManagedFields()(obj)
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "Failed to create cache for metadata only Secret watches")

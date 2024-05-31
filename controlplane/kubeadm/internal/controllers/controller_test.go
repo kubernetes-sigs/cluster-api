@@ -1226,7 +1226,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
 
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{

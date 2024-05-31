@@ -400,6 +400,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 
 		// After node draining is completed, and if isNodeVolumeDetachingAllowed returns True, make sure all
 		// volumes are detached before proceeding to delete the Node.
+		// In case the node is unreachable, the detachment is skipped.
 		if r.isNodeVolumeDetachingAllowed(m) {
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time,
 			// so its transition time can be used to record the first time we wait for volume detachment.
@@ -689,7 +690,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	return ctrl.Result{}, nil
 }
 
-// shouldWaitForNodeVolumes returns true if node status still have volumes attached
+// shouldWaitForNodeVolumes returns true if node status still have volumes attached and the node is reachable
 // pod deletion and volume detach happen asynchronously, so pod could be deleted before volume detached from the node
 // this could cause issue for some storage provisioner, for example, vsphere-volume this is problematic
 // because if the node is deleted before detach success, then the underline VMDK will be deleted together with the Machine
@@ -709,6 +710,14 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 			return false, nil
 		}
 		return true, err
+	}
+
+	if noderefutil.IsNodeUnreachable(node) {
+		// If a node is unreachable, we can't detach the volume.
+		// We need to skip the detachment as we otherwise block deletions
+		// of unreachable nodes when a volume is attached.
+		log.Info("Skipping volume detachment as node is unreachable.")
+		return false, nil
 	}
 
 	return len(node.Status.VolumesAttached) != 0, nil

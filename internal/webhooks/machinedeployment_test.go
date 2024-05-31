@@ -251,12 +251,15 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 func TestMachineDeploymentValidation(t *testing.T) {
 	badMaxSurge := intstr.FromString("1")
 	badMaxUnavailable := intstr.FromString("0")
+	badMaxInFlight := intstr.FromString("1")
 
 	goodMaxSurgePercentage := intstr.FromString("1%")
 	goodMaxUnavailablePercentage := intstr.FromString("0%")
+	goodMaxInFlightPercentage := intstr.FromString("20%")
 
 	goodMaxSurgeInt := intstr.FromInt(1)
 	goodMaxUnavailableInt := intstr.FromInt(0)
+	goodMaxInFlightInt := intstr.FromInt(5)
 	tests := []struct {
 		name      string
 		md        *clusterv1.MachineDeployment
@@ -351,6 +354,39 @@ func TestMachineDeploymentValidation(t *testing.T) {
 				},
 			},
 			expectErr: true,
+		},
+		{
+			name:      "should return error for invalid remediation maxInFlight",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: clusterv1.MachineDeploymentStrategy{
+				Remediation: &clusterv1.RemediationStrategy{
+					MaxInFlight: &badMaxInFlight,
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name:      "should not return error for valid percentage remediation maxInFlight",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: clusterv1.MachineDeploymentStrategy{
+				Remediation: &clusterv1.RemediationStrategy{
+					MaxInFlight: &goodMaxInFlightPercentage,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:      "should not return error for valid int remediation maxInFlight",
+			selectors: map[string]string{"foo": "bar"},
+			labels:    map[string]string{"foo": "bar"},
+			strategy: clusterv1.MachineDeploymentStrategy{
+				Remediation: &clusterv1.RemediationStrategy{
+					MaxInFlight: &goodMaxInFlightInt,
+				},
+			},
+			expectErr: false,
 		},
 		{
 			name:      "should not return error for valid int maxSurge and maxUnavailable",

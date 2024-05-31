@@ -277,6 +277,13 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
+
+	if restored.Spec.Strategy != nil {
+		if dst.Spec.Strategy == nil {
+			dst.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{}
+		}
+		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
+	}
 	return nil
 }
 
@@ -390,4 +397,12 @@ func Convert_v1beta1_WorkersClass_To_v1alpha4_WorkersClass(in *clusterv1.Workers
 func Convert_v1beta1_WorkersTopology_To_v1alpha4_WorkersTopology(in *clusterv1.WorkersTopology, out *WorkersTopology, s apiconversion.Scope) error {
 	// WorkersTopology.MachinePools has been added in v1beta1.
 	return autoConvert_v1beta1_WorkersTopology_To_v1alpha4_WorkersTopology(in, out, s)
+}
+
+func Convert_v1beta1_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(in, out, s)
+}
+
+func Convert_v1beta1_MachineSetSpec_To_v1alpha4_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineSetSpec_To_v1alpha4_MachineSetSpec(in, out, s)
 }

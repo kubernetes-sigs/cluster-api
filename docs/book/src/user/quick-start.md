@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -604,6 +604,17 @@ clusterctl init --infrastructure ibmcloud
 ```
 
 {{#/tab }}
+{{#tab IONOS Cloud}}
+
+Credentials are configured per cluster. Therefore, no need to specify them for the provider.
+
+```bash
+clusterctl init --infrastructure ionoscloud
+```
+
+For more information, please visit the [ionoscloud project][ionoscloud provider].
+
+{{#/tab }}
 {{#tab K0smotron}}
 
 ```bash
@@ -861,7 +872,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1071,6 +1082,24 @@ export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
 ```
 
 Please visit the [IBM Cloud provider] for more information.
+
+{{#/tab }}
+{{#tab IONOS Cloud}}
+
+You need to build your own image in order to use it with the IONOS Cloud provider.
+For instructions on how to build a compatible image see our [docs](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/custom-image.md)
+
+```bash
+export IONOS_TOKEN=<your-token>
+export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
+export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl 
+export CLUSTER_NAME=my-cluster
+export IONOSCLOUD_DATACENTER_ID="<your-datacenter-id>"
+export IONOSCLOUD_MACHINE_IMAGE_ID="<your-image-id>"
+export IONOSCLOUD_MACHINE_SSH_KEYS="<your-ssh-key>"
+```
+
+For more configuration options check out list of [available variables](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/quickstart.md#environment-variables)
 
 {{#/tab }}
 {{#tab K0smotron}}
@@ -1753,6 +1782,7 @@ kind delete cluster
 [Hivelocity provider]: https://github.com/hivelocity/cluster-api-provider-hivelocity
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
+[ionoscloud provider]: https://github.com/ionos-cloud/cluster-api-provider-ionoscloud
 [kind]: https://kind.sigs.k8s.io/
 [KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/

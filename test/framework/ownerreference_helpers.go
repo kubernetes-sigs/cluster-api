@@ -45,7 +45,7 @@ import (
 )
 
 // ValidateOwnerReferencesOnUpdate checks that expected owner references are updated to the correct apiVersion.
-func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(obj types.NamespacedName, reference []metav1.OwnerReference) error) {
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
 
 	// Pause the cluster.
@@ -70,7 +70,7 @@ func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, na
 }
 
 // ValidateOwnerReferencesResilience checks that expected owner references are in place, deletes them, and verifies that expect owner references are properly rebuilt.
-func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(obj types.NamespacedName, reference []metav1.OwnerReference) error) {
 	// Check that the ownerReferences are as expected on the first iteration.
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 
@@ -101,8 +101,8 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 }
 
-func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
-	allAssertFuncs := map[string][]func(reference []metav1.OwnerReference) error{}
+func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(obj types.NamespacedName, reference []metav1.OwnerReference) error) {
+	allAssertFuncs := map[string][]func(obj types.NamespacedName, reference []metav1.OwnerReference) error{}
 	for _, m := range assertFuncs {
 		for k, v := range m {
 			allAssertFuncs[k] = append(allAssertFuncs[k], v)
@@ -126,7 +126,7 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFun
 				continue
 			}
 			for _, f := range allAssertFuncs[v.Object.Kind] {
-				if err := f(v.Owners); err != nil {
+				if err := f(types.NamespacedName{Namespace: v.Object.Namespace, Name: v.Object.Name}, v.Owners); err != nil {
 					allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s/%s", v.Object.Kind, v.Object.Name))
 				}
 			}
@@ -159,32 +159,32 @@ var (
 // OwnerReferences aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var CoreOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error{
-	extensionConfigKind: func(owners []metav1.OwnerReference) error {
+var CoreOwnerReferenceAssertion = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+	extensionConfigKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// ExtensionConfig should have no owners.
 		return HasExactOwners(owners)
 	},
-	clusterClassKind: func(owners []metav1.OwnerReference) error {
+	clusterClassKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// ClusterClass doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
 		return HasExactOwners(owners)
 	},
-	clusterKind: func(owners []metav1.OwnerReference) error {
+	clusterKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// Cluster doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
 		return HasExactOwners(owners)
 	},
-	machineDeploymentKind: func(owners []metav1.OwnerReference) error {
+	machineDeploymentKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// MachineDeployments must be owned by a Cluster.
 		return HasExactOwners(owners, clusterOwner)
 	},
-	machineSetKind: func(owners []metav1.OwnerReference) error {
+	machineSetKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// MachineSets must be owned and controlled by a MachineDeployment.
 		return HasExactOwners(owners, machineDeploymentController)
 	},
-	machineKind: func(owners []metav1.OwnerReference) error {
+	machineKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// Machines must be owned and controlled by a MachineSet, MachinePool, or a KubeadmControlPlane, depending on if this Machine is part of a Machine Deployment, MachinePool, or ControlPlane.
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineSetController}, []metav1.OwnerReference{machinePoolController}, []metav1.OwnerReference{kubeadmControlPlaneController})
 	},
-	machineHealthCheckKind: func(owners []metav1.OwnerReference) error {
+	machineHealthCheckKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// MachineHealthChecks must be owned by the Cluster.
 		return HasExactOwners(owners, clusterOwner)
 	},
@@ -205,17 +205,17 @@ var (
 // aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var ExpOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
-	clusterResourceSetKind: func(owners []metav1.OwnerReference) error {
+var ExpOwnerReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+	clusterResourceSetKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// ClusterResourcesSet doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
 		return HasExactOwners(owners)
 	},
 	// ClusterResourcesSetBinding has ClusterResourceSet set as owners on creation.
-	clusterResourceSetBindingKind: func(owners []metav1.OwnerReference) error {
+	clusterResourceSetBindingKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterResourceSetOwner}, []metav1.OwnerReference{clusterResourceSetOwner, clusterResourceSetOwner})
 	},
 	// MachinePool must be owned by a Cluster.
-	machinePoolKind: func(owners []metav1.OwnerReference) error {
+	machinePoolKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// MachinePools must be owned by a Cluster.
 		return HasExactOwners(owners, clusterOwner)
 	},
@@ -230,12 +230,12 @@ var (
 // aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var KubernetesReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
-	secretKind: func(owners []metav1.OwnerReference) error {
+var KubernetesReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+	secretKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// Secrets for cluster certificates must be owned and controlled by the KubeadmControlPlane. The bootstrap secret should be owned and controlled by a KubeadmControlPlane.
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{kubeadmControlPlaneController}, []metav1.OwnerReference{kubeadmConfigController})
 	},
-	configMapKind: func(owners []metav1.OwnerReference) error {
+	configMapKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// The only configMaps considered here are those owned by a ClusterResourceSet.
 		return HasExactOwners(owners, clusterResourceSetOwner)
 	},
@@ -255,12 +255,12 @@ var (
 // OwnerReferences aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var KubeadmControlPlaneOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
-	kubeadmControlPlaneKind: func(owners []metav1.OwnerReference) error {
+var KubeadmControlPlaneOwnerReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+	kubeadmControlPlaneKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// The KubeadmControlPlane must be owned and controlled by a Cluster.
 		return HasExactOwners(owners, clusterController)
 	},
-	kubeadmControlPlaneTemplateKind: func(owners []metav1.OwnerReference) error {
+	kubeadmControlPlaneTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// The KubeadmControlPlaneTemplate must be owned by a ClusterClass.
 		return HasExactOwners(owners, clusterClassOwner)
 	},
@@ -279,12 +279,12 @@ var (
 // aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
-	kubeadmConfigKind: func(owners []metav1.OwnerReference) error {
+var KubeadmBootstrapOwnerReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+	kubeadmConfigKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// The KubeadmConfig must be owned and controlled by a Machine or MachinePool.
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machinePoolController, clusterOwner})
 	},
-	kubeadmConfigTemplateKind: func(owners []metav1.OwnerReference) error {
+	kubeadmConfigTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// The KubeadmConfigTemplate must be owned by a ClusterClass.
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
 	},
@@ -306,29 +306,29 @@ var (
 // OwnerReferences aren't as expected.
 // Note: These relationships are documented in https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/book/src/reference/owner_references.md.
 // That document should be updated if these references change.
-var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
-	dockerMachineKind: func(owners []metav1.OwnerReference) error {
+var DockerInfraOwnerReferenceAssertions = map[string]func(types.NamespacedName, []metav1.OwnerReference) error{
+	dockerMachineKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// The DockerMachine must be owned and controlled by a Machine or a DockerMachinePool.
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{machineController}, []metav1.OwnerReference{machineController, dockerMachinePoolController})
 	},
-	dockerMachineTemplateKind: func(owners []metav1.OwnerReference) error {
+	dockerMachineTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// Base DockerMachineTemplates referenced in a ClusterClass must be owned by the ClusterClass.
 		// DockerMachineTemplates created for specific Clusters in the Topology controller must be owned by a Cluster.
 		return HasOneOfExactOwners(owners, []metav1.OwnerReference{clusterOwner}, []metav1.OwnerReference{clusterClassOwner})
 	},
-	dockerClusterKind: func(owners []metav1.OwnerReference) error {
+	dockerClusterKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// DockerCluster must be owned and controlled by a Cluster.
 		return HasExactOwners(owners, clusterController)
 	},
-	dockerClusterTemplateKind: func(owners []metav1.OwnerReference) error {
+	dockerClusterTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// DockerClusterTemplate must be owned by a ClusterClass.
 		return HasExactOwners(owners, clusterClassOwner)
 	},
-	dockerMachinePoolKind: func(owners []metav1.OwnerReference) error {
+	dockerMachinePoolKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// DockerMachinePool must be owned and controlled by a MachinePool.
 		return HasExactOwners(owners, machinePoolController, clusterOwner)
 	},
-	dockerMachinePoolTemplateKind: func(owners []metav1.OwnerReference) error {
+	dockerMachinePoolTemplateKind: func(_ types.NamespacedName, owners []metav1.OwnerReference) error {
 		// DockerMachinePoolTemplate must be owned by a ClusterClass.
 		return HasExactOwners(owners, clusterClassOwner)
 	},

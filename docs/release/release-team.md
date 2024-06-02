@@ -42,7 +42,7 @@ This document introduces the concept of a release team with the following goals 
 
 Note that this document is intended to be a starting point for the release team. It is not a complete release process document.
 
-More details on the CAPI release process can be found in the [release cycle](./release-cycle.md) and [release task](./release-tasks.md) documentation.
+More details on the CAPI release process can be found in the [release cycle](./release-cycle.md) and the respective [role handbooks](./role-handbooks) documentation.
 
 ## Duration of Term
 

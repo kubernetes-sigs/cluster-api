@@ -35,7 +35,7 @@
 
 ### Finalize release schedule and team
 
-1. Finalize release schedule and team in the [docs/release/releases](../../docs/release/releases), e.g. [release-1.6.md](../../docs/release/releases/release-1.6.md).
+1. Finalize release schedule and team in the [docs/release/releases](../../releases), e.g. [release-1.6.md](../../releases/release-1.6.md).
 2. Update @cluster-api-release-team Slack user group and GitHub team accordingly.
    <br>Prior art `org`: https://github.com/kubernetes/org/pull/4353
    <br>Prior art `community`: https://github.com/kubernetes/community/pull/7423

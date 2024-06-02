@@ -132,9 +132,9 @@ done just remove the hold to merge it.
 ### Continuously: Communicate key dates to the community
 
 The goal of this task is to ensure all stakeholders are informed about the current release cycle. For example announcing
-upcoming code freezes etc based on the [release timeline (1.6 example)](./releases/release-1.6.md).
+upcoming code freezes etc based on the [release timeline (1.6 example)](../../releases/release-1.6.md).
 
-Templates for all types of communication can be found in the [release-templates page](./release-templates.md).
+Templates for all types of communication can be found in the [release-templates page](../../release-templates.md).
 
 Information can be distributed via:
 
@@ -182,6 +182,6 @@ We should inform at least the following providers via a new issue on their respe
 * Packet: https://github.com/kubernetes-sigs/cluster-api-provider-packet/issues/new
 * vSphere: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
 
-To create GitHub issues at the Cluster API providers repositories and inform about a new minor beta release, use ["provider_issues.go"](../../hack/tools/release/internal/update_providers/provider_issues.go) go utility.
-- Ensure that the [provider repos pre-requisites](../../hack/tools/release/internal/update_providers/README.md#pre-requisites) are completed.
+To create GitHub issues at the Cluster API providers repositories and inform about a new minor beta release, use ["provider_issues.go"](../../../../hack/tools/release/internal/update_providers/provider_issues.go) go utility.
+- Ensure that the [provider repos pre-requisites](../../../../hack/tools/release/internal/update_providers/README.md#pre-requisites) are completed.
 - From the root of this repository, run `make release-provider-issues-tool` to create git issues at the provider repositories.

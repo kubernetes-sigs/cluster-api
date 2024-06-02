@@ -9,7 +9,7 @@
 - [Tasks](#tasks)
   - [Setup jobs and dashboards for a new release branch](#setup-jobs-and-dashboards-for-a-new-release-branch)
   - [[Continuously] Monitor CI signal](#continuously-monitor-ci-signal)
-    - [[Continuously] Reduce the amount of flaky tests](#continuously-reduce-the-amount-of-flaky-tests)
+  - [[Continuously] Reduce the amount of flaky tests](#continuously-reduce-the-amount-of-flaky-tests)
   - [[Continuously] Bug triage](#continuously-bug-triage)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->

@@ -112,7 +112,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		return true, time.Duration(0)
 	}
 
-	// the node does not exist
+	// Machine has Status.NodeRef set, although we couldn't find the node in the workload cluster.
 	if t.nodeMissing {
 		logger.V(3).Info("Target is unhealthy: node is missing")
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
@@ -122,14 +122,14 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	// Don't penalize any Machine/Node if the control plane has not been initialized
 	// Exception of this rule are control plane machine itself, so the first control plane machine can be remediated.
 	if !conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedCondition) && !util.IsControlPlaneMachine(t.Machine) {
-		logger.V(3).Info("Not evaluating target health because the control plane has not yet been initialized")
+		logger.V(5).Info("Not evaluating target health because the control plane has not yet been initialized")
 		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
 		return false, 0
 	}
 
 	// Don't penalize any Machine/Node if the cluster infrastructure is not ready.
 	if !conditions.IsTrue(t.Cluster, clusterv1.InfrastructureReadyCondition) {
-		logger.V(3).Info("Not evaluating target health because the cluster infrastructure is not ready")
+		logger.V(5).Info("Not evaluating target health because the cluster infrastructure is not ready")
 		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
 		return false, 0
 	}
@@ -144,18 +144,27 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 		controlPlaneInitialized := conditions.GetLastTransitionTime(t.Cluster, clusterv1.ControlPlaneInitializedCondition)
 		clusterInfraReady := conditions.GetLastTransitionTime(t.Cluster, clusterv1.InfrastructureReadyCondition)
+		machineInfraReady := conditions.GetLastTransitionTime(t.Machine, clusterv1.InfrastructureReadyCondition)
 		machineCreationTime := t.Machine.CreationTimestamp.Time
 
-		// Use the latest of the 3 times
+		// Use the latest of the following timestamps.
 		comparisonTime := machineCreationTime
-		logger.V(3).Info("Determining comparison time", "machineCreationTime", machineCreationTime, "clusterInfraReadyTime", clusterInfraReady, "controlPlaneInitializedTime", controlPlaneInitialized)
+		logger.V(5).Info("Determining comparison time",
+			"machineCreationTime", machineCreationTime,
+			"clusterInfraReadyTime", clusterInfraReady,
+			"controlPlaneInitializedTime", controlPlaneInitialized,
+			"machineInfraReadyTime", machineInfraReady,
+		)
 		if conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedCondition) && controlPlaneInitialized != nil && controlPlaneInitialized.Time.After(comparisonTime) {
 			comparisonTime = controlPlaneInitialized.Time
 		}
 		if conditions.IsTrue(t.Cluster, clusterv1.InfrastructureReadyCondition) && clusterInfraReady != nil && clusterInfraReady.Time.After(comparisonTime) {
 			comparisonTime = clusterInfraReady.Time
 		}
-		logger.V(3).Info("Using comparison time", "time", comparisonTime)
+		if conditions.IsTrue(t.Machine, clusterv1.InfrastructureReadyCondition) && machineInfraReady != nil && machineInfraReady.Time.After(comparisonTime) {
+			comparisonTime = machineInfraReady.Time
+		}
+		logger.V(5).Info("Using comparison time", "time", comparisonTime)
 
 		timeoutDuration := timeoutForMachineToHaveNode.Duration
 		if comparisonTime.Add(timeoutForMachineToHaveNode.Duration).Before(now) {

@@ -75,6 +75,9 @@ type ClusterClassRolloutSpecInput struct {
 	// Allows to inject a function to be run after test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+
+	// ProviderSpecificLabels represents a set of labels specific to the provider.
+	ProviderSpecificLabels map[string]string
 }
 
 // ClusterClassRolloutSpec implements a test that verifies the ClusterClass rollout behavior.
@@ -142,7 +145,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 			WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		}, clusterResources)
-		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass)
+		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass, input.ProviderSpecificLabels)
 
 		By("Rolling out changes to control plane, MachineDeployments, and MachinePools (in-place)")
 		machinesBeforeUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
@@ -215,7 +218,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			machinesAfterUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
 			g.Expect(machinesAfterUpgrade.Equal(machinesBeforeUpgrade)).To(BeTrue(), "Machines must not be replaced through in-place rollout")
 		}, 30*time.Second, 1*time.Second).Should(Succeed())
-		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass)
+		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass, input.ProviderSpecificLabels)
 
 		By("Rolling out changes to control plane, MachineDeployments, and MachinePools (rollout)")
 		machinesBeforeUpgrade = getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
@@ -256,7 +259,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			machinesAfterUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
 			g.Expect(machinesAfterUpgrade.HasAny(machinesBeforeUpgrade.UnsortedList()...)).To(BeFalse(), "All Machines must be replaced through rollout")
 		}, input.E2EConfig.GetIntervals(specName, "wait-control-plane")...).Should(Succeed())
-		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass)
+		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass, input.ProviderSpecificLabels)
 
 		By("Rolling out control plane and MachineDeployment (rolloutAfter)")
 		machinesBeforeUpgrade = getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
@@ -284,7 +287,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 			machinesAfterUpgrade := getMachinesByCluster(ctx, input.BootstrapClusterProxy.GetClient(), clusterResources.Cluster)
 			g.Expect(machinesAfterUpgrade.HasAny(machinesBeforeUpgrade.UnsortedList()...)).To(BeFalse(), "All Machines must be replaced through rollout with rolloutAfter")
 		}, input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade")...).Should(Succeed())
-		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass)
+		assertClusterObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, clusterResources.ClusterClass, input.ProviderSpecificLabels)
 
 		By("PASSED!")
 	})
@@ -296,7 +299,7 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 }
 
 // assertClusterObjects asserts cluster objects by checking that all objects have the right labels, annotations and selectors.
-func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
+func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass, providerSpecificLabels map[string]string) {
 	By("Checking cluster objects have the right labels, annotations and selectors")
 
 	Eventually(func(g Gomega) {
@@ -309,7 +312,7 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 
 		// ControlPlane
 		assertControlPlane(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
-		assertControlPlaneMachines(g, clusterObjects, cluster)
+		assertControlPlaneMachines(g, clusterObjects, cluster, providerSpecificLabels)
 
 		// MachineDeployments
 		assertMachineDeployments(g, clusterClassObjects, clusterObjects, cluster, clusterClass)
@@ -427,7 +430,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 	))
 }
 
-func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster *clusterv1.Cluster) {
+func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster *clusterv1.Cluster, providerSpecificLabels map[string]string) {
 	controlPlaneMachineTemplateMetadata := mustMetadata(contract.ControlPlane().MachineTemplate().Metadata().Get(clusterObjects.ControlPlane))
 	controlPlaneInfrastructureMachineTemplateTemplateMetadata := mustMetadata(contract.InfrastructureMachineTemplate().Template().Metadata().Get(clusterObjects.ControlPlaneInfrastructureMachineTemplate))
 
@@ -441,6 +444,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 					clusterv1.MachineControlPlaneLabel:     "",
 					clusterv1.MachineControlPlaneNameLabel: clusterObjects.ControlPlane.GetName(),
 				},
+				providerSpecificLabels,
 				controlPlaneMachineTemplateMetadata.Labels,
 			),
 		))

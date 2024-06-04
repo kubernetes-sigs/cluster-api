@@ -437,10 +437,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		})
 	}
 
-	// Setup a separate cache for the metadata watches to secrets.
-	// This way the watch does not use the LabelSelector defined at the cache which
-	// would filter to secrets having the cluster label, because secrets referred
-	// by ClusterResourceSet or ExtensionConfig are not specific to a single cluster.
+	// Setup a separate cache without label selector for secrets, to be used
+	// when we need to watch for secrets that are not specific to a single cluster (e.g. ClusterResourceSet or ExtensionConfig controllers).
 	partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
 		Scheme:            mgr.GetScheme(),
 		Mapper:            mgr.GetRESTMapper(),
@@ -451,10 +449,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			// Use DefaultTransform to drop objects we don't expect to get into this cache.
 			obj, ok := in.(*metav1.PartialObjectMetadata)
 			if !ok {
-				return nil, fmt.Errorf("cache expected to only get PartialObjectMetadata, got %T", in)
+				panic(fmt.Errorf("cache expected to only get PartialObjectMetadata, got %T", in))
 			}
 			if obj.GetObjectKind().GroupVersionKind() != corev1.SchemeGroupVersion.WithKind("Secret") {
-				return nil, fmt.Errorf("cache expected to only get Secrets, got %s", obj.GetObjectKind())
+				panic(fmt.Errorf("cache expected to only get Secrets, got %s", obj.GetObjectKind()))
 			}
 			// Additionally strip managed fields.
 			return cache.TransformStripManagedFields()(obj)

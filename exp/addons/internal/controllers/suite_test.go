@@ -24,6 +24,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -55,6 +56,18 @@ func TestMain(m *testing.M) {
 			Mapper:     mgr.GetRESTMapper(),
 			HTTPClient: mgr.GetHTTPClient(),
 			SyncPeriod: ptr.To(time.Minute * 10),
+			DefaultTransform: func(in interface{}) (interface{}, error) {
+				// Use DefaultTransform to drop objects we don't expect to get into this cache.
+				obj, ok := in.(*metav1.PartialObjectMetadata)
+				if !ok {
+					panic(fmt.Sprintf("cache expected to only get PartialObjectMetadata, got %T", in))
+				}
+				if obj.GetObjectKind().GroupVersionKind() != corev1.SchemeGroupVersion.WithKind("Secret") {
+					panic(fmt.Sprintf("cache expected to only get Secrets, got %s", obj.GetObjectKind()))
+				}
+				// Additionally strip managed fields.
+				return cache.TransformStripManagedFields()(obj)
+			},
 		})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create cache for metadata only Secret watches: %v", err))

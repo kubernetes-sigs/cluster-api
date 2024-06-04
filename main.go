@@ -449,10 +449,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			// Use DefaultTransform to drop objects we don't expect to get into this cache.
 			obj, ok := in.(*metav1.PartialObjectMetadata)
 			if !ok {
-				panic(fmt.Errorf("cache expected to only get PartialObjectMetadata, got %T", in))
+				panic(fmt.Sprintf("cache expected to only get PartialObjectMetadata, got %T", in))
 			}
 			if obj.GetObjectKind().GroupVersionKind() != corev1.SchemeGroupVersion.WithKind("Secret") {
-				panic(fmt.Errorf("cache expected to only get Secrets, got %s", obj.GetObjectKind()))
+				panic(fmt.Sprintf("cache expected to only get Secrets, got %s", obj.GetObjectKind()))
 			}
 			// Additionally strip managed fields.
 			return cache.TransformStripManagedFields()(obj)

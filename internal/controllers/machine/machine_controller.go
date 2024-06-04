@@ -671,8 +671,18 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	if noderefutil.IsNodeUnreachable(node) {
-		// When the node is unreachable and some pods are not evicted for as long as this timeout, we ignore them.
-		drainer.SkipWaitForDeleteTimeoutSeconds = 60 * 5 // 5 minutes
+		// Kubelet is unreachable, pods will never disappear.
+
+		// SkipWaitForDeleteTimeoutSeconds ensures the drain completes
+		// even if pod objects are not deleted.
+		drainer.SkipWaitForDeleteTimeoutSeconds = 1
+
+		// kube-apiserver sets the `deletionTimestamp` to a future date computed using the grace period.
+		// We are effectively waiting for GracePeriodSeconds + SkipWaitForDeleteTimeoutSeconds.
+		// Override the grace period of pods to reduce the time needed to skip them.
+		drainer.GracePeriodSeconds = 1
+
+		log.V(5).Info("Node is unreachable, draining will ignore gracePeriod. PDBs are still honored.")
 	}
 
 	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {

@@ -77,7 +77,6 @@ consider using a custom Comparer; if you control the implementation of type, you
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 

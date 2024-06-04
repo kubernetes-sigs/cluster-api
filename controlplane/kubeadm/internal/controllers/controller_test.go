@@ -496,7 +496,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			Workload: fakeWorkloadCluster{},
 		}
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -564,7 +564,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			Workload: fakeWorkloadCluster{},
 		}
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -679,7 +679,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			Workload: fakeWorkloadCluster{},
 		}
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			name := fmt.Sprintf("test-%d", i)
 			m := &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -2090,7 +2090,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 
 		machines := collections.New()
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			initObjs = append(initObjs, m)
 			machines.Insert(m)
@@ -2154,7 +2154,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachine.DeepCopy()}
 
 		machines := collections.New()
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			initObjs = append(initObjs, m)
 			machines.Insert(m)
@@ -2212,7 +2212,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachinePool.DeepCopy()}
 
 		machines := collections.New()
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			initObjs = append(initObjs, m)
 			machines.Insert(m)

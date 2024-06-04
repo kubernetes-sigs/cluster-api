@@ -891,7 +891,6 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 		client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 	); err == nil {
 		for _, mp := range machinePoolList.Items {
-			mp := mp
 			infraMachinePool, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef, workloadClusterNamespace)
 			if err != nil {
 				return 0, err
@@ -1039,7 +1038,6 @@ func validateMachineRollout(preMachineList, postMachineList *unstructured.Unstru
 	if len(newMachines) > 0 {
 		log.Logf("Detected new Machines")
 		for _, obj := range postMachineList.Items {
-			obj := obj
 			if newMachines.Has(obj.GetName()) {
 				resourceYAML, err := yaml.Marshal(obj)
 				Expect(err).ToNot(HaveOccurred())
@@ -1051,7 +1049,6 @@ func validateMachineRollout(preMachineList, postMachineList *unstructured.Unstru
 	if len(deletedMachines) > 0 {
 		log.Logf("Detected deleted Machines")
 		for _, obj := range preMachineList.Items {
-			obj := obj
 			if deletedMachines.Has(obj.GetName()) {
 				resourceYAML, err := yaml.Marshal(obj)
 				Expect(err).ToNot(HaveOccurred())

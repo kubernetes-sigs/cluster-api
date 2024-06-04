@@ -137,7 +137,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Workload: fakeWorkloadCluster{},
 		}
 
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			setMachineHealthy(m)
 			fmc.Machines.Insert(m)
@@ -197,7 +197,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		cluster.Status.InfrastructureReady = true
 
 		beforeMachines := collections.New()
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
 			beforeMachines.Insert(m)
 		}

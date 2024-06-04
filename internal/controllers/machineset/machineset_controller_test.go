@@ -350,7 +350,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Verify that each machine has the desired kubelet version,
 		// create a fake node in Ready state, update NodeRef, and wait for a reconciliation request.
-		for i := 0; i < len(machines.Items); i++ {
+		for i := range len(machines.Items) {
 			m := machines.Items[i]
 			if !m.DeletionTimestamp.IsZero() {
 				// Skip deleted Machines

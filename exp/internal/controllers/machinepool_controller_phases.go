@@ -516,7 +516,7 @@ func (r *MachinePoolReconciler) waitForMachineCreation(ctx context.Context, mach
 	// The polling is against a local memory cache.
 	const waitForCacheUpdateInterval = 100 * time.Millisecond
 
-	for i := 0; i < len(machineList); i++ {
+	for i := range len(machineList) {
 		machine := machineList[i]
 		pollErr := wait.PollUntilContextTimeout(ctx, waitForCacheUpdateInterval, waitForCacheUpdateTimeout, true, func(ctx context.Context) (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}

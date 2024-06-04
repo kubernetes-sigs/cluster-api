@@ -141,7 +141,7 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 				return errors.Wrapf(err, execErr)
 			}
 
-			err = os.MkdirAll(outputDir, os.ModePerm)
+			err = os.MkdirAll(outputDir, 0750)
 			if err != nil {
 				return err
 			}
@@ -182,7 +182,7 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 // even if the parent directory doesn't exist
 // in which case it will be created with ModePerm.
 func fileOnHost(path string) (*os.File, error) {
-	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		return nil, err
 	}
 	return os.Create(path) //nolint:gosec // No security issue: path is safe.

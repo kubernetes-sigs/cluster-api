@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -127,7 +128,7 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFun
 			}
 			for _, f := range allAssertFuncs[v.Object.Kind] {
 				if err := f(types.NamespacedName{Namespace: v.Object.Namespace, Name: v.Object.Name}, v.Owners); err != nil {
-					allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s/%s", v.Object.Kind, v.Object.Name))
+					allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s, %s", v.Object.Kind, klog.KRef(v.Object.Namespace, v.Object.Name)))
 				}
 			}
 		}

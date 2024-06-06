@@ -19,7 +19,6 @@ package framework
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"strings"
 	"time"
 
@@ -27,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -139,7 +140,7 @@ func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace
 			expectedFinalizers = assertion(types.NamespacedName{Namespace: node.Object.Namespace, Name: node.Object.Name})
 		}
 
-		Expect(setFinalizers).To(Equal(expectedFinalizers), "for resource type %s", node.Object.Kind)
+		Expect(sets.NewString(setFinalizers...)).To(Equal(sets.NewString(expectedFinalizers...)), "for resource type %s, %s", node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name))
 		if len(setFinalizers) > 0 {
 			objsWithFinalizers[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
 		}
@@ -172,7 +173,7 @@ func assertFinalizersExist(ctx context.Context, proxy ClusterProxy, namespace st
 			expectedFinalizers := expectedFinalizersF(types.NamespacedName{Namespace: parts[1], Name: parts[2]})
 
 			setFinalizers := finalObjsWithFinalizers[objKindNamespacedName].GetFinalizers()
-			if !reflect.DeepEqual(expectedFinalizers, setFinalizers) {
+			if !sets.NewString(setFinalizers...).Equal(sets.NewString(expectedFinalizers...)) {
 				allErrs = append(allErrs, fmt.Errorf("expected finalizers do not exist for %s: expected: %v, found: %v",
 					objKindNamespacedName, expectedFinalizers, setFinalizers))
 			}

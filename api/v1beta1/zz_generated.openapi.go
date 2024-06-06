@@ -2244,7 +2244,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckClass(ref common
 					},
 					"nodeStartupTimeout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Machines older than this duration without a node will be considered to have failed and will be remediated. If you wish to disable this feature, set the value explicitly to 0.",
+							Description: "NodeStartupTimeout allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure and control plane ready condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
 						},
 					},
@@ -2362,7 +2362,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref common.
 					},
 					"nodeStartupTimeout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Machines older than this duration without a node will be considered to have failed and will be remediated. If not set, this value is defaulted to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
+							Description: "NodeStartupTimeout allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure and control plane ready condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
 						},
 					},
@@ -2499,7 +2499,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckTopology(ref com
 					},
 					"nodeStartupTimeout": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Machines older than this duration without a node will be considered to have failed and will be remediated. If you wish to disable this feature, set the value explicitly to 0.",
+							Description: "NodeStartupTimeout allows to set the maximum time for MachineHealthCheck to consider a Machine unhealthy if a corresponding Node isn't associated through a `Spec.ProviderID` field.\n\nThe duration set in this field is compared to the greatest of: - Cluster's infrastructure and control plane ready condition timestamp (if and when available) - Machine's infrastructure ready condition timestamp (if and when available) - Machine's metadata creation timestamp\n\nDefaults to 10 minutes. If you wish to disable this feature, set the value explicitly to 0.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
 						},
 					},

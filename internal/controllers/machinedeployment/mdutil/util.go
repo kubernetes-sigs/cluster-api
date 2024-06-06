@@ -430,8 +430,6 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	var matchingMachineSets []*clusterv1.MachineSet
 	var diffs []string
 	for _, ms := range msList {
-		ms := ms
-
 		equal, diff, err := EqualMachineTemplate(&ms.Spec.Template, &deployment.Spec.Template)
 		if err != nil {
 			return nil, "", errors.Wrapf(err, "failed to compare MachineDeployment spec template with MachineSet %s", ms.Name)
@@ -459,7 +457,6 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 
 	// Pick the first matching MachineSet that has been created after RolloutAfter.
 	for _, ms := range matchingMachineSets {
-		ms := ms
 		if ms.CreationTimestamp.After(deployment.Spec.RolloutAfter.Time) {
 			return ms, "", nil
 		}

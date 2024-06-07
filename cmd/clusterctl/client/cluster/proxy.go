@@ -34,7 +34,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -132,7 +131,25 @@ func (k *proxy) ValidateKubernetesVersion() error {
 
 // GetConfig returns the config for a kubernetes client.
 func (k *proxy) GetConfig() (*rest.Config, error) {
-	restConfig := ctrl.GetConfigOrDie()
+	config, err := k.configLoadingRules.Load()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load Kubeconfig")
+	}
+
+	configOverrides := &clientcmd.ConfigOverrides{
+		CurrentContext: k.kubeconfig.Context,
+		Timeout:        k.timeout.String(),
+	}
+	restConfig, err := clientcmd.NewDefaultClientConfig(*config, configOverrides).ClientConfig()
+	if err != nil {
+		if !strings.HasPrefix(err.Error(), "invalid configuration:") {
+			return nil, err
+		}
+		restConfig, err = rest.InClusterConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
 	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go doesn't generate throttling log messages

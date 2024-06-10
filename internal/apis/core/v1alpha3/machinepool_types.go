@@ -14,19 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha4
+package v1alpha3
 
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/v1alpha4"
 )
 
 const (
 	// MachinePoolFinalizer is used to ensure deletion of dependencies (nodes, infra).
-	MachinePoolFinalizer = "machinepool.cluster.x-k8s.io"
+	MachinePoolFinalizer = "machinepool.exp.cluster.x-k8s.io"
 )
 
 // ANCHOR: MachinePoolSpec
@@ -42,7 +41,12 @@ type MachinePoolSpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Template describes the machines that will be created.
-	Template clusterv1alpha4.MachineTemplateSpec `json:"template"`
+	Template MachineTemplateSpec `json:"template"`
+
+	// The deployment strategy to use to replace existing machine instances with
+	// new ones.
+	// +optional
+	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 
 	// Minimum number of seconds for which a newly created machine instances should
 	// be ready.
@@ -119,7 +123,7 @@ type MachinePoolStatus struct {
 
 	// Conditions define the current service state of the MachinePool.
 	// +optional
-	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolStatus
@@ -204,7 +208,6 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 // +kubebuilder:resource:path=machinepools,shortName=mp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of MachinePool"
 // +kubebuilder:printcolumn:name="Replicas",type="string",JSONPath=".status.replicas",description="MachinePool replicas count"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="MachinePool status such as Terminating/Pending/Provisioning/Running/Failed etc"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachinePool"
@@ -222,12 +225,12 @@ type MachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m *MachinePool) GetConditions() clusterv1alpha4.Conditions {
+func (m *MachinePool) GetConditions() Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *MachinePool) SetConditions(conditions clusterv1alpha4.Conditions) {
+func (m *MachinePool) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
 }
 
@@ -243,5 +246,5 @@ type MachinePoolList struct {
 }
 
 func init() {
-	objectTypes = append(objectTypes, &MachinePool{}, &MachinePoolList{})
+	SchemeBuilder.Register(&MachinePool{}, &MachinePoolList{})
 }

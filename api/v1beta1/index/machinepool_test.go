@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func TestIndexMachinePoolByNodeName(t *testing.T) {
@@ -34,13 +34,13 @@ func TestIndexMachinePoolByNodeName(t *testing.T) {
 	}{
 		{
 			name:     "when the machinepool has no NodeRef",
-			object:   &expv1.MachinePool{},
+			object:   &clusterv1.MachinePool{},
 			expected: []string{},
 		},
 		{
 			name: "when the machinepool has valid NodeRefs",
-			object: &expv1.MachinePool{
-				Status: expv1.MachinePoolStatus{
+			object: &clusterv1.MachinePool{
+				Status: clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{
 							Name: "node1",
@@ -75,13 +75,13 @@ func TestIndexMachinePoolByProviderID(t *testing.T) {
 	}{
 		{
 			name:     "MachinePool has no providerID",
-			object:   &expv1.MachinePool{},
+			object:   &clusterv1.MachinePool{},
 			expected: nil,
 		},
 		{
 			name: "MachinePool has invalid providerID",
-			object: &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			object: &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					ProviderIDList: []string{""},
 				},
 			},
@@ -89,8 +89,8 @@ func TestIndexMachinePoolByProviderID(t *testing.T) {
 		},
 		{
 			name: "MachinePool has valid providerIDs",
-			object: &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			object: &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					ProviderIDList: []string{validProviderID, otherValidProviderID},
 				},
 			},

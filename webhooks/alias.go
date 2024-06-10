@@ -92,6 +92,14 @@ func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.MachineSet{}).SetupWebhookWithManager(mgr)
 }
 
+// MachinePool implements a validating and defaulting webhook for MachinePool.
+type MachinePool struct{}
+
+// SetupWebhookWithManager sets up MachinePool webhooks.
+func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachinePool{}).SetupWebhookWithManager(mgr)
+}
+
 // MachineHealthCheck implements a validating and defaulting webhook for MachineHealthCheck.
 type MachineHealthCheck struct{}
 

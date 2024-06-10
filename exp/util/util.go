@@ -30,12 +30,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 )
 
 // GetOwnerMachinePool returns the MachinePool objects owning the current resource.
-func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*expv1.MachinePool, error) {
+func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.MachinePool, error) {
 	for _, ref := range obj.GetOwnerReferences() {
 		if ref.Kind != "MachinePool" {
 			continue
@@ -44,7 +43,7 @@ func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		if gv.Group == expv1.GroupVersion.Group {
+		if gv.Group == clusterv1.GroupVersion.Group {
 			return GetMachinePoolByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
@@ -52,8 +51,8 @@ func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 }
 
 // GetMachinePoolByName finds and returns a MachinePool object using the specified params.
-func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*expv1.MachinePool, error) {
-	m := &expv1.MachinePool{}
+func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachinePool, error) {
+	m := &clusterv1.MachinePool{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	if err := c.Get(ctx, key, m); err != nil {
 		return nil, err
@@ -63,14 +62,14 @@ func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 
 // GetMachinePoolByLabels finds and returns a MachinePool object using the value of clusterv1.MachinePoolNameLabel.
 // This differs from GetMachinePoolByName as the label value can be a hash.
-func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace string, labels map[string]string) (*expv1.MachinePool, error) {
+func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace string, labels map[string]string) (*clusterv1.MachinePool, error) {
 	selector := map[string]string{}
 	if clusterName, ok := labels[clusterv1.ClusterNameLabel]; ok {
 		selector = map[string]string{clusterv1.ClusterNameLabel: clusterName}
 	}
 
 	if poolNameHash, ok := labels[clusterv1.MachinePoolNameLabel]; ok {
-		machinePoolList := &expv1.MachinePoolList{}
+		machinePoolList := &clusterv1.MachinePoolList{}
 		if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(selector)); err != nil {
 			return nil, errors.Wrapf(err, "failed to list MachinePools using labels %v", selector)
 		}
@@ -92,7 +91,7 @@ func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace stri
 func MachinePoolToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind) handler.MapFunc {
 	log := ctrl.LoggerFrom(ctx)
 	return func(_ context.Context, o client.Object) []reconcile.Request {
-		m, ok := o.(*expv1.MachinePool)
+		m, ok := o.(*clusterv1.MachinePool)
 		if !ok {
 			log.V(4).Info("Not a machine pool", "Object", klog.KObj(o))
 			return nil

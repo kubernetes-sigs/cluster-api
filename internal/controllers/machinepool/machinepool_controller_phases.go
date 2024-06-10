@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinepool
 
 import (
 	"context"
@@ -39,7 +39,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -51,35 +50,35 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
+func (r *Reconciler) reconcilePhase(mp *clusterv1.MachinePool) {
 	// Set the phase to "pending" if nil.
 	if mp.Status.Phase == "" {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhasePending)
+		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhasePending)
 	}
 
 	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
 	if mp.Status.BootstrapReady && !mp.Status.InfrastructureReady {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseProvisioning)
+		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseProvisioning)
 	}
 
 	// Set the phase to "provisioned" if the infrastructure is ready.
 	if len(mp.Status.NodeRefs) != 0 {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseProvisioned)
+		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseProvisioned)
 	}
 
 	// Set the phase to "running" if the number of ready replicas is equal to desired replicas.
 	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas == mp.Status.ReadyReplicas {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseRunning)
+		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseRunning)
 	}
 
 	// Set the appropriate phase in response to the MachinePool replica count being greater than the observed infrastructure replicas.
 	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas > mp.Status.ReadyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
-			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
+			mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseScaling)
 		} else {
 			// Set the phase to "ScalingUp" if we are actively scaling the infrastructure out.
-			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingUp)
+			mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseScalingUp)
 		}
 	}
 
@@ -87,26 +86,26 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas < mp.Status.ReadyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
-			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
+			mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseScaling)
 		} else {
 			// Set the phase to "ScalingDown" if we are actively scaling the infrastructure in.
-			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingDown)
+			mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseScalingDown)
 		}
 	}
 
 	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
 	if mp.Status.FailureReason != nil || mp.Status.FailureMessage != nil {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseFailed)
+		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseFailed)
 	}
 
 	// Set the phase to "deleting" if the deletion timestamp is set.
 	if !mp.DeletionTimestamp.IsZero() {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseDeleting)
+		mp.Status.SetTypedPhase(clusterv1.MachinePoolPhaseDeleting)
 	}
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
-func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
@@ -123,7 +122,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{})); err != nil {
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.MachinePool{})); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -177,7 +176,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a MachinePool.
-func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool) (ctrl.Result, error) {
+func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.MachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Call generic external reconciler if we have an external reference.
@@ -241,7 +240,7 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a MachinePool.
-func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, mp *clusterv1.MachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Call generic external reconciler.
@@ -328,7 +327,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 // infrastructure is created accordingly.
 // Note: When supported by the cloud provider implementation of the MachinePool, machines will provide a means to interact
 // with the corresponding infrastructure (e.g. delete a specific machine in case MachineHealthCheck detects it is unhealthy).
-func (r *MachinePoolReconciler) reconcileMachines(ctx context.Context, mp *expv1.MachinePool, infraMachinePool *unstructured.Unstructured) error {
+func (r *Reconciler) reconcileMachines(ctx context.Context, mp *clusterv1.MachinePool, infraMachinePool *unstructured.Unstructured) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	var infraMachineKind string
@@ -384,7 +383,7 @@ func (r *MachinePoolReconciler) reconcileMachines(ctx context.Context, mp *expv1
 }
 
 // createOrUpdateMachines creates a MachinePool Machine for each infraMachine if it doesn't already exist and sets the owner reference and infraRef.
-func (r *MachinePoolReconciler) createOrUpdateMachines(ctx context.Context, mp *expv1.MachinePool, machines []clusterv1.Machine, infraMachines []unstructured.Unstructured) error {
+func (r *Reconciler) createOrUpdateMachines(ctx context.Context, mp *clusterv1.MachinePool, machines []clusterv1.Machine, infraMachines []unstructured.Unstructured) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Construct a set of names of infraMachines that already have a Machine.
@@ -432,7 +431,7 @@ func (r *MachinePoolReconciler) createOrUpdateMachines(ctx context.Context, mp *
 
 // computeDesiredMachine constructs the desired Machine for an infraMachine.
 // If the Machine exists, it ensures the Machine always owned by the MachinePool.
-func computeDesiredMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructured, existingMachine *clusterv1.Machine) *clusterv1.Machine {
+func computeDesiredMachine(mp *clusterv1.MachinePool, infraMachine *unstructured.Unstructured, existingMachine *clusterv1.Machine) *clusterv1.Machine {
 	infraRef := corev1.ObjectReference{
 		APIVersion: infraMachine.GetAPIVersion(),
 		Kind:       infraMachine.GetKind(),
@@ -482,7 +481,7 @@ func computeDesiredMachine(mp *expv1.MachinePool, infraMachine *unstructured.Uns
 
 // infraMachineToMachinePoolMapper is a mapper function that maps an InfraMachine to the MachinePool that owns it.
 // This is used to trigger an update of the MachinePool when a InfraMachine is changed.
-func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Context, o client.Object) []ctrl.Request {
+func (r *Reconciler) infraMachineToMachinePoolMapper(ctx context.Context, o client.Object) []ctrl.Request {
 	log := ctrl.LoggerFrom(ctx)
 
 	if labels.IsMachinePoolOwned(o) {
@@ -506,7 +505,7 @@ func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Cont
 	return nil
 }
 
-func (r *MachinePoolReconciler) waitForMachineCreation(ctx context.Context, machineList []clusterv1.Machine) error {
+func (r *Reconciler) waitForMachineCreation(ctx context.Context, machineList []clusterv1.Machine) error {
 	_ = ctrl.LoggerFrom(ctx)
 
 	// waitForCacheUpdateTimeout is the amount of time allowed to wait for desired state.

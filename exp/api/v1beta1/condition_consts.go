@@ -15,16 +15,3 @@ limitations under the License.
 */
 
 package v1beta1
-
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-
-// Conditions and condition Reasons for the MachinePool object.
-
-const (
-	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.
-	ReplicasReadyCondition clusterv1.ConditionType = "ReplicasReady"
-
-	// WaitingForReplicasReadyReason (Severity=Info) documents a machinepool waiting for the required replicas
-	// to be ready.
-	WaitingForReplicasReadyReason = "WaitingForReplicasReady"
-)

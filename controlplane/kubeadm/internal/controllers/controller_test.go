@@ -49,7 +49,6 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
@@ -2199,7 +2198,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		cluster, kcp, _ := createClusterWithControlPlane(metav1.NamespaceDefault)
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 
-		workerMachinePool := &expv1.MachinePool{
+		workerMachinePool := &clusterv1.MachinePool{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "worker",
 				Namespace: cluster.Namespace,

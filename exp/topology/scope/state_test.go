@@ -77,6 +77,7 @@ func TestMPUpgrading(t *testing.T) {
 	scheme := runtime.NewScheme()
 	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
 	ctx := context.Background()
 
@@ -84,7 +85,7 @@ func TestMPUpgrading(t *testing.T) {
 		stableMP := builder.MachinePool("ns", "stableMP").
 			WithClusterName("cluster1").
 			WithVersion("v1.2.3").
-			WithStatus(expv1.MachinePoolStatus{
+			WithStatus(clusterv1.MachinePoolStatus{
 				NodeRefs: []corev1.ObjectReference{
 					{
 						Name: "stableMP-node1",
@@ -103,7 +104,7 @@ func TestMPUpgrading(t *testing.T) {
 		upgradingMP := builder.MachinePool("ns", "upgradingMP").
 			WithClusterName("cluster2").
 			WithVersion("v1.2.3").
-			WithStatus(expv1.MachinePoolStatus{
+			WithStatus(clusterv1.MachinePoolStatus{
 				NodeRefs: []corev1.ObjectReference{
 					{
 						Name: "upgradingMP-node1",

@@ -184,3 +184,14 @@ const (
 	// from making any further remediations.
 	TooManyUnhealthyReason = "TooManyUnhealthy"
 )
+
+// Conditions and condition Reasons for the MachinePool object.
+
+const (
+	// ReplicasReadyCondition reports an aggregate of current status of the replicas controlled by the MachinePool.
+	ReplicasReadyCondition ConditionType = "ReplicasReady"
+
+	// WaitingForReplicasReadyReason (Severity=Info) documents a machinepool waiting for the required replicas
+	// to be ready.
+	WaitingForReplicasReadyReason = "WaitingForReplicasReady"
+)

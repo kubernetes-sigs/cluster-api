@@ -15,33 +15,3 @@ limitations under the License.
 */
 
 package controllers
-
-import (
-	"context"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-
-	"sigs.k8s.io/cluster-api/controllers/remote"
-	machinepool "sigs.k8s.io/cluster-api/exp/internal/controllers"
-)
-
-// MachinePoolReconciler reconciles a MachinePool object.
-type MachinePoolReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
-
-	// WatchFilterValue is the label value used to filter events prior to reconciliation.
-	WatchFilterValue string
-}
-
-func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	return (&machinepool.MachinePoolReconciler{
-		Client:           r.Client,
-		APIReader:        r.APIReader,
-		Tracker:          r.Tracker,
-		WatchFilterValue: r.WatchFilterValue,
-	}).SetupWithManager(ctx, mgr, options)
-}

@@ -265,7 +265,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 						"mp0": &scope.MachinePoolState{
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(1),
 									ReadyReplicas:       int32(1),
 									AvailableReplicas:   int32(1),
@@ -355,7 +355,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 						"mp0": &scope.MachinePoolState{
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(2),
 									ReadyReplicas:       int32(2),
 									AvailableReplicas:   int32(2),
@@ -446,7 +446,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 						"mp0": &scope.MachinePoolState{
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(2),
 									ReadyReplicas:       int32(2),
 									AvailableReplicas:   int32(2),
@@ -695,7 +695,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									// mp is not ready because we don't have 2 updated, ready and available replicas.
 									Replicas:            int32(2),
 									ReadyReplicas:       int32(1),
@@ -708,7 +708,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp1-abc123").
 								WithReplicas(2).
 								WithVersion("v1.21.2").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(2),
 									ReadyReplicas:       int32(2),
 									AvailableReplicas:   int32(2),
@@ -823,7 +823,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(2),
 									ReadyReplicas:       int32(2),
 									AvailableReplicas:   int32(2),
@@ -835,7 +835,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp1-abc123").
 								WithReplicas(2).
 								WithVersion("v1.21.2").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(2),
 									ReadyReplicas:       int32(2),
 									AvailableReplicas:   int32(2),
@@ -908,7 +908,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp0-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(1),
 									ReadyReplicas:       int32(1),
 									AvailableReplicas:   int32(1),
@@ -920,7 +920,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachinePool("ns1", "mp1-abc123").
 								WithReplicas(2).
 								WithVersion("v1.22.0").
-								WithStatus(expv1.MachinePoolStatus{
+								WithStatus(clusterv1.MachinePoolStatus{
 									Replicas:            int32(2),
 									ReadyReplicas:       int32(2),
 									AvailableReplicas:   int32(2),

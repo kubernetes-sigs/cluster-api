@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -1082,13 +1081,13 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 // 4) Have the correct Kind/APIVersion and Labels/Annotations for BoostrapRef and InfrastructureRef templates.
 func assertMachinePoolsReconcile(cluster *clusterv1.Cluster) error {
 	// List all created machine pools to assert the expected numbers are created.
-	machinePools := &expv1.MachinePoolList{}
+	machinePools := &clusterv1.MachinePoolList{}
 	if err := env.List(ctx, machinePools, client.InNamespace(cluster.Namespace)); err != nil {
 		return err
 	}
 
 	// clusterMPs will hold the MachinePools that have labels associating them with the cluster.
-	clusterMPs := []expv1.MachinePool{}
+	clusterMPs := []clusterv1.MachinePool{}
 
 	// Run through all machine pools and add only those with the TopologyOwnedLabel and the correct
 	// ClusterNameLabel to the items for further testing.

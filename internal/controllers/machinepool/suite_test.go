@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinepool
 
 import (
 	"context"
@@ -42,7 +42,7 @@ func TestMain(m *testing.M) {
 	}
 
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		machinePoolReconciler := MachinePoolReconciler{
+		machinePoolReconciler := Reconciler{
 			Client:   mgr.GetClient(),
 			recorder: mgr.GetEventRecorderFor("machinepool-controller"),
 		}

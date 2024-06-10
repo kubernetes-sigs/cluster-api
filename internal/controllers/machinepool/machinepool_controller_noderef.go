@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinepool
 
 import (
 	"context"
@@ -30,7 +30,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -46,7 +45,7 @@ type getNodeReferencesResult struct {
 	ready      int
 }
 
-func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+func (r *Reconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *clusterv1.MachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create a watch on the nodes in the Cluster.
@@ -62,7 +61,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	// Check that the Machine doesn't already have a NodeRefs.
 	// Return early if there is no work to do.
 	if mp.Status.Replicas == mp.Status.ReadyReplicas && len(mp.Status.NodeRefs) == int(mp.Status.ReadyReplicas) {
-		conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
+		conditions.MarkTrue(mp, clusterv1.ReplicasReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
@@ -109,19 +108,19 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
 		log.Info("NodeRefs != ReadyReplicas", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas)
-		conditions.MarkFalse(mp, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(mp, clusterv1.ReplicasReadyCondition, clusterv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// At this point, the required number of replicas are ready
-	conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
+	conditions.MarkTrue(mp, clusterv1.ReplicasReadyCondition)
 	return ctrl.Result{}, nil
 }
 
 // deleteRetiredNodes deletes nodes that don't have a corresponding ProviderID in Spec.ProviderIDList.
 // A MachinePool infrastructure provider indicates an instance in the set has been deleted by
 // removing its ProviderID from the slice.
-func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string) error {
+func (r *Reconciler) deleteRetiredNodes(ctx context.Context, c client.Client, nodeRefs []corev1.ObjectReference, providerIDList []string) error {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 	nodeRefsMap := make(map[string]*corev1.Node, len(nodeRefs))
 	for _, nodeRef := range nodeRefs {
@@ -153,7 +152,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	return nil
 }
 
-func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string, minReadySeconds *int32) (getNodeReferencesResult, error) {
+func (r *Reconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string, minReadySeconds *int32) (getNodeReferencesResult, error) {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 
 	var ready, available int
@@ -207,7 +206,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 }
 
 // patchNodes patches the nodes with the cluster name and cluster namespace annotations.
-func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *expv1.MachinePool) error {
+func (r *Reconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *clusterv1.MachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 	for _, nodeRef := range references {
 		node := &corev1.Node{}

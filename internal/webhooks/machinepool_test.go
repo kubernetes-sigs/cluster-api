@@ -25,24 +25,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
-
-var ctx = ctrl.SetupSignalHandler()
 
 func TestMachinePoolDefault(t *testing.T) {
 	g := NewWithT(t)
 
-	mp := &expv1.MachinePool{
+	mp := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foobar",
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
@@ -67,15 +63,15 @@ func TestMachinePoolDefault(t *testing.T) {
 func TestCalculateMachinePoolReplicas(t *testing.T) {
 	tests := []struct {
 		name             string
-		newMP            *expv1.MachinePool
-		oldMP            *expv1.MachinePool
+		newMP            *clusterv1.MachinePool
+		oldMP            *clusterv1.MachinePool
 		expectedReplicas int32
 		expectErr        bool
 	}{
 		{
 			name: "if new MP has replicas set, keep that value",
-			newMP: &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			newMP: &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](5),
 				},
 			},
@@ -83,12 +79,12 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name:             "if new MP does not have replicas set and no annotations, use 1",
-			newMP:            &expv1.MachinePool{},
+			newMP:            &clusterv1.MachinePool{},
 			expectedReplicas: 1,
 		},
 		{
 			name: "if new MP only has min size annotation, fallback to 1",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "3",
@@ -99,7 +95,7 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MP only has max size annotation, fallback to 1",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMaxSizeAnnotation: "7",
@@ -110,7 +106,7 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MP has min and max size annotation and min size is invalid, fail",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "abc",
@@ -122,7 +118,7 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MP has min and max size annotation and max size is invalid, fail",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "3",
@@ -134,7 +130,7 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MP has min and max size annotation and new MP is a new MP, use min size",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "3",
@@ -146,7 +142,7 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MP has min and max size annotation and old MP doesn't have replicas set, use min size",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "3",
@@ -154,12 +150,12 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 					},
 				},
 			},
-			oldMP:            &expv1.MachinePool{},
+			oldMP:            &clusterv1.MachinePool{},
 			expectedReplicas: 3,
 		},
 		{
 			name: "if new MP has min and max size annotation and old MP replicas is below min size, use min size",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "3",
@@ -167,8 +163,8 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 					},
 				},
 			},
-			oldMP: &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			oldMP: &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](1),
 				},
 			},
@@ -176,7 +172,7 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MP has min and max size annotation and old MP replicas is above max size, use max size",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "3",
@@ -184,8 +180,8 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 					},
 				},
 			},
-			oldMP: &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			oldMP: &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](15),
 				},
 			},
@@ -193,7 +189,7 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 		},
 		{
 			name: "if new MP has min and max size annotation and old MP replicas is between min and max size, use old MP replicas",
-			newMP: &expv1.MachinePool{
+			newMP: &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
 						clusterv1.AutoscalerMinSizeAnnotation: "3",
@@ -201,8 +197,8 @@ func TestCalculateMachinePoolReplicas(t *testing.T) {
 					},
 				},
 			},
-			oldMP: &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			oldMP: &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](4),
 				},
 			},
@@ -254,8 +250,8 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			webhook := &MachinePool{}
-			mp := &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			mp := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: tt.bootstrap,
@@ -326,9 +322,9 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			webhook := &MachinePool{}
-			mp := &expv1.MachinePool{
+			mp := &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap:         tt.bootstrap,
@@ -382,8 +378,8 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			newMP := &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			newMP := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: tt.newClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -393,8 +389,8 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			oldMP := &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			oldMP := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: tt.oldClusterName,
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -449,8 +445,8 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			mp := &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			mp := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
@@ -504,8 +500,8 @@ func TestMachinePoolMetadataValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			mp := &expv1.MachinePool{
-				Spec: expv1.MachinePoolSpec{
+			mp := &clusterv1.MachinePool{
+				Spec: clusterv1.MachinePoolSpec{
 					Template: clusterv1.MachineTemplateSpec{
 						ObjectMeta: clusterv1.ObjectMeta{
 							Labels:      tt.labels,

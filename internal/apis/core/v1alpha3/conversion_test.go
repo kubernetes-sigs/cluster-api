@@ -55,6 +55,12 @@ func TestFuzzyConversion(t *testing.T) {
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
+	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:         &clusterv1.MachinePool{},
+		Spoke:       &MachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, MachinePoolSpecFuzzFuncs, CustomObjectMetaFuzzFunc},
+	}))
+
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &clusterv1.MachineHealthCheck{},
 		Spoke: &MachineHealthCheck{},
@@ -138,4 +144,18 @@ func ClusterVariableFuzzer(in *clusterv1.ClusterVariable, c fuzz.Continue) {
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.
 	in.Value = apiextensionsv1.JSON{Raw: []byte("\"test-string\"")}
+}
+
+func MachinePoolSpecFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		MachinePoolSpecFuzzer,
+	}
+}
+
+func MachinePoolSpecFuzzer(in *MachinePoolSpec, c fuzz.Continue) {
+	c.Fuzz(in)
+
+	// These fields have been removed in v1beta1
+	// data is going to be lost, so we're forcing zero values here.
+	in.Strategy = nil
 }

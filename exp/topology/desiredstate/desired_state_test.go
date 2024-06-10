@@ -1923,11 +1923,11 @@ func TestComputeMachinePool(t *testing.T) {
 		s.Blueprint = blueprint
 
 		currentReplicas := int32(3)
-		currentMp := &expv1.MachinePool{
+		currentMp := &clusterv1.MachinePool{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "existing-pool-1",
 			},
-			Spec: expv1.MachinePoolSpec{
+			Spec: clusterv1.MachinePoolSpec{
 				Replicas: &currentReplicas,
 				Template: clusterv1.MachineTemplateSpec{
 					Spec: clusterv1.MachineSpec{
@@ -2082,7 +2082,7 @@ func TestComputeMachinePool(t *testing.T) {
 					mp := builder.MachinePool("test-namespace", "big-pool-of-machines").
 						WithReplicas(2).
 						WithVersion(*tt.currentMPVersion).
-						WithStatus(expv1.MachinePoolStatus{
+						WithStatus(clusterv1.MachinePoolStatus{
 							ObservedGeneration: 2,
 							Replicas:           2,
 							ReadyReplicas:      2,

@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -875,7 +874,7 @@ func (r *Reconciler) reconcileMachinePools(ctx context.Context, s *scope.Scope) 
 func (r *Reconciler) getCurrentMachinePools(ctx context.Context, s *scope.Scope) (sets.Set[string], error) {
 	// TODO: We should consider using PartialObjectMetadataList here. Currently this doesn't work as our
 	// implementation for topology dryrun doesn't support PartialObjectMetadataList.
-	mpList := &expv1.MachinePoolList{}
+	mpList := &clusterv1.MachinePoolList{}
 	err := r.APIReader.List(ctx, mpList,
 		client.MatchingLabels{
 			clusterv1.ClusterNameLabel:          s.Current.Cluster.Name,
@@ -983,7 +982,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, s *scope.Scope, mp *
 	// miss a newly created MachinePool (because the cache might be stale).
 	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		key := client.ObjectKey{Namespace: mp.Object.Namespace, Name: mp.Object.Name}
-		if err := r.Client.Get(ctx, key, &expv1.MachinePool{}); err != nil {
+		if err := r.Client.Get(ctx, key, &clusterv1.MachinePool{}); err != nil {
 			if apierrors.IsNotFound(err) {
 				return false, nil
 			}
@@ -1058,7 +1057,7 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, curr
 	// version here guarantees that we see the changes of our own update.
 	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		key := client.ObjectKey{Namespace: currentMP.Object.GetNamespace(), Name: currentMP.Object.GetName()}
-		cachedMP := &expv1.MachinePool{}
+		cachedMP := &clusterv1.MachinePool{}
 		if err := r.Client.Get(ctx, key, cachedMP); err != nil {
 			return false, err
 		}
@@ -1072,7 +1071,7 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, curr
 	return nil
 }
 
-func logMachinePoolVersionChange(current, desired *expv1.MachinePool) string {
+func logMachinePoolVersionChange(current, desired *clusterv1.MachinePool) string {
 	if current.Spec.Template.Spec.Version == nil || desired.Spec.Template.Spec.Version == nil {
 		return ""
 	}

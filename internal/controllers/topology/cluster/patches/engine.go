@@ -29,7 +29,6 @@ import (
 	"k8s.io/klog/v2"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
@@ -240,7 +239,7 @@ func getMDTopologyFromMD(blueprint *scope.ClusterBlueprint, md *clusterv1.Machin
 	return mdTopology, nil
 }
 
-func getMPTopologyFromMP(blueprint *scope.ClusterBlueprint, mp *expv1.MachinePool) (*clusterv1.MachinePoolTopology, error) {
+func getMPTopologyFromMP(blueprint *scope.ClusterBlueprint, mp *clusterv1.MachinePool) (*clusterv1.MachinePoolTopology, error) {
 	topologyName, ok := mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
 	if !ok {
 		return nil, errors.Errorf("failed to get topology name for %s", klog.KObj(mp))
@@ -355,7 +354,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 		// Add the BootstrapTemplate.
 		t, err := newRequestItemBuilder(mpClass.BootstrapTemplate).
-			WithHolder(mp.Object, expv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.bootstrap.configRef").
+			WithHolder(mp.Object, clusterv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.bootstrap.configRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare BootstrapConfig template %s for MachinePool topology %s for patching",
@@ -365,7 +364,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 
 		// Add the InfrastructureMachineTemplate.
 		t, err = newRequestItemBuilder(mpClass.InfrastructureMachinePoolTemplate).
-			WithHolder(mp.Object, expv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.infrastructureRef").
+			WithHolder(mp.Object, clusterv1.GroupVersion.WithKind("MachinePool"), "spec.template.spec.infrastructureRef").
 			Build()
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to prepare InfrastructureMachinePoolTemplate %s for MachinePool topology %s for patching",

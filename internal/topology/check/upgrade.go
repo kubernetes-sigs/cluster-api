@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // IsMachineDeploymentUpgrading determines if the MachineDeployment is upgrading.
@@ -63,7 +62,7 @@ func IsMachineDeploymentUpgrading(ctx context.Context, c client.Reader, md *clus
 // IsMachinePoolUpgrading determines if the MachinePool is upgrading.
 // A machine pool is considered upgrading if at least one of the Machines of this
 // MachinePool has a different version.
-func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *expv1.MachinePool) (bool, error) {
+func IsMachinePoolUpgrading(ctx context.Context, c client.Reader, mp *clusterv1.MachinePool) (bool, error) {
 	// If the MachinePool has no version there is no definitive way to check if it is upgrading. Therefore, return false.
 	// Note: This case should not happen.
 	if mp.Spec.Template.Spec.Version == nil {

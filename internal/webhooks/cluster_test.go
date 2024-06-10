@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
@@ -3148,7 +3147,7 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 					clusterv1.ClusterNameLabel:                    "cluster1",
 					clusterv1.ClusterTopologyOwnedLabel:           "",
 					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
-				}).WithVersion("v1.19.1").WithStatus(expv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
+				}).WithVersion("v1.19.1").WithStatus(clusterv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
 			},
 			workloadObjects: []client.Object{
 				&corev1.Node{
@@ -3175,7 +3174,7 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 					clusterv1.ClusterNameLabel:                    "cluster1",
 					clusterv1.ClusterTopologyOwnedLabel:           "",
 					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
-				}).WithVersion("v1.19.1").WithStatus(expv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
+				}).WithVersion("v1.19.1").WithStatus(clusterv1.MachinePoolStatus{NodeRefs: []corev1.ObjectReference{{Name: "mp-node-1"}}}).Build(),
 			},
 			workloadObjects: []client.Object{},
 		},

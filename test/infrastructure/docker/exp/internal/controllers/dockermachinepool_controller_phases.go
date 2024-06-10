@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
@@ -48,7 +47,7 @@ import (
 // - Does not delete any containers as that must be triggered in reconcileDockerMachines to ensure node cordon/drain.
 //
 // Providers should similarly create their infrastructure instances and reconcile any additional logic.
-func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.V(2).Info("Reconciling Docker containers", "DockerMachinePool", klog.KObj(dockerMachinePool))
@@ -74,7 +73,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Cont
 }
 
 // createDockerContainer creates a Docker container to serve as a replica for the MachinePool.
-func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 	labelFilters := map[string]string{dockerMachinePoolLabel: dockerMachinePool.Name}
 	externalMachine, err := docker.NewMachine(ctx, cluster, name, labelFilters)
@@ -112,7 +111,7 @@ func createDockerContainer(ctx context.Context, name string, cluster *clusterv1.
 // - Deleting DockerMachines referencing a container whose Kubernetes version or custom image no longer matches the spec.
 // - Deleting DockerMachines that correspond to a deleted/non-existent Docker container.
 // - Deleting DockerMachines when scaling down such that DockerMachines whose owner Machine has the clusterv1.DeleteMachineAnnotation is given priority.
-func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
+func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.V(2).Info("Reconciling DockerMachines", "DockerMachinePool", klog.KObj(dockerMachinePool))
@@ -245,7 +244,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerMachines(ctx context.Contex
 
 // computeDesiredDockerMachine creates a DockerMachine to represent a Docker container in a DockerMachinePool.
 // These DockerMachines have the clusterv1.ClusterNameLabel and clusterv1.MachinePoolNameLabel to support MachinePool Machines.
-func computeDesiredDockerMachine(name string, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, existingDockerMachine *infrav1.DockerMachine) *infrav1.DockerMachine {
+func computeDesiredDockerMachine(name string, cluster *clusterv1.Cluster, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, existingDockerMachine *infrav1.DockerMachine) *infrav1.DockerMachine {
 	dockerMachine := &infrav1.DockerMachine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   dockerMachinePool.Namespace,
@@ -346,7 +345,7 @@ func orderByDeleteMachineAnnotation(machines []infrav1.DockerMachine) []infrav1.
 }
 
 // isMachineMatchingInfrastructureSpec returns true if the Docker container image matches the custom image in the DockerMachinePool spec.
-func isMachineMatchingInfrastructureSpec(_ context.Context, machine *docker.Machine, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) bool {
+func isMachineMatchingInfrastructureSpec(_ context.Context, machine *docker.Machine, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) bool {
 	// NOTE: With the current implementation we are checking if the machine is using a kindest/node image for the expected version,
 	// but not checking if the machine has the expected extra.mounts or pre.loaded images.
 
@@ -362,7 +361,7 @@ func isMachineMatchingInfrastructureSpec(_ context.Context, machine *docker.Mach
 }
 
 // machinesMatchingInfrastructureSpec returns the  Docker containers matching the custom image in the DockerMachinePool spec.
-func machinesMatchingInfrastructureSpec(ctx context.Context, machines []*docker.Machine, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) []*docker.Machine {
+func machinesMatchingInfrastructureSpec(ctx context.Context, machines []*docker.Machine, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) []*docker.Machine {
 	var matchingMachines []*docker.Machine
 	for _, machine := range machines {
 		if isMachineMatchingInfrastructureSpec(ctx, machine, machinePool, dockerMachinePool) {
@@ -374,7 +373,7 @@ func machinesMatchingInfrastructureSpec(ctx context.Context, machines []*docker.
 }
 
 // getDeletionCandidates returns the DockerMachines for a MachinePool that do not match the infrastructure spec followed by any DockerMachines that are ready and up to date, i.e. matching the infrastructure spec.
-func (r *DockerMachinePoolReconciler) getDeletionCandidates(ctx context.Context, dockerMachines []infrav1.DockerMachine, externalMachineSet map[string]*docker.Machine, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (outdatedMachines []infrav1.DockerMachine, readyMatchingMachines []infrav1.DockerMachine, err error) {
+func (r *DockerMachinePoolReconciler) getDeletionCandidates(ctx context.Context, dockerMachines []infrav1.DockerMachine, externalMachineSet map[string]*docker.Machine, machinePool *clusterv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (outdatedMachines []infrav1.DockerMachine, readyMatchingMachines []infrav1.DockerMachine, err error) {
 	for i := range dockerMachines {
 		dockerMachine := dockerMachines[i]
 		externalMachine, ok := externalMachineSet[dockerMachine.Name]

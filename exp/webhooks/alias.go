@@ -15,17 +15,3 @@ limitations under the License.
 */
 
 package webhooks
-
-import (
-	ctrl "sigs.k8s.io/controller-runtime"
-
-	"sigs.k8s.io/cluster-api/exp/internal/webhooks"
-)
-
-// MachinePool implements a validating and defaulting webhook for MachinePool.
-type MachinePool struct{}
-
-// SetupWebhookWithManager sets up MachinePool webhooks.
-func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return (&webhooks.MachinePool{}).SetupWebhookWithManager(mgr)
-}

@@ -40,7 +40,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
@@ -566,7 +565,7 @@ func validateTopologyMachineDeploymentVersions(ctx context.Context, ctrlClient c
 func validateTopologyMachinePoolVersions(ctx context.Context, ctrlClient client.Reader, tracker ClusterCacheTrackerReader, oldCluster *clusterv1.Cluster, oldVersion semver.Version) error {
 	// List all the machine pools in the current cluster and in a managed topology.
 	// FROM: current_state.go getCurrentMachinePoolState
-	mps := &expv1.MachinePoolList{}
+	mps := &clusterv1.MachinePoolList{}
 	err := ctrlClient.List(ctx, mps,
 		client.MatchingLabels{
 			clusterv1.ClusterNameLabel:          oldCluster.Name,

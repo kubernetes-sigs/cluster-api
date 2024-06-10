@@ -47,7 +47,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -497,7 +496,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		By("Waiting for MachinePool to be ready with correct number of replicas")
 		Eventually(func() (int64, error) {
 			var n int64
-			machinePoolList := &expv1.MachinePoolList{}
+			machinePoolList := &clusterv1.MachinePoolList{}
 			if err := managementClusterProxy.GetClient().List(
 				ctx,
 				machinePoolList,
@@ -505,7 +504,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 			); err == nil {
 				for _, mp := range machinePoolList.Items {
-					if mp.Status.Phase == string(expv1.MachinePoolPhaseRunning) {
+					if mp.Status.Phase == string(clusterv1.MachinePoolPhaseRunning) {
 						n += int64(mp.Status.ReadyReplicas)
 					}
 				}
@@ -883,7 +882,7 @@ func calculateExpectedMachineDeploymentMachineCount(ctx context.Context, c clien
 func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Client, workloadClusterNamespace, workloadClusterName string) (int64, error) {
 	expectedMachinePoolMachineCount := int64(0)
 
-	machinePoolList := &expv1.MachinePoolList{}
+	machinePoolList := &clusterv1.MachinePoolList{}
 	if err := c.List(
 		ctx,
 		machinePoolList,

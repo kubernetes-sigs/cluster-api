@@ -49,6 +49,8 @@ import (
 func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(obj types.NamespacedName, reference []metav1.OwnerReference) error) {
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
 
+	byf("Changing all the ownerReferences to a different API version")
+
 	// Pause the cluster.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
 
@@ -67,12 +69,14 @@ func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, na
 	forceClusterResourceSetReconcile(ctx, proxy.GetClient(), namespace)
 
 	// Check that the ownerReferences have updated their apiVersions to current versions after reconciliation.
+	byf("Check that the ownerReferences are rebuilt as expected")
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 }
 
 // ValidateOwnerReferencesResilience checks that expected owner references are in place, deletes them, and verifies that expect owner references are properly rebuilt.
 func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, assertFuncs ...map[string]func(obj types.NamespacedName, reference []metav1.OwnerReference) error) {
 	// Check that the ownerReferences are as expected on the first iteration.
+	byf("Check that the ownerReferences are as expected")
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
@@ -83,6 +87,7 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	// edge case where an external system intentionally nukes all the owner references in a single operation.
 	// The assumption is that if the system can recover from this edge case, it can also handle use cases where an owner
 	// reference is deleted by mistake.
+	byf("Removing all the ownerReferences")
 
 	// Setting the paused property on the Cluster resource will pause reconciliations, thereby having no effect on OwnerReferences.
 	// This also makes debugging easier.
@@ -99,6 +104,7 @@ func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, 
 	forceClusterClassReconcile(ctx, proxy.GetClient(), clusterKey)
 
 	// Check that the ownerReferences are as expected after additional reconciliations.
+	byf("Check that the ownerReferences are rebuilt as expected")
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction, assertFuncs...)
 }
 
@@ -128,7 +134,7 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, ownerGraphFilterFun
 			}
 			for _, f := range allAssertFuncs[v.Object.Kind] {
 				if err := f(types.NamespacedName{Namespace: v.Object.Namespace, Name: v.Object.Name}, v.Owners); err != nil {
-					allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s, %s", v.Object.Kind, klog.KRef(v.Object.Namespace, v.Object.Name)))
+					allErrs = append(allErrs, errors.Wrapf(err, "unexpected ownerReferences for %s, %s", v.Object.Kind, klog.KRef(v.Object.Namespace, v.Object.Name)))
 				}
 			}
 		}

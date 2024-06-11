@@ -147,7 +147,7 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 		}
 		restConfig, err = rest.InClusterConfig()
 		if err != nil {
-			return nil, err
+			return nil, errors.New(strings.Replace(err.Error(), "invalid configuration:", "invalid kubeconfig file and failed to create inClusterConfig as well:", 1))
 		}
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)

@@ -152,7 +152,8 @@ Both **IPAddressClaims** and **IPAddresses** should be part of Cluster API, whil
 
 An **IPAddressClaim** is used by infrastructure providers to request an IP Address. The claim contains a reference to an IP Pool. Because the pool is provider specific, the IPAM controllers can decide whether to handle a claim by inspecting the group and kind of the pool reference.
 
-If a IPAM controller detects a Claim that references a Pool it controls, it allocates an IP address from that pool and creates an **IPAddress** to fulfil the claim. It also updates the status of the `IPAddressClaim` with a reference to the created Address.
+If a IPAM controller detects a Claim that references a Pool it controls, it allocates an IP address from that pool and creates an **IPAddress** to fulfil the claim. It also updates the status of the `IPAddressClaim` with a reference to the created Address.  
+When allocation fails, the `Ready` condition of the claim should be set to false. Where applicable, the reasons specified in the IPAM api package should be used.
 
 
 ### Pools & IPAM Providers

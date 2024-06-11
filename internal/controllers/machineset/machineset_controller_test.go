@@ -1608,6 +1608,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 	existingMachine.UID = "abc-123-existing-machine-1"
 	existingMachine.Labels = nil
 	existingMachine.Annotations = nil
+	// Pre-existing finalizer should be preserved.
+	existingMachine.Finalizers = []string{"pre-existing-finalizer"}
 	existingMachine.Spec.InfrastructureRef = corev1.ObjectReference{
 		Kind:       "GenericInfrastructureMachine",
 		Name:       "infra-machine-1",
@@ -1625,6 +1627,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 	expectedUpdatedMachine := skeletonMachine.DeepCopy()
 	expectedUpdatedMachine.Name = existingMachine.Name
 	expectedUpdatedMachine.UID = existingMachine.UID
+	// Pre-existing finalizer should be preserved.
+	expectedUpdatedMachine.Finalizers = []string{"pre-existing-finalizer", clusterv1.MachineFinalizer}
 	expectedUpdatedMachine.Spec.InfrastructureRef = *existingMachine.Spec.InfrastructureRef.DeepCopy()
 	expectedUpdatedMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef.DeepCopy()
 

@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
@@ -636,10 +637,18 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	if existingMachine != nil {
 		desiredMachine.SetName(existingMachine.Name)
 		desiredMachine.SetUID(existingMachine.UID)
+
+		// Preserve all existing finalizers (including foregroundDeletion finalizer).
+		finalizers := existingMachine.Finalizers
+		// Ensure MachineFinalizer is set.
+		if !sets.New[string](finalizers...).Has(clusterv1.MachineFinalizer) {
+			finalizers = append(finalizers, clusterv1.MachineFinalizer)
+		}
+		desiredMachine.Finalizers = finalizers
+
 		desiredMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef
 		desiredMachine.Spec.InfrastructureRef = existingMachine.Spec.InfrastructureRef
 	}
-
 	// Set the in-place mutable fields.
 	// When we create a new Machine we will just create the Machine with those fields.
 	// When we update an existing Machine will we update the fields on the existing Machine (in-place mutate).

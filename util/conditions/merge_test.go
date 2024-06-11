@@ -86,9 +86,11 @@ func TestNewConditionsGroup(t *testing.T) {
 	t.Run("Negative polarity", func(t *testing.T) {
 		g := NewWithT(t)
 
-		conditions := []*clusterv1.Condition{nil1, positiveFalse1, positiveFalse1, negativeTrueInfo1, negativeTrueWarning1, negativeTrueWarning1, negativeTrueError1, negativeUnknown1}
+		conditions := []*clusterv1.Condition{nil1, false1WithNegativePolarity, false1WithNegativePolarity, trueInfo1WithNegativePolarity, trueWarning1WithNegativePolarity, trueWarning1WithNegativePolarity, trueError1WithNegativePolarity, unknown1WithNegativePolarity}
 
 		got := getConditionGroups(conditionsWithSource(&clusterv1.Cluster{}, conditions...))
+
+		// NOTE: groups always have a positive polarity
 
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(got).To(HaveLen(5))
@@ -143,7 +145,7 @@ func TestNewConditionsGroup(t *testing.T) {
 	t.Run("Mixed polarity", func(t *testing.T) {
 		g := NewWithT(t)
 
-		conditions := []*clusterv1.Condition{nil1, true1, true1, falseInfo1, falseWarning1, falseWarning1, falseError1, unknown1, positiveFalse1, positiveFalse1, negativeTrueInfo1, negativeTrueWarning1, negativeTrueWarning1, negativeTrueError1, negativeUnknown1}
+		conditions := []*clusterv1.Condition{nil1, true1, true1, falseInfo1, falseWarning1, falseWarning1, falseError1, unknown1, false1WithNegativePolarity, false1WithNegativePolarity, trueInfo1WithNegativePolarity, trueWarning1WithNegativePolarity, trueWarning1WithNegativePolarity, trueError1WithNegativePolarity, unknown1WithNegativePolarity}
 
 		got := getConditionGroups(conditionsWithSource(&clusterv1.Cluster{}, conditions...))
 

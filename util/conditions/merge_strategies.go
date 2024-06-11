@@ -52,6 +52,7 @@ func WithConditions(t ...clusterv1.ConditionType) MergeOption {
 }
 
 // WithNegativePolarityConditions instruct merge about which conditions should be considered having negative polarity.
+// IMPORTANT: this must be a subset of WithConditions.
 func WithNegativePolarityConditions(t ...clusterv1.ConditionType) MergeOption {
 	return func(c *mergeOptions) {
 		c.negativeConditionTypes = t

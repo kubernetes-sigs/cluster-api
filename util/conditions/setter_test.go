@@ -224,15 +224,15 @@ func TestMarkMethods(t *testing.T) {
 		Message: "messageBaz",
 	}))
 
-	// test MarkPositiveFalse
-	MarkPositiveFalse(cluster, "conditionFoo")
+	// test MarkFalseWithNegativePolarity
+	MarkFalseWithNegativePolarity(cluster, "conditionFoo")
 	g.Expect(Get(cluster, "conditionFoo")).To(HaveSameStateOf(&clusterv1.Condition{
 		Type:   "conditionFoo",
 		Status: corev1.ConditionFalse,
 	}))
 
-	// test MarkNegativeTrue
-	MarkNegativeTrue(cluster, "conditionBar", "reasonBar", clusterv1.ConditionSeverityError, "messageBar")
+	// test MarkTrueWithNegativePolarity
+	MarkTrueWithNegativePolarity(cluster, "conditionBar", "reasonBar", clusterv1.ConditionSeverityError, "messageBar")
 	g.Expect(Get(cluster, "conditionBar")).To(HaveSameStateOf(&clusterv1.Condition{
 		Type:     "conditionBar",
 		Status:   corev1.ConditionTrue,

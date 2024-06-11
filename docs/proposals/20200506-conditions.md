@@ -243,8 +243,9 @@ When the above suffix are not adequate for a specific condition type, other suff
 (e.g. `Completed`, `Healthy`); however, it is recommended to balance this flexibility with the objective to provide
 a consistent condition naming across all the Cluster API objects.
 
-The `Severity` field MUST be set only when `Status=False` + positive polarity or when `Status=True` + negative polarity;
-severity it is designed to provide a standard classification of possible conditions failure `Reason`. 
+The `Severity` field MUST be set only when `Status=False` for conditions with positive polarity, or when `Status=True`
+for conditions with negative polarity; severity is designed to provide a standard classification of possible
+conditions failure `Reason`. 
 
 Please note that the combination of `Reason` and `Severity` gives different meaning to a condition failure
 allowing to detect when a long-running task is still ongoing:
@@ -473,7 +474,7 @@ enhance the condition utilities to handle those situations in a generalized way.
 - Risk: This proposal aims to be consistent with the target state of conditions in Kubernetes, but this
   is still under definition (see [KEP](https://github.com/kubernetes/enhancements/pull/1624)).
   - Mitigation: Periodically re-evaluate this proposal vs the Kubernetes KEP. 
-    -  2024-05-03: Change allowing conditions with negative polarity goes into this direction
+    -  2024-05-03: Change to allow conditions without positive polarity goes into this direction
 
 - Risk: Cluster API presents some specific challenges that are not common to the core Kubernetes objects.
   - Mitigation: To allow a minimal set of carefully evaluated differences between Cluster API and Kubernetes

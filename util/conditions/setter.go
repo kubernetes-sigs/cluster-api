@@ -85,6 +85,17 @@ func TrueCondition(t clusterv1.ConditionType) *clusterv1.Condition {
 	}
 }
 
+// TrueConditionWithNegativePolarity returns a condition with negative polarity, Status=True and the given type (Status=True has a negative meaning).
+func TrueConditionWithNegativePolarity(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
+	return &clusterv1.Condition{
+		Type:     t,
+		Status:   corev1.ConditionTrue,
+		Reason:   reason,
+		Severity: severity,
+		Message:  fmt.Sprintf(messageFormat, messageArgs...),
+	}
+}
+
 // FalseCondition returns a condition with Status=False and the given type.
 func FalseCondition(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
 	return &clusterv1.Condition{
@@ -96,19 +107,8 @@ func FalseCondition(t clusterv1.ConditionType, reason string, severity clusterv1
 	}
 }
 
-// NegativeTrueCondition returns a negative polarity condition with Status=True and the given type (Status=True has a negative meaning).
-func NegativeTrueCondition(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
-	return &clusterv1.Condition{
-		Type:     t,
-		Status:   corev1.ConditionTrue,
-		Reason:   reason,
-		Severity: severity,
-		Message:  fmt.Sprintf(messageFormat, messageArgs...),
-	}
-}
-
-// PositiveFalseCondition returns a negative polarity condition with Status=false and the given type (Status=False has a positive meaning).
-func PositiveFalseCondition(t clusterv1.ConditionType) *clusterv1.Condition {
+// FalseConditionWithNegativePolarity returns a condition with negative polarity, Status=false and the given type (Status=False has a positive meaning).
+func FalseConditionWithNegativePolarity(t clusterv1.ConditionType) *clusterv1.Condition {
 	return &clusterv1.Condition{
 		Type:   t,
 		Status: corev1.ConditionFalse,
@@ -130,6 +130,11 @@ func MarkTrue(to Setter, t clusterv1.ConditionType) {
 	Set(to, TrueCondition(t))
 }
 
+// MarkTrueWithNegativePolarity sets Status=True for a condition with negative polarity and the given type (Status=True has a negative meaning).
+func MarkTrueWithNegativePolarity(to Setter, t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+	Set(to, TrueConditionWithNegativePolarity(t, reason, severity, messageFormat, messageArgs...))
+}
+
 // MarkUnknown sets Status=Unknown for the condition with the given type.
 func MarkUnknown(to Setter, t clusterv1.ConditionType, reason, messageFormat string, messageArgs ...interface{}) {
 	Set(to, UnknownCondition(t, reason, messageFormat, messageArgs...))
@@ -140,14 +145,9 @@ func MarkFalse(to Setter, t clusterv1.ConditionType, reason string, severity clu
 	Set(to, FalseCondition(t, reason, severity, messageFormat, messageArgs...))
 }
 
-// MarkNegativeTrue sets Status=True for the negative polarity condition with the given type (Status=True has a negative meaning).
-func MarkNegativeTrue(to Setter, t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
-	Set(to, NegativeTrueCondition(t, reason, severity, messageFormat, messageArgs...))
-}
-
-// MarkPositiveFalse sets Status=False for the negative polarity condition with the given type (Status=False has a positive meaning).
-func MarkPositiveFalse(to Setter, t clusterv1.ConditionType) {
-	Set(to, PositiveFalseCondition(t))
+// MarkFalseWithNegativePolarity sets Status=False for a condition with negative polarity and the given type (Status=False has a positive meaning).
+func MarkFalseWithNegativePolarity(to Setter, t clusterv1.ConditionType) {
+	Set(to, FalseConditionWithNegativePolarity(t))
 }
 
 // SetSummary sets a Ready condition with the summary of all the conditions existing

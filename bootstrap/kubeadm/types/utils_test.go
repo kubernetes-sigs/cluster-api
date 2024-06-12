@@ -27,6 +27,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 )
 
 func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
@@ -103,11 +104,27 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "pass with minimum kubernetes version for kubeadm API v1beta4",
+			args: args{
+				version: semver.MustParse("1.31.0"),
+			},
+			want:    upstreamv1beta4.GroupVersion,
+			wantErr: false,
+		},
+		{
+			name: "pass with kubernetes version for kubeadm API v1beta4",
+			args: args{
+				version: semver.MustParse("1.32.99"),
+			},
+			want:    upstreamv1beta4.GroupVersion,
+			wantErr: false,
+		},
+		{
 			name: "pass with future kubernetes version",
 			args: args{
 				version: semver.MustParse("99.99.99"),
 			},
-			want:    upstreamv1beta3.GroupVersion,
+			want:    upstreamv1beta4.GroupVersion,
 			wantErr: false,
 		},
 	}
@@ -144,7 +161,7 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 				version: semver.MustParse("1.15.0"),
 			},
 			want: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
+				"apiVersion: kubeadm.k8s.io/v1beta2\n" +
 				"controllerManager: {}\n" +
 				"dns: {}\n" +
 				"etcd: {}\n" +
@@ -160,12 +177,29 @@ func TestMarshalClusterConfigurationForVersion(t *testing.T) {
 				version: semver.MustParse("1.22.0"),
 			},
 			want: "apiServer: {}\n" +
-				"apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
+				"apiVersion: kubeadm.k8s.io/v1beta3\n" +
 				"controllerManager: {}\n" +
 				"dns: {}\n" +
 				"etcd: {}\n" +
 				"kind: ClusterConfiguration\n" +
 				"networking: {}\n" +
+				"scheduler: {}\n",
+			wantErr: false,
+		},
+		{
+			name: "Generates a v1beta4 kubeadm configuration",
+			args: args{
+				capiObj: &bootstrapv1.ClusterConfiguration{},
+				version: semver.MustParse("1.31.0"),
+			},
+			want: "apiServer: {}\n" +
+				"apiVersion: kubeadm.k8s.io/v1beta4\n" +
+				"controllerManager: {}\n" +
+				"dns: {}\n" +
+				"etcd: {}\n" +
+				"kind: ClusterConfiguration\n" +
+				"networking: {}\n" +
+				"proxy: {}\n" +
 				"scheduler: {}\n",
 			wantErr: false,
 		},
@@ -279,6 +313,25 @@ func TestMarshalInitConfigurationForVersion(t *testing.T) {
 				"  taints: null\n",
 			wantErr: false,
 		},
+		{
+			name: "Generates a v1beta4 kubeadm configuration",
+			args: args{
+				capiObj: &bootstrapv1.InitConfiguration{
+					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+						IgnorePreflightErrors: []string{"some-preflight-check"},
+					},
+				},
+				version: semver.MustParse("1.31.0"),
+			},
+			want: "apiVersion: kubeadm.k8s.io/v1beta4\n" +
+				"kind: InitConfiguration\n" +
+				"localAPIEndpoint: {}\n" +
+				"nodeRegistration:\n" +
+				"  ignorePreflightErrors:\n" +
+				"  - some-preflight-check\n" +
+				"  taints: null\n",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -343,6 +396,25 @@ func TestMarshalJoinConfigurationForVersion(t *testing.T) {
 				"  taints: null\n",
 			wantErr: false,
 		},
+		{
+			name: "Generates a v1beta4 kubeadm configuration",
+			args: args{
+				capiObj: &bootstrapv1.JoinConfiguration{
+					NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+						IgnorePreflightErrors: []string{"some-preflight-check"},
+					},
+				},
+				version: semver.MustParse("1.31.0"),
+			},
+			want: "apiVersion: kubeadm.k8s.io/v1beta4\n" + "" +
+				"discovery: {}\n" +
+				"kind: JoinConfiguration\n" +
+				"nodeRegistration:\n" +
+				"  ignorePreflightErrors:\n" +
+				"  - some-preflight-check\n" +
+				"  taints: null\n",
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -399,6 +471,22 @@ func TestUnmarshalClusterConfiguration(t *testing.T) {
 			want:    &bootstrapv1.ClusterConfiguration{},
 			wantErr: false,
 		},
+		{
+			name: "Parses a v1beta4 kubeadm configuration",
+			args: args{
+				yaml: "apiServer: {}\n" +
+					"apiVersion: kubeadm.k8s.io/v1beta4\n" + "" +
+					"controllerManager: {}\n" +
+					"dns: {}\n" +
+					"etcd: {}\n" +
+					"kind: ClusterConfiguration\n" +
+					"networking: {}\n" +
+					"proxy: {}\n" +
+					"scheduler: {}\n",
+			},
+			want:    &bootstrapv1.ClusterConfiguration{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -440,6 +528,15 @@ func TestUnmarshalClusterStatus(t *testing.T) {
 			args: args{
 				yaml: "apiEndpoints: null\n" +
 					"apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
+					"kind: ClusterStatus\n",
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails parsing a v1beta4 kubeadm configuration",
+			args: args{
+				yaml: "apiEndpoints: null\n" +
+					"apiVersion: kubeadm.k8s.io/v1beta4\n" + "" +
 					"kind: ClusterStatus\n",
 			},
 			wantErr: true,
@@ -492,6 +589,17 @@ func TestUnmarshalInitConfiguration(t *testing.T) {
 			want:    &bootstrapv1.InitConfiguration{},
 			wantErr: false,
 		},
+		{
+			name: "Parses a v1beta4 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta4\n" + "" +
+					"kind: InitConfiguration\n" +
+					"localAPIEndpoint: {}\n" +
+					"nodeRegistration: {}\n",
+			},
+			want:    &bootstrapv1.InitConfiguration{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -533,6 +641,17 @@ func TestUnmarshalJoinConfiguration(t *testing.T) {
 			name: "Parses a v1beta3 kubeadm configuration",
 			args: args{
 				yaml: "apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
+					"caCertPath: \"\"\n" +
+					"discovery: {}\n" +
+					"kind: JoinConfiguration\n",
+			},
+			want:    &bootstrapv1.JoinConfiguration{},
+			wantErr: false,
+		},
+		{
+			name: "Parses a v1beta4 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta4\n" + "" +
 					"caCertPath: \"\"\n" +
 					"discovery: {}\n" +
 					"kind: JoinConfiguration\n",

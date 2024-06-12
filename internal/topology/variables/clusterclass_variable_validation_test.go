@@ -124,6 +124,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		name                 string
 		clusterClassVariable *clusterv1.ClusterClassVariable
 		wantErr              bool
+		errors               []validationMatch
 	}{
 		{
 			name: "Valid integer schema",
@@ -1024,7 +1025,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Valid integer schema with CEL expression",
+			name: "pass if valid integer schema with CEL expression",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "cpu",
 				Schema: clusterv1.VariableSchema{
@@ -1038,7 +1039,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Integer schema with invalid CEL expression",
+			name: "fail if integer schema with invalid CEL expression",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "cpu",
 				Schema: clusterv1.VariableSchema{
@@ -1051,9 +1052,12 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errors: []validationMatch{
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[0]", "rule"),
+			},
 		},
 		{
-			name: "Forbid validation rules where cost total exceeds total limit",
+			name: "fail if validation rules cost total exceeds total limit",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "cpu",
 				Schema: clusterv1.VariableSchema{
@@ -1069,6 +1073,14 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 									XValidations: []clusterv1.ValidationRule{{Rule: "self.contains('keyword')"}},
 								},
 							},
+							"map": {
+								Type: "object",
+								AdditionalProperties: &clusterv1.JSONSchemaProps{
+									Type:         "string",
+									MaxLength:    ptr.To[int64](500000),
+									XValidations: []clusterv1.ValidationRule{{Rule: "self.contains('keyword')"}},
+								},
+							},
 							"field": { // include a validation rule that does not contribute to total limit being exceeded (i.e. it is less than 1% of the limit)
 								Type:         "integer",
 								XValidations: []clusterv1.ValidationRule{{Rule: "self > 50 && self < 100"}},
@@ -1078,9 +1090,17 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errors: []validationMatch{
+				// exceeds per-rule limit and contributes to total limit being exceeded (1 error for each)
+				forbidden("spec", "variables[0]", "schema", "openAPIV3Schema", "properties[list]", "items", "x-kubernetes-validations[0]", "rule"),
+				// contributes to total limit being exceeded, but does not exceed per-rule limit
+				forbidden("spec", "variables[0]", "schema", "openAPIV3Schema", "properties[map]", "additionalProperties", "x-kubernetes-validations[0]", "rule"),
+				// total limit is exceeded
+				forbidden("spec", "variables[0]", "schema", "openAPIV3Schema"),
+			},
 		},
 		{
-			name: "x-kubernetes-validations should have valid reason and fieldPath",
+			name: "fail if x-kubernetes-validations has invalid reason",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "var",
 				Schema: clusterv1.VariableSchema{
@@ -1120,9 +1140,12 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errors: []validationMatch{
+				unsupported("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[0]", "reason"),
+			},
 		},
 		{
-			name: "x-kubernetes-validations should have valid fieldPath for array",
+			name: "fail if x-kubernetes-validations has invalid fieldPath for array",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "var",
 				Schema: clusterv1.VariableSchema{
@@ -1191,9 +1214,17 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errors: []validationMatch{
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[2]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[3]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[4]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[4]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[5]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[6]", "fieldPath"),
+			},
 		},
 		{
-			name: "x-kubernetes-validations have invalid fieldPath",
+			name: "fail if x-kubernetes-validations has invalid fieldPath",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "var",
 				Schema: clusterv1.VariableSchema{
@@ -1251,9 +1282,16 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errors: []validationMatch{
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[0]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[1]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[2]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[3]", "fieldPath"),
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[4]", "fieldPath"),
+			},
 		},
 		{
-			name: "x-kubernetes-validations should have valid message shorter than 2048 characters",
+			name: "fail if x-kubernetes-validations message is longer than 2048 characters",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "var",
 				Schema: clusterv1.VariableSchema{
@@ -1276,6 +1314,9 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 			wantErr: true,
+			errors: []validationMatch{
+				invalid("spec", "variables[0]", "schema", "openAPIV3Schema", "x-kubernetes-validations[0]", "message"),
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -1288,9 +1329,47 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())
+
+				seenErrs := make([]bool, len(errList))
+				for _, expectedError := range tt.errors {
+					found := false
+					for i, err := range errList {
+						if expectedError.matches(err) && !seenErrs[i] {
+							found = true
+							seenErrs[i] = true
+							break
+						}
+					}
+
+					if !found {
+						t.Errorf("expected %v at %v, got %v", expectedError.errorType, expectedError.path.String(), errList)
+					}
+				}
 				return
 			}
 			g.Expect(errList).To(BeEmpty())
 		})
 	}
+}
+
+type validationMatch struct {
+	path           *field.Path
+	errorType      field.ErrorType
+	containsString string
+}
+
+func (v validationMatch) matches(err *field.Error) bool {
+	return err.Type == v.errorType && err.Field == v.path.String() && strings.Contains(err.Error(), v.containsString)
+}
+
+func invalid(path ...string) validationMatch {
+	return validationMatch{path: field.NewPath(path[0], path[1:]...), errorType: field.ErrorTypeInvalid}
+}
+
+func unsupported(path ...string) validationMatch {
+	return validationMatch{path: field.NewPath(path[0], path[1:]...), errorType: field.ErrorTypeNotSupported}
+}
+
+func forbidden(path ...string) validationMatch {
+	return validationMatch{path: field.NewPath(path[0], path[1:]...), errorType: field.ErrorTypeForbidden}
 }

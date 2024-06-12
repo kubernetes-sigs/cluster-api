@@ -182,6 +182,17 @@ func validateRootSchema(ctx context.Context, clusterClassVariable *clusterv1.Clu
 
 	celContext := apiextensionsvalidation.RootCELContext(apiExtensionsSchema)
 	allErrs = append(allErrs, validateSchema(apiExtensionsSchema, fldPath, celContext, nil)...)
+	if celContext != nil {
+		if celContext.TotalCost != nil && celContext.TotalCost.Total > StaticEstimatedCRDCostLimit {
+			for _, expensive := range celContext.TotalCost.MostExpensive {
+				costErrorMsg := "contributed to estimated rule cost total exceeding cost limit for entire OpenAPIv3 schema"
+				allErrs = append(allErrs, field.Forbidden(expensive.Path, costErrorMsg))
+			}
+
+			costErrorMsg := getCostErrorMessage("x-kubernetes-validations estimated rule cost total for entire OpenAPIv3 schema", celContext.TotalCost.Total, StaticEstimatedCRDCostLimit)
+			allErrs = append(allErrs, field.Forbidden(fldPath, costErrorMsg))
+		}
+	}
 	return allErrs
 }
 
@@ -362,18 +373,6 @@ func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *fiel
 					}
 				}
 			}
-		}
-	}
-
-	if celContext != nil && celContext.TotalCost != nil {
-		if celContext.TotalCost.Total > StaticEstimatedCRDCostLimit {
-			for _, expensive := range celContext.TotalCost.MostExpensive {
-				costErrorMsg := "contributed to estimated rule cost total exceeding cost limit for entire OpenAPIv3 schema"
-				allErrs = append(allErrs, field.Forbidden(expensive.Path, costErrorMsg))
-			}
-
-			costErrorMsg := getCostErrorMessage("x-kubernetes-validations estimated rule cost total for entire OpenAPIv3 schema", celContext.TotalCost.Total, StaticEstimatedCRDCostLimit)
-			allErrs = append(allErrs, field.Forbidden(fldPath.Child("openAPIV3Schema"), costErrorMsg))
 		}
 	}
 

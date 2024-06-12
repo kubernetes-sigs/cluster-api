@@ -23,7 +23,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/pkg/errors"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsvalidation "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/validation"
 	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
@@ -47,6 +46,8 @@ const (
 
 	// StaticEstimatedCostLimit represents the largest-allowed static CEL cost on a per-expression basis.
 	StaticEstimatedCostLimit = apiextensionsvalidation.StaticEstimatedCostLimit
+	// StaticEstimatedCRDCostLimit represents the largest-allowed total cost for the x-kubernetes-validations rules of a CRD.
+	StaticEstimatedCRDCostLimit = apiextensionsvalidation.StaticEstimatedCRDCostLimit
 )
 
 // ValidateClusterClassVariables validates clusterClassVariable.
@@ -179,7 +180,8 @@ func validateRootSchema(ctx context.Context, clusterClassVariable *clusterv1.Clu
 		return append(allErrs, field.Invalid(fldPath, "", fmt.Sprintf("failed to build validator: %v", err)))
 	}
 
-	allErrs = append(allErrs, validateSchema(apiExtensionsSchema, fldPath)...)
+	celContext := apiextensionsvalidation.RootCELContext(apiExtensionsSchema)
+	allErrs = append(allErrs, validateSchema(apiExtensionsSchema, fldPath, celContext, nil)...)
 	return allErrs
 }
 
@@ -190,7 +192,7 @@ var supportedValidationReason = sets.NewString(
 	string(clusterv1.FieldValueDuplicate),
 )
 
-func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) field.ErrorList {
+func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path, celContext *apiextensionsvalidation.CELSchemaContext, uncorrelatablePath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Validate that type is one of the validVariableTypes.
@@ -223,16 +225,26 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 
 	if schema.AdditionalProperties != nil {
 		if len(schema.Properties) > 0 {
-			allErrs = append(allErrs, field.Forbidden(fldPath.Child("additionalProperties"), "additionalProperties and properties are mutual exclusive"))
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("additionalProperties"), "additionalProperties and properties are mutually exclusive"))
 		}
-		allErrs = append(allErrs, validateSchema(schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"))...)
+		allErrs = append(allErrs, validateSchema(schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"), celContext.ChildAdditionalPropertiesContext(schema.AdditionalProperties.Schema), uncorrelatablePath)...)
 	}
 
 	for propertyName, propertySchema := range schema.Properties {
 		p := propertySchema
-		allErrs = append(allErrs, validateSchema(&p, fldPath.Child("properties").Key(propertyName))...)
+		allErrs = append(allErrs, validateSchema(&p, fldPath.Child("properties").Key(propertyName), celContext.ChildPropertyContext(&p, propertyName), uncorrelatablePath)...)
 	}
 
+	if schema.Items != nil {
+		// We cannot correlate old/new items on atomic list types, which is the only type supported in ClusterClass variable schema.
+		if uncorrelatablePath != nil {
+			uncorrelatablePath = fldPath
+		}
+		allErrs = append(allErrs, validateSchema(schema.Items.Schema, fldPath.Child("items"), celContext.ChildItemsContext(schema.Items.Schema), uncorrelatablePath)...)
+	}
+
+	// This validation is duplicated from upstream CRD validation at
+	// https://github.com/kubernetes/apiextensions-apiserver/blob/v0.30.0/pkg/apis/apiextensions/validation/validation.go#L1178.
 	for i, rule := range schema.XValidations {
 		trimmedRule := strings.TrimSpace(rule.Rule)
 		trimmedMsg := strings.TrimSpace(rule.Message)
@@ -276,8 +288,9 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 		return allErrs
 	}
 
-	celContext := apiextensionsvalidation.RootCELContext(schema)
-	allErrs = append(allErrs, validateCELExpressions(schema, fldPath, celContext)...)
+	if celContext != nil {
+		allErrs = append(allErrs, validateCELExpressions(schema, fldPath, celContext, uncorrelatablePath)...)
+	}
 
 	return allErrs
 }
@@ -296,72 +309,74 @@ func pathValid(schema *apiextensions.JSONSchemaProps, path string) bool {
 	return true
 }
 
-func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *field.Path, celContext *apiextensionsvalidation.CELSchemaContext) field.ErrorList {
+func validateCELExpressions(schema *apiextensions.JSONSchemaProps, fldPath *field.Path, celContext *apiextensionsvalidation.CELSchemaContext, uncorrelatablePath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	if schema.AdditionalProperties != nil {
-		allErrs = append(allErrs, validateCELExpressions(schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"), celContext.ChildAdditionalPropertiesContext(schema.AdditionalProperties.Schema))...)
-	}
-
-	if len(schema.Properties) != 0 {
-		for property, propertySchema := range schema.Properties {
-			p := propertySchema
-			allErrs = append(allErrs, validateCELExpressions(&p, fldPath.Child("properties").Key(property), celContext.ChildPropertyContext(&p, property))...)
-		}
-	}
-
-	if schema.Items != nil {
-		allErrs = append(allErrs, validateSchema(schema.Items.Schema, fldPath.Child("items"))...)
-		allErrs = append(allErrs, validateCELExpressions(schema.Items.Schema, fldPath.Child("items"), celContext.ChildItemsContext(schema.Items.Schema))...)
-	}
-
 	typeInfo, err := celContext.TypeInfo()
-	if err != nil {
-		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), errors.Wrap(err, "internal error: failed to construct type information for x-kubernetes-validations rules")))
-	}
 	if typeInfo == nil {
-		return allErrs
+		return nil
 	}
-
-	compResults, err := cel.Compile(
-		typeInfo.Schema,
-		typeInfo.DeclType,
-		celconfig.PerCallLimit,
-		environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()),
-		cel.NewExpressionsEnvLoader(),
-	)
 	if err != nil {
-		return append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), errors.Wrap(err, "failed to compile x-kubernetes-validations rules")))
+		allErrs = append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to construct type information for x-kubernetes-validations rules: %s", err)))
+	} else {
+		compResults, err := cel.Compile(
+			typeInfo.Schema,
+			typeInfo.DeclType,
+			celconfig.PerCallLimit,
+			environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()),
+			cel.NewExpressionsEnvLoader(),
+		)
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), err))
+		} else {
+			for i, cr := range compResults {
+				expressionCost := getExpressionCost(cr, celContext)
+				if expressionCost > StaticEstimatedCostLimit {
+					costErrorMsg := getCostErrorMessage("estimated rule cost", expressionCost, StaticEstimatedCostLimit)
+					allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), costErrorMsg))
+				}
+				if celContext.TotalCost != nil {
+					celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), expressionCost)
+				}
+				if cr.Error != nil {
+					if cr.Error.Type == apiservercel.ErrorTypeRequired {
+						allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), cr.Error.Detail))
+					} else {
+						allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i], cr.Error.Detail))
+					}
+				}
+				if cr.MessageExpressionError != nil {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), schema.XValidations[i], cr.MessageExpressionError.Detail))
+				} else if cr.MessageExpression != nil {
+					if cr.MessageExpressionMaxCost > StaticEstimatedCostLimit {
+						costErrorMsg := getCostErrorMessage("estimated messageExpression cost", cr.MessageExpressionMaxCost, StaticEstimatedCostLimit)
+						allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), costErrorMsg))
+					}
+					if celContext.TotalCost != nil {
+						celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), cr.MessageExpressionMaxCost)
+					}
+				}
+				if cr.UsesOldSelf {
+					if uncorrelatablePath != nil {
+						allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i].Rule, fmt.Sprintf("oldSelf cannot be used on the uncorrelatable portion of the schema within %v", uncorrelatablePath)))
+					}
+				}
+			}
+		}
 	}
 
-	for i, cr := range compResults {
-		expressionCost := getExpressionCost(cr, celContext)
-		if expressionCost > StaticEstimatedCostLimit {
-			costErrorMsg := getCostErrorMessage("estimated rule cost", expressionCost, StaticEstimatedCostLimit)
-			allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), costErrorMsg))
-		}
-		if celContext.TotalCost != nil {
-			celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), expressionCost)
-		}
-		if cr.Error != nil {
-			if cr.Error.Type == apiservercel.ErrorTypeRequired {
-				allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), cr.Error.Detail))
-			} else {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i], cr.Error.Detail))
+	if celContext != nil && celContext.TotalCost != nil {
+		if celContext.TotalCost.Total > StaticEstimatedCRDCostLimit {
+			for _, expensive := range celContext.TotalCost.MostExpensive {
+				costErrorMsg := "contributed to estimated rule cost total exceeding cost limit for entire OpenAPIv3 schema"
+				allErrs = append(allErrs, field.Forbidden(expensive.Path, costErrorMsg))
 			}
-		}
-		if cr.MessageExpressionError != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), schema.XValidations[i], cr.MessageExpressionError.Detail))
-		} else if cr.MessageExpression != nil {
-			if cr.MessageExpressionMaxCost > StaticEstimatedCostLimit {
-				costErrorMsg := getCostErrorMessage("estimated messageExpression cost", cr.MessageExpressionMaxCost, StaticEstimatedCostLimit)
-				allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), costErrorMsg))
-			}
-			if celContext.TotalCost != nil {
-				celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), cr.MessageExpressionMaxCost)
-			}
+
+			costErrorMsg := getCostErrorMessage("x-kubernetes-validations estimated rule cost total for entire OpenAPIv3 schema", celContext.TotalCost.Total, StaticEstimatedCRDCostLimit)
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("openAPIV3Schema"), costErrorMsg))
 		}
 	}
+
 	return allErrs
 }
 

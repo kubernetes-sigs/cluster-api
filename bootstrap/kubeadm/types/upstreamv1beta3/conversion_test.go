@@ -63,40 +63,42 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		nodeRegistrationOptionsFuzzer,
 		initConfigurationFuzzer,
 		joinConfigurationFuzzer,
+		nodeRegistrationOptionsFuzzer,
 		joinControlPlanesFuzzer,
 	}
 }
 
-func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// NodeRegistrationOptions.IgnorePreflightErrors does not exists in v1alpha4, so setting it to nil in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
-	obj.IgnorePreflightErrors = nil
-}
-
-func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// JoinControlPlane.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
-	obj.CertificateKey = ""
-}
+// Custom fuzzers for kubeadm v1beta3 types.
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// InitConfiguration.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	// InitConfiguration.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.CertificateKey = ""
 
-	// InitConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	// InitConfiguration.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.SkipPhases = nil
 }
 
 func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// JoinConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
+	// InitConfiguration.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.SkipPhases = nil
+}
+
+func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
+	obj.IgnorePreflightErrors = nil
+}
+
+func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// JoinControlPlane.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
+	obj.CertificateKey = ""
 }

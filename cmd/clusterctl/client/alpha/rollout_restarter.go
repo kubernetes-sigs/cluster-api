@@ -59,16 +59,12 @@ func (r *rollout) ObjectRestarter(ctx context.Context, proxy cluster.Proxy, ref 
 		}
 
 		if err := checkControlPlaneRolloutAfter(obj); err != nil {
-			// if _, ok := err.(*errRolloutAfterNotFound); ok {
-			// 	return errors.Errorf("Invalid resource type %v. Resource must implement rolloutAfter in it's spec", ref.Kind)
-			// }
 			return errors.Errorf("err: %s, can't update ControlPlane (remove 'spec.rolloutAfter' first): %v/%v", err.Error(), ref.Kind, ref.Name)
 		}
 
 		if err := setRolloutAfterOnControlPlane(ctx, proxy, ref); err != nil {
 			return err
 		}
-
 	}
 	return nil
 }

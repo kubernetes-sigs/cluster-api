@@ -29,14 +29,9 @@ const (
 	MachineDeployment = "machinedeployment"
 	// KubeadmControlPlane is a resource type.
 	KubeadmControlPlane = "kubeadmcontrolplane"
-	// DefaultAPIVersion is what clusterctl will assume if none is provided
+	// DefaultAPIVersion is what clusterctl will assume if none is provided.
 	DefaultAPIVersion = "v1beta1"
 )
-
-var validResourceTypes = []string{
-	MachineDeployment,
-	KubeadmControlPlane,
-}
 
 var validRollbackResourceTypes = []string{
 	MachineDeployment,

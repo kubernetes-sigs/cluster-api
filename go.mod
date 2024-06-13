@@ -17,6 +17,7 @@ require (
 	github.com/flatcar/ignition v0.36.2
 	github.com/go-logr/logr v1.4.1
 	github.com/gobuffalo/flect v1.0.2
+	github.com/google/gnostic-models v0.6.8
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/google/gofuzz v1.2.0
@@ -89,7 +90,6 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cel-go v0.17.8 // indirect
-	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect

@@ -152,7 +152,7 @@ func resourceHasRolloutAfter(proxy cluster.Proxy, ref corev1.ObjectReference) (b
 		return false, err
 	}
 
-	//Fetch the OpenAPI schema
+	// Fetch the OpenAPI schema
 	openAPISchema, err := discoveryClient.OpenAPISchema()
 	if err != nil {
 		return false, err
@@ -174,7 +174,6 @@ func resourceHasRolloutAfter(proxy cluster.Proxy, ref corev1.ObjectReference) (b
 		if findSpecPropertyForResource(definition, resourceDefName, "rolloutAfter") {
 			return true, nil
 		}
-
 	}
 
 	return false, fmt.Errorf("resource definition for %s.%s.%s not found", "io.x-k8s.cluster.controlplane", ref.APIVersion, ref.Kind)

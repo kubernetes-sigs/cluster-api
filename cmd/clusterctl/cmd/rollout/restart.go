@@ -31,7 +31,6 @@ type restartOptions struct {
 	kubeconfigContext string
 	resources         []string
 	namespace         string
-	apiVersion        string
 }
 
 var restartOpt = &restartOptions{}

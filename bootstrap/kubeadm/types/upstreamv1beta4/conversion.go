@@ -104,7 +104,14 @@ func Convert_upstreamv1beta4_JoinConfiguration_To_v1beta1_JoinConfiguration(in *
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - DryRun (Does not make sense for CAPBK)
 	// - Timeouts (Not supported yet)
-	return autoConvert_upstreamv1beta4_JoinConfiguration_To_v1beta1_JoinConfiguration(in, out, s)
+	err := autoConvert_upstreamv1beta4_JoinConfiguration_To_v1beta1_JoinConfiguration(in, out, s)
+
+	// Handle migration of JoinConfiguration.Timeouts.TLSBootstrap to Discovery.Timeout.
+	if in.Timeouts != nil && in.Timeouts.TLSBootstrap != nil {
+		out.Discovery.Timeout = in.Timeouts.TLSBootstrap
+	}
+
+	return err
 }
 
 func Convert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
@@ -140,6 +147,19 @@ func Convert_v1beta1_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in *bootstrapv1.Loca
 	return autoConvert_v1beta1_LocalEtcd_To_upstreamv1beta4_LocalEtcd(in, out, s)
 }
 
+func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
+	err := autoConvert_v1beta1_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration(in, out, s)
+
+	// Handle migration of Discovery.Timeout to JoinConfiguration.Timeouts.TLSBootstrap.
+	if in.Discovery.Timeout != nil {
+		if out.Timeouts == nil {
+			out.Timeouts = &Timeouts{}
+		}
+		out.Timeouts.TLSBootstrap = in.Discovery.Timeout
+	}
+	return err
+}
+
 func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
 	// Following fields exists in kubeadm v1beta4 types and can be converted to CAPBK v1beta1.
 	out.KubeletExtraArgs = convertToArgs(in.KubeletExtraArgs)
@@ -148,7 +168,7 @@ func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta4_NodeRegistration
 
 func Convert_v1beta1_Discovery_To_upstreamv1beta4_Discovery(in *bootstrapv1.Discovery, out *Discovery, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
-	// - Timeouts  //TODO: fix when we add timeout on CAPBK v1beta1
+	// - Timeout (this field has been migrated to JoinConfiguration.Timeouts.TLSBootstrap, the conversion is handled in Convert_v1beta1_JoinConfiguration_To_upstreamv1beta4_JoinConfiguration)
 	return autoConvert_v1beta1_Discovery_To_upstreamv1beta4_Discovery(in, out, s)
 }
 

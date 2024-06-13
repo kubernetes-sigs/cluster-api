@@ -74,7 +74,6 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		nodeRegistrationOptionsFuzzer,
 		joinControlPlaneFuzzer,
 		bootstrapv1APIServerFuzzer,
-		bootstrapv1DiscoveryFuzzer,
 	}
 }
 
@@ -147,13 +146,6 @@ func bootstrapv1APIServerFuzzer(obj *bootstrapv1.APIServer, c fuzz.Continue) {
 
 	// Following fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
 	obj.TimeoutForControlPlane = nil
-}
-
-func bootstrapv1DiscoveryFuzzer(obj *bootstrapv1.Discovery, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// Following fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
-	obj.Timeout = nil
 }
 
 func TestTimeoutForControlPlaneMigration(t *testing.T) {

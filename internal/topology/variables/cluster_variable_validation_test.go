@@ -28,7 +28,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var testCtx = ctrl.SetupSignalHandler()
+var ctx = ctrl.SetupSignalHandler()
 
 func Test_ValidateClusterVariables(t *testing.T) {
 	tests := []struct {
@@ -633,7 +633,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterVariables(testCtx, tt.values, nil, tt.definitions,
+			errList := validateClusterVariables(ctx, tt.values, nil, tt.definitions,
 				tt.validateRequired, field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -1624,7 +1624,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariable(testCtx, tt.clusterVariable, nil, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(ctx, tt.clusterVariable, nil, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -1757,7 +1757,7 @@ func Test_ValidateClusterVariable_CELTransitions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariable(testCtx, tt.clusterVariable, tt.oldClusterVariable, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(ctx, tt.clusterVariable, tt.oldClusterVariable, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErrMessage != "" {
@@ -2113,7 +2113,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateMachineVariables(testCtx, tt.values, tt.oldValues, tt.definitions,
+			errList := ValidateMachineVariables(ctx, tt.values, tt.oldValues, tt.definitions,
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(0).Child("variables", "overrides"))
 
 			if tt.wantErr {

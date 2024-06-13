@@ -106,7 +106,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterClassVariables(testCtx,
+			errList := ValidateClusterClassVariables(ctx,
 				tt.clusterClassVariables,
 				field.NewPath("spec", "variables"))
 
@@ -1323,7 +1323,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterClassVariable(testCtx,
+			errList := validateClusterClassVariable(ctx,
 				tt.clusterClassVariable,
 				field.NewPath("spec", "variables").Index(0))
 

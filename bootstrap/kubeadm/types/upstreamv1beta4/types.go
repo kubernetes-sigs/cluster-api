@@ -585,7 +585,7 @@ type Timeouts struct {
 	// +optional
 	Discovery *metav1.Duration `json:"discovery,omitempty"`
 
-	// UpgradeManifests is the timeout for upgradring static Pod manifests
+	// UpgradeManifests is the timeout for upgrading static Pod manifests
 	// Default: 5m
 	UpgradeManifests *metav1.Duration `json:"upgradeManifests,omitempty"`
 }

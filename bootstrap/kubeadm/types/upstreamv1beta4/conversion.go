@@ -96,14 +96,14 @@ func Convert_upstreamv1beta4_InitConfiguration_To_v1beta1_InitConfiguration(in *
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - DryRun (Does not make sense for CAPBK)
 	// - CertificateKey (CABPK does not use automatic copy certs)
-	// - Timeouts  //TODO: fix when we add timeout on CAPBK v1beta1
+	// - Timeouts (Not supported yet)
 	return autoConvert_upstreamv1beta4_InitConfiguration_To_v1beta1_InitConfiguration(in, out, s)
 }
 
 func Convert_upstreamv1beta4_JoinConfiguration_To_v1beta1_JoinConfiguration(in *JoinConfiguration, out *bootstrapv1.JoinConfiguration, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in CABPK v1beta1 version:
 	// - DryRun (Does not make sense for CAPBK)
-	// - Timeouts  //TODO: fix when we add timeout on CAPBK v1beta1
+	// - Timeouts (Not supported yet)
 	return autoConvert_upstreamv1beta4_JoinConfiguration_To_v1beta1_JoinConfiguration(in, out, s)
 }
 
@@ -130,7 +130,7 @@ func Convert_v1beta1_ControlPlaneComponent_To_upstreamv1beta4_ControlPlaneCompon
 
 func Convert_v1beta1_APIServer_To_upstreamv1beta4_APIServer(in *bootstrapv1.APIServer, out *APIServer, s apimachineryconversion.Scope) error {
 	// Following fields do not exist in kubeadm v1beta4 version:
-	// - TimeoutForControlPlane //TODO: fix when we add timeout on CAPBK v1beta1
+	// - TimeoutForControlPlane (this field has been migrated to Init/JoinConfiguration; migration is handled by ConvertFromClusterConfiguration custom converters.
 	return autoConvert_v1beta1_APIServer_To_upstreamv1beta4_APIServer(in, out, s)
 }
 
@@ -182,4 +182,54 @@ func convertFromArgs(in []Arg) map[string]string {
 		args[arg.Name] = arg.Value
 	}
 	return args
+}
+
+// Custom conversions to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.
+
+func (dst *InitConfiguration) ConvertFromClusterConfiguration(clusterConfiguration *bootstrapv1.ClusterConfiguration) error {
+	if clusterConfiguration == nil || clusterConfiguration.APIServer.TimeoutForControlPlane == nil {
+		return nil
+	}
+
+	if dst.Timeouts == nil {
+		dst.Timeouts = &Timeouts{}
+	}
+	dst.Timeouts.ControlPlaneComponentHealthCheck = clusterConfiguration.APIServer.TimeoutForControlPlane
+	return nil
+}
+
+func (dst *JoinConfiguration) ConvertFromClusterConfiguration(clusterConfiguration *bootstrapv1.ClusterConfiguration) error {
+	if clusterConfiguration == nil || clusterConfiguration.APIServer.TimeoutForControlPlane == nil {
+		return nil
+	}
+
+	if dst.Timeouts == nil {
+		dst.Timeouts = &Timeouts{}
+	}
+	dst.Timeouts.ControlPlaneComponentHealthCheck = clusterConfiguration.APIServer.TimeoutForControlPlane
+	return nil
+}
+
+func (src *InitConfiguration) ConvertToClusterConfiguration(clusterConfiguration *bootstrapv1.ClusterConfiguration) error {
+	if src.Timeouts == nil || src.Timeouts.ControlPlaneComponentHealthCheck == nil {
+		return nil
+	}
+
+	if clusterConfiguration == nil {
+		clusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+	}
+	clusterConfiguration.APIServer.TimeoutForControlPlane = src.Timeouts.ControlPlaneComponentHealthCheck
+	return nil
+}
+
+func (src *JoinConfiguration) ConvertToClusterConfiguration(clusterConfiguration *bootstrapv1.ClusterConfiguration) error {
+	if src.Timeouts == nil || src.Timeouts.ControlPlaneComponentHealthCheck == nil {
+		return nil
+	}
+
+	if clusterConfiguration == nil {
+		clusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+	}
+	clusterConfiguration.APIServer.TimeoutForControlPlane = src.Timeouts.ControlPlaneComponentHealthCheck
+	return nil
 }

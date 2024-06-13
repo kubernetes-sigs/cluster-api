@@ -18,10 +18,12 @@ package upstreamv1beta4
 
 import (
 	"testing"
+	"time"
 
 	fuzz "github.com/google/gofuzz"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
@@ -152,4 +154,42 @@ func bootstrapv1DiscoveryFuzzer(obj *bootstrapv1.Discovery, c fuzz.Continue) {
 
 	// Following fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
 	obj.Timeout = nil
+}
+
+func TestTimeoutForControlPlaneMigration(t *testing.T) {
+	timeout := metav1.Duration{Duration: 10 * time.Second}
+	t.Run("from ClusterConfiguration to InitConfiguration and back", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterConfiguration := &bootstrapv1.ClusterConfiguration{
+			APIServer: bootstrapv1.APIServer{TimeoutForControlPlane: &timeout},
+		}
+
+		initConfiguration := &InitConfiguration{}
+		err := initConfiguration.ConvertFromClusterConfiguration(clusterConfiguration)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(initConfiguration.Timeouts.ControlPlaneComponentHealthCheck).To(Equal(&timeout))
+
+		clusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+		err = initConfiguration.ConvertToClusterConfiguration(clusterConfiguration)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(clusterConfiguration.APIServer.TimeoutForControlPlane).To(Equal(&timeout))
+	})
+	t.Run("from ClusterConfiguration to JoinConfiguration and back", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterConfiguration := &bootstrapv1.ClusterConfiguration{
+			APIServer: bootstrapv1.APIServer{TimeoutForControlPlane: &timeout},
+		}
+
+		joinConfiguration := &JoinConfiguration{}
+		err := joinConfiguration.ConvertFromClusterConfiguration(clusterConfiguration)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(joinConfiguration.Timeouts.ControlPlaneComponentHealthCheck).To(Equal(&timeout))
+
+		clusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+		err = joinConfiguration.ConvertToClusterConfiguration(clusterConfiguration)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(clusterConfiguration.APIServer.TimeoutForControlPlane).To(Equal(&timeout))
+	})
 }

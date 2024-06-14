@@ -23,6 +23,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
@@ -127,7 +128,9 @@ func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace
 		obj.SetAPIVersion(node.Object.APIVersion)
 		obj.SetKind(node.Object.Kind)
 		err = proxy.GetClient().Get(ctx, nodeNamespacedName, obj)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get object %s, %s", node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name))
+		}
 
 		setFinalizers := obj.GetFinalizers()
 

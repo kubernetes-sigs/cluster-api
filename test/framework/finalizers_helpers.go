@@ -23,8 +23,10 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -70,8 +72,11 @@ func ValidateFinalizersResilience(ctx context.Context, proxy ClusterProxy, names
 	Expect(err).ToNot(HaveOccurred())
 
 	// Collect all objects where finalizers were initially set
-	objectsWithFinalizers := getObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
+	byf("Check that the finalizers are as expected")
+	objectsWithFinalizers, err := getObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
+	Expect(err).ToNot(HaveOccurred(), "Finalizers are not as expected")
 
+	byf("Removing all the finalizers")
 	// Setting the paused property on the Cluster resource will pause reconciliations, thereby having no effect on Finalizers.
 	// This also makes debugging easier.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
@@ -85,6 +90,7 @@ func ValidateFinalizersResilience(ctx context.Context, proxy ClusterProxy, names
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
 
 	// Check that the Finalizers are as expected after further reconciliations.
+	byf("Check that the finalizers are rebuilt as expected")
 	assertFinalizersExist(ctx, proxy, namespace, objectsWithFinalizers, allFinalizerAssertions, ownerGraphFilterFunction)
 }
 
@@ -107,10 +113,13 @@ func removeFinalizers(ctx context.Context, proxy ClusterProxy, namespace string,
 	}
 }
 
-func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace string, allFinalizerAssertions map[string][]string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) map[string]*unstructured.Unstructured {
+func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace string, allFinalizerAssertions map[string][]string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) (map[string]*unstructured.Unstructured, error) {
 	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return nil, err
+	}
 
+	var allErrs []error
 	objsWithFinalizers := map[string]*unstructured.Unstructured{}
 
 	for _, node := range graph {
@@ -119,25 +128,34 @@ func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace
 		obj.SetAPIVersion(node.Object.APIVersion)
 		obj.SetKind(node.Object.Kind)
 		err = proxy.GetClient().Get(ctx, nodeNamespacedName, obj)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get object %s, %s", node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name))
+		}
 
 		setFinalizers := obj.GetFinalizers()
 
 		if len(setFinalizers) > 0 {
 			// assert if the expected finalizers are set on the resource
-			Expect(setFinalizers).To(Equal(allFinalizerAssertions[node.Object.Kind]), "for resource type %s", node.Object.Kind)
+			expectedFinalizers := allFinalizerAssertions[node.Object.Kind]
+			if !reflect.DeepEqual(setFinalizers, expectedFinalizers) {
+				allErrs = append(allErrs, fmt.Errorf("unexpected finalizers for %s, %s: expected: %v, found: %v",
+					node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name), expectedFinalizers, setFinalizers))
+			}
 			objsWithFinalizers[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
 		}
 	}
 
-	return objsWithFinalizers
+	return objsWithFinalizers, kerrors.NewAggregate(allErrs)
 }
 
 // assertFinalizersExist ensures that current Finalizers match those in the initialObjectsWithFinalizers.
 func assertFinalizersExist(ctx context.Context, proxy ClusterProxy, namespace string, initialObjsWithFinalizers map[string]*unstructured.Unstructured, allFinalizerAssertions map[string][]string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
 	Eventually(func() error {
 		var allErrs []error
-		finalObjsWithFinalizers := getObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
+		finalObjsWithFinalizers, err := getObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
+		if err != nil {
+			return err
+		}
 
 		for objKindNamespacedName, obj := range initialObjsWithFinalizers {
 			// verify if finalizers for this resource were set on reconcile

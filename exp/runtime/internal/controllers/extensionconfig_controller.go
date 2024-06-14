@@ -24,13 +24,16 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
@@ -59,13 +62,21 @@ type Reconciler struct {
 	WatchFilterValue string
 }
 
-func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&runtimev1.ExtensionConfig{}).
-		WatchesMetadata(
-			&corev1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(r.secretToExtensionConfig),
-		).
+		WatchesRawSource(source.Kind(
+			partialSecretCache,
+			&metav1.PartialObjectMetadata{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+			},
+			handler.TypedEnqueueRequestsFromMapFunc(
+				r.secretToExtensionConfig,
+			),
+		)).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
@@ -181,7 +192,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, extensionConfig *runti
 
 // secretToExtensionConfig maps a secret to ExtensionConfigs with the corresponding InjectCAFromSecretAnnotation
 // to reconcile them on updates of the secrets.
-func (r *Reconciler) secretToExtensionConfig(ctx context.Context, secret client.Object) []reconcile.Request {
+func (r *Reconciler) secretToExtensionConfig(ctx context.Context, secret *metav1.PartialObjectMetadata) []reconcile.Request {
 	result := []ctrl.Request{}
 
 	extensionConfigs := runtimev1.ExtensionConfigList{}

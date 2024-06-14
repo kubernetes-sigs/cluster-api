@@ -71,34 +71,30 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 // Custom fuzzers for kubeadm v1beta3 types.
+// NOTES:
+// - When fields do not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// InitConfiguration.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.CertificateKey = ""
-
-	// InitConfiguration.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.SkipPhases = nil
 }
 
 func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// InitConfiguration.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.SkipPhases = nil
 }
 
 func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.IgnorePreflightErrors = nil
 }
 
 func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// JoinControlPlane.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 	obj.CertificateKey = ""
 }

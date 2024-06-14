@@ -473,7 +473,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		}
 	}
 
-	// NOTE: when joining a control plane we are passing ClusterConfiguration because clusterConfiguration.APIServer.TimeoutForControlPlane
+	// NOTE: It is required to provide in input the ClusterConfiguration because clusterConfiguration.APIServer.TimeoutForControlPlane
 	// has been migrated to InitConfiguration in the kubeadm v1beta4 API version.
 	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, scope.Config.Spec.InitConfiguration, parsedVersion)
 	if err != nil {
@@ -605,7 +605,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		joinConfiguration.NodeRegistration.Taints = append(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint)
 	}
 
-	// NOTE: when joining a worker it is not required to pass ClusterConfiguration because only clusterConfiguration.APIServer.TimeoutForControlPlane
+	// NOTE: It is not required to provide in input ClusterConfiguration because only clusterConfiguration.APIServer.TimeoutForControlPlane
 	// has been migrated to JoinConfiguration in the kubeadm v1beta4 API version, and this field do not apply to workers.
 	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(nil, joinConfiguration, parsedVersion)
 	if err != nil {
@@ -716,7 +716,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
 	}
 
-	// NOTE: when joining a control plane we are passing ClusterConfiguration because clusterConfiguration.APIServer.TimeoutForControlPlane
+	// NOTE: It is required to provide in input the ClusterConfiguration because clusterConfiguration.APIServer.TimeoutForControlPlane
 	// has been migrated to JoinConfiguration in the kubeadm v1beta4 API version.
 	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, scope.Config.Spec.JoinConfiguration, parsedVersion)
 	if err != nil {

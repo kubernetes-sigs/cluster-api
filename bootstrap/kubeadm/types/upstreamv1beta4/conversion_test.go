@@ -77,10 +77,13 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
+// Custom fuzzers for kubeadm v1beta4 types.
+// NOTES:
+// - When fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
+
 func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.Proxy = Proxy{}
 	obj.EncryptionAlgorithm = ""
 	obj.CACertificateValidityPeriod = nil
@@ -90,28 +93,24 @@ func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
 func controlPlaneComponentFuzzer(obj *ControlPlaneComponent, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.ExtraEnvs = nil
 }
 
 func dnsFuzzer(obj *DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.Disabled = false
 }
 
 func localEtcdFuzzer(obj *LocalEtcd, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.ExtraEnvs = nil
 }
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.DryRun = false
 	obj.CertificateKey = ""
 	obj.Timeouts = nil
@@ -120,31 +119,41 @@ func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.DryRun = false
-	obj.Timeouts = nil
+
+	// If timeouts have been set, unset unsupported timeouts (only TLSBootstrap is supported - corresponds to JoinConfiguration.Discovery.Timeout in cabpk v1beta1 API
+	if obj.Timeouts == nil {
+		return
+	}
+
+	var supportedTimeouts *Timeouts
+	if obj.Timeouts.TLSBootstrap != nil {
+		supportedTimeouts = &Timeouts{
+			TLSBootstrap: obj.Timeouts.TLSBootstrap,
+		}
+	}
+	obj.Timeouts = supportedTimeouts
 }
 
 func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.ImagePullSerial = nil
 }
 
 func joinControlPlaneFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in cabpk v1beta1 types, pinning them to avoid kubeadm v1beta4 --> cabpk v1beta1 --> kubeadm v1beta4 round trip errors.
 	obj.CertificateKey = ""
 }
 
 // Custom fuzzers for CABPK v1beta1 types.
+// NOTES:
+// - When fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
 
 func bootstrapv1APIServerFuzzer(obj *bootstrapv1.APIServer, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// Following fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
 	obj.TimeoutForControlPlane = nil
 }
 

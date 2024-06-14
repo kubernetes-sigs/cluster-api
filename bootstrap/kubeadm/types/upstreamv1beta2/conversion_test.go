@@ -71,60 +71,53 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 }
 
 // Custom fuzzers for kubeadm v1beta2 types.
+// NOTES:
+// - When fields do does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta2 --> cabpk v1beta1 --> kubeadm v1beta2 round trip errors.
 
 func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// ClusterConfiguration.UseHyperKubeImage does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta2 --> cabpk v1beta1 --> kubeadm v1beta2 round trip errors.
 	obj.UseHyperKubeImage = false
 }
 
 func dnsFuzzer(obj *DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// DNS.Type does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta2 --> cabpk v1beta1 --> kubeadm v1beta2 round trip errors.
 	obj.Type = ""
 }
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// InitConfiguration.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta2 --> cabpk v1beta1 --> kubeadm v1beta2 round trip errors.
 	obj.CertificateKey = ""
 }
 
 func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// JoinControlPlane.CertificateKey does not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta2 --> cabpk v1beta1 --> kubeadm v1beta2 round trip errors.
 	obj.CertificateKey = ""
 }
 
 // Custom fuzzers for CABPK v1beta1 types.
+// NOTES:
+// - When fields do not exist in kubeadm v1beta2 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta2 --> cabpk v1beta1 round trip errors.
 
 func bootstrapv1InitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// InitConfiguration.Patches does not exist in kubeadm v1beta2 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta2 --> cabpk v1beta1 round trip errors.
 	obj.Patches = nil
-
-	// InitConfiguration.SkipPhases does not exist in kubeadm v1beta2 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta2 --> cabpk v1beta1 round trip errors.
 	obj.SkipPhases = nil
 }
 
 func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// JoinConfiguration.Patches does not exist in kubeadm v1beta2 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta2 --> cabpk v1beta1 round trip errors.
 	obj.Patches = nil
-
-	// JoinConfiguration.SkipPhases does not exist in kubeadm v1beta2 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta2 --> cabpk v1beta1 round trip errors.
 	obj.SkipPhases = nil
 }
 
 func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// NodeRegistrationOptions.ImagePullPolicy does not exist in kubeadm v1beta2 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta2 --> cabpk v1beta1 round trip errors.
 	obj.ImagePullPolicy = ""
 }

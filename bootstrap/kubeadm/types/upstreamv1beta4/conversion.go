@@ -19,6 +19,7 @@ package upstreamv1beta4
 import (
 	"sort"
 
+	"github.com/pkg/errors"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
@@ -115,6 +116,9 @@ func Convert_upstreamv1beta4_JoinConfiguration_To_v1beta1_JoinConfiguration(in *
 }
 
 func Convert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	// Following fields do not exist in CABPK v1beta1 version:
+	// - ImagePullSerial (Not supported yet)
+
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is not an issue because the CAPBK v1beta1 does not allow this use case.
 	out.KubeletExtraArgs = convertFromArgs(in.KubeletExtraArgs)
@@ -236,7 +240,7 @@ func (src *InitConfiguration) ConvertToClusterConfiguration(clusterConfiguration
 	}
 
 	if clusterConfiguration == nil {
-		clusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+		return errors.New("cannot convert InitConfiguration to a nil ClusterConfiguration")
 	}
 	clusterConfiguration.APIServer.TimeoutForControlPlane = src.Timeouts.ControlPlaneComponentHealthCheck
 	return nil

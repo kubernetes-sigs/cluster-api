@@ -77,7 +77,8 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 				conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityError, "")
 				return ctrl.Result{}, errors.Wrapf(err, "no matching Node for Machine %q in namespace %q", machine.Name, machine.Namespace)
 			}
-			conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeProvisioningReason, clusterv1.ConditionSeverityWarning, "")
+			conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeProvisioningReason, clusterv1.ConditionSeverityWarning, "Waiting for a node with matching ProviderID to exist")
+			log.Info("Infrastructure provider reporting spec.providerID, matching Kubernetes node is not yet available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Spec.InfrastructureRef.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", *machine.Spec.ProviderID)
 			// No need to requeue here. Nodes emit an event that triggers reconciliation.
 			return ctrl.Result{}, nil
 		}

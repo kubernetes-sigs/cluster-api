@@ -239,6 +239,23 @@ func TestHealthCheckTargets(t *testing.T) {
 	}
 
 	testMachine := newTestMachine("machine1", namespace, clusterName, "node1", mhcSelector)
+	testMachineWithInfraReady := testMachine.DeepCopy()
+	testMachineWithInfraReady.CreationTimestamp = metav1.NewTime(time.Now().Add(-100 * time.Second))
+	testMachineWithInfraReady.SetConditions(clusterv1.Conditions{
+		{
+			Type:               clusterv1.InfrastructureReadyCondition,
+			Status:             corev1.ConditionTrue,
+			Severity:           clusterv1.ConditionSeverityInfo,
+			LastTransitionTime: metav1.NewTime(testMachineWithInfraReady.CreationTimestamp.Add(50 * time.Second)),
+		},
+	})
+
+	nodeNotYetStartedTargetAndInfraReady := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachineWithInfraReady,
+		Node:    nil,
+	}
 
 	// Targets for when the node has not yet been seen by the Machine controller
 	testMachineCreated1200s := testMachine.DeepCopy()
@@ -367,6 +384,13 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedHealthy:          []healthCheckTarget{},
 			expectedNeedsRemediation: []healthCheckTarget{},
 			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 400*time.Second},
+		},
+		{
+			desc:                     "when the node has not yet started for shorter than the timeout, and infra is ready",
+			targets:                  []healthCheckTarget{nodeNotYetStartedTargetAndInfraReady},
+			expectedHealthy:          []healthCheckTarget{},
+			expectedNeedsRemediation: []healthCheckTarget{},
+			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 50*time.Second},
 		},
 		{
 			desc:                              "when the node has not yet started for longer than the timeout",

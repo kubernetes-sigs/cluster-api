@@ -68,6 +68,17 @@ func TestMachineToDelete(t *testing.T) {
 			},
 		},
 	}
+	healthyCheckConditionFalseMachine := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			NodeRef: nodeRef,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.MachineHealthCheckSucceededCondition,
+					Status: corev1.ConditionFalse,
+				},
+			},
+		},
+	}
 
 	tests := []struct {
 		desc     string
@@ -220,6 +231,18 @@ func TestMachineToDelete(t *testing.T) {
 			},
 			expect: []*clusterv1.Machine{
 				nodeHealthyConditionUnknownMachine,
+			},
+		},
+		{
+			desc: "func=randomDeletePolicy, NodeHealthyConditionFalseMachine, diff=1",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				healthyCheckConditionFalseMachine,
+				healthyMachine,
+			},
+			expect: []*clusterv1.Machine{
+				healthyCheckConditionFalseMachine,
 			},
 		},
 	}

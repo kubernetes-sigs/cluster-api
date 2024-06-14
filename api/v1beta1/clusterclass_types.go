@@ -273,7 +273,8 @@ type MachineHealthCheckClass struct {
 	// through a `Spec.ProviderID` field.
 	//
 	// The duration set in this field is compared to the greatest of:
-	// - Cluster's infrastructure and control plane ready condition timestamp (if and when available)
+	// - Cluster's infrastructure ready condition timestamp (if and when available)
+	// - Control Plane's initialized condition timestamp (if and when available)
 	// - Machine's infrastructure ready condition timestamp (if and when available)
 	// - Machine's metadata creation timestamp
 	//

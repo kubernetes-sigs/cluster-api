@@ -146,8 +146,9 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 	if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
 		return false
 	}
+	// Note: for the sake of prioritization, we are not making any assumption about Health when ConditionUnknown.
 	nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
-	if nodeHealthyCondition != nil && nodeHealthyCondition.Status != corev1.ConditionTrue {
+	if nodeHealthyCondition != nil && nodeHealthyCondition.Status == corev1.ConditionFalse {
 		return false
 	}
 	healthCheckCondition := conditions.Get(machine, clusterv1.MachineHealthCheckSucceededCondition)

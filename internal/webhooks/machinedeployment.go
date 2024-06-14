@@ -268,6 +268,23 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		}
 	}
 
+	if newMD.Spec.Strategy != nil && newMD.Spec.Strategy.Remediation != nil {
+		total := 1
+		if newMD.Spec.Replicas != nil {
+			total = int(*newMD.Spec.Replicas)
+		}
+
+		if newMD.Spec.Strategy.Remediation.MaxInFlight != nil {
+			if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.Remediation.MaxInFlight, total, true); err != nil {
+				allErrs = append(
+					allErrs,
+					field.Invalid(specPath.Child("strategy", "remediation", "maxInFlight"),
+						newMD.Spec.Strategy.Remediation.MaxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				)
+			}
+		}
+	}
+
 	if newMD.Spec.Template.Spec.Version != nil {
 		if !version.KubeSemver.MatchString(*newMD.Spec.Template.Spec.Version) {
 			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *newMD.Spec.Template.Spec.Version, "must be a valid semantic version"))

@@ -149,7 +149,6 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 		Endpoints:   []string{config.Endpoint}, // NOTE: endpoint is used only as a host for certificate validation, the network connection is defined by DialOptions.
 		DialTimeout: config.DialTimeout,
 		DialOptions: []grpc.DialOption{
-			grpc.WithBlock(), // block until the underlying connection is up
 			grpc.WithContextDialer(dialer.DialContextWithAddr),
 		},
 		TLS: config.TLSConfig,

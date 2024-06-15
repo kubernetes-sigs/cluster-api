@@ -17,7 +17,6 @@ limitations under the License.
 package patch
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -108,7 +107,7 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				return reflect.DeepEqual(obj.GetOwnerReferences(), objAfter.GetOwnerReferences())
+				return cmp.Equal(obj.GetOwnerReferences(), objAfter.GetOwnerReferences())
 			}, timeout).Should(BeTrue())
 		})
 	})
@@ -543,7 +542,7 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return reflect.DeepEqual(obj.Finalizers, objAfter.Finalizers)
+				return cmp.Equal(obj.Finalizers, objAfter.Finalizers)
 			}, timeout).Should(BeTrue())
 		})
 
@@ -628,7 +627,7 @@ func TestPatchHelper(t *testing.T) {
 				}
 
 				return objAfter.Spec.Paused &&
-					reflect.DeepEqual(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
+					cmp.Equal(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
 			}, timeout).Should(BeTrue())
 		})
 
@@ -666,7 +665,7 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				return reflect.DeepEqual(objAfter.Status, obj.Status)
+				return cmp.Equal(objAfter.Status, obj.Status)
 			}, timeout).Should(BeTrue())
 		})
 
@@ -718,7 +717,7 @@ func TestPatchHelper(t *testing.T) {
 
 				return obj.Status.InfrastructureReady == objAfter.Status.InfrastructureReady &&
 					conditions.IsTrue(objAfter, clusterv1.ReadyCondition) &&
-					reflect.DeepEqual(obj.Spec, objAfter.Spec)
+					cmp.Equal(obj.Spec, objAfter.Spec)
 			}, timeout).Should(BeTrue())
 		})
 	})
@@ -774,7 +773,7 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return reflect.DeepEqual(obj.Spec, objAfter.Spec) &&
+				return cmp.Equal(obj.Spec, objAfter.Spec) &&
 					obj.GetGeneration() == objAfter.Status.ObservedGeneration
 			}, timeout).Should(BeTrue())
 		})
@@ -823,8 +822,8 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return reflect.DeepEqual(obj.Spec, objAfter.Spec) &&
-					reflect.DeepEqual(obj.Status, objAfter.Status) &&
+				return cmp.Equal(obj.Spec, objAfter.Spec) &&
+					cmp.Equal(obj.Status, objAfter.Status) &&
 					obj.GetGeneration() == objAfter.Status.ObservedGeneration
 			}, timeout).Should(BeTrue())
 		})

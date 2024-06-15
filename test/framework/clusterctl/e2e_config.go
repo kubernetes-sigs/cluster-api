@@ -19,6 +19,8 @@ package clusterctl
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -33,6 +35,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
@@ -304,13 +307,16 @@ func ResolveRelease(ctx context.Context, releaseMarker string) (string, error) {
 		return "", errors.Errorf("releasemarker does not support disabling the go proxy: GOPROXY=%q", os.Getenv("GOPROXY"))
 	}
 	goproxyClient := goproxy.NewClient(scheme, host)
-	return resolveReleaseMarker(ctx, releaseMarker, goproxyClient)
+	return resolveReleaseMarker(ctx, releaseMarker, goproxyClient, githubReleaseMetadataURL)
 }
 
 // resolveReleaseMarker resolves releaseMarker string to verion string e.g.
 // - Resolves "go://sigs.k8s.io/cluster-api@v1.0" to the latest stable patch release of v1.0.
 // - Resolves "go://sigs.k8s.io/cluster-api@latest-v1.0" to the latest patch release of v1.0 including rc and pre releases.
-func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClient *goproxy.Client) (string, error) {
+// It also checks if a release actually exists by trying to query for the `metadata.yaml` file.
+// To do that the url gets calculated by the toMetadataURL function. The toMetadataURL func
+// is passed as variable to be able to write a proper unit test.
+func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClient *goproxy.Client, toMetadataURL func(gomodule, version string) string) (string, error) {
 	if !strings.HasPrefix(releaseMarker, "go://") {
 		return "", errors.Errorf("unknown release marker scheme")
 	}
@@ -330,31 +336,131 @@ func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClie
 	if strings.HasPrefix(gomoduleParts[1], "latest-") {
 		includePrereleases = true
 	}
-	version := strings.TrimPrefix(gomoduleParts[1], "latest-") + ".0"
-	version = strings.TrimPrefix(version, "v")
-	semVersion, err := semver.Parse(version)
+	rawVersion := strings.TrimPrefix(gomoduleParts[1], "latest-") + ".0"
+	rawVersion = strings.TrimPrefix(rawVersion, "v")
+	semVersion, err := semver.Parse(rawVersion)
 	if err != nil {
-		return "", errors.Wrapf(err, "parsing semver for %s", version)
+		return "", errors.Wrapf(err, "parsing semver for %s", rawVersion)
 	}
 
-	parsedTags, err := goproxyClient.GetVersions(ctx, gomodule)
+	versions, err := goproxyClient.GetVersions(ctx, gomodule)
 	if err != nil {
 		return "", err
 	}
 
-	var picked semver.Version
-	for i, tag := range parsedTags {
-		if !includePrereleases && len(tag.Pre) > 0 {
+	// Search for the latest release according to semantic version ordering.
+	// Releases with tag name that are not in semver format are ignored.
+	versionCandidates := []semver.Version{}
+	for _, version := range versions {
+		if !includePrereleases && len(version.Pre) > 0 {
 			continue
 		}
-		if tag.Major == semVersion.Major && tag.Minor == semVersion.Minor {
-			picked = parsedTags[i]
+		if version.Major != semVersion.Major || version.Minor != semVersion.Minor {
+			continue
 		}
+
+		versionCandidates = append(versionCandidates, version)
 	}
-	if picked.Major == 0 && picked.Minor == 0 && picked.Patch == 0 {
+
+	if len(versionCandidates) == 0 {
 		return "", errors.Errorf("no suitable release available for release marker %s", releaseMarker)
 	}
-	return picked.String(), nil
+
+	// Sort parsed versions by semantic version order.
+	sort.SliceStable(versionCandidates, func(i, j int) bool {
+		// Prioritize pre-release versions over releases. For example v2.0.0-alpha > v1.0.0
+		// If both are pre-releases, sort by semantic version order as usual.
+		if len(versionCandidates[i].Pre) == 0 && len(versionCandidates[j].Pre) > 0 {
+			return false
+		}
+		if len(versionCandidates[j].Pre) == 0 && len(versionCandidates[i].Pre) > 0 {
+			return true
+		}
+
+		return versionCandidates[j].LT(versionCandidates[i])
+	})
+
+	// Limit the number of searchable versions by 5.
+	versionCandidates = versionCandidates[:min(5, len(versionCandidates))]
+
+	for _, v := range versionCandidates {
+		// Iterate through sorted versions and try to fetch a file from that release.
+		// If it's completed successfully, we get the latest release.
+		// Note: the fetched file will be cached and next time we will get it from the cache.
+		versionString := "v" + v.String()
+		_, err := httpGetURL(ctx, toMetadataURL(gomodule, versionString))
+		if err != nil {
+			if errors.Is(err, errNotFound) {
+				// Ignore this version
+				continue
+			}
+
+			return "", err
+		}
+
+		return v.String(), nil
+	}
+
+	// If we reached this point, it means we didn't find any release.
+	return "", errors.New("failed to find releases tagged with a valid semantic version number")
+}
+
+var (
+	retryableOperationInterval = 10 * time.Second
+	retryableOperationTimeout  = 1 * time.Minute
+	errNotFound                = errors.New("404 Not Found")
+)
+
+func githubReleaseMetadataURL(gomodule, version string) string {
+	// Rewrite gomodule to the github repository
+	if strings.HasPrefix(gomodule, "k8s.io") {
+		gomodule = strings.Replace(gomodule, "k8s.io", "github.com/kubernetes", 1)
+	}
+	if strings.HasPrefix(gomodule, "sigs.k8s.io") {
+		gomodule = strings.Replace(gomodule, "sigs.k8s.io", "github.com/kubernetes-sigs", 1)
+	}
+
+	return fmt.Sprintf("https://%s/releases/download/%s/metadata.yaml", gomodule, version)
+}
+
+// httpGetURL does a GET request to the given url and returns its content.
+// If the responses StatusCode is 404 (StatusNotFound) it does not do a retry because
+// the result is not expected to change.
+func httpGetURL(ctx context.Context, url string) ([]byte, error) {
+	var retryError error
+	var content []byte
+	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(context.Context) (bool, error) {
+		resp, err := http.Get(url) //nolint:gosec,noctx
+		if err != nil {
+			retryError = errors.Wrap(err, "error sending request")
+			return false, nil
+		}
+		defer resp.Body.Close()
+
+		// if we get 404 there is no reason to retry
+		if resp.StatusCode == http.StatusNotFound {
+			retryError = errNotFound
+			return true, nil
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			retryError = errors.Errorf("error getting file, status code: %d", resp.StatusCode)
+			return false, nil
+		}
+
+		content, err = io.ReadAll(resp.Body)
+		if err != nil {
+			retryError = errors.Wrap(err, "error reading response body")
+			return false, nil
+		}
+
+		retryError = nil
+		return true, nil
+	})
+	if retryError != nil {
+		return nil, retryError
+	}
+	return content, nil
 }
 
 // Defaults assigns default values to the object. More specifically:

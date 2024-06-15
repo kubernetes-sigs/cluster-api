@@ -91,7 +91,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	}
 
 	if needsRotation {
-		log.Info("rotating kubeconfig secret")
+		log.Info("Rotating kubeconfig secret")
 		if err := kubeconfig.RegenerateSecret(ctx, r.Client, configSecret); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
 		}

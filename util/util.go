@@ -348,7 +348,6 @@ func indexOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRefe
 // It matches the object based on the Group, Kind and Name.
 func IsOwnedByObject(obj metav1.Object, target client.Object) bool {
 	for _, ref := range obj.GetOwnerReferences() {
-		ref := ref
 		if refersTo(&ref, target) {
 			return true
 		}

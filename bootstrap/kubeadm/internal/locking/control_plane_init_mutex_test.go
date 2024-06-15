@@ -99,7 +99,6 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
@@ -259,7 +258,6 @@ func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 

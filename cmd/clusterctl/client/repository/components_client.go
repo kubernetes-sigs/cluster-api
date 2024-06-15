@@ -91,13 +91,13 @@ func (f *componentsClient) getRawBytes(ctx context.Context, options *ComponentsO
 	}
 
 	if file == nil {
-		log.V(5).Info("Fetching", "File", path, "Provider", f.provider.Name(), "Type", f.provider.Type(), "Version", options.Version)
+		log.V(5).Info("Fetching", "file", path, "provider", f.provider.Name(), "type", f.provider.Type(), "version", options.Version)
 		file, err = f.repository.GetFile(ctx, options.Version, path)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", path, f.provider.ManifestLabel())
 		}
 	} else {
-		log.Info("Using", "Override", path, "Provider", f.provider.ManifestLabel(), "Version", options.Version)
+		log.Info("Using", "override", path, "provider", f.provider.ManifestLabel(), "version", options.Version)
 	}
 	return file, nil
 }

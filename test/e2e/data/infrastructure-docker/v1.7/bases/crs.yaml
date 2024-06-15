@@ -1,0 +1,24 @@
+---
+# ConfigMap object referenced by the ClusterResourceSet object and with
+# the CNI resource defined in the test config file
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "cni-${CLUSTER_NAME}-crs-0"
+data: ${CNI_RESOURCES}
+binaryData:
+---
+# ClusterResourceSet object with
+# a selector that targets all the Cluster with label cni=${CLUSTER_NAME}-crs-0
+apiVersion: addons.cluster.x-k8s.io/v1beta1
+kind: ClusterResourceSet
+metadata:
+  name:  "${CLUSTER_NAME}-crs-0"
+spec:
+  strategy: ApplyOnce
+  clusterSelector:
+    matchLabels:
+      cni: "${CLUSTER_NAME}-crs-0"
+  resources:
+    - name: "cni-${CLUSTER_NAME}-crs-0"
+      kind: ConfigMap

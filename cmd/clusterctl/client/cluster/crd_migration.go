@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
@@ -117,7 +118,7 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	// Note: We want to migrate objects to new storage versions as soon as possible
 	// to prevent unnecessary conversion webhook calls.
 	if currentStatusStoredVersions.Len() == 1 && currentCRD.Status.StoredVersions[0] == currentStorageVersion {
-		log.V(2).Info("CRD migration check passed", "name", newCRD.Name)
+		log.V(2).Info("CRD migration check passed", "CustomResourceDefinition", klog.KObj(newCRD))
 		return false, nil
 	}
 
@@ -141,8 +142,8 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 }
 
 func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextensionsv1.CustomResourceDefinition, currentStorageVersion string) error {
-	log := logf.Log
-	log.Info("Migrating CRs, this operation may take a while...", "kind", crd.Spec.Names.Kind)
+	log := logf.Log.WithValues("CustomResourceDefinition", klog.KObj(crd))
+	log.Info("Migrating CRs, this operation may take a while...")
 
 	list := &unstructured.UnstructuredList{}
 	list.SetGroupVersionKind(schema.GroupVersionKind{
@@ -182,7 +183,7 @@ func (m *crdMigrator) migrateResourcesForCRD(ctx context.Context, crd *apiextens
 		}
 	}
 
-	log.V(2).Info(fmt.Sprintf("CR migration completed: migrated %d objects", i), "kind", crd.Spec.Names.Kind)
+	log.V(2).Info(fmt.Sprintf("CR migration completed: migrated %d objects", i))
 	return nil
 }
 

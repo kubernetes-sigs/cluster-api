@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -123,6 +124,17 @@ func MachineDeploymentScaleSpec(ctx context.Context, inputGetter func() MachineD
 			Replicas:                  1,
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
+
+		By("Deleting the MachineDeployment with foreground deletion")
+		foreground := metav1.DeletePropagationForeground
+		framework.DeleteAndWaitMachineDeployment(ctx, framework.DeleteAndWaitMachineDeploymentInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			MachineDeployment:         clusterResources.MachineDeployments[0],
+			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			DeletePropagationPolicy:   &foreground,
+		})
+
 		By("PASSED!")
 	})
 

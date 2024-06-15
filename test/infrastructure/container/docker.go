@@ -727,7 +727,6 @@ func configurePortMappings(portMappings []PortMapping, config *dockercontainer.C
 		}
 		hostConfig.PortBindings[port] = append(hostConfig.PortBindings[port], mapping)
 		exposedPorts[port] = struct{}{}
-		exposedPorts[nat.Port(fmt.Sprintf("%d/tcp", pm.HostPort))] = struct{}{}
 	}
 
 	config.ExposedPorts = exposedPorts

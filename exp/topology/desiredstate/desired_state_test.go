@@ -1329,6 +1329,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 	var clusterClassMinReadySeconds int32 = 20
 	clusterClassStrategy := clusterv1.MachineDeploymentStrategy{
 		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		Remediation: &clusterv1.RemediationStrategy{
+			MaxInFlight: ptr.To(intstr.FromInt32(5)),
+		},
 	}
 	md1 := builder.MachineDeploymentClass("linux-worker").
 		WithLabels(labels).
@@ -1390,6 +1393,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 	var topologyMinReadySeconds int32 = 10
 	topologyStrategy := clusterv1.MachineDeploymentStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+		Remediation: &clusterv1.RemediationStrategy{
+			MaxInFlight: ptr.To(intstr.FromInt32(5)),
+		},
 	}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{

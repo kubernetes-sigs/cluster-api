@@ -84,15 +84,20 @@ one of the above practices is really important for Cluster API developers
 
 - Developers MUST use `klog.KObj` or `klog.KRef` functions when logging key value pairs for Kubernetes objects, thus
   ensuring a key value pair representing a Kubernetes object is formatted consistently in all the logs.
+- Developers MUST use consistent log keys:
+  - kinds should be written in upper camel case, e.g. `MachineDeployment`, `MachineSet`
+    - Note: we cannot use lower camel case for kinds consistently because there is no way to 
+      automatically calculate the correct log key for provider CRDs like `AWSCluster`
+  - all other keys should use lower camel case, e.g. `resourceVersion`, `oldReplicas` to align to Kubernetes log conventions
 
 Please note that, in order to ensure logs can be easily searched it is important to ensure consistency for the following
 key value pairs (in order of importance):
 
-- Key value pairs identifying the object being reconciled, e.g. a Machine Deployment.
-- Key value pairs identifying the hierarchy of objects being reconciled, e.g. the Cluster a Machine Deployment belongs
+- Key value pairs identifying the object being reconciled, e.g. a MachineDeployment.
+- Key value pairs identifying the hierarchy of objects being reconciled, e.g. the Cluster a MachineDeployment belongs
   to.
 - Key value pairs identifying side effects on other objects, e.g. while reconciling a MachineDeployment, the controller 
-  creates a MachinesSet.
+  creates a MachineSet.
 - Other Key value pairs.
 
 ## Log Messages

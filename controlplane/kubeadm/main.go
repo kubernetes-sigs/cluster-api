@@ -257,7 +257,7 @@ func main() {
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
 				},
-				// This config ensures that the default client caches Unstructured objects.
+				// This config ensures that the default client uses the cache for all Unstructured get/list calls.
 				// KCP is only using Unstructured to retrieve InfraMachines and InfraMachineTemplates.
 				// As the cache should be used in those cases, caching is configured globally instead of
 				// creating a separate client that caches Unstructured.
@@ -288,7 +288,7 @@ func main() {
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
 
-	setupLog.Info("starting manager", "version", version.Get().String())
+	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

@@ -20,19 +20,20 @@ import (
 	"context"
 	"fmt"
 	"net/netip"
-	"reflect"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 )
 
 // SetupWebhookWithManager sets up IPAddress webhooks.
@@ -73,9 +74,14 @@ func (webhook *IPAddress) ValidateUpdate(_ context.Context, oldObj, newObj runti
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddress but got a %T", newObj))
 	}
 
-	if !reflect.DeepEqual(oldIP.Spec, newIP.Spec) {
-		return nil, field.Forbidden(field.NewPath("spec"), "the spec of IPAddress is immutable")
+	equal, diff, err := compare.Diff(oldIP.Spec, newIP.Spec)
+	if err != nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new IPAddress spec: %v", err))
 	}
+	if !equal {
+		return nil, field.Forbidden(field.NewPath("spec"), fmt.Sprintf("IPAddress spec is immutable. Diff: %s", diff))
+	}
+
 	return nil, nil
 }
 
@@ -146,7 +152,7 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 	claim := &ipamv1.IPAddressClaim{}
 	err = webhook.Client.Get(ctx, types.NamespacedName{Name: ip.Spec.ClaimRef.Name, Namespace: ip.ObjectMeta.Namespace}, claim)
 	if err != nil && !apierrors.IsNotFound(err) {
-		log.Error(err, "failed to fetch claim", "name", ip.Spec.ClaimRef.Name)
+		log.Error(err, "Failed to fetch claim", "IPAddressClaim", klog.KRef(ip.ObjectMeta.Namespace, ip.Spec.ClaimRef.Name))
 		allErrs = append(allErrs,
 			field.InternalError(
 				specPath.Child("claimRef"),

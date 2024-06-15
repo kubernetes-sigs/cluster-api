@@ -30,8 +30,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -56,18 +58,16 @@ const (
 	deleteRequeueAfter = 5 * time.Second
 )
 
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
-// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch
-// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;patch;update
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;clusters/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
 // Reconciler reconciles a Cluster object.
 type Reconciler struct {
-	Client                    client.Client
-	UnstructuredCachingClient client.Client
-	APIReader                 client.Reader
+	Client    client.Client
+	APIReader client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -249,12 +249,18 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				// Don't handle deleted child
 				continue
 			}
-			gvk := child.GetObjectKind().GroupVersionKind().String()
 
-			log.Info("Deleting child object", "gvk", gvk, "name", child.GetName())
+			gvk, err := apiutil.GVKForObject(child, r.Client.Scheme())
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "error getting gvk for child object"))
+				continue
+			}
+
+			log := log.WithValues(gvk.Kind, klog.KObj(child))
+			log.Info("Deleting child object")
 			if err := r.Client.Delete(ctx, child); err != nil {
 				err = errors.Wrapf(err, "error deleting cluster %s/%s: failed to delete %s %s", cluster.Namespace, cluster.Name, gvk, child.GetName())
-				log.Error(err, "Error deleting resource", "gvk", gvk, "name", child.GetName())
+				log.Error(err, "Error deleting resource")
 				errs = append(errs, err)
 			}
 		}
@@ -272,7 +278,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	}
 
 	if cluster.Spec.ControlPlaneRef != nil {
-		obj, err := external.Get(ctx, r.UnstructuredCachingClient, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+		obj, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 		switch {
 		case apierrors.IsNotFound(errors.Cause(err)):
 			// All good - the control plane resource has been deleted
@@ -303,7 +309,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	}
 
 	if cluster.Spec.InfrastructureRef != nil {
-		obj, err := external.Get(ctx, r.UnstructuredCachingClient, cluster.Spec.InfrastructureRef, cluster.Namespace)
+		obj, err := external.Get(ctx, r.Client, cluster.Spec.InfrastructureRef, cluster.Namespace)
 		switch {
 		case apierrors.IsNotFound(errors.Cause(err)):
 			// All good - the infra resource has been deleted

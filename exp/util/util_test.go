@@ -130,7 +130,6 @@ func TestGetMachinePoolByLabels(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		tc := tc
 		t.Run(tc.name, func(*testing.T) {
 			clientFake := fake.NewClientBuilder().
 				WithScheme(fakeScheme).

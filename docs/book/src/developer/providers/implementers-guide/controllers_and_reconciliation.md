@@ -232,7 +232,7 @@ if err = (&controllers.MailgunClusterReconciler{
     Client: mgr.GetClient(),
     Log:    ctrl.Log.WithName("controllers").WithName("MailgunCluster"),
 }).SetupWithManager(mgr); err != nil {
-    setupLog.Error(err, "unable to create controller", "controller", "MailgunCluster")
+    setupLog.Error(err, "Unable to create controller", "controller", "MailgunCluster")
     os.Exit(1)
 }
 ```
@@ -267,7 +267,7 @@ if err = (&controllers.MailgunClusterReconciler{
     Mailgun:   mg,
     Recipient: recipient,
 }).SetupWithManager(mgr); err != nil {
-    setupLog.Error(err, "unable to create controller", "controller", "MailgunCluster")
+    setupLog.Error(err, "Unable to create controller", "controller", "MailgunCluster")
     os.Exit(1)
 }
 ```

@@ -65,19 +65,17 @@ var (
 	errControlPlaneIsBeingDeleted = errors.New("control plane is being deleted")
 )
 
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status;machines/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client                    client.Client
-	UnstructuredCachingClient client.Client
-	APIReader                 client.Reader
-	Tracker                   *remote.ClusterCacheTracker
+	Client    client.Client
+	APIReader client.Reader
+	Tracker   *remote.ClusterCacheTracker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -575,7 +573,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		if apierrors.IsNotFound(err) {
 			// If control plane object in the reference does not exist, log and skip check for
 			// external managed control plane
-			log.Error(err, "control plane object specified in cluster spec.controlPlaneRef does not exist", "kind", cluster.Spec.ControlPlaneRef.Kind, "name", cluster.Spec.ControlPlaneRef.Name)
+			log.Error(err, "Control plane object specified in cluster spec.controlPlaneRef does not exist", cluster.Spec.ControlPlaneRef.Kind, klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
 		} else {
 			if err != nil {
 				// If any other error occurs when trying to get the control plane object,
@@ -787,7 +785,7 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, cluster *clust
 	}
 
 	// get the external object
-	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, m.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 		return nil, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 			ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)

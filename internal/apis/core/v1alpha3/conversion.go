@@ -187,14 +187,17 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	if restored.Spec.Strategy != nil && restored.Spec.Strategy.RollingUpdate != nil {
+	if restored.Spec.Strategy != nil {
 		if dst.Spec.Strategy == nil {
 			dst.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{}
 		}
-		if dst.Spec.Strategy.RollingUpdate == nil {
-			dst.Spec.Strategy.RollingUpdate = &clusterv1.MachineRollingUpdateDeployment{}
+		if restored.Spec.Strategy.RollingUpdate != nil {
+			if dst.Spec.Strategy.RollingUpdate == nil {
+				dst.Spec.Strategy.RollingUpdate = &clusterv1.MachineRollingUpdateDeployment{}
+			}
+			dst.Spec.Strategy.RollingUpdate.DeletePolicy = restored.Spec.Strategy.RollingUpdate.DeletePolicy
 		}
-		dst.Spec.Strategy.RollingUpdate.DeletePolicy = restored.Spec.Strategy.RollingUpdate.DeletePolicy
+		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
 	}
 
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
@@ -329,4 +332,12 @@ func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus
 func Convert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
+}
+
+func Convert_v1beta1_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in *clusterv1.MachineDeploymentStrategy, out *MachineDeploymentStrategy, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineDeploymentStrategy_To_v1alpha3_MachineDeploymentStrategy(in, out, s)
+}
+
+func Convert_v1beta1_MachineSetSpec_To_v1alpha3_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineSetSpec_To_v1alpha3_MachineSetSpec(in, out, s)
 }

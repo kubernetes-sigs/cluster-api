@@ -83,8 +83,6 @@ func TestKubeadmConfigTemplateValidation(t *testing.T) {
 	}
 
 	for name, tt := range cases {
-		tt := tt
-
 		webhook := &KubeadmConfigTemplate{}
 
 		t.Run(name, func(t *testing.T) {

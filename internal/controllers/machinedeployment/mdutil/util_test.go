@@ -181,6 +181,9 @@ func TestEqualMachineTemplate(t *testing.T) {
 			NodeDrainTimeout:        &metav1.Duration{Duration: 10 * time.Second},
 			NodeDeletionTimeout:     &metav1.Duration{Duration: 10 * time.Second},
 			NodeVolumeDetachTimeout: &metav1.Duration{Duration: 10 * time.Second},
+			ClusterName:             "cluster1",
+			Version:                 ptr.To("v1.25.0"),
+			FailureDomain:           ptr.To("failure-domain1"),
 			InfrastructureRef: corev1.ObjectReference{
 				Name:       "infra1",
 				Namespace:  "default",
@@ -197,6 +200,8 @@ func TestEqualMachineTemplate(t *testing.T) {
 			},
 		},
 	}
+
+	machineTemplateEqual := machineTemplate.DeepCopy()
 
 	machineTemplateWithEmptyLabels := machineTemplate.DeepCopy()
 	machineTemplateWithEmptyLabels.Labels = map[string]string{}
@@ -215,11 +220,24 @@ func TestEqualMachineTemplate(t *testing.T) {
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 20 * time.Second}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 20 * time.Second}
 
+	machineTemplateWithDifferentClusterName := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentClusterName.Spec.ClusterName = "cluster2"
+
+	machineTemplateWithDifferentVersion := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentVersion.Spec.Version = ptr.To("v1.26.0")
+
+	machineTemplateWithDifferentFailureDomain := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentFailureDomain.Spec.FailureDomain = ptr.To("failure-domain2")
+
 	machineTemplateWithDifferentInfraRef := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentInfraRef.Spec.InfrastructureRef.Name = "infra2"
 
 	machineTemplateWithDifferentInfraRefAPIVersion := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentInfraRefAPIVersion.Spec.InfrastructureRef.APIVersion = "infrastructure.cluster.x-k8s.io/v1beta2"
+
+	machineTemplateWithDifferentBootstrap := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentBootstrap.Spec.Bootstrap.ConfigRef = nil
+	machineTemplateWithDifferentBootstrap.Spec.Bootstrap.DataSecretName = ptr.To("data-secret")
 
 	machineTemplateWithDifferentBootstrapConfigRef := machineTemplate.DeepCopy()
 	machineTemplateWithDifferentBootstrapConfigRef.Spec.Bootstrap.ConfigRef.Name = "bootstrap2"
@@ -231,7 +249,16 @@ func TestEqualMachineTemplate(t *testing.T) {
 		Name           string
 		Former, Latter *clusterv1.MachineTemplateSpec
 		Expected       bool
+		Diff1          string
+		Diff2          string
 	}{
+		{
+			Name: "Same spec",
+			// Note: This test ensures that two MachineTemplates are equal even if the pointers differ.
+			Former:   machineTemplate,
+			Latter:   machineTemplateEqual,
+			Expected: true,
+		},
 		{
 			Name:     "Same spec, except latter does not have labels",
 			Former:   machineTemplate,
@@ -263,16 +290,223 @@ func TestEqualMachineTemplate(t *testing.T) {
 			Expected: true,
 		},
 		{
+			Name: "Spec changes, latter has different ClusterName",
+			// Note: ClusterName is immutable, but EqualMachineTemplate should still work correctly independent of that.
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentClusterName,
+			Expected: false,
+			Diff1: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+-     ClusterName:       "cluster1",
++     ClusterName:       "cluster2",
+      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+      ... // 6 identical fields
+    },
+  }`,
+			Diff2: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+-     ClusterName:       "cluster2",
++     ClusterName:       "cluster1",
+      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+      ... // 6 identical fields
+    },
+  }`,
+		},
+		{
+			Name:     "Spec changes, latter has different Version",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentVersion,
+			Expected: false,
+			Diff1: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName:       "cluster1",
+      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+-     Version:           &"v1.25.0",
++     Version:           &"v1.26.0",
+      ProviderID:        nil,
+      FailureDomain:     &"failure-domain1",
+      ... // 3 identical fields
+    },
+  }`,
+			Diff2: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName:       "cluster1",
+      Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+-     Version:           &"v1.26.0",
++     Version:           &"v1.25.0",
+      ProviderID:        nil,
+      FailureDomain:     &"failure-domain1",
+      ... // 3 identical fields
+    },
+  }`,
+		},
+		{
+			Name:     "Spec changes, latter has different FailureDomain",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentFailureDomain,
+			Expected: false,
+			Diff1: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ... // 3 identical fields
+      Version:                 &"v1.25.0",
+      ProviderID:              nil,
+-     FailureDomain:           &"failure-domain1",
++     FailureDomain:           &"failure-domain2",
+      NodeDrainTimeout:        nil,
+      NodeVolumeDetachTimeout: nil,
+      NodeDeletionTimeout:     nil,
+    },
+  }`,
+			Diff2: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ... // 3 identical fields
+      Version:                 &"v1.25.0",
+      ProviderID:              nil,
+-     FailureDomain:           &"failure-domain2",
++     FailureDomain:           &"failure-domain1",
+      NodeDrainTimeout:        nil,
+      NodeVolumeDetachTimeout: nil,
+      NodeDeletionTimeout:     nil,
+    },
+  }`,
+		},
+		{
 			Name:     "Spec changes, latter has different InfrastructureRef",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentInfraRef,
 			Expected: false,
+			Diff1: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName: "cluster1",
+      Bootstrap:   {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
+      InfrastructureRef: v1.ObjectReference{
+        Kind:       "InfrastructureMachine",
+        Namespace:  "default",
+-       Name:       "infra1",
++       Name:       "infra2",
+        UID:        "",
+        APIVersion: "infrastructure.cluster.x-k8s.io",
+        ... // 2 identical fields
+      },
+      Version:    &"v1.25.0",
+      ProviderID: nil,
+      ... // 4 identical fields
+    },
+  }`,
+			Diff2: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName: "cluster1",
+      Bootstrap:   {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
+      InfrastructureRef: v1.ObjectReference{
+        Kind:       "InfrastructureMachine",
+        Namespace:  "default",
+-       Name:       "infra2",
++       Name:       "infra1",
+        UID:        "",
+        APIVersion: "infrastructure.cluster.x-k8s.io",
+        ... // 2 identical fields
+      },
+      Version:    &"v1.25.0",
+      ProviderID: nil,
+      ... // 4 identical fields
+    },
+  }`,
+		},
+		{
+			Name:     "Spec changes, latter has different Bootstrap",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentBootstrap,
+			Expected: false,
+			Diff1: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName: "cluster1",
+      Bootstrap: v1beta1.Bootstrap{
+-       ConfigRef:      s"&ObjectReference{Kind:BootstrapConfig,Namespace:default,Name:bootstrap1,UID:,APIVersion:bootstrap.cluster.x-k8s.io,ResourceVersion:,FieldPath:,}",
++       ConfigRef:      nil,
+-       DataSecretName: nil,
++       DataSecretName: &"data-secret",
+      },
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+      Version:           &"v1.25.0",
+      ... // 5 identical fields
+    },
+  }`,
+			Diff2: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName: "cluster1",
+      Bootstrap: v1beta1.Bootstrap{
+-       ConfigRef:      nil,
++       ConfigRef:      s"&ObjectReference{Kind:BootstrapConfig,Namespace:default,Name:bootstrap1,UID:,APIVersion:bootstrap.cluster.x-k8s.io,ResourceVersion:,FieldPath:,}",
+-       DataSecretName: &"data-secret",
++       DataSecretName: nil,
+      },
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+      Version:           &"v1.25.0",
+      ... // 5 identical fields
+    },
+  }`,
 		},
 		{
 			Name:     "Spec changes, latter has different Bootstrap.ConfigRef",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentBootstrapConfigRef,
 			Expected: false,
+			Diff1: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName: "cluster1",
+      Bootstrap: v1beta1.Bootstrap{
+        ConfigRef: &v1.ObjectReference{
+          Kind:       "BootstrapConfig",
+          Namespace:  "default",
+-         Name:       "bootstrap1",
++         Name:       "bootstrap2",
+          UID:        "",
+          APIVersion: "bootstrap.cluster.x-k8s.io",
+          ... // 2 identical fields
+        },
+        DataSecretName: nil,
+      },
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+      Version:           &"v1.25.0",
+      ... // 5 identical fields
+    },
+  }`,
+			Diff2: `&v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName: "cluster1",
+      Bootstrap: v1beta1.Bootstrap{
+        ConfigRef: &v1.ObjectReference{
+          Kind:       "BootstrapConfig",
+          Namespace:  "default",
+-         Name:       "bootstrap2",
++         Name:       "bootstrap1",
+          UID:        "",
+          APIVersion: "bootstrap.cluster.x-k8s.io",
+          ... // 2 identical fields
+        },
+        DataSecretName: nil,
+      },
+      InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
+      Version:           &"v1.25.0",
+      ... // 5 identical fields
+    },
+  }`,
 		},
 		{
 			Name:     "Same spec, except latter has different InfrastructureRef APIVersion",
@@ -292,17 +526,19 @@ func TestEqualMachineTemplate(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec) {
+			runTest := func(t1, t2 *clusterv1.MachineTemplateSpec, expectedDiff string) {
 				// Run
-				equal := EqualMachineTemplate(t1, t2)
+				equal, diff, err := EqualMachineTemplate(t1, t2)
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(equal).To(Equal(test.Expected))
+				g.Expect(diff).To(BeComparableTo(expectedDiff))
 				g.Expect(t1.Labels).NotTo(BeNil())
 				g.Expect(t2.Labels).NotTo(BeNil())
 			}
 
-			runTest(test.Former, test.Latter)
+			runTest(test.Former, test.Latter, test.Diff1)
 			// Test the same case in reverse order
-			runTest(test.Latter, test.Former)
+			runTest(test.Latter, test.Former, test.Diff2)
 		})
 	}
 }
@@ -315,7 +551,10 @@ func TestFindNewMachineSet(t *testing.T) {
 	twoAfterRolloutAfter := metav1.NewTime(oneAfterRolloutAfter.Add(time.Minute))
 
 	deployment := generateDeployment("nginx")
-	deployment.Spec.RolloutAfter = &rolloutAfter
+	deployment.Spec.Template.Spec.InfrastructureRef.Name = "new-infra-ref"
+
+	deploymentWithRolloutAfter := deployment.DeepCopy()
+	deploymentWithRolloutAfter.Spec.RolloutAfter = &rolloutAfter
 
 	matchingMS := generateMS(deployment)
 
@@ -326,7 +565,7 @@ func TestFindNewMachineSet(t *testing.T) {
 	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
 
 	oldMS := generateMS(deployment)
-	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
+	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "old-infra-ref"
 
 	msCreatedTwoBeforeRolloutAfter := generateMS(deployment)
 	msCreatedTwoBeforeRolloutAfter.CreationTimestamp = twoBeforeRolloutAfter
@@ -340,7 +579,15 @@ func TestFindNewMachineSet(t *testing.T) {
 		msList             []*clusterv1.MachineSet
 		reconciliationTime *metav1.Time
 		expected           *clusterv1.MachineSet
+		createReason       string
 	}{
+		{
+			Name:         "Get nil if no MachineSets exist",
+			deployment:   deployment,
+			msList:       []*clusterv1.MachineSet{},
+			expected:     nil,
+			createReason: "no MachineSets exist for the MachineDeployment",
+		},
 		{
 			Name:       "Get the MachineSet with the MachineTemplate that matches the intent of the MachineDeployment",
 			deployment: deployment,
@@ -364,25 +611,52 @@ func TestFindNewMachineSet(t *testing.T) {
 			deployment: deployment,
 			msList:     []*clusterv1.MachineSet{&oldMS},
 			expected:   nil,
+			createReason: fmt.Sprintf(`couldn't find MachineSet matching MachineDeployment spec template: MachineSet %s: diff: &v1beta1.MachineTemplateSpec{
+    ObjectMeta: {},
+    Spec: v1beta1.MachineSpec{
+      ClusterName: "",
+      Bootstrap:   {},
+      InfrastructureRef: v1.ObjectReference{
+        Kind:       "",
+        Namespace:  "",
+-       Name:       "old-infra-ref",
++       Name:       "new-infra-ref",
+        UID:        "",
+        APIVersion: "",
+        ... // 2 identical fields
+      },
+      Version:    nil,
+      ProviderID: nil,
+      ... // 4 identical fields
+    },
+  }`, oldMS.Name),
 		},
 		{
 			Name:               "Get the MachineSet if reconciliationTime < rolloutAfter",
-			deployment:         deployment,
+			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			reconciliationTime: &oneBeforeRolloutAfter,
 			expected:           &msCreatedTwoBeforeRolloutAfter,
 		},
 		{
 			Name:               "Get nil if reconciliationTime is > rolloutAfter and no MachineSet is created after rolloutAfter",
-			deployment:         deployment,
+			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			reconciliationTime: &oneAfterRolloutAfter,
 			expected:           nil,
+			createReason:       fmt.Sprintf("RolloutAfter on MachineDeployment set to %s, no MachineSet has been created afterwards", rolloutAfter.Format(time.RFC3339)),
 		},
 		{
 			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter",
-			deployment:         deployment,
+			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedAfterRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &twoAfterRolloutAfter,
+			expected:           &msCreatedAfterRolloutAfter,
+		},
+		{
+			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter (inverse order in ms list)",
+			deployment:         *deploymentWithRolloutAfter,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedAfterRolloutAfter},
 			reconciliationTime: &twoAfterRolloutAfter,
 			expected:           &msCreatedAfterRolloutAfter,
 		},
@@ -393,8 +667,10 @@ func TestFindNewMachineSet(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ms := FindNewMachineSet(&test.deployment, test.msList, test.reconciliationTime)
+			ms, createReason, err := FindNewMachineSet(&test.deployment, test.msList, test.reconciliationTime)
+			g.Expect(err).To(Not(HaveOccurred()))
 			g.Expect(ms).To(BeComparableTo(test.expected))
+			g.Expect(createReason).To(BeComparableTo(test.createReason))
 		})
 	}
 }
@@ -407,7 +683,9 @@ func TestFindOldMachineSets(t *testing.T) {
 	twoAfterRolloutAfter := metav1.NewTime(oneAfterRolloutAfter.Add(time.Minute))
 
 	deployment := generateDeployment("nginx")
-	deployment.Spec.RolloutAfter = &rolloutAfter
+
+	deploymentWithRolloutAfter := deployment.DeepCopy()
+	deploymentWithRolloutAfter.Spec.RolloutAfter = &rolloutAfter
 
 	newMS := generateMS(deployment)
 	newMS.Name = "aa"
@@ -468,15 +746,21 @@ func TestFindOldMachineSets(t *testing.T) {
 			expected:   []*clusterv1.MachineSet{},
 		},
 		{
+			Name:       "Get empty old MachineSets if no MachineSets exist",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{},
+			expected:   []*clusterv1.MachineSet{},
+		},
+		{
 			Name:               "Get old MachineSets with new MachineSets, MachineSets created before rolloutAfter are considered new when reconciliationTime < rolloutAfter",
-			deployment:         deployment,
+			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
 			reconciliationTime: &oneBeforeRolloutAfter,
 			expected:           nil,
 		},
 		{
 			Name:               "Get old MachineSets with new MachineSets, MachineSets created after rolloutAfter are considered new when reconciliationTime > rolloutAfter",
-			deployment:         deployment,
+			deployment:         *deploymentWithRolloutAfter,
 			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedAfterRolloutAfter},
 			reconciliationTime: &twoAfterRolloutAfter,
 			expected:           []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
@@ -488,7 +772,8 @@ func TestFindOldMachineSets(t *testing.T) {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			allMS := FindOldMachineSets(&test.deployment, test.msList, test.reconciliationTime)
+			allMS, err := FindOldMachineSets(&test.deployment, test.msList, test.reconciliationTime)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(allMS).To(ConsistOf(test.expected))
 		})
 	}

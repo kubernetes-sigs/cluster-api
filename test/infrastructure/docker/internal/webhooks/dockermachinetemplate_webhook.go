@@ -19,7 +19,6 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"reflect"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,11 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/topology"
 )
-
-const dockerMachineTemplateImmutableMsg = "DockerMachineTemplate spec.template.spec field is immutable. Please create a new resource instead."
 
 func (webhook *DockerMachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -80,10 +78,18 @@ func (webhook *DockerMachineTemplate) ValidateUpdate(ctx context.Context, oldRaw
 	}
 
 	var allErrs field.ErrorList
-	if !topology.ShouldSkipImmutabilityChecks(req, newObj) &&
-		!reflect.DeepEqual(newObj.Spec.Template.Spec, oldObj.Spec.Template.Spec) {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newObj, dockerMachineTemplateImmutableMsg))
+	if !topology.ShouldSkipImmutabilityChecks(req, newObj) {
+		equal, diff, err := compare.Diff(oldObj.Spec.Template.Spec, newObj.Spec.Template.Spec)
+		if err != nil {
+			return nil, apierrors.NewBadRequest(fmt.Sprintf("failed to compare old and new DockerMachineTemplate: %v", err))
+		}
+		if !equal {
+			allErrs = append(allErrs,
+				field.Invalid(field.NewPath("spec", "template", "spec"), newObj, fmt.Sprintf("DockerMachineTemplate spec.template.spec field is immutable. Please create a new resource instead. Diff: %s", diff)),
+			)
+		}
 	}
+
 	// Validate the metadata of the template.
 	allErrs = append(allErrs, newObj.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 

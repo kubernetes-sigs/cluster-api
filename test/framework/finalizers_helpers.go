@@ -19,12 +19,15 @@ package framework
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -37,41 +40,53 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// CoreFinalizersAssertion maps Cluster API core types to their expected finalizers.
-var CoreFinalizersAssertion = map[string][]string{
-	"Cluster":           {clusterv1.ClusterFinalizer},
-	"Machine":           {clusterv1.MachineFinalizer},
-	"MachineSet":        {clusterv1.MachineSetTopologyFinalizer},
-	"MachineDeployment": {clusterv1.MachineDeploymentTopologyFinalizer},
+// CoreFinalizersAssertionWithLegacyClusters maps Cluster API core types to their expected finalizers for legacy Clusters.
+var CoreFinalizersAssertionWithLegacyClusters = map[string]func(types.NamespacedName) []string{
+	clusterKind: func(_ types.NamespacedName) []string { return []string{clusterv1.ClusterFinalizer} },
+	machineKind: func(_ types.NamespacedName) []string { return []string{clusterv1.MachineFinalizer} },
 }
 
+// CoreFinalizersAssertionWithClassyClusters maps Cluster API core types to their expected finalizers for classy Clusters.
+var CoreFinalizersAssertionWithClassyClusters = func() map[string]func(types.NamespacedName) []string {
+	r := map[string]func(types.NamespacedName) []string{}
+	for k, v := range CoreFinalizersAssertionWithLegacyClusters {
+		r[k] = v
+	}
+	r[machineSetKind] = func(_ types.NamespacedName) []string { return []string{clusterv1.MachineSetTopologyFinalizer} }
+	r[machineDeploymentKind] = func(_ types.NamespacedName) []string { return []string{clusterv1.MachineDeploymentTopologyFinalizer} }
+	return r
+}()
+
 // ExpFinalizersAssertion maps experimental resource types to their expected finalizers.
-var ExpFinalizersAssertion = map[string][]string{
-	"ClusterResourceSet": {addonsv1.ClusterResourceSetFinalizer},
-	"MachinePool":        {expv1.MachinePoolFinalizer},
+var ExpFinalizersAssertion = map[string]func(types.NamespacedName) []string{
+	clusterResourceSetKind: func(_ types.NamespacedName) []string { return []string{addonsv1.ClusterResourceSetFinalizer} },
+	machinePoolKind:        func(_ types.NamespacedName) []string { return []string{expv1.MachinePoolFinalizer} },
 }
 
 // DockerInfraFinalizersAssertion maps docker infrastructure resource types to their expected finalizers.
-var DockerInfraFinalizersAssertion = map[string][]string{
-	"DockerMachine":     {infrav1.MachineFinalizer},
-	"DockerCluster":     {infrav1.ClusterFinalizer},
-	"DockerMachinePool": {infraexpv1.MachinePoolFinalizer},
+var DockerInfraFinalizersAssertion = map[string]func(types.NamespacedName) []string{
+	dockerMachineKind:     func(_ types.NamespacedName) []string { return []string{infrav1.MachineFinalizer} },
+	dockerClusterKind:     func(_ types.NamespacedName) []string { return []string{infrav1.ClusterFinalizer} },
+	dockerMachinePoolKind: func(_ types.NamespacedName) []string { return []string{infraexpv1.MachinePoolFinalizer} },
 }
 
 // KubeadmControlPlaneFinalizersAssertion maps Kubeadm resource types to their expected finalizers.
-var KubeadmControlPlaneFinalizersAssertion = map[string][]string{
-	"KubeadmControlPlane": {controlplanev1.KubeadmControlPlaneFinalizer},
+var KubeadmControlPlaneFinalizersAssertion = map[string]func(types.NamespacedName) []string{
+	kubeadmControlPlaneKind: func(_ types.NamespacedName) []string { return []string{controlplanev1.KubeadmControlPlaneFinalizer} },
 }
 
 // ValidateFinalizersResilience checks that expected finalizers are in place, deletes them, and verifies that expected finalizers are properly added again.
-func ValidateFinalizersResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, finalizerAssertions ...map[string][]string) {
+func ValidateFinalizersResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction, finalizerAssertions ...map[string]func(name types.NamespacedName) []string) {
 	clusterKey := client.ObjectKey{Namespace: namespace, Name: clusterName}
 	allFinalizerAssertions, err := concatenateFinalizerAssertions(finalizerAssertions...)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Collect all objects where finalizers were initially set
-	objectsWithFinalizers := getObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
+	byf("Check that the finalizers are as expected")
+	err = checkObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
+	Expect(err).ToNot(HaveOccurred(), "Finalizers are not as expected")
 
+	byf("Removing all the finalizers")
 	// Setting the paused property on the Cluster resource will pause reconciliations, thereby having no effect on Finalizers.
 	// This also makes debugging easier.
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, true)
@@ -85,7 +100,10 @@ func ValidateFinalizersResilience(ctx context.Context, proxy ClusterProxy, names
 	setClusterPause(ctx, proxy.GetClient(), clusterKey, false)
 
 	// Check that the Finalizers are as expected after further reconciliations.
-	assertFinalizersExist(ctx, proxy, namespace, objectsWithFinalizers, allFinalizerAssertions, ownerGraphFilterFunction)
+	byf("Check that the finalizers are rebuilt as expected")
+	Eventually(func() error {
+		return checkObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
+	}).WithTimeout(1*time.Minute).WithPolling(2*time.Second).Should(Succeed(), "Finalizers are not rebuilt as expected")
 }
 
 // removeFinalizers removes all Finalizers from objects in the owner graph.
@@ -107,74 +125,47 @@ func removeFinalizers(ctx context.Context, proxy ClusterProxy, namespace string,
 	}
 }
 
-func getObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace string, allFinalizerAssertions map[string][]string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) map[string]*unstructured.Unstructured {
+func checkObjectsWithFinalizers(ctx context.Context, proxy ClusterProxy, namespace string, allFinalizerAssertions map[string]func(name types.NamespacedName) []string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) error {
 	graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace, proxy.GetKubeconfigPath(), ownerGraphFilterFunction)
-	Expect(err).ToNot(HaveOccurred())
+	if err != nil {
+		return err
+	}
 
-	objsWithFinalizers := map[string]*unstructured.Unstructured{}
-
+	var allErrs []error
 	for _, node := range graph {
 		nodeNamespacedName := client.ObjectKey{Namespace: node.Object.Namespace, Name: node.Object.Name}
 		obj := &unstructured.Unstructured{}
 		obj.SetAPIVersion(node.Object.APIVersion)
 		obj.SetKind(node.Object.Kind)
 		err = proxy.GetClient().Get(ctx, nodeNamespacedName, obj)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return errors.Wrapf(err, "failed to get object %s, %s", node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name))
+		}
 
+		// assert if the expected finalizers are set on the resource (including also checking if there are unexpected finalizers)
 		setFinalizers := obj.GetFinalizers()
+		var expectedFinalizers []string
+		if assertion, ok := allFinalizerAssertions[node.Object.Kind]; ok {
+			expectedFinalizers = assertion(types.NamespacedName{Namespace: node.Object.Namespace, Name: node.Object.Name})
+		}
 
-		if len(setFinalizers) > 0 {
-			// assert if the expected finalizers are set on the resource
-			Expect(setFinalizers).To(Equal(allFinalizerAssertions[node.Object.Kind]), "for resource type %s", node.Object.Kind)
-			objsWithFinalizers[fmt.Sprintf("%s/%s/%s", node.Object.Kind, node.Object.Namespace, node.Object.Name)] = obj
+		if !sets.NewString(setFinalizers...).Equal(sets.NewString(expectedFinalizers...)) {
+			allErrs = append(allErrs, fmt.Errorf("unexpected finalizers for %s, %s: expected: %v, found: %v",
+				node.Object.Kind, klog.KRef(node.Object.Namespace, node.Object.Name), expectedFinalizers, setFinalizers))
 		}
 	}
-
-	return objsWithFinalizers
-}
-
-// assertFinalizersExist ensures that current Finalizers match those in the initialObjectsWithFinalizers.
-func assertFinalizersExist(ctx context.Context, proxy ClusterProxy, namespace string, initialObjsWithFinalizers map[string]*unstructured.Unstructured, allFinalizerAssertions map[string][]string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
-	Eventually(func() error {
-		var allErrs []error
-		finalObjsWithFinalizers := getObjectsWithFinalizers(ctx, proxy, namespace, allFinalizerAssertions, ownerGraphFilterFunction)
-
-		for objKindNamespacedName, obj := range initialObjsWithFinalizers {
-			// verify if finalizers for this resource were set on reconcile
-			if _, valid := finalObjsWithFinalizers[objKindNamespacedName]; !valid {
-				allErrs = append(allErrs, fmt.Errorf("no finalizers set for %s",
-					objKindNamespacedName))
-				continue
-			}
-
-			// verify if this resource has the appropriate Finalizers set
-			expectedFinalizers, assert := allFinalizerAssertions[obj.GetKind()]
-			if !assert {
-				continue
-			}
-
-			setFinalizers := finalObjsWithFinalizers[objKindNamespacedName].GetFinalizers()
-			if !reflect.DeepEqual(expectedFinalizers, setFinalizers) {
-				allErrs = append(allErrs, fmt.Errorf("expected finalizers do not exist for %s: expected: %v, found: %v",
-					objKindNamespacedName, expectedFinalizers, setFinalizers))
-			}
-		}
-
-		return kerrors.NewAggregate(allErrs)
-	}).WithTimeout(1 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
+	return kerrors.NewAggregate(allErrs)
 }
 
 // concatenateFinalizerAssertions concatenates all finalizer assertions into one map. It reports errors if assertions already exist.
-func concatenateFinalizerAssertions(finalizerAssertions ...map[string][]string) (map[string][]string, error) {
+func concatenateFinalizerAssertions(finalizerAssertions ...map[string]func(name types.NamespacedName) []string) (map[string]func(name types.NamespacedName) []string, error) {
 	var allErrs []error
-	allFinalizerAssertions := make(map[string][]string, 0)
+	allFinalizerAssertions := make(map[string]func(name types.NamespacedName) []string, 0)
 
 	for i := range finalizerAssertions {
 		for kind, finalizers := range finalizerAssertions[i] {
 			if _, alreadyExists := allFinalizerAssertions[kind]; alreadyExists {
-				allErrs = append(allErrs, fmt.Errorf("finalizer assertion cannot be applied as it already exists for kind: %s, existing value: %v, new value: %v",
-					kind, allFinalizerAssertions[kind], finalizers))
-
+				allErrs = append(allErrs, fmt.Errorf("finalizer assertion cannot be applied as it already exists for kind: %s", kind))
 				continue
 			}
 

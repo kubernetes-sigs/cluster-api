@@ -52,7 +52,7 @@ func (c *cache) startGarbageCollector(ctx context.Context) error {
 		log.Info("Starting garbage collector workers", "count", c.garbageCollectorConcurrency)
 		wg := &sync.WaitGroup{}
 		wg.Add(c.garbageCollectorConcurrency)
-		for i := 0; i < c.garbageCollectorConcurrency; i++ {
+		for range c.garbageCollectorConcurrency {
 			go func() {
 				atomic.AddInt64(&workers, 1)
 				defer wg.Done()

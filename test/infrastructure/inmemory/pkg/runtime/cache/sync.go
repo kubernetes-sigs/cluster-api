@@ -69,7 +69,7 @@ func (c *cache) startSyncer(ctx context.Context) error {
 		log.Info("Starting sync workers", "count", c.syncConcurrency)
 		wg := &sync.WaitGroup{}
 		wg.Add(c.syncConcurrency)
-		for i := 0; i < c.syncConcurrency; i++ {
+		for range c.syncConcurrency {
 			go func() {
 				atomic.AddInt64(&workers, 1)
 				defer wg.Done()

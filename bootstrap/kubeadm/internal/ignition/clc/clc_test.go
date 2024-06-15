@@ -561,8 +561,6 @@ func TestRender(t *testing.T) {
 	}
 
 	for _, tt := range tc {
-		tt := tt
-
 		t.Run(tt.desc, func(t *testing.T) {
 			t.Parallel()
 

@@ -68,12 +68,12 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	}
 
 	// Set the phase to "running" if the number of ready replicas is equal to desired replicas.
-	if mp.Status.InfrastructureReady && *mp.Spec.Replicas == mp.Status.ReadyReplicas {
+	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas == mp.Status.ReadyReplicas {
 		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseRunning)
 	}
 
 	// Set the appropriate phase in response to the MachinePool replica count being greater than the observed infrastructure replicas.
-	if mp.Status.InfrastructureReady && *mp.Spec.Replicas > mp.Status.ReadyReplicas {
+	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas > mp.Status.ReadyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
 			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
@@ -84,7 +84,7 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	}
 
 	// Set the appropriate phase in response to the MachinePool replica count being less than the observed infrastructure replicas.
-	if mp.Status.InfrastructureReady && *mp.Spec.Replicas < mp.Status.ReadyReplicas {
+	if mp.Status.InfrastructureReady && mp.Spec.Replicas != nil && *mp.Spec.Replicas < mp.Status.ReadyReplicas {
 		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
 		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
 			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
@@ -400,7 +400,7 @@ func (r *MachinePoolReconciler) createOrUpdateMachines(ctx context.Context, mp *
 		infraMachine := &infraMachines[i]
 		// If infraMachine already has a Machine, update it if needed.
 		if existingMachine, ok := infraMachineToMachine[infraMachine.GetName()]; ok {
-			log.V(2).Info("Patching existing Machine for infraMachine", "infraMachine", klog.KObj(infraMachine), "machine", klog.KObj(&existingMachine))
+			log.V(2).Info("Patching existing Machine for infraMachine", infraMachine.GetKind(), klog.KObj(infraMachine), "Machine", klog.KObj(&existingMachine))
 
 			desiredMachine := computeDesiredMachine(mp, infraMachine, &existingMachine)
 			if err := ssa.Patch(ctx, r.Client, MachinePoolControllerName, desiredMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: &existingMachine}); err != nil {
@@ -488,7 +488,7 @@ func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Cont
 	if labels.IsMachinePoolOwned(o) {
 		machinePool, err := utilexp.GetMachinePoolByLabels(ctx, r.Client, o.GetNamespace(), o.GetLabels())
 		if err != nil {
-			log.Error(err, "failed to get MachinePool for InfraMachine", "infraMachine", klog.KObj(o), "labels", o.GetLabels())
+			log.Error(err, "Failed to get MachinePool for InfraMachine", o.GetObjectKind().GroupVersionKind().Kind, klog.KObj(o), "labels", o.GetLabels())
 			return nil
 		}
 		if machinePool != nil {
@@ -516,7 +516,7 @@ func (r *MachinePoolReconciler) waitForMachineCreation(ctx context.Context, mach
 	// The polling is against a local memory cache.
 	const waitForCacheUpdateInterval = 100 * time.Millisecond
 
-	for i := 0; i < len(machineList); i++ {
+	for i := range len(machineList) {
 		machine := machineList[i]
 		pollErr := wait.PollUntilContextTimeout(ctx, waitForCacheUpdateInterval, waitForCacheUpdateTimeout, true, func(ctx context.Context) (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}

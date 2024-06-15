@@ -247,6 +247,8 @@ func main() {
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
 				},
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
 			},
 		},
 		WebhookServer: webhook.NewServer(
@@ -273,7 +275,7 @@ func main() {
 	setupWebhooks(mgr)
 	setupReconcilers(ctx, mgr)
 
-	setupLog.Info("starting manager", "version", version.Get().String())
+	setupLog.Info("Starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

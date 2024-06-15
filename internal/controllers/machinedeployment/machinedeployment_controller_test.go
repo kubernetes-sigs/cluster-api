@@ -388,7 +388,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			if err := env.List(ctx, machineSets, msListOpts...); err != nil {
 				return false
 			}
-			for i := 0; i < len(machineSets.Items); i++ {
+			for range len(machineSets.Items) {
 				ms := machineSets.Items[0]
 				if !metav1.IsControlledBy(&ms, deployment) || metav1.GetControllerOf(&ms).Kind != "MachineDeployment" {
 					return false
@@ -414,7 +414,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			// to properly set AvailableReplicas.
 			foundMachines := &clusterv1.MachineList{}
 			g.Expect(env.List(ctx, foundMachines, client.InNamespace(namespace.Name))).To(Succeed())
-			for i := 0; i < len(foundMachines.Items); i++ {
+			for i := range len(foundMachines.Items) {
 				m := foundMachines.Items[i]
 				// Skip over deleted Machines
 				if !m.DeletionTimestamp.IsZero() {
@@ -442,7 +442,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			// to properly set AvailableReplicas.
 			foundMachines := &clusterv1.MachineList{}
 			g.Expect(env.List(ctx, foundMachines, client.InNamespace(namespace.Name))).To(Succeed())
-			for i := 0; i < len(foundMachines.Items); i++ {
+			for i := range len(foundMachines.Items) {
 				m := foundMachines.Items[i]
 				if !m.DeletionTimestamp.IsZero() {
 					continue

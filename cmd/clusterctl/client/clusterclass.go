@@ -80,7 +80,7 @@ func clusterClassNamesFromTemplate(template Template) ([]string, error) {
 		if cluster.Spec.Topology == nil {
 			continue
 		}
-		classes = append(classes, cluster.Spec.Topology.Class)
+		classes = append(classes, cluster.GetClassKey().Name)
 	}
 	return classes, nil
 }

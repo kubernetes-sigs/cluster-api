@@ -547,7 +547,7 @@ func (m *Machine) Delete(ctx context.Context) error {
 func logContainerDebugInfo(ctx context.Context, log logr.Logger, name string) {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
-		log.Error(err, "failed to connect to container runtime")
+		log.Error(err, "Failed to connect to container runtime")
 		return
 	}
 
@@ -561,7 +561,7 @@ func logContainerDebugInfo(ctx context.Context, log logr.Logger, name string) {
 	var buffer bytes.Buffer
 	err = containerRuntime.ContainerDebugInfo(debugCtx, name, &buffer)
 	if err != nil {
-		log.Error(err, "failed to get logs from the machine container")
+		log.Error(err, "Failed to get logs from the machine container")
 		return
 	}
 	log.Info("Got logs from the machine container", "output", strings.ReplaceAll(buffer.String(), "\\n", "\n"))

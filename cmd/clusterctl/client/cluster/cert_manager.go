@@ -177,7 +177,7 @@ func (cm *certManagerClient) EnsureInstalled(ctx context.Context) error {
 func (cm *certManagerClient) install(ctx context.Context, version string, objs []unstructured.Unstructured) error {
 	log := logf.Log
 
-	log.Info("Installing cert-manager", "Version", version)
+	log.Info("Installing cert-manager", "version", version)
 
 	// Install all cert-manager manifests
 	createCertManagerBackoff := newWriteBackoff()
@@ -282,7 +282,7 @@ func (cm *certManagerClient) EnsureLatestVersion(ctx context.Context) error {
 	// delete the cert-manager version currently installed (because it should be upgraded);
 	// NOTE: CRDs, and namespace are preserved in order to avoid deletion of user objects;
 	// web-hooks are preserved to avoid a user attempting to CREATE a cert-manager resource while the upgrade is in progress.
-	log.Info("Deleting cert-manager", "Version", currentVersion)
+	log.Info("Deleting cert-manager", "version", currentVersion)
 	if err := cm.deleteObjs(ctx, objs); err != nil {
 		return err
 	}

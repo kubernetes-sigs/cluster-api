@@ -21,12 +21,12 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -46,7 +46,7 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
-		logger.Error(err, "failed to get remote client for workload cluster", "cluster key", util.ObjectKey(controlPlane.Cluster))
+		logger.Error(err, "failed to get remote client for workload cluster", "Cluster", klog.KObj(controlPlane.Cluster))
 		return ctrl.Result{}, err
 	}
 

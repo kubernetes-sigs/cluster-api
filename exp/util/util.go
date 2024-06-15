@@ -20,11 +20,11 @@ package util
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -89,8 +89,8 @@ func GetMachinePoolByLabels(ctx context.Context, c client.Client, namespace stri
 
 // MachinePoolToInfrastructureMapFunc returns a handler.MapFunc that watches for
 // MachinePool events and returns reconciliation requests for an infrastructure provider object.
-func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.MapFunc {
-	log = log.WithValues("machine-pool-to-infra-map-func", gvk.String())
+func MachinePoolToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind) handler.MapFunc {
+	log := ctrl.LoggerFrom(ctx)
 	return func(_ context.Context, o client.Object) []reconcile.Request {
 		m, ok := o.(*expv1.MachinePool)
 		if !ok {

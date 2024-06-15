@@ -77,6 +77,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Changes()).To(BeNil()) // changes are expected to be nil on create.
 	})
 	t.Run("Server side apply detect changes on object creation (typed)", func(t *testing.T) {
 		g := NewWithT(t)
@@ -88,6 +89,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Changes()).To(BeNil()) // changes are expected to be nil on create.
 	})
 	t.Run("When creating an object using server side apply, it should track managed fields for the topology controller", func(t *testing.T) {
 		g := NewWithT(t)
@@ -97,6 +99,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Changes()).To(BeNil()) // changes are expected to be nil on create.
 
 		// Create the object using server side apply
 		g.Expect(p0.Patch(ctx)).To(Succeed())
@@ -132,6 +135,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(BeNil())
 	})
 
 	t.Run("Server side apply patch helper discard changes in not allowed fields, e.g. status", func(t *testing.T) {
@@ -149,6 +153,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(BeNil())
 	})
 
 	t.Run("Server side apply patch helper detect changes", func(t *testing.T) {
@@ -166,6 +171,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Changes()).To(Equal([]byte(`{"spec":{"bar":"changed"}}`)))
 	})
 
 	t.Run("Server side apply patch helper detect changes impacting only metadata.labels", func(t *testing.T) {
@@ -183,6 +189,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(Equal([]byte(`{"metadata":{"labels":{"foo":"changed"}}}`)))
 	})
 
 	t.Run("Server side apply patch helper detect changes impacting only metadata.annotations", func(t *testing.T) {
@@ -200,6 +207,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(Equal([]byte(`{"metadata":{"annotations":{"foo":"changed"}}}`)))
 	})
 
 	t.Run("Server side apply patch helper detect changes impacting only metadata.ownerReferences", func(t *testing.T) {
@@ -224,6 +232,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(Equal([]byte(`{"metadata":{"ownerReferences":[{"apiVersion":"foo/v1alpha1","kind":"foo","name":"foo","uid":"foo"}]}}`)))
 	})
 
 	t.Run("Server side apply patch helper discard changes in ignore paths", func(t *testing.T) {
@@ -241,6 +250,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(BeNil())
 	})
 
 	t.Run("Another controller applies changes", func(t *testing.T) {
@@ -274,6 +284,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(BeNil())
 	})
 
 	t.Run("Topology controller reconcile again with no changes on topology managed fields", func(t *testing.T) {
@@ -290,6 +301,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(BeNil())
 
 		// Change the object using server side apply
 		g.Expect(p0.Patch(ctx)).To(Succeed())
@@ -337,6 +349,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Changes()).To(Equal([]byte(`{"spec":{"controlPlaneEndpoint":{"host":"changed"}}}`)))
 
 		// Create the object using server side apply
 		g.Expect(p0.Patch(ctx)).To(Succeed())
@@ -375,6 +388,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(Equal([]byte(`{}`))) // Note: metadata.managedFields have been removed from the diff to reduce log verbosity.
 
 		// Create the object using server side apply
 		g.Expect(p0.Patch(ctx)).To(Succeed())
@@ -415,6 +429,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Changes()).To(Equal([]byte(`{"spec":{"bar":"changed-by-topology-controller"}}`)))
 
 		// Create the object using server side apply
 		g.Expect(p0.Patch(ctx)).To(Succeed())
@@ -463,6 +478,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
+		g.Expect(p0.Changes()).To(BeNil())
 	})
 	t.Run("Error on object which has another uid due to immutability", func(t *testing.T) {
 		g := NewWithT(t)

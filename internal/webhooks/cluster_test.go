@@ -228,6 +228,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				}).
 				Build(),
 			topology: &clusterv1.Topology{
+				ControlPlane: clusterv1.ControlPlaneTopology{},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
@@ -244,6 +245,9 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				},
 			},
 			expect: &clusterv1.Topology{
+				ControlPlane: clusterv1.ControlPlaneTopology{
+					// "location" has not been added to .variables.overrides.
+				},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
@@ -304,6 +308,16 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				}).
 				Build(),
 			topology: &clusterv1.Topology{
+				ControlPlane: clusterv1.ControlPlaneTopology{
+					Variables: &clusterv1.ControlPlaneVariables{
+						Overrides: []clusterv1.ClusterVariable{
+							{
+								Name:  "httpProxy",
+								Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)},
+							},
+						},
+					},
+				},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
@@ -342,6 +356,17 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				},
 			},
 			expect: &clusterv1.Topology{
+				ControlPlane: clusterv1.ControlPlaneTopology{
+					Variables: &clusterv1.ControlPlaneVariables{
+						Overrides: []clusterv1.ClusterVariable{
+							{
+								Name: "httpProxy",
+								// url has been added by defaulting.
+								Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`)},
+							},
+						},
+					},
+				},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
@@ -631,7 +656,43 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "should fail when variable override is invalid",
+			name: "should fail when ControlPlane variable override is invalid",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name: "cpu",
+					// This value is invalid.
+					Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("aa").
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("aa").
+					Build()).
+				Build(),
+			expect:  builder.ClusterTopology().Build(),
+			wantErr: true,
+		},
+		{
+			name: "should fail when MD variable override is invalid",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name: "cpu",
@@ -654,14 +715,47 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
 					WithClass("aa").
 					WithVariables(clusterv1.ClusterVariable{
-						Name:  "cpu",
+						Name: "cpu",
+						// This value is invalid.
 						Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
 					}).
 					Build()).
 				WithMachinePool(builder.MachinePoolTopology("workers1").
 					WithClass("aa").
+					Build()).
+				Build(),
+			expect:  builder.ClusterTopology().Build(),
+			wantErr: true,
+		},
+		{
+			name: "should fail when MP variable override is invalid",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("aa").
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("aa").
 					WithVariables(clusterv1.ClusterVariable{
-						Name:  "cpu",
+						Name: "cpu",
+						// This value is invalid.
 						Value: apiextensionsv1.JSON{Raw: []byte(`"text"`)},
 					}).
 					Build()).
@@ -692,7 +786,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name:  "cpu",
 					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
 				}).
-				// Variable is not required in MachineDeployment or MachinePool topologies.
+				// Variable is not required in ControlPlane, MachineDeployment or MachinePool topologies.
 				Build(),
 			expect: builder.ClusterTopology().
 				WithClass("foo").
@@ -701,7 +795,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name:  "cpu",
 					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
 				}).
-				// Variable is not required in MachineDeployment or MachinePool topologies.
+				// Variable is not required in ControlPlane, MachineDeployment or MachinePool topologies.
 				Build(),
 		},
 		{
@@ -729,6 +823,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name:  "cpu",
 					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
 				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
 				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
 					WithClass("md1").
 					WithVariables(clusterv1.ClusterVariable{
@@ -748,6 +846,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				WithClass("foo").
 				WithVersion("v1.19.1").
 				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
 					Name:  "cpu",
 					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
 				}).
@@ -776,6 +878,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
+							// For optional variables, it is optional to set top-level variables
+							// but overrides can be set even if the top-level variables are not set.
 							Required: false,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -788,6 +892,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			topology: builder.ClusterTopology().
 				WithClass("foo").
 				WithVersion("v1.19.1").
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
 				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
 					WithClass("md1").
 					WithVariables(clusterv1.ClusterVariable{
@@ -807,6 +915,10 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				WithClass("foo").
 				WithVersion("v1.19.1").
 				WithVariables([]clusterv1.ClusterVariable{}...).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`2`)},
+				}).
 				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
 					WithClass("md1").
 					WithVariables(clusterv1.ClusterVariable{
@@ -895,6 +1007,23 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 
 	g.Expect(c.Spec.Topology.Version).To(HavePrefix("v"))
+}
+
+func TestClusterFailOnMissingClassField(t *testing.T) {
+	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	g := NewWithT(t)
+
+	c := builder.Cluster("fooboo", "cluster1").
+		WithTopology(builder.ClusterTopology().
+			WithClass(""). // THis is invalid.
+			WithVersion("1.19.1").
+			Build()).
+		Build()
+
+	g.Expect((&Cluster{}).Default(ctx, c)).ToNot(Succeed())
 }
 
 func TestClusterValidation(t *testing.T) {

@@ -85,7 +85,7 @@ func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If the owner cluster is already deleted, delete its ClusterResourceSetBinding
-			log.Info("deleting ClusterResourceSetBinding because the owner Cluster no longer exists")
+			log.Info("Deleting ClusterResourceSetBinding because the owner Cluster no longer exists")
 			return ctrl.Result{}, r.Client.Delete(ctx, binding)
 		}
 		return ctrl.Result{}, err
@@ -98,7 +98,7 @@ func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req
 				return ctrl.Result{}, nil
 			}
 		}
-		log.Info("deleting ClusterResourceSetBinding because the owner Cluster is currently being deleted")
+		log.Info("Deleting ClusterResourceSetBinding because the owner Cluster is currently being deleted")
 		return ctrl.Result{}, r.Client.Delete(ctx, binding)
 	}
 

@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -59,7 +58,7 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	objs := []client.Object{cluster}
 	machineObjs := []client.Object{}
 	var expectedConfigName string
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		configName := fmt.Sprintf("my-config-%d", i)
 		m := builder.Machine(metav1.NamespaceDefault, fmt.Sprintf("my-machine-%d", i)).
 			WithVersion("v1.19.1").
@@ -81,7 +80,7 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		o := machineObjs[i]
 		configs := reconciler.MachineToBootstrapMapFunc(ctx, o)
 		if i == 1 {
@@ -676,7 +675,6 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 	}
 
 	for _, rt := range useCases {
-		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -754,7 +752,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 	}
 
 	for _, rt := range useCases {
-		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -1558,7 +1555,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				g.Expect(reflect.DeepEqual(d.BootstrapToken.CACertHashes, caHash)).To(BeTrue())
+				g.Expect(d.BootstrapToken.CACertHashes).To(BeComparableTo(caHash))
 				return nil
 			},
 		},
@@ -1820,7 +1817,7 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	cluster := builder.Cluster(metav1.NamespaceDefault, "my-cluster").Build()
 	objs := []client.Object{cluster}
 	expectedNames := []string{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		configName := fmt.Sprintf("my-config-%d", i)
 		m := builder.Machine(metav1.NamespaceDefault, fmt.Sprintf("my-machine-%d", i)).
 			WithVersion("v1.19.1").

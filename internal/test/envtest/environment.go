@@ -260,6 +260,8 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 		Client: client.Options{
 			Cache: &client.CacheOptions{
 				DisableFor: uncachedObjs,
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
 			},
 		},
 		WebhookServer: webhook.NewServer(

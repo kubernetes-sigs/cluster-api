@@ -50,11 +50,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-// +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status;machinepools/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch;create;update;patch;delete
 
 var (
 	// machinePoolKind contains the schema.GroupVersionKind for the MachinePool type.

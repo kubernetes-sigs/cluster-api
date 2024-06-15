@@ -56,8 +56,8 @@ import (
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusterclasses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusterclasses,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinehealthchecks,verbs=get;list;watch;create;update;patch;delete
@@ -76,10 +76,6 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
-
-	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
-	// thus allowing to optimize reads for templates or provider specific objects in a managed topology.
-	UnstructuredCachingClient client.Client
 
 	externalTracker external.ObjectTracker
 	recorder        record.EventRecorder
@@ -221,9 +217,9 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 
 	// Get ClusterClass.
 	clusterClass := &clusterv1.ClusterClass{}
-	key := client.ObjectKey{Name: s.Current.Cluster.Spec.Topology.Class, Namespace: s.Current.Cluster.Namespace}
+	key := s.Current.Cluster.GetClassKey()
 	if err := r.Client.Get(ctx, key, clusterClass); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", s.Current.Cluster.Spec.Topology.Class)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", key)
 	}
 
 	s.Blueprint.ClusterClass = clusterClass

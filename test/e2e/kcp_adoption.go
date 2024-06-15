@@ -194,7 +194,6 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		)).To(Succeed())
 
 		for _, m := range machines.Items {
-			m := m
 			Expect(&m).To(HaveControllerRef(framework.ObjectToKind(controlPlane), controlPlane))
 			// TODO there is a missing unit test here
 			Expect(m.CreationTimestamp.Time).To(BeTemporally("<", controlPlane.CreationTimestamp.Time),
@@ -230,7 +229,6 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		}
 
 		for _, s := range secrets.Items {
-			s := s
 			// We don't check the data, and removing it from the object makes assertions much easier to read
 			s.Data = nil
 

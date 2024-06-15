@@ -42,8 +42,6 @@ func Test_NewNode(t *testing.T) {
 		}
 
 		for name, input := range cases {
-			input := input
-
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()
 
@@ -160,8 +158,6 @@ func Test_NewJoinControlPlane(t *testing.T) {
 		}
 
 		for name, input := range cases {
-			input := input
-
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()
 
@@ -278,8 +274,6 @@ func Test_NewInitControlPlane(t *testing.T) {
 		}
 
 		for name, input := range cases {
-			input := input
-
 			t.Run(name, func(t *testing.T) {
 				t.Parallel()
 

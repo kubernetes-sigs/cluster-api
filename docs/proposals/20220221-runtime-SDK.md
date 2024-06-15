@@ -576,10 +576,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:                    mgr.GetClient(),
 		APIReader:                 mgr.GetAPIReader(),
 		RuntimeClient:             runtimeClient,
-		UnstructuredCachingClient: unstructuredCachingClient,
 		WatchFilterValue:          watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
+		setupLog.Error(err, "Unable to create controller", "controller", "ClusterTopology")
 		os.Exit(1)
 	}
 	...

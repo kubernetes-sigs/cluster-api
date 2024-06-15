@@ -19,7 +19,6 @@ package clusterclass
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -188,10 +187,10 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 			if specVar.Required != statusVarDefinition.Required {
 				return errors.Errorf("ClusterClass status variable %s required field does not match. Expecte %v. Got %v", specVar.Name, statusVarDefinition.Required, statusVarDefinition.Required)
 			}
-			if !reflect.DeepEqual(specVar.Schema, statusVarDefinition.Schema) {
+			if !cmp.Equal(specVar.Schema, statusVarDefinition.Schema) {
 				return errors.Errorf("ClusterClass status variable %s schema does not match. Expected %v. Got %v", specVar.Name, specVar.Schema, statusVarDefinition.Schema)
 			}
-			if !reflect.DeepEqual(specVar.Metadata, statusVarDefinition.Metadata) {
+			if !cmp.Equal(specVar.Metadata, statusVarDefinition.Metadata) {
 				return errors.Errorf("ClusterClass status variable %s metadata does not match. Expected %v. Got %v", specVar.Name, specVar.Metadata, statusVarDefinition.Metadata)
 			}
 		}
@@ -719,7 +718,7 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 			{NamespacedName: types.NamespacedName{Namespace: onePatchClusterClass.Namespace, Name: onePatchClusterClass.Name}},
 			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
 		}
-		if got := r.extensionConfigToClusterClass(context.Background(), firstExtConfig); !reflect.DeepEqual(got, firstExtConfigExpected) {
+		if got := r.extensionConfigToClusterClass(context.Background(), firstExtConfig); !cmp.Equal(got, firstExtConfigExpected) {
 			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, firstExtConfigExpected)
 		}
 
@@ -727,7 +726,7 @@ func TestReconciler_extensionConfigToClusterClass(t *testing.T) {
 		secondExtConfigExpected := []reconcile.Request{
 			{NamespacedName: types.NamespacedName{Namespace: twoPatchClusterClass.Namespace, Name: twoPatchClusterClass.Name}},
 		}
-		if got := r.extensionConfigToClusterClass(context.Background(), secondExtConfig); !reflect.DeepEqual(got, secondExtConfigExpected) {
+		if got := r.extensionConfigToClusterClass(context.Background(), secondExtConfig); !cmp.Equal(got, secondExtConfigExpected) {
 			t.Errorf("extensionConfigToClusterClass() = %v, want %v", got, secondExtConfigExpected)
 		}
 	})

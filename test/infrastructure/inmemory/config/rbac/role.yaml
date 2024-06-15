@@ -57,7 +57,6 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - inmemoryclusters/finalizers
   - inmemoryclusters/status
   verbs:
   - get
@@ -78,7 +77,6 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - inmemorymachines/finalizers
   - inmemorymachines/status
   verbs:
   - get

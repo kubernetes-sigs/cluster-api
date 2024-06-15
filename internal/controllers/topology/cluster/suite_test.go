@@ -65,15 +65,6 @@ func TestMain(m *testing.M) {
 		}
 	}
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
-			Cache: &client.CacheOptions{
-				Reader:       mgr.GetCache(),
-				Unstructured: true,
-			},
-		})
-		if err != nil {
-			panic(fmt.Sprintf("unable to create unstructuredCachineClient: %v", err))
-		}
 		// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 		// requiring a connection to a remote cluster
 		secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
@@ -102,16 +93,14 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
 		if err := (&Reconciler{
-			Client:                    mgr.GetClient(),
-			APIReader:                 mgr.GetAPIReader(),
-			UnstructuredCachingClient: unstructuredCachingClient,
-			Tracker:                   tracker,
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Tracker:   tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("unable to create topology cluster reconciler: %v", err))
 		}
 		if err := (&clusterclass.Reconciler{
-			Client:                    mgr.GetClient(),
-			UnstructuredCachingClient: unstructuredCachingClient,
+			Client: mgr.GetClient(),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
 			panic(fmt.Sprintf("unable to create clusterclass reconciler: %v", err))
 		}

@@ -20,7 +20,6 @@ limitations under the License.
 package main
 
 import (
-	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -96,8 +95,8 @@ func Test_GetReleaseDetails(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			_ = os.Setenv("RELEASE_TAG", tt.releaseTag)
-			_ = os.Setenv("RELEASE_DATE", tt.releaseDate)
+			t.Setenv("RELEASE_TAG", tt.releaseTag)
+			t.Setenv("RELEASE_DATE", tt.releaseDate)
 
 			got, err := getReleaseDetails()
 			if tt.expectErr {
@@ -108,8 +107,6 @@ func Test_GetReleaseDetails(t *testing.T) {
 				g.Expect(got.BetaTag).To(Equal(tt.want.BetaTag))
 				g.Expect(got.ReleaseLink).To(Equal(tt.want.ReleaseLink))
 			}
-			_ = os.Unsetenv("RELEASE_TAG")
-			_ = os.Unsetenv("RELEASE_DATE")
 		})
 	}
 }

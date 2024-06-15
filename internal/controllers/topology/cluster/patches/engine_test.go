@@ -701,7 +701,7 @@ func TestApply(t *testing.T) {
 			name: "Should correctly apply variables for a given patch definitionFrom",
 			varDefinitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name: "default-worker-infra",
+					Name: "controlPlaneVariable",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -709,7 +709,15 @@ func TestApply(t *testing.T) {
 					},
 				},
 				{
-					Name: "default-mp-worker-infra",
+					Name: "defaultMDWorkerVariable",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "inline",
+						},
+					},
+				},
+				{
+					Name: "defaultMPWorkerVariable",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -753,6 +761,42 @@ func TestApply(t *testing.T) {
 						},
 						{
 							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.ControlPlaneGroupVersion.String(),
+								Kind:       builder.GenericControlPlaneTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									ControlPlane: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/controlPlaneField",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("controlPlaneVariable"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachineTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									ControlPlane: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/controlPlaneInfraMachineTemplateField",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("controlPlaneVariable"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
 								APIVersion: builder.BootstrapGroupVersion.String(),
 								Kind:       builder.GenericBootstrapConfigTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
@@ -766,7 +810,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-worker-infra"),
+										Variable: ptr.To("defaultMDWorkerVariable"),
 									},
 								},
 							},
@@ -786,7 +830,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-worker-infra"),
+										Variable: ptr.To("defaultMDWorkerVariable"),
 									},
 								},
 							},
@@ -806,7 +850,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-mp-worker-infra"),
+										Variable: ptr.To("defaultMPWorkerVariable"),
 									},
 								},
 							},
@@ -826,7 +870,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-mp-worker-infra"),
+										Variable: ptr.To("defaultMPWorkerVariable"),
 									},
 								},
 							},
@@ -838,21 +882,27 @@ func TestApply(t *testing.T) {
 				infrastructureCluster: map[string]interface{}{
 					"spec.resource": "value99",
 				},
+				controlPlane: map[string]interface{}{
+					"spec.controlPlaneField": "control-plane-override-value",
+				},
+				controlPlaneInfrastructureMachineTemplate: map[string]interface{}{
+					"spec.template.spec.controlPlaneInfraMachineTemplateField": "control-plane-override-value",
+				},
 				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
-					"default-worker-topo1": {"spec.template.spec.resource": "value1"},
-					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
+					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-topo1-override-value"},
+					"default-worker-topo2": {"spec.template.spec.resource": "default-md-cluster-wide-value"},
 				},
 				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
-					"default-worker-topo1": {"spec.template.spec.resource": "value1"},
-					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
+					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-topo1-override-value"},
+					"default-worker-topo2": {"spec.template.spec.resource": "default-md-cluster-wide-value"},
 				},
 				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "value2"},
-					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-topo1-override-value"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-cluster-wide-value"},
 				},
 				machinePoolBootstrapConfig: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "value2"},
-					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-topo1-override-value"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-cluster-wide-value"},
 				},
 			},
 		},
@@ -1043,6 +1093,15 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				Class:   clusterClass.Name,
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](3),
+					Variables: &clusterv1.ControlPlaneVariables{
+						Overrides: []clusterv1.ClusterVariable{
+							{
+								Name:           "controlPlaneVariable",
+								DefinitionFrom: "inline",
+								Value:          apiextensionsv1.JSON{Raw: []byte(`"control-plane-override-value"`)},
+							},
+						},
+					},
 				},
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -1057,15 +1116,21 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 						DefinitionFrom: "not-used-patch",
 					},
 					{
-						Name: "default-worker-infra",
-						// This value should be overwritten for the default-worker-topo1 MachineDeployment.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo2"`)},
+						Name: "controlPlaneVariable",
+						// This value should be overwritten for the control plane.
+						Value:          apiextensionsv1.JSON{Raw: []byte(`"control-plane-cluster-wide-value"`)},
 						DefinitionFrom: "inline",
 					},
 					{
-						Name: "default-mp-worker-infra",
+						Name: "defaultMDWorkerVariable",
+						// This value should be overwritten for the default-worker-topo1 MachineDeployment.
+						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-md-cluster-wide-value"`)},
+						DefinitionFrom: "inline",
+					},
+					{
+						Name: "defaultMPWorkerVariable",
 						// This value should be overwritten for the default-mp-worker-topo1 MachinePool.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo2"`)},
+						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-cluster-wide-value"`)},
 						DefinitionFrom: "inline",
 					},
 				},
@@ -1078,9 +1143,9 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Variables: &clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
-										Name:           "default-worker-infra",
+										Name:           "defaultMDWorkerVariable",
 										DefinitionFrom: "inline",
-										Value:          apiextensionsv1.JSON{Raw: []byte(`"value1"`)},
+										Value:          apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo1-override-value"`)},
 									},
 								},
 							},
@@ -1100,9 +1165,9 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Variables: &clusterv1.MachinePoolVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
-										Name:           "default-mp-worker-infra",
+										Name:           "defaultMPWorkerVariable",
 										DefinitionFrom: "inline",
-										Value:          apiextensionsv1.JSON{Raw: []byte(`"value2"`)},
+										Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo1-override-value"`)},
 									},
 								},
 							},

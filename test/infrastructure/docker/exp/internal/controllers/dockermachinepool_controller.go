@@ -77,7 +77,7 @@ type DockerMachinePoolReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools/status;dockermachinepools/finalizers,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
@@ -132,7 +132,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Always attempt to Patch the DockerMachinePool object and status after each reconciliation.
 	defer func() {
 		if err := patchDockerMachinePool(ctx, patchHelper, dockerMachinePool); err != nil {
-			log.Error(err, "failed to patch DockerMachinePool")
+			log.Error(err, "Failed to patch DockerMachinePool")
 			if rerr == nil {
 				rerr = err
 			}
@@ -177,8 +177,8 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
 			&expv1.MachinePool{},
-			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(
-				infraexpv1.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
+			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(ctx,
+				infraexpv1.GroupVersion.WithKind("DockerMachinePool"))),
 		).
 		Watches(
 			&infrav1.DockerMachine{},

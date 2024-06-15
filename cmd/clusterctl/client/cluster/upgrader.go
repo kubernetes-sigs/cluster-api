@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -452,7 +453,7 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 
 func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clusterctlv1.Provider) error {
 	log := logf.Log
-	log.Info("Scaling down", "Provider", provider.Name, "Version", provider.Version, "Namespace", provider.Namespace)
+	log.Info("Scaling down", "Provider", klog.KObj(&provider), "providerVersion", &provider.Version)
 
 	cs, err := u.proxy.NewClient(ctx)
 	if err != nil {
@@ -473,7 +474,7 @@ func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clust
 
 	// Scale down provider Deployments.
 	for _, deployment := range deploymentList.Items {
-		log.V(5).Info("Scaling down", "Deployment", deployment.Name, "Namespace", deployment.Namespace)
+		log.V(5).Info("Scaling down", "Deployment", klog.KObj(&deployment))
 		if err := scaleDownDeployment(ctx, cs, deployment); err != nil {
 			return err
 		}

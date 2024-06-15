@@ -223,7 +223,7 @@ func mustHas(needle interface{}, haystack interface{}) (bool, error) {
 		l2 := reflect.ValueOf(haystack)
 		var item interface{}
 		l := l2.Len()
-		for i := 0; i < l; i++ {
+		for i := range l {
 			item = l2.Index(i).Interface()
 			if reflect.DeepEqual(needle, item) {
 				return true, nil

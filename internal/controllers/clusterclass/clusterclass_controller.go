@@ -65,10 +65,6 @@ type Reconciler struct {
 
 	// RuntimeClient is a client for calling runtime extensions.
 	RuntimeClient runtimeclient.Client
-
-	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
-	// thus allowing to optimize reads for templates or provider specific objects.
-	UnstructuredCachingClient client.Client
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -358,7 +354,7 @@ func refString(ref *corev1.ObjectReference) string {
 func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, clusterClass.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, clusterClass.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			return errors.Wrapf(err, "Could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)

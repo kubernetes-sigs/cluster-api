@@ -150,5 +150,9 @@ func isMachineHealthy(machine *clusterv1.Machine) bool {
 	if nodeHealthyCondition != nil && nodeHealthyCondition.Status != corev1.ConditionTrue {
 		return false
 	}
+	healthCheckCondition := conditions.Get(machine, clusterv1.MachineHealthCheckSucceededCondition)
+	if healthCheckCondition != nil && healthCheckCondition.Status == corev1.ConditionFalse {
+		return false
+	}
 	return true
 }

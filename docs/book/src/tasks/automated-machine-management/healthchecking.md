@@ -235,6 +235,9 @@ Before deploying a MachineHealthCheck, please familiarise yourself with the foll
 - If the Node for a Machine is removed from the cluster, a MachineHealthCheck will consider this Machine unhealthy and remediate it immediately
 - If no Node joins the cluster for a Machine after the `NodeStartupTimeout`, the Machine will be remediated
 - If a Machine fails for any reason (if the FailureReason is set), the Machine will be remediated immediately
+- Important: if the kubelet on the node hosting the etcd leader member is not working, this prevents KCP from doing some checks it is expecting to do on the leader - and specifically on the leader -.
+  This prevents remediation to happen. There are ongoing discussions about how to overcome this limitation in https://github.com/kubernetes-sigs/cluster-api/issues/8465; as of today users facing this situation
+  are recommended to manually forward leadership to another etcd member and manually delete the corresponding machine.
 
 <!-- links -->
 [management cluster]: ../../reference/glossary.md#management-cluster

@@ -369,7 +369,6 @@ func TestAPI_PortForward(t *testing.T) {
 		DialTimeout: 2 * time.Second,
 
 		DialOptions: []grpc.DialOption{
-			grpc.WithBlock(), // block until the underlying connection is up
 			grpc.WithContextDialer(dialer2.DialContextWithAddr),
 		},
 		TLS: &tls.Config{

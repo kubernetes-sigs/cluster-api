@@ -35,6 +35,11 @@ func ValidateClusterVariables(values []clusterv1.ClusterVariable, definitions []
 	return validateClusterVariables(values, definitions, true, fldPath)
 }
 
+// ValidateControlPlaneVariables validates ControlPLane variables.
+func ValidateControlPlaneVariables(values []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(values, definitions, false, fldPath)
+}
+
 // ValidateMachineVariables validates MachineDeployment and MachinePool variables.
 func ValidateMachineVariables(values []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
 	return validateClusterVariables(values, definitions, false, fldPath)

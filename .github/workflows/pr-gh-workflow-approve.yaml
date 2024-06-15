@@ -8,6 +8,8 @@ on:
       - reopened
       - synchronize
 
+permissions: {}
+
 jobs:
   approve:
     name: Approve ok-to-test

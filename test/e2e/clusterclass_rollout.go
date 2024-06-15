@@ -187,6 +187,9 @@ func ClusterClassRolloutSpec(ctx context.Context, inputGetter func() ClusterClas
 						MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 5 + rand.Int31n(20)}, //nolint:gosec
 						DeletePolicy:   ptr.To(string(clusterv1.NewestMachineSetDeletePolicy)),
 					},
+					Remediation: &clusterv1.RemediationStrategy{
+						MaxInFlight: &intstr.IntOrString{Type: intstr.Int, IntVal: 2 + rand.Int31n(20)}, //nolint:gosec
+					},
 				}
 			},
 			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
@@ -1135,7 +1138,6 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(controlPlaneMachineList.Items).To(HaveLen(int(*replicas)))
 	for _, machine := range controlPlaneMachineList.Items {
-		machine := machine
 		res.ControlPlaneMachines = append(res.ControlPlaneMachines, &machine)
 		addMachineObjects(ctx, mgmtClient, workloadClient, g, res, cluster, &machine)
 	}
@@ -1172,7 +1174,6 @@ func getClusterObjects(ctx context.Context, g Gomega, clusterProxy framework.Clu
 		// Check all MachineDeployment machines already exist.
 		g.Expect(machines).To(HaveLen(int(*md.Spec.Replicas)))
 		for _, machine := range machines {
-			machine := machine
 			res.MachinesByMachineSet[machine.Labels[clusterv1.MachineSetNameLabel]] = append(
 				res.MachinesByMachineSet[machine.Labels[clusterv1.MachineSetNameLabel]], &machine)
 			addMachineObjects(ctx, mgmtClient, workloadClient, g, res, cluster, &machine)

@@ -90,13 +90,13 @@ func (c *templateClient) Get(ctx context.Context, flavor, targetNamespace string
 	}
 
 	if rawArtifact == nil {
-		log.V(5).Info("Fetching", "File", name, "Provider", c.provider.Name(), "Type", c.provider.Type(), "Version", version)
+		log.V(5).Info("Fetching", "file", name, "provider", c.provider.Name(), "type", c.provider.Type(), "version", version)
 		rawArtifact, err = c.repository.GetFile(ctx, version, name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to read %q from provider's repository %q", name, c.provider.ManifestLabel())
 		}
 	} else {
-		log.V(1).Info("Using", "Override", name, "Provider", c.provider.ManifestLabel(), "Version", version)
+		log.V(1).Info("Using", "override", name, "provider", c.provider.ManifestLabel(), "version", version)
 	}
 
 	return NewTemplate(TemplateInput{

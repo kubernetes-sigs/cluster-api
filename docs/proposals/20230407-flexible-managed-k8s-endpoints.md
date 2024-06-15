@@ -76,6 +76,7 @@ More specifically we would like to introduce first class support for two scenari
 
 - Permit omitting the `<Infra>Cluster` entirely, thus making it simpler to use with Cluster API all the Managed Kubernetes implementations which do not require any additional Kubernetes Cluster Infrastructure (network settings, security groups, etc) on top of what is provided out of the box by the managed Kubernetes primitive offered by a Cloud provider.
 - Allow the `ControlPlane Provider` component to take ownership of the responsibility of creating the control plane endpoint, thus making it simpler to use with Cluster API all the Managed Kubernetes implementations which are taking care out of the box of this piece of Cluster Infrastructure.
+  - Note: In May 2024 [this pull request](https://github.com/kubernetes-sigs/cluster-api/pull/10667) added the ability for the control plane provider to provide the endpoint the same way the infrastructure cluster would.
 
 The above capabilities can be used alone or in combination depending on the requirements of a specific Managed Kubernetes or on the specific architecture/set of Cloud components being implemented.
 

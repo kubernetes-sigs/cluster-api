@@ -23,10 +23,13 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
@@ -35,9 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var (
-	errNoAvailableNodes = errors.New("cannot find nodes with matching ProviderIDs in ProviderIDList")
-)
+var errNoAvailableNodes = errors.New("cannot find nodes with matching ProviderIDs in ProviderIDList")
 
 type getNodeReferencesResult struct {
 	references []corev1.ObjectReference
@@ -81,7 +82,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	}
 
 	// Get the Node references.
-	nodeRefsResult, err := r.getNodeReferences(ctx, clusterClient, mp.Spec.ProviderIDList)
+	nodeRefsResult, err := r.getNodeReferences(ctx, clusterClient, mp.Spec.ProviderIDList, mp.Spec.MinReadySeconds)
 	if err != nil {
 		if err == errNoAvailableNodes {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
@@ -97,7 +98,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	mp.Status.UnavailableReplicas = mp.Status.Replicas - mp.Status.AvailableReplicas
 	mp.Status.NodeRefs = nodeRefsResult.references
 
-	log.Info("Set MachinePools's NodeRefs", "noderefs", mp.Status.NodeRefs)
+	log.Info("Set MachinePool's NodeRefs", "nodeRefs", mp.Status.NodeRefs)
 	r.recorder.Event(mp, corev1.EventTypeNormal, "SuccessfulSetNodeRefs", fmt.Sprintf("%+v", mp.Status.NodeRefs))
 
 	// Reconcile node annotations and taints.
@@ -107,7 +108,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	}
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
-		log.Info("NodeRefs != ReadyReplicas", "NodeRefs", len(nodeRefsResult.references), "ReadyReplicas", mp.Status.ReadyReplicas)
+		log.Info("NodeRefs != ReadyReplicas", "nodeRefs", len(nodeRefsResult.references), "readyReplicas", mp.Status.ReadyReplicas)
 		conditions.MarkFalse(mp, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
@@ -126,7 +127,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	for _, nodeRef := range nodeRefs {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			log.V(2).Info("Failed to get Node, skipping", "err", err, "nodeRef.Name", nodeRef.Name)
+			log.V(2).Error(err, "Failed to get Node, skipping", "Node", klog.KRef("", nodeRef.Name))
 			continue
 		}
 
@@ -152,7 +153,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	return nil
 }
 
-func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string) (getNodeReferencesResult, error) {
+func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string, minReadySeconds *int32) (getNodeReferencesResult, error) {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 
 	var ready, available int
@@ -184,9 +185,11 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 			continue
 		}
 		if node, ok := nodeRefsMap[providerID]; ok {
-			available++
-			if nodeIsReady(&node) {
+			if noderefutil.IsNodeReady(&node) {
 				ready++
+				if noderefutil.IsNodeAvailable(&node, *minReadySeconds, metav1.Now()) {
+					available++
+				}
 			}
 			nodeRefs = append(nodeRefs, corev1.ObjectReference{
 				APIVersion: corev1.SchemeGroupVersion.String(),
@@ -209,7 +212,7 @@ func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client,
 	for _, nodeRef := range references {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			log.V(2).Info("Failed to get Node, skipping setting annotations", "err", err, "nodeRef.Name", nodeRef.Name)
+			log.V(2).Error(err, "Failed to get Node, skipping setting annotations", "Node", klog.KRef("", nodeRef.Name))
 			continue
 		}
 		patchHelper, err := patch.NewHelper(node, c)
@@ -228,19 +231,10 @@ func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client,
 		// Patch the node if needed.
 		if hasAnnotationChanges || hasTaintChanges {
 			if err := patchHelper.Patch(ctx, node); err != nil {
-				log.V(2).Info("Failed patch Node to set annotations and drop taints", "err", err, "node name", node.Name)
+				log.V(2).Error(err, "Failed patch Node to set annotations and drop taints", "Node", klog.KObj(node))
 				return err
 			}
 		}
 	}
 	return nil
-}
-
-func nodeIsReady(node *corev1.Node) bool {
-	for _, n := range node.Status.Conditions {
-		if n.Type == corev1.NodeReady {
-			return n.Status == corev1.ConditionTrue
-		}
-	}
-	return false
 }

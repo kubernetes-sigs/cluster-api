@@ -97,14 +97,14 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	// Set log level 2 as default.
 	if err := pflag.CommandLine.Set("v", "2"); err != nil {
-		setupLog.Error(err, "failed to set default log level")
+		setupLog.Error(err, "Failed to set default log level")
 		os.Exit(1)
 	}
 	pflag.Parse()
 
 	// Validates logs flags using Kubernetes component-base machinery and applies them
 	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
-		setupLog.Error(err, "unable to start extension")
+		setupLog.Error(err, "Unable to start extension")
 		os.Exit(1)
 	}
 
@@ -126,7 +126,7 @@ func main() {
 		CertDir: webhookCertDir,
 	})
 	if err != nil {
-		setupLog.Error(err, "error creating webhook server")
+		setupLog.Error(err, "Error creating webhook server")
 		os.Exit(1)
 	}
 
@@ -136,7 +136,7 @@ func main() {
 		Name:        "before-cluster-create",
 		HandlerFunc: DoBeforeClusterCreate,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
@@ -144,7 +144,7 @@ func main() {
 		Name:        "before-cluster-upgrade",
 		HandlerFunc: DoBeforeClusterUpgrade,
 	}); err != nil {
-		setupLog.Error(err, "error adding handler")
+		setupLog.Error(err, "Error adding handler")
 		os.Exit(1)
 	}
 
@@ -154,7 +154,7 @@ func main() {
 	// Start the https server.
 	setupLog.Info("Starting Runtime Extension server")
 	if err := webhookServer.Start(ctx); err != nil {
-		setupLog.Error(err, "error running webhook server")
+		setupLog.Error(err, "Error running webhook server")
 		os.Exit(1)
 	}
 }

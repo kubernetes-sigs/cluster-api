@@ -411,7 +411,7 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		if md.MachineHealthCheck == nil {
 			continue
 		}
-		fldPath := field.NewPath("spec", "workers", "machineDeployments", "machineHealthCheck").Index(i)
+		fldPath := field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("machineHealthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, clusterClass.Namespace, md.MachineHealthCheck)...)
 	}
@@ -515,7 +515,6 @@ func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.Er
 func validateAutoscalerAnnotationsForClusterClass(clusters []clusterv1.Cluster, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	for _, c := range clusters {
-		c := c
 		allErrs = append(allErrs, validateAutoscalerAnnotationsForCluster(&c, newClusterClass)...)
 	}
 	return allErrs

@@ -39,7 +39,11 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 	logger := ctrl.LoggerFrom(ctx)
 
 	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
-	fd := controlPlane.NextFailureDomainForScaleUp(ctx)
+	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd); err != nil {
 		logger.Error(err, "Failed to create initial control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedInitialization", "Failed to create initial control plane Machine for cluster %s control plane: %v", klog.KObj(controlPlane.Cluster), err)
@@ -60,7 +64,11 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
-	fd := controlPlane.NextFailureDomainForScaleUp(ctx)
+	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd); err != nil {
 		logger.Error(err, "Failed to create additional control plane Machine")
 		r.recorder.Eventf(controlPlane.KCP, corev1.EventTypeWarning, "FailedScaleUp", "Failed to create additional control plane Machine for cluster % control plane: %v", klog.KObj(controlPlane.Cluster), err)
@@ -155,7 +163,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 
 	// If there are deleting machines, wait for the operation to complete.
 	if controlPlane.HasDeletingMachine() {
-		logger.Info("Waiting for machines to be deleted", "Machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+		logger.Info("Waiting for machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 

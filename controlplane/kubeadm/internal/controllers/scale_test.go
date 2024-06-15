@@ -62,7 +62,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	defer teardown(t, g, namespace)
 
 	cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
-	g.Expect(env.Create(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
 	kcp.UID = types.UID(util.RandomString(10))
 
 	r := &KubeadmControlPlaneReconciler{
@@ -128,7 +128,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		defer teardown(t, g, namespace)
 
 		cluster, kcp, genericInfrastructureMachineTemplate := createClusterWithControlPlane(namespace.Name)
-		g.Expect(env.Create(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate, client.FieldOwner("manager"))).To(Succeed())
 		kcp.UID = types.UID(util.RandomString(10))
 		setKCPHealthy(kcp)
 
@@ -137,7 +137,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Workload: fakeWorkloadCluster{},
 		}
 
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			setMachineHealthy(m)
 			fmc.Machines.Insert(m)
@@ -197,7 +197,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		cluster.Status.InfrastructureReady = true
 
 		beforeMachines := collections.New()
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster.DeepCopy(), kcp.DeepCopy(), true)
 			beforeMachines.Insert(m)
 		}

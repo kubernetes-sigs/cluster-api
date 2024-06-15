@@ -45,7 +45,6 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 	}
 	var conditions []*clusterv1.Condition
 	for _, c := range getter.GetConditions() {
-		c := c
 		if c.Type != clusterv1.ReadyCondition {
 			conditions = append(conditions, &c)
 		}

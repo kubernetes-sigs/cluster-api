@@ -71,8 +71,7 @@ rules:
     resolution: "Add a kind/ label: api-change, bug, cleanup, deprecation, documentation, failing-test, feature, flake, proposal, regression, release-blocking, support"
     type: issue
     filters:
-      # TODO: Configure plugins so needs-kind label is applied + use it for this filter
-      - label: "!kind/.*"
+      - label: "needs-kind"
 
   triage-needs-priority:
     # WHY?: kinds need to be assigned by maintainers, let's do it!
@@ -80,8 +79,7 @@ rules:
     resolution: "Add a priority/ label: priority/critical-urgent > priority/important-soon > priority/important-longterm > priority/backlog > priority/awaiting-more-evidence"
     type: issue
     filters:
-      # TODO: Configure plugins so needs-priority label is applied + use it for this filter
-      - label: "!priority/.*"
+      - label: "needs-priority"
 
   # Phase: Triage finalization
 

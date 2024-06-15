@@ -49,7 +49,6 @@ type MachinePoolSpec struct {
 	// be ready.
 	// Defaults to 0 (machine instance will be considered available as soon as it
 	// is ready)
-	// NOTE: No logic is implemented for this field and it currently has no behaviour.
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 

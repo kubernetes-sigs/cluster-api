@@ -1099,7 +1099,7 @@ export IONOSCLOUD_MACHINE_IMAGE_ID="<your-image-id>"
 export IONOSCLOUD_MACHINE_SSH_KEYS="<your-ssh-key>"
 ```
 
-For more configuration options check out list of [available variables](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/quickstart.md#environment-variables)
+For more configuration options check our list of [available variables](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/quickstart.md#environment-variables)
 
 {{#/tab }}
 {{#tab K0smotron}}

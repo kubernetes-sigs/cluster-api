@@ -606,7 +606,8 @@ clusterctl init --infrastructure ibmcloud
 {{#/tab }}
 {{#tab IONOS Cloud}}
 
-Credentials are configured per cluster. Therefore, no need to specify them for the provider.
+The IONOS Cloud credentials are configured in the `IONOSCloudCluster`.
+Therefore, there is no need to specify them during the provider initialization.
 
 ```bash
 clusterctl init --infrastructure ionoscloud-ionoscloud
@@ -1086,8 +1087,8 @@ Please visit the [IBM Cloud provider] for more information.
 {{#/tab }}
 {{#tab IONOS Cloud}}
 
-You need to build your own image in order to use it with the IONOS Cloud provider.
-For instructions on how to build a compatible image see our [docs](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/custom-image.md)
+A ClusterAPI compatible image must be available in your IONOS Cloud contract.
+For instructions on how to build a compatible Image, see [our docs](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/custom-image.md).
 
 ```bash
 export IONOS_TOKEN=<your-token>

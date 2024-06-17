@@ -236,7 +236,7 @@ func writeStateFile(path string, vs *VersionState) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		return err
 	}
 	return os.WriteFile(path, vsb, 0600)

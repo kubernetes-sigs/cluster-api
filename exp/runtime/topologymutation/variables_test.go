@@ -205,6 +205,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 		AddressesFromPools *[]AddressesFromPool `json:"addressesFromPools,omitempty"`
 		Ipv6Primary        *bool                `json:"ipv6Primary,omitempty"`
 	}
+	type WorkerKubeletExtraArgs map[string]string
 
 	g := NewWithT(t)
 
@@ -214,7 +215,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 		variableName           string
 		expectedNotFoundError  bool
 		expectedErr            bool
-		object                 *Network
+		object                 interface{}
 		expectedVariableObject interface{}
 	}{
 		{
@@ -223,7 +224,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 			variableName:           "invalid[",
 			expectedNotFoundError:  false,
 			object:                 &Network{},
-			expectedVariableObject: Network{},
+			expectedVariableObject: &Network{},
 			expectedErr:            true,
 		},
 		{
@@ -232,7 +233,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 			variableName:           "notEsists",
 			expectedNotFoundError:  true,
 			object:                 &Network{},
-			expectedVariableObject: Network{},
+			expectedVariableObject: &Network{},
 			expectedErr:            true,
 		},
 		{
@@ -244,7 +245,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 			variableName:           "network",
 			expectedNotFoundError:  false,
 			object:                 &Network{},
-			expectedVariableObject: Network{},
+			expectedVariableObject: &Network{},
 			expectedErr:            true,
 		},
 		{
@@ -257,13 +258,30 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 			expectedNotFoundError: false,
 			expectedErr:           false,
 			object:                &Network{},
-			expectedVariableObject: Network{
+			expectedVariableObject: &Network{
 				Ipv6Primary: ptr.To(true),
 				AddressesFromPools: &[]AddressesFromPool{
 					{
 						Name: "name",
 					},
 				},
+			},
+		},
+		{
+			name: "valid variable with encoded character",
+			variables: map[string]apiextensionsv1.JSON{
+				// Note: When a user uses `<` in a string in a variable it will be encoded as `\u003c`
+				// This is already done by the APIserver and e.g. visible when doing a simple get cluster call.
+				// This test case makes sure that variables that contain `<` are unmarshalled correctly.
+				"workerKubeletExtraArgs": {Raw: []byte(`{"eviction-hard":"memory.available\u003c512M,nodefs.available\u003c5%","eviction-soft":"memory.available\u003c1024M,nodefs.available\u003c10%"}`)},
+			},
+			variableName:          "workerKubeletExtraArgs",
+			expectedNotFoundError: false,
+			expectedErr:           false,
+			object:                &WorkerKubeletExtraArgs{},
+			expectedVariableObject: &WorkerKubeletExtraArgs{
+				"eviction-hard": "memory.available<512M,nodefs.available<5%",
+				"eviction-soft": "memory.available<1024M,nodefs.available<10%",
 			},
 		},
 	}
@@ -278,7 +296,7 @@ func Test_GetVariableObjectWithNestedType(t *testing.T) {
 			if tt.expectedNotFoundError {
 				g.Expect(IsNotFoundError(err)).To(BeTrue())
 			}
-			g.Expect(*tt.object).To(Equal(tt.expectedVariableObject))
+			g.Expect(tt.object).To(Equal(tt.expectedVariableObject))
 		})
 	}
 }

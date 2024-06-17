@@ -361,7 +361,7 @@ func (o *objectMover) move(ctx context.Context, graph *objectGraph, toProxy Prox
 
 	// Create all objects group by group, ensuring all the ownerReferences are re-created.
 	log.Info("Creating objects in the target cluster")
-	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
+	for groupIndex := range len(moveSequence.groups) {
 		if err := o.createGroup(ctx, moveSequence.getGroup(groupIndex), toProxy, mutators...); err != nil {
 			return err
 		}
@@ -419,7 +419,7 @@ func (o *objectMover) toDirectory(ctx context.Context, graph *objectGraph, direc
 
 	// Save all objects group by group
 	log.Info(fmt.Sprintf("Saving files to %s", directory))
-	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
+	for groupIndex := range len(moveSequence.groups) {
 		if err := o.backupGroup(ctx, moveSequence.getGroup(groupIndex), directory); err != nil {
 			return err
 		}
@@ -459,7 +459,7 @@ func (o *objectMover) fromDirectory(ctx context.Context, graph *objectGraph, toP
 
 	// Create all objects group by group, ensuring all the ownerReferences are re-created.
 	log.Info("Restoring objects into the target cluster")
-	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
+	for groupIndex := range len(moveSequence.groups) {
 		if err := o.restoreGroup(ctx, moveSequence.getGroup(groupIndex), toProxy); err != nil {
 			return err
 		}

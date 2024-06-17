@@ -287,7 +287,6 @@ func (p *providerComponents) ValidateNoObjectsExist(ctx context.Context, provide
 	// Filter the resources according to the delete options
 	crsHavingObjects := []string{}
 	for _, crd := range customResources.Items {
-		crd := crd
 		storageVersion, err := storageVersionForCRD(&crd)
 		if err != nil {
 			return err

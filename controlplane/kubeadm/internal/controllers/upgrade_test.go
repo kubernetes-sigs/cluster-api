@@ -197,7 +197,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 		},
 	}
 	objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m := &clusterv1.Machine{
 			ObjectMeta: metav1.ObjectMeta{

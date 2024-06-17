@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -446,6 +447,46 @@ func machineDeploymentOptions(deployment clusterv1.MachineDeployment) []client.L
 	return []client.ListOption{
 		client.MatchingLabels(deployment.Spec.Selector.MatchLabels),
 	}
+}
+
+// DeleteAndWaitMachineDeploymentInput is the input for DeleteAndWaitMachineDeployment.
+type DeleteAndWaitMachineDeploymentInput struct {
+	ClusterProxy              ClusterProxy
+	Cluster                   *clusterv1.Cluster
+	MachineDeployment         *clusterv1.MachineDeployment
+	WaitForMachineDeployments []interface{}
+	DeletePropagationPolicy   *metav1.DeletionPropagation
+}
+
+// DeleteAndWaitMachineDeployment deletes MachineDeployment and waits until it is gone.
+func DeleteAndWaitMachineDeployment(ctx context.Context, input DeleteAndWaitMachineDeploymentInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteAndWaitMachineDeployment")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DeleteAndWaitMachineDeployment")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DeleteAndWaitMachineDeployment")
+	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling DeleteAndWaitMachineDeployment")
+
+	log.Logf("Deleting MachineDeployment %s", klog.KObj(input.MachineDeployment))
+	Expect(input.ClusterProxy.GetClient().Delete(ctx, input.MachineDeployment, &client.DeleteOptions{PropagationPolicy: input.DeletePropagationPolicy})).To(Succeed())
+
+	log.Logf("Waiting for MD to be deleted")
+	Eventually(func(g Gomega) {
+		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		machines := &clusterv1.MachineList{}
+		err = input.ClusterProxy.GetClient().List(ctx, machines, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(machines.Items).To(BeEmpty())
+
+		ms := &clusterv1.MachineSetList{}
+		err = input.ClusterProxy.GetClient().List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(ms.Items).To(BeEmpty())
+
+		md := &clusterv1.MachineDeployment{}
+		err = input.ClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(input.MachineDeployment), md)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	}, input.WaitForMachineDeployments...).Should(Succeed(), "Timed out waiting for Machine Deployment deletion")
 }
 
 // ScaleAndWaitMachineDeploymentInput is the input for ScaleAndWaitMachineDeployment.

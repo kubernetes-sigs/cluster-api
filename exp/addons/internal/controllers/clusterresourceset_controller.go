@@ -32,11 +32,13 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -65,7 +67,7 @@ type ClusterResourceSetReconciler struct {
 	WatchFilterValue string
 }
 
-func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(
@@ -74,18 +76,26 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		).
 		WatchesMetadata(
 			&corev1.ConfigMap{},
-			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
+			handler.EnqueueRequestsFromMapFunc(
+				resourceToClusterResourceSetFunc[client.Object](r.Client),
+			),
 			builder.WithPredicates(
-				resourcepredicates.ResourceCreateOrUpdate(ctrl.LoggerFrom(ctx)),
+				resourcepredicates.TypedResourceCreateOrUpdate[client.Object](ctrl.LoggerFrom(ctx)),
 			),
 		).
-		WatchesMetadata(
-			&corev1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
-			builder.WithPredicates(
-				resourcepredicates.ResourceCreateOrUpdate(ctrl.LoggerFrom(ctx)),
+		WatchesRawSource(source.Kind(
+			partialSecretCache,
+			&metav1.PartialObjectMetadata{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+			},
+			handler.TypedEnqueueRequestsFromMapFunc(
+				resourceToClusterResourceSetFunc[*metav1.PartialObjectMetadata](r.Client),
 			),
-		).
+			resourcepredicates.TypedResourceCreateOrUpdate[*metav1.PartialObjectMetadata](ctrl.LoggerFrom(ctx)),
+		)).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
@@ -118,8 +128,13 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	defer func() {
-		// Always attempt to Patch the ClusterResourceSet object and status after each reconciliation.
-		if err := patchHelper.Patch(ctx, clusterResourceSet, patch.WithStatusObservedGeneration{}); err != nil {
+		// Always attempt to patch the object and status after each reconciliation.
+		// Patch ObservedGeneration only if the reconciliation completed successfully.
+		patchOpts := []patch.Option{}
+		if reterr == nil {
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+		}
+		if err := patchHelper.Patch(ctx, clusterResourceSet, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
@@ -471,46 +486,48 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(ctx context.C
 	return result
 }
 
-// resourceToClusterResourceSet is mapper function that maps resources to ClusterResourceSet.
-func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(ctx context.Context, o client.Object) []ctrl.Request {
-	result := []ctrl.Request{}
+// resourceToClusterResourceSetFunc returns a typed mapper function that maps resources to ClusterResourceSet.
+func resourceToClusterResourceSetFunc[T client.Object](ctrlClient client.Client) handler.TypedMapFunc[T] {
+	return func(ctx context.Context, o T) []ctrl.Request {
+		result := []ctrl.Request{}
 
-	// Add all ClusterResourceSet owners.
-	for _, owner := range o.GetOwnerReferences() {
-		if owner.Kind == "ClusterResourceSet" {
-			name := client.ObjectKey{Namespace: o.GetNamespace(), Name: owner.Name}
-			result = append(result, ctrl.Request{NamespacedName: name})
-		}
-	}
-
-	// If there is any ClusterResourceSet owner, that means the resource is reconciled before,
-	// and existing owners are the only matching ClusterResourceSets to this resource, so no need to return all ClusterResourceSets.
-	if len(result) > 0 {
-		return result
-	}
-
-	// Only core group is accepted as resources group
-	if o.GetObjectKind().GroupVersionKind().Group != "" {
-		return result
-	}
-
-	crsList := &addonsv1.ClusterResourceSetList{}
-	if err := r.Client.List(ctx, crsList, client.InNamespace(o.GetNamespace())); err != nil {
-		return nil
-	}
-	objKind, err := apiutil.GVKForObject(o, r.Client.Scheme())
-	if err != nil {
-		return nil
-	}
-	for _, crs := range crsList.Items {
-		for _, resource := range crs.Spec.Resources {
-			if resource.Kind == objKind.Kind && resource.Name == o.GetName() {
-				name := client.ObjectKey{Namespace: o.GetNamespace(), Name: crs.Name}
+		// Add all ClusterResourceSet owners.
+		for _, owner := range o.GetOwnerReferences() {
+			if owner.Kind == "ClusterResourceSet" {
+				name := client.ObjectKey{Namespace: o.GetNamespace(), Name: owner.Name}
 				result = append(result, ctrl.Request{NamespacedName: name})
-				break
 			}
 		}
-	}
 
-	return result
+		// If there is any ClusterResourceSet owner, that means the resource is reconciled before,
+		// and existing owners are the only matching ClusterResourceSets to this resource, so no need to return all ClusterResourceSets.
+		if len(result) > 0 {
+			return result
+		}
+
+		// Only core group is accepted as resources group
+		if o.GetObjectKind().GroupVersionKind().Group != "" {
+			return result
+		}
+
+		crsList := &addonsv1.ClusterResourceSetList{}
+		if err := ctrlClient.List(ctx, crsList, client.InNamespace(o.GetNamespace())); err != nil {
+			return nil
+		}
+		objKind, err := apiutil.GVKForObject(o, ctrlClient.Scheme())
+		if err != nil {
+			return nil
+		}
+		for _, crs := range crsList.Items {
+			for _, resource := range crs.Spec.Resources {
+				if resource.Kind == objKind.Kind && resource.Name == o.GetName() {
+					name := client.ObjectKey{Namespace: o.GetNamespace(), Name: crs.Name}
+					result = append(result, ctrl.Request{NamespacedName: name})
+					break
+				}
+			}
+		}
+
+		return result
+	}
 }

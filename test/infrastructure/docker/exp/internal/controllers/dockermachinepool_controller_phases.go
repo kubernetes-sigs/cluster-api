@@ -62,7 +62,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Cont
 
 	matchingMachineCount := len(machinesMatchingInfrastructureSpec(ctx, machines, machinePool, dockerMachinePool))
 	numToCreate := int(*machinePool.Spec.Replicas) - matchingMachineCount
-	for i := 0; i < numToCreate; i++ {
+	for range numToCreate {
 		log.V(2).Info("Creating a new Docker container for machinePool", "MachinePool", klog.KObj(machinePool))
 		name := fmt.Sprintf("worker-%s", util.RandomString(6))
 		if err := createDockerContainer(ctx, name, cluster, machinePool, dockerMachinePool); err != nil {

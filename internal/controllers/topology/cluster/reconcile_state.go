@@ -450,7 +450,12 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 		return nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: s.Current.Cluster})
+	changes := patchHelper.Changes()
+	if len(changes) == 0 {
+		log.Infof("Patching %s", tlog.KObj{Obj: s.Current.Cluster})
+	} else {
+		log.Infof("Patching %s, diff: %s", tlog.KObj{Obj: s.Current.Cluster}, changes)
+	}
 	if err := patchHelper.Patch(ctx); err != nil {
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: s.Current.Cluster})
 	}
@@ -751,7 +756,12 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		return nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: currentMD.Object})
+	changes := patchHelper.Changes()
+	if len(changes) == 0 {
+		log.Infof("Patching %s", tlog.KObj{Obj: currentMD.Object})
+	} else {
+		log.Infof("Patching %s, diff: %s", tlog.KObj{Obj: currentMD.Object}, changes)
+	}
 	if err := patchHelper.Patch(ctx); err != nil {
 		// Best effort cleanup of the InfrastructureMachineTemplate & BootstrapTemplate (only on template rotation).
 		infrastructureMachineCleanupFunc()
@@ -1029,7 +1039,12 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, s *scope.Scope, curr
 		return nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: currentMP.Object})
+	changes := patchHelper.Changes()
+	if len(changes) == 0 {
+		log.Infof("Patching %s", tlog.KObj{Obj: currentMP.Object})
+	} else {
+		log.Infof("Patching %s, diff: %s", tlog.KObj{Obj: currentMP.Object}, changes)
+	}
 	if err := patchHelper.Patch(ctx); err != nil {
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: currentMP.Object})
 	}
@@ -1173,7 +1188,12 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 		return false, nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
+	changes := patchHelper.Changes()
+	if len(changes) == 0 {
+		log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
+	} else {
+		log.Infof("Patching %s, diff: %s", tlog.KObj{Obj: in.desired}, changes)
+	}
 	if err := patchHelper.Patch(ctx); err != nil {
 		return false, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: in.current})
 	}
@@ -1260,7 +1280,12 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// If there are no changes in the spec, and thus only changes in metadata, instead of doing a full template
 	// rotation we patch the object in place. This avoids recreating machines.
 	if !patchHelper.HasSpecChanges() {
-		log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
+		changes := patchHelper.Changes()
+		if len(changes) == 0 {
+			log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
+		} else {
+			log.Infof("Patching %s, diff: %s", tlog.KObj{Obj: in.desired}, changes)
+		}
 		if err := patchHelper.Patch(ctx); err != nil {
 			return false, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: in.desired})
 		}
@@ -1275,7 +1300,12 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	newName := names.SimpleNameGenerator.GenerateName(in.templateNamePrefix)
 	in.desired.SetName(newName)
 
-	log.Infof("Rotating %s, new name %s", tlog.KObj{Obj: in.current}, newName)
+	changes := patchHelper.Changes()
+	if len(changes) == 0 {
+		log.Infof("Rotating %s, new name %s", tlog.KObj{Obj: in.current}, newName)
+	} else {
+		log.Infof("Rotating %s, new name %s, diff: %s", tlog.KObj{Obj: in.current}, newName, changes)
+	}
 	log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
 	helper, err := r.patchHelperFactory(ctx, nil, in.desired)
 	if err != nil {

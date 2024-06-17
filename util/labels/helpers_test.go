@@ -131,8 +131,7 @@ func TestIsMachinePoolOwned(t *testing.T) {
 		},
 	}
 
-	for i := range tests {
-		tt := tests[i]
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 

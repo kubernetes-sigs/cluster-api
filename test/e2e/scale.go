@@ -481,7 +481,7 @@ func workConcurrentlyAndWait(ctx context.Context, input workConcurrentlyAndWaitI
 	defer cancel()
 
 	// Start the workers.
-	for i := int64(0); i < input.Concurrency; i++ {
+	for range input.Concurrency {
 		wg.Add(1)
 		go input.WorkerFunc(ctx, inputChan, resultChan, wg)
 	}

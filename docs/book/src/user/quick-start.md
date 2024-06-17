@@ -609,10 +609,10 @@ clusterctl init --infrastructure ibmcloud
 Credentials are configured per cluster. Therefore, no need to specify them for the provider.
 
 ```bash
-clusterctl init --infrastructure ionoscloud
+clusterctl init --infrastructure ionoscloud-ionoscloud
 ```
 
-For more information, please visit the [ionoscloud project][ionoscloud provider].
+For more information, please visit the [IONOS Cloud project][ionoscloud provider].
 
 {{#/tab }}
 {{#tab K0smotron}}

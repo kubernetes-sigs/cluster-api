@@ -445,25 +445,10 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
 	}
 
-	if scope.Config.Spec.InitConfiguration == nil {
-		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "kubeadm.k8s.io/v1beta3",
-				Kind:       "InitConfiguration",
-			},
-		}
-	}
-
-	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.InitConfiguration, parsedVersion)
-	if err != nil {
-		scope.Error(err, "Failed to marshal init configuration")
-		return ctrl.Result{}, err
-	}
-
 	if scope.Config.Spec.ClusterConfiguration == nil {
 		scope.Config.Spec.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "kubeadm.k8s.io/v1beta3",
+				APIVersion: "kubeadm.k8s.io/v1beta4",
 				Kind:       "ClusterConfiguration",
 			},
 		}
@@ -475,6 +460,23 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	clusterdata, err := kubeadmtypes.MarshalClusterConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal cluster configuration")
+		return ctrl.Result{}, err
+	}
+
+	if scope.Config.Spec.InitConfiguration == nil {
+		scope.Config.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "kubeadm.k8s.io/v1beta4",
+				Kind:       "InitConfiguration",
+			},
+		}
+	}
+
+	// NOTE: It is required to provide in input the ClusterConfiguration because clusterConfiguration.APIServer.TimeoutForControlPlane
+	// has been migrated to InitConfiguration in the kubeadm v1beta4 API version.
+	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, scope.Config.Spec.InitConfiguration, parsedVersion)
+	if err != nil {
+		scope.Error(err, "Failed to marshal init configuration")
 		return ctrl.Result{}, err
 	}
 
@@ -602,7 +604,9 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		joinConfiguration.NodeRegistration.Taints = append(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint)
 	}
 
-	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(joinConfiguration, parsedVersion)
+	// NOTE: It is not required to provide in input ClusterConfiguration because only clusterConfiguration.APIServer.TimeoutForControlPlane
+	// has been migrated to JoinConfiguration in the kubeadm v1beta4 API version, and this field does not apply to workers.
+	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(nil, joinConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -711,7 +715,9 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
 	}
 
-	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, parsedVersion)
+	// NOTE: It is required to provide in input the ClusterConfiguration because clusterConfiguration.APIServer.TimeoutForControlPlane
+	// has been migrated to JoinConfiguration in the kubeadm v1beta4 API version.
+	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.ClusterConfiguration, scope.Config.Spec.JoinConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err

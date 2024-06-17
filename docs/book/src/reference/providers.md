@@ -38,6 +38,7 @@ updated info about which API version they are supporting.
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
 - [Hivelocity](https://github.com/hivelocity/cluster-api-provider-hivelocity)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
+- [IONOS Cloud](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud)
 - [KubeKey](https://github.com/kubesphere/kubekey)
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)

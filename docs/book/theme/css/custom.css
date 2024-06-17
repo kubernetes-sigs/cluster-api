@@ -411,7 +411,11 @@ cite.literate-source > a::before {
 .tabset > input:nth-child(43):checked ~ .tab-panels > .tab-panel:nth-child(22),
 .tabset > input:nth-child(45):checked ~ .tab-panels > .tab-panel:nth-child(23),
 .tabset > input:nth-child(47):checked ~ .tab-panels > .tab-panel:nth-child(24),
-.tabset > input:nth-child(49):checked ~ .tab-panels > .tab-panel:nth-child(25){
+.tabset > input:nth-child(49):checked ~ .tab-panels > .tab-panel:nth-child(25),
+.tabset > input:nth-child(51):checked ~ .tab-panels > .tab-panel:nth-child(26),
+.tabset > input:nth-child(53):checked ~ .tab-panels > .tab-panel:nth-child(27),
+.tabset > input:nth-child(55):checked ~ .tab-panels > .tab-panel:nth-child(28),
+.tabset > input:nth-child(57):checked ~ .tab-panels > .tab-panel:nth-child(29){
   display: block;
 }
 

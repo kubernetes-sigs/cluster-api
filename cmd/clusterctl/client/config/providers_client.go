@@ -68,6 +68,7 @@ const (
 	CoxEdgeProviderName        = "coxedge"
 	ProxmoxProviderName        = "proxmox"
 	K0smotronProviderName      = "k0sproject-k0smotron"
+	IonosCloudProviderName     = "ionoscloud-ionoscloud"
 )
 
 // Bootstrap providers.
@@ -305,6 +306,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         K0smotronProviderName,
 			url:          "https://github.com/k0sproject/k0smotron/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         IonosCloudProviderName,
+			url:          "https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

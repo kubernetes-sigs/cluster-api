@@ -68,7 +68,7 @@ const (
 	CoxEdgeProviderName        = "coxedge"
 	ProxmoxProviderName        = "proxmox"
 	K0smotronProviderName      = "k0sproject-k0smotron"
-	IonosCloudProviderName     = "ionoscloud"
+	IonosCloudProviderName     = "ionoscloud-ionoscloud"
 )
 
 // Bootstrap providers.

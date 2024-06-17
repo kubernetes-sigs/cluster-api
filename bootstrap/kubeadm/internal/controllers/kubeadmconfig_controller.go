@@ -606,7 +606,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	}
 
 	// NOTE: It is not required to provide in input ClusterConfiguration because only clusterConfiguration.APIServer.TimeoutForControlPlane
-	// has been migrated to JoinConfiguration in the kubeadm v1beta4 API version, and this field do not apply to workers.
+	// has been migrated to JoinConfiguration in the kubeadm v1beta4 API version, and this field does not apply to workers.
 	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(nil, joinConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")

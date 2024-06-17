@@ -252,7 +252,7 @@ func (src *JoinConfiguration) ConvertToClusterConfiguration(clusterConfiguration
 	}
 
 	if clusterConfiguration == nil {
-		clusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+		return errors.New("cannot convert JoinConfiguration to a nil ClusterConfiguration")
 	}
 	clusterConfiguration.APIServer.TimeoutForControlPlane = src.Timeouts.ControlPlaneComponentHealthCheck
 	return nil

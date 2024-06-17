@@ -1591,6 +1591,116 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 	}
 }
 
+func TestShouldWaitForNodeVolumes(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+	}
+
+	attachedVolumes := []corev1.AttachedVolume{
+		{
+			Name:       "test-volume",
+			DevicePath: "test-path",
+		},
+	}
+
+	tests := []struct {
+		name     string
+		node     *corev1.Node
+		expected bool
+	}{
+		{
+			name: "Node has volumes attached",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node",
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					VolumesAttached: attachedVolumes,
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Node has no volumes attached",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node",
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Node is unreachable and has volumes attached",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "unreachable-node",
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionUnknown,
+						},
+					},
+					VolumesAttached: attachedVolumes,
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Node is unreachable and has no volumes attached",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "unreachable-node",
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionUnknown,
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var objs []client.Object
+			objs = append(objs, testCluster, tt.node)
+
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
+			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, c, c, fakeScheme, client.ObjectKeyFromObject(testCluster))
+			r := &Reconciler{
+				Client:  c,
+				Tracker: tracker,
+			}
+
+			got, err := r.shouldWaitForNodeVolumes(ctx, testCluster, tt.node.Name)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(Equal(tt.expected))
+		})
+	}
+}
+
 func TestIsDeleteNodeAllowed(t *testing.T) {
 	deletionts := metav1.Now()
 

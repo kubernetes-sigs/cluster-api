@@ -1091,12 +1091,17 @@ A ClusterAPI compatible image must be available in your IONOS Cloud contract.
 For instructions on how to build a compatible Image, see [our docs](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/custom-image.md).
 
 ```bash
+# The token which is used to authenticate against the IONOS Cloud API
 export IONOS_TOKEN=<your-token>
-export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
-export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl 
-export CLUSTER_NAME=my-cluster
+# The datacenter ID where the cluster will be deployed
 export IONOSCLOUD_DATACENTER_ID="<your-datacenter-id>"
+# The IP of the control plane endpoint
+export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
+# The location of the data center where the cluster will be deployed
+export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl 
+# The image ID of the custom image that will be used for the VMs
 export IONOSCLOUD_MACHINE_IMAGE_ID="<your-image-id>"
+# The SSH key that will be used to access the VMs
 export IONOSCLOUD_MACHINE_SSH_KEYS="<your-ssh-key>"
 ```
 

@@ -133,7 +133,7 @@ hetzner                 InfrastructureProvider   https://github.com/syself/clust
 hivelocity-hivelocity   InfrastructureProvider   https://github.com/hivelocity/cluster-api-provider-hivelocity/releases/latest/              infrastructure-components.yaml
 ibmcloud                InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/           infrastructure-components.yaml
 in-memory               InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             infrastructure-components-in-memory-development.yaml
-ionoscloud              InfrastructureProvider   https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/             infrastructure-components.yaml
+ionoscloud-ionoscloud   InfrastructureProvider   https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/             infrastructure-components.yaml
 k0sproject-k0smotron    InfrastructureProvider   https://github.com/k0sproject/k0smotron/releases/latest/                                    infrastructure-components.yaml
 kubekey                 InfrastructureProvider   https://github.com/kubesphere/kubekey/releases/latest/                                      infrastructure-components.yaml
 kubevirt                InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/           infrastructure-components.yaml
@@ -279,7 +279,7 @@ var expectedOutputYaml = `- File: core_components.yaml
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
 - File: infrastructure-components.yaml
-  Name: ionoscloud
+  Name: ionoscloud-ionoscloud
   ProviderType: InfrastructureProvider
   URL: https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/
 - File: infrastructure-components.yaml

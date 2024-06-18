@@ -18,6 +18,7 @@ package machineset
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -36,6 +37,7 @@ import (
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/labels"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -137,6 +139,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, ms) {
 		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
+	// Return early if the MachineSet is not topology owned.
+	if !labels.IsTopologyOwned(ms) {
+		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineSet does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
 		return ctrl.Result{}, nil
 	}
 

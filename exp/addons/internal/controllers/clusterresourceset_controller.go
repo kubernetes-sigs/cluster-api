@@ -272,7 +272,7 @@ func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(c
 // In Reconcile strategy, resources are re-applied to a particular cluster when their definition changes. The hash in ClusterResourceSetBinding is used to check
 // if a resource has changed or not.
 // TODO: If a resource already exists in the cluster but not applied by ClusterResourceSet, the resource will be updated ?
-func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) error {
+func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (rerr error) {
 	log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
@@ -295,16 +295,14 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		return err
 	}
 
-	// Initialize the patch helper.
-	patchHelper, err := patch.NewHelper(clusterResourceSetBinding, r.Client)
-	if err != nil {
-		return err
-	}
+	patch := client.MergeFromWithOptions(clusterResourceSetBinding.DeepCopy(), client.MergeFromWithOptimisticLock{})
 
 	defer func() {
 		// Always attempt to Patch the ClusterResourceSetBinding object after each reconciliation.
-		if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
-			log.Error(err, "Failed to patch config")
+		// Note only the ClusterResourceSetBinding spec will be patched as it does not have a status field, and so
+		// using the patch helper is unnecessary.
+		if err := r.Client.Patch(ctx, clusterResourceSetBinding, patch); err != nil {
+			rerr = kerrors.NewAggregate([]error{rerr, errors.Wrapf(err, "failed to patch ClusterResourceSetBinding %s", klog.KObj(clusterResourceSetBinding))})
 		}
 	}()
 
@@ -315,7 +313,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		Name:       clusterResourceSet.Name,
 		UID:        clusterResourceSet.UID,
 	}))
-	errList := []error{}
+	var errList []error
 	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 
 	// Iterate all resources and apply them to the cluster and update the resource status in the ClusterResourceSetBinding object.

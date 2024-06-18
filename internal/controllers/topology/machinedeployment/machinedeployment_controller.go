@@ -18,6 +18,7 @@ package machinedeployment
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +36,7 @@ import (
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -130,6 +132,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, md) {
 		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
+	// Return early if the MachineDeployment is not topology owned.
+	if !labels.IsTopologyOwned(md) {
+		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineDeployment does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
 		return ctrl.Result{}, nil
 	}
 

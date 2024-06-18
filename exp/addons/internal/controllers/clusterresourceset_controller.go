@@ -299,6 +299,8 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 
 	defer func() {
 		// Always attempt to Patch the ClusterResourceSetBinding object after each reconciliation.
+		// Note only the ClusterResourceSetBinding spec will be patched as it does not have a status field, and so
+		// using the patch helper is unnecessary.
 		if err := r.Client.Patch(ctx, clusterResourceSetBinding, patch); err != nil {
 			rerr = kerrors.NewAggregate([]error{rerr, errors.Wrapf(err, "failed to patch ClusterResourceSetBinding %s", klog.KObj(clusterResourceSetBinding))})
 		}

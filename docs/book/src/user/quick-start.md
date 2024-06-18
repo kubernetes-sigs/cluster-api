@@ -731,14 +731,8 @@ clusterctl init --infrastructure outscale
 
 {{#tab Proxmox}}
 
-First, we need to add the IPAM provider to your [clusterctl config file](../clusterctl/configuration.md) (`$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`):
-
-```yaml
-providers:
-  - name: in-cluster
-    url: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml
-    type: IPAMProvider
-```
+The Proxmox credentials are optional, when initializing the provider they can be set in the `ProxmoxCluster` resource,
+If you do not set them here.
 
 ```bash
 # The host for the Proxmox cluster

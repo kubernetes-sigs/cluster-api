@@ -731,8 +731,8 @@ clusterctl init --infrastructure outscale
 
 {{#tab Proxmox}}
 
-The Proxmox credentials are optional, when initializing the provider they can be set in the `ProxmoxCluster` resource,
-If you do not set them here.
+The Proxmox credentials are optional, when creating a cluster they can be set in the `ProxmoxCluster` resource,
+if you do not set them here.
 
 ```bash
 # The host for the Proxmox cluster

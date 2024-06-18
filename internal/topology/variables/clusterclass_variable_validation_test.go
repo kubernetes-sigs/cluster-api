@@ -494,6 +494,278 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		},
 		// Defaults
 		{
+			name: "Valid variable XMetadata",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MinLength: ptr.To[int64](1),
+						XMetadata: &clusterv1.VariableSchemaMetadata{
+							Labels: map[string]string{
+								"label-key": "label-value",
+							},
+							Annotations: map[string]string{
+								"annotation-key": "annotation-value",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid XMetadata label: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MinLength: ptr.To[int64](1),
+						XMetadata: &clusterv1.VariableSchemaMetadata{
+							Labels: map[string]string{
+								".label-key": "label-value",
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".label-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.x-metadata.labels"),
+			},
+		},
+		{
+			name: "fail on invalid XMetadata annotation: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MinLength: ptr.To[int64](1),
+						XMetadata: &clusterv1.VariableSchemaMetadata{
+							Annotations: map[string]string{
+								".annotation-key": "annotation-value",
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".annotation-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.x-metadata.annotations"),
+			},
+		},
+		{
+			name: "Valid variable XMetadata (map)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "validVariable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							XMetadata: &clusterv1.VariableSchemaMetadata{
+								Labels: map[string]string{
+									"label-key": "label-value",
+								},
+								Annotations: map[string]string{
+									"annotation-key": "annotation-value",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid XMetadata (map) label: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							XMetadata: &clusterv1.VariableSchemaMetadata{
+								Labels: map[string]string{
+									".label-key": "label-value",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".label-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.additionalProperties.x-metadata.labels"),
+			},
+		},
+		{
+			name: "fail on invalid XMetadata (map) annotation: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							XMetadata: &clusterv1.VariableSchemaMetadata{
+								Annotations: map[string]string{
+									".annotation-key": "annotation-value",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".annotation-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.additionalProperties.x-metadata.annotations"),
+			},
+		},
+		{
+			name: "Valid variable XMetadata (object)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "validVariable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "string",
+								XMetadata: &clusterv1.VariableSchemaMetadata{
+									Labels: map[string]string{
+										"label-key": "label-value",
+									},
+									Annotations: map[string]string{
+										"annotation-key": "annotation-value",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid XMetadata (object) label: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "string",
+								XMetadata: &clusterv1.VariableSchemaMetadata{
+									Labels: map[string]string{
+										".label-key": "label-value",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".label-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.properties[enabled].x-metadata.labels"),
+			},
+		},
+		{
+			name: "fail on invalid XMetadata (object) annotation: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "string",
+								XMetadata: &clusterv1.VariableSchemaMetadata{
+									Annotations: map[string]string{
+										".annotation-key": "annotation-value",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".annotation-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.properties[enabled].x-metadata.annotations"),
+			},
+		},
+		{
+			name: "Valid variable XMetadata (array)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "validVariable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							XMetadata: &clusterv1.VariableSchemaMetadata{
+								Labels: map[string]string{
+									"label-key": "label-value",
+								},
+								Annotations: map[string]string{
+									"annotation-key": "annotation-value",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid XMetadata (array) label: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							XMetadata: &clusterv1.VariableSchemaMetadata{
+								Labels: map[string]string{
+									".label-key": "label-value",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".label-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.items.x-metadata.labels"),
+			},
+		},
+		{
+			name: "fail on invalid XMetadata (array) annotation: key does not start with alphanumeric character",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "variable",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							XMetadata: &clusterv1.VariableSchemaMetadata{
+								Annotations: map[string]string{
+									".annotation-key": "annotation-value",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \".annotation-key\": name part must consist of alphanumeric characters",
+					"spec.variables[variable].schema.openAPIV3Schema.items.x-metadata.annotations"),
+			},
+		},
+		{
 			name: "Valid default value regular string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",

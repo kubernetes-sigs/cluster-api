@@ -995,6 +995,9 @@ spec:
                         Metadata is the metadata of a variable.
                         It can be used to add additional data for higher level tools to
                         a ClusterClassVariable.
+
+
+                        Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.
                       properties:
                         annotations:
                           additionalProperties:
@@ -1290,6 +1293,27 @@ spec:
                               x-kubernetes-list-map-keys:
                               - rule
                               x-kubernetes-list-type: map
+                            x-metadata:
+                              description: |-
+                                XMetadata is the metadata of a variable or a nested field within a variable.
+                                It can be used to add additional data for higher level tools.
+                              properties:
+                                annotations:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    Annotations is an unstructured key value map that can be used to store and
+                                    retrieve arbitrary metadata.
+                                    They are not queryable.
+                                  type: object
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  description: |-
+                                    Map of string keys and values that can be used to organize and categorize
+                                    (scope and select) variables.
+                                  type: object
+                              type: object
                           required:
                           - type
                           type: object
@@ -2026,6 +2050,9 @@ spec:
                               Metadata is the metadata of a variable.
                               It can be used to add additional data for higher level tools to
                               a ClusterClassVariable.
+
+
+                              Deprecated: This field is deprecated and is going to be removed in the next apiVersion.
                             properties:
                               annotations:
                                 additionalProperties:
@@ -2328,6 +2355,27 @@ spec:
                                     x-kubernetes-list-map-keys:
                                     - rule
                                     x-kubernetes-list-type: map
+                                  x-metadata:
+                                    description: |-
+                                      XMetadata is the metadata of a variable or a nested field within a variable.
+                                      It can be used to add additional data for higher level tools.
+                                    properties:
+                                      annotations:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          Annotations is an unstructured key value map that can be used to store and
+                                          retrieve arbitrary metadata.
+                                          They are not queryable.
+                                        type: object
+                                      labels:
+                                        additionalProperties:
+                                          type: string
+                                        description: |-
+                                          Map of string keys and values that can be used to organize and categorize
+                                          (scope and select) variables.
+                                        type: object
+                                    type: object
                                 required:
                                 - type
                                 type: object

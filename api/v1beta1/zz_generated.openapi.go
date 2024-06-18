@@ -100,6 +100,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition":                       schema_sigsk8sio_cluster_api_api_v1beta1_UnhealthyCondition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ValidationRule":                           schema_sigsk8sio_cluster_api_api_v1beta1_ValidationRule(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema":                           schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchema(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.VariableSchemaMetadata":                   schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchemaMetadata(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersClass":                             schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersTopology":                          schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref),
 	}
@@ -549,7 +550,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassStatusVariableDefiniti
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.",
+							Description: "Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariableMetadata"),
 						},
@@ -595,7 +596,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref common.Re
 					},
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.",
+							Description: "Metadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariableMetadata"),
 						},
@@ -620,7 +621,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariableMetadata(ref c
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterClassVariableMetadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.",
+				Description: "ClusterClassVariableMetadata is the metadata of a variable. It can be used to add additional data for higher level tools to a ClusterClassVariable.\n\nDeprecated: This struct is deprecated and is going to be removed in the next apiVersion.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"labels": {
@@ -1527,12 +1528,18 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 							},
 						},
 					},
+					"x-metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "XMetadata is the metadata of a variable or a nested field within a variable. It can be used to add additional data for higher level tools.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.VariableSchemaMetadata"),
+						},
+					},
 				},
 				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps", "sigs.k8s.io/cluster-api/api/v1beta1.ValidationRule"},
+			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps", "sigs.k8s.io/cluster-api/api/v1beta1.ValidationRule", "sigs.k8s.io/cluster-api/api/v1beta1.VariableSchemaMetadata"},
 	}
 }
 
@@ -3797,6 +3804,51 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchema(ref common.Referenc
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchemaMetadata(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VariableSchemaMetadata is the metadata of a variable or a nested field within a variable. It can be used to add additional data for higher level tools.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"labels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Map of string keys and values that can be used to organize and categorize (scope and select) variables.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+					"annotations": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Annotations is an unstructured key value map that can be used to store and retrieve arbitrary metadata. They are not queryable.",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: "",
+										Type:    []string{"string"},
+										Format:  "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
 

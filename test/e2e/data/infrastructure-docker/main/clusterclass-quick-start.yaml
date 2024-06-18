@@ -90,6 +90,12 @@ spec:
         default: ""
         example: "3.5.3-0"
         description: "etcdImageTag sets the tag for the etcd image."
+        # This metadata has just been added to verify that we can set metadata.
+        x-metadata:
+          labels:
+            testLabelKey: testXLabelValue
+          annotations:
+            testAnnotationKey: testXAnnotationValue
   - name: coreDNSImageTag
     required: true
     schema:
@@ -117,6 +123,12 @@ spec:
         type: array
         items:
           type: string
+          # This metadata has just been added to verify that we can set metadata.
+          x-metadata:
+            labels:
+              testLabelKey: testXLabelValue
+            annotations:
+              testAnnotationKey: testXAnnotationValue
         description: "preLoadImages sets the images for the docker machines to preload."
   - name: controlPlaneTaint
     required: false

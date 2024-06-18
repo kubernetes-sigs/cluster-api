@@ -396,6 +396,9 @@ type ClusterClassVariable struct {
 	// Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.
+	//
 	// +optional
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
@@ -406,6 +409,8 @@ type ClusterClassVariable struct {
 // ClusterClassVariableMetadata is the metadata of a variable.
 // It can be used to add additional data for higher level tools to
 // a ClusterClassVariable.
+//
+// Deprecated: This struct is deprecated and is going to be removed in the next apiVersion.
 type ClusterClassVariableMetadata struct {
 	// Map of string keys and values that can be used to organize and categorize
 	// (scope and select) variables.
@@ -569,6 +574,26 @@ type JSONSchemaProps struct {
 	// +listType=map
 	// +listMapKey=rule
 	XValidations []ValidationRule `json:"x-kubernetes-validations,omitempty"`
+
+	// XMetadata is the metadata of a variable or a nested field within a variable.
+	// It can be used to add additional data for higher level tools.
+	// +optional
+	XMetadata *VariableSchemaMetadata `json:"x-metadata,omitempty"`
+}
+
+// VariableSchemaMetadata is the metadata of a variable or a nested field within a variable.
+// It can be used to add additional data for higher level tools.
+type VariableSchemaMetadata struct {
+	// Map of string keys and values that can be used to organize and categorize
+	// (scope and select) variables.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Annotations is an unstructured key value map that can be used to store and
+	// retrieve arbitrary metadata.
+	// They are not queryable.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // ValidationRule describes a validation rule written in the CEL expression language.
@@ -897,6 +922,9 @@ type ClusterClassStatusVariableDefinition struct {
 	// Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion.
+	//
 	// +optional
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 

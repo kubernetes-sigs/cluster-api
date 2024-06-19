@@ -106,6 +106,9 @@ spec:
         default: ""
         example: "0"
         description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines."
+        x-kubernetes-validations:
+          - rule: "self == \"\" || self != \"\""
+            messageExpression: "'just a test expression, got %s'.format([self])"
   - name: preLoadImages
     required: false
     schema:

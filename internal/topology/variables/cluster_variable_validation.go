@@ -84,26 +84,30 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 	}
 
 	for _, value := range values {
+		// Add variable name as key, this makes it easier to read the field path.
+		fldPath := fldPath.Key(value.Name)
+
 		// Values must have an associated definition and must have a non-empty definitionFrom if there are conflicting definitions.
 		definition, err := defIndex.get(value.Name, value.DefinitionFrom)
 		if err != nil {
-			allErrs = append(allErrs, field.Required(fldPath, err.Error())) // TODO: consider if to add ClusterClass name
+			allErrs = append(allErrs, field.Invalid(fldPath, string(value.Value.Raw), err.Error())) // TODO: consider if to add ClusterClass name
 			continue
 		}
 
-		// If there is an old variable matching this name and definition from defined in the old Cluster then pass this in
+		// If there is an old variable matching this name and definitionFrom defined in the old Cluster then pass this in
 		// to cluster variable validation.
-		var oldValue clusterv1.ClusterVariable
-		oldValuesForName, found := oldValuesMap[value.Name]
-		if found {
-			oldValue = oldValuesForName[value.DefinitionFrom]
+		var oldValue *clusterv1.ClusterVariable
+		if oldValuesForName, found := oldValuesMap[value.Name]; found {
+			if v, found := oldValuesForName[value.DefinitionFrom]; found {
+				oldValue = &v
+			}
 		}
 
 		// Values must be valid according to the schema in their definition.
 		allErrs = append(allErrs, ValidateClusterVariable(
 			ctx,
 			value.DeepCopy(),
-			&oldValue,
+			oldValue,
 			&clusterv1.ClusterClassVariable{
 				Name:     value.Name,
 				Required: definition.Required,
@@ -153,7 +157,6 @@ func validateRequiredVariables(values map[string]map[string]clusterv1.ClusterVar
 func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.ClusterVariable, definition *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	// Parse JSON value.
 	var variableValue interface{}
-
 	// Only try to unmarshal the clusterVariable if it is not nil, otherwise the variableValue is nil.
 	// Note: A clusterVariable with a nil value is the result of setting the variable value to "null" via YAML.
 	if value.Value.Raw != nil {
@@ -179,15 +182,23 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 
 	// Validate variable against the schema.
 	// NOTE: We're reusing a library func used in CRD validation.
-	if err := validation.ValidateCustomResource(fldPath, variableValue, validator); err != nil {
-		return err
+	if validationErrors := validation.ValidateCustomResource(fldPath.Child("value"), variableValue, validator); len(validationErrors) > 0 {
+		var allErrs field.ErrorList
+		for _, validationError := range validationErrors {
+			// Set correct value in the field error. ValidateCustomResource sets the type instead of the value.
+			validationError.BadValue = string(value.Value.Raw)
+			// Fixup detail message.
+			validationError.Detail = strings.TrimPrefix(validationError.Detail, " in body ")
+			allErrs = append(allErrs, validationError)
+		}
+		return allErrs
 	}
 
 	// Structural schema pruning does not work with scalar values,
 	// so we wrap the schema and the variable in objects.
 	// <variable-name>: <variable-value>
 	wrappedVariable := map[string]interface{}{
-		value.Name: variableValue,
+		"variableValue": variableValue,
 	}
 	// type: object
 	// properties:
@@ -195,7 +206,7 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 	wrappedSchema := &apiextensions.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextensions.JSONSchemaProps{
-			definition.Name: *apiExtensionsSchema,
+			"variableValue": *apiExtensionsSchema,
 		},
 	}
 	ss, err := structuralschema.NewStructural(wrappedSchema)
@@ -205,10 +216,12 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 				fmt.Errorf("failed to create structural schema for variable %q; ClusterClass should be checked: %v", value.Name, err))} // TODO: consider if to add ClusterClass name
 	}
 
-	if err := validateUnknownFields(fldPath, definition.Name, wrappedVariable, ss); err != nil {
+	if err := validateUnknownFields(fldPath, value, wrappedVariable, ss); err != nil {
 		return err
 	}
 
+	// Note: k/k CR validation also uses celconfig.PerCallLimit when creating the validator for a custom resource.
+	// The current PerCallLimit gives roughly 0.1 second for each expression validation call.
 	celValidator := cel.NewValidator(ss, false, celconfig.PerCallLimit)
 	// celValidation will be nil if there are no CEL validations specified in the schema
 	// under `x-kubernetes-validations`.
@@ -218,22 +231,30 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 
 	// Only extract old variable value if there are CEL validations and if the old variable is not nil.
 	var oldWrappedVariable map[string]interface{}
-
 	if oldValue != nil && oldValue.Value.Raw != nil {
 		var oldVariableValue interface{}
-
 		if err := json.Unmarshal(oldValue.Value.Raw, &oldVariableValue); err != nil {
 			return field.ErrorList{field.Invalid(fldPath.Child("value"), string(oldValue.Value.Raw),
 				fmt.Sprintf("old value of variable %q could not be parsed: %v", value.Name, err))}
 		}
 
 		oldWrappedVariable = map[string]interface{}{
-			definition.Name: oldVariableValue,
+			"variableValue": oldVariableValue,
 		}
 	}
 
-	if err, _ := celValidator.Validate(ctx, fldPath, ss, wrappedVariable, oldWrappedVariable, celconfig.RuntimeCELCostBudget); err != nil {
-		return err
+	// Note: k/k CRD validation also uses celconfig.RuntimeCELCostBudget for the Validate call.
+	// The current RuntimeCELCostBudget gives roughly 1 second for the validation of a variable value.
+	if validationErrors, _ := celValidator.Validate(ctx, fldPath.Child("value"), ss, wrappedVariable, oldWrappedVariable, celconfig.RuntimeCELCostBudget); len(validationErrors) > 0 {
+		var allErrs field.ErrorList
+		for _, validationError := range validationErrors {
+			// Set correct value in the field error. ValidateCustomResource sets the type instead of the value.
+			validationError.BadValue = string(value.Value.Raw)
+			// Drop "variableValue" from the path.
+			validationError.Field = strings.Replace(validationError.Field, "value.variableValue", "value", 1)
+			allErrs = append(allErrs, validationError)
+		}
+		return allErrs
 	}
 
 	return nil
@@ -242,7 +263,7 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 // validateUnknownFields validates the given variableValue for unknown fields.
 // This func returns an error if there are variable fields in variableValue that are not defined in
 // variableSchema and if x-kubernetes-preserve-unknown-fields is not set.
-func validateUnknownFields(fldPath *field.Path, variableName string, wrappedVariable map[string]interface{}, ss *structuralschema.Structural) field.ErrorList {
+func validateUnknownFields(fldPath *field.Path, clusterVariable *clusterv1.ClusterVariable, wrappedVariable map[string]interface{}, ss *structuralschema.Structural) field.ErrorList {
 	// Run Prune to check if it would drop any unknown fields.
 	opts := structuralschema.UnknownFieldPathOptions{
 		// TrackUnknownFieldPaths has to be true so PruneWithOptions returns the unknown fields.
@@ -253,9 +274,14 @@ func validateUnknownFields(fldPath *field.Path, variableName string, wrappedVari
 		// If prune dropped any unknown fields, return an error.
 		// This means that not all variable fields have been defined in the variable schema and
 		// x-kubernetes-preserve-unknown-fields was not set.
+		for i := range prunedUnknownFields {
+			// Drop "variableValue" from the path.
+			prunedUnknownFields[i] = strings.TrimPrefix(prunedUnknownFields[i], "variableValue.")
+		}
+
 		return field.ErrorList{
-			field.Invalid(fldPath, "",
-				fmt.Sprintf("failed validation: %q fields are not specified in the variable schema of variable %q", strings.Join(prunedUnknownFields, ","), variableName)),
+			field.Invalid(fldPath, string(clusterVariable.Value.Raw),
+				fmt.Sprintf("failed validation: %q field(s) are not specified in the variable schema of variable %q", strings.Join(prunedUnknownFields, ","), clusterVariable.Name)),
 		}
 	}
 

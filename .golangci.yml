@@ -290,6 +290,12 @@ issues:
     - stylecheck
     path: util/defaulting/defaulting.go
     text: should not use dot imports
+  # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
+  # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.
+  - linters:
+      - gocritic
+    text: "emptyStringTest"
+    path: internal/topology/variables/clusterclass_variable_validation.go
   # Append should be able to assign to a different var/slice.
   - linters:
     - gocritic

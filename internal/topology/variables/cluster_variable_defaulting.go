@@ -67,10 +67,13 @@ func defaultClusterVariables(values []clusterv1.ClusterVariable, definitions []c
 	// Default all variables.
 	defaultedValues := []clusterv1.ClusterVariable{}
 	for _, variable := range allVariables {
+		// Add variable name as key, this makes it easier to read the field path.
+		fldPath := fldPath.Key(variable.Name)
+
 		// Get the variable definition from the ClusterClass. If the variable is not defined add an error.
 		definition, err := defIndex.get(variable.Name, variable.DefinitionFrom)
 		if err != nil {
-			allErrs = append(allErrs, field.Required(fldPath, err.Error()))
+			allErrs = append(allErrs, field.Invalid(fldPath, string(variable.Value.Raw), err.Error()))
 			continue
 		}
 

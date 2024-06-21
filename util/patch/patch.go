@@ -138,15 +138,20 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	// Given that we pass in metadata.resourceVersion to perform a 3-way-merge conflict resolution,
 	// patching conditions first avoids an extra loop if spec or status patch succeeds first
 	// given that causes the resourceVersion to mutate.
-	if err := h.patchStatusConditions(ctx, obj, options.ForceOverwriteConditions, options.OwnedConditions); err != nil {
-		errs = append(errs, err)
+	if !options.StatusIgnore {
+		if err := h.patchStatusConditions(ctx, obj, options.ForceOverwriteConditions, options.OwnedConditions); err != nil {
+			errs = append(errs, err)
+		}
 	}
 	// Then proceed to patch the rest of the object.
 	if err := h.patch(ctx, obj); err != nil {
 		errs = append(errs, err)
 	}
-	if err := h.patchStatus(ctx, obj); err != nil {
-		errs = append(errs, err)
+
+	if !options.StatusIgnore {
+		if err := h.patchStatus(ctx, obj); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	if len(errs) > 0 {

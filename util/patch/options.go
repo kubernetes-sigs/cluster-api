@@ -37,6 +37,9 @@ type HelperOptions struct {
 	// OwnedConditions defines condition types owned by the controller.
 	// In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
 	OwnedConditions []clusterv1.ConditionType
+
+	// StatusIgnore will skip patching the status
+	StatusIgnore bool
 }
 
 // WithForceOverwriteConditions allows the patch helper to overwrite conditions in case of conflicts.
@@ -66,4 +69,13 @@ type WithOwnedConditions struct {
 // ApplyToHelper applies this configuration to the given HelperOptions.
 func (w WithOwnedConditions) ApplyToHelper(in *HelperOptions) {
 	in.OwnedConditions = w.Conditions
+}
+
+// WithStatusIgnore allows the patch helper to skip patching the status when
+// patching an object. The spec and metadata will still be patched using this option.
+type WithStatusIgnore struct{}
+
+// ApplyToHelper applies this configuration to the given HelperOptions.
+func (w WithStatusIgnore) ApplyToHelper(in *HelperOptions) {
+	in.StatusIgnore = true
 }

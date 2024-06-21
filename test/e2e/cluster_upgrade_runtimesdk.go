@@ -54,8 +54,8 @@ func hookResponsesConfigMapName(clusterName string) string {
 	return fmt.Sprintf("%s-%s", clusterName, hookResponsesConfigMapNameSuffix)
 }
 
-// clusterUpgradeWithRuntimeSDKSpecInput is the input for clusterUpgradeWithRuntimeSDKSpec.
-type clusterUpgradeWithRuntimeSDKSpecInput struct {
+// ClusterUpgradeWithRuntimeSDKSpecInput is the input for clusterUpgradeWithRuntimeSDKSpec.
+type ClusterUpgradeWithRuntimeSDKSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -89,21 +89,27 @@ type clusterUpgradeWithRuntimeSDKSpecInput struct {
 	// Allows to inject a function to be run after the cluster is upgraded.
 	// If not specified, this is a no-op.
 	PostUpgrade func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
+
+	// ExtensionNamespace is the namespace where the service for the Runtime SDK is located
+	// and is used to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionNamespace string
+	// ExtensionServiceName is the service to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceName string
 }
 
-// clusterUpgradeWithRuntimeSDKSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
+// ClusterUpgradeWithRuntimeSDKSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
 // Upgrading a cluster refers to upgrading the control-plane and worker nodes (managed by MD and machine pools).
 // NOTE: This test only works with a KubeadmControlPlane.
 // NOTE: This test works with Clusters with and without ClusterClass.
 // When using ClusterClass the ClusterClass must have the variables "etcdImageTag" and "coreDNSImageTag" of type string.
 // Those variables should have corresponding patches which set the etcd and CoreDNS tags in KCP.
-func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() clusterUpgradeWithRuntimeSDKSpecInput) {
+func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() ClusterUpgradeWithRuntimeSDKSpecInput) {
 	const (
 		specName = "k8s-upgrade-with-runtimesdk"
 	)
 
 	var (
-		input         clusterUpgradeWithRuntimeSDKSpecInput
+		input         ClusterUpgradeWithRuntimeSDKSpecInput
 		namespace     *corev1.Namespace
 		cancelWatches context.CancelFunc
 
@@ -124,6 +130,9 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeFrom))
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeTo))
+
+		Expect(input.ExtensionNamespace).ToNot(BeEmpty())
+		Expect(input.ExtensionServiceName).ToNot(BeEmpty())
 
 		if input.ControlPlaneMachineCount == nil {
 			controlPlaneMachineCount = 1
@@ -153,7 +162,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		By("Deploy Test Extension ExtensionConfig")
 
 		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-			extensionConfig(specName, namespace.Name))).
+			extensionConfig(specName, namespace.Name, input.ExtensionNamespace, input.ExtensionServiceName))).
 			To(Succeed(), "Failed to create the extension config")
 
 		By("Creating a workload cluster; creation waits for BeforeClusterCreateHook to gate the operation")
@@ -291,7 +300,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 	AfterEach(func() {
 		// Delete the extensionConfig first to ensure the BeforeDeleteCluster hook doesn't block deletion.
 		Eventually(func() error {
-			return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(specName, namespace.Name))
+			return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(specName, namespace.Name, input.ExtensionNamespace, input.ExtensionServiceName))
 		}, 10*time.Second, 1*time.Second).Should(Succeed(), "delete extensionConfig failed")
 
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
@@ -401,7 +410,7 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 // We make sure this cluster-wide object does not conflict with others by using a random generated
 // name and a NamespaceSelector selecting on the namespace of the current test.
 // Thus, this object is "namespaced" to the current test even though it's a cluster-wide object.
-func extensionConfig(name, namespace string) *runtimev1.ExtensionConfig {
+func extensionConfig(name, namespace, extensionNamespace, extensionServiceName string) *runtimev1.ExtensionConfig {
 	return &runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			// Note: We have to use a constant name here as we have to be able to reference it in the ClusterClass
@@ -409,15 +418,15 @@ func extensionConfig(name, namespace string) *runtimev1.ExtensionConfig {
 			Name: name,
 			Annotations: map[string]string{
 				// Note: this assumes the test extension get deployed in the default namespace defined in its own runtime-extensions-components.yaml
-				runtimev1.InjectCAFromSecretAnnotation: "test-extension-system/test-extension-webhook-service-cert",
+				runtimev1.InjectCAFromSecretAnnotation: fmt.Sprintf("%s/%s-cert", extensionNamespace, extensionServiceName),
 			},
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				Service: &runtimev1.ServiceReference{
-					Name: "test-extension-webhook-service",
+					Name: extensionServiceName,
 					// Note: this assumes the test extension get deployed in the default namespace defined in its own runtime-extensions-components.yaml
-					Namespace: "test-extension-system",
+					Namespace: extensionNamespace,
 				},
 			},
 			NamespaceSelector: &metav1.LabelSelector{

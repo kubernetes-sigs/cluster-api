@@ -251,7 +251,7 @@ func ValidateClusterVariable(ctx context.Context, value, oldValue *clusterv1.Clu
 			// Set correct value in the field error. ValidateCustomResource sets the type instead of the value.
 			validationError.BadValue = string(value.Value.Raw)
 			// Drop "variableValue" from the path.
-			validationError.Field = strings.TrimSuffix(validationError.Field, ".variableValue")
+			validationError.Field = strings.Replace(validationError.Field, "value.variableValue", "value", 1)
 			allErrs = append(allErrs, validationError)
 		}
 		return allErrs

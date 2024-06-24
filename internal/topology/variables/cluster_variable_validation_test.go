@@ -37,6 +37,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		validateRequired bool
 		wantErrs         []validationMatch
 	}{
+		// Basic cases
 		{
 			name: "Pass for a number of valid values.",
 			definitions: []clusterv1.ClusterClassStatusVariable{
@@ -670,6 +671,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 		clusterVariable      *clusterv1.ClusterVariable
 		wantErrs             []validationMatch
 	}{
+		// Scalars
 		{
 			name: "Valid integer",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -735,7 +737,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
-
 		{
 			name: "Fails, expected integer got string",
 			wantErrs: []validationMatch{
@@ -922,6 +923,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		// Objects
 		{
 			name: "Valid object",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1180,6 +1182,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		// Maps
 		{
 			name: "Valid map",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1272,6 +1275,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		// Arrays
 		{
 			name: "Valid array",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1458,6 +1462,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		// x-kubernetes-preserve-unknown-fields
 		{
 			name: "Valid object with x-kubernetes-preserve-unknown-fields",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1687,7 +1692,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
-
+		// CEL
 		{
 			name: "Valid CEL expression: scalar: using self",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1985,6 +1990,43 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
+			name: "Invalid CEL expression: objects (nested)",
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \"{\\\"objectField\\\": {\\\"field\\\": 2}}\": failed rule: self.field <= 1",
+					"spec.topology.variables[cpu].value.objectField"),
+			},
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:                   "object",
+						XPreserveUnknownFields: true,
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"objectField": {
+								Type:                   "object",
+								XPreserveUnknownFields: true,
+								XValidations: []clusterv1.ValidationRule{{
+									Rule: "self.field <= 1",
+								}},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"field": {
+										Type: "integer",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"objectField": {"field": 2}}`),
+				},
+			},
+		},
+		{
 			name: "Valid CEL expression: objects: defined field can be accessed",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
@@ -2263,6 +2305,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 		oldValues   []clusterv1.ClusterVariable
 		wantErrs    []validationMatch
 	}{
+		// Basic cases
 		{
 			name: "Pass when no value for required definition (required variables are not required for overrides)",
 			definitions: []clusterv1.ClusterClassStatusVariable{
@@ -2405,6 +2448,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 				},
 			},
 		},
+		// CEL
 		{
 			name: "Valid integer with CEL expression",
 			definitions: []clusterv1.ClusterClassStatusVariable{

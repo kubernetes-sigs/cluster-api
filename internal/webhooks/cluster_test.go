@@ -941,6 +941,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Build()).
 				Build(),
 		},
+		// Testing validation of variables with CEL.
 		{
 			name: "should pass when CEL transition rules are skipped",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1220,9 +1221,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			t.Run("default", func(t *testing.T) {
 				g := NewWithT(t)
 
-				webhookCtx := ctx
-
 				// Add old cluster to request if oldTopology is set.
+				webhookCtx := ctx
 				if tt.oldTopology != nil {
 					oldCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 						WithTopology(tt.oldTopology).

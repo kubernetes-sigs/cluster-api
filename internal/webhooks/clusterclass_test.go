@@ -1005,7 +1005,6 @@ func TestClusterClassValidation(t *testing.T) {
 		},
 
 		// update tests
-
 		{
 			name: "update pass in case of no changes",
 			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").

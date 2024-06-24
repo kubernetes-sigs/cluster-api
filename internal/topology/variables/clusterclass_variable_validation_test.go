@@ -35,6 +35,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 		oldClusterClassVariables []clusterv1.ClusterClassVariable
 		wantErrs                 []validationMatch
 	}{
+		// Basics
 		{
 			name: "Error if multiple variables share a name",
 			clusterClassVariables: []clusterv1.ClusterClassVariable{
@@ -120,6 +121,25 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 				},
 			},
 		},
+		// CEL
+		{
+			name: "pass if x-kubernetes-validations has valid messageExpression",
+			clusterClassVariables: []clusterv1.ClusterClassVariable{
+				{
+					Name: "cpu",
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type: "integer",
+							XValidations: []clusterv1.ValidationRule{{
+								Rule:              "true",
+								MessageExpression: "'Expected integer greater or equal to 1, got %d'.format([self])",
+							}},
+						},
+					},
+				},
+			},
+		},
+		// CEL compatibility version
 		{
 			name: "fail if x-kubernetes-validations has invalid rule: " +
 				"new rule that uses opts that are not available with the current compatibility version",
@@ -213,23 +233,6 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 			wantErrs: []validationMatch{
 				invalid("compilation failed: ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')",
 					"spec.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule"),
-			},
-		},
-		{
-			name: "pass if x-kubernetes-validations has valid messageExpression",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
-				{
-					Name: "cpu",
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "integer",
-							XValidations: []clusterv1.ValidationRule{{
-								Rule:              "true",
-								MessageExpression: "'Expected integer greater or equal to 1, got %d'.format([self])",
-							}},
-						},
-					},
-				},
 			},
 		},
 		{
@@ -352,6 +355,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		clusterClassVariable *clusterv1.ClusterClassVariable
 		wantErrs             []validationMatch
 	}{
+		// Scalars
 		{
 			name: "Valid integer schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -376,18 +380,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "Valid variable name",
-			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name: "validVariable",
-				Schema: clusterv1.VariableSchema{
-					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type:      "string",
-						MinLength: ptr.To[int64](1),
-					},
-				},
-			},
-		},
+		// Variable names
 		{
 			name: "fail on variable name is builtin",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -436,6 +429,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[path.tovariable].name"),
 			},
 		},
+		// Metadata
 		{
 			name: "Valid variable metadata",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -498,6 +492,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[variable].metadata.annotations"),
 			},
 		},
+		// Defaults
 		{
 			name: "Valid default value regular string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -554,6 +549,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.items.default"),
 			},
 		},
+		// Examples
 		{
 			name: "Valid example value regular string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -610,6 +606,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.items.example"),
 			},
 		},
+		// Enums
 		{
 			name: "Valid enum values",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -668,6 +665,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.items.enum[1]"),
 			},
 		},
+		// Variable types
 		{
 			name: "fail on variable type is null",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -769,6 +767,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.additionalProperties.type"),
 			},
 		},
+		// Objects
 		{
 			name: "Valid object schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -821,6 +820,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type"),
 			},
 		},
+		// Maps
 		{
 			name: "Valid map schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -910,6 +910,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[httpProxy].schema.openAPIV3Schema"),
 			},
 		},
+		// Arrays
 		{
 			name: "Valid array schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -945,6 +946,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[arrayVariable].schema.openAPIV3Schema.items.default"),
 			},
 		},
+		// Required
 		{
 			name: "pass on variable with required set true with a default defined",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -958,6 +960,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 		},
+		// Defaults
 		{
 			name: "pass on variable with a default that is valid by the given schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1177,7 +1180,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 		},
-
+		// Examples
 		{
 			name: "pass on variable with an example that is valid by the given schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1288,7 +1291,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "pass if variable is an object with a top level default value valid by the given schema",
+			name: "pass if variable is an object with a top level example value valid by the given schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name: "var",
 				Schema: clusterv1.VariableSchema{
@@ -1312,6 +1315,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 		},
+		// Enums
 		{
 			name: "pass on variable with an enum with all variables valid by the given schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1468,6 +1472,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 		},
+		// CEL
 		{
 			name: "pass if x-kubernetes-validations has valid rule",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1500,6 +1505,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[cpu].schema.openAPIV3Schema.x-kubernetes-validations[0].rule"),
 			},
 		},
+		// CEL: uncorrelatable paths (in arrays)
 		{
 			name: "fail if x-kubernetes-validations has invalid rule: oldSef cannot be used in arrays",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1550,6 +1556,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[cpu].schema.openAPIV3Schema.items.items.x-kubernetes-validations[0].rule"),
 			},
 		},
+		// CEL: cost
 		{
 			name: "fail if x-kubernetes-validations has invalid rules: cost total exceeds total limit",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1589,14 +1596,15 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			wantErrs: []validationMatch{
 				forbidden("estimated rule cost exceeds budget by factor of more than 100x",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[array].items.x-kubernetes-validations[0].rule"),
-				forbidden("contributed to estimated cost total exceeding cost limit",
+				forbidden("contributed to estimated rule & messageExpression cost total exceeding cost limit",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[array].items.x-kubernetes-validations[0].rule"),
-				forbidden("contributed to estimated cost total exceeding cost limit",
+				forbidden("contributed to estimated rule & messageExpression cost total exceeding cost limit",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[map].additionalProperties.x-kubernetes-validations[0].rule"),
-				forbidden("x-kubernetes-validations estimated cost total for entire OpenAPIv3 schema exceeds budget by factor of more than 100x",
+				forbidden("x-kubernetes-validations estimated rule & messageExpression cost total for entire OpenAPIv3 schema exceeds budget by factor of more than 100x",
 					"spec.variables[cpu].schema.openAPIV3Schema"),
 			},
 		},
+		// CEL: rule
 		{
 			name: "fail if x-kubernetes-validations has invalid rule: rule is not specified",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1622,6 +1630,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.x-kubernetes-validations[0].rule"),
 			},
 		},
+		// CEL: validation of defaults
 		{
 			name: "pass if x-kubernetes-validations has valid rule: valid default value",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1753,6 +1762,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				},
 			},
 		},
+		// CEL: validation of examples
 		{
 			name: "pass if x-kubernetes-validations has valid rule: valid example value",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1839,6 +1849,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[nestedField].example"),
 			},
 		},
+		// CEL: validation of enums
 		{
 			name: "pass if x-kubernetes-validations has valid rule: valid enum value",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1929,6 +1940,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[nestedField].enum[1]"),
 			},
 		},
+		// CEL: reason
 		{
 			name: "fail if x-kubernetes-validations has invalid reason",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -1974,6 +1986,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.x-kubernetes-validations[0].reason"),
 			},
 		},
+		// CEL: field path
 		{
 			name: "fail if x-kubernetes-validations has invalid fieldPath for array",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -2150,6 +2163,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.x-kubernetes-validations[5].fieldPath"),
 			},
 		},
+		// CEL: message
 		{
 			name: "fail if x-kubernetes-validations has invalid message",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -2200,6 +2214,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					"spec.variables[var].schema.openAPIV3Schema.x-kubernetes-validations[4].message"),
 			},
 		},
+		// CEL: messageExpression
 		{
 			name: "pass if x-kubernetes-validations has valid messageExpression",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
@@ -2300,9 +2315,9 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			wantErrs: []validationMatch{
 				forbidden("estimated messageExpression cost exceeds budget by factor of more than 100x",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[array].items.x-kubernetes-validations[0].messageExpression"),
-				forbidden("contributed to estimated cost total exceeding cost limit",
+				forbidden("contributed to estimated rule & messageExpression cost total exceeding cost limit",
 					"spec.variables[cpu].schema.openAPIV3Schema.properties[array].items.x-kubernetes-validations[0].messageExpression"),
-				forbidden("x-kubernetes-validations estimated cost total for entire OpenAPIv3 schema exceeds budget by factor of more than 100x",
+				forbidden("x-kubernetes-validations estimated rule & messageExpression cost total for entire OpenAPIv3 schema exceeds budget by factor of more than 100x",
 					"spec.variables[cpu].schema.openAPIV3Schema"),
 			},
 		},

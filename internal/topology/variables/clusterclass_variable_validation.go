@@ -250,11 +250,11 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 	if celContext != nil && celContext.TotalCost != nil {
 		if celContext.TotalCost.Total > StaticEstimatedCRDCostLimit {
 			for _, expensive := range celContext.TotalCost.MostExpensive {
-				costErrorMsg := "contributed to estimated cost total exceeding cost limit for entire OpenAPIv3 schema"
+				costErrorMsg := "contributed to estimated rule & messageExpression cost total exceeding cost limit for entire OpenAPIv3 schema"
 				allErrs = append(allErrs, field.Forbidden(expensive.Path, costErrorMsg))
 			}
 
-			costErrorMsg := getCostErrorMessage("x-kubernetes-validations estimated cost total for entire OpenAPIv3 schema", celContext.TotalCost.Total, StaticEstimatedCRDCostLimit)
+			costErrorMsg := getCostErrorMessage("x-kubernetes-validations estimated rule & messageExpression cost total for entire OpenAPIv3 schema", celContext.TotalCost.Total, StaticEstimatedCRDCostLimit)
 			allErrs = append(allErrs, field.Forbidden(fldPath, costErrorMsg))
 		}
 	}

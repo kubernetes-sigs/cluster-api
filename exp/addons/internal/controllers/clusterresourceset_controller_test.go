@@ -345,8 +345,13 @@ metadata:
 		}
 		g.Eventually(func() bool {
 			m := &corev1.ConfigMap{}
-			err := env.Get(ctx, cmKey, m)
-			return err == nil
+			if err := env.Get(ctx, cmKey, m); err != nil {
+				return false
+			}
+			if len(m.OwnerReferences) != 1 || m.OwnerReferences[0].Name != crsInstance.Name {
+				return false
+			}
+			return true
 		}, timeout).Should(BeTrue())
 
 		// When the ConfigMap resource is created, CRS should get reconciled immediately.
@@ -445,8 +450,13 @@ metadata:
 		}
 		g.Eventually(func() bool {
 			m := &corev1.Secret{}
-			err := env.Get(ctx, cmKey, m)
-			return err == nil
+			if err := env.Get(ctx, cmKey, m); err != nil {
+				return false
+			}
+			if len(m.OwnerReferences) != 1 || m.OwnerReferences[0].Name != crsInstance.Name {
+				return false
+			}
+			return true
 		}, timeout).Should(BeTrue())
 
 		// When the Secret resource is created, CRS should get reconciled immediately.

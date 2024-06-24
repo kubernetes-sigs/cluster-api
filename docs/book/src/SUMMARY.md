@@ -28,7 +28,6 @@
       - [Autoscaling](./tasks/automated-machine-management/autoscaling.md)
       - [Healthchecking](./tasks/automated-machine-management/healthchecking.md)
     - [Experimental Features](./tasks/experimental-features/experimental-features.md)
-        - [MachinePools](./tasks/experimental-features/machine-pools.md)
         - [MachineSetPreflightChecks](./tasks/experimental-features/machineset-preflight-checks.md)
         - [ClusterResourceSet](./tasks/experimental-features/cluster-resource-set.md)
         - [ClusterClass](./tasks/experimental-features/cluster-class/index.md)

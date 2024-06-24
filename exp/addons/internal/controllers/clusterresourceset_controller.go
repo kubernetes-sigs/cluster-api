@@ -358,13 +358,6 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			continue
 		}
 
-		// Ensure an ownerReference to the clusterResourceSet is on the resource.
-		if err := r.ensureResourceOwnerRef(ctx, clusterResourceSet, unstructuredObj); err != nil {
-			log.Error(err, "Failed to add ClusterResourceSet as resource owner reference",
-				"Resource type", unstructuredObj.GetKind(), "Resource name", unstructuredObj.GetName())
-			errList = append(errList, err)
-		}
-
 		resourceScope, err := reconcileScopeForResource(clusterResourceSet, resource, resourceSetBinding, unstructuredObj)
 		if err != nil {
 			resourceSetBinding.SetBinding(addonsv1.ResourceBinding{

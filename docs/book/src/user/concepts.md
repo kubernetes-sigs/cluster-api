@@ -67,6 +67,25 @@ A MachineSet's purpose is to maintain a stable set of Machines running at any gi
 
 A MachineSet works similarly to a core Kubernetes [ReplicaSet](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/). MachineSets are not meant to be used directly, but are the mechanism MachineDeployments use to reconcile desired state.
 
+### MachinePool
+
+A MachinePool manages a set of Machines by defining a common configuration and desired number of replicas.
+
+It acts similarly to a MachineDeployment/MachineSet, but leverages the native scaling capabilities of the infrastructure provider. The underlying InfraMachinePool corresponds directly to a cloud provider resource like an Autoscaling Group on AWS or a VMSS on Azure.
+
+#### MachinePools vs MachineDeployments
+
+Although they provide a similar feature to MachineDeployments, MachinePools use a native cloud scaling resource which is treated as a black box. When a MachinePool is scaled up, the InfraMachinePool scales itself up and populates its provider ID list based on the response from the infrastructure provider. On the other hand, when a MachineDeployment is scaled up, new Machines are created, which then create an individual InfraMachine, which corresponds to a VM in any infrastructure provider.
+
+| MachinePools                                                                                                                                                        | MachineDeployments                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Creates new instances through a single infrastructure resource like VMSS in Azure or Autoscaling Groups in AWS.                                                     | Creates new instances by creating new Machines, which create individual VM instances on the infra provider.                            |
+| Set of instances is orchestrated by the infrastructure provider.                                                                                                    | Set of instances is orchestrated by Cluster API using a MachineSet.                                                                    |
+| Each MachinePool corresponds 1:1 with an associated InfraMachinePool.                                                                                               | Each MachineDeployment includes a MachineSet, and for each replica, it creates a Machine and InfraMachine.                             |
+| Each MachinePool requires only a single BootstrapConfig.                                                                                                            | Each MachineDeployment uses an InfraMachineTemplate and a BootstrapConfigTemplate, and each Machine requires a unique BootstrapConfig. |
+| Maintains a list of instances in the `providerIDList` field in the MachinePool spec. This list is populated based on the response from the infrastructure provider. | Maintains a list of instances through the Machine resources owned by the MachineSet.                                                   |
+
+
 ### MachineHealthCheck
 
 A MachineHealthCheck defines the conditions when a Node should be considered missing or unhealthy.

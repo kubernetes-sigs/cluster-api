@@ -96,7 +96,6 @@ Following controller manager deployments have to be edited in order to enable/di
 
 ## Active Experimental Features
 
-* [MachinePools](./machine-pools.md)
 * [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)

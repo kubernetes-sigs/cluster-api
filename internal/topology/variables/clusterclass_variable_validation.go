@@ -66,7 +66,6 @@ func ValidateClusterClassVariables(ctx context.Context, oldClusterClassVariables
 		// Add variable name as key, this makes it easier to read the field path.
 		fldPath := fldPath.Key(clusterClassVariable.Name)
 
-		clusterClassVariable := clusterClassVariable
 		var oldClusterClassVariable *clusterv1.ClusterClassVariable
 		if v, exists := oldClusterClassVariablesMap[clusterClassVariable.Name]; exists {
 			oldClusterClassVariable = &v
@@ -241,7 +240,7 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 	//   * The Kubernetes CEL library assumes this behavior and it's baked into cel.NewValidator (they use n to validate)
 	// * If the DefaultCompatibilityVersion is an earlier version than "n-1", it means we could roll back even more than 1 version.
 	opts := &validationOptions{
-		celEnvironmentSet: environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion()),
+		celEnvironmentSet: environment.MustBaseEnvSet(environment.DefaultCompatibilityVersion(), true),
 	}
 	if oldAPIExtensionsSchema != nil {
 		opts.preexistingExpressions = findPreexistingExpressions(oldAPIExtensionsSchema)

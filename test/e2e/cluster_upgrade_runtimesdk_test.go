@@ -50,9 +50,13 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 				framework.ValidateResourceVersionStable(ctx, proxy, namespace, clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
-			Flavor:               ptr.To("upgrades-runtimesdk"),
-			ExtensionNamespace:   "test-extension-system",
-			ExtensionServiceName: "test-extension-webhook-service",
+			Flavor: ptr.To("upgrades-runtimesdk"),
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
 		}
 	})
 })

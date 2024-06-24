@@ -90,10 +90,10 @@ type ClusterUpgradeWithRuntimeSDKSpecInput struct {
 	// If not specified, this is a no-op.
 	PostUpgrade func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
 
-	// ExtensionNamespace is the namespace where the service for the Runtime SDK is located
+	// ExtensionServiceNamespace is the namespace where the service for the Runtime SDK is located
 	// and is used to configure in the test-namespace scoped ExtensionConfig.
-	ExtensionNamespace string
-	// ExtensionServiceName is the service to configure in the test-namespace scoped ExtensionConfig.
+	ExtensionServiceNamespace string
+	// ExtensionServiceName is the name of the service to configure in the test-namespace scoped ExtensionConfig.
 	ExtensionServiceName string
 }
 
@@ -131,7 +131,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeFrom))
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeTo))
 
-		Expect(input.ExtensionNamespace).ToNot(BeEmpty())
+		Expect(input.ExtensionServiceNamespace).ToNot(BeEmpty())
 		Expect(input.ExtensionServiceName).ToNot(BeEmpty())
 
 		if input.ControlPlaneMachineCount == nil {
@@ -162,7 +162,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 		By("Deploy Test Extension ExtensionConfig")
 
 		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-			extensionConfig(specName, namespace.Name, input.ExtensionNamespace, input.ExtensionServiceName))).
+			extensionConfig(specName, namespace.Name, input.ExtensionServiceNamespace, input.ExtensionServiceName))).
 			To(Succeed(), "Failed to create the extension config")
 
 		By("Creating a workload cluster; creation waits for BeforeClusterCreateHook to gate the operation")
@@ -300,7 +300,7 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 	AfterEach(func() {
 		// Delete the extensionConfig first to ensure the BeforeDeleteCluster hook doesn't block deletion.
 		Eventually(func() error {
-			return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(specName, namespace.Name, input.ExtensionNamespace, input.ExtensionServiceName))
+			return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(specName, namespace.Name, input.ExtensionServiceNamespace, input.ExtensionServiceName))
 		}, 10*time.Second, 1*time.Second).Should(Succeed(), "delete extensionConfig failed")
 
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
@@ -410,7 +410,7 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 // We make sure this cluster-wide object does not conflict with others by using a random generated
 // name and a NamespaceSelector selecting on the namespace of the current test.
 // Thus, this object is "namespaced" to the current test even though it's a cluster-wide object.
-func extensionConfig(name, namespace, extensionNamespace, extensionServiceName string) *runtimev1.ExtensionConfig {
+func extensionConfig(name, namespace, extensionServiceNamespace, extensionServiceName string) *runtimev1.ExtensionConfig {
 	return &runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			// Note: We have to use a constant name here as we have to be able to reference it in the ClusterClass
@@ -418,7 +418,7 @@ func extensionConfig(name, namespace, extensionNamespace, extensionServiceName s
 			Name: name,
 			Annotations: map[string]string{
 				// Note: this assumes the test extension get deployed in the default namespace defined in its own runtime-extensions-components.yaml
-				runtimev1.InjectCAFromSecretAnnotation: fmt.Sprintf("%s/%s-cert", extensionNamespace, extensionServiceName),
+				runtimev1.InjectCAFromSecretAnnotation: fmt.Sprintf("%s/%s-cert", extensionServiceNamespace, extensionServiceName),
 			},
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
@@ -426,7 +426,7 @@ func extensionConfig(name, namespace, extensionNamespace, extensionServiceName s
 				Service: &runtimev1.ServiceReference{
 					Name: extensionServiceName,
 					// Note: this assumes the test extension get deployed in the default namespace defined in its own runtime-extensions-components.yaml
-					Namespace: extensionNamespace,
+					Namespace: extensionServiceNamespace,
 				},
 			},
 			NamespaceSelector: &metav1.LabelSelector{

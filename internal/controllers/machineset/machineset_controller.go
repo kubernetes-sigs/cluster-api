@@ -41,7 +41,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -72,6 +74,10 @@ var (
 	// The polling is against a local memory cache.
 	stateConfirmationInterval = 100 * time.Millisecond
 )
+
+// deleteRequeueAfter is how long to wait before checking again to see if the MachineDeployment
+// still has owned MachineSets.
+const deleteRequeueAfter = 5 * time.Second
 
 const machineSetManagerName = "capi-machineset"
 
@@ -178,9 +184,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}()
 
-	// Ignore deleted MachineSets, this can happen when foregroundDeletion
-	// is enabled
+	// Handle deletion reconciliation loop.
 	if !machineSet.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, machineSet)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(machineSet, clusterv1.MachineSetFinalizer) {
+		controllerutil.AddFinalizer(machineSet, clusterv1.MachineSetFinalizer)
 		return ctrl.Result{}, nil
 	}
 
@@ -220,8 +232,6 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Reconcile and retrieve the Cluster object.
 	if machineSet.Labels == nil {
 		machineSet.Labels = make(map[string]string)
@@ -262,63 +272,28 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = machineSet.Spec.ClusterName
 	machineSet.Spec.Template.Labels[clusterv1.ClusterNameLabel] = machineSet.Spec.ClusterName
 
-	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
+	machines, err := r.getMachinesForMachineSet(ctx, machineSet)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
-	}
-
-	// Get all Machines linked to this MachineSet.
-	allMachines := &clusterv1.MachineList{}
-	err = r.Client.List(ctx,
-		allMachines,
-		client.InNamespace(machineSet.Namespace),
-		client.MatchingLabels(selectorMap),
-	)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
-	}
-
-	// Filter out irrelevant machines (i.e. IsControlledBy something else) and claim orphaned machines.
-	// Machines in deleted state are deliberately not excluded https://github.com/kubernetes-sigs/cluster-api/pull/3434.
-	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
-	for idx := range allMachines.Items {
-		machine := &allMachines.Items[idx]
-		log := log.WithValues("Machine", klog.KObj(machine))
-		if shouldExcludeMachine(machineSet, machine) {
-			continue
-		}
-
-		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
-		if metav1.GetControllerOf(machine) == nil {
-			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
-				log.Error(err, "Failed to adopt Machine")
-				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
-				continue
-			}
-			log.Info("Adopted Machine")
-			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
-		}
-
-		filteredMachines = append(filteredMachines, machine)
+		return ctrl.Result{}, errors.Wrap(err, "failed to list Machines")
 	}
 
 	result := ctrl.Result{}
 
-	reconcileUnhealthyMachinesResult, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, filteredMachines)
+	reconcileUnhealthyMachinesResult, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile unhealthy machines")
 	}
 	result = util.LowestNonZeroResult(result, reconcileUnhealthyMachinesResult)
 
-	if err := r.syncMachines(ctx, machineSet, filteredMachines); err != nil {
+	if err := r.syncMachines(ctx, machineSet, machines); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update Machines")
 	}
 
-	syncReplicasResult, syncErr := r.syncReplicas(ctx, cluster, machineSet, filteredMachines)
+	syncReplicasResult, syncErr := r.syncReplicas(ctx, cluster, machineSet, machines)
 	result = util.LowestNonZeroResult(result, syncReplicasResult)
 
 	// Always updates status as machines come up or die.
-	if err := r.updateStatus(ctx, cluster, machineSet, filteredMachines); err != nil {
+	if err := r.updateStatus(ctx, cluster, machineSet, machines); err != nil {
 		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate([]error{err, syncErr}), "failed to update MachineSet's Status")
 	}
 
@@ -353,6 +328,77 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	return result, nil
+}
+
+func (r *Reconciler) reconcileDelete(ctx context.Context, machineSet *clusterv1.MachineSet) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	machineList, err := r.getMachinesForMachineSet(ctx, machineSet)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// If all the descendant machines are deleted, then remove the machinedeployment's finalizer.
+	if len(machineList) == 0 {
+		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetFinalizer)
+		return ctrl.Result{}, nil
+	}
+
+	log.Info("MachineSet still has owned Machines, deleting them first")
+	for _, machine := range machineList {
+		if machine.DeletionTimestamp.IsZero() {
+			log.Info("Deleting Machine", "Machine", klog.KObj(machine))
+			if err := r.Client.Delete(ctx, machine); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
+			}
+		}
+	}
+
+	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+}
+
+func (r *Reconciler) getMachinesForMachineSet(ctx context.Context, machineSet *clusterv1.MachineSet) ([]*clusterv1.Machine, error) {
+	log := ctrl.LoggerFrom(ctx)
+	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
+	}
+
+	// Get all Machines linked to this MachineSet.
+	allMachines := &clusterv1.MachineList{}
+	err = r.Client.List(ctx,
+		allMachines,
+		client.InNamespace(machineSet.Namespace),
+		client.MatchingLabels(selectorMap),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list machines")
+	}
+
+	// Filter out irrelevant machines (i.e. IsControlledBy something else) and claim orphaned machines.
+	// Machines in deleted state are deliberately not excluded https://github.com/kubernetes-sigs/cluster-api/pull/3434.
+	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
+	for idx := range allMachines.Items {
+		machine := &allMachines.Items[idx]
+		log := log.WithValues("Machine", klog.KObj(machine))
+		if shouldExcludeMachine(machineSet, machine) {
+			continue
+		}
+
+		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
+		if metav1.GetControllerOf(machine) == nil {
+			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
+				log.Error(err, "Failed to adopt Machine")
+				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
+				continue
+			}
+			log.Info("Adopted Machine")
+			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
+		}
+
+		filteredMachines = append(filteredMachines, machine)
+	}
+
+	return filteredMachines, nil
 }
 
 // syncMachines updates Machines, InfrastructureMachine and BootstrapConfig to propagate in-place mutable fields

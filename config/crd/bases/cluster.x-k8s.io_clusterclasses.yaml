@@ -1094,6 +1094,12 @@ spec:
                                 NOTE: Can only be set if type is string.
                               format: int64
                               type: integer
+                            maxProperties:
+                              description: |-
+                                MaxProperties is the maximum amount of entries in a map or properties in an object.
+                                NOTE: Can only be set if type is object.
+                              format: int64
+                              type: integer
                             maximum:
                               description: |-
                                 Maximum is the maximum of an integer or number variable.
@@ -1112,6 +1118,12 @@ spec:
                               description: |-
                                 MinLength is the min length of a string variable.
                                 NOTE: Can only be set if type is string.
+                              format: int64
+                              type: integer
+                            minProperties:
+                              description: |-
+                                MinProperties is the minimum amount of entries in a map or properties in an object.
+                                NOTE: Can only be set if type is object.
                               format: int64
                               type: integer
                             minimum:
@@ -1189,10 +1201,9 @@ spec:
                                       MessageExpression declares a CEL expression that evaluates to the validation failure message that is returned when this rule fails.
                                       Since messageExpression is used as a failure message, it must evaluate to a string.
                                       If both message and messageExpression are present on a rule, then messageExpression will be used if validation
-                                      fails. If messageExpression results in a runtime error, the runtime error is logged, and the validation failure message is produced
+                                      fails. If messageExpression results in a runtime error, the validation failure message is produced
                                       as if the messageExpression field were unset. If messageExpression evaluates to an empty string, a string with only spaces, or a string
-                                      that contains line breaks, then the validation failure message will also be produced as if the messageExpression field were unset, and
-                                      the fact that messageExpression produced an empty string/string with only spaces/string with line breaks will be logged.
+                                      that contains line breaks, then the validation failure message will also be produced as if the messageExpression field were unset.
                                       messageExpression has access to all the same variables as the rule; the only difference is the return type.
                                       Example:
                                       "x must be less than max ("+string(self.max)+")"
@@ -1219,12 +1230,10 @@ spec:
                                       value.\nIf the Rule is scoped to an object with
                                       properties, the accessible properties of the
                                       object are field selectable\nvia `self.field`
-                                      and field presence can be checked via `has(self.field)`.
-                                      Null valued fields are treated as\nabsent fields
-                                      in CEL expressions.\nIf the Rule is scoped to
-                                      an object with additionalProperties (i.e. a
-                                      map) the value of the map\nare accessible via
-                                      `self[mapKey]`, map containment can be checked
+                                      and field presence can be checked via `has(self.field)`.\nIf
+                                      the Rule is scoped to an object with additionalProperties
+                                      (i.e. a map) the value of the map\nare accessible
+                                      via `self[mapKey]`, map containment can be checked
                                       via `mapKey in self` and all entries of the
                                       map\nare accessible via CEL macros and functions
                                       such as `self.all(...)`.\nIf the Rule is scoped
@@ -2113,6 +2122,12 @@ spec:
                                       NOTE: Can only be set if type is string.
                                     format: int64
                                     type: integer
+                                  maxProperties:
+                                    description: |-
+                                      MaxProperties is the maximum amount of entries in a map or properties in an object.
+                                      NOTE: Can only be set if type is object.
+                                    format: int64
+                                    type: integer
                                   maximum:
                                     description: |-
                                       Maximum is the maximum of an integer or number variable.
@@ -2131,6 +2146,12 @@ spec:
                                     description: |-
                                       MinLength is the min length of a string variable.
                                       NOTE: Can only be set if type is string.
+                                    format: int64
+                                    type: integer
+                                  minProperties:
+                                    description: |-
+                                      MinProperties is the minimum amount of entries in a map or properties in an object.
+                                      NOTE: Can only be set if type is object.
                                     format: int64
                                     type: integer
                                   minimum:
@@ -2209,10 +2230,9 @@ spec:
                                             MessageExpression declares a CEL expression that evaluates to the validation failure message that is returned when this rule fails.
                                             Since messageExpression is used as a failure message, it must evaluate to a string.
                                             If both message and messageExpression are present on a rule, then messageExpression will be used if validation
-                                            fails. If messageExpression results in a runtime error, the runtime error is logged, and the validation failure message is produced
+                                            fails. If messageExpression results in a runtime error, the validation failure message is produced
                                             as if the messageExpression field were unset. If messageExpression evaluates to an empty string, a string with only spaces, or a string
-                                            that contains line breaks, then the validation failure message will also be produced as if the messageExpression field were unset, and
-                                            the fact that messageExpression produced an empty string/string with only spaces/string with line breaks will be logged.
+                                            that contains line breaks, then the validation failure message will also be produced as if the messageExpression field were unset.
                                             messageExpression has access to all the same variables as the rule; the only difference is the return type.
                                             Example:
                                             "x must be less than max ("+string(self.max)+")"
@@ -2242,10 +2262,8 @@ spec:
                                             with properties, the accessible properties
                                             of the object are field selectable\nvia
                                             `self.field` and field presence can be
-                                            checked via `has(self.field)`. Null valued
-                                            fields are treated as\nabsent fields in
-                                            CEL expressions.\nIf the Rule is scoped
-                                            to an object with additionalProperties
+                                            checked via `has(self.field)`.\nIf the
+                                            Rule is scoped to an object with additionalProperties
                                             (i.e. a map) the value of the map\nare
                                             accessible via `self[mapKey]`, map containment
                                             can be checked via `mapKey in self` and

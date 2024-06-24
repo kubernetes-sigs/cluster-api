@@ -808,6 +808,16 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 		*out = new(JSONSchemaProps)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.MaxProperties != nil {
+		in, out := &in.MaxProperties, &out.MaxProperties
+		*out = new(int64)
+		**out = **in
+	}
+	if in.MinProperties != nil {
+		in, out := &in.MinProperties, &out.MinProperties
+		*out = new(int64)
+		**out = **in
+	}
 	if in.Required != nil {
 		in, out := &in.Required, &out.Required
 		*out = make([]string, len(*in))

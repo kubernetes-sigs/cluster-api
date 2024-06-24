@@ -43,7 +43,11 @@ func newValuesIndex(values []clusterv1.ClusterVariable) (map[string]map[string]c
 		}
 		// Check that the variable has not been defined more than once with the same definitionFrom.
 		if _, ok := valuesMap[c.Name][c.DefinitionFrom]; ok {
-			errs = append(errs, errors.Errorf("variable %q from %q is defined more than once", c.Name, c.DefinitionFrom))
+			if c.DefinitionFrom == "" {
+				errs = append(errs, errors.Errorf("variable %q is defined more than once", c.Name))
+			} else {
+				errs = append(errs, errors.Errorf("variable %q from %q is defined more than once", c.Name, c.DefinitionFrom))
+			}
 			continue
 		}
 		// Add the variable.

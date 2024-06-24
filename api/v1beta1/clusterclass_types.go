@@ -463,6 +463,16 @@ type JSONSchemaProps struct {
 	// +kubebuilder:validation:Schemaless
 	AdditionalProperties *JSONSchemaProps `json:"additionalProperties,omitempty"`
 
+	// MaxProperties is the maximum amount of entries in a map or properties in an object.
+	// NOTE: Can only be set if type is object.
+	// +optional
+	MaxProperties *int64 `json:"maxProperties,omitempty"`
+
+	// MinProperties is the minimum amount of entries in a map or properties in an object.
+	// NOTE: Can only be set if type is object.
+	// +optional
+	MinProperties *int64 `json:"minProperties,omitempty"`
+
 	// Required specifies which fields of an object are required.
 	// NOTE: Can only be set if type is object.
 	// +optional
@@ -568,8 +578,7 @@ type ValidationRule struct {
 	// The Rule is scoped to the location of the x-kubernetes-validations extension in the schema.
 	// The `self` variable in the CEL expression is bound to the scoped value.
 	// If the Rule is scoped to an object with properties, the accessible properties of the object are field selectable
-	// via `self.field` and field presence can be checked via `has(self.field)`. Null valued fields are treated as
-	// absent fields in CEL expressions.
+	// via `self.field` and field presence can be checked via `has(self.field)`.
 	// If the Rule is scoped to an object with additionalProperties (i.e. a map) the value of the map
 	// are accessible via `self[mapKey]`, map containment can be checked via `mapKey in self` and all entries of the map
 	// are accessible via CEL macros and functions such as `self.all(...)`.
@@ -623,10 +632,9 @@ type ValidationRule struct {
 	// MessageExpression declares a CEL expression that evaluates to the validation failure message that is returned when this rule fails.
 	// Since messageExpression is used as a failure message, it must evaluate to a string.
 	// If both message and messageExpression are present on a rule, then messageExpression will be used if validation
-	// fails. If messageExpression results in a runtime error, the runtime error is logged, and the validation failure message is produced
+	// fails. If messageExpression results in a runtime error, the validation failure message is produced
 	// as if the messageExpression field were unset. If messageExpression evaluates to an empty string, a string with only spaces, or a string
-	// that contains line breaks, then the validation failure message will also be produced as if the messageExpression field were unset, and
-	// the fact that messageExpression produced an empty string/string with only spaces/string with line breaks will be logged.
+	// that contains line breaks, then the validation failure message will also be produced as if the messageExpression field were unset.
 	// messageExpression has access to all the same variables as the rule; the only difference is the return type.
 	// Example:
 	// "x must be less than max ("+string(self.max)+")"

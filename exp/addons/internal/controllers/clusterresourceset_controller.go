@@ -276,6 +276,40 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// Iterate all resources and ensure an ownerReference to the clusterResourceSet is on the resource.
+	// NOTE: we have to do this before getting a remote client, otherwise owner reference won't be created until it is
+	// possible to connect to the remote cluster.
+	errList := []error{}
+	objList := make([]*unstructured.Unstructured, len(clusterResourceSet.Spec.Resources))
+	for i, resource := range clusterResourceSet.Spec.Resources {
+		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
+		if err != nil {
+			if err == ErrSecretTypeNotSupported {
+				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
+			} else {
+				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+
+				// Continue without adding the error to the aggregate if we can't find the resource.
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+			}
+			errList = append(errList, err)
+			continue
+		}
+
+		// Ensure an ownerReference to the clusterResourceSet is on the resource.
+		if err := r.ensureResourceOwnerRef(ctx, clusterResourceSet, unstructuredObj); err != nil {
+			log.Error(err, "Failed to add ClusterResourceSet as resource owner reference",
+				"Resource type", unstructuredObj.GetKind(), "Resource name", unstructuredObj.GetName())
+			errList = append(errList, err)
+		}
+		objList[i] = unstructuredObj
+	}
+	if len(errList) > 0 {
+		return kerrors.NewAggregate(errList)
+	}
+
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
@@ -313,24 +347,14 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		Name:       clusterResourceSet.Name,
 		UID:        clusterResourceSet.UID,
 	}))
-	var errList []error
+
 	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 
 	// Iterate all resources and apply them to the cluster and update the resource status in the ClusterResourceSetBinding object.
-	for _, resource := range clusterResourceSet.Spec.Resources {
-		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
-		if err != nil {
-			if err == ErrSecretTypeNotSupported {
-				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.WrongSecretTypeReason, clusterv1.ConditionSeverityWarning, err.Error())
-			} else {
-				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RetrievingResourceFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-
-				// Continue without adding the error to the aggregate if we can't find the resource.
-				if apierrors.IsNotFound(err) {
-					continue
-				}
-			}
-			errList = append(errList, err)
+	for i, resource := range clusterResourceSet.Spec.Resources {
+		unstructuredObj := objList[i]
+		if unstructuredObj == nil {
+			// Continue without adding the error to the aggregate if we can't find the resource.
 			continue
 		}
 

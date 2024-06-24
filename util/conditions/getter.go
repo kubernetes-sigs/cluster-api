@@ -117,6 +117,7 @@ func GetLastTransitionTime(from Getter, t clusterv1.ConditionType) *metav1.Time 
 
 // summary returns a Ready condition with the summary of all the conditions existing
 // on an object. If the object does not have other conditions, no summary condition is generated.
+// NOTE: The resulting Ready condition will have positive polarity; the conditions we are starting from might have positive or negative polarity.
 func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 	conditions := from.GetConditions()
 
@@ -147,8 +148,18 @@ func summary(from Getter, options ...MergeOption) *clusterv1.Condition {
 			}
 		}
 
+		// Keep track of the polarity of the condition we are starting from.
+		polarity := PositivePolarity
+		for _, t := range mergeOpt.negativeConditionTypes {
+			if c.Type == t {
+				polarity = NegativePolarity
+				break
+			}
+		}
+
 		conditionsInScope = append(conditionsInScope, localizedCondition{
 			Condition: &c,
+			Polarity:  polarity,
 			Getter:    from,
 		})
 	}
@@ -210,6 +221,7 @@ func WithFallbackValue(fallbackValue bool, reason string, severity clusterv1.Con
 
 // mirror mirrors the Ready condition from a dependent object into the target condition;
 // if the Ready condition does not exists in the source object, no target conditions is generated.
+// NOTE: Considering that we are mirroring Ready conditions with positive polarity, also the resulting condition will have positive polarity.
 func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...MirrorOptions) *clusterv1.Condition {
 	mirrorOpt := &mirrorOptions{}
 	for _, o := range options {
@@ -237,6 +249,7 @@ func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...Mir
 // Aggregates all the Ready condition from a list of dependent objects into the target object;
 // if the Ready condition does not exists in one of the source object, the object is excluded from
 // the aggregation; if none of the source object have ready condition, no target conditions is generated.
+// NOTE: Considering that we are aggregating Ready conditions with positive polarity, also the resulting condition will have positive polarity.
 func aggregate(from []Getter, targetCondition clusterv1.ConditionType, options ...MergeOption) *clusterv1.Condition {
 	conditionsInScope := make([]localizedCondition, 0, len(from))
 	for i := range from {
@@ -244,6 +257,7 @@ func aggregate(from []Getter, targetCondition clusterv1.ConditionType, options .
 
 		conditionsInScope = append(conditionsInScope, localizedCondition{
 			Condition: condition,
+			Polarity:  PositivePolarity,
 			Getter:    from[i],
 		})
 	}

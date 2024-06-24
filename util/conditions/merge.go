@@ -24,10 +24,21 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+type conditionPolarity string
+
+const (
+	// PositivePolarity describe a condition with positive polarity (Status=True good).
+	PositivePolarity conditionPolarity = "Positive"
+
+	// NegativePolarity describe a condition with negative polarity (Status=False good).
+	NegativePolarity conditionPolarity = "Negative"
+)
+
 // localizedCondition defines a condition with the information of the object the conditions
 // was originated from.
 type localizedCondition struct {
 	*clusterv1.Condition
+	Polarity conditionPolarity
 	Getter
 }
 
@@ -39,10 +50,10 @@ type localizedCondition struct {
 // More specifically:
 // 1. Conditions are grouped by status, severity
 // 2. The resulting condition groups are sorted according to the following priority:
-//   - P0 - Status=False, Severity=Error
-//   - P1 - Status=False, Severity=Warning
-//   - P2 - Status=False, Severity=Info
-//   - P3 - Status=True
+//   - P0 - Status=False - PositivePolarity |  Status=True  - NegativePolarity, Severity=Error
+//   - P1 - Status=False - PositivePolarity |  Status=True  - NegativePolarity, Severity=Warning
+//   - P2 - Status=False - PositivePolarity |  Status=True  - NegativePolarity, Severity=Info
+//   - P3 - Status=True  - PositivePolarity |  Status=False - NegativePolarity
 //   - P4 - Status=Unknown
 //
 // 3. The group with highest priority is used to determine status, severity and other info of the target condition.
@@ -51,6 +62,7 @@ type localizedCondition struct {
 // condition; in order to complete such task some trade-off should be made, because there is no a golden rule
 // for summarizing many Reason/Message into single Reason/Message.
 // mergeOptions allows the user to adapt this process to the specific needs by exposing a set of merge strategies.
+// NOTE: Target condition will have positive polarity.
 func merge(conditions []localizedCondition, targetCondition clusterv1.ConditionType, options *mergeOptions) *clusterv1.Condition {
 	g := getConditionGroups(conditions)
 	if len(g) == 0 {
@@ -80,8 +92,23 @@ func getConditionGroups(conditions []localizedCondition) conditionGroups {
 		}
 
 		added := false
+
+		// Identify the groupStatus the condition belongs to.
+		// NOTE: status for the conditions with negative polarity is "negated" so it is possible
+		// to merge conditions with different polarity (conditionGroup is always using positive polarity).
+		groupStatus := condition.Status
+		if condition.Polarity == NegativePolarity {
+			switch groupStatus {
+			case corev1.ConditionFalse:
+				groupStatus = corev1.ConditionTrue
+			case corev1.ConditionTrue:
+				groupStatus = corev1.ConditionFalse
+			case corev1.ConditionUnknown:
+				groupStatus = corev1.ConditionUnknown
+			}
+		}
 		for i := range groups {
-			if groups[i].status == condition.Status && groups[i].severity == condition.Severity {
+			if groups[i].status == groupStatus && groups[i].severity == condition.Severity {
 				groups[i].conditions = append(groups[i].conditions, condition)
 				added = true
 				break
@@ -90,7 +117,7 @@ func getConditionGroups(conditions []localizedCondition) conditionGroups {
 		if !added {
 			groups = append(groups, conditionGroup{
 				conditions: []localizedCondition{condition},
-				status:     condition.Status,
+				status:     groupStatus,
 				severity:   condition.Severity,
 			})
 		}
@@ -141,16 +168,19 @@ func (g conditionGroups) TopGroup() *conditionGroup {
 }
 
 // TrueGroup returns the condition group with status True, if any.
+// Note: conditionGroup is always using positive polarity; the conditions in the group might have positive or negative polarity.
 func (g conditionGroups) TrueGroup() *conditionGroup {
 	return g.getByStatusAndSeverity(corev1.ConditionTrue, clusterv1.ConditionSeverityNone)
 }
 
 // ErrorGroup returns the condition group with status False and severity Error, if any.
+// Note: conditionGroup is always using positive polarity; the conditions in the group might have positive or negative polarity.
 func (g conditionGroups) ErrorGroup() *conditionGroup {
 	return g.getByStatusAndSeverity(corev1.ConditionFalse, clusterv1.ConditionSeverityError)
 }
 
 // WarningGroup returns the condition group with status False and severity Warning, if any.
+// Note: conditionGroup is always using positive polarity; the conditions in the group might have positive or negative polarity.
 func (g conditionGroups) WarningGroup() *conditionGroup {
 	return g.getByStatusAndSeverity(corev1.ConditionFalse, clusterv1.ConditionSeverityWarning)
 }
@@ -169,6 +199,7 @@ func (g conditionGroups) getByStatusAndSeverity(status corev1.ConditionStatus, s
 
 // conditionGroup define a group of conditions with the same status and severity,
 // and thus with the same priority when merging into a Ready condition.
+// Note: conditionGroup is always using positive polarity; the conditions in the group might have positive or negative polarity.
 type conditionGroup struct {
 	status     corev1.ConditionStatus
 	severity   clusterv1.ConditionSeverity
@@ -177,6 +208,7 @@ type conditionGroup struct {
 
 // mergePriority provides a priority value for the status and severity tuple that identifies this
 // condition group. The mergePriority value allows an easier sorting of conditions groups.
+// Note: conditionGroup is always using positive polarity.
 func (g conditionGroup) mergePriority() int {
 	switch g.status {
 	case corev1.ConditionFalse:

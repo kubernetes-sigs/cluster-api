@@ -6,7 +6,7 @@ reviewers:
   - "@vincepri"
   - "@ncdc"
 creation-date: 2020-05-06
-last-updated: 2020-05-20
+last-updated: 2024-05-03
 status: implementable
 see-also:
 replaces:
@@ -232,7 +232,7 @@ const (
 )
 ```
 
-Condition types MUST have a consistent polarity (i.e. "True = good");
+Condition type names should make sense for humans; neither positive nor negative polarity can be recommended as a general rule.
 
 Condition types SHOULD have one of the following suffix:
 
@@ -243,8 +243,9 @@ When the above suffix are not adequate for a specific condition type, other suff
 (e.g. `Completed`, `Healthy`); however, it is recommended to balance this flexibility with the objective to provide
 a consistent condition naming across all the Cluster API objects.
 
-The `Severity` field MUST be set only when `Status=False` and it is designed to provide a standard classification
-of possible conditions failure `Reason`. 
+The `Severity` field MUST be set only when `Status=False` for conditions with positive polarity, or when `Status=True`
+for conditions with negative polarity; severity is designed to provide a standard classification of possible
+conditions failure `Reason`. 
 
 Please note that the combination of `Reason` and `Severity` gives different meaning to a condition failure
 allowing to detect when a long-running task is still ongoing:
@@ -298,6 +299,8 @@ the following constraints/design principles MUST be applied:
   of the underlying `Machines.Status.Conditions[Ready]` conditions.
 - A corollary of the above set of constraints is that an object SHOULD NEVER be in status `Ready=True`
   if one of the object's conditions are `false` or if one of the object dependents is in status `Ready=False`.
+- Condition that do not represent the operational state of the component, MUST not be included in the  `Ready` condition
+  (e.g. `Paused`, which represent a state of the controller that manages the component).
 
 ##### Controller changes
 
@@ -471,6 +474,7 @@ enhance the condition utilities to handle those situations in a generalized way.
 - Risk: This proposal aims to be consistent with the target state of conditions in Kubernetes, but this
   is still under definition (see [KEP](https://github.com/kubernetes/enhancements/pull/1624)).
   - Mitigation: Periodically re-evaluate this proposal vs the Kubernetes KEP. 
+    -  2024-05-03: Change to allow conditions without positive polarity goes into this direction
 
 - Risk: Cluster API presents some specific challenges that are not common to the core Kubernetes objects.
   - Mitigation: To allow a minimal set of carefully evaluated differences between Cluster API and Kubernetes
@@ -480,25 +484,6 @@ enhance the condition utilities to handle those situations in a generalized way.
 - Risk: This proposal allows for implementing conditions in incremental fashion, and this makes it complex
   to ensure a consistent approach across all objects.
   - Mitigation: Ensure all the implementations comply with the defined set of constraints/design principles. 
-
-- Risk: Having a consistent polarity ensures a simple and clear contract with the consumers, and it allows 
-  processing conditions in a simple and consistent way without being forced to implement specific logic
-  for each condition type. However, we are aware about the fact that enforcing of consistent polarity (truthy)
-  combined with the usage of recommended suffix for condition types can lead to verbal contortions to express 
-  conditions, especially in case of conditions designed to signal problems or in case of conditions
-  that might exist or not.
-  - Mitigation: We are relaxing the rule about recommended suffix and allowing usage of custom suffix.
-  - Mitigation: We are recommending the condition adhere to the design principle to express the operational state
-    of the component, and this should help in avoiding conditions name to surface internal implementation details.
-  - Mitigation: We should recommend condition implementers to clearly document the meaning of Unknown state, because as
-    discussed also in the recent [Kubernetes KEP about standardizing conditions](https://github.com/kubernetes/enhancements/pull/1624#pullrequestreview-388777427),
-    _"Unknown" is a fact about the writer of the condition, and not a claim about the object_.
-  - Mitigation: We should recommend developers of code relying on conditions to treat Unknown as a separated state vs
-    assimilating it to True or False, because this can vary case by case and generate confusion in readers.
-    
-  As a final consideration about the risk related to using a consistent polarity, it is important to notice that a
-  consistent polarity ensure a clear meaning for True or o False states, which is already an improvement vs having
-  different interpretations for all the three possible condition states.
   
 ## Alternatives
 
@@ -569,5 +554,6 @@ NA
 
 ## Implementation History
 
-- [ ] 2020-04-27: Compile a Google Doc following the CAEP template
-- [ ] 2020-05-06: Create CAEP PR 
+- [x] 2020-04-27: Compile a Google Doc following the CAEP template
+- [x] 2020-05-06: Create CAEP PR 
+- [x] 2024-05-03: Edited allowing conditions with negative polarity 

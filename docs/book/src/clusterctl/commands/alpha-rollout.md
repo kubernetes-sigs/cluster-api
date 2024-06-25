@@ -11,6 +11,11 @@ Currently, only the following Cluster API resources are supported by the rollout
 - kubeadmcontrolplanes
 - machinedeployments
 
+Third party controlplane providers are supported as long as they:
+
+- Implement rolloutAfter in their spec
+- Are in the controlplane.cluster.x-k8s.io group
+
 </aside>
 
 ### Restart 
@@ -19,6 +24,12 @@ Use the `restart` sub-command to force an immediate rollout. Note that rollout r
 
 ```bash
 clusterctl alpha rollout restart machinedeployment/my-md-0
+```
+
+Or for a third party controlplane:
+
+```bash
+clusterctl alpha rollout restart my-controlplane-kind.v1beta1/my-kcp
 ```
 
 ### Undo

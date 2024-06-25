@@ -30,14 +30,14 @@ import (
 )
 
 var _ = Describe("When upgrading a workload cluster using ClusterClass with RuntimeSDK [ClusterClass]", func() {
-	clusterUpgradeWithRuntimeSDKSpec(ctx, func() clusterUpgradeWithRuntimeSDKSpecInput {
+	ClusterUpgradeWithRuntimeSDKSpec(ctx, func() ClusterUpgradeWithRuntimeSDKSpecInput {
 		version, err := semver.ParseTolerant(e2eConfig.GetVariable(KubernetesVersionUpgradeFrom))
 		Expect(err).ToNot(HaveOccurred(), "Invalid argument, KUBERNETES_VERSION_UPGRADE_FROM is not a valid version")
 		if version.LT(semver.MustParse("1.24.0")) {
 			Fail("This test only supports upgrades from Kubernetes >= v1.24.0")
 		}
 
-		return clusterUpgradeWithRuntimeSDKSpecInput{
+		return ClusterUpgradeWithRuntimeSDKSpecInput{
 			E2EConfig:              e2eConfig,
 			ClusterctlConfigPath:   clusterctlConfigPath,
 			BootstrapClusterProxy:  bootstrapClusterProxy,
@@ -51,6 +51,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 			},
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
 			Flavor: ptr.To("upgrades-runtimesdk"),
+			// The runtime extension gets deployed to the test-extension-system namespace and is exposed
+			// by the test-extension-webhook-service.
+			// The below values are used when creating the cluster-wide ExtensionConfig to refer
+			// the actual service.
+			ExtensionServiceNamespace: "test-extension-system",
+			ExtensionServiceName:      "test-extension-webhook-service",
 		}
 	})
 })

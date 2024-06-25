@@ -19,6 +19,7 @@ package controllers
 import (
 	"testing"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,9 +29,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
@@ -426,6 +429,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
 				APIReader: clientFake,
+				Tracker:   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machinePool)})
@@ -864,6 +868,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
 				APIReader: clientFake,
+				Tracker:   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})

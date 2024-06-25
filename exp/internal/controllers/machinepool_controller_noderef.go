@@ -46,8 +46,10 @@ type getNodeReferencesResult struct {
 	ready      int
 }
 
-func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+	cluster := s.cluster
+	mp := s.machinePool
 
 	// Create a watch on the nodes in the Cluster.
 	if err := r.watchClusterNodes(ctx, cluster); err != nil {
@@ -81,8 +83,13 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 		return ctrl.Result{}, err
 	}
 
+	// Return early if nodeRefMap is nil.
+	if s.nodeRefMap == nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")
+	}
+
 	// Get the Node references.
-	nodeRefsResult, err := r.getNodeReferences(ctx, clusterClient, mp.Spec.ProviderIDList, mp.Spec.MinReadySeconds)
+	nodeRefsResult, err := r.getNodeReferences(ctx, mp.Spec.ProviderIDList, mp.Spec.MinReadySeconds, s.nodeRefMap)
 	if err != nil {
 		if err == errNoAvailableNodes {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
@@ -153,30 +160,10 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	return nil
 }
 
-func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.Client, providerIDList []string, minReadySeconds *int32) (getNodeReferencesResult, error) {
+func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, providerIDList []string, minReadySeconds *int32, nodeRefsMap map[string]*corev1.Node) (getNodeReferencesResult, error) {
 	log := ctrl.LoggerFrom(ctx, "providerIDList", len(providerIDList))
 
 	var ready, available int
-	nodeRefsMap := make(map[string]corev1.Node)
-	nodeList := corev1.NodeList{}
-	for {
-		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
-			return getNodeReferencesResult{}, errors.Wrapf(err, "failed to List nodes")
-		}
-
-		for _, node := range nodeList.Items {
-			if node.Spec.ProviderID == "" {
-				log.V(2).Info("No ProviderID detected, skipping", "providerID", node.Spec.ProviderID)
-				continue
-			}
-
-			nodeRefsMap[node.Spec.ProviderID] = node
-		}
-
-		if nodeList.Continue == "" {
-			break
-		}
-	}
 
 	var nodeRefs []corev1.ObjectReference
 	for _, providerID := range providerIDList {
@@ -185,9 +172,9 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 			continue
 		}
 		if node, ok := nodeRefsMap[providerID]; ok {
-			if noderefutil.IsNodeReady(&node) {
+			if noderefutil.IsNodeReady(node) {
 				ready++
-				if noderefutil.IsNodeAvailable(&node, *minReadySeconds, metav1.Now()) {
+				if noderefutil.IsNodeAvailable(node, *minReadySeconds, metav1.Now()) {
 					available++
 				}
 			}

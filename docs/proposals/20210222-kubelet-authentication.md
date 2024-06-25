@@ -530,5 +530,5 @@ CLI supports the older version, it files a new CSR with the older format.
 [spire-architecture]: https://spiffe.io/docs/latest/spire-about/spire-concepts/
 [spiffe-discussions]: https://github.com/kubernetes/community/blob/master/sig-auth/archive/meeting-notes-2020.md#december-9-11a---noon-pacific-time
 [client-go auth exec mechanism]: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#configuration
-[cloud-provider-gcp implementation]: https://github.com/kubernetes/cloud-provider-gcp/blob/master/cmd/gke-exec-auth-plugin/tpm.go#L76
+[cloud-provider-gcp implementation]: https://github.com/kubernetes/cloud-provider-gcp/blob/release-1.30/cmd/gke-exec-auth-plugin/tpm.go#L76
 [SPIRE's TPM plugin]: https://github.com/bloomberg/spire-tpm-plugin#how-it-works

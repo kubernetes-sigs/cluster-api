@@ -58,6 +58,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		// the values for ID and Secret to working alphanumeric values.
 		kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1,
 		kubeadmBootstrapTokenStringFuzzerV1Beta1,
+		bootstrapv1JoinConfigurationFuzzer,
 	}
 }
 
@@ -90,4 +91,13 @@ func kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1(in *upstreamv1beta1.Bootst
 func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
+}
+
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// JoinConfiguration.Discovery.File.KubeConfig is internal to Cluster API and does not exist in kubeadm v1beta1 types, pinning it to avoid round trip errors.
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
 }

@@ -78,6 +78,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 		}
 		dst.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.ImagePullPolicy
+
+		if restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			dst.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig
+		}
 	}
 
 	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil && restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy != "" {
@@ -179,6 +183,10 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 		}
 		dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.ImagePullPolicy
+
+		if restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File != nil && restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig
+		}
 	}
 
 	if restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration != nil && restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy != "" {

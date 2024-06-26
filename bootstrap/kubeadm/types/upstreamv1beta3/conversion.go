@@ -64,3 +64,8 @@ func Convert_upstreamv1beta3_JoinControlPlane_To_v1beta1_JoinControlPlane(in *Jo
 	// JoinControlPlane.CertificateKey does not exist in CABPK v1beta1 version, because Cluster API does not use automatic copy certs.
 	return autoConvert_upstreamv1beta3_JoinControlPlane_To_v1beta1_JoinControlPlane(in, out, s)
 }
+
+func Convert_v1beta1_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
+	// JoinConfiguration.Discovery.File.KubeConfig does not exist in kubeadm because it's internal to Cluster API, dropping those info.
+	return autoConvert_v1beta1_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in, out, s)
+}

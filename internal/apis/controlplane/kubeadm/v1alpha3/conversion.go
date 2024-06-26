@@ -82,6 +82,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
 		dst.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases
+
+		if restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			dst.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig
+		}
 	}
 
 	dst.Spec.RolloutBefore = restored.Spec.RolloutBefore

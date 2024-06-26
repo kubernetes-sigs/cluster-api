@@ -101,3 +101,8 @@ func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistration
 	// NodeRegistrationOptions.IgnorePreflightErrors and ImagePullPolicy does not exist in kubeadm v1beta2, dropping those info.
 	return autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistrationOptions(in, out, s)
 }
+
+func Convert_v1beta1_FileDiscovery_To_upstreamv1beta2_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
+	// JoinConfiguration.Discovery.File.KubeConfig does not exist in kubeadm because it's internal to Cluster API, dropping those info.
+	return autoConvert_v1beta1_FileDiscovery_To_upstreamv1beta2_FileDiscovery(in, out, s)
+}

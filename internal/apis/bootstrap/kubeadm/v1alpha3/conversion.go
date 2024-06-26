@@ -77,6 +77,13 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.JoinConfiguration.Patches = restored.Spec.JoinConfiguration.Patches
 		dst.Spec.JoinConfiguration.SkipPhases = restored.Spec.JoinConfiguration.SkipPhases
+
+		if restored.Spec.JoinConfiguration.Discovery.File != nil && restored.Spec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			if dst.Spec.JoinConfiguration.Discovery.File == nil {
+				dst.Spec.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
+			}
+			dst.Spec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.JoinConfiguration.Discovery.File.KubeConfig
+		}
 	}
 
 	if restored.Spec.JoinConfiguration != nil && restored.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
@@ -177,6 +184,13 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.Template.Spec.JoinConfiguration.Patches = restored.Spec.Template.Spec.JoinConfiguration.Patches
 		dst.Spec.Template.Spec.JoinConfiguration.SkipPhases = restored.Spec.Template.Spec.JoinConfiguration.SkipPhases
+
+		if restored.Spec.Template.Spec.JoinConfiguration.Discovery.File != nil && restored.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			if dst.Spec.Template.Spec.JoinConfiguration.Discovery.File == nil {
+				dst.Spec.Template.Spec.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
+			}
+			dst.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig
+		}
 	}
 
 	if restored.Spec.Template.Spec.JoinConfiguration != nil && restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {

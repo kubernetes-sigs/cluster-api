@@ -1517,7 +1517,7 @@ func TestValidatePatches(t *testing.T) {
 	for i := range tests {
 		tt := tests[i]
 		t.Run(tt.name, func(t *testing.T) {
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.runtimeSDK)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.runtimeSDK)
 
 			g := NewWithT(t)
 

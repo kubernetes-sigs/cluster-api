@@ -34,7 +34,7 @@ import (
 )
 
 func TestExternalPatchGenerator_Generate(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	ctx := context.Background()
 	tests := []struct {

@@ -61,7 +61,7 @@ var (
 )
 
 func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -109,7 +109,7 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	g := NewWithT(t)
 	timeout := 5 * time.Second
@@ -161,7 +161,7 @@ func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 300 * time.Second
 
@@ -252,7 +252,7 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 
@@ -352,7 +352,7 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 30 * time.Second
 
@@ -433,7 +433,7 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileDelete(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -586,7 +586,7 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 // TestClusterReconciler_deleteClusterClass tests the correct deletion behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should be blocked by the webhook.
 func TestClusterReconciler_deleteClusterClass(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	timeout := 5 * time.Second
 

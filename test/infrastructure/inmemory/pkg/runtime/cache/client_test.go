@@ -638,7 +638,7 @@ func Test_cache_client(t *testing.T) {
 			ctx, cancel := context.WithCancel(context.TODO())
 			defer cancel()
 
-			c.garbageCollectorQueue = workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+			c.garbageCollectorQueue = workqueue.NewTypedRateLimitingQueue[any](workqueue.DefaultTypedControllerRateLimiter[any]())
 			go func() {
 				<-ctx.Done()
 				c.garbageCollectorQueue.ShutDown()

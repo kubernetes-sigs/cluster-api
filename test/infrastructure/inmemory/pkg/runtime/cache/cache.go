@@ -76,11 +76,11 @@ type cache struct {
 	garbageCollectorRequeueAfter             time.Duration
 	garbageCollectorRequeueAfterJitterFactor float64
 	garbageCollectorConcurrency              int
-	garbageCollectorQueue                    workqueue.RateLimitingInterface
+	garbageCollectorQueue                    workqueue.TypedRateLimitingInterface[any]
 
 	syncPeriod      time.Duration
 	syncConcurrency int
-	syncQueue       workqueue.RateLimitingInterface
+	syncQueue       workqueue.TypedRateLimitingInterface[any]
 
 	started bool
 }

@@ -38,8 +38,8 @@ import (
 
 func Test_warmupRunnable_Start(t *testing.T) {
 	g := NewWithT(t)
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	t.Run("succeed to warm up registry on Start", func(t *testing.T) {
 		ns, err := env.CreateNamespace(ctx, "test-runtime-extension")

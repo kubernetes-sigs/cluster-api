@@ -404,7 +404,7 @@ func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {
 }
 
 func TestReconciler_reconcileVariables(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)

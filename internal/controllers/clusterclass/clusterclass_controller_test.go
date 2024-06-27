@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -424,6 +425,12 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									"some-annotation": "some-annotation-value",
 								},
 							},
+							XValidations: []clusterv1.ValidationRule{{
+								Rule:      "self >= 1",
+								Message:   "integer must be greater or equal than 1",
+								Reason:    clusterv1.FieldValueInvalid,
+								FieldPath: ".",
+							}},
 						},
 					},
 					Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -440,17 +447,21 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "string",
+							XValidations: []clusterv1.ValidationRule{{
+								Rule:              "true",
+								MessageExpression: "'test error message, got value %s'.format([self])",
+							}},
 						},
 					},
 				},
 			}...,
 		)
 	tests := []struct {
-		name          string
-		clusterClass  *clusterv1.ClusterClass
-		want          []clusterv1.ClusterClassStatusVariable
-		patchResponse *runtimehooksv1.DiscoverVariablesResponse
-		wantErr       bool
+		name           string
+		clusterClass   *clusterv1.ClusterClass
+		want           []clusterv1.ClusterClassStatusVariable
+		patchResponse  *runtimehooksv1.DiscoverVariablesResponse
+		wantErrMessage string
 	}{
 		{
 			name:         "Reconcile inline variables to ClusterClass status",
@@ -472,6 +483,12 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 											"some-annotation": "some-annotation-value",
 										},
 									},
+									XValidations: []clusterv1.ValidationRule{{
+										Rule:      "self >= 1",
+										Message:   "integer must be greater or equal than 1",
+										Reason:    clusterv1.FieldValueInvalid,
+										FieldPath: ".",
+									}},
 								},
 							},
 							Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -493,6 +510,10 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
+									XValidations: []clusterv1.ValidationRule{{
+										Rule:              "true",
+										MessageExpression: "'test error message, got value %s'.format([self])",
+									}},
 								},
 							},
 						},
@@ -501,7 +522,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			},
 		},
 		{
-			name: "Reconcile variables from inline and external variables to ClusterClass status",
+			name: "Reconcile inline and external variables to ClusterClass status",
 			clusterClass: clusterClassWithInlineVariables.DeepCopy().WithPatches(
 				[]clusterv1.ClusterClassPatch{
 					{
@@ -528,6 +549,10 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "string",
+								XValidations: []clusterv1.ValidationRule{{
+									Rule:              "true",
+									MessageExpression: "'test error message, got value %s'.format([self])",
+								}},
 							},
 						},
 					},
@@ -575,6 +600,12 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 											"some-annotation": "some-annotation-value",
 										},
 									},
+									XValidations: []clusterv1.ValidationRule{{
+										Rule:      "self >= 1",
+										Message:   "integer must be greater or equal than 1",
+										Reason:    clusterv1.FieldValueInvalid,
+										FieldPath: ".",
+									}},
 								},
 							},
 							Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -635,9 +666,95 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
+									XValidations: []clusterv1.ValidationRule{{
+										Rule:              "true",
+										MessageExpression: "'test error message, got value %s'.format([self])",
+									}},
 								},
 							},
 						},
+						{
+							From: "patch1",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+									XValidations: []clusterv1.ValidationRule{{
+										Rule:              "true",
+										MessageExpression: "'test error message, got value %s'.format([self])",
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Reconcile external variables to ClusterClass status",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").DeepCopy().WithPatches(
+				[]clusterv1.ClusterClassPatch{
+					{
+						Name: "patch1",
+						External: &clusterv1.ExternalPatchDefinition{
+							DiscoverVariablesExtension: ptr.To("variables-one"),
+						}}}).
+				Build(),
+			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{
+					Status: runtimehooksv1.ResponseStatusSuccess,
+				},
+				Variables: []clusterv1.ClusterClassVariable{
+					{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					{
+						Name: "memory",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+								XValidations: []clusterv1.ValidationRule{{
+									Rule:              "true",
+									MessageExpression: "'test error message, got value %s'.format([self])",
+								}},
+							},
+						},
+					},
+					{
+						Name: "location",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+								XMetadata: &clusterv1.VariableSchemaMetadata{
+									Labels: map[string]string{
+										"some-label": "some-label-value",
+									},
+									Annotations: map[string]string{
+										"some-annotation": "some-annotation-value",
+									},
+								},
+							},
+						},
+						Metadata: clusterv1.ClusterClassVariableMetadata{
+							Labels: map[string]string{
+								"some-label": "some-label-value",
+							},
+							Annotations: map[string]string{
+								"some-annotation": "some-annotation-value",
+							},
+						},
+					},
+				},
+			},
+			want: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:                "cpu",
+					DefinitionsConflict: false,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "patch1",
 							Schema: clusterv1.VariableSchema{
@@ -648,11 +765,58 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						},
 					},
 				},
+				{
+					Name:                "location",
+					DefinitionsConflict: false,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "patch1",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+									XMetadata: &clusterv1.VariableSchemaMetadata{
+										Labels: map[string]string{
+											"some-label": "some-label-value",
+										},
+										Annotations: map[string]string{
+											"some-annotation": "some-annotation-value",
+										},
+									},
+								},
+							},
+							Metadata: clusterv1.ClusterClassVariableMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
+								},
+							},
+						},
+					},
+				},
+				{
+					Name:                "memory",
+					DefinitionsConflict: false,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "patch1",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+									XValidations: []clusterv1.ValidationRule{{
+										Rule:              "true",
+										MessageExpression: "'test error message, got value %s'.format([self])",
+									}},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
 		{
-			name:    "Error if external patch defines a variable with same name multiple times",
-			wantErr: true,
+			name: "Error if external patch defines a variable with same name multiple times",
 			clusterClass: clusterClassWithInlineVariables.DeepCopy().WithPatches(
 				[]clusterv1.ClusterClassPatch{
 					{
@@ -684,6 +848,149 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					},
 				},
 			},
+			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
+				"patch1.variables[cpu].name: Invalid value: \"cpu\": variable name must be unique. " +
+				"Variable with name \"cpu\" is defined more than once",
+		},
+		{
+			name: "Error if external patch returns an invalid variable (OpenAPI schema)",
+			clusterClass: clusterClassWithInlineVariables.DeepCopy().WithPatches(
+				[]clusterv1.ClusterClassPatch{
+					{
+						Name: "patch1",
+						External: &clusterv1.ExternalPatchDefinition{
+							DiscoverVariablesExtension: ptr.To("variables-one"),
+						}}}).
+				Build(),
+			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{
+					Status: runtimehooksv1.ResponseStatusSuccess,
+				},
+				Variables: []clusterv1.ClusterClassVariable{
+					{
+						Name: "httpProxy",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"enabled": {
+										Type:    "boolean",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+									},
+									"url": {
+										Type: "string",
+									},
+									"noProxy": {
+										Type: "invalidType", // invalid type.
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
+				"patch1.variables[httpProxy].schema.openAPIV3Schema.properties[noProxy].type: Unsupported value: \"invalidType\": " +
+				"supported values: \"array\", \"boolean\", \"integer\", \"number\", \"object\", \"string\"",
+		},
+		{
+			name: "Error if external patch returns an invalid variable (CEL)",
+			clusterClass: clusterClassWithInlineVariables.DeepCopy().WithPatches(
+				[]clusterv1.ClusterClassPatch{
+					{
+						Name: "patch1",
+						External: &clusterv1.ExternalPatchDefinition{
+							DiscoverVariablesExtension: ptr.To("variables-one"),
+						}}}).
+				Build(),
+			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{
+					Status: runtimehooksv1.ResponseStatusSuccess,
+				},
+				Variables: []clusterv1.ClusterClassVariable{
+					{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"nestedField": {
+										Type: "integer",
+										Default: &apiextensionsv1.JSON{
+											Raw: []byte(`0`), // Default value is invalid according to CEL.
+										},
+										XValidations: []clusterv1.ValidationRule{{
+											Rule: "self >= 1",
+										}},
+									},
+								},
+							},
+						},
+					},
+					{
+						Name: "anotherCPU",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+								XValidations: []clusterv1.ValidationRule{{
+									Rule:              "self >= 1",
+									MessageExpression: "'Expected integer greater or equal to 1, got ' + this does not compile", // does not compile
+								}},
+							},
+						},
+					},
+				},
+			},
+			wantErrMessage: "failed to discover variables for ClusterClass class1: [" +
+				"patch1.variables[cpu].schema.openAPIV3Schema.properties[nestedField].default: Invalid value: \"integer\": failed rule: self >= 1, " +
+				"patch1.variables[anotherCPU].schema.openAPIV3Schema.x-kubernetes-validations[0].messageExpression: Invalid value: " +
+				"apiextensions.ValidationRule{Rule:\"self >= 1\", Message:\"\", MessageExpression:\"'Expected integer greater or equal to 1, got ' + this does not compile\", " +
+				"Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: " +
+				"messageExpression compilation failed: ERROR: <input>:1:55: Syntax error: mismatched input 'does' expecting <EOF>\n " +
+				"| 'Expected integer greater or equal to 1, got ' + this does not compile\n " +
+				"| ......................................................^]",
+		},
+		{
+			name: "Error if external patch returns an invalid variable (CEL: using opts that are not available with the current compatibility version)",
+			// Note: Because there is no "old" version of the variable schemas with RuntimeExtensions, they *always* can only use
+			// the options available with the current compatibility version.
+			// In contrast, inline variables that are already "stored" in etcd are able to use all options of the "max" env.
+			clusterClass: clusterClassWithInlineVariables.DeepCopy().WithPatches(
+				[]clusterv1.ClusterClassPatch{
+					{
+						Name: "patch1",
+						External: &clusterv1.ExternalPatchDefinition{
+							DiscoverVariablesExtension: ptr.To("variables-one"),
+						}}}).
+				Build(),
+			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{
+					Status: runtimehooksv1.ResponseStatusSuccess,
+				},
+				Variables: []clusterv1.ClusterClassVariable{
+					{
+						Name: "someIP",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+								XValidations: []clusterv1.ValidationRule{{
+									// Note: IP will be only available if the compatibility version is 1.30
+									Rule: "ip(self).family() == 6",
+								}},
+							},
+						},
+					},
+				},
+			},
+			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
+				"patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
+				"apiextensions.ValidationRule{Rule:\"ip(self).family() == 6\", Message:\"\", MessageExpression:\"\", Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: compilation failed: " +
+				"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
+				" | ip(self).family() == 6\n" +
+				" | ..^\n" +
+				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
+				" | ip(self).family() == 6\n" +
+				" | ...............^",
 		},
 	}
 	for _, tt := range tests {
@@ -702,8 +1009,8 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			}
 
 			err := r.reconcileVariables(ctx, tt.clusterClass)
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
+			if tt.wantErrMessage != "" {
+				g.Expect(err.Error()).To(Equal(tt.wantErrMessage))
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())

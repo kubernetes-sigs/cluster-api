@@ -344,6 +344,7 @@ type ClusterClassBuilder struct {
 	variables                                 []clusterv1.ClusterClassVariable
 	statusVariables                           []clusterv1.ClusterClassStatusVariable
 	patches                                   []clusterv1.ClusterClassPatch
+	conditions                                clusterv1.Conditions
 }
 
 // ClusterClass returns a ClusterClassBuilder with the given name and namespace.
@@ -423,6 +424,12 @@ func (c *ClusterClassBuilder) WithStatusVariables(vars ...clusterv1.ClusterClass
 	return c
 }
 
+// WithConditions adds the conditions to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithConditions(conditions ...clusterv1.Condition) *ClusterClassBuilder {
+	c.conditions = conditions
+	return c
+}
+
 // WithPatches adds the patches to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithPatches(patches []clusterv1.ClusterClassPatch) *ClusterClassBuilder {
 	c.patches = patches
@@ -463,7 +470,8 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Patches:   c.patches,
 		},
 		Status: clusterv1.ClusterClassStatus{
-			Variables: c.statusVariables,
+			Conditions: c.conditions,
+			Variables:  c.statusVariables,
 		},
 	}
 	if c.infrastructureClusterTemplate != nil {

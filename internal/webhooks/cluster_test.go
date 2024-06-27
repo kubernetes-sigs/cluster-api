@@ -1527,13 +1527,12 @@ func TestClusterTopologyValidation(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 
 	tests := []struct {
-		name                        string
-		clusterClassStatusVariables []clusterv1.ClusterClassStatusVariable
-		in                          *clusterv1.Cluster
-		old                         *clusterv1.Cluster
-		additionalObjects           []client.Object
-		expectErr                   bool
-		expectWarning               bool
+		name              string
+		in                *clusterv1.Cluster
+		old               *clusterv1.Cluster
+		additionalObjects []client.Object
+		expectErr         bool
+		expectWarning     bool
 	}{
 		{
 			name:      "should return error when topology does not have class",
@@ -1968,7 +1967,6 @@ func TestClusterTopologyValidation(t *testing.T) {
 					*builder.MachinePoolClass("bb").Build(),
 					*builder.MachinePoolClass("aa").Build(),
 				).
-				WithStatusVariables(tt.clusterClassStatusVariables...).
 				Build()
 
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.

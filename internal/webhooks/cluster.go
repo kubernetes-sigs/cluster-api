@@ -81,7 +81,7 @@ type Cluster struct {
 var _ webhook.CustomDefaulter = &Cluster{}
 var _ webhook.CustomValidator = &Cluster{}
 
-var errClusterClassNotReconciled = errors.New("ClusterClass is not up to date")
+var errClusterClassNotReconciled = errors.New("ClusterClass is not successfully reconciled")
 
 // Default satisfies the defaulting webhook interface.
 func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
@@ -916,21 +916,22 @@ func (webhook *Cluster) validateClusterClassExistsAndIsReconciled(ctx context.Co
 		case apierrors.IsNotFound(clusterClassPollErr):
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
-					"Cluster refers to ClusterClass %s in the topology but it does not exist. "+
+					"Cluster refers to ClusterClass %s, but this ClusterClass does not exist. "+
 						"Cluster topology has not been fully validated. "+
 						"The ClusterClass must be created to reconcile the Cluster", newCluster.GetClassKey()),
 			)
 		case errors.Is(clusterClassPollErr, errClusterClassNotReconciled):
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
-					"Cluster refers to ClusterClass %s but this object which hasn't yet been reconciled. "+
-						"Cluster topology has not been fully validated. ", newCluster.GetClassKey()),
+					"Cluster refers to ClusterClass %s, but this ClusterClass hasn't been successfully reconciled. "+
+						"Cluster topology has not been fully validated. "+
+						"Please take a look at the ClusterClass status", newCluster.GetClassKey()),
 			)
 		// If there's any other error return a generic warning with the error message.
 		default:
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
-					"Cluster refers to ClusterClass %s in the topology but it could not be retrieved. "+
+					"Cluster refers to ClusterClass %s, but this ClusterClass could not be retrieved. "+
 						"Cluster topology has not been fully validated: %s", newCluster.GetClassKey(), clusterClassPollErr.Error()),
 			)
 		}

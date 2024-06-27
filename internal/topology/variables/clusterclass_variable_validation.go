@@ -246,7 +246,7 @@ func validateRootSchema(ctx context.Context, oldClusterClassVariables, clusterCl
 		opts.preexistingExpressions = findPreexistingExpressions(oldAPIExtensionsSchema)
 	}
 
-	allErrs = append(allErrs, validateSchema(ctx, apiExtensionsSchema, fldPath, opts, celContext, nil)...)
+	allErrs = append(allErrs, validateSchema(ctx, apiExtensionsSchema, fldPath, opts, celContext, nil).AllErrors()...)
 	if celContext != nil && celContext.TotalCost != nil {
 		if celContext.TotalCost.Total > StaticEstimatedCRDCostLimit {
 			for _, expensive := range celContext.TotalCost.MostExpensive {
@@ -275,47 +275,50 @@ var supportedValidationReason = sets.NewString(
 	string(clusterv1.FieldValueDuplicate),
 )
 
-func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, fldPath *field.Path, opts *validationOptions, celContext *apiextensionsvalidation.CELSchemaContext, uncorrelatablePath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
+func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, fldPath *field.Path, opts *validationOptions, celContext *apiextensionsvalidation.CELSchemaContext, uncorrelatablePath *field.Path) *OpenAPISchemaErrorList {
+	allErrs := &OpenAPISchemaErrorList{SchemaErrors: field.ErrorList{}, CELErrors: field.ErrorList{}}
 
 	// Validate that type is one of the validVariableTypes.
 	switch {
 	case schema.Type == "":
-		return field.ErrorList{field.Required(fldPath.Child("type"), "type cannot be empty")}
+		allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Required(fldPath.Child("type"), "type cannot be empty"))
+		return allErrs
 	case !validVariableTypes.Has(schema.Type):
-		return field.ErrorList{field.NotSupported(fldPath.Child("type"), schema.Type, sets.List(validVariableTypes))}
+		allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.NotSupported(fldPath.Child("type"), schema.Type, sets.List(validVariableTypes)))
+		return allErrs
 	}
 
 	// If the structural schema is valid, ensure a schema validator can be constructed.
 	validator, _, err := validation.NewSchemaValidator(schema)
 	if err != nil {
-		return append(allErrs, field.Invalid(fldPath, "", fmt.Sprintf("failed to build schema validator: %v", err)))
+		allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath, "", fmt.Sprintf("failed to build schema validator: %v", err)))
+		return allErrs
 	}
 
 	if schema.Example != nil {
 		if errs := validation.ValidateCustomResource(fldPath.Child("example"), *schema.Example, validator); len(errs) > 0 {
-			allErrs = append(allErrs, errs...)
+			allErrs.SchemaErrors = append(allErrs.SchemaErrors, errs...)
 		}
 	}
 
 	for i, enum := range schema.Enum {
 		if enum != nil {
 			if errs := validation.ValidateCustomResource(fldPath.Child("enum").Index(i), enum, validator); len(errs) > 0 {
-				allErrs = append(allErrs, errs...)
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, errs...)
 			}
 		}
 	}
 
 	if schema.AdditionalProperties != nil {
 		if len(schema.Properties) > 0 {
-			allErrs = append(allErrs, field.Forbidden(fldPath, "additionalProperties and properties are mutually exclusive"))
+			allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Forbidden(fldPath, "additionalProperties and properties are mutually exclusive"))
 		}
-		allErrs = append(allErrs, validateSchema(ctx, schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"), opts, celContext.ChildAdditionalPropertiesContext(schema.AdditionalProperties.Schema), uncorrelatablePath)...)
+		allErrs.AppendErrors(validateSchema(ctx, schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"), opts, celContext.ChildAdditionalPropertiesContext(schema.AdditionalProperties.Schema), uncorrelatablePath))
 	}
 
 	for propertyName, propertySchema := range schema.Properties {
 		p := propertySchema
-		allErrs = append(allErrs, validateSchema(ctx, &p, fldPath.Child("properties").Key(propertyName), opts, celContext.ChildPropertyContext(&p, propertyName), uncorrelatablePath)...)
+		allErrs.AppendErrors(validateSchema(ctx, &p, fldPath.Child("properties").Key(propertyName), opts, celContext.ChildPropertyContext(&p, propertyName), uncorrelatablePath))
 	}
 
 	if schema.Items != nil {
@@ -323,7 +326,7 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 		if uncorrelatablePath == nil {
 			uncorrelatablePath = fldPath.Child("items")
 		}
-		allErrs = append(allErrs, validateSchema(ctx, schema.Items.Schema, fldPath.Child("items"), opts, celContext.ChildItemsContext(schema.Items.Schema), uncorrelatablePath)...)
+		allErrs.AppendErrors(validateSchema(ctx, schema.Items.Schema, fldPath.Child("items"), opts, celContext.ChildItemsContext(schema.Items.Schema), uncorrelatablePath))
 	}
 
 	// This validation is duplicated from upstream CRD validation at
@@ -332,7 +335,8 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 		// Return if schema is not a structural schema (this should enver happen, but let's handle it anyway).
 		ss, err := structuralschema.NewStructural(schema)
 		if err != nil {
-			return append(allErrs, field.Invalid(fldPath, "", fmt.Sprintf("schema is not a structural schema: %v", err)))
+			allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath, "", fmt.Sprintf("schema is not a structural schema: %v", err)))
+			return allErrs
 		}
 
 		for i, rule := range schema.XValidations {
@@ -340,32 +344,32 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 			trimmedMsg := strings.TrimSpace(rule.Message)
 			trimmedMsgExpr := strings.TrimSpace(rule.MessageExpression)
 			if len(trimmedRule) == 0 {
-				allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), "rule is not specified"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), "rule is not specified"))
 			} else if len(rule.Message) > 0 && len(trimmedMsg) == 0 {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message, "message must be non-empty if specified"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message, "message must be non-empty if specified"))
 			} else if len(rule.Message) > 2048 {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message[0:10]+"...", "message must have a maximum length of 2048 characters"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message[0:10]+"...", "message must have a maximum length of 2048 characters"))
 			} else if hasNewlines(trimmedMsg) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message, "message must not contain line breaks"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), rule.Message, "message must not contain line breaks"))
 			} else if hasNewlines(trimmedRule) && len(trimmedMsg) == 0 {
-				allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), "message must be specified if rule contains line breaks"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("message"), "message must be specified if rule contains line breaks"))
 			}
 			if len(rule.MessageExpression) > 0 && len(trimmedMsgExpr) == 0 {
-				allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), "messageExpression must be non-empty if specified"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), "messageExpression must be non-empty if specified"))
 			}
 			if rule.Reason != nil && !supportedValidationReason.Has(string(*rule.Reason)) {
-				allErrs = append(allErrs, field.NotSupported(fldPath.Child("x-kubernetes-validations").Index(i).Child("reason"), *rule.Reason, supportedValidationReason.List()))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.NotSupported(fldPath.Child("x-kubernetes-validations").Index(i).Child("reason"), *rule.Reason, supportedValidationReason.List()))
 			}
 			trimmedFieldPath := strings.TrimSpace(rule.FieldPath)
 			if len(rule.FieldPath) > 0 && len(trimmedFieldPath) == 0 {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, "fieldPath must be non-empty if specified"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, "fieldPath must be non-empty if specified"))
 			}
 			if hasNewlines(rule.FieldPath) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, "fieldPath must not contain line breaks"))
+				allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, "fieldPath must not contain line breaks"))
 			}
 			if len(rule.FieldPath) > 0 {
 				if _, _, err := cel.ValidFieldPath(rule.FieldPath, ss); err != nil {
-					allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, fmt.Sprintf("fieldPath must be a valid path: %v", err)))
+					allErrs.SchemaErrors = append(allErrs.SchemaErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("fieldPath"), rule.FieldPath, fmt.Sprintf("fieldPath must be a valid path: %v", err)))
 				}
 			}
 		}
@@ -374,41 +378,41 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 		// Invalid OpenAPISchemas are not always possible to convert into valid CEL DeclTypes, and can lead to CEL
 		// validation error messages that are not actionable (will go away once the schema errors are resolved) and that
 		// are difficult for CEL expression authors to understand.
-		if len(allErrs) == 0 && celContext != nil {
+		if len(allErrs.SchemaErrors) == 0 && celContext != nil {
 			typeInfo, err := celContext.TypeInfo()
 			if err != nil {
-				allErrs = append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to construct type information for x-kubernetes-validations rules: %s", err)))
+				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to construct type information for x-kubernetes-validations rules: %s", err)))
 			} else if typeInfo == nil {
-				allErrs = append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to retrieve type information for x-kubernetes-validations")))
+				allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), fmt.Errorf("internal error: failed to retrieve type information for x-kubernetes-validations")))
 			} else {
 				// Note: k/k CRD validation also uses celconfig.PerCallLimit when creating the validator.
 				// The current PerCallLimit gives roughly 0.1 second for each expression validation call.
 				compResults, err := cel.Compile(typeInfo.Schema, typeInfo.DeclType, celconfig.PerCallLimit, opts.celEnvironmentSet, opts.preexistingExpressions)
 				if err != nil {
-					allErrs = append(allErrs, field.InternalError(fldPath.Child("x-kubernetes-validations"), err))
+					allErrs.CELErrors = append(allErrs.CELErrors, field.InternalError(fldPath.Child("x-kubernetes-validations"), err))
 				} else {
 					for i, cr := range compResults {
 						expressionCost := getExpressionCost(cr, celContext)
 						if expressionCost > StaticEstimatedCostLimit {
 							costErrorMsg := getCostErrorMessage("estimated rule cost", expressionCost, StaticEstimatedCostLimit)
-							allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), costErrorMsg))
+							allErrs.CELErrors = append(allErrs.CELErrors, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), costErrorMsg))
 						}
 						if celContext.TotalCost != nil {
 							celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), expressionCost)
 						}
 						if cr.Error != nil {
 							if cr.Error.Type == apiservercel.ErrorTypeRequired {
-								allErrs = append(allErrs, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), cr.Error.Detail))
+								allErrs.CELErrors = append(allErrs.CELErrors, field.Required(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), cr.Error.Detail))
 							} else {
-								allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i], cr.Error.Detail))
+								allErrs.CELErrors = append(allErrs.CELErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i], cr.Error.Detail))
 							}
 						}
 						if cr.MessageExpressionError != nil {
-							allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), schema.XValidations[i], cr.MessageExpressionError.Detail))
+							allErrs.CELErrors = append(allErrs.CELErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), schema.XValidations[i], cr.MessageExpressionError.Detail))
 						} else if cr.MessageExpression != nil {
 							if cr.MessageExpressionMaxCost > StaticEstimatedCostLimit {
 								costErrorMsg := getCostErrorMessage("estimated messageExpression cost", cr.MessageExpressionMaxCost, StaticEstimatedCostLimit)
-								allErrs = append(allErrs, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), costErrorMsg))
+								allErrs.CELErrors = append(allErrs.CELErrors, field.Forbidden(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), costErrorMsg))
 							}
 							if celContext.TotalCost != nil {
 								celContext.TotalCost.ObserveExpressionCost(fldPath.Child("x-kubernetes-validations").Index(i).Child("messageExpression"), cr.MessageExpressionMaxCost)
@@ -416,7 +420,7 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 						}
 						if cr.UsesOldSelf {
 							if uncorrelatablePath != nil {
-								allErrs = append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i].Rule, fmt.Sprintf("oldSelf cannot be used on the uncorrelatable portion of the schema within %v", uncorrelatablePath)))
+								allErrs.CELErrors = append(allErrs.CELErrors, field.Invalid(fldPath.Child("x-kubernetes-validations").Index(i).Child("rule"), schema.XValidations[i].Rule, fmt.Sprintf("oldSelf cannot be used on the uncorrelatable portion of the schema within %v", uncorrelatablePath)))
 							}
 						}
 					}
@@ -425,7 +429,7 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 		}
 
 		// Return if we found some errors in the CEL validations.
-		if len(allErrs) > 0 {
+		if len(allErrs.AllErrors()) > 0 {
 			return allErrs
 		}
 
@@ -434,16 +438,17 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 		// CEL validation for Default values was already done via: structuraldefaulting.ValidateDefaults
 		celValidator := cel.NewValidator(ss, false, celconfig.PerCallLimit)
 		if celValidator == nil {
-			return append(allErrs, field.Invalid(fldPath.Child("x-kubernetes-validations"), "", "failed to create CEL validator"))
+			allErrs.CELErrors = append(allErrs.CELErrors, field.Invalid(fldPath.Child("x-kubernetes-validations"), "", "failed to create CEL validator"))
+			return allErrs
 		}
 		if schema.Example != nil {
 			errs, _ := celValidator.Validate(ctx, fldPath.Child("example"), ss, *schema.Example, nil, celconfig.RuntimeCELCostBudget)
-			allErrs = append(allErrs, errs...)
+			allErrs.CELErrors = append(allErrs.CELErrors, errs...)
 		}
 		for i, enum := range schema.Enum {
 			if enum != nil {
 				errs, _ := celValidator.Validate(ctx, fldPath.Child("enum").Index(i), ss, enum, nil, celconfig.RuntimeCELCostBudget)
-				allErrs = append(allErrs, errs...)
+				allErrs.CELErrors = append(allErrs.CELErrors, errs...)
 			}
 		}
 	}
@@ -453,6 +458,30 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 
 // The following funcs are all duplicated from upstream CRD validation at
 // https://github.com/kubernetes/apiextensions-apiserver/blob/v0.30.0/pkg/apis/apiextensions/validation/validation.go#L1317.
+
+// OpenAPISchemaErrorList tracks validation errors reported
+// with CEL related errors kept separate from schema related errors.
+type OpenAPISchemaErrorList struct {
+	SchemaErrors field.ErrorList
+	CELErrors    field.ErrorList
+}
+
+// AppendErrors appends all errors in the provided list with the errors of this list.
+func (o *OpenAPISchemaErrorList) AppendErrors(list *OpenAPISchemaErrorList) {
+	if o == nil || list == nil {
+		return
+	}
+	o.SchemaErrors = append(o.SchemaErrors, list.SchemaErrors...)
+	o.CELErrors = append(o.CELErrors, list.CELErrors...)
+}
+
+// AllErrors returns a list containing both schema and CEL errors.
+func (o *OpenAPISchemaErrorList) AllErrors() field.ErrorList {
+	if o == nil {
+		return field.ErrorList{}
+	}
+	return append(o.SchemaErrors, o.CELErrors...)
+}
 
 // validationOptions groups several validation options, to avoid passing multiple bool parameters to methods.
 type validationOptions struct {

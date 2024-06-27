@@ -66,6 +66,9 @@ type ClusterctlUpgradeSpecInput struct {
 	// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
 	// So we are creating a new management cluster where to install older version of providers
 	UseKindForManagementCluster bool
+	// KindManagementClusterNewClusterProxyFunc is used to create the ClusterProxy used in the test after creating the kind based management cluster.
+	// This allows to use a custom ClusterProxy implementation or create a ClusterProxy with a custom scheme and options.
+	KindManagementClusterNewClusterProxyFunc func(name string, kubeconfigPath string) framework.ClusterProxy
 
 	// InitWithBinary must be used to specify the URL of the clusterctl binary of the old version of Cluster API. The spec will interpolate the
 	// strings `{OS}` and `{ARCH}` to `runtime.GOOS` and `runtime.GOARCH` respectively, e.g. https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}
@@ -201,14 +204,9 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initKubernetesVersion   string
 
 		workloadClusterName string
-
-		scheme *apiruntime.Scheme
 	)
 
 	BeforeEach(func() {
-		scheme = apiruntime.NewScheme()
-		framework.TryAddDefaultSchemes(scheme)
-
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
@@ -216,6 +214,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(input.InitWithBinary).ToNot(BeEmpty(), "Invalid argument. input.InitWithBinary can't be empty when calling %s spec", specName)
 		Expect(input.InitWithKubernetesVersion).ToNot(BeEmpty(), "Invalid argument. input.InitWithKubernetesVersion can't be empty when calling %s spec", specName)
+		if input.KindManagementClusterNewClusterProxyFunc == nil {
+			input.KindManagementClusterNewClusterProxyFunc = func(name string, kubeconfigPath string) framework.ClusterProxy {
+				scheme := apiruntime.NewScheme()
+				framework.TryAddDefaultSchemes(scheme)
+				return framework.NewClusterProxy(name, kubeconfigPath, scheme)
+			}
+		}
 
 		clusterctlBinaryURLTemplate := input.InitWithBinary
 		clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
@@ -276,7 +281,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			kubeconfigPath := managementClusterProvider.GetKubeconfigPath()
 			Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the kind cluster")
 
-			managementClusterProxy = framework.NewClusterProxy(managementClusterName, kubeconfigPath, scheme)
+			managementClusterProxy = input.KindManagementClusterNewClusterProxyFunc(managementClusterName, kubeconfigPath)
 			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a kind cluster proxy")
 
 			managementClusterResources.Cluster = &clusterv1.Cluster{
@@ -826,7 +831,7 @@ func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForCl
 		clusterPhase, ok, err := unstructured.NestedString(cluster.Object, "status", "phase")
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ok).To(BeTrue(), "could not get status.phase field")
-		g.Expect(clusterPhase).To(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision")
+		g.Expect(clusterPhase).To(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision", klog.KObj(cluster))
 	}, intervals...).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(input.Namespace, input.Name))
 
 	return cluster

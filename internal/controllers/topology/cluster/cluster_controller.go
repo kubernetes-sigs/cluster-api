@@ -234,7 +234,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// Default and Validate the Cluster variables based on information from the ClusterClass.
 	// This step is needed as if the ClusterClass does not exist at Cluster creation some fields may not be defaulted or
 	// validated in the webhook.
-	if errs := webhooks.DefaultAndValidateVariables(s.Current.Cluster, clusterClass); len(errs) > 0 {
+	if errs := webhooks.DefaultAndValidateVariables(ctx, s.Current.Cluster, nil, clusterClass); len(errs) > 0 {
 		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), s.Current.Cluster.Name, errs)
 	}
 

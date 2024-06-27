@@ -18,22 +18,26 @@ package webhooks
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -69,11 +73,13 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 
 	tests := []struct {
-		name         string
-		clusterClass *clusterv1.ClusterClass
-		topology     *clusterv1.Topology
-		expect       *clusterv1.Topology
-		wantErr      bool
+		name           string
+		clusterClass   *clusterv1.ClusterClass
+		topology       *clusterv1.Topology
+		oldTopology    *clusterv1.Topology
+		expect         *clusterv1.Topology
+		wantErr        bool
+		wantErrMessage string
 	}{
 		{
 			name: "default a single variable to its correct values",
@@ -935,14 +941,268 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 					Build()).
 				Build(),
 		},
+		// Testing validation of variables with CEL.
+		{
+			name: "should pass when CEL transition rules are skipped",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md1").Build()).
+				WithWorkerMachinePoolClasses(*builder.MachinePoolClass("mp1").Build()).
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: []clusterv1.ValidationRule{{
+										Rule: "self > oldSelf",
+									}},
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-10`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-11`)},
+					}).
+					Build()).
+				Build(),
+			expect: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-10`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-11`)},
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name: "should pass when CEL transition rules are running",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md1").Build()).
+				WithWorkerMachinePoolClasses(*builder.MachinePoolClass("mp1").Build()).
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: []clusterv1.ValidationRule{{
+										Rule: "self > oldSelf",
+									}},
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-10`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-11`)},
+					}).
+					Build()).
+				Build(),
+			oldTopology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-6`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-6`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-11`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-12`)},
+					}).
+					Build()).
+				Build(),
+			expect: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-10`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-11`)},
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name: "should fail when CEL transition rules are running and failing",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("md1").Build()).
+				WithWorkerMachinePoolClasses(*builder.MachinePoolClass("mp1").Build()).
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+									XValidations: []clusterv1.ValidationRule{{
+										Rule: "self > oldSelf",
+									}},
+								},
+							},
+						},
+					}}).Build(),
+			topology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-5`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`-4`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-10`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`-11`)},
+					}).
+					Build()).
+				Build(),
+			oldTopology: builder.ClusterTopology().
+				WithClass("foo").
+				WithVersion("v1.19.1").
+				WithVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`0`)},
+				}).
+				WithControlPlaneVariables(clusterv1.ClusterVariable{
+					Name:  "cpu",
+					Value: apiextensionsv1.JSON{Raw: []byte(`0`)},
+				}).
+				WithMachineDeployment(builder.MachineDeploymentTopology("workers1").
+					WithClass("md1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`0`)},
+					}).
+					Build()).
+				WithMachinePool(builder.MachinePoolTopology("workers1").
+					WithClass("mp1").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:  "cpu",
+						Value: apiextensionsv1.JSON{Raw: []byte(`0`)},
+					}).
+					Build()).
+				Build(),
+			wantErr: true,
+			wantErrMessage: "Cluster.cluster.x-k8s.io \"cluster1\" is invalid: [" +
+				"spec.topology.variables[cpu].value: Invalid value: \"-5\": failed rule: self > oldSelf, " +
+				"spec.topology.controlPlane.variables.overrides[cpu].value: Invalid value: \"-4\": failed rule: self > oldSelf, " +
+				"spec.topology.workers.machineDeployments[0].variables.overrides[cpu].value: Invalid value: \"-10\": failed rule: self > oldSelf, " +
+				"spec.topology.workers.machinePools[0].variables.overrides[cpu].value: Invalid value: \"-11\": failed rule: self > oldSelf]",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setting Class and Version here to avoid obfuscating the test cases above.
 			tt.topology.Class = "class1"
 			tt.topology.Version = "v1.22.2"
-			tt.expect.Class = "class1"
-			tt.expect.Version = "v1.22.2"
+			if tt.expect != nil {
+				tt.expect.Class = "class1"
+				tt.expect.Version = "v1.22.2"
+			}
 
 			cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(tt.topology).
@@ -955,17 +1215,42 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				WithScheme(fakeScheme).
 				Build()
 			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
-			webhook := &Cluster{Client: fakeClient}
+			webhook := &Cluster{Client: fakeClient, decoder: admission.NewDecoder(fakeScheme)}
 
 			// Test defaulting.
 			t.Run("default", func(t *testing.T) {
 				g := NewWithT(t)
+
+				// Add old cluster to request if oldTopology is set.
+				webhookCtx := ctx
+				if tt.oldTopology != nil {
+					oldCluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+						WithTopology(tt.oldTopology).
+						Build()
+					jsonObj, err := json.Marshal(oldCluster)
+					g.Expect(err).ToNot(HaveOccurred())
+
+					webhookCtx = admission.NewContextWithRequest(ctx, admission.Request{
+						AdmissionRequest: admissionv1.AdmissionRequest{
+							Operation: admissionv1.Update,
+							OldObject: runtime.RawExtension{
+								Raw:    jsonObj,
+								Object: oldCluster,
+							},
+						},
+					})
+				}
+
+				err := webhook.Default(webhookCtx, cluster)
 				if tt.wantErr {
-					g.Expect(webhook.Default(ctx, cluster)).To(Not(Succeed()))
+					g.Expect(err).To(HaveOccurred())
+					if tt.wantErrMessage != "" {
+						g.Expect(err.Error()).To(ContainSubstring(tt.wantErrMessage))
+					}
 					return
 				}
-				g.Expect(webhook.Default(ctx, cluster)).To(Succeed())
-				g.Expect(cluster.Spec.Topology).To(BeEquivalentTo(tt.expect))
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(cluster.Spec.Topology).To(BeComparableTo(tt.expect))
 			})
 
 			// Test if defaulting works in combination with validation.

@@ -36,8 +36,15 @@ require (
 require (
 	cloud.google.com/go/auth v0.5.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
+	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.22.0 // indirect
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.20.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.24.0 // indirect
+	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.0 // indirect
 )
 
 require (

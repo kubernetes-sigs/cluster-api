@@ -33,10 +33,14 @@ func Test_DefaultClusterVariables(t *testing.T) {
 		values          []clusterv1.ClusterVariable
 		createVariables bool
 		want            []clusterv1.ClusterVariable
-		wantErr         bool
+		wantErrs        []validationMatch
 	}{
 		{
-			name:        "Return error if variable is not defined in ClusterClass",
+			name: "Return error if variable is not defined in ClusterClass",
+			wantErrs: []validationMatch{
+				invalid("Invalid value: \"1\": no definitions found for variable \"cpu\"",
+					"spec.topology.variables[cpu]"),
+			},
 			definitions: []clusterv1.ClusterClassStatusVariable{},
 			values: []clusterv1.ClusterVariable{
 				{
@@ -47,7 +51,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				},
 			},
 			createVariables: true,
-			wantErr:         true,
 		},
 		{
 			name: "Default one variable of each valid type",
@@ -556,8 +559,11 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			},
 		},
 		{
-			name:    "Error if a value is set with empty and non-empty definitionFrom.",
-			wantErr: true,
+			name: "Error if a value is set with empty and non-empty definitionFrom.",
+			wantErrs: []validationMatch{
+				invalid("cluster variables not valid: variable \"cpu\" is defined with a mix of empty and non-empty values for definitionFrom",
+					"spec.topology.variables"),
+			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name: "cpu",
@@ -600,8 +606,11 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			},
 		},
 		{
-			name:    "Error if a value is set twice with the same definitionFrom.",
-			wantErr: true,
+			name: "Error if a value is set twice with the same definitionFrom.",
+			wantErrs: []validationMatch{
+				invalid("cluster variables not valid: variable \"cpu\" is defined more than once",
+					"spec.topology.variables"),
+			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name: "cpu",
@@ -648,14 +657,10 @@ func Test_DefaultClusterVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			vars, errList := defaultClusterVariables(tt.values, tt.definitions, tt.createVariables,
+			vars, gotErrs := defaultClusterVariables(tt.values, tt.definitions, tt.createVariables,
 				field.NewPath("spec", "topology", "variables"))
 
-			if tt.wantErr {
-				g.Expect(errList).NotTo(BeEmpty())
-				return
-			}
-			g.Expect(errList).To(BeEmpty())
+			checkErrors(t, tt.wantErrs, gotErrs)
 			g.Expect(vars).To(BeComparableTo(tt.want))
 		})
 	}
@@ -668,7 +673,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		clusterClassVariable *statusVariableDefinition
 		createVariable       bool
 		want                 *clusterv1.ClusterVariable
-		wantErr              bool
+		wantErrs             []validationMatch
 	}{
 		{
 			name: "Default new integer variable",
@@ -1255,15 +1260,10 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			defaultedVariable, errList := defaultValue(tt.clusterVariable, tt.clusterClassVariable,
-				field.NewPath("spec", "topology", "variables").Index(0), tt.createVariable)
+			defaultedVariable, gotErrs := defaultValue(tt.clusterVariable, tt.clusterClassVariable,
+				field.NewPath("spec", "topology", "variables").Key(tt.clusterClassVariable.Name), tt.createVariable)
 
-			if tt.wantErr {
-				g.Expect(errList).NotTo(BeEmpty())
-				return
-			}
-			g.Expect(errList).To(BeEmpty())
-
+			checkErrors(t, tt.wantErrs, gotErrs)
 			g.Expect(defaultedVariable).To(BeComparableTo(tt.want))
 		})
 	}

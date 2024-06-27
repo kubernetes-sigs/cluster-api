@@ -1004,10 +1004,7 @@ func TestClusterClassValidation(t *testing.T) {
 			expectErr: false,
 		},
 
-		/*
-			UPDATE Tests
-		*/
-
+		// update tests
 		{
 			name: "update pass in case of no changes",
 			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1768,6 +1765,75 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				Build(),
 			expectErr: true,
+		},
+
+		// CEL tests
+		{
+			name: "fail if x-kubernetes-validations has invalid rule: " +
+				"new rule that uses opts that are not available with the current compatibility version",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithVariables(clusterv1.ClusterClassVariable{
+					Name: "someIP",
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type: "string",
+							XValidations: []clusterv1.ValidationRule{{
+								// Note: IP will be only available if the compatibility version is 1.30
+								Rule: "ip(self).family() == 6",
+							}},
+						},
+					},
+				}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "pass if x-kubernetes-validations has valid rule: " +
+				"pre-existing rule that uses opts that are not available with the current compatibility version, but with the \"max\" env",
+			old: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithVariables(clusterv1.ClusterClassVariable{
+					Name: "someIP",
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type: "string",
+							XValidations: []clusterv1.ValidationRule{{
+								// Note: IP will be only available if the compatibility version is 1.30
+								Rule: "ip(self).family() == 6",
+							}},
+						},
+					},
+				}).
+				Build(),
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithVariables(clusterv1.ClusterClassVariable{
+					Name: "someIP",
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type: "string",
+							XValidations: []clusterv1.ValidationRule{{
+								// Note: IP will be only available if the compatibility version is 1.30
+								Rule: "ip(self).family() == 6",
+							}},
+						},
+					},
+				}).
+				Build(),
+			expectErr: false,
 		},
 	}
 

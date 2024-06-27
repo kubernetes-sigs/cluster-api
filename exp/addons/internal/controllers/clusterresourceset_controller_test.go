@@ -921,7 +921,7 @@ metadata:
 		g.Expect(env.Delete(ctx, missingNs)).To(Succeed())
 	})
 
-	t.Run("Should only create ClusterResourceSetBinding after the remote cluster's Kubernetes API Server Service has been created", func(t *testing.T) {
+	t.Run("Should only apply resources after the remote cluster's Kubernetes API Server Service has been created", func(t *testing.T) {
 		g := NewWithT(t)
 		ns := setup(t, g)
 		defer teardown(t, g, ns)
@@ -972,6 +972,7 @@ metadata:
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
 				},
+				Resources: []addonsv1.ResourceRef{{Name: secretName, Kind: "Secret"}},
 			},
 		}
 		// Create the ClusterResourceSet.
@@ -980,13 +981,22 @@ metadata:
 		testCluster.SetLabels(labels)
 		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
 
-		// ClusterResourceSetBinding for the Cluster is not created because the Kubernetes API Server Service doesn't exist.
+		// Resources are not applied because the Kubernetes API Server Service doesn't exist.
 		clusterResourceSetBindingKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
 		g.Consistently(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 
-			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
-			return apierrors.IsNotFound(err)
+			if err := env.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
+				// either the binding is not there
+				return true
+			}
+			// or the binding is there but resources are not applied
+			for _, b := range binding.Spec.Bindings {
+				if len(b.Resources) > 0 {
+					return false
+				}
+			}
+			return true
 		}, timeout).Should(BeTrue())
 
 		t.Log("Create Kubernetes API Server Service")
@@ -1000,10 +1010,19 @@ metadata:
 		g.Expect(env.Patch(ctx, clusterResourceSetInstance, client.MergeFrom(clusterResourceSetInstance.DeepCopy()))).To(Succeed())
 
 		// Wait until ClusterResourceSetBinding is created for the Cluster
-		g.Eventually(func(g Gomega) {
+		g.Eventually(func() bool {
+			// the binding must exists and track resource being applied
 			binding := &addonsv1.ClusterResourceSetBinding{}
-			g.Expect(env.Get(ctx, clusterResourceSetBindingKey, binding)).Should(Succeed())
-		}, timeout).Should(Succeed())
+			if err := env.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
+				return false
+			}
+			for _, b := range binding.Spec.Bindings {
+				if len(b.Resources) == 0 {
+					return false
+				}
+			}
+			return true
+		}, timeout).Should(BeTrue())
 	})
 
 	t.Run("Should handle applying multiple ClusterResourceSets concurrently to the same cluster", func(t *testing.T) {

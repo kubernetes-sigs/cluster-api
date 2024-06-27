@@ -153,10 +153,14 @@ type ControlPlaneTopology struct {
 type WorkersTopology struct {
 	// MachineDeployments is a list of machine deployments in the cluster.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
 
 	// MachinePools is a list of machine pools in the cluster.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	MachinePools []MachinePoolTopology `json:"machinePools,omitempty"`
 }
 

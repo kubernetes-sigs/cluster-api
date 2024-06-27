@@ -149,11 +149,15 @@ type WorkersClass struct {
 	// MachineDeployments is a list of machine deployment classes that can be used to create
 	// a set of worker nodes.
 	// +optional
+	// +listType=map
+	// +listMapKey=class
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 
 	// MachinePools is a list of machine pool classes that can be used to create
 	// a set of worker nodes.
 	// +optional
+	// +listType=map
+	// +listMapKey=class
 	MachinePools []MachinePoolClass `json:"machinePools,omitempty"`
 }
 

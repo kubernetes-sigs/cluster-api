@@ -676,7 +676,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		for i := range cluster.Spec.Topology.Workers.MachineDeployments {
 			md := cluster.Spec.Topology.Workers.MachineDeployments[i]
 			if md.MachineHealthCheck != nil {
-				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments", "machineHealthCheck").Index(i)
+				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("machineHealthCheck")
 
 				// Validate the MachineDeployment MachineHealthCheck if defined.
 				if !md.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
@@ -791,7 +791,7 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 
 	if cluster.Spec.Topology.Workers != nil {
 		// Validate MachineDeployment variable overrides.
-		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
 			// Continue if there are no variable overrides.
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
@@ -801,12 +801,12 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 				md.Variables.Overrides,
 				oldMDVariables[md.Name],
 				clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...,
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))...,
 			)
 		}
 
 		// Validate MachinePool variable overrides.
-		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
+		for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
 			// Continue if there are no variable overrides.
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
 				continue
@@ -816,7 +816,7 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 				mp.Variables.Overrides,
 				oldMPVariables[mp.Name],
 				clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))...,
+				field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))...,
 			)
 		}
 	}
@@ -855,13 +855,13 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 
 	if cluster.Spec.Topology.Workers != nil {
 		// Default MachineDeployment variable overrides.
-		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
 			// Continue if there are no variable overrides.
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
 			defaultedVariables, errs := variables.DefaultMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))
 			if len(errs) > 0 {
 				allErrs = append(allErrs, errs...)
 			} else {
@@ -870,13 +870,13 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 		}
 
 		// Default MachinePool variable overrides.
-		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
+		for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
 			// Continue if there are no variable overrides.
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
 				continue
 			}
 			defaultedVariables, errs := variables.DefaultMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))
+				field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))
 			if len(errs) > 0 {
 				allErrs = append(allErrs, errs...)
 			} else {
@@ -978,14 +978,14 @@ func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path)
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, topology.ControlPlane.Metadata.Validate(fldPath.Child("controlPlane", "metadata"))...)
 	if topology.Workers != nil {
-		for idx, md := range topology.Workers.MachineDeployments {
+		for _, md := range topology.Workers.MachineDeployments {
 			allErrs = append(allErrs, md.Metadata.Validate(
-				fldPath.Child("workers", "machineDeployments").Index(idx).Child("metadata"),
+				fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("metadata"),
 			)...)
 		}
-		for idx, mp := range topology.Workers.MachinePools {
+		for _, mp := range topology.Workers.MachinePools {
 			allErrs = append(allErrs, mp.Metadata.Validate(
-				fldPath.Child("workers", "machinePools").Index(idx).Child("metadata"),
+				fldPath.Child("workers", "machinePools").Key(mp.Name).Child("metadata"),
 			)...)
 		}
 	}
@@ -1003,7 +1003,7 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 	}
 
 	fldPath := field.NewPath("spec", "topology")
-	for i, mdt := range cluster.Spec.Topology.Workers.MachineDeployments {
+	for _, mdt := range cluster.Spec.Topology.Workers.MachineDeployments {
 		if mdt.Replicas == nil {
 			continue
 		}
@@ -1012,8 +1012,8 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 				allErrs = append(
 					allErrs,
 					field.Invalid(
-						fldPath.Child("workers", "machineDeployments").Index(i).Child("replicas"),
-						cluster.Spec.Topology.Workers.MachineDeployments[i].Replicas,
+						fldPath.Child("workers", "machineDeployments").Key(mdt.Name).Child("replicas"),
+						mdt.Replicas,
 						fmt.Sprintf("cannot be set for cluster %q in namespace %q if the same MachineDeploymentTopology has autoscaler annotations",
 							cluster.Name, cluster.Namespace),
 					),
@@ -1036,8 +1036,8 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 					allErrs = append(
 						allErrs,
 						field.Invalid(
-							fldPath.Child("workers", "machineDeployments").Index(i).Child("replicas"),
-							cluster.Spec.Topology.Workers.MachineDeployments[i].Replicas,
+							fldPath.Child("workers", "machineDeployments").Key(mdt.Name).Child("replicas"),
+							mdt.Replicas,
 							fmt.Sprintf("cannot be set for cluster %q in namespace %q if the source class %q of this MachineDeploymentTopology has autoscaler annotations",
 								cluster.Name, cluster.Namespace, mdt.Class),
 						),

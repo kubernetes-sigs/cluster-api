@@ -1190,8 +1190,8 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			wantErrMessage: "Cluster.cluster.x-k8s.io \"cluster1\" is invalid: [" +
 				"spec.topology.variables[cpu].value: Invalid value: \"-5\": failed rule: self > oldSelf, " +
 				"spec.topology.controlPlane.variables.overrides[cpu].value: Invalid value: \"-4\": failed rule: self > oldSelf, " +
-				"spec.topology.workers.machineDeployments[0].variables.overrides[cpu].value: Invalid value: \"-10\": failed rule: self > oldSelf, " +
-				"spec.topology.workers.machinePools[0].variables.overrides[cpu].value: Invalid value: \"-11\": failed rule: self > oldSelf]",
+				"spec.topology.workers.machineDeployments[workers1].variables.overrides[cpu].value: Invalid value: \"-10\": failed rule: self > oldSelf, " +
+				"spec.topology.workers.machinePools[workers1].variables.overrides[cpu].value: Invalid value: \"-11\": failed rule: self > oldSelf]",
 		},
 	}
 	for _, tt := range tests {

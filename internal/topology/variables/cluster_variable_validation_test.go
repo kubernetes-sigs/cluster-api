@@ -2354,7 +2354,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 			name: "Error if value has no definition.",
 			wantErrs: []validationMatch{
 				invalid("Invalid value: \"\\\"us-east-1\\\"\": no definitions found for variable \"location\"",
-					"spec.topology.workers.machineDeployments[0].variables.overrides[location]"),
+					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[location]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{},
 			values: []clusterv1.ClusterVariable{
@@ -2371,7 +2371,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 			name: "Fail if value DefinitionFrom field does not match any definition.",
 			wantErrs: []validationMatch{
 				invalid("Invalid value: \"1\": no definitions found for variable \"cpu\" from \"non-existent-patch\"",
-					"spec.topology.workers.machineDeployments[0].variables.overrides[cpu]"),
+					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -2403,9 +2403,9 @@ func Test_ValidateMachineVariables(t *testing.T) {
 			name: "Fail when values invalid by their definition schema.",
 			wantErrs: []validationMatch{
 				invalidType("Invalid value: \"1\": must be of type string: \"integer\"",
-					"spec.topology.workers.machineDeployments[0].variables.overrides[cpu].value"),
+					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu].value"),
 				invalidType("Invalid value: \"\\\"one\\\"\": must be of type integer: \"string\"",
-					"spec.topology.workers.machineDeployments[0].variables.overrides[cpu].value"),
+					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu].value"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -2483,7 +2483,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 			name: "Error if integer is above maximum via with CEL expression",
 			wantErrs: []validationMatch{
 				invalid("Invalid value: \"99\": failed rule: self <= 1",
-					"spec.topology.workers.machineDeployments[0].variables.overrides[cpu].value"),
+					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu].value"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -2517,7 +2517,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 			name: "Error if integer is below minimum via CEL expression",
 			wantErrs: []validationMatch{
 				invalid("Invalid value: \"0\": failed rule: self >= 1",
-					"spec.topology.workers.machineDeployments[0].variables.overrides[cpu].value"),
+					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu].value"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -2619,7 +2619,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 			name: "Error if integer is not greater than old value via CEL expression",
 			wantErrs: []validationMatch{
 				invalid("Invalid value: \"0\": failed rule: self > oldSelf",
-					"spec.topology.workers.machineDeployments[0].variables.overrides[cpu].value"),
+					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu].value"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -2661,7 +2661,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotErrs := ValidateMachineVariables(ctx, tt.values, tt.oldValues, tt.definitions,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(0).Child("variables", "overrides"))
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Key("mdTopologyName").Child("variables", "overrides"))
 
 			checkErrors(t, tt.wantErrs, gotErrs)
 		})

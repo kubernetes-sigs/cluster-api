@@ -1540,6 +1540,9 @@ spec:
                           - name
                           type: object
                         type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                       machinePools:
                         description: MachinePools is a list of machine pools in the
                           cluster.
@@ -1668,6 +1671,9 @@ spec:
                           - name
                           type: object
                         type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                     type: object
                 required:
                 - class

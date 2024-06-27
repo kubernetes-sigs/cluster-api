@@ -747,7 +747,7 @@ spec:
                       (e.g. 3.16.0-0.bpo.4-amd64).
                     type: string
                   kubeProxyVersion:
-                    description: KubeProxy Version reported by the node.
+                    description: 'Deprecated: KubeProxy Version reported by the node.'
                     type: string
                   kubeletVersion:
                     description: Kubelet Version reported by the node.
@@ -1203,7 +1203,7 @@ spec:
                       (e.g. 3.16.0-0.bpo.4-amd64).
                     type: string
                   kubeProxyVersion:
-                    description: KubeProxy Version reported by the node.
+                    description: 'Deprecated: KubeProxy Version reported by the node.'
                     type: string
                   kubeletVersion:
                     description: Kubelet Version reported by the node.

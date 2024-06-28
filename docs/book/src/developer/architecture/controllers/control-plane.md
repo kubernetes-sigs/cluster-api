@@ -41,12 +41,14 @@ Kubernetes control plane consisting of the following services:
 
 The Cluster controller will set an OwnerReference on the Control Plane. The Control Plane controller should normally take no action during reconciliation until it sees the ownerReference.
 
-A Control Plane controller implementation should exit reconciliation until it sees `cluster.spec.controlPlaneEndpoint` populated.
+A Control Plane controller implementation must either supply a controlPlaneEndpoint (via its own `spec.controlPlaneEndpoint` field),
+or rely on `spec.controlPlaneEndpoint` in its parent [Cluster](./cluster.md) object.
+
+If an endpoint is not provided, the implementer should exit reconciliation until it sees `cluster.spec.controlPlaneEndpoint` populated.
+
+A Control Plane controller can optionally provide a `controlPlaneEndpoint`
 
 The Cluster controller bubbles up `status.ready` into `status.controlPlaneReady`  and `status.initialized` into a `controlPlaneInitialized` condition from the Control Plane CR.
-
-The `ImplementationControlPlane` *must* rely on the existence of
-`status.controlplaneEndpoint` in its parent [Cluster](./cluster.md) object.
 
 ### CRD contracts
 
@@ -109,6 +111,35 @@ documentation][scale].
   will attempt to delete the Node that is hosted by a Machine after the Machine is marked for
   deletion. A duration of 0 will retry deletion indefinitely. It defaults to 10 seconds on the
   Machine.
+
+#### Optional `spec` fields for implementations providing endpoints
+
+The `ImplementationControlPlane` object may provide a `spec.controlPlaneEndpoint` field to inform the Cluster
+controller where the endpoint is located.
+
+Implementers might opt to choose the `APIEndpoint` struct exposed by Cluster API types, or the following:
+
+<table>
+  <tr>
+    <th> Field </th>
+    <th> Type </th>
+    <th> Description </th>
+  </tr>
+  <tr>
+    <td><code>host</code></td>
+    <td>String</td>
+    <td>
+      The hostname on which the API server is serving.
+    </td>
+  </tr>
+  <tr>
+    <td><code>port</code></td>
+    <td>Integer</td>
+    <td>
+      The port on which the API server is serving.
+    </td>
+  </tr>
+</table>
 
 #### Required `status` fields
 

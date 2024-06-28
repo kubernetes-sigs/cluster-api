@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {
@@ -56,6 +57,22 @@ func TestClusterReconcilePhases(t *testing.T) {
 				},
 			},
 		}
+		clusterNoEndpoint := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "test-namespace",
+			},
+			Status: clusterv1.ClusterStatus{
+				InfrastructureReady: true,
+			},
+			Spec: clusterv1.ClusterSpec{
+				InfrastructureRef: &corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericInfrastructureMachine",
+					Name:       "test",
+				},
+			},
+		}
 
 		tests := []struct {
 			name         string
@@ -63,6 +80,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 			infraRef     map[string]interface{}
 			expectErr    bool
 			expectResult ctrl.Result
+			check        func(g *GomegaWithT, in *clusterv1.Cluster)
 		}{
 			{
 				name:      "returns no error if infrastructure ref is nil",
@@ -104,7 +122,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				expectErr: false,
 			},
 			{
-				name:    "returns error if infrastructure has the paused annotation",
+				name:    "returns no error if infrastructure has the paused annotation",
 				cluster: cluster,
 				infraRef: map[string]interface{}{
 					"kind":       "GenericInfrastructureMachine",
@@ -118,6 +136,50 @@ func TestClusterReconcilePhases(t *testing.T) {
 					},
 				},
 				expectErr: false,
+			},
+			{
+				name:    "returns no error if the control plane endpoint is not yet set",
+				cluster: clusterNoEndpoint,
+				infraRef: map[string]interface{}{
+					"kind":       "GenericInfrastructureMachine",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+					"status": map[string]interface{}{
+						"ready": true,
+					},
+				},
+				expectErr: false,
+			},
+			{
+				name:    "should propagate the control plane endpoint once set",
+				cluster: clusterNoEndpoint,
+				infraRef: map[string]interface{}{
+					"kind":       "GenericInfrastructureMachine",
+					"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+					"spec": map[string]interface{}{
+						"controlPlaneEndpoint": map[string]interface{}{
+							"host": "example.com",
+							"port": int64(6443),
+						},
+					},
+					"status": map[string]interface{}{
+						"ready": true,
+					},
+				},
+				expectErr: false,
+				check: func(g *GomegaWithT, in *clusterv1.Cluster) {
+					g.Expect(in.Spec.ControlPlaneEndpoint.Host).To(Equal("example.com"))
+					g.Expect(in.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
+				},
 			},
 		}
 
@@ -148,6 +210,202 @@ func TestClusterReconcilePhases(t *testing.T) {
 					g.Expect(err).To(HaveOccurred())
 				} else {
 					g.Expect(err).ToNot(HaveOccurred())
+				}
+
+				if tt.check != nil {
+					tt.check(g, tt.cluster)
+				}
+			})
+		}
+	})
+
+	t.Run("reconcile control plane ref", func(t *testing.T) {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "test-namespace",
+			},
+			Status: clusterv1.ClusterStatus{
+				InfrastructureReady: true,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					Host: "1.2.3.4",
+					Port: 8443,
+				},
+				ControlPlaneRef: &corev1.ObjectReference{
+					APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericControlPlane",
+					Name:       "test",
+				},
+			},
+		}
+		clusterNoEndpoint := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "test-namespace",
+			},
+			Status: clusterv1.ClusterStatus{
+				InfrastructureReady: true,
+			},
+			Spec: clusterv1.ClusterSpec{
+				ControlPlaneRef: &corev1.ObjectReference{
+					APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericControlPlane",
+					Name:       "test",
+				},
+			},
+		}
+
+		tests := []struct {
+			name         string
+			cluster      *clusterv1.Cluster
+			cpRef        map[string]interface{}
+			expectErr    bool
+			expectResult ctrl.Result
+			check        func(g *GomegaWithT, in *clusterv1.Cluster)
+		}{
+			{
+				name:      "returns no error if control plane ref is nil",
+				cluster:   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
+				expectErr: false,
+			},
+			{
+				name:         "requeues if unable to reconcile control plane ref",
+				cluster:      cluster,
+				expectErr:    false,
+				expectResult: ctrl.Result{RequeueAfter: 30 * time.Second},
+			},
+			{
+				name:    "returns no error if control plane ref is marked for deletion",
+				cluster: cluster,
+				cpRef: map[string]interface{}{
+					"kind":       "GenericControlPlane",
+					"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+				},
+				expectErr: false,
+			},
+			{
+				name:    "returns no error if control plane has the paused annotation",
+				cluster: cluster,
+				cpRef: map[string]interface{}{
+					"kind":       "GenericControlPlane",
+					"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":      "test",
+						"namespace": "test-namespace",
+						"annotations": map[string]interface{}{
+							"cluster.x-k8s.io/paused": "true",
+						},
+					},
+				},
+				expectErr: false,
+			},
+			{
+				name:    "returns no error if the control plane endpoint is not yet set",
+				cluster: clusterNoEndpoint,
+				cpRef: map[string]interface{}{
+					"kind":       "GenericControlPlane",
+					"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+					"status": map[string]interface{}{
+						"ready": true,
+					},
+				},
+				expectErr: false,
+			},
+			{
+				name:    "should propagate the control plane endpoint if set",
+				cluster: clusterNoEndpoint,
+				cpRef: map[string]interface{}{
+					"kind":       "GenericControlPlane",
+					"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+					"spec": map[string]interface{}{
+						"controlPlaneEndpoint": map[string]interface{}{
+							"host": "example.com",
+							"port": int64(6443),
+						},
+					},
+					"status": map[string]interface{}{
+						"ready": true,
+					},
+				},
+				expectErr: false,
+				check: func(g *GomegaWithT, in *clusterv1.Cluster) {
+					g.Expect(in.Spec.ControlPlaneEndpoint.Host).To(Equal("example.com"))
+					g.Expect(in.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
+				},
+			},
+			{
+				name:    "should propagate the initialized and ready conditions",
+				cluster: clusterNoEndpoint,
+				cpRef: map[string]interface{}{
+					"kind":       "GenericControlPlane",
+					"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":              "test",
+						"namespace":         "test-namespace",
+						"deletionTimestamp": "sometime",
+					},
+					"spec": map[string]interface{}{},
+					"status": map[string]interface{}{
+						"ready":       true,
+						"initialized": true,
+					},
+				},
+				expectErr: false,
+				check: func(g *GomegaWithT, in *clusterv1.Cluster) {
+					g.Expect(conditions.IsTrue(in, clusterv1.ControlPlaneReadyCondition)).To(BeTrue())
+					g.Expect(conditions.IsTrue(in, clusterv1.ControlPlaneInitializedCondition)).To(BeTrue())
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+
+				var c client.Client
+				if tt.cpRef != nil {
+					cpConfig := &unstructured.Unstructured{Object: tt.cpRef}
+					c = fake.NewClientBuilder().
+						WithObjects(builder.GenericControlPlaneCRD.DeepCopy(), tt.cluster, cpConfig).
+						Build()
+				} else {
+					c = fake.NewClientBuilder().
+						WithObjects(builder.GenericControlPlaneCRD.DeepCopy(), tt.cluster).
+						Build()
+				}
+				r := &Reconciler{
+					Client:                    c,
+					UnstructuredCachingClient: c,
+					recorder:                  record.NewFakeRecorder(32),
+				}
+
+				res, err := r.reconcileControlPlane(ctx, tt.cluster)
+				g.Expect(res).To(BeComparableTo(tt.expectResult))
+				if tt.expectErr {
+					g.Expect(err).To(HaveOccurred())
+				} else {
+					g.Expect(err).ToNot(HaveOccurred())
+				}
+
+				if tt.check != nil {
+					tt.check(g, tt.cluster)
 				}
 			})
 		}

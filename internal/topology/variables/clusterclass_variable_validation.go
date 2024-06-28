@@ -110,6 +110,9 @@ func validateClusterClassVariable(ctx context.Context, oldVariable, variable *cl
 	// Validate variable metadata.
 	allErrs = append(allErrs, validateClusterClassVariableMetadata(variable.Metadata, fldPath.Child("metadata"))...)
 
+	// Validate variable XMetadata.
+	allErrs = append(allErrs, validateClusterClassXVariableMetadata(&variable.Schema.OpenAPIV3Schema, fldPath.Child("schema", "openAPIV3Schema"))...)
+
 	// Validate schema.
 	allErrs = append(allErrs, validateRootSchema(ctx, oldVariable, variable, fldPath.Child("schema", "openAPIV3Schema"))...)
 
@@ -144,6 +147,37 @@ func validateClusterClassVariableMetadata(metadata clusterv1.ClusterClassVariabl
 		metadata.Annotations,
 		fldPath.Child("annotations"),
 	)...)
+	return allErrs
+}
+
+// validateClusterClassXVariableMetadata validates XMetadata recursively across the entire schema.
+// Note: This cannot be done within validateSchema because XMetadata does not exist in apiextensions.JSONSchemaProps.
+func validateClusterClassXVariableMetadata(schema *clusterv1.JSONSchemaProps, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	if schema.XMetadata != nil {
+		allErrs = metav1validation.ValidateLabels(
+			schema.XMetadata.Labels,
+			fldPath.Child("x-metadata", "labels"),
+		)
+		allErrs = append(allErrs, apivalidation.ValidateAnnotations(
+			schema.XMetadata.Annotations,
+			fldPath.Child("x-metadata", "annotations"),
+		)...)
+	}
+
+	if schema.AdditionalProperties != nil {
+		allErrs = append(allErrs, validateClusterClassXVariableMetadata(schema.AdditionalProperties, fldPath.Child("additionalProperties"))...)
+	}
+
+	for propertyName, propertySchema := range schema.Properties {
+		p := propertySchema
+		allErrs = append(allErrs, validateClusterClassXVariableMetadata(&p, fldPath.Child("properties").Key(propertyName))...)
+	}
+
+	if schema.Items != nil {
+		allErrs = append(allErrs, validateClusterClassXVariableMetadata(schema.Items, fldPath.Child("items"))...)
+	}
+
 	return allErrs
 }
 
@@ -452,7 +486,7 @@ func validateSchema(ctx context.Context, schema *apiextensions.JSONSchemaProps, 
 }
 
 // The following funcs are all duplicated from upstream CRD validation at
-// https://github.com/kubernetes/apiextensions-apiserver/blob/v0.30.0/pkg/apis/apiextensions/validation/validation.go#L1317.
+// https://github.com/kubernetes/apiextensions-apiserver/blob/v0.30.0/pkg/apis/apiextensions/validation/validation.go.
 
 // validationOptions groups several validation options, to avoid passing multiple bool parameters to methods.
 type validationOptions struct {

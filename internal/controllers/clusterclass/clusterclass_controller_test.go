@@ -114,6 +114,14 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "integer",
+						XMetadata: &clusterv1.VariableSchemaMetadata{
+							Labels: map[string]string{
+								"some-label": "some-label-value",
+							},
+							Annotations: map[string]string{
+								"some-annotation": "some-annotation-value",
+							},
+						},
 					},
 				},
 				Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -408,6 +416,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type: "integer",
+							XMetadata: &clusterv1.VariableSchemaMetadata{
+								Labels: map[string]string{
+									"some-label": "some-label-value",
+								},
+								Annotations: map[string]string{
+									"some-annotation": "some-annotation-value",
+								},
+							},
 						},
 					},
 					Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -448,6 +464,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
+									XMetadata: &clusterv1.VariableSchemaMetadata{
+										Labels: map[string]string{
+											"some-label": "some-label-value",
+										},
+										Annotations: map[string]string{
+											"some-annotation": "some-annotation-value",
+										},
+									},
 								},
 							},
 							Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -512,6 +536,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "string",
+								XMetadata: &clusterv1.VariableSchemaMetadata{
+									Labels: map[string]string{
+										"some-label": "some-label-value",
+									},
+									Annotations: map[string]string{
+										"some-annotation": "some-annotation-value",
+									},
+								},
 							},
 						},
 						Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -535,6 +567,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
+									XMetadata: &clusterv1.VariableSchemaMetadata{
+										Labels: map[string]string{
+											"some-label": "some-label-value",
+										},
+										Annotations: map[string]string{
+											"some-annotation": "some-annotation-value",
+										},
+									},
 								},
 							},
 							Metadata: clusterv1.ClusterClassVariableMetadata{
@@ -565,6 +605,14 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
+									XMetadata: &clusterv1.VariableSchemaMetadata{
+										Labels: map[string]string{
+											"some-label": "some-label-value",
+										},
+										Annotations: map[string]string{
+											"some-annotation": "some-annotation-value",
+										},
+									},
 								},
 							},
 							Metadata: clusterv1.ClusterClassVariableMetadata{

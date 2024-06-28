@@ -443,6 +443,14 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "string",
 					Example: &apiextensionsv1.JSON{Raw: []byte(`"kindest"`)},
+					XMetadata: &clusterv1.VariableSchemaMetadata{
+						Labels: map[string]string{
+							"objects": "DockerCluster",
+						},
+						Annotations: map[string]string{
+							"description": "Gets set at DockerCluster.Spec.Template.Spec.LoadBalancer.ImageRepository",
+						},
+					},
 				},
 			},
 			Metadata: clusterv1.ClusterClassVariableMetadata{

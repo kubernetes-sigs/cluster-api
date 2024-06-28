@@ -1021,7 +1021,7 @@ metadata:
 					return false
 				}
 			}
-			return true
+			return len(binding.Spec.Bindings) != 0
 		}, timeout).Should(BeTrue())
 	})
 

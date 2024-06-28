@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -45,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/conversion"
@@ -245,15 +247,13 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 				continue
 			}
 			if resp.Variables != nil {
-				uniqueNamesForPatch := sets.Set[string]{}
-				for _, variable := range resp.Variables {
-					// Ensure a patch doesn't define multiple variables with the same name.
-					if uniqueNamesForPatch.Has(variable.Name) {
-						errs = append(errs, errors.Errorf("variable %q is defined multiple times in variable discovery response from patch %q", variable.Name, patch.Name))
-						continue
-					}
-					uniqueNamesForPatch.Insert(variable.Name)
+				validationErrors := variables.ValidateClusterClassVariables(ctx, nil, resp.Variables, field.NewPath(patch.Name, "variables")).ToAggregate()
+				if validationErrors != nil {
+					errs = append(errs, validationErrors)
+					continue
+				}
 
+				for _, variable := range resp.Variables {
 					// If a variable of the same name already exists in allVariableDefinitions add the new definition to the existing list.
 					if _, ok := allVariableDefinitions[variable.Name]; ok {
 						allVariableDefinitions[variable.Name] = addDefinitionToExistingStatusVariable(variable, patch.Name, allVariableDefinitions[variable.Name])

@@ -1282,6 +1282,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				Build(),
@@ -1309,6 +1310,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().WithTopology(topologyBase.DeepCopy().WithVariables(
 				clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}}).
@@ -1363,6 +1365,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 							},
 						},
 					}}...).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				WithTopology(topologyBase.DeepCopy().
@@ -1462,6 +1465,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name: "httpProxy",
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.DeepCopy().
 				Build(),
@@ -1479,6 +1483,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.
 				Build(),
@@ -1496,6 +1501,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.WithTopology(
 				builder.ClusterTopology().DeepCopy().

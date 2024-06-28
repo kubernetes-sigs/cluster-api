@@ -1757,6 +1757,9 @@ spec:
                       - template
                       type: object
                     type: array
+                    x-kubernetes-list-map-keys:
+                    - class
+                    x-kubernetes-list-type: map
                   machinePools:
                     description: |-
                       MachinePools is a list of machine pool classes that can be used to create
@@ -1971,6 +1974,9 @@ spec:
                       - template
                       type: object
                     type: array
+                    x-kubernetes-list-map-keys:
+                    - class
+                    x-kubernetes-list-type: map
                 type: object
             type: object
           status:

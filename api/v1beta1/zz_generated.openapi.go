@@ -3860,6 +3860,14 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref common.ReferenceC
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"machineDeployments": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"class",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "MachineDeployments is a list of machine deployment classes that can be used to create a set of worker nodes.",
 							Type:        []string{"array"},
@@ -3874,6 +3882,14 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref common.ReferenceC
 						},
 					},
 					"machinePools": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"class",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "MachinePools is a list of machine pool classes that can be used to create a set of worker nodes.",
 							Type:        []string{"array"},
@@ -3903,6 +3919,14 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref common.Referen
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"machineDeployments": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"name",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "MachineDeployments is a list of machine deployments in the cluster.",
 							Type:        []string{"array"},
@@ -3917,6 +3941,14 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref common.Referen
 						},
 					},
 					"machinePools": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"name",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
 						SchemaProps: spec.SchemaProps{
 							Description: "MachinePools is a list of machine pools in the cluster.",
 							Type:        []string{"array"},

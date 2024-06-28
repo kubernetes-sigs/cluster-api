@@ -391,8 +391,9 @@ func TestClusterReconcilePhases(t *testing.T) {
 						Build()
 				}
 				r := &Reconciler{
-					Client:   c,
-					recorder: record.NewFakeRecorder(32),
+					Client:                    c,
+					UnstructuredCachingClient: c,
+					recorder:                  record.NewFakeRecorder(32),
 				}
 
 				res, err := r.reconcileControlPlane(ctx, tt.cluster)

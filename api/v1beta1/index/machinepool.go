@@ -24,7 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -39,7 +39,7 @@ const (
 // ByMachinePoolNode adds the machinepool node name index to the
 // managers cache.
 func ByMachinePoolNode(ctx context.Context, mgr ctrl.Manager) error {
-	if err := mgr.GetCache().IndexField(ctx, &expv1.MachinePool{},
+	if err := mgr.GetCache().IndexField(ctx, &clusterv1.MachinePool{},
 		MachinePoolNodeNameField,
 		MachinePoolByNodeName,
 	); err != nil {
@@ -51,7 +51,7 @@ func ByMachinePoolNode(ctx context.Context, mgr ctrl.Manager) error {
 
 // MachinePoolByNodeName contains the logic to index MachinePools by Node name.
 func MachinePoolByNodeName(o client.Object) []string {
-	machinepool, ok := o.(*expv1.MachinePool)
+	machinepool, ok := o.(*clusterv1.MachinePool)
 	if !ok {
 		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
 	}
@@ -70,7 +70,7 @@ func MachinePoolByNodeName(o client.Object) []string {
 // ByMachinePoolProviderID adds the machinepool providerID index to the
 // managers cache.
 func ByMachinePoolProviderID(ctx context.Context, mgr ctrl.Manager) error {
-	if err := mgr.GetCache().IndexField(ctx, &expv1.MachinePool{},
+	if err := mgr.GetCache().IndexField(ctx, &clusterv1.MachinePool{},
 		MachinePoolProviderIDField,
 		machinePoolByProviderID,
 	); err != nil {
@@ -81,7 +81,7 @@ func ByMachinePoolProviderID(ctx context.Context, mgr ctrl.Manager) error {
 }
 
 func machinePoolByProviderID(o client.Object) []string {
-	machinepool, ok := o.(*expv1.MachinePool)
+	machinepool, ok := o.(*clusterv1.MachinePool)
 	if !ok {
 		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
 	}

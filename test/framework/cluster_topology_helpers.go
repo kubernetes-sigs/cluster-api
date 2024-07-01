@@ -28,7 +28,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -66,7 +65,7 @@ type UpgradeClusterTopologyAndWaitForUpgradeInput struct {
 	EtcdImageTag                       string
 	DNSImageTag                        string
 	MachineDeployments                 []*clusterv1.MachineDeployment
-	MachinePools                       []*expv1.MachinePool
+	MachinePools                       []*clusterv1.MachinePool
 	KubernetesUpgradeVersion           string
 	WaitForMachinesToBeUpgraded        []interface{}
 	WaitForMachinePoolToBeUpgraded     []interface{}

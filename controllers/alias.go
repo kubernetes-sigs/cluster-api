@@ -30,6 +30,7 @@ import (
 	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
 	machinedeploymentcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinedeployment"
 	machinehealthcheckcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinehealthcheck"
+	machinepoolcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinepool"
 	machinesetcontroller "sigs.k8s.io/cluster-api/internal/controllers/machineset"
 	clustertopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster"
 	machinedeploymenttopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machinedeployment"
@@ -116,6 +117,25 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 	return (&machinedeploymentcontroller.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// MachinePoolReconciler reconciles a MachinePool object.
+type MachinePoolReconciler struct {
+	Client    client.Client
+	APIReader client.Reader
+	Tracker   *remote.ClusterCacheTracker
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+}
+
+func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&machinepoolcontroller.Reconciler{
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		Tracker:          r.Tracker,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

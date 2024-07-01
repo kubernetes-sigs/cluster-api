@@ -387,7 +387,7 @@ generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
 
 .PHONY: generate-go-deepcopy-core
 generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for core
-	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./$(EXP_DIR)/api,./$(EXP_DIR)/addons/api,./$(EXP_DIR)/runtime/api,./$(EXP_DIR)/runtime/hooks/api"
+	$(MAKE) clean-generated-deepcopy SRC_DIRS="./api,./$(EXP_DIR)/api,./$(EXP_DIR)/addons/api,./$(EXP_DIR)/runtime/api,./$(EXP_DIR)/runtime/hooks/api,./internal/apis/core"
 	$(CONTROLLER_GEN) \
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./api/... \
@@ -396,6 +396,7 @@ generate-go-deepcopy-core: $(CONTROLLER_GEN) ## Generate deepcopy go code for co
 		paths=./$(EXP_DIR)/ipam/api/... \
 		paths=./$(EXP_DIR)/runtime/api/... \
 		paths=./$(EXP_DIR)/runtime/hooks/api/... \
+		paths=./internal/apis/core/... \
 		paths=./internal/runtime/test/... \
 		paths=./cmd/clusterctl/... \
 		paths=./internal/test/builder/...

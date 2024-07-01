@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinepool
 
 import (
 	"testing"
@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -46,12 +45,12 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		},
 	}
 
-	machinePoolValidCluster := &expv1.MachinePool{
+	machinePoolValidCluster := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machinePool1",
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -64,13 +63,13 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		},
 	}
 
-	machinePoolWithFinalizer := &expv1.MachinePool{
+	machinePoolWithFinalizer := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "machinePool2",
 			Namespace:  metav1.NamespaceDefault,
 			Finalizers: []string{"some-other-finalizer"},
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -86,7 +85,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 	testCases := []struct {
 		name               string
 		request            reconcile.Request
-		m                  *expv1.MachinePool
+		m                  *clusterv1.MachinePool
 		expectedFinalizers []string
 	}{
 		{
@@ -95,7 +94,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 				NamespacedName: util.ObjectKey(machinePoolValidCluster),
 			},
 			m:                  machinePoolValidCluster,
-			expectedFinalizers: []string{expv1.MachinePoolFinalizer},
+			expectedFinalizers: []string{clusterv1.MachinePoolFinalizer},
 		},
 		{
 			name: "should append the machinePool finalizer to the machinePool if it already has a finalizer",
@@ -103,7 +102,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 				NamespacedName: util.ObjectKey(machinePoolWithFinalizer),
 			},
 			m:                  machinePoolWithFinalizer,
-			expectedFinalizers: []string{"some-other-finalizer", expv1.MachinePoolFinalizer},
+			expectedFinalizers: []string{"some-other-finalizer", clusterv1.MachinePoolFinalizer},
 		},
 	}
 
@@ -111,7 +110,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			mr := &MachinePoolReconciler{
+			mr := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(
 					clusterCorrectMeta,
 					machinePoolValidCluster,
@@ -122,7 +121,7 @@ func TestMachinePoolFinalizer(t *testing.T) {
 			_, _ = mr.Reconcile(ctx, tc.request)
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
-			var actual expv1.MachinePool
+			var actual clusterv1.MachinePool
 			if len(tc.expectedFinalizers) > 0 {
 				g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 				g.Expect(actual.Finalizers).ToNot(BeEmpty())
@@ -141,23 +140,23 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 
-	machinePoolInvalidCluster := &expv1.MachinePool{
+	machinePoolInvalidCluster := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machinePool1",
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Replicas:    ptr.To[int32](1),
 			ClusterName: "invalid",
 		},
 	}
 
-	machinePoolValidCluster := &expv1.MachinePool{
+	machinePoolValidCluster := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machinePool2",
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -170,7 +169,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 		},
 	}
 
-	machinePoolValidMachinePool := &expv1.MachinePool{
+	machinePoolValidMachinePool := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machinePool3",
 			Namespace: metav1.NamespaceDefault,
@@ -178,7 +177,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Replicas: ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
@@ -194,7 +193,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 	testCases := []struct {
 		name       string
 		request    reconcile.Request
-		m          *expv1.MachinePool
+		m          *clusterv1.MachinePool
 		expectedOR []metav1.OwnerReference
 	}{
 		{
@@ -223,21 +222,21 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				machinePoolInvalidCluster,
 				machinePoolValidCluster,
 				machinePoolValidMachinePool,
-			).WithStatusSubresource(&expv1.MachinePool{}).Build()
-			mr := &MachinePoolReconciler{
+			).WithStatusSubresource(&clusterv1.MachinePool{}).Build()
+			mr := &Reconciler{
 				Client:    fakeClient,
 				APIReader: fakeClient,
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
-			var actual expv1.MachinePool
+			var actual clusterv1.MachinePool
 
 			// this first requeue is to add finalizer
 			result, err := mr.Reconcile(ctx, tc.request)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result).To(BeComparableTo(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
-			g.Expect(actual.Finalizers).To(ContainElement(expv1.MachinePoolFinalizer))
+			g.Expect(actual.Finalizers).To(ContainElement(clusterv1.MachinePoolFinalizer))
 
 			_, _ = mr.Reconcile(ctx, tc.request)
 
@@ -300,17 +299,17 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 		err    bool
 	}
 	testCases := []struct {
-		machinePool expv1.MachinePool
+		machinePool clusterv1.MachinePool
 		expected    expected
 	}{
 		{
-			machinePool: expv1.MachinePool{
+			machinePool: clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "created",
 					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{expv1.MachinePoolFinalizer},
+					Finalizers: []string{clusterv1.MachinePoolFinalizer},
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
 					ProviderIDList: []string{"test://id-1"},
 					Replicas:       ptr.To[int32](1),
@@ -326,7 +325,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						},
 					},
 				},
-				Status: expv1.MachinePoolStatus{
+				Status: clusterv1.MachinePoolStatus{
 					Replicas:      1,
 					ReadyReplicas: 1,
 					NodeRefs: []corev1.ObjectReference{
@@ -341,13 +340,13 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 		},
 		{
-			machinePool: expv1.MachinePool{
+			machinePool: clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       "updated",
 					Namespace:  metav1.NamespaceDefault,
-					Finalizers: []string{expv1.MachinePoolFinalizer},
+					Finalizers: []string{clusterv1.MachinePoolFinalizer},
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName:    "test-cluster",
 					ProviderIDList: []string{"test://id-1"},
 					Replicas:       ptr.To[int32](1),
@@ -362,7 +361,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						},
 					},
 				},
-				Status: expv1.MachinePoolStatus{
+				Status: clusterv1.MachinePoolStatus{
 					Replicas:      1,
 					ReadyReplicas: 1,
 					NodeRefs: []corev1.ObjectReference{
@@ -377,17 +376,17 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			},
 		},
 		{
-			machinePool: expv1.MachinePool{
+			machinePool: clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "deleted",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
 						clusterv1.MachineControlPlaneLabel: "",
 					},
-					Finalizers:        []string{expv1.MachinePoolFinalizer},
+					Finalizers:        []string{clusterv1.MachinePoolFinalizer},
 					DeletionTimestamp: &time,
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: "test-cluster",
 					Replicas:    ptr.To[int32](1),
 					Template: clusterv1.MachineTemplateSpec{
@@ -421,9 +420,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				bootstrapConfig,
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachineTemplateCRD,
-			).WithStatusSubresource(&expv1.MachinePool{}).Build()
+			).WithStatusSubresource(&clusterv1.MachinePool{}).Build()
 
-			r := &MachinePoolReconciler{
+			r := &Reconciler{
 				Client:    clientFake,
 				APIReader: clientFake,
 			}
@@ -467,12 +466,12 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 		},
 	}
 
-	machinePool := &expv1.MachinePool{
+	machinePool := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "delete",
 			Namespace: metav1.NamespaceDefault,
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
@@ -544,7 +543,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 				objs = append(objs, infraConfig)
 			}
 
-			r := &MachinePoolReconciler{
+			r := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
@@ -568,14 +567,14 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
 
-	m := &expv1.MachinePool{
+	m := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "delete123",
 			Namespace:         metav1.NamespaceDefault,
-			Finalizers:        []string{expv1.MachinePoolFinalizer, "test"},
+			Finalizers:        []string{clusterv1.MachinePoolFinalizer, "test"},
 			DeletionTimestamp: &dt,
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](1),
 			Template: clusterv1.MachineTemplateSpec{
@@ -591,13 +590,13 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
-	mr := &MachinePoolReconciler{
-		Client: fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build(),
+	mr := &Reconciler{
+		Client: fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&clusterv1.MachinePool{}).Build(),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
 
-	var actual expv1.MachinePool
+	var actual clusterv1.MachinePool
 	g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 	g.Expect(actual.ObjectMeta.Finalizers).To(Equal([]string{"test"}))
 }
@@ -646,13 +645,13 @@ func TestMachinePoolConditions(t *testing.T) {
 		}
 	}
 
-	machinePool := &expv1.MachinePool{
+	machinePool := &clusterv1.MachinePool{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "blah",
 			Namespace:  metav1.NamespaceDefault,
-			Finalizers: []string{expv1.MachinePoolFinalizer},
+			Finalizers: []string{clusterv1.MachinePoolFinalizer},
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: "test-cluster",
 			Replicas:    ptr.To[int32](2),
 			Template: clusterv1.MachineTemplateSpec{
@@ -702,16 +701,16 @@ func TestMachinePoolConditions(t *testing.T) {
 		bootstrapReady      bool
 		infrastructureReady bool
 		expectError         bool
-		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, mp *expv1.MachinePool, nodeList *corev1.NodeList)
+		beforeFunc          func(bootstrap, infra *unstructured.Unstructured, mp *clusterv1.MachinePool, nodeList *corev1.NodeList)
 		conditionAssertFunc func(t *testing.T, getter conditions.Getter)
 	}{
 		{
 			name:                "all conditions true",
 			bootstrapReady:      true,
 			infrastructureReady: true,
-			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *clusterv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
-				mp.Status = expv1.MachinePoolStatus{
+				mp.Status = clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "node-1"},
 						{Name: "azure-node-4"},
@@ -734,7 +733,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "boostrap not ready",
 			bootstrapReady:      false,
 			infrastructureReady: true,
-			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
+			beforeFunc: func(bootstrap, _ *unstructured.Unstructured, _ *clusterv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(bootstrap, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -775,7 +774,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:                "infrastructure not ready",
 			bootstrapReady:      true,
 			infrastructureReady: false,
-			beforeFunc: func(_, infra *unstructured.Unstructured, _ *expv1.MachinePool, _ *corev1.NodeList) {
+			beforeFunc: func(_, infra *unstructured.Unstructured, _ *clusterv1.MachinePool, _ *corev1.NodeList) {
 				addConditionsToExternal(infra, clusterv1.Conditions{
 					{
 						Type:     clusterv1.ReadyCondition,
@@ -817,7 +816,7 @@ func TestMachinePoolConditions(t *testing.T) {
 			name:           "incorrect infrastructure reference",
 			bootstrapReady: true,
 			expectError:    true,
-			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
+			beforeFunc: func(_, _ *unstructured.Unstructured, mp *clusterv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
 					APIVersion: builder.InfrastructureGroupVersion.String(),
 					Kind:       builder.TestInfrastructureMachineTemplateKind,
@@ -859,9 +858,9 @@ func TestMachinePoolConditions(t *testing.T) {
 				&nodes.Items[1],
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachineTemplateCRD,
-			).WithStatusSubresource(&expv1.MachinePool{}).Build()
+			).WithStatusSubresource(&clusterv1.MachinePool{}).Build()
 
-			r := &MachinePoolReconciler{
+			r := &Reconciler{
 				Client:    clientFake,
 				APIReader: clientFake,
 			}
@@ -871,7 +870,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 
-			m := &expv1.MachinePool{}
+			m := &clusterv1.MachinePool{}
 			machinePoolKey := client.ObjectKeyFromObject(machinePool)
 			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).ToNot(HaveOccurred())
 

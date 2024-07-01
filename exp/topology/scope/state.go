@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 )
 
@@ -125,7 +124,7 @@ func (mps MachinePoolsStateMap) Upgrading(ctx context.Context, c client.Reader) 
 // MachinePoolState holds all the objects representing the state of a managed pool.
 type MachinePoolState struct {
 	// Object holds the MachinePool object.
-	Object *expv1.MachinePool
+	Object *clusterv1.MachinePool
 
 	// BootstrapObject holds the MachinePool bootstrap object.
 	BootstrapObject *unstructured.Unstructured

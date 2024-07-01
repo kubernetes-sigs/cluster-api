@@ -480,7 +480,7 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 		bootstrapConfig = NewBootstrapConfigTemplate(machinePoolBootstrap)
 	}
 
-	machinePool := &expv1.MachinePool{
+	machinePool := &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
 			APIVersion: expv1.GroupVersion.String(),
@@ -500,7 +500,7 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 				clusterv1.ClusterNameLabel: cluster.Name, // Added by the machinePool controller (mirrors machinePoolt.spec.ClusterName) -- RECONCILED
 			},
 		},
-		Spec: expv1.MachinePoolSpec{
+		Spec: clusterv1.MachinePoolSpec{
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					InfrastructureRef: corev1.ObjectReference{
@@ -883,7 +883,7 @@ func (f *FakeMachine) WithStaticBootstrapConfig() *FakeMachine {
 	return f
 }
 
-func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, machinePool *expv1.MachinePool, controlPlane *fakecontrolplane.GenericControlPlane) []client.Object {
+func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, machinePool *clusterv1.MachinePool, controlPlane *fakecontrolplane.GenericControlPlane) []client.Object {
 	machineInfrastructure := &fakeinfrastructure.GenericInfrastructureMachine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: fakeinfrastructure.GroupVersion.String(),

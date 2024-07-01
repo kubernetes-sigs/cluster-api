@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package v1alpha4
 
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -39,11 +38,10 @@ type MachinePoolSpec struct {
 
 	// Number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
-	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Template describes the machines that will be created.
-	Template clusterv1.MachineTemplateSpec `json:"template"`
+	Template MachineTemplateSpec `json:"template"`
 
 	// Minimum number of seconds for which a newly created machine instances should
 	// be ready.
@@ -58,7 +56,6 @@ type MachinePoolSpec struct {
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 
 	// FailureDomains is the list of failure domains this MachinePool should be attached to.
-	// +optional
 	FailureDomains []string `json:"failureDomains,omitempty"`
 }
 
@@ -121,7 +118,7 @@ type MachinePoolStatus struct {
 
 	// Conditions define the current service state of the MachinePool.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolStatus
@@ -163,11 +160,6 @@ const (
 	// MachinePool infrastructure is scaling down.
 	MachinePoolPhaseScalingDown = MachinePoolPhase("ScalingDown")
 
-	// MachinePoolPhaseScaling is the MachinePool state when the
-	// MachinePool infrastructure is scaling.
-	// This phase value is appropriate to indicate an active state of scaling by an external autoscaler.
-	MachinePoolPhaseScaling = MachinePoolPhase("Scaling")
-
 	// MachinePoolPhaseDeleting is the MachinePool state when a delete
 	// request has been sent to the API Server,
 	// but its infrastructure has not yet been fully deleted.
@@ -197,7 +189,6 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 		MachinePoolPhaseRunning,
 		MachinePoolPhaseScalingUp,
 		MachinePoolPhaseScalingDown,
-		MachinePoolPhaseScaling,
 		MachinePoolPhaseDeleting,
 		MachinePoolPhaseFailed:
 		return phase
@@ -207,19 +198,20 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=machinepools,shortName=mp,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:subresource:scale:specpath=.spec.replicas,statuspath=.status.replicas
-// +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterName",description="Cluster"
-// +kubebuilder:printcolumn:name="Desired",type=integer,JSONPath=".spec.replicas",description="Total number of machines desired by this MachinePool",priority=10
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of MachinePool"
 // +kubebuilder:printcolumn:name="Replicas",type="string",JSONPath=".status.replicas",description="MachinePool replicas count"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="MachinePool status such as Terminating/Pending/Provisioning/Running/Failed etc"
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of MachinePool"
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachinePool"
 // +k8s:conversion-gen=false
 
 // MachinePool is the Schema for the machinepools API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type MachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -229,18 +221,20 @@ type MachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m *MachinePool) GetConditions() clusterv1.Conditions {
+func (m *MachinePool) GetConditions() Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *MachinePool) SetConditions(conditions clusterv1.Conditions) {
+func (m *MachinePool) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true
 
 // MachinePoolList contains a list of MachinePool.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type MachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -62,6 +62,12 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:   &clusterv1.MachineHealthCheck{},
 		Spoke: &MachineHealthCheck{},
 	}))
+
+	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Hub:         &clusterv1.MachinePool{},
+		Spoke:       &MachinePool{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+	}))
 }
 
 func MachineStatusFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

@@ -90,7 +90,7 @@ func TestGetConfigOwner(t *testing.T) {
 			_ = feature.MutableGates.Set("MachinePool=true")
 
 			g := NewWithT(t)
-			myPool := &expv1.MachinePool{
+			myPool := &clusterv1.MachinePool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "my-machine-pool",
 					Namespace: metav1.NamespaceDefault,
@@ -98,7 +98,7 @@ func TestGetConfigOwner(t *testing.T) {
 						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName: "my-cluster",
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
@@ -106,7 +106,7 @@ func TestGetConfigOwner(t *testing.T) {
 						},
 					},
 				},
-				Status: expv1.MachinePoolStatus{
+				Status: clusterv1.MachinePoolStatus{
 					InfrastructureReady: true,
 				},
 			}
@@ -235,7 +235,7 @@ func TestHasNodeRefs(t *testing.T) {
 	})
 	t.Run("should return false if nodes are missing from MachinePool", func(t *testing.T) {
 		g := NewWithT(t)
-		machinePools := []expv1.MachinePool{
+		machinePools := []clusterv1.MachinePool{
 			{
 				// No replicas specified (default is 1). No nodeRefs either.
 				TypeMeta: metav1.TypeMeta{
@@ -257,7 +257,7 @@ func TestHasNodeRefs(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](1),
 				},
 			},
@@ -271,10 +271,10 @@ func TestHasNodeRefs(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](2),
 				},
-				Status: expv1.MachinePoolStatus{
+				Status: clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{
 							Kind:      "Node",
@@ -301,7 +301,7 @@ func TestHasNodeRefs(t *testing.T) {
 	})
 	t.Run("should return true if MachinePool has nodeRefs for all replicas", func(t *testing.T) {
 		g := NewWithT(t)
-		machinePools := []expv1.MachinePool{
+		machinePools := []clusterv1.MachinePool{
 			{
 				// 1 replica (default) and 1 nodeRef
 				TypeMeta: metav1.TypeMeta{
@@ -312,7 +312,7 @@ func TestHasNodeRefs(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
-				Status: expv1.MachinePoolStatus{
+				Status: clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{
 							Kind:      "Node",
@@ -332,10 +332,10 @@ func TestHasNodeRefs(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](2),
 				},
-				Status: expv1.MachinePoolStatus{
+				Status: clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{
 							Kind:      "Node",
@@ -360,7 +360,7 @@ func TestHasNodeRefs(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 					Name:      "machine-pool-name",
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					Replicas: ptr.To[int32](0),
 				},
 			},

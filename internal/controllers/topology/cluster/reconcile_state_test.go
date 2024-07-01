@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -2639,7 +2638,7 @@ func TestReconcileMachinePools(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 
-			var gotMachinePoolList expv1.MachinePoolList
+			var gotMachinePoolList clusterv1.MachinePoolList
 			g.Expect(env.GetAPIReader().List(ctx, &gotMachinePoolList, &client.ListOptions{Namespace: namespace.GetName()})).To(Succeed())
 			g.Expect(gotMachinePoolList.Items).To(HaveLen(len(tt.want)))
 

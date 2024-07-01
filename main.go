@@ -54,14 +54,12 @@ import (
 	addonscontrollers "sigs.k8s.io/cluster-api/exp/addons/controllers"
 	addonswebhooks "sigs.k8s.io/cluster-api/exp/addons/webhooks"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1beta1"
 	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	expwebhooks "sigs.k8s.io/cluster-api/exp/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	addonsv1alpha3 "sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha3"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/internal/apis/core/exp/addons/v1alpha4"
@@ -557,7 +555,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&expcontrollers.MachinePoolReconciler{
+		if err := (&controllers.MachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			Tracker:          tracker,
@@ -630,8 +628,8 @@ func setupWebhooks(mgr ctrl.Manager, tracker webhooks.ClusterCacheTrackerReader)
 
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
-	if err := (&expwebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "Unable to create webhook", "webhook", "MachinePool")
+	if err := (&webhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
 		os.Exit(1)
 	}
 

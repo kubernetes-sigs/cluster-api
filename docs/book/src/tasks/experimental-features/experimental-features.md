@@ -21,9 +21,8 @@ EXP_SOME_FEATURE_NAME: "true"
 In case a variable is defined in both the config file and as an OS environment variable, the environment variable takes precedence.
 For more information on how to set variables for clusterctl, see [clusterctl Configuration File](../../clusterctl/configuration.md)
 
-Some features like `MachinePools` may require infrastructure providers to implement a separate CRD that handles the infrastructure side of the feature too.
+Some features may require infrastructure providers to implement a separate CRD that handles the infrastructure side of the feature too.
 For such a feature to work, infrastructure providers should also enable their controllers if it is implemented as a feature. If it is not implemented as a feature, no additional step is necessary.
-As an example, Cluster API Provider Azure (CAPZ) has support for MachinePool through the infrastructure type `AzureMachinePool`.
 
 ## Enabling Experimental Features for e2e Tests
 
@@ -63,7 +62,7 @@ kubectl edit -n capi-system deployment.apps/capi-controller-manager
 // Enable/disable available features by modifying Args below.
     Args:
       --leader-elect
-      --feature-gates=MachinePool=true,ClusterResourceSet=true
+      --feature-gates=ClusterResourceSet=true
 ```
 
 Similarly, to **validate** if a particular feature is enabled, see the arguments by issuing:
@@ -74,20 +73,14 @@ kubectl describe -n capi-system deployment.apps/capi-controller-manager
 
 Following controller manager deployments have to be edited in order to enable/disable their respective experimental features:
 
-* [MachinePools](./machine-pools.md):
-  * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
-  * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
-  * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
-    might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
-    regarding this.
 * [ClusterResourceSet](./cluster-resource-set.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
 * [ClusterClass](./cluster-class/index.md):
   * [CAPI](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#capi).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
-  * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd). Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
-    might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure)
-    regarding this.
+  * [CAPD](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#capd).
+  * Other [Infrastructure Providers](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Providers#infrastructure-provider)
+    might also require this. Please consult the docs of the concrete [Infrastructure Provider](https://cluster-api.sigs.k8s.io/reference/providers#infrastructure).
 * [Ignition Bootstrap configuration](./ignition.md):
   * [CABPK](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#cabpk).
   * [KCP](https://cluster-api.sigs.k8s.io/reference/glossary.html?highlight=Gloss#kcp).
@@ -96,7 +89,6 @@ Following controller manager deployments have to be edited in order to enable/di
 
 ## Active Experimental Features
 
-* [MachinePools](./machine-pools.md)
 * [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)

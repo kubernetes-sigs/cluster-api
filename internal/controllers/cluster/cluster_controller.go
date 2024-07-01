@@ -41,7 +41,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util"
@@ -349,7 +348,7 @@ type clusterDescendants struct {
 	machineSets          clusterv1.MachineSetList
 	controlPlaneMachines clusterv1.MachineList
 	workerMachines       clusterv1.MachineList
-	machinePools         expv1.MachinePoolList
+	machinePools         clusterv1.MachinePoolList
 }
 
 // length returns the number of descendants.

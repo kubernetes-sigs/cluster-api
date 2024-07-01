@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -124,7 +123,7 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		mp      *expv1.MachinePool
+		mp      *clusterv1.MachinePool
 		nodes   []*corev1.Node
 		want    bool
 		wantErr bool
@@ -134,7 +133,7 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 			mp: builder.MachinePool("ns", "mp1").
 				WithClusterName("cluster1").
 				WithVersion("v1.2.3").
-				WithStatus(expv1.MachinePoolStatus{
+				WithStatus(clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "node1"},
 						{Name: "node2"},
@@ -162,7 +161,7 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 			mp: builder.MachinePool("ns", "mp1").
 				WithClusterName("cluster1").
 				WithVersion("v1.2.3").
-				WithStatus(expv1.MachinePoolStatus{
+				WithStatus(clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{
 						{Name: "node1"},
 						{Name: "node2"},
@@ -190,7 +189,7 @@ func TestIsMachinePoolUpgrading(t *testing.T) {
 			mp: builder.MachinePool("ns", "mp1").
 				WithClusterName("cluster1").
 				WithVersion("v1.2.3").
-				WithStatus(expv1.MachinePoolStatus{
+				WithStatus(clusterv1.MachinePoolStatus{
 					NodeRefs: []corev1.ObjectReference{}}).
 				Build(),
 			nodes:   []*corev1.Node{},

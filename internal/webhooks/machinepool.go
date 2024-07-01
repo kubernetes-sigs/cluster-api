@@ -33,7 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -44,7 +43,7 @@ func (webhook *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&expv1.MachinePool{}).
+		For(&clusterv1.MachinePool{}).
 		WithDefaulter(webhook).
 		WithValidator(webhook).
 		Complete()
@@ -63,7 +62,7 @@ var _ webhook.CustomDefaulter = &MachinePool{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) error {
-	m, ok := obj.(*expv1.MachinePool)
+	m, ok := obj.(*clusterv1.MachinePool)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", obj))
 	}
@@ -76,9 +75,9 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 	if req.DryRun != nil {
 		dryRun = *req.DryRun
 	}
-	var oldMP *expv1.MachinePool
+	var oldMP *clusterv1.MachinePool
 	if req.Operation == v1.Update {
-		oldMP = &expv1.MachinePool{}
+		oldMP = &clusterv1.MachinePool{}
 		if err := webhook.decoder.DecodeRaw(req.OldObject, oldMP); err != nil {
 			return errors.Wrapf(err, "failed to decode oldObject to MachinePool")
 		}
@@ -118,7 +117,7 @@ func (webhook *MachinePool) Default(ctx context.Context, obj runtime.Object) err
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *MachinePool) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	mp, ok := obj.(*expv1.MachinePool)
+	mp, ok := obj.(*clusterv1.MachinePool)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", obj))
 	}
@@ -128,11 +127,11 @@ func (webhook *MachinePool) ValidateCreate(_ context.Context, obj runtime.Object
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *MachinePool) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldMP, ok := oldObj.(*expv1.MachinePool)
+	oldMP, ok := oldObj.(*clusterv1.MachinePool)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", oldObj))
 	}
-	newMP, ok := newObj.(*expv1.MachinePool)
+	newMP, ok := newObj.(*clusterv1.MachinePool)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", newObj))
 	}
@@ -141,7 +140,7 @@ func (webhook *MachinePool) ValidateUpdate(_ context.Context, oldObj, newObj run
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *MachinePool) ValidateDelete(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	mp, ok := obj.(*expv1.MachinePool)
+	mp, ok := obj.(*clusterv1.MachinePool)
 	if !ok {
 		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", obj))
 	}
@@ -149,7 +148,7 @@ func (webhook *MachinePool) ValidateDelete(_ context.Context, obj runtime.Object
 	return nil, webhook.validate(nil, mp)
 }
 
-func (webhook *MachinePool) validate(oldObj, newObj *expv1.MachinePool) error {
+func (webhook *MachinePool) validate(oldObj, newObj *clusterv1.MachinePool) error {
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
 	// must prevent creating newObj objects when the feature flag is disabled.
 	specPath := field.NewPath("spec")
@@ -216,7 +215,7 @@ func (webhook *MachinePool) validate(oldObj, newObj *expv1.MachinePool) error {
 	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("MachinePool").GroupKind(), newObj.Name, allErrs)
 }
 
-func calculateMachinePoolReplicas(ctx context.Context, oldMP *expv1.MachinePool, newMP *expv1.MachinePool, dryRun bool) (int32, error) {
+func calculateMachinePoolReplicas(ctx context.Context, oldMP *clusterv1.MachinePool, newMP *clusterv1.MachinePool, dryRun bool) (int32, error) {
 	// If replicas is already set => Keep the current value.
 	if newMP.Spec.Replicas != nil {
 		return *newMP.Spec.Replicas, nil

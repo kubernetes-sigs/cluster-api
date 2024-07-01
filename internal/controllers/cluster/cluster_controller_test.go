@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
@@ -619,7 +618,7 @@ func (b *machineBuilder) build() clusterv1.Machine {
 }
 
 type machinePoolBuilder struct {
-	mp expv1.MachinePool
+	mp clusterv1.MachinePool
 }
 
 func newMachinePoolBuilder() *machinePoolBuilder {
@@ -640,7 +639,7 @@ func (b *machinePoolBuilder) ownedBy(c *clusterv1.Cluster) *machinePoolBuilder {
 	return b
 }
 
-func (b *machinePoolBuilder) build() expv1.MachinePool {
+func (b *machinePoolBuilder) build() clusterv1.MachinePool {
 	return b.mp
 }
 
@@ -711,8 +710,8 @@ func TestFilterOwnedDescendants(t *testing.T) {
 				m5OwnedByCluster,
 			},
 		},
-		machinePools: expv1.MachinePoolList{
-			Items: []expv1.MachinePool{
+		machinePools: clusterv1.MachinePoolList{
+			Items: []clusterv1.MachinePool{
 				mp1NotOwnedByCluster,
 				mp2OwnedByCluster,
 				mp3NotOwnedByCluster,
@@ -770,8 +769,8 @@ func TestDescendantsLength(t *testing.T) {
 				newMachineBuilder().named("m6").build(),
 			},
 		},
-		machinePools: expv1.MachinePoolList{
-			Items: []expv1.MachinePool{
+		machinePools: clusterv1.MachinePoolList{
+			Items: []clusterv1.MachinePool{
 				newMachinePoolBuilder().named("mp1").build(),
 				newMachinePoolBuilder().named("mp2").build(),
 				newMachinePoolBuilder().named("mp3").build(),

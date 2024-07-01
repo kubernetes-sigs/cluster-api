@@ -334,6 +334,44 @@ func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1beta1_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(src, dst, nil)
 }
 
+func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.MachinePool)
+
+	if err := Convert_v1alpha4_MachinePool_To_v1beta1_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &clusterv1.MachinePool{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
+	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
+	return nil
+}
+
+func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.MachinePool)
+
+	if err := Convert_v1beta1_MachinePool_To_v1alpha4_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+	return utilconversion.MarshalData(src, dst)
+}
+
+func (src *MachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*clusterv1.MachinePoolList)
+
+	return Convert_v1alpha4_MachinePoolList_To_v1beta1_MachinePoolList(src, dst, nil)
+}
+
+func (dst *MachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*clusterv1.MachinePoolList)
+
+	return Convert_v1beta1_MachinePoolList_To_v1alpha4_MachinePoolList(src, dst, nil)
+}
+
 func Convert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha4_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
@@ -405,4 +443,12 @@ func Convert_v1beta1_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStra
 
 func Convert_v1beta1_MachineSetSpec_To_v1alpha4_MachineSetSpec(in *clusterv1.MachineSetSpec, out *MachineSetSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_MachineSetSpec_To_v1alpha4_MachineSetSpec(in, out, s)
+}
+
+func Convert_v1alpha4_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(in *MachineTemplateSpec, out *clusterv1.MachineTemplateSpec, s apiconversion.Scope) error {
+	return autoConvert_v1alpha4_MachineTemplateSpec_To_v1beta1_MachineTemplateSpec(in, out, s)
+}
+
+func Convert_v1beta1_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(in *clusterv1.MachineTemplateSpec, out *MachineTemplateSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineTemplateSpec_To_v1alpha4_MachineTemplateSpec(in, out, s)
 }

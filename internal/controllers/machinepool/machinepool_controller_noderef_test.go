@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinepool
 
 import (
 	"testing"
@@ -28,11 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 func TestMachinePoolGetNodeReference(t *testing.T) {
-	r := &MachinePoolReconciler{
+	r := &Reconciler{
 		Client:   fake.NewClientBuilder().Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
@@ -310,7 +309,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 }
 
 func TestMachinePoolPatchNodes(t *testing.T) {
-	r := &MachinePoolReconciler{
+	r := &Reconciler{
 		Client:   fake.NewClientBuilder().Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
@@ -388,14 +387,14 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 
 	testCases := []struct {
 		name          string
-		machinePool   *expv1.MachinePool
+		machinePool   *clusterv1.MachinePool
 		nodeRefs      []corev1.ObjectReference
 		expectedNodes []corev1.Node
 		err           error
 	}{
 		{
 			name: "Node with uninitialized taint should be patched",
-			machinePool: &expv1.MachinePool{
+			machinePool: &clusterv1.MachinePool{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "MachinePool",
 				},
@@ -403,7 +402,7 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 					Name:      "machinepool-1",
 					Namespace: "my-namespace",
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName:    "cluster-1",
 					ProviderIDList: []string{"aws://us-east-1/id-node-1"},
 				},
@@ -430,7 +429,7 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 		},
 		{
 			name: "Node with existing annotations and taints should be patched",
-			machinePool: &expv1.MachinePool{
+			machinePool: &clusterv1.MachinePool{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "MachinePool",
 				},
@@ -438,7 +437,7 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 					Name:      "machinepool-2",
 					Namespace: "my-namespace",
 				},
-				Spec: expv1.MachinePoolSpec{
+				Spec: clusterv1.MachinePoolSpec{
 					ClusterName:    "cluster-1",
 					ProviderIDList: []string{"aws://us-west-2/id-node-2"},
 				},

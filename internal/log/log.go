@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // LoggerFrom returns a logger with predefined values from a context.Context.
@@ -62,7 +61,7 @@ type Logger interface {
 	WithMachineDeployment(md *clusterv1.MachineDeployment) Logger
 
 	// WithMachinePool adds to the logger information about the MachinePool object being processed.
-	WithMachinePool(mp *expv1.MachinePool) Logger
+	WithMachinePool(mp *clusterv1.MachinePool) Logger
 
 	// WithValues adds key-value pairs of context to a logger.
 	WithValues(keysAndValues ...interface{}) Logger
@@ -128,7 +127,7 @@ func (l *topologyReconcileLogger) WithMachineDeployment(md *clusterv1.MachineDep
 }
 
 // WithMachinePool adds to the logger information about the MachinePool object being processed.
-func (l *topologyReconcileLogger) WithMachinePool(mp *expv1.MachinePool) Logger {
+func (l *topologyReconcileLogger) WithMachinePool(mp *clusterv1.MachinePool) Logger {
 	topologyName := mp.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
 	return &topologyReconcileLogger{
 		Logger: l.Logger.WithValues(

@@ -22,6 +22,8 @@ func (*ClusterClass) Hub()           {}
 func (*ClusterClassList) Hub()       {}
 func (*Machine) Hub()                {}
 func (*MachineList) Hub()            {}
+func (*MachinePool) Hub()            {}
+func (*MachinePoolList) Hub()        {}
 func (*MachineSet) Hub()             {}
 func (*MachineSetList) Hub()         {}
 func (*MachineDeployment) Hub()      {}

@@ -138,7 +138,7 @@ This is a place for defining errors returned by CAPI. Error types defined here c
 
 [~/exp](https://github.com/kubernetes-sigs/cluster-api/tree/main/exp)
 
-This folder contains experimental features of CAPI. Experimental features are unreliable until they are promoted to the main repository. Each experimental feature is supposed to be present in a subfolder of [~/exp](https://github.com/kubernetes-sigs/cluster-api/tree/main/exp) folder e.g. ClusterResourceSet is present inside [~/exp/addons](https://github.com/kubernetes-sigs/cluster-api/tree/main/exp/addons) folder. Historically, machine pool resources are not present in a sub-directory. Migrating them to a subfolder like `~/exp/machinepools` is still pending as it can potentially break existing users who are relying on existing folder structure.
+This folder contains experimental features of CAPI. Experimental features are unreliable until they are promoted to the main repository. Each experimental feature is supposed to be present in a subfolder of [~/exp](https://github.com/kubernetes-sigs/cluster-api/tree/main/exp) folder e.g. ClusterResourceSet is present inside [~/exp/addons](https://github.com/kubernetes-sigs/cluster-api/tree/main/exp/addons) folder.
 
 CRDs for experimental features are present outside [~/exp](https://github.com/kubernetes-sigs/cluster-api/tree/main/exp) directory in [~/config](https://github.com/kubernetes-sigs/cluster-api/tree/main/config) folder. Also, these CRDs are deployed in the cluster irrespective of the feature gate value. These features can be enabled and disabled using feature gates supplied to the core Cluster API controller.
 

@@ -34,7 +34,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -539,7 +538,7 @@ func modifyMachinePoolViaClusterClassAndWait(ctx context.Context, input modifyMa
 			log.Logf("Waiting for MachinePool rollout for MachinePoolTopology %q (class %q) to complete.", mpTopology.Name, mpTopology.Class)
 			Eventually(func(g Gomega) error {
 				// Get MachinePool for the current MachinePoolTopology.
-				mpList := &expv1.MachinePoolList{}
+				mpList := &clusterv1.MachinePoolList{}
 				g.Expect(mgmtClient.List(ctx, mpList, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels{
 					clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
 				})).To(Succeed())
@@ -626,7 +625,7 @@ func assertMachineDeploymentTopologyFields(g Gomega, md clusterv1.MachineDeploym
 // assertMachinePoolTopologyFields asserts that all fields set in the MachinePoolTopology have been set on the MachinePool.
 // Note: We intentionally focus on the fields set in the MachinePoolTopology and ignore the ones set through ClusterClass
 // as we want to validate that the fields of the MachinePoolTopology have been propagated correctly.
-func assertMachinePoolTopologyFields(g Gomega, mp expv1.MachinePool, mpTopology clusterv1.MachinePoolTopology) {
+func assertMachinePoolTopologyFields(g Gomega, mp clusterv1.MachinePool, mpTopology clusterv1.MachinePoolTopology) {
 	// Note: We only verify that all labels and annotations from the Cluster topology exist to keep it simple here.
 	// This is fully covered by the ClusterClass rollout test.
 	for k, v := range mpTopology.Metadata.Labels {

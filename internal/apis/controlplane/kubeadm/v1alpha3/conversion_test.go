@@ -53,6 +53,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
 		kubeadmClusterConfigurationFuzzer,
+		bootstrapv1JoinConfigurationFuzzer,
 	}
 }
 
@@ -77,4 +78,13 @@ func kubeadmClusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.UseHyperKubeImage = false
+}
+
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// JoinConfiguration.Discovery.File.KubeConfig is internal to Cluster API and does not exist in kubeadm v1beta1 types, pinning it to avoid round trip errors.
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
 }

@@ -512,6 +512,131 @@ type BootstrapTokenDiscovery struct {
 type FileDiscovery struct {
 	// KubeConfigPath is used to specify the actual file path or URL to the kubeconfig file from which to load cluster information
 	KubeConfigPath string `json:"kubeConfigPath"`
+
+	// KubeConfig is used (optionally) to generate a KubeConfig based on the KubeadmConfig's information.
+	// The file is generated at the path specified in KubeConfigPath.
+	//
+	// Host address (server field) information is automatically populated based on the Cluster's ControlPlaneEndpoint.
+	// Certificate Authority (certificate-authority-data field) is gathered from the cluster's CA secret.
+	//
+	// +optional
+	KubeConfig *FileDiscoveryKubeConfig `json:"kubeConfig,omitempty"`
+}
+
+// FileDiscoveryKubeConfig contains elements describing how to generate the kubeconfig for bootstrapping.
+type FileDiscoveryKubeConfig struct {
+	// Cluster contains information about how to communicate with the kubernetes cluster.
+	//
+	// By default the following fields are automatically populated:
+	// - Server with the Cluster's ControlPlaneEndpoint.
+	// - CertificateAuthorityData with the Cluster's CA certificate.
+	// +optional
+	Cluster *KubeConfigCluster `json:"cluster,omitempty"`
+
+	// User contains information that describes identity information.
+	// This is used to tell the kubernetes cluster who you are.
+	User KubeConfigUser `json:"user"`
+}
+
+// KubeConfigCluster contains information about how to communicate with a kubernetes cluster.
+//
+// Adapted from clientcmdv1.Cluster.
+type KubeConfigCluster struct {
+	// Server is the address of the kubernetes cluster (https://hostname:port).
+	Server string `json:"server"`
+	// TLSServerName is used to check server certificate. If TLSServerName is empty, the hostname used to contact the server is used.
+	// +optional
+	TLSServerName string `json:"tls-server-name,omitempty"`
+	// InsecureSkipTLSVerify skips the validity check for the server's certificate. This will make your HTTPS connections insecure.
+	// +optional
+	InsecureSkipTLSVerify bool `json:"insecure-skip-tls-verify,omitempty"`
+	// CertificateAuthorityData contains PEM-encoded certificate authority certificates. Overrides CertificateAuthority
+	// +optional
+	CertificateAuthorityData []byte `json:"certificate-authority-data,omitempty"`
+	// ProxyURL is the URL to the proxy to be used for all requests made by this
+	// client. URLs with "http", "https", and "socks5" schemes are supported.  If
+	// this configuration is not provided or the empty string, the client
+	// attempts to construct a proxy configuration from http_proxy and
+	// https_proxy environment variables. If these environment variables are not
+	// set, the client does not attempt to proxy requests.
+	//
+	// socks5 proxying does not currently support spdy streaming endpoints (exec,
+	// attach, port forward).
+	// +optional
+	ProxyURL string `json:"proxy-url,omitempty"`
+}
+
+// KubeConfigUser contains information that describes identity information.
+// This is used to tell the kubernetes cluster who you are.
+//
+// Adapted from clientcmdv1.AuthInfo.
+type KubeConfigUser struct {
+	// AuthProvider specifies a custom authentication plugin for the kubernetes cluster.
+	// +optional
+	AuthProvider *KubeConfigAuthProvider `json:"auth-provider,omitempty"`
+	// Exec specifies a custom exec-based authentication plugin for the kubernetes cluster.
+	// +optional
+	Exec *KubeConfigAuthExec `json:"exec,omitempty"`
+}
+
+// KubeConfigAuthProvider holds the configuration for a specified auth provider.
+type KubeConfigAuthProvider struct {
+	// Name is the name of the authentication plugin.
+	Name string `json:"name"`
+
+	// Config holds the parameters for the authentication plugin.
+	Config map[string]string `json:"config"`
+}
+
+// KubeConfigAuthExec specifies a command to provide client credentials. The command is exec'd
+// and outputs structured stdout holding credentials.
+//
+// See the client.authentication.k8s.io API group for specifications of the exact input
+// and output format.
+type KubeConfigAuthExec struct {
+	// Command to execute.
+	Command string `json:"command"`
+	// Arguments to pass to the command when executing it.
+	// +optional
+	Args []string `json:"args,omitempty"`
+	// Env defines additional environment variables to expose to the process. These
+	// are unioned with the host's environment, as well as variables client-go uses
+	// to pass argument to the plugin.
+	// +optional
+	Env []KubeConfigAuthExecEnv `json:"env,omitempty"`
+
+	// Preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+	// the same encoding version as the input.
+	APIVersion string `json:"apiVersion,omitempty"`
+
+	// ProvideClusterInfo determines whether or not to provide cluster information,
+	// which could potentially contain very large CA data, to this exec plugin as a
+	// part of the KUBERNETES_EXEC_INFO environment variable. By default, it is set
+	// to false. Package k8s.io/client-go/tools/auth/exec provides helper methods for
+	// reading this environment variable.
+	ProvideClusterInfo bool `json:"provideClusterInfo"`
+
+	// InteractiveMode determines this plugin's relationship with standard input. Valid
+	// values are "Never" (this exec plugin never uses standard input), "IfAvailable" (this
+	// exec plugin wants to use standard input if it is available), or "Always" (this exec
+	// plugin requires standard input to function). See ExecInteractiveMode values for more
+	// details.
+	//
+	// If APIVersion is client.authentication.k8s.io/v1alpha1 or
+	// client.authentication.k8s.io/v1beta1, then this field is optional and defaults
+	// to "IfAvailable" when unset. Otherwise, this field is required.
+	//
+	// +kubebuilder:validation:Enum=Never;IfAvailable;Always
+	// +kubebuilder:default=Never
+	// +optional
+	InteractiveMode string `json:"interactiveMode,omitempty"`
+}
+
+// KubeConfigAuthExecEnv is used for setting environment variables when executing an exec-based
+// credential plugin.
+type KubeConfigAuthExecEnv struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
 }
 
 // HostPathMount contains elements describing volumes that are mounted from the

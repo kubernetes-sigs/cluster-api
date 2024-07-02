@@ -103,6 +103,11 @@ func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fu
 
 	// JoinConfiguration.SkipPhases does not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 	obj.SkipPhases = nil
+
+	// JoinConfiguration.Discovery.File.KubeConfig is internal to Cluster API and does not exist in kubeadm v1beta1 types, pinning it to avoid round trip errors.
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
 }
 
 func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {

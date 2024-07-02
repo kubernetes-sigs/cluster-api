@@ -176,6 +176,11 @@ func Convert_v1beta1_Discovery_To_upstreamv1beta4_Discovery(in *bootstrapv1.Disc
 	return autoConvert_v1beta1_Discovery_To_upstreamv1beta4_Discovery(in, out, s)
 }
 
+func Convert_v1beta1_FileDiscovery_To_upstreamv1beta4_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
+	// JoinConfiguration.Discovery.File.KubeConfig does not exist in kubeadm because it's internal to Cluster API, dropping those info.
+	return autoConvert_v1beta1_FileDiscovery_To_upstreamv1beta4_FileDiscovery(in, out, s)
+}
+
 // convertToArgs takes a argument map and converts it to a slice of arguments.
 // Te resulting argument slice is sorted alpha-numerically.
 func convertToArgs(in map[string]string) []Arg {

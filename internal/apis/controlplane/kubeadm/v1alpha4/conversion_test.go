@@ -65,6 +65,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		cabpkBootstrapTokenStringFuzzer,
 		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
 		kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4,
+		bootstrapv1JoinConfigurationFuzzer,
 	}
 }
 
@@ -86,4 +87,13 @@ func kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4(in *KubeadmControlPla
 	in.Spec.Version = ""
 	in.Spec.MachineTemplate.ObjectMeta = clusterv1alpha4.ObjectMeta{}
 	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
+}
+
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// JoinConfiguration.Discovery.File.KubeConfig is internal to Cluster API and does not exist in kubeadm v1beta1 types, pinning it to avoid round trip errors.
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
 }

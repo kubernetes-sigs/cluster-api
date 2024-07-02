@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.15.1-0.20240618033008-7824932b0cab
   name: machinehealthchecks.cluster.x-k8s.io
 spec:
   group: cluster.x-k8s.io
@@ -38,7 +38,6 @@ spec:
       openAPIV3Schema:
         description: |-
           MachineHealthCheck is the Schema for the machinehealthchecks API.
-
 
           Deprecated: This type will be removed in one of the next releases.
         properties:
@@ -85,7 +84,6 @@ spec:
                   RemediationTemplate is a reference to a remediation template
                   provided by an infrastructure provider.
 
-
                   This field is completely optional, when filled, the MachineHealthCheck controller
                   creates a new object from the template referenced and hands off remediation of the machine to
                   a controller that lives outside of Cluster API.
@@ -102,7 +100,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -252,6 +249,7 @@ spec:
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
+                  - lastTransitionTime
                   - status
                   - type
                   type: object
@@ -320,7 +318,6 @@ spec:
         description: |-
           MachineHealthCheck is the Schema for the machinehealthchecks API.
 
-
           Deprecated: This type will be removed in one of the next releases.
         properties:
           apiVersion:
@@ -368,7 +365,6 @@ spec:
                   RemediationTemplate is a reference to a remediation template
                   provided by an infrastructure provider.
 
-
                   This field is completely optional, when filled, the MachineHealthCheck controller
                   creates a new object from the template referenced and hands off remediation of the machine to
                   a controller that lives outside of Cluster API.
@@ -385,7 +381,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -544,6 +539,7 @@ spec:
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
                   required:
+                  - lastTransitionTime
                   - status
                   - type
                   type: object
@@ -650,13 +646,11 @@ spec:
                   to consider a Machine unhealthy if a corresponding Node isn't associated
                   through a `Spec.ProviderID` field.
 
-
                   The duration set in this field is compared to the greatest of:
                   - Cluster's infrastructure ready condition timestamp (if and when available)
                   - Control Plane's initialized condition timestamp (if and when available)
                   - Machine's infrastructure ready condition timestamp (if and when available)
                   - Machine's metadata creation timestamp
-
 
                   Defaults to 10 minutes.
                   If you wish to disable this feature, set the value explicitly to 0.
@@ -665,7 +659,6 @@ spec:
                 description: |-
                   RemediationTemplate is a reference to a remediation template
                   provided by an infrastructure provider.
-
 
                   This field is completely optional, when filled, the MachineHealthCheck controller
                   creates a new object from the template referenced and hands off remediation of the machine to
@@ -683,7 +676,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-

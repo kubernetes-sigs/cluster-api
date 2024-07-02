@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.15.1-0.20240618033008-7824932b0cab
   name: kubeadmcontrolplanetemplates.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -27,7 +27,6 @@ spec:
       openAPIV3Schema:
         description: |-
           KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates API.
-
 
           Deprecated: This type will be removed in one of the next releases.
         properties:
@@ -84,7 +83,6 @@ spec:
                                       type: string
                                     description: |-
                                       ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
                                       use ComponentConfig + ConfigMaps.
                                     type: object
                                   extraVolumes:
@@ -166,7 +164,6 @@ spec:
                                       type: string
                                     description: |-
                                       ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
                                       use ComponentConfig + ConfigMaps.
                                     type: object
                                   extraVolumes:
@@ -356,7 +353,6 @@ spec:
                                       type: string
                                     description: |-
                                       ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
                                       use ComponentConfig + ConfigMaps.
                                     type: object
                                   extraVolumes:
@@ -716,7 +712,6 @@ spec:
                                   CACertPath is the path to the SSL certificate authority used to
                                   secure comunications between node and control-plane.
                                   Defaults to "/etc/kubernetes/pki/ca.crt".
-                                  TODO: revisit when there is defaulting from k/k
                                 type: string
                               controlPlane:
                                 description: |-
@@ -741,9 +736,8 @@ spec:
                                     type: object
                                 type: object
                               discovery:
-                                description: |-
-                                  Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-                                  TODO: revisit when there is defaulting from k/k
+                                description: Discovery specifies the options for the
+                                  kubelet to use during the TLS Bootstrap process
                                 properties:
                                   bootstrapToken:
                                     description: |-
@@ -923,14 +917,11 @@ spec:
                               UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
                               script with retries for joins.
 
-
                               This is meant to be an experimental temporary workaround on some environments
                               where joins fail due to timing (and other issues). The long term goal is to add retries to
                               kubeadm proper and use that functionality.
 
-
                               This will add about 40KB to userdata
-
 
                               For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
                             type: boolean
@@ -1017,7 +1008,6 @@ spec:
                                   the event) or if no container name is specified "spec.containers[2]" (container with
                                   index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                   referencing a part of an object.
-                                  TODO: this design is not final and this field is subject to change in the future.
                                 type: string
                               kind:
                                 description: |-
@@ -1237,7 +1227,6 @@ spec:
                                       type: string
                                     description: |-
                                       ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
                                       use ComponentConfig + ConfigMaps.
                                     type: object
                                   extraVolumes:
@@ -1319,7 +1308,6 @@ spec:
                                       type: string
                                     description: |-
                                       ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
                                       use ComponentConfig + ConfigMaps.
                                     type: object
                                   extraVolumes:
@@ -1516,7 +1504,6 @@ spec:
                                       type: string
                                     description: |-
                                       ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
                                       use ComponentConfig + ConfigMaps.
                                     type: object
                                   extraVolumes:
@@ -1721,7 +1708,6 @@ spec:
                                     description: |-
                                       AdditionalConfig contains additional configuration to be merged with the Ignition
                                       configuration generated by the bootstrapper controller. More info: https://coreos.github.io/ignition/operator-notes/#config-merging
-
 
                                       The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/
                                     type: string
@@ -1942,7 +1928,6 @@ spec:
                                   CACertPath is the path to the SSL certificate authority used to
                                   secure comunications between node and control-plane.
                                   Defaults to "/etc/kubernetes/pki/ca.crt".
-                                  TODO: revisit when there is defaulting from k/k
                                 type: string
                               controlPlane:
                                 description: |-
@@ -1967,9 +1952,8 @@ spec:
                                     type: object
                                 type: object
                               discovery:
-                                description: |-
-                                  Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-                                  TODO: revisit when there is defaulting from k/k
+                                description: Discovery specifies the options for the
+                                  kubelet to use during the TLS Bootstrap process
                                 properties:
                                   bootstrapToken:
                                     description: |-
@@ -2188,17 +2172,13 @@ spec:
                               UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
                               script with retries for joins.
 
-
                               This is meant to be an experimental temporary workaround on some environments
                               where joins fail due to timing (and other issues). The long term goal is to add retries to
                               kubeadm proper and use that functionality.
 
-
                               This will add about 40KB to userdata
 
-
                               For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
-
 
                               Deprecated: This experimental fix is no longer needed and this field will be removed in a future release.
                               When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml
@@ -2343,20 +2323,19 @@ spec:
                               attempting to remediate an unhealthy machine.\nA retry
                               happens when a machine that was created as a replacement
                               for an unhealthy machine also fails.\nFor example, given
-                              a control plane with three machines M1, M2, M3:\n\n\n\tM1
+                              a control plane with three machines M1, M2, M3:\n\n\tM1
                               become unhealthy; remediation happens, and M1-1 is created
                               as a replacement.\n\tIf M1-1 (replacement of M1) has
                               problems while bootstrapping it will become unhealthy,
                               and then be\n\tremediated; such operation is considered
                               a retry, remediation-retry #1.\n\tIf M1-2 (replacement
                               of M1-1) becomes unhealthy, remediation-retry #2 will
-                              happen, etc.\n\n\nA retry could happen only after RetryPeriod
+                              happen, etc.\n\nA retry could happen only after RetryPeriod
                               from the previous retry.\nIf a machine is marked as
                               unhealthy after MinHealthyPeriod from the previous remediation
                               expired,\nthis is not considered a retry anymore because
                               the new issue is assumed unrelated from the previous
-                              one.\n\n\nIf not set, the remedation will be retried
-                              infinitely."
+                              one.\n\nIf not set, the remedation will be retried infinitely."
                             format: int32
                             type: integer
                           minHealthyPeriod:
@@ -2365,23 +2344,22 @@ spec:
                               the previous one. In this case the remediation is not
                               considered a retry anymore, and thus the retry\ncounter
                               restarts from 0. For example, assuming MinHealthyPeriod
-                              is set to 1h (default)\n\n\n\tM1 become unhealthy; remediation
+                              is set to 1h (default)\n\n\tM1 become unhealthy; remediation
                               happens, and M1-1 is created as a replacement.\n\tIf
                               M1-1 (replacement of M1) has problems within the 1hr
                               after the creation, also\n\tthis machine will be remediated
                               and this operation is considered a retry - a problem
-                              related\n\tto the original issue happened to M1 -.\n\n\n\tIf
+                              related\n\tto the original issue happened to M1 -.\n\n\tIf
                               instead the problem on M1-1 is happening after MinHealthyPeriod
                               expired, e.g. four days after\n\tm1-1 has been created
                               as a remediation of M1, the problem on M1-1 is considered
-                              unrelated to\n\tthe original issue happened to M1.\n\n\nIf
+                              unrelated to\n\tthe original issue happened to M1.\n\nIf
                               not set, this value is defaulted to 1h."
                             type: string
                           retryPeriod:
                             description: |-
                               RetryPeriod is the duration that KCP should wait before remediating a machine being created as a replacement
                               for an unhealthy machine (a retry).
-
 
                               If not set, a retry will happen immediately.
                             type: string

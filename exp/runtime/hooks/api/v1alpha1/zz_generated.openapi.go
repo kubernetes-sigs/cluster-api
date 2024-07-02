@@ -781,6 +781,13 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"uid": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UID is the unqiue identifier of the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"topology": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Topology represents the cluster topology variables.",

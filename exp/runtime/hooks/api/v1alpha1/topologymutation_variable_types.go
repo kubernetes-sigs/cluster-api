@@ -35,6 +35,9 @@ type ClusterBuiltins struct {
 	// Namespace is the namespace of the cluster.
 	Namespace string `json:"namespace,omitempty"`
 
+	// UID is the unqiue identifier of the cluster.
+	UID string `json:"uid,omitempty"`
+
 	// Topology represents the cluster topology variables.
 	Topology *ClusterTopologyBuiltins `json:"topology,omitempty"`
 

@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -34,6 +35,7 @@ type moveOptions struct {
 	fromDirectory         string
 	toDirectory           string
 	dryRun                bool
+	waitForUnblockTimeout time.Duration
 }
 
 var mo = &moveOptions{}
@@ -80,6 +82,8 @@ func init() {
 		"Write Cluster API objects and all dependencies from a management cluster to directory.")
 	moveCmd.Flags().StringVar(&mo.fromDirectory, "from-directory", "",
 		"Read Cluster API objects and all dependencies from a directory into a management cluster.")
+	moveCmd.Flags().DurationVar(&mo.waitForUnblockTimeout, "wait-for-unblock-timeout", client.DefaultWaitForUnblockTimeout,
+		"Timeout specifying how long to wait for all resources not to be blocking the move.")
 
 	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-kubeconfig")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-directory")
@@ -104,11 +108,12 @@ func runMove() error {
 	}
 
 	return c.Move(ctx, client.MoveOptions{
-		FromKubeconfig: client.Kubeconfig{Path: mo.fromKubeconfig, Context: mo.fromKubeconfigContext},
-		ToKubeconfig:   client.Kubeconfig{Path: mo.toKubeconfig, Context: mo.toKubeconfigContext},
-		FromDirectory:  mo.fromDirectory,
-		ToDirectory:    mo.toDirectory,
-		Namespace:      mo.namespace,
-		DryRun:         mo.dryRun,
+		FromKubeconfig:        client.Kubeconfig{Path: mo.fromKubeconfig, Context: mo.fromKubeconfigContext},
+		ToKubeconfig:          client.Kubeconfig{Path: mo.toKubeconfig, Context: mo.toKubeconfigContext},
+		FromDirectory:         mo.fromDirectory,
+		ToDirectory:           mo.toDirectory,
+		Namespace:             mo.namespace,
+		DryRun:                mo.dryRun,
+		WaitForUnblockTimeout: mo.waitForUnblockTimeout,
 	})
 }

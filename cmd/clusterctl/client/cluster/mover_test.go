@@ -1202,7 +1202,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(ctx, graph, toProxy, nil)
+			err := mover.move(ctx, graph, toProxy, 0, nil)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1275,7 +1275,7 @@ func Test_objectMover_move(t *testing.T) {
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
-			err := mover.move(ctx, graph, toProxy)
+			err := mover.move(ctx, graph, toProxy, 0)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -1388,7 +1388,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			err := mover.move(ctx, graph, toProxy, namespaceMutator)
+			err := mover.move(ctx, graph, toProxy, 0, namespaceMutator)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -2390,16 +2390,20 @@ func TestWaitReadyForMove(t *testing.T) {
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery(ctx, "")).To(Succeed())
 
-			backoff := wait.Backoff{
+			timeout := 100 * time.Millisecond
+			getResourceBackoff := wait.Backoff{
+				Steps: 1,
+			}
+			waitForResourceMoveUnblockedBackoff := wait.Backoff{
 				Steps: 1,
 			}
 			if tt.doUnblock {
-				backoff = wait.Backoff{
+				waitForResourceMoveUnblockedBackoff = wait.Backoff{
 					Duration: 20 * time.Millisecond,
-					Steps:    10,
+					Steps:    1000,
 				}
 			}
-			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, backoff)
+			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, timeout, getResourceBackoff, waitForResourceMoveUnblockedBackoff)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

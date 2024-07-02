@@ -19,11 +19,16 @@ package client
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
+
+// DefaultWaitForUnblockTimeout is the default value for the time to wait for all resources not to be blocking
+// a move operation.
+const DefaultWaitForUnblockTimeout = 5 * time.Minute
 
 // MoveOptions carries the options supported by move.
 type MoveOptions struct {
@@ -51,6 +56,9 @@ type MoveOptions struct {
 
 	// DryRun means the move action is a dry run, no real action will be performed.
 	DryRun bool
+
+	// WaitForUnblockTimeout specifies how long to wait for all resources not to be blocking the move.
+	WaitForUnblockTimeout time.Duration
 }
 
 func (c *clusterctlClient) Move(ctx context.Context, options MoveOptions) error {
@@ -64,6 +72,10 @@ func (c *clusterctlClient) Move(ctx context.Context, options MoveOptions) error 
 		options.ToDirectory == "" &&
 		options.ToKubeconfig == (Kubeconfig{}) {
 		return errors.Errorf("at least one of FromDirectory, ToDirectory and ToKubeconfig must be set")
+	}
+
+	if options.WaitForUnblockTimeout == 0 {
+		options.WaitForUnblockTimeout = DefaultWaitForUnblockTimeout
 	}
 
 	if options.ToDirectory != "" {
@@ -99,7 +111,7 @@ func (c *clusterctlClient) move(ctx context.Context, options MoveOptions) error 
 		}
 	}
 
-	return fromCluster.ObjectMover().Move(ctx, options.Namespace, toCluster, options.DryRun, options.ExperimentalResourceMutators...)
+	return fromCluster.ObjectMover().Move(ctx, options.Namespace, toCluster, options.DryRun, options.WaitForUnblockTimeout, options.ExperimentalResourceMutators...)
 }
 
 func (c *clusterctlClient) fromDirectory(ctx context.Context, options MoveOptions) error {

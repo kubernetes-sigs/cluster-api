@@ -80,6 +80,7 @@ const (
 	KubeKeyK3sBootstrapProviderName        = "kubekey-k3s"
 	RKE2BootstrapProviderName              = "rke2"
 	K0smotronBootstrapProviderName         = "k0sproject-k0smotron"
+	K3sBootstrapProviderName               = "k3s-k3s"
 )
 
 // ControlPlane providers.
@@ -93,6 +94,7 @@ const (
 	KamajiControlPlaneProviderName            = "kamaji"
 	RKE2ControlPlaneProviderName              = "rke2"
 	K0smotronControlPlaneProviderName         = "k0sproject-k0smotron"
+	K3sControlPlaneProviderName               = "k3s-k3s"
 )
 
 // IPAM providers.
@@ -350,6 +352,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/k0sproject/k0smotron/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+		&provider{
+			name:         K3sBootstrapProviderName,
+			url:          "https://github.com/k3s-io/cluster-api-k3s/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 
 		// ControlPlane providers
 		&provider{
@@ -395,6 +402,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         K0smotronControlPlaneProviderName,
 			url:          "https://github.com/k0sproject/k0smotron/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         K3sControlPlaneProviderName,
+			url:          "https://github.com/k3s-io/cluster-api-k3s/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 

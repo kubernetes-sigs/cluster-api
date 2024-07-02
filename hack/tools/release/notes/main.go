@@ -187,12 +187,6 @@ func validateConfig(config *notesCmdConfig, releaseType string) error {
 		}
 	}
 
-	if releaseType != "" {
-		if config.previousReleaseVersion == "" {
-			return errors.New("--previous-release-version need to be set with RELEASE CANDIDATE/BETA RELEASE tag")
-		}
-	}
-
 	return nil
 }
 

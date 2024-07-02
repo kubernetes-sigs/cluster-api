@@ -70,7 +70,7 @@ func TestClusterDefaultNamespaces(t *testing.T) {
 
 // TestClusterDefaultAndValidateVariables cases where cluster.spec.topology.class is altered.
 func TestClusterDefaultAndValidateVariables(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	tests := []struct {
 		name           string
@@ -1266,7 +1266,7 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 func TestClusterDefaultTopologyVersion(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	g := NewWithT(t)
 
@@ -1297,7 +1297,7 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 func TestClusterFailOnMissingClassField(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	g := NewWithT(t)
 
@@ -1524,7 +1524,7 @@ func TestClusterValidation(t *testing.T) {
 func TestClusterTopologyValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	tests := []struct {
 		name              string
@@ -2001,7 +2001,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 
 // TestClusterTopologyValidationWithClient tests the additional cases introduced in new validation in the webhook package.
 func TestClusterTopologyValidationWithClient(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	tests := []struct {
@@ -2321,7 +2321,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 
 // TestClusterTopologyValidationForTopologyClassChange cases where cluster.spec.topology.class is altered.
 func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
@@ -2854,7 +2854,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 
 // TestMovingBetweenManagedAndUnmanaged cluster tests cases where a clusterClass is added or removed during a cluster update.
 func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	ref := &corev1.ObjectReference{
 		APIVersion: "group.test.io/foo",
 		Kind:       "barTemplate",
@@ -2978,7 +2978,7 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 
 // TestClusterClassPollingErrors tests when a Cluster can be reconciled given different reconcile states of the ClusterClass.
 func TestClusterClassPollingErrors(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 	ref := &corev1.ObjectReference{
 		APIVersion: "group.test.io/foo",

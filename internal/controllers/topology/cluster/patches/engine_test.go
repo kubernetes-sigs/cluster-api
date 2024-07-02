@@ -42,7 +42,7 @@ import (
 )
 
 func TestApply(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 	type expectedFields struct {
 		infrastructureCluster                          map[string]interface{}
 		controlPlane                                   map[string]interface{}

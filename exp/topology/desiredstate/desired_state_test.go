@@ -642,7 +642,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 func TestComputeControlPlaneVersion(t *testing.T) {
 	t.Run("Compute control plane version under various circumstances", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 		nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
 			CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
@@ -888,7 +888,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	})
 
 	t.Run("Calling AfterControlPlaneUpgrade hook", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 		catalog := runtimecatalog.New()
 		_ = runtimehooksv1.AddToCatalog(catalog)
@@ -1189,7 +1189,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	})
 
 	t.Run("register intent to call AfterClusterUpgrade and AfterControlPlaneUpgrade hooks", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 		catalog := runtimecatalog.New()
 		_ = runtimehooksv1.AddToCatalog(catalog)

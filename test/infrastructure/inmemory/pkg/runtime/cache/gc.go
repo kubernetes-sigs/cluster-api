@@ -41,7 +41,7 @@ func (c *cache) startGarbageCollector(ctx context.Context) error {
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	log.Info("Starting garbage collector queue")
-	c.garbageCollectorQueue = workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	c.garbageCollectorQueue = workqueue.NewTypedRateLimitingQueue[any](workqueue.DefaultTypedControllerRateLimiter[any]())
 	go func() {
 		<-ctx.Done()
 		c.garbageCollectorQueue.ShutDown()

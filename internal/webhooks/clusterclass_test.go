@@ -52,7 +52,7 @@ func init() {
 func TestClusterClassDefaultNamespaces(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	namespace := "default"
 
@@ -215,7 +215,7 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 func TestClusterClassValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	ref := &corev1.ObjectReference{
 		APIVersion: "group.test.io/foo",
@@ -1862,7 +1862,7 @@ func TestClusterClassValidation(t *testing.T) {
 func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	tests := []struct {
 		name            string

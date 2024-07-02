@@ -404,7 +404,7 @@ func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {
 }
 
 func TestReconciler_reconcileVariables(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	catalog := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -974,8 +974,8 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "string",
 								XValidations: []clusterv1.ValidationRule{{
-									// Note: IP will be only available if the compatibility version is 1.30
-									Rule: "ip(self).family() == 6",
+									// Note: format will be only available if the compatibility version is 1.31
+									Rule: "format.date().validate(\"2021-01-01\")",
 								}},
 							},
 						},
@@ -984,13 +984,16 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			},
 			wantErrMessage: "failed to discover variables for ClusterClass class1: " +
 				"patch1.variables[someIP].schema.openAPIV3Schema.x-kubernetes-validations[0].rule: Invalid value: " +
-				"apiextensions.ValidationRule{Rule:\"ip(self).family() == 6\", Message:\"\", MessageExpression:\"\", Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: compilation failed: " +
-				"ERROR: <input>:1:3: undeclared reference to 'ip' (in container '')\n" +
-				" | ip(self).family() == 6\n" +
-				" | ..^\n" +
-				"ERROR: <input>:1:16: undeclared reference to 'family' (in container '')\n" +
-				" | ip(self).family() == 6\n" +
-				" | ...............^",
+				"apiextensions.ValidationRule{Rule:\"format.date().validate(\\\"2021-01-01\\\")\", Message:\"\", MessageExpression:\"\", " +
+				"Reason:(*apiextensions.FieldValueErrorReason)(nil), FieldPath:\"\", OptionalOldSelf:(*bool)(nil)}: " +
+				"compilation failed: ERROR: <input>:1:1: undeclared reference to 'format' (in container '')\n " +
+				"| format.date().validate(\"2021-01-01\")\n " +
+				"| ^\nERROR: <input>:1:12: undeclared reference to 'date' (in container '')\n " +
+				"| format.date().validate(\"2021-01-01\")\n " +
+				"| ...........^\n" +
+				"ERROR: <input>:1:23: undeclared reference to 'validate' (in container '')\n " +
+				"| format.date().validate(\"2021-01-01\")\n " +
+				"| ......................^",
 		},
 	}
 	for _, tt := range tests {
@@ -1010,6 +1013,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 
 			err := r.reconcileVariables(ctx, tt.clusterClass)
 			if tt.wantErrMessage != "" {
+				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrMessage))
 				return
 			}

@@ -58,7 +58,7 @@ const (
 
 // TestClusterClassWebhook_Succeed_Create tests the correct creation behaviour for a valid ClusterClass.
 func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -99,7 +99,7 @@ func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
 // TestClusterClassWebhook_Fail_Create tests the correct creation behaviour for an invalid ClusterClass with missing references.
 // In this case creation of the ClusterClass should be blocked by the webhook.
 func TestClusterClassWebhook_Fail_Create(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -143,7 +143,7 @@ func TestClusterClassWebhook_Fail_Create(t *testing.T) {
 // TestClusterWebhook_Succeed_Update tests the correct update behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should succeed by the webhook as the update is compatible with the existing Clusters using the ClusterClass.
 func TestClusterWebhook_Succeed_Update(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -222,7 +222,7 @@ func TestClusterWebhook_Succeed_Update(t *testing.T) {
 // TestClusterWebhook_Fail_Update tests the correct update behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should be blocked by the webhook as the update is incompatible with the existing Clusters using the ClusterClass.
 func TestClusterWebhook_Fail_Update(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
@@ -300,7 +300,7 @@ func TestClusterWebhook_Fail_Update(t *testing.T) {
 // TestClusterClassWebhook_Fail_Delete tests the correct deletion behaviour for a ClusterClass with references in existing Clusters.
 // In this case deletion of the ClusterClass should be blocked by the webhook.
 func TestClusterClassWebhook_Delete(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")

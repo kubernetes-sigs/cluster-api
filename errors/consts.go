@@ -31,6 +31,14 @@ const (
 	// Example: the ProviderSpec specifies an instance type that doesn't exist,.
 	InvalidConfigurationMachineError MachineStatusError = "InvalidConfiguration"
 
+	// BootstrapFailedMachineError indicates that the machine has been created, but
+	// the bootstrap process failed (e.g., Cloud init failed),
+	// This is not a transient error, but
+	// indicates a state that must be fixed before progress can be made.
+	//
+	// Example: the ControlPlaneEndpoint is wrong.
+	BootstrapFailedMachineError MachineStatusError = "BootstrapFailed"
+
 	// UnsupportedChangeMachineError indicates that the MachineSpec has been updated in a way that
 	// is not supported for reconciliation on this cluster. The spec may be
 	// completely valid from a configuration standpoint, but the controller

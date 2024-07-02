@@ -66,12 +66,12 @@ func NewGitLabRepository(providerConfig config.Provider, configVariablesClient c
 		return nil, errors.Wrap(err, "invalid url")
 	}
 
-	urlSplit := strings.Split(strings.TrimPrefix(rURL.RawPath, "/"), "/")
+	urlSplit := strings.Split(strings.TrimPrefix(rURL.EscapedPath(), "/"), "/")
 
 	// Check if the url is a Gitlab repository
 	if rURL.Scheme != httpsScheme ||
 		len(urlSplit) != 9 ||
-		!strings.HasPrefix(rURL.RawPath, gitlabPackagesAPIPrefix) ||
+		!strings.HasPrefix(rURL.EscapedPath(), gitlabPackagesAPIPrefix) ||
 		urlSplit[4] != gitlabPackagesAPIPackages ||
 		urlSplit[5] != gitlabPackagesAPIGeneric {
 		return nil, errors.New("invalid url: a GitLab repository url should be in the form https://{host}/api/v4/projects/{projectSlug}/packages/generic/{packageName}/{defaultVersion}/{componentsPath}")

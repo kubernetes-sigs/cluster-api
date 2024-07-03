@@ -26,6 +26,8 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -132,13 +134,12 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
-			httpClient, err := rest.HTTPClientFor(env.Config)
+			restClient, err := getRESTClient(env.Config)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			go cct.healthCheckCluster(ctx, &healthCheckInput{
 				cluster:            testClusterKey,
-				cfg:                env.Config,
-				httpClient:         httpClient,
+				restClient:         restClient,
 				interval:           testPollInterval,
 				requestTimeout:     testPollTimeout,
 				unhealthyThreshold: testUnhealthyThreshold,
@@ -164,12 +165,12 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			g.Expect(cct.clusterLock.TryLock(testClusterKey)).To(BeTrue())
 			startHealthCheck := time.Now()
 
-			httpClient, err := rest.HTTPClientFor(env.Config)
+			restClient, err := getRESTClient(env.Config)
 			g.Expect(err).ToNot(HaveOccurred())
+
 			cct.healthCheckCluster(ctx, &healthCheckInput{
 				cluster:            testClusterKey,
-				cfg:                env.Config,
-				httpClient:         httpClient,
+				restClient:         restClient,
 				interval:           testPollInterval,
 				requestTimeout:     testPollTimeout,
 				unhealthyThreshold: testUnhealthyThreshold,
@@ -190,13 +191,13 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			ctx, cancel := context.WithCancel(ctx)
 			defer cancel()
 
-			httpClient, err := rest.HTTPClientFor(env.Config)
+			restClient, err := getRESTClient(env.Config)
 			g.Expect(err).ToNot(HaveOccurred())
+
 			go cct.healthCheckCluster(ctx,
 				&healthCheckInput{
 					cluster:            testClusterKey,
-					cfg:                env.Config,
-					httpClient:         httpClient,
+					restClient:         restClient,
 					interval:           testPollInterval,
 					requestTimeout:     testPollTimeout,
 					unhealthyThreshold: testUnhealthyThreshold,
@@ -228,12 +229,12 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			config := rest.CopyConfig(env.Config)
 			config.Host = fmt.Sprintf("http://127.0.0.1:%d", l.Addr().(*net.TCPAddr).Port)
 
-			httpClient, err := rest.HTTPClientFor(env.Config)
+			restClient, err := getRESTClient(config)
 			g.Expect(err).ToNot(HaveOccurred())
+
 			go cct.healthCheckCluster(ctx, &healthCheckInput{
 				cluster:            testClusterKey,
-				cfg:                config,
-				httpClient:         httpClient,
+				restClient:         restClient,
 				interval:           testPollInterval,
 				requestTimeout:     testPollTimeout,
 				unhealthyThreshold: testUnhealthyThreshold,
@@ -247,4 +248,16 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			}, 5*time.Second, 1*time.Second).Should(BeFalse())
 		})
 	})
+}
+
+func getRESTClient(config *rest.Config) (*rest.RESTClient, error) {
+	httpClient, err := rest.HTTPClientFor(config)
+	if err != nil {
+		return nil, err
+	}
+
+	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
+	restClientConfig := rest.CopyConfig(config)
+	restClientConfig.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
+	return rest.UnversionedRESTClientForConfigAndClient(restClientConfig, httpClient)
 }

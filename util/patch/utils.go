@@ -17,18 +17,12 @@ limitations under the License.
 package patch
 
 import (
-	"strings"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type patchType string
-
-func (p patchType) Key() string {
-	return strings.Split(string(p), ".")[0]
-}
 
 const (
 	specPatch   patchType = "spec"
@@ -81,8 +75,20 @@ func unsafeUnstructuredCopy(obj *unstructured.Unstructured, focus patchType, isC
 	for key := range obj.Object {
 		value := obj.Object[key]
 
-		// Perform a shallow copy only for the keys we're interested in, or the ones that should be always preserved.
-		if key == focus.Key() || preserveUnstructuredKeys[key] {
+		preserve := false
+		switch focus {
+		case specPatch:
+			// For what we define as `spec` fields, we should preserve everything
+			// that's not `status`.
+			preserve = key != string(statusPatch)
+		case statusPatch:
+			// For status, only preserve the status fields.
+			preserve = key == string(focus)
+		}
+
+		// Perform a shallow copy only for the keys we're interested in,
+		// or the ones that should be always preserved (like metadata).
+		if preserve || preserveUnstructuredKeys[key] {
 			res.Object[key] = value
 		}
 

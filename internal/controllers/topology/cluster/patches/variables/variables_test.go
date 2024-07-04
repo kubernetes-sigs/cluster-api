@@ -25,6 +25,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -34,6 +35,7 @@ import (
 )
 
 func TestGlobal(t *testing.T) {
+	clusterUID := "8a35f406-6b9b-4b78-8c93-a7f878d90623"
 	tests := []struct {
 		name                        string
 		clusterTopology             *clusterv1.Topology
@@ -68,6 +70,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -100,6 +103,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
   						  	"version": "v1.21.1",
  						   	"class": "clusterClass1"
@@ -149,6 +153,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -181,6 +186,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
   						  	"version": "v1.21.1",
  						   	"class": "clusterClass1"
@@ -221,6 +227,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -252,6 +259,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
   						  	"version": "v1.21.1",
  						   	"class": "clusterClass1"
@@ -291,6 +299,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -319,6 +328,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
   						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						"topology":{
     						"version": "v1.21.1",
     						"class": "clusterClass1"
@@ -357,6 +367,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -381,6 +392,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
   						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
   						"topology":{
 							"version": "v1.21.1",
    						 	"class": "clusterClass1"

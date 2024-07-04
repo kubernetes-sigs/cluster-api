@@ -471,6 +471,7 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin.cluster",
 	"builtin.cluster.name",
 	"builtin.cluster.namespace",
+	"builtin.cluster.uid",
 
 	// ClusterTopology builtins.
 	"builtin.cluster.topology",

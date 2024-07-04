@@ -141,6 +141,15 @@ func WithMachineLogCollector(logCollector ClusterLogCollector) Option {
 	}
 }
 
+// WithRESTConfigModifier allows to modify the rest config in GetRESTConfig.
+// Using this function it is possible to create ClusterProxy that can work with workload clusters hosted in places
+// not directly accessible from the machine where we run the E2E tests, e.g. inside kind.
+func WithRESTConfigModifier(f func(*rest.Config)) Option {
+	return func(c *clusterProxy) {
+		c.restConfigModifier = f
+	}
+}
+
 // clusterProxy provides a base implementation of the ClusterProxy interface.
 type clusterProxy struct {
 	name                    string
@@ -150,6 +159,8 @@ type clusterProxy struct {
 	logCollector            ClusterLogCollector
 	cache                   cache.Cache
 	onceCache               sync.Once
+
+	restConfigModifier func(*rest.Config)
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
@@ -321,6 +332,11 @@ func (p *clusterProxy) GetRESTConfig() *rest.Config {
 	Expect(err).ToNot(HaveOccurred(), "Failed to get ClientConfig from %q", p.kubeconfigPath)
 
 	restConfig.UserAgent = "cluster-api-e2e"
+
+	if p.restConfigModifier != nil {
+		p.restConfigModifier(restConfig)
+	}
+
 	return restConfig
 }
 

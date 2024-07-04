@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -1073,6 +1074,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
 			Namespace: metav1.NamespaceDefault,
+			UID:       uuid.NewUUID(),
 		},
 		Spec: clusterv1.ClusterSpec{
 			Paused: false,

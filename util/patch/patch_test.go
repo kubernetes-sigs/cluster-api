@@ -32,6 +32,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -721,6 +722,56 @@ func TestPatchHelper(t *testing.T) {
 					reflect.DeepEqual(obj.Spec, objAfter.Spec)
 			}, timeout).Should(BeTrue())
 		})
+	})
+
+	t.Run("should patch a corev1.ConfigMap object", func(t *testing.T) {
+		g := NewWithT(t)
+
+		obj := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "node-patch-test-",
+				Namespace:    ns.Name,
+				Annotations: map[string]string{
+					"test": "1",
+				},
+			},
+			Data: map[string]string{
+				"1": "value",
+			},
+		}
+
+		t.Log("Creating a ConfigMap object")
+		g.Expect(env.Create(ctx, obj)).To(Succeed())
+		defer func() {
+			g.Expect(env.Delete(ctx, obj)).To(Succeed())
+		}()
+		key := util.ObjectKey(obj)
+
+		t.Log("Checking that the object has been created")
+		g.Eventually(func() error {
+			obj := obj.DeepCopy()
+			return env.Get(ctx, key, obj)
+		}).Should(Succeed())
+
+		t.Log("Creating a new patch helper")
+		patcher, err := NewHelper(obj, env)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		t.Log("Adding a new Data value")
+		obj.Data["1"] = "value1"
+		obj.Data["2"] = "value2"
+
+		t.Log("Patching the ConfigMap")
+		g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
+
+		t.Log("Validating the object has been updated")
+		objAfter := &corev1.ConfigMap{}
+		g.Eventually(func() bool {
+			g.Expect(env.Get(ctx, key, objAfter)).To(Succeed())
+			return len(objAfter.Data) == 2
+		}, timeout).Should(BeTrue())
+		g.Expect(objAfter.Data["1"]).To(Equal("value1"))
+		g.Expect(objAfter.Data["2"]).To(Equal("value2"))
 	})
 
 	t.Run("Should update Status.ObservedGeneration when using WithStatusObservedGeneration option", func(t *testing.T) {

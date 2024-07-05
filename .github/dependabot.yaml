@@ -43,6 +43,9 @@ updates:
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
   - dependency-name: "google.golang.org/grpc"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
+  # Note: We have to keep this 100% in sync with k8s.io, so we get exactly the behavior
+  # that the k8s.io CEL code expects.
+  - dependency-name: "github.com/google/cel-go"
     # Ignore kind as its upgraded manually.
   - dependency-name: "sigs.k8s.io/kind"
     update-types: [ "version-update:semver-major", "version-update:semver-minor" ]

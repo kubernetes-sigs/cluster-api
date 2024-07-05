@@ -17,6 +17,7 @@ require (
 	github.com/flatcar/ignition v0.36.2
 	github.com/go-logr/logr v1.4.2
 	github.com/gobuffalo/flect v1.0.2
+	// Note: This must be kept in sync with the version used by k8s.io.
 	github.com/google/cel-go v0.17.8
 	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v53 v53.2.0

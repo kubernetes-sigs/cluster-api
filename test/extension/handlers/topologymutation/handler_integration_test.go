@@ -73,9 +73,8 @@ func TestHandler(t *testing.T) {
 	clusterVariableImageRepository := "kindest"
 	cluster.Spec.Topology.Variables = []clusterv1.ClusterVariable{
 		{
-			DefinitionFrom: "test-patch",
-			Name:           "imageRepository",
-			Value:          apiextensionsv1.JSON{Raw: []byte("\"" + clusterVariableImageRepository + "\"")},
+			Name:  "imageRepository",
+			Value: apiextensionsv1.JSON{Raw: []byte("\"" + clusterVariableImageRepository + "\"")},
 		},
 	}
 	clusterClassFile := "./testdata/clusterclass-quick-start-runtimesdk.yaml"

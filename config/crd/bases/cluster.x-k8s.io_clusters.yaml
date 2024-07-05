@@ -1109,10 +1109,10 @@ spec:
                               properties:
                                 definitionFrom:
                                   description: |-
-                                    DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-                                    definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-                                    `.spec.patches` where the patch is external and provides external variables.
-                                    This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+                                    DefinitionFrom specifies where the definition of this Variable is from.
+
+
+                                    Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                   type: string
                                 name:
                                   description: Name of the variable.
@@ -1132,6 +1132,9 @@ spec:
                               - value
                               type: object
                             type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
                         type: object
                     type: object
                   rolloutAfter:
@@ -1155,10 +1158,10 @@ spec:
                       properties:
                         definitionFrom:
                           description: |-
-                            DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-                            definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-                            `.spec.patches` where the patch is external and provides external variables.
-                            This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+                            DefinitionFrom specifies where the definition of this Variable is from.
+
+
+                            Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                           type: string
                         name:
                           description: Name of the variable.
@@ -1178,6 +1181,9 @@ spec:
                       - value
                       type: object
                     type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
                   version:
                     description: The Kubernetes version of the cluster.
                     type: string
@@ -1511,10 +1517,10 @@ spec:
                                     properties:
                                       definitionFrom:
                                         description: |-
-                                          DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-                                          definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-                                          `.spec.patches` where the patch is external and provides external variables.
-                                          This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+                                          DefinitionFrom specifies where the definition of this Variable is from.
+
+
+                                          Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string
                                       name:
                                         description: Name of the variable.
@@ -1534,6 +1540,9 @@ spec:
                                     - value
                                     type: object
                                   type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
                               type: object
                           required:
                           - class
@@ -1642,10 +1651,10 @@ spec:
                                     properties:
                                       definitionFrom:
                                         description: |-
-                                          DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-                                          definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-                                          `.spec.patches` where the patch is external and provides external variables.
-                                          This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+                                          DefinitionFrom specifies where the definition of this Variable is from.
+
+
+                                          Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string
                                       name:
                                         description: Name of the variable.
@@ -1665,6 +1674,9 @@ spec:
                                     - value
                                     type: object
                                   type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
                               type: object
                           required:
                           - class

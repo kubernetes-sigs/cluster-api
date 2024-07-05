@@ -103,6 +103,8 @@ type Topology struct {
 	// patches. They must comply to the corresponding
 	// VariableClasses defined in the ClusterClass.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Variables []ClusterVariable `json:"variables,omitempty"`
 }
 
@@ -319,10 +321,10 @@ type ClusterVariable struct {
 	// Name of the variable.
 	Name string `json:"name"`
 
-	// DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-	// definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-	// `.spec.patches` where the patch is external and provides external variables.
-	// This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+	// DefinitionFrom specifies where the definition of this Variable is from.
+	//
+	// Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
+	//
 	// +optional
 	DefinitionFrom string `json:"definitionFrom,omitempty"`
 
@@ -340,6 +342,8 @@ type ClusterVariable struct {
 type ControlPlaneVariables struct {
 	// Overrides can be used to override Cluster level variables.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
@@ -347,6 +351,8 @@ type ControlPlaneVariables struct {
 type MachineDeploymentVariables struct {
 	// Overrides can be used to override Cluster level variables.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
@@ -354,6 +360,8 @@ type MachineDeploymentVariables struct {
 type MachinePoolVariables struct {
 	// Overrides can be used to override Cluster level variables.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 

@@ -52,31 +52,25 @@ func ValidateMachineVariables(ctx context.Context, values, oldValues []clusterv1
 func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, validateRequired bool, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	// Get a map of ClusterVariable values. This function validates that:
-	// - variables are not defined more than once in Cluster spec.
-	// - variables with the same name do not have a mix of empty and non-empty DefinitionFrom.
-	valuesMap, err := newValuesIndex(values)
-	if err != nil {
-		var valueStrings []string
-		for _, v := range values {
-			valueStrings = append(valueStrings, fmt.Sprintf("Name: %s DefinitionFrom: %s", v.Name, v.DefinitionFrom))
-		}
-		return append(allErrs, field.Invalid(fldPath, "["+strings.Join(valueStrings, ",")+"]", fmt.Sprintf("cluster variables not valid: %s", err)))
+	// Get an index for variable values.
+	valuesMap, err := newValuesIndex(fldPath, values)
+	if len(err) > 0 {
+		return append(allErrs, err...)
 	}
 
-	// Get a map of old ClusterVariable values. We know they are all valid and not duplicate names, etc. as previous
+	// Get an index for old variable values.
+	// Note: We know they are all valid and not duplicate names, etc. as previous
 	// validation has already asserted that.
-	oldValuesMap, err := newValuesIndex(oldValues)
-	if err != nil {
-		var valueStrings []string
-		for _, v := range values {
-			valueStrings = append(valueStrings, fmt.Sprintf("Name: %s DefinitionFrom: %s", v.Name, v.DefinitionFrom))
-		}
-		return append(allErrs, field.Invalid(fldPath, "["+strings.Join(valueStrings, ",")+"]", fmt.Sprintf("old cluster variables not valid: %s", err)))
+	oldValuesMap, err := newValuesIndex(fldPath, oldValues)
+	if len(err) > 0 {
+		return append(allErrs, err...)
 	}
 
-	// Get an index of definitions for each variable name and definition from the ClusterClass variable.
-	defIndex := newDefinitionsIndex(definitions)
+	// Get an index for definitions.
+	defIndex, err := newDefinitionsIndex(fldPath, definitions)
+	if len(err) > 0 {
+		return append(allErrs, err...)
+	}
 
 	// Required variables definitions must exist as values on the Cluster.
 	if validateRequired {
@@ -87,21 +81,20 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 		// Add variable name as key, this makes it easier to read the field path.
 		fldPath := fldPath.Key(value.Name)
 
-		// Values must have an associated definition and must have a non-empty definitionFrom if there are conflicting definitions.
-		definition, err := defIndex.get(value.Name, value.DefinitionFrom)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath, string(value.Value.Raw), err.Error())) // TODO: consider if to add ClusterClass name
+		// Get the variable definition from the ClusterClass. If the variable is not defined add an error.
+		definition, ok := defIndex[value.Name]
+		if !ok {
+			allErrs = append(allErrs, field.Invalid(fldPath, string(value.Value.Raw), "variable is not defined"))
 			continue
 		}
 
-		// If there is an old variable matching this name and definitionFrom defined in the old Cluster then pass this in
+		// Note: We already validated in newDefinitionsIndex that Definitions is not empty
+		// and we don't have conflicts, so we can just pick the first one
+		def := definition.Definitions[0]
+
+		// If there is an old variable with the same name defined in the old Cluster then pass this in
 		// to cluster variable validation.
-		var oldValue *clusterv1.ClusterVariable
-		if oldValuesForName, found := oldValuesMap[value.Name]; found {
-			if v, found := oldValuesForName[value.DefinitionFrom]; found {
-				oldValue = &v
-			}
-		}
+		oldValue := oldValuesMap[value.Name]
 
 		// Values must be valid according to the schema in their definition.
 		allErrs = append(allErrs, ValidateClusterVariable(
@@ -110,8 +103,8 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 			oldValue,
 			&clusterv1.ClusterClassVariable{
 				Name:     value.Name,
-				Required: definition.Required,
-				Schema:   definition.Schema,
+				Required: def.Required,
+				Schema:   def.Schema,
 			}, fldPath)...)
 	}
 
@@ -119,35 +112,20 @@ func validateClusterVariables(ctx context.Context, values, oldValues []clusterv1
 }
 
 // validateRequiredVariables validates all required variables from the ClusterClass exist in the Cluster.
-func validateRequiredVariables(values map[string]map[string]clusterv1.ClusterVariable, definitions definitionsIndex, fldPath *field.Path) field.ErrorList {
+func validateRequiredVariables(values map[string]*clusterv1.ClusterVariable, definitions map[string]*clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	for name, definitionsForName := range definitions {
-		for _, def := range definitionsForName {
-			// Check the required value for the specific variable definition. If the variable is not required continue.
-			if !def.Required {
-				continue
-			}
+	for name, def := range definitions {
+		// Check the required value for the specific variable definition. If the variable is not required continue.
+		if !def.Definitions[0].Required {
+			continue
+		}
 
-			// If there is no variable with this name defined in the Cluster add an error and continue.
-			valuesForName, found := values[name]
-			if !found {
-				allErrs = append(allErrs, field.Required(fldPath,
-					fmt.Sprintf("required variable with name %q must be defined", name))) // TODO: consider if to use "Clusters with ClusterClass %q must have a variable with name %q"
-				continue
-			}
-
-			// If there are no definition conflicts and the variable is set with an empty "DefinitionFrom" field return here.
-			// This is a valid way for users to define a required value for variables across all variable definitions.
-			if _, ok := valuesForName[emptyDefinitionFrom]; ok && !def.Conflicts {
-				continue
-			}
-
-			// If the variable is not set for the specific definitionFrom add an error.
-			if _, ok := valuesForName[def.From]; !ok {
-				allErrs = append(allErrs, field.Required(fldPath,
-					fmt.Sprintf("required variable with name %q from %q must be defined", name, def.From))) // TODO: consider if to use "Clusters with ClusterClass %q must have a variable with name %q"
-			}
+		// If there is no variable with this name defined in the Cluster add an error and continue.
+		if _, found := values[name]; !found {
+			allErrs = append(allErrs, field.Required(fldPath,
+				fmt.Sprintf("required variable %q must be set", name))) // TODO: consider if to use "Clusters with ClusterClass %q must have a variable with name %q"
+			continue
 		}
 	}
 	return allErrs

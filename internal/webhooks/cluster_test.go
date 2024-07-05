@@ -469,10 +469,11 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			},
 		},
 		{
-			name: "Add defaults for each definitionFrom if variable is defined for some definitionFrom",
+			name: "Keep one value if variable has multiple non-conflicting definitions",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
-					Name: "location",
+					Name:                "location",
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
@@ -515,7 +516,6 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						Value: apiextensionsv1.JSON{
 							Raw: []byte(`"us-west"`),
 						},
-						DefinitionFrom: "somepatch",
 					},
 				},
 			},
@@ -526,27 +526,12 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 						Value: apiextensionsv1.JSON{
 							Raw: []byte(`"us-west"`),
 						},
-						DefinitionFrom: "somepatch",
-					},
-					{
-						Name: "location",
-						Value: apiextensionsv1.JSON{
-							Raw: []byte(`"us-east"`),
-						},
-						DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-					},
-					{
-						Name: "location",
-						Value: apiextensionsv1.JSON{
-							Raw: []byte(`"us-east"`),
-						},
-						DefinitionFrom: "anotherpatch",
 					},
 				},
 			},
 		},
 		{
-			name: "set definitionFrom on defaults when variables conflict",
+			name: "Should fail if variable has conflicting definitions",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name:                "location",
@@ -587,31 +572,68 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 				).
 				Build(),
 			topology: &clusterv1.Topology{},
-			expect: &clusterv1.Topology{
+			wantErr:  true,
+			wantErrMessage: "Cluster.cluster.x-k8s.io \"cluster1\" is invalid: " +
+				"spec.topology.variables: Invalid value: \"[Name: location]\": " +
+				"variable definitions in the ClusterClass not valid: " +
+				"variable \"location\" has conflicting definitions",
+		},
+		{
+			name: "Should fail if variable is set and has conflicting definitions",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name:                "location",
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"first-region"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"another-region"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "anotherpatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+					},
+				},
+				).
+				Build(),
+			topology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
 						Name: "location",
 						Value: apiextensionsv1.JSON{
-							Raw: []byte(`"first-region"`),
+							Raw: []byte(`"us-west"`),
 						},
-						DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-					},
-					{
-						Name: "location",
-						Value: apiextensionsv1.JSON{
-							Raw: []byte(`"another-region"`),
-						},
-						DefinitionFrom: "somepatch",
-					},
-					{
-						Name: "location",
-						Value: apiextensionsv1.JSON{
-							Raw: []byte(`"us-east"`),
-						},
-						DefinitionFrom: "anotherpatch",
 					},
 				},
 			},
+			wantErr: true,
+			wantErrMessage: "Cluster.cluster.x-k8s.io \"cluster1\" is invalid: " +
+				"spec.topology.variables: Invalid value: \"[Name: location]\": " +
+				"variable definitions in the ClusterClass not valid: " +
+				"variable \"location\" has conflicting definitions",
 		},
 		// Testing validation of variables.
 		{
@@ -1953,6 +1975,74 @@ func TestClusterTopologyValidation(t *testing.T) {
 					clusterv1.ClusterTopologyMachinePoolNameLabel: "pool1",
 				}).WithVersion("v1.18.1").Build(),
 			},
+		},
+		{
+			name:      "should return error if DefinitionFrom is set on a Cluster variable",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.30.0").
+					WithVariables(clusterv1.ClusterVariable{
+						Name:           "variable-1",
+						DefinitionFrom: "patch-1",
+						Value:          apiextensionsv1.JSON{},
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error if DefinitionFrom is set on a control plane variable override",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.30.0").
+					WithControlPlaneVariables(clusterv1.ClusterVariable{
+						Name:           "variable-1",
+						DefinitionFrom: "patch-1",
+						Value:          apiextensionsv1.JSON{},
+					}).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error if DefinitionFrom is set on a MD variable override",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.30.0").
+					WithMachineDeployment(
+						builder.MachineDeploymentTopology("md1").
+							WithClass("bb").
+							WithVariables(clusterv1.ClusterVariable{
+								Name:           "variable-1",
+								DefinitionFrom: "patch-1",
+								Value:          apiextensionsv1.JSON{},
+							}).
+							Build()).
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error if DefinitionFrom is set on a MP variable override",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.30.0").
+					WithMachinePool(
+						builder.MachinePoolTopology("mp1").
+							WithClass("bb").
+							WithVariables(clusterv1.ClusterVariable{
+								Name:           "variable-1",
+								DefinitionFrom: "patch-1",
+								Value:          apiextensionsv1.JSON{},
+							}).
+							Build()).
+					Build()).
+				Build(),
 		},
 	}
 	for _, tt := range tests {

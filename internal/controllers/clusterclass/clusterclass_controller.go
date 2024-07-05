@@ -284,6 +284,21 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 		return statusVarList[i].Name < statusVarList[j].Name
 	})
 	clusterClass.Status.Variables = statusVarList
+
+	variablesWithConflict := []string{}
+	for _, v := range clusterClass.Status.Variables {
+		if v.DefinitionsConflict {
+			variablesWithConflict = append(variablesWithConflict, v.Name)
+		}
+	}
+
+	if len(variablesWithConflict) > 0 {
+		err := fmt.Errorf("the following variables have conflicting schemas: %s", strings.Join(variablesWithConflict, ","))
+		conditions.MarkFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError,
+			"VariableDiscovery failed: %s", err)
+		return errors.Wrapf(err, "failed to discover variables for ClusterClass %s", clusterClass.Name)
+	}
+
 	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 	return nil
 }

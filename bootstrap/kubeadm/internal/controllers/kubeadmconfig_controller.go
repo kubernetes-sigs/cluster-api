@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	clientcmdv1 "k8s.io/client-go/tools/clientcmd/api/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstrapsecretutil "k8s.io/cluster-bootstrap/util/secrets"
 	"k8s.io/klog/v2"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -634,6 +636,15 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 		return ctrl.Result{}, err
 	}
 
+	if discoveryFile := scope.Config.Spec.JoinConfiguration.Discovery.File; discoveryFile != nil && discoveryFile.KubeConfig != nil {
+		kubeconfig, err := r.resolveDiscoveryKubeConfig(discoveryFile)
+		if err != nil {
+			conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return ctrl.Result{}, err
+		}
+		files = append(files, *kubeconfig)
+	}
+
 	nodeInput := &cloudinit.NodeInput{
 		BaseUserData: cloudinit.BaseUserData{
 			AdditionalFiles:      files,
@@ -741,6 +752,15 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 
+	if discoveryFile := scope.Config.Spec.JoinConfiguration.Discovery.File; discoveryFile != nil && discoveryFile.KubeConfig != nil {
+		kubeconfig, err := r.resolveDiscoveryKubeConfig(discoveryFile)
+		if err != nil {
+			conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.DataSecretGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			return ctrl.Result{}, err
+		}
+		files = append(files, *kubeconfig)
+	}
+
 	controlPlaneJoinInput := &cloudinit.ControlPlaneJoinInput{
 		JoinConfiguration: joinData,
 		Certificates:      certificates,
@@ -840,6 +860,66 @@ func (r *KubeadmConfigReconciler) resolveUsers(ctx context.Context, cfg *bootstr
 	}
 
 	return collected, nil
+}
+
+func (r *KubeadmConfigReconciler) resolveDiscoveryKubeConfig(cfg *bootstrapv1.FileDiscovery) (*bootstrapv1.File, error) {
+	if cfg == nil || cfg.KubeConfig == nil {
+		return nil, errors.New("no discovery configuration file to resolve")
+	}
+	if cfg.KubeConfig.Cluster == nil {
+		return nil, errors.New("expected discovery kubeconfig cluster to not be empty")
+	}
+	cluster := clientcmdv1.Cluster{
+		Server:                   cfg.KubeConfig.Cluster.Server,
+		TLSServerName:            cfg.KubeConfig.Cluster.TLSServerName,
+		InsecureSkipTLSVerify:    cfg.KubeConfig.Cluster.InsecureSkipTLSVerify,
+		CertificateAuthorityData: cfg.KubeConfig.Cluster.CertificateAuthorityData,
+		ProxyURL:                 cfg.KubeConfig.Cluster.ProxyURL,
+	}
+	user := clientcmdv1.AuthInfo{}
+	if cfg.KubeConfig.User.AuthProvider != nil {
+		user.AuthProvider = &clientcmdv1.AuthProviderConfig{
+			Name:   cfg.KubeConfig.User.AuthProvider.Name,
+			Config: cfg.KubeConfig.User.AuthProvider.Config,
+		}
+	}
+	if cfg.KubeConfig.User.Exec != nil {
+		user.Exec = &clientcmdv1.ExecConfig{
+			Command:            cfg.KubeConfig.User.Exec.Command,
+			Args:               cfg.KubeConfig.User.Exec.Args,
+			APIVersion:         cfg.KubeConfig.User.Exec.APIVersion,
+			ProvideClusterInfo: cfg.KubeConfig.User.Exec.ProvideClusterInfo,
+			InteractiveMode:    "Never",
+		}
+		for _, env := range cfg.KubeConfig.User.Exec.Env {
+			user.Exec.Env = append(user.Exec.Env, clientcmdv1.ExecEnvVar{Name: env.Name, Value: env.Value})
+		}
+	}
+	kubeconfig := clientcmdv1.Config{
+		CurrentContext: "default",
+		Contexts: []clientcmdv1.NamedContext{
+			{
+				Name: "default",
+				Context: clientcmdv1.Context{
+					Cluster:  "default",
+					AuthInfo: "default",
+				},
+			},
+		},
+		Clusters:  []clientcmdv1.NamedCluster{{Name: "default", Cluster: cluster}},
+		AuthInfos: []clientcmdv1.NamedAuthInfo{{Name: "default", AuthInfo: user}},
+	}
+
+	b, err := yaml.Marshal(kubeconfig)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshal kubeconfig from JoinConfiguration.Discovery.File.KubeConfig")
+	}
+	return &bootstrapv1.File{
+		Path:        cfg.KubeConfigPath,
+		Owner:       "root:root",
+		Permissions: "0640",
+		Content:     string(b),
+	}, nil
 }
 
 // resolveSecretUserContent returns passwd fetched from a referenced secret object.
@@ -970,7 +1050,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// if config already contains a file discovery configuration, respect it without further validations
 	if config.Spec.JoinConfiguration.Discovery.File != nil {
-		return ctrl.Result{}, nil
+		return r.reconcileDiscoveryFile(ctx, cluster, config, certificates)
 	}
 
 	// otherwise it is necessary to ensure token discovery is properly configured
@@ -1021,6 +1101,41 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
 		log.Info("No CAs were provided. Falling back to insecure discover method by skipping CA Cert validation")
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = true
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *KubeadmConfigReconciler) reconcileDiscoveryFile(ctx context.Context, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, certificates secret.Certificates) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	cfg := config.Spec.JoinConfiguration.Discovery.File.KubeConfig
+	if cfg == nil {
+		// Nothing else to do.
+		return ctrl.Result{}, nil
+	}
+
+	if cfg.Cluster == nil {
+		cfg.Cluster = &bootstrapv1.KubeConfigCluster{}
+	}
+
+	if cfg.Cluster.Server == "" {
+		if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
+			log.V(1).Info("Waiting for Cluster Controller to set Cluster.Spec.ControlPlaneEndpoint")
+			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+		}
+		cfg.Cluster.Server = fmt.Sprintf("https://%s", cluster.Spec.ControlPlaneEndpoint.String())
+		log.V(3).Info("Altering JoinConfiguration.Discovery.File.KubeConfig.Cluster.Server", "server", cfg.Cluster.Server)
+	}
+
+	if len(cfg.Cluster.CertificateAuthorityData) == 0 {
+		clusterCA := certificates.GetByPurpose(secret.ClusterCA)
+		if clusterCA == nil || clusterCA.KeyPair == nil {
+			err := fmt.Errorf("failed to retrieve Cluster CA")
+			log.Error(err, "Unable to set Cluster CA for Discovery.File.KubeConfig")
+			return ctrl.Result{}, err
+		}
+		cfg.Cluster.CertificateAuthorityData = clusterCA.KeyPair.Cert
+		log.V(3).Info("Altering JoinConfiguration.Discovery.File.KubeConfig.Cluster.CertificateAuthorityData")
 	}
 
 	return ctrl.Result{}, nil

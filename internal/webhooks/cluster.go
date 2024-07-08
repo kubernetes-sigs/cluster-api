@@ -119,6 +119,23 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
 		}
 
+		if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil &&
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate != nil &&
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace == "" {
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace = cluster.Namespace
+		}
+
+		if cluster.Spec.Topology.Workers != nil {
+			for i := range cluster.Spec.Topology.Workers.MachineDeployments {
+				md := cluster.Spec.Topology.Workers.MachineDeployments[i]
+				if md.MachineHealthCheck != nil &&
+					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate != nil &&
+					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace == "" {
+					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace = cluster.Namespace
+				}
+			}
+		}
+
 		clusterClass, err := webhook.pollClusterClassForCluster(ctx, cluster)
 		if err != nil {
 			// If the ClusterClass can't be found or is not up to date ignore the error.

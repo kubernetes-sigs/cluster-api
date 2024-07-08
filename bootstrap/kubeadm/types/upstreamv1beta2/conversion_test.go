@@ -64,6 +64,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		dnsFuzzer,
 		initConfigurationFuzzer,
 		joinControlPlanesFuzzer,
+		bootstrapv1ControlPlaneComponentFuzzer,
+		bootstrapv1LocalEtcdFuzzer,
 		bootstrapv1InitConfigurationFuzzer,
 		bootstrapv1JoinConfigurationFuzzer,
 		bootstrapv1NodeRegistrationOptionsFuzzer,
@@ -102,6 +104,18 @@ func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 // NOTES:
 // - When fields do not exist in kubeadm v1beta2 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta2 --> cabpk v1beta1 round trip errors.
 
+func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
 func bootstrapv1InitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
@@ -124,4 +138,5 @@ func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationO
 	c.FuzzNoCustom(obj)
 
 	obj.ImagePullPolicy = ""
+	obj.ImagePullSerial = nil
 }

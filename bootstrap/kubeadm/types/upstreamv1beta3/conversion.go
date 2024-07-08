@@ -65,7 +65,24 @@ func Convert_upstreamv1beta3_JoinControlPlane_To_v1beta1_JoinControlPlane(in *Jo
 	return autoConvert_upstreamv1beta3_JoinControlPlane_To_v1beta1_JoinControlPlane(in, out, s)
 }
 
+// Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta3.
+
 func Convert_v1beta1_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
 	// JoinConfiguration.Discovery.File.KubeConfig does not exist in kubeadm because it's internal to Cluster API, dropping those info.
 	return autoConvert_v1beta1_FileDiscovery_To_upstreamv1beta3_FileDiscovery(in, out, s)
+}
+
+func Convert_v1beta1_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	// ControlPlaneComponent.ExtraEnvs does not exist in kubeadm v1beta3, dropping this info.
+	return autoConvert_v1beta1_ControlPlaneComponent_To_upstreamv1beta3_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_v1beta1_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
+	// LocalEtcd.ExtraEnvs does not exist in kubeadm v1beta3, dropping this info.
+	return autoConvert_v1beta1_LocalEtcd_To_upstreamv1beta3_LocalEtcd(in, out, s)
+}
+
+func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	// NodeRegistrationOptions.ImagePullSerial does not exist in kubeadm v1beta3, dropping this info.
+	return autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta3_NodeRegistrationOptions(in, out, s)
 }

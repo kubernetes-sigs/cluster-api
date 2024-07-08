@@ -158,6 +158,12 @@ type ControlPlaneComponent struct {
 	// ExtraVolumes is an extra set of host volumes, mounted to the control plane component.
 	// +optional
 	ExtraVolumes []HostPathMount `json:"extraVolumes,omitempty"`
+
+	// ExtraEnvs is an extra set of environment variables to pass to the control plane component.
+	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+	// This option takes effect only on Kubernetes >=1.31.0.
+	// +optional
+	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 }
 
 // APIServer holds settings necessary for API server deployments in the cluster.
@@ -192,7 +198,7 @@ type ImageMeta struct {
 	// +optional
 	ImageTag string `json:"imageTag,omitempty"`
 
-	//TODO: evaluate if we need also a ImageName based on user feedbacks
+	// TODO: evaluate if we need also a ImageName based on user feedbacks
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -260,6 +266,12 @@ type NodeRegistrationOptions struct {
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
 	// +optional
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
+
+	// ImagePullSerial specifies if image pulling performed by kubeadm must be done serially or in parallel.
+	// This option takes effect only on Kubernetes >=1.31.0.
+	// Default: true (defaulted in kubeadm)
+	// +optional
+	ImagePullSerial *bool `json:"imagePullSerial,omitempty"`
 }
 
 // MarshalJSON marshals NodeRegistrationOptions in a way that an empty slice in Taints is preserved.
@@ -281,6 +293,7 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 			KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
 			IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
 			ImagePullPolicy       string            `json:"imagePullPolicy,omitempty"`
+			ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
 		}{
 			Name:                  n.Name,
 			CRISocket:             n.CRISocket,
@@ -288,6 +301,7 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 			KubeletExtraArgs:      n.KubeletExtraArgs,
 			IgnorePreflightErrors: n.IgnorePreflightErrors,
 			ImagePullPolicy:       n.ImagePullPolicy,
+			ImagePullSerial:       n.ImagePullSerial,
 		})
 	}
 
@@ -299,6 +313,7 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 		KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
 		IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
 		ImagePullPolicy       string            `json:"imagePullPolicy,omitempty"`
+		ImagePullSerial       *bool             `json:"imagePullSerial,omitempty"`
 	}{
 		Name:                  n.Name,
 		CRISocket:             n.CRISocket,
@@ -306,6 +321,7 @@ func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
 		KubeletExtraArgs:      n.KubeletExtraArgs,
 		IgnorePreflightErrors: n.IgnorePreflightErrors,
 		ImagePullPolicy:       n.ImagePullPolicy,
+		ImagePullSerial:       n.ImagePullSerial,
 	})
 }
 
@@ -381,6 +397,12 @@ type LocalEtcd struct {
 	// when run inside a static pod.
 	// +optional
 	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
+
+	// ExtraEnvs is an extra set of environment variables to pass to the control plane component.
+	// Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+	// This option takes effect only on Kubernetes >=1.31.0.
+	// +optional
+	ExtraEnvs []EnvVar `json:"extraEnvs,omitempty"`
 
 	// ServerCertSANs sets extra Subject Alternative Names for the etcd server signing cert.
 	// +optional
@@ -734,4 +756,9 @@ type Patches struct {
 	// by referencing a secret.
 	// +optional
 	Directory string `json:"directory,omitempty"`
+}
+
+// EnvVar represents an environment variable present in a Container.
+type EnvVar struct {
+	corev1.EnvVar `json:",inline"`
 }

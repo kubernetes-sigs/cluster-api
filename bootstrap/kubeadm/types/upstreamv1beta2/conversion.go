@@ -88,18 +88,28 @@ func Convert_upstreamv1beta2_JoinControlPlane_To_v1beta1_JoinControlPlane(in *Jo
 // Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta2.
 
 func Convert_v1beta1_InitConfiguration_To_upstreamv1beta2_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
-	// InitConfiguration.SkipPhases and Patches does not exist in kubeadm v1beta2, dropping those info.
+	// InitConfiguration.SkipPhases and Patches do not exist in kubeadm v1beta2, dropping those info.
 	return autoConvert_v1beta1_InitConfiguration_To_upstreamv1beta2_InitConfiguration(in, out, s)
 }
 
 func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
-	// JoinConfiguration.SkipPhases and Patches does not exist in kubeadm v1beta2, dropping those info.
+	// JoinConfiguration.SkipPhases and Patches do not exist in kubeadm v1beta2, dropping those info.
 	return autoConvert_v1beta1_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(in, out, s)
 }
 
 func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
-	// NodeRegistrationOptions.IgnorePreflightErrors and ImagePullPolicy does not exist in kubeadm v1beta2, dropping those info.
+	// NodeRegistrationOptions.ImagePullPolicy and ImagePullSerial do not exist in kubeadm v1beta2, dropping those info.
 	return autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistrationOptions(in, out, s)
+}
+
+func Convert_v1beta1_ControlPlaneComponent_To_upstreamv1beta2_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	// ControlPlaneComponent.ExtraEnvs does not exist in kubeadm v1beta2, dropping this info.
+	return autoConvert_v1beta1_ControlPlaneComponent_To_upstreamv1beta2_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_v1beta1_LocalEtcd_To_upstreamv1beta2_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
+	// LocalEtcd.ExtraEnvs does not exist in kubeadm v1beta2, dropping this info.
+	return autoConvert_v1beta1_LocalEtcd_To_upstreamv1beta2_LocalEtcd(in, out, s)
 }
 
 func Convert_v1beta1_FileDiscovery_To_upstreamv1beta2_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {

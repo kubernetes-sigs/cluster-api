@@ -66,12 +66,9 @@ func TestFuzzyConversion(t *testing.T) {
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		clusterConfigurationFuzzer,
-		controlPlaneComponentFuzzer,
 		dnsFuzzer,
-		localEtcdFuzzer,
 		initConfigurationFuzzer,
 		joinConfigurationFuzzer,
-		nodeRegistrationOptionsFuzzer,
 		joinControlPlaneFuzzer,
 		bootstrapv1APIServerFuzzer,
 		bootstrapv1JoinConfigurationFuzzer,
@@ -91,22 +88,10 @@ func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
 	obj.CertificateValidityPeriod = nil
 }
 
-func controlPlaneComponentFuzzer(obj *ControlPlaneComponent, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	obj.ExtraEnvs = nil
-}
-
 func dnsFuzzer(obj *DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	obj.Disabled = false
-}
-
-func localEtcdFuzzer(obj *LocalEtcd, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	obj.ExtraEnvs = nil
 }
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
@@ -134,12 +119,6 @@ func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
 		}
 	}
 	obj.Timeouts = supportedTimeouts
-}
-
-func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	obj.ImagePullSerial = nil
 }
 
 func joinControlPlaneFuzzer(obj *JoinControlPlane, c fuzz.Continue) {

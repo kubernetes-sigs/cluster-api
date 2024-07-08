@@ -68,9 +68,6 @@ func Convert_upstreamv1beta4_ClusterConfiguration_To_v1beta1_ClusterConfiguratio
 }
 
 func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta1_ControlPlaneComponent(in *ControlPlaneComponent, out *bootstrapv1.ControlPlaneComponent, s apimachineryconversion.Scope) error {
-	// Following fields do not exist in CABPK v1beta1 version:
-	// - ExtraEnvs (Not supported yet)
-
 	// Following fields exists in CABPK v1beta1 but they need a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is not an issue because the CAPBK v1beta1 does not allow this use case.
 	out.ExtraArgs = convertFromArgs(in.ExtraArgs)
@@ -78,9 +75,6 @@ func Convert_upstreamv1beta4_ControlPlaneComponent_To_v1beta1_ControlPlaneCompon
 }
 
 func Convert_upstreamv1beta4_LocalEtcd_To_v1beta1_LocalEtcd(in *LocalEtcd, out *bootstrapv1.LocalEtcd, s apimachineryconversion.Scope) error {
-	// Following fields do not exist in CABPK v1beta1 version:
-	// - ExtraEnvs (Not supported yet)
-
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is not an issue because the CAPBK v1beta1 does not allow this use case.
 	out.ExtraArgs = convertFromArgs(in.ExtraArgs)
@@ -116,9 +110,6 @@ func Convert_upstreamv1beta4_JoinConfiguration_To_v1beta1_JoinConfiguration(in *
 }
 
 func Convert_upstreamv1beta4_NodeRegistrationOptions_To_v1beta1_NodeRegistrationOptions(in *NodeRegistrationOptions, out *bootstrapv1.NodeRegistrationOptions, s apimachineryconversion.Scope) error {
-	// Following fields do not exist in CABPK v1beta1 version:
-	// - ImagePullSerial (Not supported yet)
-
 	// Following fields require a custom conversions.
 	// Note: there is a potential info loss when there are two values for the same arg but this is not an issue because the CAPBK v1beta1 does not allow this use case.
 	out.KubeletExtraArgs = convertFromArgs(in.KubeletExtraArgs)

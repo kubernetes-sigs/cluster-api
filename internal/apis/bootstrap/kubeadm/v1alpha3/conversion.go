@@ -37,70 +37,77 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
-
-	dst.Spec.Files = restored.Spec.Files
-
-	dst.Spec.Users = restored.Spec.Users
-	if restored.Spec.Users != nil {
-		for i := range restored.Spec.Users {
-			if restored.Spec.Users[i].PasswdFrom != nil {
-				dst.Spec.Users[i].PasswdFrom = restored.Spec.Users[i].PasswdFrom
-			}
-		}
-	}
-
-	if restored.Spec.JoinConfiguration != nil && restored.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dst.Spec.JoinConfiguration == nil {
-			dst.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
-	}
-
-	if restored.Spec.InitConfiguration != nil && restored.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dst.Spec.InitConfiguration == nil {
-			dst.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
-	}
-
-	dst.Spec.Ignition = restored.Spec.Ignition
-	if restored.Spec.InitConfiguration != nil {
-		if dst.Spec.InitConfiguration == nil {
-			dst.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.InitConfiguration.Patches = restored.Spec.InitConfiguration.Patches
-		dst.Spec.InitConfiguration.SkipPhases = restored.Spec.InitConfiguration.SkipPhases
-	}
-	if restored.Spec.JoinConfiguration != nil {
-		if dst.Spec.JoinConfiguration == nil {
-			dst.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.JoinConfiguration.Patches = restored.Spec.JoinConfiguration.Patches
-		dst.Spec.JoinConfiguration.SkipPhases = restored.Spec.JoinConfiguration.SkipPhases
-
-		if restored.Spec.JoinConfiguration.Discovery.File != nil && restored.Spec.JoinConfiguration.Discovery.File.KubeConfig != nil {
-			if dst.Spec.JoinConfiguration.Discovery.File == nil {
-				dst.Spec.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
-			}
-			dst.Spec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.JoinConfiguration.Discovery.File.KubeConfig
-		}
-	}
-
-	if restored.Spec.JoinConfiguration != nil && restored.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
-		if dst.Spec.JoinConfiguration == nil {
-			dst.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy
-	}
-
-	if restored.Spec.InitConfiguration != nil && restored.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy != "" {
-		if dst.Spec.InitConfiguration == nil {
-			dst.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy
-	}
+	MergeRestoredKubeadmConfigSpec(&dst.Spec, &restored.Spec)
 
 	return nil
+}
+
+func MergeRestoredKubeadmConfigSpec(dst *bootstrapv1.KubeadmConfigSpec, restored *bootstrapv1.KubeadmConfigSpec) {
+	dst.Files = restored.Files
+
+	dst.Users = restored.Users
+	if restored.Users != nil {
+		for i := range restored.Users {
+			if restored.Users[i].PasswdFrom != nil {
+				dst.Users[i].PasswdFrom = restored.Users[i].PasswdFrom
+			}
+		}
+	}
+
+	dst.Ignition = restored.Ignition
+
+	if restored.ClusterConfiguration != nil {
+		if dst.ClusterConfiguration == nil {
+			dst.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
+		}
+		dst.ClusterConfiguration.APIServer.ExtraEnvs = restored.ClusterConfiguration.APIServer.ExtraEnvs
+		dst.ClusterConfiguration.ControllerManager.ExtraEnvs = restored.ClusterConfiguration.ControllerManager.ExtraEnvs
+		dst.ClusterConfiguration.Scheduler.ExtraEnvs = restored.ClusterConfiguration.Scheduler.ExtraEnvs
+
+		if restored.ClusterConfiguration.Etcd.Local != nil {
+			if dst.ClusterConfiguration.Etcd.Local == nil {
+				dst.ClusterConfiguration.Etcd.Local = &bootstrapv1.LocalEtcd{}
+			}
+			dst.ClusterConfiguration.Etcd.Local.ExtraEnvs = restored.ClusterConfiguration.Etcd.Local.ExtraEnvs
+		}
+	}
+
+	if restored.InitConfiguration != nil {
+		if dst.InitConfiguration == nil {
+			dst.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
+		dst.InitConfiguration.Patches = restored.InitConfiguration.Patches
+		dst.InitConfiguration.SkipPhases = restored.InitConfiguration.SkipPhases
+
+		// Important! whenever adding fields to NodeRegistration, same fields must be added to hub.NodeRegistration's custom serialization func
+		// otherwise those field won't exist in restored.
+
+		dst.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.InitConfiguration.NodeRegistration.IgnorePreflightErrors
+		dst.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.InitConfiguration.NodeRegistration.ImagePullPolicy
+		dst.InitConfiguration.NodeRegistration.ImagePullSerial = restored.InitConfiguration.NodeRegistration.ImagePullSerial
+	}
+
+	if restored.JoinConfiguration != nil {
+		if dst.JoinConfiguration == nil {
+			dst.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		dst.JoinConfiguration.Patches = restored.JoinConfiguration.Patches
+		dst.JoinConfiguration.SkipPhases = restored.JoinConfiguration.SkipPhases
+
+		if restored.JoinConfiguration.Discovery.File != nil && restored.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			if dst.JoinConfiguration.Discovery.File == nil {
+				dst.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
+			}
+			dst.JoinConfiguration.Discovery.File.KubeConfig = restored.JoinConfiguration.Discovery.File.KubeConfig
+		}
+
+		// Important! whenever adding fields to NodeRegistration, same fields must be added to hub.NodeRegistration's custom serialization func
+		// otherwise those field won't exist in restored.
+
+		dst.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
+		dst.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.JoinConfiguration.NodeRegistration.ImagePullPolicy
+		dst.JoinConfiguration.NodeRegistration.ImagePullSerial = restored.JoinConfiguration.NodeRegistration.ImagePullSerial
+	}
 }
 
 func (dst *KubeadmConfig) ConvertFrom(srcRaw conversion.Hub) error {
@@ -143,69 +150,9 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
-	dst.Spec.Template.Spec.Files = restored.Spec.Template.Spec.Files
-
-	dst.Spec.Template.Spec.Users = restored.Spec.Template.Spec.Users
-	if restored.Spec.Template.Spec.Users != nil {
-		for i := range restored.Spec.Template.Spec.Users {
-			if restored.Spec.Template.Spec.Users[i].PasswdFrom != nil {
-				dst.Spec.Template.Spec.Users[i].PasswdFrom = restored.Spec.Template.Spec.Users[i].PasswdFrom
-			}
-		}
-	}
-
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
 
-	if restored.Spec.Template.Spec.JoinConfiguration != nil && restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dst.Spec.Template.Spec.JoinConfiguration == nil {
-			dst.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.Template.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
-	}
-
-	if restored.Spec.Template.Spec.InitConfiguration != nil && restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dst.Spec.Template.Spec.InitConfiguration == nil {
-			dst.Spec.Template.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.Template.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
-	}
-
-	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
-	if restored.Spec.Template.Spec.InitConfiguration != nil {
-		if dst.Spec.Template.Spec.InitConfiguration == nil {
-			dst.Spec.Template.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.Template.Spec.InitConfiguration.Patches = restored.Spec.Template.Spec.InitConfiguration.Patches
-		dst.Spec.Template.Spec.InitConfiguration.SkipPhases = restored.Spec.Template.Spec.InitConfiguration.SkipPhases
-	}
-	if restored.Spec.Template.Spec.JoinConfiguration != nil {
-		if dst.Spec.Template.Spec.JoinConfiguration == nil {
-			dst.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.Template.Spec.JoinConfiguration.Patches = restored.Spec.Template.Spec.JoinConfiguration.Patches
-		dst.Spec.Template.Spec.JoinConfiguration.SkipPhases = restored.Spec.Template.Spec.JoinConfiguration.SkipPhases
-
-		if restored.Spec.Template.Spec.JoinConfiguration.Discovery.File != nil && restored.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig != nil {
-			if dst.Spec.Template.Spec.JoinConfiguration.Discovery.File == nil {
-				dst.Spec.Template.Spec.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
-			}
-			dst.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig
-		}
-	}
-
-	if restored.Spec.Template.Spec.JoinConfiguration != nil && restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
-		if dst.Spec.Template.Spec.JoinConfiguration == nil {
-			dst.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy
-	}
-
-	if restored.Spec.Template.Spec.InitConfiguration != nil && restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy != "" {
-		if dst.Spec.Template.Spec.InitConfiguration == nil {
-			dst.Spec.Template.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.Template.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy
-	}
+	MergeRestoredKubeadmConfigSpec(&dst.Spec.Template.Spec, &restored.Spec.Template.Spec)
 
 	return nil
 }

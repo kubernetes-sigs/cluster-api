@@ -407,7 +407,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 			ccControlPlaneTemplateMachineTemplateMetadata.Labels,
 		),
 	))
-	g.Expect(controlPlaneMachineTemplateMetadata.Annotations).To(BeEquivalentTo(
+	g.Expect(union(controlPlaneMachineTemplateMetadata.Annotations)).To(BeEquivalentTo(
 		union(
 			cluster.Spec.Topology.ControlPlane.Metadata.Annotations,
 			clusterClass.Spec.ControlPlane.Metadata.Annotations,
@@ -466,8 +466,8 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 			union(
 				machineMetadata.Annotations,
 			).without(g, controlplanev1.KubeadmClusterConfigurationAnnotation),
-		).To(BeEquivalentTo(
-			controlPlaneMachineTemplateMetadata.Annotations,
+		).To(BeEquivalentTo(union(
+			controlPlaneMachineTemplateMetadata.Annotations),
 		))
 
 		// ControlPlane Machine InfrastructureMachine.metadata
@@ -516,8 +516,8 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 			union(
 				bootstrapConfigMetadata.Annotations,
 			).without(g, clusterv1.MachineCertificatesExpiryDateAnnotation),
-		).To(BeEquivalentTo(
-			controlPlaneMachineTemplateMetadata.Annotations,
+		).To(BeEquivalentTo(union(
+			controlPlaneMachineTemplateMetadata.Annotations),
 		))
 
 		// ControlPlane Machine Node.metadata
@@ -580,7 +580,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 				mdClass.Template.Metadata.Labels,
 			),
 		))
-		g.Expect(machineDeployment.Spec.Template.Annotations).To(BeEquivalentTo(
+		g.Expect(union(machineDeployment.Spec.Template.Annotations)).To(BeEquivalentTo(
 			union(
 				mdTopology.Metadata.Annotations,
 				mdClass.Template.Metadata.Annotations,
@@ -693,7 +693,7 @@ func assertMachinePools(g Gomega, clusterClassObjects clusterClassObjects, clust
 				mpClass.Template.Metadata.Labels,
 			),
 		))
-		g.Expect(machinePool.Spec.Template.Annotations).To(BeEquivalentTo(
+		g.Expect(union(machinePool.Spec.Template.Annotations)).To(BeEquivalentTo(
 			union(
 				mpTopology.Metadata.Annotations,
 				mpClass.Template.Metadata.Annotations,

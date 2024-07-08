@@ -132,6 +132,15 @@ func (c *KubeadmConfigSpec) Default() {
 	if c.JoinConfiguration != nil && c.JoinConfiguration.NodeRegistration.ImagePullPolicy == "" {
 		c.JoinConfiguration.NodeRegistration.ImagePullPolicy = "IfNotPresent"
 	}
+	if c.JoinConfiguration != nil && c.JoinConfiguration.Discovery.File != nil {
+		if kfg := c.JoinConfiguration.Discovery.File.KubeConfig; kfg != nil {
+			if kfg.User.Exec != nil {
+				if kfg.User.Exec.APIVersion == "" {
+					kfg.User.Exec.APIVersion = "client.authentication.k8s.io/v1"
+				}
+			}
+		}
+	}
 }
 
 // Validate ensures the KubeadmConfigSpec is valid.
@@ -141,6 +150,33 @@ func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
 	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
 	allErrs = append(allErrs, c.validateUsers(pathPrefix)...)
 	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
+
+	// Validate JoinConfiguration.
+	if c.JoinConfiguration != nil {
+		if c.JoinConfiguration.Discovery.File != nil {
+			if kfg := c.JoinConfiguration.Discovery.File.KubeConfig; kfg != nil {
+				userPath := pathPrefix.Child("joinConfiguration", "discovery", "file", "kubeconfig", "user")
+				if kfg.User.AuthProvider == nil && kfg.User.Exec == nil {
+					allErrs = append(allErrs,
+						field.Invalid(
+							userPath,
+							kfg.User,
+							"at least one of authProvider or exec must be defined",
+						),
+					)
+				}
+				if kfg.User.AuthProvider != nil && kfg.User.Exec != nil {
+					allErrs = append(allErrs,
+						field.Invalid(
+							userPath,
+							kfg.User,
+							"either authProvider or exec must be defined",
+						),
+					)
+				}
+			}
+		}
+	}
 
 	return allErrs
 }

@@ -65,6 +65,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		initConfigurationFuzzer,
 		joinConfigurationFuzzer,
+		bootstrapv1JoinConfigurationFuzzer,
 		nodeRegistrationOptionsFuzzer,
 		joinControlPlanesFuzzer,
 	}
@@ -85,6 +86,14 @@ func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
 	obj.SkipPhases = nil
+}
+
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
 }
 
 func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {

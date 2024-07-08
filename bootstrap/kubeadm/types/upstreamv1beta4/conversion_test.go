@@ -74,6 +74,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		nodeRegistrationOptionsFuzzer,
 		joinControlPlaneFuzzer,
 		bootstrapv1APIServerFuzzer,
+		bootstrapv1JoinConfigurationFuzzer,
 	}
 }
 
@@ -155,6 +156,14 @@ func bootstrapv1APIServerFuzzer(obj *bootstrapv1.APIServer, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	obj.TimeoutForControlPlane = nil
+}
+
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
 }
 
 func TestTimeoutForControlPlaneMigration(t *testing.T) {

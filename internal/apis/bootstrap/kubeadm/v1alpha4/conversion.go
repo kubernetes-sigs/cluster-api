@@ -62,6 +62,13 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.JoinConfiguration.Patches = restored.Spec.JoinConfiguration.Patches
 		dst.Spec.JoinConfiguration.SkipPhases = restored.Spec.JoinConfiguration.SkipPhases
+
+		if restored.Spec.JoinConfiguration.Discovery.File != nil && restored.Spec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			if dst.Spec.JoinConfiguration.Discovery.File == nil {
+				dst.Spec.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
+			}
+			dst.Spec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.JoinConfiguration.Discovery.File.KubeConfig
+		}
 	}
 
 	if restored.Spec.JoinConfiguration != nil && restored.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
@@ -143,6 +150,13 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.Template.Spec.JoinConfiguration.Patches = restored.Spec.Template.Spec.JoinConfiguration.Patches
 		dst.Spec.Template.Spec.JoinConfiguration.SkipPhases = restored.Spec.Template.Spec.JoinConfiguration.SkipPhases
+
+		if restored.Spec.Template.Spec.JoinConfiguration.Discovery.File != nil && restored.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig != nil {
+			if dst.Spec.Template.Spec.JoinConfiguration.Discovery.File == nil {
+				dst.Spec.Template.Spec.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
+			}
+			dst.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.Template.Spec.JoinConfiguration.Discovery.File.KubeConfig
+		}
 	}
 
 	if restored.Spec.Template.Spec.JoinConfiguration != nil && restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
@@ -219,4 +233,9 @@ func Convert_v1beta1_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions
 func Convert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha4_KubeadmConfigTemplateResource(in *bootstrapv1.KubeadmConfigTemplateResource, out *KubeadmConfigTemplateResource, s apiconversion.Scope) error {
 	// KubeadmConfigTemplateResource.metadata does not exist in kubeadm v1alpha4.
 	return autoConvert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha4_KubeadmConfigTemplateResource(in, out, s)
+}
+
+func Convert_v1beta1_FileDiscovery_To_v1alpha4_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apiconversion.Scope) error {
+	// JoinConfiguration.Discovery.File.KubeConfig does not exist in v1alpha4 APIs.
+	return autoConvert_v1beta1_FileDiscovery_To_v1alpha4_FileDiscovery(in, out, s)
 }

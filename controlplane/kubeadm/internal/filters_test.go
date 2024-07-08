@@ -540,7 +540,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 +       Name:      "A new name",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       LocalAPIEndpoint: {},
       SkipPhases:       nil,
@@ -665,7 +665,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 +       Name:      "A new name",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       CACertPath: "",
       Discovery:  {},
@@ -912,7 +912,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 +       Name:      "foo",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       LocalAPIEndpoint: {},
       SkipPhases:       nil,
@@ -1037,7 +1037,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 +       Name:      "foo",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       CACertPath: "",
       Discovery:  {},

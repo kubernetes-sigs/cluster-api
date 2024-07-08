@@ -3315,6 +3315,141 @@ spec:
                               File is used to specify a file or URL to a kubeconfig file from which to load cluster information
                               BootstrapToken and File are mutually exclusive
                             properties:
+                              kubeConfig:
+                                description: |-
+                                  KubeConfig is used (optionally) to generate a KubeConfig based on the KubeadmConfig's information.
+                                  The file is generated at the path specified in KubeConfigPath.
+
+
+                                  Host address (server field) information is automatically populated based on the Cluster's ControlPlaneEndpoint.
+                                  Certificate Authority (certificate-authority-data field) is gathered from the cluster's CA secret.
+                                properties:
+                                  cluster:
+                                    description: |-
+                                      Cluster contains information about how to communicate with the kubernetes cluster.
+
+
+                                      By default the following fields are automatically populated:
+                                      - Server with the Cluster's ControlPlaneEndpoint.
+                                      - CertificateAuthorityData with the Cluster's CA certificate.
+                                    properties:
+                                      certificateAuthorityData:
+                                        description: |-
+                                          CertificateAuthorityData contains PEM-encoded certificate authority certificates.
+
+
+                                          Defaults to the Cluster's CA certificate if empty.
+                                        format: byte
+                                        type: string
+                                      insecureSkipTLSVerify:
+                                        description: InsecureSkipTLSVerify skips the
+                                          validity check for the server's certificate.
+                                          This will make your HTTPS connections insecure.
+                                        type: boolean
+                                      proxyURL:
+                                        description: |-
+                                          ProxyURL is the URL to the proxy to be used for all requests made by this
+                                          client. URLs with "http", "https", and "socks5" schemes are supported.  If
+                                          this configuration is not provided or the empty string, the client
+                                          attempts to construct a proxy configuration from http_proxy and
+                                          https_proxy environment variables. If these environment variables are not
+                                          set, the client does not attempt to proxy requests.
+
+
+                                          socks5 proxying does not currently support spdy streaming endpoints (exec,
+                                          attach, port forward).
+                                        type: string
+                                      server:
+                                        description: |-
+                                          Server is the address of the kubernetes cluster (https://hostname:port).
+
+
+                                          Defaults to https:// + Cluster.Spec.ControlPlaneEndpoint.
+                                        type: string
+                                      tlsServerName:
+                                        description: TLSServerName is used to check
+                                          server certificate. If TLSServerName is
+                                          empty, the hostname used to contact the
+                                          server is used.
+                                        type: string
+                                    type: object
+                                  user:
+                                    description: |-
+                                      User contains information that describes identity information.
+                                      This is used to tell the kubernetes cluster who you are.
+                                    properties:
+                                      authProvider:
+                                        description: AuthProvider specifies a custom
+                                          authentication plugin for the kubernetes
+                                          cluster.
+                                        properties:
+                                          config:
+                                            additionalProperties:
+                                              type: string
+                                            description: Config holds the parameters
+                                              for the authentication plugin.
+                                            type: object
+                                          name:
+                                            description: Name is the name of the authentication
+                                              plugin.
+                                            type: string
+                                        required:
+                                        - name
+                                        type: object
+                                      exec:
+                                        description: Exec specifies a custom exec-based
+                                          authentication plugin for the kubernetes
+                                          cluster.
+                                        properties:
+                                          apiVersion:
+                                            description: |-
+                                              Preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                              the same encoding version as the input.
+                                              Defaults to client.authentication.k8s.io/v1 if not set.
+                                            type: string
+                                          args:
+                                            description: Arguments to pass to the
+                                              command when executing it.
+                                            items:
+                                              type: string
+                                            type: array
+                                          command:
+                                            description: Command to execute.
+                                            type: string
+                                          env:
+                                            description: |-
+                                              Env defines additional environment variables to expose to the process. These
+                                              are unioned with the host's environment, as well as variables client-go uses
+                                              to pass argument to the plugin.
+                                            items:
+                                              description: |-
+                                                KubeConfigAuthExecEnv is used for setting environment variables when executing an exec-based
+                                                credential plugin.
+                                              properties:
+                                                name:
+                                                  type: string
+                                                value:
+                                                  type: string
+                                              required:
+                                              - name
+                                              - value
+                                              type: object
+                                            type: array
+                                          provideClusterInfo:
+                                            description: |-
+                                              ProvideClusterInfo determines whether or not to provide cluster information,
+                                              which could potentially contain very large CA data, to this exec plugin as a
+                                              part of the KUBERNETES_EXEC_INFO environment variable. By default, it is set
+                                              to false. Package k8s.io/client-go/tools/auth/exec provides helper methods for
+                                              reading this environment variable.
+                                            type: boolean
+                                        required:
+                                        - command
+                                        type: object
+                                    type: object
+                                required:
+                                - user
+                                type: object
                               kubeConfigPath:
                                 description: KubeConfigPath is used to specify the
                                   actual file path or URL to the kubeconfig file from

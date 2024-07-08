@@ -114,6 +114,10 @@ func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fu
 
 	obj.Patches = nil
 	obj.SkipPhases = nil
+
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
 }
 
 func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {

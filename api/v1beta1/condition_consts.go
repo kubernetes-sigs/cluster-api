@@ -24,9 +24,6 @@ const (
 	ReadyCondition ConditionType = "Ready"
 
 	// PausedCondition defines the Paused condition type that summarizes the operational state of a Cluster API object.
-
-	// TODO: I've noticed we have controller specific conditions. I'm not sure if
-	// I want to have a shared condition, or many controller specific conditions. 🤔
 	PausedCondition ConditionType = "Paused"
 )
 

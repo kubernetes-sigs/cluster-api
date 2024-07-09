@@ -2643,8 +2643,7 @@ func TestPauseConditionReconcile(t *testing.T) {
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(env.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
 
-	// The cluster starts paused, so the machine machine should have a Paused:
-	// true condition
+	// Cluster starts paused, so the machine should have a Paused: true condition
 	g.Eventually(func() bool {
 		if err := env.Get(ctx, key, machine); err != nil {
 			return false

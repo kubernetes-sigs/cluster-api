@@ -2378,7 +2378,6 @@ func TestReconcilePausedCondition(t *testing.T) {
 		// The condition is set to true
 		return conditions.IsTrue(kcp, clusterv1.PausedCondition)
 	}, timeout).Should(BeTrue())
-
 }
 
 // test utils.

@@ -168,6 +168,8 @@ func ClusterUnpaused(logger logr.Logger) predicate.Funcs {
 	return Any(log, ClusterCreateNotPaused(log), ClusterUpdateUnpaused(log))
 }
 
+// ClusterCreateUpdateEvent returns a predicate that returns true on any cluster creation event, or any update event where the cluster is paused or unpaused. This is to allow updating of paused conditions on CAPI objects.
+// TODO: Look and see if there's a better way to do this. I'm pretty sure there is.
 func ClusterCreateUpdateEvent(logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
@@ -203,7 +205,8 @@ func ClusterCreateUpdateEvent(logger logr.Logger) predicate.Funcs {
 				return false
 			}
 			log = log.WithValues("Cluster", klog.KObj(c))
-
+			log.V(4).Info(`Cluster created, allowing further processing regardless of
+			.spec.paused to update conditions`)
 			return true
 		},
 		DeleteFunc:  func(event.DeleteEvent) bool { return false },

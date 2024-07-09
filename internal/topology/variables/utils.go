@@ -37,7 +37,7 @@ func newValuesIndex(fldPath *field.Path, values []clusterv1.ClusterVariable) (ma
 	for _, value := range values {
 		// Check that the variable has DefinitionFrom not set.
 		if value.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
-			errs = append(errs, field.Invalid(fldPath.Key(value.Name), string(value.Value.Raw), fmt.Sprintf("variable %q has DefinitionFrom set", value.Name)))
+			errs = append(errs, field.Invalid(fldPath.Key(value.Name), string(value.Value.Raw), fmt.Sprintf("variable %q has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion", value.Name)))
 		}
 
 		// Check that the variable has not been defined more than once.

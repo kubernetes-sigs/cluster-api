@@ -268,7 +268,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		{
 			name: "Fail if DefinitionFrom not empty.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set",
+				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
 					"spec.topology.variables[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
@@ -338,7 +338,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		{
 			name: "Fail if DefinitionFrom not empty and value is set twice.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"2\": variable \"cpu\" has DefinitionFrom set",
+				invalid("Invalid value: \"2\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
 					"spec.topology.variables[cpu]"),
 				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
 					"spec.topology.variables[cpu]"),
@@ -2183,7 +2183,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 		{
 			name: "Fail if value DefinitionFrom is not empty",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set",
+				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
 					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{

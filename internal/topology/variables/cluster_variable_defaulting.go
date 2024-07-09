@@ -56,7 +56,7 @@ func defaultClusterVariables(values []clusterv1.ClusterVariable, definitions []c
 		return nil, append(allErrs, err...)
 	}
 
-	// Get a deterministically ordered list of all variables defined in both the Cluster and the ClusterClass.
+	// Get a deterministically ordered list of all variables set in the Cluster and defined the ClusterClass.
 	// Note: If the order is not deterministic variables would be continuously rewritten to the Cluster.
 	allVariables := getAllVariables(values, valuesIndex, definitions)
 
@@ -172,7 +172,11 @@ func defaultValue(currentValue *clusterv1.ClusterVariable, definition *clusterv1
 	return v, nil
 }
 
-// getAllVariables returns a correctly ordered list of all variables defined in the ClusterClass and the Cluster.
+// getAllVariables returns a deterministically ordered list of all variables set in the Cluster and defined the ClusterClass.
+// Ordered means that the list will first contain the existing variable values from the Cluster and
+// then we will add variables from the ClusterClass (only if they don't exist already on the Cluster).
+// This way if we run repeatedly through variable defaulting the order of the variables in Cluster.spec.topology doesn't change.
+// If the order would change, we would be continuously writing the Cluster object (this code is also executed in the Cluster topology controller).
 func getAllVariables(values []clusterv1.ClusterVariable, valuesIndex map[string]*clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable) []clusterv1.ClusterVariable {
 	// allVariables is used to get a full correctly ordered list of variables.
 	allVariables := []clusterv1.ClusterVariable{}

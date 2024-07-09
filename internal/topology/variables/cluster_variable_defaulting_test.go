@@ -495,7 +495,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 		{
 			name: "Error if a value is set with non-empty definitionFrom.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"2\": variable \"cpu\" has DefinitionFrom set",
+				invalid("Invalid value: \"2\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
 					"spec.topology.variables[cpu]"),
 				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
 					"spec.topology.variables[cpu]"),

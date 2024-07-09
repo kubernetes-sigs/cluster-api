@@ -75,9 +75,17 @@ func (webhook *ClusterClass) Default(_ context.Context, obj runtime.Object) erro
 		defaultNamespace(in.Spec.ControlPlane.MachineInfrastructure.Ref, in.Namespace)
 	}
 
+	if in.Spec.ControlPlane.MachineHealthCheck != nil {
+		defaultNamespace(in.Spec.ControlPlane.MachineHealthCheck.RemediationTemplate, in.Namespace)
+	}
+
 	for i := range in.Spec.Workers.MachineDeployments {
 		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref, in.Namespace)
 		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref, in.Namespace)
+
+		if in.Spec.Workers.MachineDeployments[i].MachineHealthCheck != nil {
+			defaultNamespace(in.Spec.Workers.MachineDeployments[i].MachineHealthCheck.RemediationTemplate, in.Namespace)
+		}
 	}
 
 	for i := range in.Spec.Workers.MachinePools {

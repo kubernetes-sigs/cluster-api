@@ -65,12 +65,18 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 		WithControlPlaneInfrastructureMachineTemplate(
 			builder.InfrastructureMachineTemplate("", "cpInfra1").
 				Build()).
+		WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
+			RemediationTemplate: &corev1.ObjectReference{},
+		}).
 		WithWorkerMachineDeploymentClasses(
 			*builder.MachineDeploymentClass("aa").
 				WithInfrastructureTemplate(
 					builder.InfrastructureMachineTemplate("", "infra1").Build()).
 				WithBootstrapTemplate(
 					builder.BootstrapTemplate("", "bootstrap1").Build()).
+				WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
+					RemediationTemplate: &corev1.ObjectReference{},
+				}).
 				Build()).
 		WithWorkerMachinePoolClasses(
 			*builder.MachinePoolClass("aa").
@@ -97,9 +103,11 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 	g.Expect(in.Spec.Infrastructure.Ref.Namespace).To(Equal(namespace))
 	g.Expect(in.Spec.ControlPlane.Ref.Namespace).To(Equal(namespace))
 	g.Expect(in.Spec.ControlPlane.MachineInfrastructure.Ref.Namespace).To(Equal(namespace))
+	g.Expect(in.Spec.ControlPlane.MachineHealthCheck.RemediationTemplate.Namespace).To(Equal(namespace))
 	for i := range in.Spec.Workers.MachineDeployments {
 		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref.Namespace).To(Equal(namespace))
 		g.Expect(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref.Namespace).To(Equal(namespace))
+		g.Expect(in.Spec.Workers.MachineDeployments[i].MachineHealthCheck.RemediationTemplate.Namespace).To(Equal(namespace))
 	}
 	for i := range in.Spec.Workers.MachinePools {
 		g.Expect(in.Spec.Workers.MachinePools[i].Template.Bootstrap.Ref.Namespace).To(Equal(namespace))

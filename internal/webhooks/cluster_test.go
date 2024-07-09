@@ -68,6 +68,57 @@ func TestClusterDefaultNamespaces(t *testing.T) {
 	g.Expect(c.Spec.ControlPlaneRef.Namespace).To(Equal(c.Namespace))
 }
 
+func TestClusterTopologyDefaultNamespaces(t *testing.T) {
+	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to set Cluster.Topologies.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	g := NewWithT(t)
+
+	c := builder.Cluster("fooboo", "cluster1").
+		WithTopology(builder.ClusterTopology().
+			WithClass("foo").
+			WithVersion("v1.19.1").
+			WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+				MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+					RemediationTemplate: &corev1.ObjectReference{},
+				},
+			}).
+			WithMachineDeployment(
+				builder.MachineDeploymentTopology("md1").
+					WithClass("aa").
+					WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+						MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+							RemediationTemplate: &corev1.ObjectReference{},
+						},
+					}).
+					Build()).
+			Build()).
+		Build()
+
+	clusterClass := builder.ClusterClass("fooboo", "foo").
+		WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+		WithWorkerMachineDeploymentClasses(*builder.MachineDeploymentClass("aa").Build()).
+		Build()
+	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
+	// Sets up the fakeClient for the test case. This is required because the test uses a Managed Topology.
+	fakeClient := fake.NewClientBuilder().
+		WithObjects(clusterClass).
+		WithScheme(fakeScheme).
+		Build()
+
+	// Create the webhook and add the fakeClient as its client.
+	webhook := &Cluster{Client: fakeClient}
+	t.Run("for Cluster", util.CustomDefaultValidateTest(ctx, c, webhook))
+
+	g.Expect(webhook.Default(ctx, c)).To(Succeed())
+
+	g.Expect(c.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace).To(Equal(c.Namespace))
+	for i := range c.Spec.Topology.Workers.MachineDeployments {
+		g.Expect(c.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace).To(Equal(c.Namespace))
+	}
+}
+
 // TestClusterDefaultAndValidateVariables cases where cluster.spec.topology.class is altered.
 func TestClusterDefaultAndValidateVariables(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()

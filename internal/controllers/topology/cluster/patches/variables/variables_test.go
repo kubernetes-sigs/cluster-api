@@ -445,6 +445,8 @@ func TestControlPlane(t *testing.T) {
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithReplicas(3).
 				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
+				WithAnnotations(map[string]string{"fizz": "buzz"}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -460,6 +462,7 @@ func TestControlPlane(t *testing.T) {
 					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
 						"name":"controlPlane1",
 						"replicas":3
 					}}`),
@@ -503,6 +506,7 @@ func TestControlPlane(t *testing.T) {
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithReplicas(3).
 				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -518,6 +522,7 @@ func TestControlPlane(t *testing.T) {
 					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}},
 						"name":"controlPlane1",
 						"replicas":3
 					}}`),
@@ -684,6 +689,8 @@ func TestMachineDeployment(t *testing.T) {
 			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
 				WithReplicas(3).
 				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
+				WithAnnotations(map[string]string{"fizz": "buzz"}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -699,6 +706,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
 						"class": "md-class",
 						"name": "md1",
 						"topologyName": "md-topology",
@@ -1051,6 +1059,8 @@ func TestMachinePool(t *testing.T) {
 			mp: builder.MachinePool(metav1.NamespaceDefault, "mp1").
 				WithReplicas(3).
 				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
+				WithAnnotations(map[string]string{"fizz": "buzz"}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -1066,6 +1076,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
 						"class": "mp-class",
 						"name": "mp1",
 						"topologyName": "mp-topology",

@@ -129,6 +129,12 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 		}
 		builtin.ControlPlane.Replicas = replicas
 	}
+	if cp.GetLabels() != nil || cp.GetAnnotations() != nil {
+		builtin.ControlPlane.Metadata = &clusterv1.ObjectMeta{
+			Annotations: cp.GetAnnotations(),
+			Labels:      cp.GetLabels(),
+		}
+	}
 
 	version, err := contract.ControlPlane().Version().Get(cp)
 	if err != nil {
@@ -182,6 +188,12 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 	if md.Spec.Replicas != nil {
 		builtin.MachineDeployment.Replicas = ptr.To[int64](int64(*md.Spec.Replicas))
 	}
+	if md.Labels != nil || md.Annotations != nil {
+		builtin.MachineDeployment.Metadata = &clusterv1.ObjectMeta{
+			Annotations: md.Annotations,
+			Labels:      md.Labels,
+		}
+	}
 
 	if mdBootstrapTemplate != nil {
 		builtin.MachineDeployment.Bootstrap = &runtimehooksv1.MachineBootstrapBuiltins{
@@ -234,6 +246,12 @@ func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *expv1.MachinePoo
 	}
 	if mp.Spec.Replicas != nil {
 		builtin.MachinePool.Replicas = ptr.To[int64](int64(*mp.Spec.Replicas))
+	}
+	if mp.Labels != nil || mp.Annotations != nil {
+		builtin.MachinePool.Metadata = &clusterv1.ObjectMeta{
+			Annotations: mp.Annotations,
+			Labels:      mp.Labels,
+		}
 	}
 
 	if mpBootstrapObject != nil {

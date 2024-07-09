@@ -1451,6 +1451,18 @@ func (c *TestControlPlaneBuilder) WithVersion(version string) *TestControlPlaneB
 	return c
 }
 
+// WithLabels adds the passed labels to the ControlPlaneBuilder.
+func (c *ControlPlaneBuilder) WithLabels(labels map[string]string) *ControlPlaneBuilder {
+	c.obj.SetLabels(labels)
+	return c
+}
+
+// WithAnnotations adds the passed annotations to the ControlPlaneBuilder.
+func (c *ControlPlaneBuilder) WithAnnotations(annotations map[string]string) *ControlPlaneBuilder {
+	c.obj.SetAnnotations(annotations)
+	return c
+}
+
 // WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
 // to the value of the spec field.
 //
@@ -1522,6 +1534,7 @@ type MachinePoolBuilder struct {
 	clusterName     string
 	replicas        *int32
 	labels          map[string]string
+	annotations     map[string]string
 	status          *expv1.MachinePoolStatus
 	minReadySeconds *int32
 }
@@ -1549,6 +1562,12 @@ func (m *MachinePoolBuilder) WithInfrastructure(ref *unstructured.Unstructured) 
 // WithLabels adds the given labels to the MachinePoolBuilder.
 func (m *MachinePoolBuilder) WithLabels(labels map[string]string) *MachinePoolBuilder {
 	m.labels = labels
+	return m
+}
+
+// WithAnnotations adds the given annotations to the MachinePoolBuilder.
+func (m *MachinePoolBuilder) WithAnnotations(annotations map[string]string) *MachinePoolBuilder {
+	m.annotations = annotations
 	return m
 }
 
@@ -1590,9 +1609,10 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 			APIVersion: expv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.name,
-			Namespace: m.namespace,
-			Labels:    m.labels,
+			Name:        m.name,
+			Namespace:   m.namespace,
+			Labels:      m.labels,
+			Annotations: m.annotations,
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName:     m.clusterName,
@@ -1630,6 +1650,7 @@ type MachineDeploymentBuilder struct {
 	replicas               *int32
 	generation             *int64
 	labels                 map[string]string
+	annotations            map[string]string
 	status                 *clusterv1.MachineDeploymentStatus
 	minReadySeconds        *int32
 }
@@ -1672,6 +1693,12 @@ func (m *MachineDeploymentBuilder) WithLabels(labels map[string]string) *Machine
 	return m
 }
 
+// WithAnnotations adds the given annotations to the MachineDeploymentBuilder.
+func (m *MachineDeploymentBuilder) WithAnnotations(annotations map[string]string) *MachineDeploymentBuilder {
+	m.annotations = annotations
+	return m
+}
+
 // WithVersion sets the passed version on the machine deployment spec.
 func (m *MachineDeploymentBuilder) WithVersion(version string) *MachineDeploymentBuilder {
 	m.version = &version
@@ -1710,9 +1737,10 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.name,
-			Namespace: m.namespace,
-			Labels:    m.labels,
+			Name:        m.name,
+			Namespace:   m.namespace,
+			Labels:      m.labels,
+			Annotations: m.annotations,
 		},
 	}
 	if m.generation != nil {

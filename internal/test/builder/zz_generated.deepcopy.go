@@ -445,6 +445,13 @@ func (in *MachineDeploymentBuilder) DeepCopyInto(out *MachineDeploymentBuilder) 
 			(*out)[key] = val
 		}
 	}
+	if in.annotations != nil {
+		in, out := &in.annotations, &out.annotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.status != nil {
 		in, out := &in.status, &out.status
 		*out = new(v1beta1.MachineDeploymentStatus)
@@ -632,6 +639,13 @@ func (in *MachinePoolBuilder) DeepCopyInto(out *MachinePoolBuilder) {
 	}
 	if in.labels != nil {
 		in, out := &in.labels, &out.labels
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
+	if in.annotations != nil {
+		in, out := &in.annotations, &out.annotations
 		*out = make(map[string]string, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val

@@ -1139,7 +1139,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
-							Metadata: clusterv1.ObjectMeta{},
+							Metadata: clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}, Annotations: map[string]string{"fizz": "buzz"}},
 							Class:    "default-worker",
 							Name:     "default-worker-topo1",
 							Variables: &clusterv1.MachineDeploymentVariables{
@@ -1161,7 +1161,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					},
 					MachinePools: []clusterv1.MachinePoolTopology{
 						{
-							Metadata: clusterv1.ObjectMeta{},
+							Metadata: clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}, Annotations: map[string]string{"fizz": "buzz"}},
 							Class:    "default-mp-worker",
 							Name:     "default-mp-worker-topo1",
 							Variables: &clusterv1.MachinePoolVariables{

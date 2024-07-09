@@ -16,7 +16,11 @@ limitations under the License.
 
 package v1alpha1
 
-import "k8s.io/apimachinery/pkg/types"
+import (
+	"k8s.io/apimachinery/pkg/types"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
 
 // BuiltinsName is the name of the builtin variable.
 const BuiltinsName = "builtin"
@@ -81,6 +85,9 @@ type ControlPlaneBuiltins struct {
 	// being orchestrated.
 	Version string `json:"version,omitempty"`
 
+	// Metadata is the metadata set on the ControlPlane object.
+	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
+
 	// Name is the name of the ControlPlane,
 	// to which the current template belongs to.
 	Name string `json:"name,omitempty"`
@@ -115,6 +122,9 @@ type MachineDeploymentBuiltins struct {
 	// being orchestrated.
 	Version string `json:"version,omitempty"`
 
+	// Metadata is the metadata set on the MachineDeployment.
+	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
+
 	// Class is the class name of the MachineDeployment,
 	// to which the current template belongs to.
 	Class string `json:"class,omitempty"`
@@ -147,6 +157,9 @@ type MachinePoolBuiltins struct {
 	// It can differ from the current version of the MachinePool machines while an upgrade process is
 	// being orchestrated.
 	Version string `json:"version,omitempty"`
+
+	// Metadata is the metadata set on the MachinePool.
+	Metadata *clusterv1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Class is the class name of the MachinePool,
 	// to which the current template belongs to.

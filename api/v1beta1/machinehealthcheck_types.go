@@ -52,6 +52,9 @@ type MachineHealthCheckSpec struct {
 
 	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
 	// "selector" are not healthy.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.
+	//
 	// +optional
 	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
 
@@ -60,6 +63,9 @@ type MachineHealthCheckSpec struct {
 	// Eg. "[3-5]" - This means that remediation will be allowed only when:
 	// (a) there are at least 3 unhealthy machines (and)
 	// (b) there are at most 5 unhealthy machines
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10722 for more details.
+	//
 	// +optional
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`

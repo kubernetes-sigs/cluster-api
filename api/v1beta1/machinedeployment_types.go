@@ -42,6 +42,8 @@ const (
 	RevisionAnnotation = "machinedeployment.clusters.x-k8s.io/revision"
 
 	// RevisionHistoryAnnotation maintains the history of all old revisions that a machine set has served for a machine deployment.
+	//
+	// Deprecated: This annotation is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10479 for more details.
 	RevisionHistoryAnnotation = "machinedeployment.clusters.x-k8s.io/revision-history"
 
 	// DesiredReplicasAnnotation is the desired replicas for a machine deployment recorded as an annotation
@@ -129,6 +131,9 @@ type MachineDeploymentSpec struct {
 	// The number of old MachineSets to retain to allow rollback.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// Defaults to 1.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/issues/10479 for more details.
+	//
 	// +optional
 	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty"`
 

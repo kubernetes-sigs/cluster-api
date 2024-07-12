@@ -25,7 +25,7 @@ through at the beginning of the cycle:
 - Kubernetes SIG membership:
     -  Try to become an official member of the Kubernetes SIG, if possible. More information on the membership and requirements can be found [here](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-team.md#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership).
 - Familiarize yourself with the Release Process:
-    - Review the release [tasks document](../release/release-tasks.md) which explains the responsibilities and tasks for each role within the release team.
+    - Review the release [team roles](../release/release-team.md#team-roles) which explains the responsibilities and tasks for each role within the release team.
 - Check the Release Timeline:
     - Go through the [release timeline](../release/releases) of the release cycle you are involved in (i.e checkout `release-1.6.md` if you are part of the 1.6 cycle release team) to better understand the key milestones and deadlines.
 
@@ -44,7 +44,7 @@ Now, let's dive into the specific onboarding notes for each sub-team below.
 
 - Understand Release Process: 
     - Get to know how project's release process works.
-    - Walk through the [release note generation process](../release/release-tasks.md#create-pr-for-release-notes) and try to generate notes by yourself. This is the most important process the comms team is in charge of.
+    - Walk through the [release note generation process](../release/role-handbooks/communications/README.md#create-pr-for-release-notes) and try to generate notes by yourself. This is the most important process the comms team is in charge of.
     - Familiarize yourself with the release notes tool [code](https://github.com/kubernetes-sigs/cluster-api/tree/main/hack/tools/release). You'll probably need to update this code during the release cycle to cover new cases or add new features.
 - Documentation familiarity:
     - Explore project's documentation and start learning how to update and maintain it.

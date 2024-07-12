@@ -144,7 +144,7 @@ Information can be distributed via:
 * Office hours
 * Release Team meetings
 * Cluster API book
-* [Github Issue](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#communicate-beta-to-providers) (when communicating beta release to providers)
+* [Github Issue](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/role-handbooks/communications/README.md#communicate-beta-to-providers) (when communicating beta release to providers)
 
 Relevant information includes:
 

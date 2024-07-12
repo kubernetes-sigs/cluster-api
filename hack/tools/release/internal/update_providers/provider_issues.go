@@ -355,7 +355,7 @@ CAPI {{.ReleaseTag}} will be released on **{{.ReleaseDate}}**.
 
 More details of the upcoming schedule can be seen at [CAPI {{.ReleaseTag}} release timeline]({{.ReleaseLink}}).
 
-<!-- [List of CAPI providers](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#communicate-beta-to-providers) -->
+<!-- [List of CAPI providers](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/role-handbooks/communications/README.md#communicate-beta-to-providers) -->
 <!-- body -->
 `)
 	if err != nil {

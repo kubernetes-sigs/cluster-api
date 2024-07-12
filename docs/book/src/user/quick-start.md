@@ -471,13 +471,8 @@ export AZURE_SUBSCRIPTION_ID="<SubscriptionId>"
 # Create an Azure Service Principal and paste the output here
 export AZURE_TENANT_ID="<Tenant>"
 export AZURE_CLIENT_ID="<AppId>"
+export AZURE_CLIENT_ID_USER_ASSIGNED_IDENTITY=$AZURE_CLIENT_ID # for compatibility with CAPZ v1.16 templates
 export AZURE_CLIENT_SECRET="<Password>"
-
-# Base64 encode the variables
-export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
-export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
 
 # Settings needed for AzureClusterIdentity used by the AzureCluster
 export AZURE_CLUSTER_IDENTITY_SECRET_NAME="cluster-identity-secret"
@@ -1351,7 +1346,7 @@ For more information about prerequisites, credentials management, or permissions
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Other providers..."}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Azure, Other providers..."}}
 {{#tab Docker}}
 
 <aside class="note warning">
@@ -1400,6 +1395,22 @@ clusterctl generate cluster capi-quickstart \
   --control-plane-machine-count=1 \
   --worker-machine-count=1 \
   > capi-quickstart.yaml
+```
+
+{{#/tab }}
+{{#tab Azure}}
+
+```bash
+clusterctl generate cluster capi-quickstart \
+  --infrastructure azure \
+  --kubernetes-version v1.30.0 \
+  --control-plane-machine-count=3 \
+  --worker-machine-count=3 \
+  > capi-quickstart.yaml
+
+# Cluster templates authenticate with Workload Identity by default. Modify the AzureClusterIdentity for ServicePrincipal authentication.
+# See https://capz.sigs.k8s.io/topics/identities for more details.
+yq -i "with(. | select(.kind == \"AzureClusterIdentity\"); .spec.type |= \"ServicePrincipal\" | .spec.clientSecret.name |= \"${AZURE_CLUSTER_IDENTITY_SECRET_NAME}\" | .spec.clientSecret.namespace |= \"${AZURE_CLUSTER_IDENTITY_SECRET_NAMESPACE}\")" capi-quickstart.yaml
 ```
 
 {{#/tab }}

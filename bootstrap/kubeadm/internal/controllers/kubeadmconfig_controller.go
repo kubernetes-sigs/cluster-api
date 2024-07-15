@@ -259,7 +259,7 @@ func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, c
 	}
 	switch {
 	// Wait for the infrastructure to be ready.
-	case !cluster.Status.InfrastructureReady:
+	case cluster.Spec.InfrastructureRef != nil && !cluster.Status.InfrastructureReady:
 		log.Info("Cluster infrastructure is not ready, waiting")
 		conditions.MarkFalse(config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil

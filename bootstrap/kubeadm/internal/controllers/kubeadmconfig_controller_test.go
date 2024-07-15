@@ -97,7 +97,6 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *testing.T) {
 	g := NewWithT(t)
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
-	cluster.Status.InfrastructureReady = true
 	machine := builder.Machine(metav1.NamespaceDefault, "m1").WithClusterName("cluster1").Build()
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
 	addKubeadmConfigToMachine(config, machine)
@@ -263,7 +262,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfReferencedMachineIsNotFoun
 func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName(t *testing.T) {
 	g := NewWithT(t)
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
-	cluster.Status.InfrastructureReady = true
 
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
 		WithVersion("v1.19.1").
@@ -304,7 +302,9 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T) {
 	g := NewWithT(t)
 
-	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
+	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").WithInfrastructureCluster(
+		builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infraCluster").Build(),
+	).Build()
 	machine := builder.Machine(metav1.NamespaceDefault, "machine").
 		WithVersion("v1.19.1").
 		WithClusterName(cluster.Name).
@@ -413,7 +413,6 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 // If the control plane isn't initialized then there is no cluster for either a worker or control plane node to join.
 func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotInitialized(t *testing.T) {
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 
 	workerMachine := newWorkerMachineForCluster(cluster)
 	workerJoinConfig := newWorkerJoinKubeadmConfig(metav1.NamespaceDefault, "worker-join-cfg")
@@ -485,7 +484,6 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	configName := "control-plane-init-cfg"
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "validhost", Port: 6443}
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -548,7 +546,6 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	g := NewWithT(t)
 	// TODO: extract this kind of code into a setup function that puts the state of objects into an initialized controlplane (implies secrets exist)
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
@@ -594,7 +591,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, "control-plane-init-cfg")
@@ -640,7 +636,6 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 
 func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsReady(t *testing.T) {
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
@@ -727,7 +722,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 	_ = feature.MutableGates.Set("MachinePool=true")
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
@@ -837,7 +831,6 @@ func TestBootstrapDataFormat(t *testing.T) {
 			g := NewWithT(t)
 
 			cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-			cluster.Status.InfrastructureReady = true
 			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 			if tc.clusterInitialized {
 				conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
@@ -930,7 +923,6 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
@@ -1002,7 +994,6 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
@@ -1253,7 +1244,6 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
@@ -1764,7 +1754,6 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 	clusterName := "my-cluster"
 	cluster := builder.Cluster(metav1.NamespaceDefault, clusterName).Build()
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
-	cluster.Status.InfrastructureReady = true
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{
 		Host: "example.com",
 		Port: 6443,
@@ -1904,7 +1893,6 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "my-cluster").Build()
-	cluster.Status.InfrastructureReady = true
 	m := newControlPlaneMachine(cluster, "control-plane-machine")
 	configName := "my-config"
 	c := newControlPlaneInitKubeadmConfig(m.Namespace, configName)
@@ -1936,7 +1924,6 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 
 	controlPlaneInitMachineFirst := newControlPlaneMachine(cluster, "control-plane-init-machine-first")
 	controlPlaneInitConfigFirst := newControlPlaneInitKubeadmConfig(controlPlaneInitMachineFirst.Namespace, "control-plane-init-cfg-first")
@@ -1999,7 +1986,6 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 	g := NewWithT(t)
 
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster").Build()
-	cluster.Status.InfrastructureReady = true
 
 	controlPlaneInitMachine := newControlPlaneMachine(cluster, "control-plane-init-machine")
 	controlPlaneInitConfig := newControlPlaneInitKubeadmConfig(controlPlaneInitMachine.Namespace, "control-plane-init-cfg")

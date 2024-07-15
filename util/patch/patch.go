@@ -146,8 +146,11 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	if err := h.patch(ctx, obj); err != nil {
 		errs = append(errs, err)
 	}
+
 	if err := h.patchStatus(ctx, obj); err != nil {
-		errs = append(errs, err)
+		if !(apierrors.IsNotFound(err) && !obj.GetDeletionTimestamp().IsZero() && len(obj.GetFinalizers()) == 0) {
+			errs = append(errs, err)
+		}
 	}
 
 	if len(errs) > 0 {

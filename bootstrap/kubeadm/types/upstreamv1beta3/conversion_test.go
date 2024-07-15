@@ -68,6 +68,9 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		bootstrapv1JoinConfigurationFuzzer,
 		nodeRegistrationOptionsFuzzer,
 		joinControlPlanesFuzzer,
+		bootstrapv1ControlPlaneComponentFuzzer,
+		bootstrapv1LocalEtcdFuzzer,
+		bootstrapv1NodeRegistrationOptionsFuzzer,
 	}
 }
 
@@ -106,4 +109,26 @@ func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
 	obj.CertificateKey = ""
+}
+
+// Custom fuzzers for CABPK v1beta1 types.
+// NOTES:
+// - When fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
+
+func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ImagePullSerial = nil
 }

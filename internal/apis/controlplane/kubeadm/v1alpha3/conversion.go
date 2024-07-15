@@ -41,71 +41,8 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
 	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
-	dst.Spec.KubeadmConfigSpec.Files = restored.Spec.KubeadmConfigSpec.Files
-	dst.Spec.KubeadmConfigSpec.Users = restored.Spec.KubeadmConfigSpec.Users
 	dst.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.MachineTemplate.NodeVolumeDetachTimeout
-	dst.Status.Version = restored.Status.Version
-
-	if restored.Spec.KubeadmConfigSpec.Users != nil {
-		for i := range restored.Spec.KubeadmConfigSpec.Users {
-			if restored.Spec.KubeadmConfigSpec.Users[i].PasswdFrom != nil {
-				dst.Spec.KubeadmConfigSpec.Users[i].PasswdFrom = restored.Spec.KubeadmConfigSpec.Users[i].PasswdFrom
-			}
-		}
-	}
-
-	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dst.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
-			dst.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
-	}
-
-	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil && restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dst.Spec.KubeadmConfigSpec.InitConfiguration == nil {
-			dst.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
-	}
-
-	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
-	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil {
-		if dst.Spec.KubeadmConfigSpec.InitConfiguration == nil {
-			dst.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.KubeadmConfigSpec.InitConfiguration.Patches = restored.Spec.KubeadmConfigSpec.InitConfiguration.Patches
-		dst.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases
-	}
-	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil {
-		if dst.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
-			dst.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
-		dst.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases
-
-		if restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig != nil {
-			if dst.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File == nil {
-				dst.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File = &bootstrapv1.FileDiscovery{}
-			}
-			dst.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Discovery.File.KubeConfig
-		}
-	}
-
 	dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
-
-	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
-		if dst.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
-			dst.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
-		}
-		dst.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.ImagePullPolicy
-	}
-
-	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil && restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy != "" {
-		if dst.Spec.KubeadmConfigSpec.InitConfiguration == nil {
-			dst.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
-		}
-		dst.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy
-	}
 
 	if restored.Spec.RemediationStrategy != nil {
 		dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
@@ -113,6 +50,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Status.LastRemediation != nil {
 		dst.Status.LastRemediation = restored.Status.LastRemediation
 	}
+
+	bootstrapv1alpha3.MergeRestoredKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
+
+	dst.Status.Version = restored.Status.Version
 
 	return nil
 }

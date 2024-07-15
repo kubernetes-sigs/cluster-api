@@ -62,6 +62,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		clusterConfigurationFuzzer,
 		dnsFuzzer,
+		bootstrapv1ControlPlaneComponentFuzzer,
+		bootstrapv1LocalEtcdFuzzer,
 		bootstrapv1InitConfigurationFuzzer,
 		bootstrapv1JoinConfigurationFuzzer,
 		bootstrapv1NodeRegistrationOptionsFuzzer,
@@ -88,6 +90,18 @@ func dnsFuzzer(obj *DNS, c fuzz.Continue) {
 // NOTES:
 // - When fields do not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 
+func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
 func bootstrapv1InitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
@@ -98,10 +112,7 @@ func bootstrapv1InitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fu
 func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// JoinConfiguration.Patches does not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 	obj.Patches = nil
-
-	// JoinConfiguration.SkipPhases does not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 	obj.SkipPhases = nil
 
 	if obj.Discovery.File != nil {
@@ -112,9 +123,7 @@ func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fu
 func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 	obj.IgnorePreflightErrors = nil
-
-	// NodeRegistrationOptions.ImagePullPolicy does not exist in kubeadm v1beta1 types, pinning it to avoid cabpk v1beta1 --> kubeadm v1beta1 --> cabpk v1beta1 round trip errors.
 	obj.ImagePullPolicy = ""
+	obj.ImagePullSerial = nil
 }

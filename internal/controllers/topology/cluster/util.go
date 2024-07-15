@@ -32,7 +32,7 @@ func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReferen
 		return nil, errors.New("reference is not set")
 	}
 
-	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, ref.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, ref.Namespace)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve %s %q in namespace %q", ref.Kind, ref.Name, ref.Namespace)
 	}

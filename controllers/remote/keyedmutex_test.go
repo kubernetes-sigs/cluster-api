@@ -59,7 +59,7 @@ func TestKeyedMutex(t *testing.T) {
 
 		// Run this twice to ensure Clusters can be locked again
 		// after they have been unlocked.
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			// Lock all Clusters (should work).
 			for _, key := range clusters {
 				g.Expect(km.TryLock(key)).To(BeTrue())

@@ -23,75 +23,86 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 )
 
-// ConvertTo converts this ClusterConfiguration to the Hub version (v1alpha4).
 func (src *ClusterConfiguration) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.ClusterConfiguration)
 	return Convert_upstreamv1beta1_ClusterConfiguration_To_v1beta1_ClusterConfiguration(src, dst, nil)
 }
 
-// ConvertFrom converts from the ClusterConfiguration Hub version (v1alpha4) to this version.
 func (dst *ClusterConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.ClusterConfiguration)
 	return Convert_v1beta1_ClusterConfiguration_To_upstreamv1beta1_ClusterConfiguration(src, dst, nil)
 }
 
-// ConvertTo converts this ClusterStatus to the Hub version (v1alpha4).
 func (src *ClusterStatus) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.ClusterStatus)
 	return Convert_upstreamv1beta1_ClusterStatus_To_v1beta1_ClusterStatus(src, dst, nil)
 }
 
-// ConvertFrom converts from the ClusterStatus Hub version (v1alpha4) to this version.
 func (dst *ClusterStatus) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.ClusterStatus)
 	return Convert_v1beta1_ClusterStatus_To_upstreamv1beta1_ClusterStatus(src, dst, nil)
 }
 
-// ConvertTo converts this InitConfiguration to the Hub version (v1alpha4).
 func (src *InitConfiguration) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.InitConfiguration)
 	return Convert_upstreamv1beta1_InitConfiguration_To_v1beta1_InitConfiguration(src, dst, nil)
 }
 
-// ConvertFrom converts from the InitConfiguration Hub version (v1alpha4) to this version.
 func (dst *InitConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.InitConfiguration)
 	return Convert_v1beta1_InitConfiguration_To_upstreamv1beta1_InitConfiguration(src, dst, nil)
 }
 
-// ConvertTo converts this JoinConfiguration to the Hub version (v1alpha4).
 func (src *JoinConfiguration) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*bootstrapv1.JoinConfiguration)
 	return Convert_upstreamv1beta1_JoinConfiguration_To_v1beta1_JoinConfiguration(src, dst, nil)
 }
 
-// ConvertFrom converts from the JoinConfiguration Hub version (v1alpha4) to this version.
 func (dst *JoinConfiguration) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*bootstrapv1.JoinConfiguration)
 	return Convert_v1beta1_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(src, dst, nil)
 }
 
-func Convert_upstreamv1beta1_DNS_To_v1beta1_DNS(in *DNS, out *bootstrapv1.DNS, s apimachineryconversion.Scope) error {
-	// DNS.Type was removed in v1alpha4 because only CoreDNS is supported, dropping this info.
-	return autoConvert_upstreamv1beta1_DNS_To_v1beta1_DNS(in, out, s)
-}
+// Custom conversion from this API, kubeadm v1beta1, to the hub version, CABPK v1beta1.
 
 func Convert_upstreamv1beta1_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in *ClusterConfiguration, out *bootstrapv1.ClusterConfiguration, s apimachineryconversion.Scope) error {
-	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
+	// ClusterConfiguration.UseHyperKubeImage was removed in CABPK v1alpha4 API version, dropping this info (no issue, it was not used).
 	return autoConvert_upstreamv1beta1_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
 }
 
-func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
-	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API
-	return autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in, out, s)
+func Convert_upstreamv1beta1_DNS_To_v1beta1_DNS(in *DNS, out *bootstrapv1.DNS, s apimachineryconversion.Scope) error {
+	// DNS.Type does not exist in CABPK v1beta1 version, because it always was CoreDNS.
+	return autoConvert_upstreamv1beta1_DNS_To_v1beta1_DNS(in, out, s)
+}
+
+// Custom conversion from the hub version, CABPK v1beta1, to this API, kubeadm v1beta1.
+
+func Convert_v1beta1_ControlPlaneComponent_To_upstreamv1beta1_ControlPlaneComponent(in *bootstrapv1.ControlPlaneComponent, out *ControlPlaneComponent, s apimachineryconversion.Scope) error {
+	// ControlPlaneComponent.ExtraEnvs does not exist in kubeadm v1beta1, dropping this info.
+	return autoConvert_v1beta1_ControlPlaneComponent_To_upstreamv1beta1_ControlPlaneComponent(in, out, s)
+}
+
+func Convert_v1beta1_LocalEtcd_To_upstreamv1beta1_LocalEtcd(in *bootstrapv1.LocalEtcd, out *LocalEtcd, s apimachineryconversion.Scope) error {
+	// LocalEtcd.ExtraEnvs does not exist in kubeadm v1beta1, dropping this info.
+	return autoConvert_v1beta1_LocalEtcd_To_upstreamv1beta1_LocalEtcd(in, out, s)
 }
 
 func Convert_v1beta1_InitConfiguration_To_upstreamv1beta1_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
-	// InitConfiguration.Patches does not exist in kubeadm v1beta1 API
+	// InitConfiguration.SkipPhases and Patches do not exist in kubeadm v1beta1, dropping those info.
 	return autoConvert_v1beta1_InitConfiguration_To_upstreamv1beta1_InitConfiguration(in, out, s)
 }
 
 func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
-	// JoinConfiguration.Patches does not exist in kubeadm v1beta1 API
+	// JoinConfiguration.SkipPhases and Patches do not exist in kubeadm v1beta1, dropping those info.
 	return autoConvert_v1beta1_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	// NodeRegistrationOptions.IgnorePreflightErrors, ImagePullPolicy and ImagePullSerial do not exist in kubeadm v1beta1, dropping those info.
+	return autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistrationOptions(in, out, s)
+}
+
+func Convert_v1beta1_FileDiscovery_To_upstreamv1beta1_FileDiscovery(in *bootstrapv1.FileDiscovery, out *FileDiscovery, s apimachineryconversion.Scope) error {
+	// JoinConfiguration.Discovery.File.KubeConfig does not exist in kubeadm because it's internal to Cluster API, dropping those info.
+	return autoConvert_v1beta1_FileDiscovery_To_upstreamv1beta1_FileDiscovery(in, out, s)
 }

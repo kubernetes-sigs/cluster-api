@@ -26,61 +26,179 @@ import (
 )
 
 func TestNewConditionsGroup(t *testing.T) {
-	g := NewWithT(t)
+	t.Run("Positive polarity", func(t *testing.T) {
+		g := NewWithT(t)
 
-	conditions := []*clusterv1.Condition{nil1, true1, true1, falseInfo1, falseWarning1, falseWarning1, falseError1, unknown1}
+		conditions := []*clusterv1.Condition{nil1, true1, true1, falseInfo1, falseWarning1, falseWarning1, falseError1, unknown1}
 
-	got := getConditionGroups(conditionsWithSource(&clusterv1.Cluster{}, conditions...))
+		got := getConditionGroups(conditionsWithSource(&clusterv1.Cluster{}, conditions...))
 
-	g.Expect(got).ToNot(BeNil())
-	g.Expect(got).To(HaveLen(5))
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(HaveLen(5))
 
-	// The top group should be False/Error and it should have one condition
-	g.Expect(got.TopGroup().status).To(Equal(corev1.ConditionFalse))
-	g.Expect(got.TopGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
-	g.Expect(got.TopGroup().conditions).To(HaveLen(1))
+		// The top group should be False/Error and it should have one condition
+		g.Expect(got.TopGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.TopGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got.TopGroup().conditions).To(HaveLen(1))
 
-	// The true group should be true and it should have two conditions
-	g.Expect(got.TrueGroup().status).To(Equal(corev1.ConditionTrue))
-	g.Expect(got.TrueGroup().severity).To(Equal(clusterv1.ConditionSeverityNone))
-	g.Expect(got.TrueGroup().conditions).To(HaveLen(2))
+		// The true group should be true and it should have two conditions
+		g.Expect(got.TrueGroup().status).To(Equal(corev1.ConditionTrue))
+		g.Expect(got.TrueGroup().severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got.TrueGroup().conditions).To(HaveLen(2))
 
-	// The error group should be False/Error and it should have one condition
-	g.Expect(got.ErrorGroup().status).To(Equal(corev1.ConditionFalse))
-	g.Expect(got.ErrorGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
-	g.Expect(got.ErrorGroup().conditions).To(HaveLen(1))
+		// The error group should be False/Error and it should have one condition
+		g.Expect(got.ErrorGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.ErrorGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got.ErrorGroup().conditions).To(HaveLen(1))
 
-	// The warning group should be False/Warning and it should have two conditions
-	g.Expect(got.WarningGroup().status).To(Equal(corev1.ConditionFalse))
-	g.Expect(got.WarningGroup().severity).To(Equal(clusterv1.ConditionSeverityWarning))
-	g.Expect(got.WarningGroup().conditions).To(HaveLen(2))
+		// The warning group should be False/Warning and it should have two conditions
+		g.Expect(got.WarningGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.WarningGroup().severity).To(Equal(clusterv1.ConditionSeverityWarning))
+		g.Expect(got.WarningGroup().conditions).To(HaveLen(2))
 
-	// got[0] should be False/Error and it should have one condition
-	g.Expect(got[0].status).To(Equal(corev1.ConditionFalse))
-	g.Expect(got[0].severity).To(Equal(clusterv1.ConditionSeverityError))
-	g.Expect(got[0].conditions).To(HaveLen(1))
+		// got[0] should be False/Error and it should have one condition
+		g.Expect(got[0].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[0].severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got[0].conditions).To(HaveLen(1))
 
-	// got[1] should be False/Warning and it should have two conditions
-	g.Expect(got[1].status).To(Equal(corev1.ConditionFalse))
-	g.Expect(got[1].severity).To(Equal(clusterv1.ConditionSeverityWarning))
-	g.Expect(got[1].conditions).To(HaveLen(2))
+		// got[1] should be False/Warning and it should have two conditions
+		g.Expect(got[1].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[1].severity).To(Equal(clusterv1.ConditionSeverityWarning))
+		g.Expect(got[1].conditions).To(HaveLen(2))
 
-	// got[2] should be False/Info and it should have one condition
-	g.Expect(got[2].status).To(Equal(corev1.ConditionFalse))
-	g.Expect(got[2].severity).To(Equal(clusterv1.ConditionSeverityInfo))
-	g.Expect(got[2].conditions).To(HaveLen(1))
+		// got[2] should be False/Info and it should have one condition
+		g.Expect(got[2].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[2].severity).To(Equal(clusterv1.ConditionSeverityInfo))
+		g.Expect(got[2].conditions).To(HaveLen(1))
 
-	// got[3] should be True and it should have two conditions
-	g.Expect(got[3].status).To(Equal(corev1.ConditionTrue))
-	g.Expect(got[3].severity).To(Equal(clusterv1.ConditionSeverityNone))
-	g.Expect(got[3].conditions).To(HaveLen(2))
+		// got[3] should be True and it should have two conditions
+		g.Expect(got[3].status).To(Equal(corev1.ConditionTrue))
+		g.Expect(got[3].severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got[3].conditions).To(HaveLen(2))
 
-	// got[4] should be Unknown and it should have one condition
-	g.Expect(got[4].status).To(Equal(corev1.ConditionUnknown))
-	g.Expect(got[4].severity).To(Equal(clusterv1.ConditionSeverityNone))
-	g.Expect(got[4].conditions).To(HaveLen(1))
+		// got[4] should be Unknown and it should have one condition
+		g.Expect(got[4].status).To(Equal(corev1.ConditionUnknown))
+		g.Expect(got[4].severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got[4].conditions).To(HaveLen(1))
 
-	// nil conditions are ignored
+		// nil conditions are ignored
+	})
+	t.Run("Negative polarity", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []*clusterv1.Condition{nil1, false1WithNegativePolarity, false1WithNegativePolarity, trueInfo1WithNegativePolarity, trueWarning1WithNegativePolarity, trueWarning1WithNegativePolarity, trueError1WithNegativePolarity, unknown1WithNegativePolarity}
+
+		got := getConditionGroups(conditionsWithSource(&clusterv1.Cluster{}, conditions...))
+
+		// NOTE: groups always have a positive polarity
+
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(HaveLen(5))
+
+		// The top group should be False/Error and it should have one condition
+		g.Expect(got.TopGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.TopGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got.TopGroup().conditions).To(HaveLen(1))
+
+		// The true group should be true and it should have two conditions
+		g.Expect(got.TrueGroup().status).To(Equal(corev1.ConditionTrue))
+		g.Expect(got.TrueGroup().severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got.TrueGroup().conditions).To(HaveLen(2))
+
+		// The error group should be False/Error and it should have one condition
+		g.Expect(got.ErrorGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.ErrorGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got.ErrorGroup().conditions).To(HaveLen(1))
+
+		// The warning group should be False/Warning and it should have two conditions
+		g.Expect(got.WarningGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.WarningGroup().severity).To(Equal(clusterv1.ConditionSeverityWarning))
+		g.Expect(got.WarningGroup().conditions).To(HaveLen(2))
+
+		// got[0] should be False/Error and it should have one condition
+		g.Expect(got[0].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[0].severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got[0].conditions).To(HaveLen(1))
+
+		// got[1] should be False/Warning and it should have two conditions
+		g.Expect(got[1].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[1].severity).To(Equal(clusterv1.ConditionSeverityWarning))
+		g.Expect(got[1].conditions).To(HaveLen(2))
+
+		// got[2] should be False/Info and it should have one condition
+		g.Expect(got[2].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[2].severity).To(Equal(clusterv1.ConditionSeverityInfo))
+		g.Expect(got[2].conditions).To(HaveLen(1))
+
+		// got[3] should be True and it should have two conditions
+		g.Expect(got[3].status).To(Equal(corev1.ConditionTrue))
+		g.Expect(got[3].severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got[3].conditions).To(HaveLen(2))
+
+		// got[4] should be Unknown and it should have one condition
+		g.Expect(got[4].status).To(Equal(corev1.ConditionUnknown))
+		g.Expect(got[4].severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got[4].conditions).To(HaveLen(1))
+
+		// nil conditions are ignored
+	})
+	t.Run("Mixed polarity", func(t *testing.T) {
+		g := NewWithT(t)
+
+		conditions := []*clusterv1.Condition{nil1, true1, true1, falseInfo1, falseWarning1, falseWarning1, falseError1, unknown1, false1WithNegativePolarity, false1WithNegativePolarity, trueInfo1WithNegativePolarity, trueWarning1WithNegativePolarity, trueWarning1WithNegativePolarity, trueError1WithNegativePolarity, unknown1WithNegativePolarity}
+
+		got := getConditionGroups(conditionsWithSource(&clusterv1.Cluster{}, conditions...))
+
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(got).To(HaveLen(5))
+
+		// The top group should be False/Error and it should have two condition
+		g.Expect(got.TopGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.TopGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got.TopGroup().conditions).To(HaveLen(2))
+
+		// The true group should be true and it should have four conditions
+		g.Expect(got.TrueGroup().status).To(Equal(corev1.ConditionTrue))
+		g.Expect(got.TrueGroup().severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got.TrueGroup().conditions).To(HaveLen(4))
+
+		// The error group should be False/Error and it should have two condition
+		g.Expect(got.ErrorGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.ErrorGroup().severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got.ErrorGroup().conditions).To(HaveLen(2))
+
+		// The warning group should be False/Warning and it should have four conditions
+		g.Expect(got.WarningGroup().status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got.WarningGroup().severity).To(Equal(clusterv1.ConditionSeverityWarning))
+		g.Expect(got.WarningGroup().conditions).To(HaveLen(4))
+
+		// got[0] should be False/Error and it should have two condition
+		g.Expect(got[0].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[0].severity).To(Equal(clusterv1.ConditionSeverityError))
+		g.Expect(got[0].conditions).To(HaveLen(2))
+
+		// got[1] should be False/Warning and it should have four conditions
+		g.Expect(got[1].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[1].severity).To(Equal(clusterv1.ConditionSeverityWarning))
+		g.Expect(got[1].conditions).To(HaveLen(4))
+
+		// got[2] should be False/Info and it should have two condition
+		g.Expect(got[2].status).To(Equal(corev1.ConditionFalse))
+		g.Expect(got[2].severity).To(Equal(clusterv1.ConditionSeverityInfo))
+		g.Expect(got[2].conditions).To(HaveLen(2))
+
+		// got[3] should be True and it should have four conditions
+		g.Expect(got[3].status).To(Equal(corev1.ConditionTrue))
+		g.Expect(got[3].severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got[3].conditions).To(HaveLen(4))
+
+		// got[4] should be Unknown and it should have two condition
+		g.Expect(got[4].status).To(Equal(corev1.ConditionUnknown))
+		g.Expect(got[4].severity).To(Equal(clusterv1.ConditionSeverityNone))
+		g.Expect(got[4].conditions).To(HaveLen(2))
+
+		// nil conditions are ignored
+	})
 }
 
 func TestMergeRespectPriority(t *testing.T) {
@@ -151,8 +269,14 @@ func conditionsWithSource(obj Setter, conditions ...*clusterv1.Condition) []loca
 
 	ret := []localizedCondition{}
 	for i := range conditions {
+		polarity := PositivePolarity
+		if conditions[i] != nil && negativePolarityConditions.Has(string(conditions[i].Type)) {
+			polarity = NegativePolarity
+		}
+
 		ret = append(ret, localizedCondition{
 			Condition: conditions[i],
+			Polarity:  polarity,
 			Getter:    obj,
 		})
 	}

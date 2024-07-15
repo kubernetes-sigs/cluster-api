@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -47,9 +46,11 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 // MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists.
@@ -59,7 +60,7 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	objs := []client.Object{cluster}
 	machineObjs := []client.Object{}
 	var expectedConfigName string
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		configName := fmt.Sprintf("my-config-%d", i)
 		m := builder.Machine(metav1.NamespaceDefault, fmt.Sprintf("my-machine-%d", i)).
 			WithVersion("v1.19.1").
@@ -81,7 +82,7 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 		Client:              fakeClient,
 		SecretCachingClient: fakeClient,
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		o := machineObjs[i]
 		configs := reconciler.MachineToBootstrapMapFunc(ctx, o)
 		if i == 1 {
@@ -676,7 +677,6 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 	}
 
 	for _, rt := range useCases {
-		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -754,7 +754,6 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 	}
 
 	for _, rt := range useCases {
-		rt := rt // pin!
 		t.Run(rt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
@@ -1501,6 +1500,37 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			},
 		},
 		{
+			name:    "Respect discoveryConfiguration.File.KubeConfig",
+			cluster: goodcluster,
+			config: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Discovery: bootstrapv1.Discovery{
+							File: &bootstrapv1.FileDiscovery{
+								KubeConfigPath: "/bootstrap-kubeconfig.yaml",
+								KubeConfig: &bootstrapv1.FileDiscoveryKubeConfig{
+									User: bootstrapv1.KubeConfigUser{
+										Exec: &bootstrapv1.KubeConfigAuthExec{
+											Command: "/bootstrap",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
+				d := c.Spec.JoinConfiguration.Discovery
+				g.Expect(d.BootstrapToken).To(BeNil())
+				g.Expect(d.File.KubeConfig.User.Exec.Command).To(Equal("/bootstrap"))
+				g.Expect(d.File.KubeConfig.Cluster).ToNot(BeNil())
+				g.Expect(d.File.KubeConfig.Cluster.Server).To(Equal("https://example.com:6443"))
+				g.Expect(d.File.KubeConfig.Cluster.CertificateAuthorityData).To(BeEquivalentTo("ca-data"))
+				return nil
+			},
+		},
+		{
 			name:    "Respect discoveryConfiguration.BootstrapToken.APIServerEndpoint",
 			cluster: goodcluster,
 			config: &bootstrapv1.KubeadmConfig{
@@ -1558,7 +1588,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			},
 			validateDiscovery: func(g *WithT, c *bootstrapv1.KubeadmConfig) error {
 				d := c.Spec.JoinConfiguration.Discovery
-				g.Expect(reflect.DeepEqual(d.BootstrapToken.CACertHashes, caHash)).To(BeTrue())
+				g.Expect(d.BootstrapToken.CACertHashes).To(BeComparableTo(caHash))
 				return nil
 			},
 		},
@@ -1576,7 +1606,15 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
-			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{})
+			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{
+				&secret.Certificate{
+					Purpose: secret.ClusterCA,
+					KeyPair: &certs.KeyPair{
+						Cert: []byte("ca-data"),
+						Key:  []byte("ca-key"),
+					},
+				},
+			})
 			g.Expect(res.IsZero()).To(BeTrue())
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -1820,7 +1858,7 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	cluster := builder.Cluster(metav1.NamespaceDefault, "my-cluster").Build()
 	objs := []client.Object{cluster}
 	expectedNames := []string{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		configName := fmt.Sprintf("my-config-%d", i)
 		m := builder.Machine(metav1.NamespaceDefault, fmt.Sprintf("my-machine-%d", i)).
 			WithVersion("v1.19.1").
@@ -2146,6 +2184,109 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 					g.Expect(file.Content).To(Equal(""))
 				}
 			}
+		})
+	}
+}
+
+func TestKubeadmConfigReconciler_ResolveDiscoveryFileKubeConfig(t *testing.T) {
+	cases := map[string]struct {
+		cfg    *bootstrapv1.KubeadmConfig
+		expect *bootstrapv1.File
+		err    string
+	}{
+		"should generate the bootstrap kubeconfig correctly": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						Discovery: bootstrapv1.Discovery{
+							File: &bootstrapv1.FileDiscovery{
+								KubeConfigPath: "/bootstrap-kubeconfig.yaml",
+								KubeConfig: &bootstrapv1.FileDiscoveryKubeConfig{
+									User: bootstrapv1.KubeConfigUser{
+										Exec: &bootstrapv1.KubeConfigAuthExec{
+											APIVersion: "client.authentication.k8s.io/v1",
+											Command:    "/usr/bin/bootstrap",
+											Env: []bootstrapv1.KubeConfigAuthExecEnv{
+												{Name: "ENV_TEST", Value: "value"},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: &bootstrapv1.File{
+				Path:        "/bootstrap-kubeconfig.yaml",
+				Owner:       "root:root",
+				Permissions: "0640",
+				Content: utilyaml.Raw(`
+clusters:
+- cluster:
+    certificate-authority-data: Y2EtZGF0YQ==
+    server: https://example.com:6443
+  name: default
+contexts:
+- context:
+    cluster: default
+    user: default
+  name: default
+current-context: default
+preferences: {}
+users:
+- name: default
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1
+      args: null
+      command: /usr/bin/bootstrap
+      env:
+      - name: ENV_TEST
+        value: value
+      interactiveMode: Never
+      provideClusterInfo: false
+`),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			myclient := fake.NewClientBuilder().Build()
+			k := &KubeadmConfigReconciler{
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				KubeadmInitLock:     &myInitLocker{},
+			}
+
+			_, err := k.reconcileDiscoveryFile(ctx, &clusterv1.Cluster{
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+						Host: "example.com",
+						Port: 6443,
+					},
+				},
+			}, tc.cfg, secret.Certificates{
+				&secret.Certificate{
+					Purpose: secret.ClusterCA,
+					KeyPair: &certs.KeyPair{
+						Cert: []byte("ca-data"),
+						Key:  []byte("ca-key"),
+					},
+				},
+			})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			file, err := k.resolveDiscoveryKubeConfig(tc.cfg.Spec.JoinConfiguration.Discovery.File)
+			if tc.err != "" {
+				g.Expect(err).To(MatchError(ContainSubstring(tc.err)))
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(file).To(BeEquivalentTo(tc.expect))
 		})
 	}
 }

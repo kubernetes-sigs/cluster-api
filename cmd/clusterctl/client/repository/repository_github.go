@@ -349,7 +349,6 @@ func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 	}
 	versions := []string{}
 	for _, r := range allReleases {
-		r := r // pin
 		if r.TagName == nil {
 			continue
 		}
@@ -413,6 +412,12 @@ func (g *gitHubRepository) httpGetFilesFromRelease(ctx context.Context, version,
 			return false, nil
 		}
 		defer resp.Body.Close()
+
+		// if we get 404 there is no reason to retry
+		if resp.StatusCode == http.StatusNotFound {
+			retryError = errNotFound
+			return true, nil
+		}
 
 		if resp.StatusCode != http.StatusOK {
 			retryError = errors.Errorf("error getting file, status code: %d", resp.StatusCode)

@@ -532,23 +532,23 @@ spec:
 
 In addition to variables specified in the ClusterClass, the following builtin variables can be 
 referenced in patches:
-- `builtin.cluster.{name,namespace}`
+- `builtin.cluster.{name,namespace,uid}`
 - `builtin.cluster.topology.{version,class}`
 - `builtin.cluster.network.{serviceDomain,services,pods,ipFamily}`
     - Note: ipFamily is deprecated and will be removed in a future release. see https://github.com/kubernetes-sigs/cluster-api/issues/7521.
-- `builtin.controlPlane.{replicas,version,name}`
+- `builtin.controlPlane.{replicas,version,name,metadata.labels,metadata.annotations}`
     - Please note, these variables are only available when patching control plane or control plane 
       machine templates.
 - `builtin.controlPlane.machineTemplate.infrastructureRef.name`
     - Please note, these variables are only available when using a control plane with machines and 
       when patching control plane or control plane machine templates.
-- `builtin.machineDeployment.{replicas,version,class,name,topologyName}`
+- `builtin.machineDeployment.{replicas,version,class,name,topologyName,metadata.labels,metadata.annotations}`
     - Please note, these variables are only available when patching the templates of a MachineDeployment 
       and contain the values of the current `MachineDeployment` topology.
 - `builtin.machineDeployment.{infrastructureRef.name,bootstrap.configRef.name}`
     - Please note, these variables are only available when patching the templates of a MachineDeployment
       and contain the values of the current `MachineDeployment` topology.
-- `builtin.machinePool.{replicas,version,class,name,topologyName}`
+- `builtin.machinePool.{replicas,version,class,name,topologyName,metadata.labels,metadata.annotations}`
     - Please note, these variables are only available when patching the templates of a MachinePool 
       and contain the values of the current `MachinePool` topology.
 - `builtin.machinePool.{infrastructureRef.name,bootstrap.configRef.name}`

@@ -71,28 +71,34 @@ const (
 
 var (
 	// Defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
-	defaultProviderVersion = "v1.7.99"
+	defaultProviderVersion = "v1.8.99"
 
 	// This data struct mirrors a subset of info from the providers struct in the tilt file
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
 	providers = map[string]tiltProviderConfig{
 		"core": {
-			Context: ptr.To("."),
+			Context:           ptr.To("."),
+			hardCodedProvider: true,
 		},
 		"kubeadm-bootstrap": {
-			Context: ptr.To("bootstrap/kubeadm"),
+			Context:           ptr.To("bootstrap/kubeadm"),
+			hardCodedProvider: true,
 		},
 		"kubeadm-control-plane": {
-			Context: ptr.To("controlplane/kubeadm"),
+			Context:           ptr.To("controlplane/kubeadm"),
+			hardCodedProvider: true,
 		},
 		"docker": {
-			Context: ptr.To("test/infrastructure/docker"),
+			Context:           ptr.To("test/infrastructure/docker"),
+			hardCodedProvider: true,
 		},
 		"in-memory": {
-			Context: ptr.To("test/infrastructure/inmemory"),
+			Context:           ptr.To("test/infrastructure/inmemory"),
+			hardCodedProvider: true,
 		},
 		"test-extension": {
-			Context: ptr.To("test/extension"),
+			Context:           ptr.To("test/extension"),
+			hardCodedProvider: true,
 		},
 	}
 
@@ -137,6 +143,9 @@ type tiltProviderConfig struct {
 	ApplyProviderYaml *bool    `json:"apply_provider_yaml,omitempty"`
 	KustomizeFolder   *string  `json:"kustomize_folder,omitempty"`
 	KustomizeOptions  []string `json:"kustomize_options,omitempty"`
+
+	// hardCodedProvider is used for providers hardcoded in the Tiltfile to always set cmd for them to start.sh to allow restarts.
+	hardCodedProvider bool
 }
 
 func init() {
@@ -354,7 +363,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 				debugConfig = &d
 			}
 			extraArgs := ts.ExtraArgs[providerName]
-			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", liveReloadDeps, debugConfig, extraArgs, kustomizeFolder, kustomizeOptions, getProviderObj(config.Version))
+			tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", liveReloadDeps, debugConfig, extraArgs, config.hardCodedProvider, kustomizeFolder, kustomizeOptions, getProviderObj(config.Version))
 		}
 	}
 
@@ -693,7 +702,7 @@ func kustomizeTask(path, out string) taskFunction {
 // workloadTask generates a task for creating the component yaml for a workload and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
 // and adding the workload resource mimicking what clusterctl init does.
-func workloadTask(name, workloadType, binaryName, containerName string, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs, path string, options []string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
+func workloadTask(name, workloadType, binaryName, containerName string, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs, hardCodedProvider bool, path string, options []string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
 		args := []string{"build"}
 		args = append(args, options...)
@@ -725,7 +734,7 @@ func workloadTask(name, workloadType, binaryName, containerName string, liveRelo
 			return
 		}
 
-		if err := prepareWorkload(prefix, binaryName, containerName, objs, liveReloadDeps, debugConfig, extraArgs); err != nil {
+		if err := prepareWorkload(prefix, binaryName, containerName, objs, liveReloadDeps, debugConfig, extraArgs, hardCodedProvider); err != nil {
 			errCh <- err
 			return
 		}
@@ -794,7 +803,7 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 // If there are extra_args given for the workload, we append those to the ones that already exist in the deployment.
 // This has the affect that the appended ones will take precedence, as those are read last.
 // Finally, we modify the deployment to enable prometheus metrics scraping.
-func prepareWorkload(prefix, binaryName, containerName string, objs []unstructured.Unstructured, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs) error {
+func prepareWorkload(prefix, binaryName, containerName string, objs []unstructured.Unstructured, liveReloadDeps []string, debugConfig *tiltSettingsDebugConfig, extraArgs tiltSettingsExtraArgs, hardcodedProvider bool) error {
 	// Update provider namespaces to have the pod security standard enforce label set to privileged.
 	// This is required because we remove the SecurityContext from provider deployments below to make tilt work.
 	updateNamespacePodSecurityStandard(objs)
@@ -805,7 +814,7 @@ func prepareWorkload(prefix, binaryName, containerName string, objs []unstructur
 			}
 
 			cmd := []string{"/" + binaryName}
-			if len(liveReloadDeps) > 0 || debugConfig != nil {
+			if len(liveReloadDeps) > 0 || debugConfig != nil || hardcodedProvider {
 				cmd = []string{"sh", "/start.sh", "/" + binaryName}
 			}
 			args := append(container.Args, []string(extraArgs)...)

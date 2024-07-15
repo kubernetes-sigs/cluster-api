@@ -27,6 +27,7 @@ import (
 // and more specifically for computing the target Reason and the target Message.
 type mergeOptions struct {
 	conditionTypes                     []clusterv1.ConditionType
+	negativeConditionTypes             []clusterv1.ConditionType
 	addSourceRef                       bool
 	addStepCounter                     bool
 	addStepCounterIfOnlyConditionTypes []clusterv1.ConditionType
@@ -47,6 +48,14 @@ type MergeOption func(*mergeOptions)
 func WithConditions(t ...clusterv1.ConditionType) MergeOption {
 	return func(c *mergeOptions) {
 		c.conditionTypes = t
+	}
+}
+
+// WithNegativePolarityConditions instruct merge about which conditions should be considered having negative polarity.
+// IMPORTANT: this must be a subset of WithConditions.
+func WithNegativePolarityConditions(t ...clusterv1.ConditionType) MergeOption {
+	return func(c *mergeOptions) {
+		c.negativeConditionTypes = t
 	}
 }
 

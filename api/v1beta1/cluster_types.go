@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -102,6 +103,8 @@ type Topology struct {
 	// patches. They must comply to the corresponding
 	// VariableClasses defined in the ClusterClass.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Variables []ClusterVariable `json:"variables,omitempty"`
 }
 
@@ -142,16 +145,24 @@ type ControlPlaneTopology struct {
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+
+	// Variables can be used to customize the ControlPlane through patches.
+	// +optional
+	Variables *ControlPlaneVariables `json:"variables,omitempty"`
 }
 
 // WorkersTopology represents the different sets of worker nodes in the cluster.
 type WorkersTopology struct {
 	// MachineDeployments is a list of machine deployments in the cluster.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
 
 	// MachinePools is a list of machine pools in the cluster.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	MachinePools []MachinePoolTopology `json:"machinePools,omitempty"`
 }
 
@@ -310,10 +321,10 @@ type ClusterVariable struct {
 	// Name of the variable.
 	Name string `json:"name"`
 
-	// DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-	// definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-	// `.spec.patches` where the patch is external and provides external variables.
-	// This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+	// DefinitionFrom specifies where the definition of this Variable is from.
+	//
+	// Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
+	//
 	// +optional
 	DefinitionFrom string `json:"definitionFrom,omitempty"`
 
@@ -327,10 +338,21 @@ type ClusterVariable struct {
 	Value apiextensionsv1.JSON `json:"value"`
 }
 
+// ControlPlaneVariables can be used to provide variables for the ControlPlane.
+type ControlPlaneVariables struct {
+	// Overrides can be used to override Cluster level variables.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	Overrides []ClusterVariable `json:"overrides,omitempty"`
+}
+
 // MachineDeploymentVariables can be used to provide variables for a specific MachineDeployment.
 type MachineDeploymentVariables struct {
 	// Overrides can be used to override Cluster level variables.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
@@ -338,6 +360,8 @@ type MachineDeploymentVariables struct {
 type MachinePoolVariables struct {
 	// Overrides can be used to override Cluster level variables.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
@@ -496,6 +520,14 @@ type Cluster struct {
 
 	Spec   ClusterSpec   `json:"spec,omitempty"`
 	Status ClusterStatus `json:"status,omitempty"`
+}
+
+// GetClassKey returns the namespaced name for the class associated with this object.
+func (c *Cluster) GetClassKey() types.NamespacedName {
+	if c.Spec.Topology == nil {
+		return types.NamespacedName{}
+	}
+	return types.NamespacedName{Namespace: c.GetNamespace(), Name: c.Spec.Topology.Class}
 }
 
 // GetConditions returns the set of conditions for this object.

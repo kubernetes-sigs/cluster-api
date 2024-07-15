@@ -75,9 +75,17 @@ func (webhook *ClusterClass) Default(_ context.Context, obj runtime.Object) erro
 		defaultNamespace(in.Spec.ControlPlane.MachineInfrastructure.Ref, in.Namespace)
 	}
 
+	if in.Spec.ControlPlane.MachineHealthCheck != nil {
+		defaultNamespace(in.Spec.ControlPlane.MachineHealthCheck.RemediationTemplate, in.Namespace)
+	}
+
 	for i := range in.Spec.Workers.MachineDeployments {
 		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref, in.Namespace)
 		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref, in.Namespace)
+
+		if in.Spec.Workers.MachineDeployments[i].MachineHealthCheck != nil {
+			defaultNamespace(in.Spec.Workers.MachineDeployments[i].MachineHealthCheck.RemediationTemplate, in.Namespace)
+		}
 	}
 
 	for i := range in.Spec.Workers.MachinePools {
@@ -163,8 +171,12 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	allErrs = append(allErrs, validateNamingStrategies(newClusterClass)...)
 
 	// Validate variables.
+	var oldClusterClassVariables []clusterv1.ClusterClassVariable
+	if oldClusterClass != nil {
+		oldClusterClassVariables = oldClusterClass.Spec.Variables
+	}
 	allErrs = append(allErrs,
-		variables.ValidateClusterClassVariables(ctx, newClusterClass.Spec.Variables, field.NewPath("spec", "variables"))...,
+		variables.ValidateClusterClassVariables(ctx, oldClusterClassVariables, newClusterClass.Spec.Variables, field.NewPath("spec", "variables"))...,
 	)
 
 	// Validate patches.
@@ -237,7 +249,7 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 	}
 
 	// For each MachineDeploymentClass check if the MachineHealthCheck definition is dropped.
-	for i, newMdClass := range newClusterClass.Spec.Workers.MachineDeployments {
+	for _, newMdClass := range newClusterClass.Spec.Workers.MachineDeployments {
 		oldMdClass := machineDeploymentClassOfName(oldClusterClass, newMdClass.Class)
 		if oldMdClass == nil {
 			// This is a new MachineDeploymentClass. Nothing to do here.
@@ -264,7 +276,7 @@ func validateUpdatesToMachineHealthCheckClasses(clusters []clusterv1.Cluster, ol
 			}
 			if len(clustersUsingMHC) != 0 {
 				allErrs = append(allErrs, field.Forbidden(
-					field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("machineHealthCheck"),
+					field.NewPath("spec", "workers", "machineDeployments").Key(newMdClass.Class).Child("machineHealthCheck"),
 					fmt.Sprintf("MachineHealthCheck cannot be deleted because it is used by Cluster(s) %q", strings.Join(clustersUsingMHC, ",")),
 				))
 			}
@@ -407,11 +419,11 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 	}
 
 	// Validate MachineDeployment MachineHealthChecks.
-	for i, md := range clusterClass.Spec.Workers.MachineDeployments {
+	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
 		if md.MachineHealthCheck == nil {
 			continue
 		}
-		fldPath := field.NewPath("spec", "workers", "machineDeployments", "machineHealthCheck").Index(i)
+		fldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("machineHealthCheck")
 
 		allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, clusterClass.Namespace, md.MachineHealthCheck)...)
 	}
@@ -438,12 +450,12 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 		}
 	}
 
-	for i, md := range clusterClass.Spec.Workers.MachineDeployments {
+	for _, md := range clusterClass.Spec.Workers.MachineDeployments {
 		if md.NamingStrategy == nil || md.NamingStrategy.Template == nil {
 			continue
 		}
 		name, err := names.MachineDeploymentNameGenerator(*md.NamingStrategy.Template, "cluster", "mdtopology").GenerateName()
-		templateFldPath := field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("namingStrategy", "template")
+		templateFldPath := field.NewPath("spec", "workers", "machineDeployments").Key(md.Class).Child("namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
@@ -458,12 +470,12 @@ func validateNamingStrategies(clusterClass *clusterv1.ClusterClass) field.ErrorL
 		}
 	}
 
-	for i, mp := range clusterClass.Spec.Workers.MachinePools {
+	for _, mp := range clusterClass.Spec.Workers.MachinePools {
 		if mp.NamingStrategy == nil || mp.NamingStrategy.Template == nil {
 			continue
 		}
 		name, err := names.MachinePoolNameGenerator(*mp.NamingStrategy.Template, "cluster", "mptopology").GenerateName()
-		templateFldPath := field.NewPath("spec", "workers", "machinePools").Index(i).Child("namingStrategy", "template")
+		templateFldPath := field.NewPath("spec", "workers", "machinePools").Key(mp.Class).Child("namingStrategy", "template")
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
@@ -501,11 +513,11 @@ func validateMachineHealthCheckClass(fldPath *field.Path, namepace string, m *cl
 func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, clusterClass.Spec.ControlPlane.Metadata.Validate(field.NewPath("spec", "controlPlane", "metadata"))...)
-	for idx, m := range clusterClass.Spec.Workers.MachineDeployments {
-		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machineDeployments").Index(idx).Child("template", "metadata"))...)
+	for _, m := range clusterClass.Spec.Workers.MachineDeployments {
+		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machineDeployments").Key(m.Class).Child("template", "metadata"))...)
 	}
-	for idx, m := range clusterClass.Spec.Workers.MachinePools {
-		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machinePools").Index(idx).Child("template", "metadata"))...)
+	for _, m := range clusterClass.Spec.Workers.MachinePools {
+		allErrs = append(allErrs, m.Template.Metadata.Validate(field.NewPath("spec", "workers", "machinePools").Key(m.Class).Child("template", "metadata"))...)
 	}
 	return allErrs
 }
@@ -515,7 +527,6 @@ func validateClusterClassMetadata(clusterClass *clusterv1.ClusterClass) field.Er
 func validateAutoscalerAnnotationsForClusterClass(clusters []clusterv1.Cluster, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	for _, c := range clusters {
-		c := c
 		allErrs = append(allErrs, validateAutoscalerAnnotationsForCluster(&c, newClusterClass)...)
 	}
 	return allErrs

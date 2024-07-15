@@ -29,33 +29,50 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta4"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
 var (
 	v1beta2KubeadmVersion = semver.MustParse("1.15.0")
 	v1beta3KubeadmVersion = semver.MustParse("1.22.0")
+	v1beta4KubeadmVersion = semver.MustParse("1.31.0")
 
 	clusterConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
+		upstreamv1beta4.GroupVersion: &upstreamv1beta4.ClusterConfiguration{},
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.ClusterConfiguration{},
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.ClusterConfiguration{},
 	}
 
 	clusterStatusVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
-		// ClusterStatus has been removed in v1beta3, so we don't need an entry for v1beta3
+		// ClusterStatus has been removed in v1beta3, so we don't need an entry for v1beta3 & v1beta4
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.ClusterStatus{},
 	}
 
 	initConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
+		upstreamv1beta4.GroupVersion: &upstreamv1beta4.InitConfiguration{},
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.InitConfiguration{},
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.InitConfiguration{},
 	}
 
 	joinConfigurationVersionTypeMap = map[schema.GroupVersion]conversion.Convertible{
+		upstreamv1beta4.GroupVersion: &upstreamv1beta4.JoinConfiguration{},
 		upstreamv1beta3.GroupVersion: &upstreamv1beta3.JoinConfiguration{},
 		upstreamv1beta2.GroupVersion: &upstreamv1beta2.JoinConfiguration{},
 	}
 )
+
+// ConvertibleFromClusterConfiguration defines capabilities of a type that during conversions gets values from ClusterConfiguration.
+// NOTE: this interface is specifically designed to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.
+type ConvertibleFromClusterConfiguration interface {
+	ConvertFromClusterConfiguration(clusterConfiguration *bootstrapv1.ClusterConfiguration) error
+}
+
+// ConvertibleToClusterConfiguration defines capabilities of a type that during conversions sets values to ClusterConfiguration.
+// NOTE: this interface is specifically designed to handle fields migrated from ClusterConfiguration to Init and JoinConfiguration in the kubeadm v1beta4 API version.
+type ConvertibleToClusterConfiguration interface {
+	ConvertToClusterConfiguration(clusterConfiguration *bootstrapv1.ClusterConfiguration) error
+}
 
 // KubeVersionToKubeadmAPIGroupVersion maps a Kubernetes version to the correct Kubeadm API Group supported.
 func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion, error) {
@@ -65,46 +82,46 @@ func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion,
 	case version.Compare(v, v1beta3KubeadmVersion, version.WithoutPreReleases()) < 0:
 		// NOTE: All the Kubernetes version >= v1.15 and < v1.22 should use the kubeadm API version v1beta2
 		return upstreamv1beta2.GroupVersion, nil
-	default:
-		// NOTE: All the Kubernetes version greater or equal to v1.22 should use the kubeadm API version v1beta3.
-		// Also future Kubernetes versions (not yet released at the time of writing this code) are going to use v1beta3,
-		// no matter if kubeadm API versions newer than v1beta3 could be introduced by those release.
-		// This is acceptable because v1beta3 will be supported by kubeadm until the deprecation cycle completes
-		// (9 months minimum after the deprecation date, not yet announced now); this gives Cluster API project time to
-		// introduce support for newer releases without blocking users to deploy newer version of Kubernetes.
+	case version.Compare(v, v1beta4KubeadmVersion, version.WithoutPreReleases()) < 0:
+		// NOTE: All the Kubernetes version >= v1.22 and < v1.31 should use the kubeadm API version v1beta3
 		return upstreamv1beta3.GroupVersion, nil
+	default:
+		// NOTE: All the Kubernetes version greater or equal to v1.31 (not yet released at the time of writing this code)
+		// are assumed to use the kubeadm API version v1beta4 or to work with Cluster API using it.
+		// This should be reconsidered whenever kubeadm introduces a new API version.
+		return upstreamv1beta4.GroupVersion, nil
 	}
 }
 
 // MarshalClusterConfigurationForVersion converts a Cluster API ClusterConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalClusterConfigurationForVersion(obj *bootstrapv1.ClusterConfiguration, version semver.Version) (string, error) {
-	return marshalForVersion(obj, version, clusterConfigurationVersionTypeMap)
+func MarshalClusterConfigurationForVersion(clusterConfiguration *bootstrapv1.ClusterConfiguration, version semver.Version) (string, error) {
+	return marshalForVersion(nil, clusterConfiguration, version, clusterConfigurationVersionTypeMap)
 }
 
 // MarshalClusterStatusForVersion converts a Cluster API ClusterStatus type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalClusterStatusForVersion(obj *bootstrapv1.ClusterStatus, version semver.Version) (string, error) {
-	return marshalForVersion(obj, version, clusterStatusVersionTypeMap)
+func MarshalClusterStatusForVersion(clusterStatus *bootstrapv1.ClusterStatus, version semver.Version) (string, error) {
+	return marshalForVersion(nil, clusterStatus, version, clusterStatusVersionTypeMap)
 }
 
 // MarshalInitConfigurationForVersion converts a Cluster API InitConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalInitConfigurationForVersion(obj *bootstrapv1.InitConfiguration, version semver.Version) (string, error) {
-	return marshalForVersion(obj, version, initConfigurationVersionTypeMap)
+func MarshalInitConfigurationForVersion(clusterConfiguration *bootstrapv1.ClusterConfiguration, initConfiguration *bootstrapv1.InitConfiguration, version semver.Version) (string, error) {
+	return marshalForVersion(clusterConfiguration, initConfiguration, version, initConfigurationVersionTypeMap)
 }
 
 // MarshalJoinConfigurationForVersion converts a Cluster API JoinConfiguration type to the kubeadm API type
 // for the given Kubernetes Version.
 // NOTE: This assumes Kubernetes Version equals to kubeadm version.
-func MarshalJoinConfigurationForVersion(obj *bootstrapv1.JoinConfiguration, version semver.Version) (string, error) {
-	return marshalForVersion(obj, version, joinConfigurationVersionTypeMap)
+func MarshalJoinConfigurationForVersion(clusterConfiguration *bootstrapv1.ClusterConfiguration, joinConfiguration *bootstrapv1.JoinConfiguration, version semver.Version) (string, error) {
+	return marshalForVersion(clusterConfiguration, joinConfiguration, version, joinConfigurationVersionTypeMap)
 }
 
-func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVersionTypeMap map[schema.GroupVersion]conversion.Convertible) (string, error) {
+func marshalForVersion(clusterConfiguration *bootstrapv1.ClusterConfiguration, obj conversion.Hub, version semver.Version, kubeadmObjVersionTypeMap map[schema.GroupVersion]conversion.Convertible) (string, error) {
 	kubeadmAPIGroupVersion, err := KubeVersionToKubeadmAPIGroupVersion(version)
 	if err != nil {
 		return "", err
@@ -118,6 +135,12 @@ func marshalForVersion(obj conversion.Hub, version semver.Version, kubeadmObjVer
 	targetKubeadmObj = targetKubeadmObj.DeepCopyObject().(conversion.Convertible)
 	if err := targetKubeadmObj.ConvertFrom(obj); err != nil {
 		return "", errors.Wrapf(err, "failed to convert to KubeadmAPI type for version %s", kubeadmAPIGroupVersion)
+	}
+
+	if convertibleFromClusterConfigurationObj, ok := targetKubeadmObj.(ConvertibleFromClusterConfiguration); ok {
+		if err := convertibleFromClusterConfigurationObj.ConvertFromClusterConfiguration(clusterConfiguration); err != nil {
+			return "", errors.Wrapf(err, "failed to convert from ClusterConfiguration to KubeadmAPI type for version %s", kubeadmAPIGroupVersion)
+		}
 	}
 
 	codecs, err := getCodecsFor(kubeadmAPIGroupVersion, targetKubeadmObj)
@@ -156,7 +179,7 @@ func toYaml(obj runtime.Object, gv runtime.GroupVersioner, codecs serializer.Cod
 // NOTE: The yaml could be any of the known formats for the kubeadm ClusterConfiguration type.
 func UnmarshalClusterConfiguration(yaml string) (*bootstrapv1.ClusterConfiguration, error) {
 	obj := &bootstrapv1.ClusterConfiguration{}
-	if err := unmarshalFromVersions(yaml, clusterConfigurationVersionTypeMap, obj); err != nil {
+	if err := unmarshalFromVersions(yaml, clusterConfigurationVersionTypeMap, nil, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil
@@ -166,7 +189,7 @@ func UnmarshalClusterConfiguration(yaml string) (*bootstrapv1.ClusterConfigurati
 // NOTE: The yaml could be any of the known formats for the kubeadm ClusterStatus type.
 func UnmarshalClusterStatus(yaml string) (*bootstrapv1.ClusterStatus, error) {
 	obj := &bootstrapv1.ClusterStatus{}
-	if err := unmarshalFromVersions(yaml, clusterStatusVersionTypeMap, obj); err != nil {
+	if err := unmarshalFromVersions(yaml, clusterStatusVersionTypeMap, nil, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil
@@ -174,9 +197,9 @@ func UnmarshalClusterStatus(yaml string) (*bootstrapv1.ClusterStatus, error) {
 
 // UnmarshalInitConfiguration tries to translate a Kubeadm API yaml back to the InitConfiguration type.
 // NOTE: The yaml could be any of the known formats for the kubeadm InitConfiguration type.
-func UnmarshalInitConfiguration(yaml string) (*bootstrapv1.InitConfiguration, error) {
+func UnmarshalInitConfiguration(yaml string, clusterConfiguration *bootstrapv1.ClusterConfiguration) (*bootstrapv1.InitConfiguration, error) {
 	obj := &bootstrapv1.InitConfiguration{}
-	if err := unmarshalFromVersions(yaml, initConfigurationVersionTypeMap, obj); err != nil {
+	if err := unmarshalFromVersions(yaml, initConfigurationVersionTypeMap, clusterConfiguration, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil
@@ -184,15 +207,15 @@ func UnmarshalInitConfiguration(yaml string) (*bootstrapv1.InitConfiguration, er
 
 // UnmarshalJoinConfiguration tries to translate a Kubeadm API yaml back to the JoinConfiguration type.
 // NOTE: The yaml could be any of the known formats for the kubeadm JoinConfiguration type.
-func UnmarshalJoinConfiguration(yaml string) (*bootstrapv1.JoinConfiguration, error) {
+func UnmarshalJoinConfiguration(yaml string, clusterConfiguration *bootstrapv1.ClusterConfiguration) (*bootstrapv1.JoinConfiguration, error) {
 	obj := &bootstrapv1.JoinConfiguration{}
-	if err := unmarshalFromVersions(yaml, joinConfigurationVersionTypeMap, obj); err != nil {
+	if err := unmarshalFromVersions(yaml, joinConfigurationVersionTypeMap, clusterConfiguration, obj); err != nil {
 		return nil, err
 	}
 	return obj, nil
 }
 
-func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersion]conversion.Convertible, capiObj conversion.Hub) error {
+func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersion]conversion.Convertible, clusterConfiguration *bootstrapv1.ClusterConfiguration, capiObj conversion.Hub) error {
 	// For each know kubeadm API version
 	for gv, obj := range kubeadmAPIVersions {
 		// Tries conversion from yaml to the corresponding kubeadmObj
@@ -205,6 +228,12 @@ func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersi
 
 		_, _, err = codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj)
 		if err == nil {
+			if convertibleToClusterConfigurationObj, ok := kubeadmObj.(ConvertibleToClusterConfiguration); ok {
+				if err := convertibleToClusterConfigurationObj.ConvertToClusterConfiguration(clusterConfiguration); err != nil {
+					return errors.Wrapf(err, "failed to convert to ClusterConfiguration from KubeadmAPI type for version %s", gvk)
+				}
+			}
+
 			// If conversion worked, then converts the kubeadmObj (spoke) back to the Cluster API ClusterConfiguration type (hub).
 			if err := kubeadmObj.(conversion.Convertible).ConvertTo(capiObj); err != nil {
 				return errors.Wrapf(err, "failed to convert kubeadm types to Cluster API types")

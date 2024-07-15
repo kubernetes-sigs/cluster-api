@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -45,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/conversion"
@@ -65,10 +67,6 @@ type Reconciler struct {
 
 	// RuntimeClient is a client for calling runtime extensions.
 	RuntimeClient runtimeclient.Client
-
-	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
-	// thus allowing to optimize reads for templates or provider specific objects.
-	UnstructuredCachingClient client.Client
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -249,15 +247,13 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 				continue
 			}
 			if resp.Variables != nil {
-				uniqueNamesForPatch := sets.Set[string]{}
-				for _, variable := range resp.Variables {
-					// Ensure a patch doesn't define multiple variables with the same name.
-					if uniqueNamesForPatch.Has(variable.Name) {
-						errs = append(errs, errors.Errorf("variable %q is defined multiple times in variable discovery response from patch %q", variable.Name, patch.Name))
-						continue
-					}
-					uniqueNamesForPatch.Insert(variable.Name)
+				validationErrors := variables.ValidateClusterClassVariables(ctx, nil, resp.Variables, field.NewPath(patch.Name, "variables")).ToAggregate()
+				if validationErrors != nil {
+					errs = append(errs, validationErrors)
+					continue
+				}
 
+				for _, variable := range resp.Variables {
 					// If a variable of the same name already exists in allVariableDefinitions add the new definition to the existing list.
 					if _, ok := allVariableDefinitions[variable.Name]; ok {
 						allVariableDefinitions[variable.Name] = addDefinitionToExistingStatusVariable(variable, patch.Name, allVariableDefinitions[variable.Name])
@@ -288,6 +284,21 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 		return statusVarList[i].Name < statusVarList[j].Name
 	})
 	clusterClass.Status.Variables = statusVarList
+
+	variablesWithConflict := []string{}
+	for _, v := range clusterClass.Status.Variables {
+		if v.DefinitionsConflict {
+			variablesWithConflict = append(variablesWithConflict, v.Name)
+		}
+	}
+
+	if len(variablesWithConflict) > 0 {
+		err := fmt.Errorf("the following variables have conflicting schemas: %s", strings.Join(variablesWithConflict, ","))
+		conditions.MarkFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError,
+			"VariableDiscovery failed: %s", err)
+		return errors.Wrapf(err, "failed to discover variables for ClusterClass %s", clusterClass.Name)
+	}
+
 	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 	return nil
 }
@@ -358,7 +369,7 @@ func refString(ref *corev1.ObjectReference) string {
 func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, clusterClass.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, clusterClass.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			return errors.Wrapf(err, "Could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)

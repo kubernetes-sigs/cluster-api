@@ -98,9 +98,8 @@ func TestGetReference(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				Client:                    fakeClient,
-				UnstructuredCachingClient: fakeClient,
-				patchHelperFactory:        dryRunPatchHelperFactory(fakeClient),
+				Client:             fakeClient,
+				patchHelperFactory: dryRunPatchHelperFactory(fakeClient),
 			}
 			got, err := r.getReference(ctx, tt.ref)
 			if tt.wantErr {

@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -33,7 +35,24 @@ func Test_resolveReleaseMarker(t *testing.T) {
 	clientGoproxy := goproxy.NewClient(scheme, host)
 	defer teardownGoproxy()
 
-	// setup an handler with fake releases
+	toMetadataURL, mux, teardown := newFakeGithubReleases()
+	defer teardown()
+
+	validMetadataURLs := []string{
+		"github.com/o/r1/releases/download/v1.2.0/metadata.yaml",
+		"github.com/o/r1/releases/download/v1.2.1-rc.0/metadata.yaml",
+		"github.com/o/r2/releases/download/v1.2.0/metadata.yaml",
+		"github.com/kubernetes-sigs/foo/releases/download/v1.0.0/metadata.yaml",
+	}
+	// Setup an handler for returning metadata.yaml.
+	for _, url := range validMetadataURLs {
+		mux.HandleFunc("/"+url, func(w http.ResponseWriter, r *http.Request) {
+			goproxytest.HTTPTestMethod(t, r, "GET")
+			fmt.Fprint(w, `somedata`)
+		})
+	}
+
+	// setup an handlers with fake releases
 	muxGoproxy.HandleFunc("/github.com/o/r1/@v/list", func(w http.ResponseWriter, r *http.Request) {
 		goproxytest.HTTPTestMethod(t, r, "GET")
 		fmt.Fprint(w, "v1.2.0\n")
@@ -41,6 +60,19 @@ func Test_resolveReleaseMarker(t *testing.T) {
 		fmt.Fprint(w, "v1.3.0-rc.0\n")
 		fmt.Fprint(w, "v1.3.0-rc.1\n")
 	})
+	muxGoproxy.HandleFunc("/github.com/o/r2/@v/list", func(w http.ResponseWriter, r *http.Request) {
+		goproxytest.HTTPTestMethod(t, r, "GET")
+		fmt.Fprint(w, "v1.2.0\n")
+		fmt.Fprint(w, "v1.2.1\n")
+		fmt.Fprint(w, "v1.2.2\n")
+	})
+	muxGoproxy.HandleFunc("/sigs.k8s.io/foo/@v/list", func(w http.ResponseWriter, r *http.Request) {
+		goproxytest.HTTPTestMethod(t, r, "GET")
+		fmt.Fprint(w, "v1.0.0\n")
+		fmt.Fprint(w, "v1.0.1\n")
+		fmt.Fprint(w, "v1.0.2\n")
+	})
+
 	tests := []struct {
 		name          string
 		releaseMarker string
@@ -71,13 +103,25 @@ func Test_resolveReleaseMarker(t *testing.T) {
 			want:          "",
 			wantErr:       true,
 		},
+		{
+			name:          "Get latest release with metadata",
+			releaseMarker: "go://github.com/o/r2@latest-v1.2",
+			want:          "1.2.0",
+			wantErr:       false,
+		},
+		{
+			name:          "Get latest release for kubernetes-sigs project",
+			releaseMarker: "go://sigs.k8s.io/foo@latest-v1.0",
+			want:          "1.0.0",
+			wantErr:       false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := resolveReleaseMarker(context.Background(), tt.releaseMarker, clientGoproxy)
+			got, err := resolveReleaseMarker(context.Background(), tt.releaseMarker, clientGoproxy, toMetadataURL)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -158,4 +202,25 @@ func Test_E2EConfig_DeepCopy(t *testing.T) {
 	g.Expect(config1.Intervals).To(Equal(map[string][]string{
 		"config1-interval": {"2m", "10s"},
 	}))
+}
+
+// newFakeGithubReleases sets up a test HTTP server along with a github.Client that is
+// configured to talk to that test server. Tests should register handlers on
+// mux which provide mock responses for the API method being tested.
+func newFakeGithubReleases() (toMetadataURL func(gomodule, version string) string, mux *http.ServeMux, teardown func()) {
+	// mux is the HTTP request multiplexer used with the test server.
+	mux = http.NewServeMux()
+
+	apiHandler := http.NewServeMux()
+	apiHandler.Handle("/", mux)
+
+	// server is a test HTTP server used to provide mock API responses.
+	server := httptest.NewServer(apiHandler)
+
+	toMetadataURL = func(gomodule, version string) string {
+		url := githubReleaseMetadataURL(gomodule, version)
+		return fmt.Sprintf("%s/%s", server.URL, strings.TrimPrefix(url, "https://"))
+	}
+
+	return toMetadataURL, mux, server.Close
 }

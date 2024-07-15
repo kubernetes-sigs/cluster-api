@@ -424,8 +424,14 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:        "string",
 					Default:     &apiextensionsv1.JSON{Raw: []byte(`""`)},
-					Example:     &apiextensionsv1.JSON{Raw: []byte(`""`)},
+					Example:     &apiextensionsv1.JSON{Raw: []byte(`"0"`)},
 					Description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines.",
+					XValidations: []clusterv1.ValidationRule{
+						{
+							Rule:              "self == \"\" || self != \"\"",
+							MessageExpression: "'just a test expression, got %s'.format([self])",
+						},
+					},
 				},
 			},
 		},
@@ -437,6 +443,14 @@ func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehoo
 				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 					Type:    "string",
 					Example: &apiextensionsv1.JSON{Raw: []byte(`"kindest"`)},
+					XMetadata: &clusterv1.VariableSchemaMetadata{
+						Labels: map[string]string{
+							"objects": "DockerCluster",
+						},
+						Annotations: map[string]string{
+							"description": "Gets set at DockerCluster.Spec.Template.Spec.LoadBalancer.ImageRepository",
+						},
+					},
 				},
 			},
 			Metadata: clusterv1.ClusterClassVariableMetadata{

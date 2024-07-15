@@ -51,6 +51,10 @@ import (
 
 // SetupWebhookWithManager sets up Cluster webhooks.
 func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	if webhook.decoder == nil {
+		webhook.decoder = admission.NewDecoder(mgr.GetScheme())
+	}
+
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		WithDefaulter(webhook).
@@ -70,12 +74,14 @@ type ClusterCacheTrackerReader interface {
 type Cluster struct {
 	Client  client.Reader
 	Tracker ClusterCacheTrackerReader
+
+	decoder admission.Decoder
 }
 
 var _ webhook.CustomDefaulter = &Cluster{}
 var _ webhook.CustomValidator = &Cluster{}
 
-var errClusterClassNotReconciled = errors.New("ClusterClass is not up to date")
+var errClusterClassNotReconciled = errors.New("ClusterClass is not successfully reconciled")
 
 // Default satisfies the defaulting webhook interface.
 func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
@@ -101,19 +107,59 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		if !strings.HasPrefix(cluster.Spec.Topology.Version, "v") {
 			cluster.Spec.Topology.Version = "v" + cluster.Spec.Topology.Version
 		}
+
+		if cluster.GetClassKey().Name == "" {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					field.NewPath("spec", "topology", "class"),
+					"class cannot be empty",
+				),
+			)
+			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
+		}
+
+		if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil &&
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate != nil &&
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace == "" {
+			cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace = cluster.Namespace
+		}
+
+		if cluster.Spec.Topology.Workers != nil {
+			for i := range cluster.Spec.Topology.Workers.MachineDeployments {
+				md := cluster.Spec.Topology.Workers.MachineDeployments[i]
+				if md.MachineHealthCheck != nil &&
+					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate != nil &&
+					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace == "" {
+					md.MachineHealthCheck.MachineHealthCheckClass.RemediationTemplate.Namespace = cluster.Namespace
+				}
+			}
+		}
+
 		clusterClass, err := webhook.pollClusterClassForCluster(ctx, cluster)
 		if err != nil {
 			// If the ClusterClass can't be found or is not up to date ignore the error.
 			if apierrors.IsNotFound(err) || errors.Is(err, errClusterClassNotReconciled) {
 				return nil
 			}
-			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
+			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.GetClassKey().Name))
+		}
+
+		// Validate cluster class variables transitions that may be enforced by CEL validation rules on variables.
+		// If no request found in context, then this has not come via a webhook request, so skip validation of old cluster.
+		var oldCluster *clusterv1.Cluster
+		req, err := admission.RequestFromContext(ctx)
+
+		if err == nil && len(req.OldObject.Raw) > 0 {
+			oldCluster = &clusterv1.Cluster{}
+			if err := webhook.decoder.DecodeRaw(req.OldObject, oldCluster); err != nil {
+				return apierrors.NewBadRequest(errors.Wrap(err, "failed to decode old cluster object").Error())
+			}
 		}
 
 		// Doing both defaulting and validating here prevents a race condition where the ClusterClass could be
 		// different in the defaulting and validating webhook.
-		allErrs = append(allErrs, DefaultAndValidateVariables(cluster, clusterClass)...)
-
+		allErrs = append(allErrs, DefaultAndValidateVariables(ctx, cluster, oldCluster, clusterClass)...)
 		if len(allErrs) > 0 {
 			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, allErrs)
 		}
@@ -242,7 +288,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	var allErrs field.ErrorList
 
 	// class should be defined.
-	if newCluster.Spec.Topology.Class == "" {
+	if newCluster.GetClassKey().Name == "" {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -268,6 +314,9 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 	// metadata in topology should be valid
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
+
+	// ensure deprecationFrom is not set
+	allErrs = append(allErrs, validateTopologyDefinitionFrom(newCluster.Spec.Topology, fldPath)...)
 
 	// upgrade concurrency should be a numeric value.
 	if concurrency, ok := newCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
@@ -322,7 +371,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		}
 
 		// Topology or Class can not be added on update unless ClusterTopologyUnsafeUpdateClassNameAnnotation is set.
-		if oldCluster.Spec.Topology == nil || oldCluster.Spec.Topology.Class == "" {
+		if oldCluster.Spec.Topology == nil || oldCluster.GetClassKey().Name == "" {
 			if _, ok := newCluster.Annotations[clusterv1.ClusterTopologyUnsafeUpdateClassNameAnnotation]; ok {
 				return allWarnings, allErrs
 			}
@@ -374,7 +423,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		}
 
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
-		if oldCluster.Spec.Topology.Class != newCluster.Spec.Topology.Class {
+		if oldCluster.GetClassKey() != newCluster.GetClassKey() {
 			// Check to see if the ClusterClass referenced in the old version of the Cluster exists.
 			oldClusterClass, err := webhook.pollClusterClassForCluster(ctx, oldCluster)
 			if err != nil {
@@ -382,7 +431,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 					allErrs, field.Forbidden(
 						fldPath.Child("class"),
 						fmt.Sprintf("valid ClusterClass with name %q could not be retrieved, change from class %[1]q to class %q cannot be validated. Error: %s",
-							oldCluster.Spec.Topology.Class, newCluster.Spec.Topology.Class, err.Error())))
+							oldCluster.GetClassKey(), newCluster.GetClassKey(), err.Error())))
 
 				// Return early with errors if the ClusterClass can't be retrieved.
 				return allWarnings, allErrs
@@ -647,7 +696,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 		for i := range cluster.Spec.Topology.Workers.MachineDeployments {
 			md := cluster.Spec.Topology.Workers.MachineDeployments[i]
 			if md.MachineHealthCheck != nil {
-				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments", "machineHealthCheck").Index(i)
+				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("machineHealthCheck")
 
 				// Validate the MachineDeployment MachineHealthCheck if defined.
 				if !md.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
@@ -706,30 +755,89 @@ func validateCIDRBlocks(fldPath *field.Path, cidrs []string) field.ErrorList {
 
 // DefaultAndValidateVariables defaults and validates variables in the Cluster and MachineDeployment/MachinePool topologies based
 // on the definitions in the ClusterClass.
-func DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, DefaultVariables(cluster, clusterClass)...)
 
+	// Capture variables from old cluster if it is present to be used in validation for transitions that may be specified
+	// via CEL validation rules.
+	var (
+		oldClusterVariables, oldCPOverrides []clusterv1.ClusterVariable
+		oldMDVariables                      map[string][]clusterv1.ClusterVariable
+		oldMPVariables                      map[string][]clusterv1.ClusterVariable
+	)
+	if oldCluster != nil {
+		oldClusterVariables = oldCluster.Spec.Topology.Variables
+		if oldCluster.Spec.Topology.ControlPlane.Variables != nil {
+			oldCPOverrides = oldCluster.Spec.Topology.ControlPlane.Variables.Overrides
+		}
+
+		oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
+		for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+			if md.Variables != nil {
+				oldMDVariables[md.Name] = md.Variables.Overrides
+			}
+		}
+
+		oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
+		for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
+			if mp.Variables != nil {
+				oldMPVariables[mp.Name] = mp.Variables.Overrides
+			}
+		}
+	}
+
 	// Variables must be validated in the defaulting webhook. Variable definitions are stored in the ClusterClass status
 	// and are patched in the ClusterClass reconcile.
-	allErrs = append(allErrs, variables.ValidateClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Status.Variables,
+
+	// Validate cluster-wide variables.
+	allErrs = append(allErrs, variables.ValidateClusterVariables(
+		ctx,
+		cluster.Spec.Topology.Variables,
+		oldClusterVariables,
+		clusterClass.Status.Variables,
 		field.NewPath("spec", "topology", "variables"))...)
+
+	// Validate ControlPlane variable overrides.
+	if cluster.Spec.Topology.ControlPlane.Variables != nil && len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
+		allErrs = append(allErrs, variables.ValidateControlPlaneVariables(
+			ctx,
+			cluster.Spec.Topology.ControlPlane.Variables.Overrides,
+			oldCPOverrides,
+			clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "controlPlane", "variables", "overrides"))...,
+		)
+	}
+
 	if cluster.Spec.Topology.Workers != nil {
-		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+		// Validate MachineDeployment variable overrides.
+		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
 			// Continue if there are no variable overrides.
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
-			allErrs = append(allErrs, variables.ValidateMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
+			allErrs = append(allErrs, variables.ValidateMachineVariables(
+				ctx,
+				md.Variables.Overrides,
+				oldMDVariables[md.Name],
+				clusterClass.Status.Variables,
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))...,
+			)
 		}
-		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
+
+		// Validate MachinePool variable overrides.
+		for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
 			// Continue if there are no variable overrides.
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
 				continue
 			}
-			allErrs = append(allErrs, variables.ValidateMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))...)
+			allErrs = append(allErrs, variables.ValidateMachineVariables(
+				ctx,
+				mp.Variables.Overrides,
+				oldMPVariables[mp.Name],
+				clusterClass.Status.Variables,
+				field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))...,
+			)
 		}
 	}
 	return allErrs
@@ -744,6 +852,8 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 	if clusterClass == nil {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
 	}
+
+	// Default cluster-wide variables.
 	defaultedVariables, errs := variables.DefaultClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Status.Variables,
 		field.NewPath("spec", "topology", "variables"))
 	if len(errs) > 0 {
@@ -752,27 +862,41 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 		cluster.Spec.Topology.Variables = defaultedVariables
 	}
 
+	// Default ControlPlane variable overrides.
+	if cluster.Spec.Topology.ControlPlane.Variables != nil && len(cluster.Spec.Topology.ControlPlane.Variables.Overrides) > 0 {
+		defaultedVariables, errs := variables.DefaultMachineVariables(cluster.Spec.Topology.ControlPlane.Variables.Overrides, clusterClass.Status.Variables,
+			field.NewPath("spec", "topology", "controlPlane", "variables", "overrides"))
+		if len(errs) > 0 {
+			allErrs = append(allErrs, errs...)
+		} else {
+			cluster.Spec.Topology.ControlPlane.Variables.Overrides = defaultedVariables
+		}
+	}
+
 	if cluster.Spec.Topology.Workers != nil {
-		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+		// Default MachineDeployment variable overrides.
+		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
 			// Continue if there are no variable overrides.
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
 			defaultedVariables, errs := variables.DefaultMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Key(md.Name).Child("variables", "overrides"))
 			if len(errs) > 0 {
 				allErrs = append(allErrs, errs...)
 			} else {
 				md.Variables.Overrides = defaultedVariables
 			}
 		}
-		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
+
+		// Default MachinePool variable overrides.
+		for _, mp := range cluster.Spec.Topology.Workers.MachinePools {
 			// Continue if there are no variable overrides.
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
 				continue
 			}
 			defaultedVariables, errs := variables.DefaultMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
-				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))
+				field.NewPath("spec", "topology", "workers", "machinePools").Key(mp.Name).Child("variables", "overrides"))
 			if len(errs) > 0 {
 				allErrs = append(allErrs, errs...)
 			} else {
@@ -812,22 +936,23 @@ func (webhook *Cluster) validateClusterClassExistsAndIsReconciled(ctx context.Co
 		case apierrors.IsNotFound(clusterClassPollErr):
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
-					"Cluster refers to ClusterClass %s in the topology but it does not exist. "+
+					"Cluster refers to ClusterClass %s, but this ClusterClass does not exist. "+
 						"Cluster topology has not been fully validated. "+
-						"The ClusterClass must be created to reconcile the Cluster", newCluster.Spec.Topology.Class),
+						"The ClusterClass must be created to reconcile the Cluster", newCluster.GetClassKey()),
 			)
 		case errors.Is(clusterClassPollErr, errClusterClassNotReconciled):
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
-					"Cluster refers to ClusterClass %s but this object which hasn't yet been reconciled. "+
-						"Cluster topology has not been fully validated. ", newCluster.Spec.Topology.Class),
+					"Cluster refers to ClusterClass %s, but this ClusterClass hasn't been successfully reconciled. "+
+						"Cluster topology has not been fully validated. "+
+						"Please take a look at the ClusterClass status", newCluster.GetClassKey()),
 			)
 		// If there's any other error return a generic warning with the error message.
 		default:
 			allWarnings = append(allWarnings,
 				fmt.Sprintf(
-					"Cluster refers to ClusterClass %s in the topology but it could not be retrieved. "+
-						"Cluster topology has not been fully validated: %s", newCluster.Spec.Topology.Class, clusterClassPollErr.Error()),
+					"Cluster refers to ClusterClass %s, but this ClusterClass could not be retrieved. "+
+						"Cluster topology has not been fully validated: %s", newCluster.GetClassKey(), clusterClassPollErr.Error()),
 			)
 		}
 	}
@@ -839,7 +964,7 @@ func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster 
 	clusterClass := &clusterv1.ClusterClass{}
 	var clusterClassPollErr error
 	_ = wait.PollUntilContextTimeout(ctx, 200*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
-		if clusterClassPollErr = webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); clusterClassPollErr != nil {
+		if clusterClassPollErr = webhook.Client.Get(ctx, cluster.GetClassKey(), clusterClass); clusterClassPollErr != nil {
 			return false, nil //nolint:nilerr
 		}
 
@@ -874,17 +999,73 @@ func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path)
 	var allErrs field.ErrorList
 	allErrs = append(allErrs, topology.ControlPlane.Metadata.Validate(fldPath.Child("controlPlane", "metadata"))...)
 	if topology.Workers != nil {
-		for idx, md := range topology.Workers.MachineDeployments {
+		for _, md := range topology.Workers.MachineDeployments {
 			allErrs = append(allErrs, md.Metadata.Validate(
-				fldPath.Child("workers", "machineDeployments").Index(idx).Child("metadata"),
+				fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("metadata"),
 			)...)
 		}
-		for idx, mp := range topology.Workers.MachinePools {
+		for _, mp := range topology.Workers.MachinePools {
 			allErrs = append(allErrs, mp.Metadata.Validate(
-				fldPath.Child("workers", "machinePools").Index(idx).Child("metadata"),
+				fldPath.Child("workers", "machinePools").Key(mp.Name).Child("metadata"),
 			)...)
 		}
 	}
+	return allErrs
+}
+
+func validateTopologyDefinitionFrom(topology *clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for _, variable := range topology.Variables {
+		if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Child("variables").Key(variable.Name),
+				string(variable.Value.Raw),
+				fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+			)
+		}
+	}
+
+	if topology.ControlPlane.Variables != nil {
+		for _, variable := range topology.ControlPlane.Variables.Overrides {
+			if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+				allErrs = append(allErrs, field.Invalid(
+					fldPath.Child("controlPlane", "variables", "overrides").Key(variable.Name),
+					string(variable.Value.Raw),
+					fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+				)
+			}
+		}
+	}
+
+	if topology.Workers != nil {
+		for _, md := range topology.Workers.MachineDeployments {
+			if md.Variables != nil {
+				for _, variable := range md.Variables.Overrides {
+					if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+						allErrs = append(allErrs, field.Invalid(
+							fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("variables", "overrides").Key(variable.Name),
+							string(variable.Value.Raw),
+							fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+						)
+					}
+				}
+			}
+		}
+		for _, mp := range topology.Workers.MachinePools {
+			if mp.Variables != nil {
+				for _, variable := range mp.Variables.Overrides {
+					if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+						allErrs = append(allErrs, field.Invalid(
+							fldPath.Child("workers", "machinePools").Key(mp.Name).Child("variables", "overrides").Key(variable.Name),
+							string(variable.Value.Raw),
+							fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+						)
+					}
+				}
+			}
+		}
+	}
+
 	return allErrs
 }
 
@@ -899,7 +1080,7 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 	}
 
 	fldPath := field.NewPath("spec", "topology")
-	for i, mdt := range cluster.Spec.Topology.Workers.MachineDeployments {
+	for _, mdt := range cluster.Spec.Topology.Workers.MachineDeployments {
 		if mdt.Replicas == nil {
 			continue
 		}
@@ -908,8 +1089,8 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 				allErrs = append(
 					allErrs,
 					field.Invalid(
-						fldPath.Child("workers", "machineDeployments").Index(i).Child("replicas"),
-						cluster.Spec.Topology.Workers.MachineDeployments[i].Replicas,
+						fldPath.Child("workers", "machineDeployments").Key(mdt.Name).Child("replicas"),
+						mdt.Replicas,
 						fmt.Sprintf("cannot be set for cluster %q in namespace %q if the same MachineDeploymentTopology has autoscaler annotations",
 							cluster.Name, cluster.Namespace),
 					),
@@ -932,8 +1113,8 @@ func validateAutoscalerAnnotationsForCluster(cluster *clusterv1.Cluster, cluster
 					allErrs = append(
 						allErrs,
 						field.Invalid(
-							fldPath.Child("workers", "machineDeployments").Index(i).Child("replicas"),
-							cluster.Spec.Topology.Workers.MachineDeployments[i].Replicas,
+							fldPath.Child("workers", "machineDeployments").Key(mdt.Name).Child("replicas"),
+							mdt.Replicas,
 							fmt.Sprintf("cannot be set for cluster %q in namespace %q if the source class %q of this MachineDeploymentTopology has autoscaler annotations",
 								cluster.Name, cluster.Namespace, mdt.Class),
 						),

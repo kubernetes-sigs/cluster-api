@@ -781,6 +781,13 @@ func schema_runtime_hooks_api_v1alpha1_ClusterBuiltins(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"uid": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UID is the unqiue identifier of the cluster.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"topology": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Topology represents the cluster topology variables.",
@@ -998,6 +1005,12 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref common.Reference
 							Format:      "",
 						},
 					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Metadata is the metadata set on the ControlPlane object.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+						},
+					},
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Name is the name of the ControlPlane, to which the current template belongs to.",
@@ -1022,7 +1035,7 @@ func schema_runtime_hooks_api_v1alpha1_ControlPlaneBuiltins(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ControlPlaneMachineTemplateBuiltins"},
 	}
 }
 
@@ -1676,6 +1689,12 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 							Format:      "",
 						},
 					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Metadata is the metadata set on the MachineDeployment.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+						},
+					},
 					"class": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Class is the class name of the MachineDeployment, to which the current template belongs to.",
@@ -1720,7 +1739,7 @@ func schema_runtime_hooks_api_v1alpha1_MachineDeploymentBuiltins(ref common.Refe
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
 	}
 }
 
@@ -1756,6 +1775,12 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 							Description: "Version is the Kubernetes version of the MachinePool, to which the current template belongs to. NOTE: Please note that this version is the version we are currently reconciling towards. It can differ from the current version of the MachinePool machines while an upgrade process is being orchestrated.",
 							Type:        []string{"string"},
 							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Metadata is the metadata set on the MachinePool.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
 						},
 					},
 					"class": {
@@ -1802,7 +1827,7 @@ func schema_runtime_hooks_api_v1alpha1_MachinePoolBuiltins(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineBootstrapBuiltins", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.MachineInfrastructureRefBuiltins"},
 	}
 }
 

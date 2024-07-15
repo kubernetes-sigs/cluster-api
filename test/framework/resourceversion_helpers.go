@@ -31,6 +31,7 @@ import (
 // ValidateResourceVersionStable checks that resource versions are stable.
 func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, namespace string, ownerGraphFilterFunction clusterctlcluster.GetOwnerGraphFilterFunction) {
 	// Wait until resource versions are stable for a bit.
+	byf("Check Resource versions are stable")
 	var previousResourceVersions map[string]string
 	Eventually(func(g Gomega) {
 		objectsWithResourceVersion, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
@@ -41,14 +42,15 @@ func ValidateResourceVersionStable(ctx context.Context, proxy ClusterProxy, name
 			previousResourceVersions = objectsWithResourceVersion
 		}()
 		// This is intentionally failing on the first run.
-		g.Expect(objectsWithResourceVersion).To(Equal(previousResourceVersions))
+		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions))
 	}, 1*time.Minute, 15*time.Second).Should(Succeed(), "Resource versions never became stable")
 
 	// Verify resource versions are stable for a while.
+	byf("Check Resource versions remains stable")
 	Consistently(func(g Gomega) {
 		objectsWithResourceVersion, err := getObjectsWithResourceVersion(ctx, proxy, namespace, ownerGraphFilterFunction)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(objectsWithResourceVersion).To(Equal(previousResourceVersions))
+		g.Expect(objectsWithResourceVersion).To(BeComparableTo(previousResourceVersions))
 	}, 2*time.Minute, 15*time.Second).Should(Succeed(), "Resource versions didn't stay stable")
 }
 

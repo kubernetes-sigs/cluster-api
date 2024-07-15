@@ -51,17 +51,6 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachinePoolTemplate
             name: quick-start-default-worker-machinepooltemplate
-  variables:
-  # This variable is not used in any patch, but is here to ensure the variable discovered from the runtime hook is correctly
-  # used.
-  - name: imageRepository
-    required: true
-    schema:
-      openAPIV3Schema:
-        type: string
-        default: "registry.k8s.io"
-        example: "registry.k8s.io"
-        description: "imageRepository sets the container registry to pull images from. If empty, `registry.k8s.io` will be used by default."
   patches:
   - name: test-patch
     external:

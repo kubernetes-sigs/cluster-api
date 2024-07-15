@@ -45,6 +45,7 @@ type TwoWaysPatchHelper struct {
 
 	// hasSpecChanges documents if the patch impacts the object spec
 	hasSpecChanges bool
+	changes        []byte
 }
 
 // NewTwoWaysPatchHelper will return a patch that yields the modified document when applied to the original document
@@ -134,13 +135,30 @@ func NewTwoWaysPatchHelper(original, modified client.Object, c client.Client, op
 		return nil, errors.Wrap(err, "failed to unmarshal two way merge patch")
 	}
 
+	hasChanges := len(twoWayPatchMap) > 0
 	// check if the changes impact the spec field.
 	hasSpecChanges := twoWayPatchMap["spec"] != nil
+
+	var changes []byte
+	if hasChanges {
+		// Cleanup diff by dropping .metadata.managedFields.
+		ssa.FilterIntent(&ssa.FilterIntentInput{
+			Path:         contract.Path{},
+			Value:        twoWayPatchMap,
+			ShouldFilter: ssa.IsPathIgnored([]contract.Path{[]string{"metadata", "managedFields"}}),
+		})
+
+		changes, err = json.Marshal(twoWayPatchMap)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to marshal diff")
+		}
+	}
 
 	return &TwoWaysPatchHelper{
 		client:         c,
 		patch:          twoWayPatch,
 		hasSpecChanges: hasSpecChanges,
+		changes:        changes,
 		original:       original,
 	}, nil
 }
@@ -198,6 +216,11 @@ func applyOptions(in *applyOptionsInput) ([]byte, error) {
 // HasSpecChanges return true if the patch has changes to the spec field.
 func (h *TwoWaysPatchHelper) HasSpecChanges() bool {
 	return h.hasSpecChanges
+}
+
+// Changes return the changes.
+func (h *TwoWaysPatchHelper) Changes() []byte {
+	return h.changes
 }
 
 // HasChanges return true if the patch has changes.

@@ -556,8 +556,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				}
 				fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 				r := &Reconciler{
-					Client:                    fakeClient,
-					UnstructuredCachingClient: fakeClient,
+					Client: fakeClient,
 				}
 				result, _, err := r.runPreflightChecks(ctx, tt.cluster, tt.machineSet, "")
 				if tt.wantErr {

@@ -18,11 +18,9 @@ package cluster
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -305,7 +303,7 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 
 	// Get the clusterClass to update and check if clusterClass updates are being correctly reconciled.
 	clusterClass := &clusterv1.ClusterClass{}
-	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, clusterClass)).To(Succeed())
+	g.Expect(env.Get(ctx, actualCluster.GetClassKey(), clusterClass)).To(Succeed())
 
 	patchHelper, err := patch.NewHelper(clusterClass, env.Client)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -319,7 +317,7 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 		// Check that the clusterClass has been correctly updated to use the new infrastructure template.
 		// This is necessary as sometimes the cache can take a little time to update.
 		class := &clusterv1.ClusterClass{}
-		g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, class)).To(Succeed())
+		g.Expect(env.Get(ctx, actualCluster.GetClassKey(), class)).To(Succeed())
 		g.Expect(class.Spec.Workers.MachineDeployments[0].Template.Infrastructure.Ref.Name).To(Equal(infrastructureMachineTemplateName2))
 		g.Expect(class.Spec.Workers.MachinePools[0].Template.Infrastructure.Ref.Name).To(Equal(infrastructureMachinePoolTemplateName2))
 
@@ -414,7 +412,7 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 			return err
 		}
 		// Check to ensure the spec.topology.class has been successfully updated in the API server and cache.
-		g.Expect(updatedCluster.Spec.Topology.Class).To(Equal(clusterClassName2))
+		g.Expect(updatedCluster.GetClassKey().Name).To(Equal(clusterClassName2))
 		// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
 		g.Expect(assertClusterReconcile(updatedCluster)).Should(Succeed())
 
@@ -635,7 +633,7 @@ func TestClusterReconciler_deleteClusterClass(t *testing.T) {
 
 	// Ensure the clusterClass is available in the API server .
 	clusterClass := &clusterv1.ClusterClass{}
-	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, clusterClass)).To(Succeed())
+	g.Expect(env.Get(ctx, actualCluster.GetClassKey(), clusterClass)).To(Succeed())
 
 	// Attempt to delete the ClusterClass. Expect an error here as the ClusterClass deletion is blocked by the webhook.
 	g.Expect(env.Delete(ctx, clusterClass)).NotTo(Succeed())
@@ -970,7 +968,7 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 		}
 	}
 	clusterClass := &clusterv1.ClusterClass{}
-	if err := env.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); err != nil {
+	if err := env.Get(ctx, cluster.GetClassKey(), clusterClass); err != nil {
 		return err
 	}
 	// Check for the ControlPlaneInfrastructure if it's referenced in the clusterClass.
@@ -1284,12 +1282,13 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				Build(),
 			wantCluster: clusterBuilder.DeepCopy().
 				WithTopology(topologyBase.DeepCopy().WithVariables(
-					clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-east"`)}, DefinitionFrom: ""}).
+					clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-east"`)}}).
 					Build()).
 				Build(),
 		},
@@ -1311,6 +1310,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().WithTopology(topologyBase.DeepCopy().WithVariables(
 				clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}}).
@@ -1365,10 +1365,14 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 							},
 						},
 					}}...).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				WithTopology(topologyBase.DeepCopy().
 					WithVariables(
+						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
+						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)}}).
+					WithControlPlaneVariables(
 						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
 						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true}`)}}).
 					WithMachineDeployment(mdTopologyBase.DeepCopy().
@@ -1386,6 +1390,9 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 			wantCluster: clusterBuilder.DeepCopy().WithTopology(
 				topologyBase.DeepCopy().
 					WithVariables(
+						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
+						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`)}}).
+					WithControlPlaneVariables(
 						clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-west"`)}},
 						clusterv1.ClusterVariable{Name: "httpProxy", Value: apiextensionsv1.JSON{Raw: []byte(`{"enabled":true,"url":"http://localhost:3128"}`)}}).
 					WithMachineDeployment(
@@ -1425,7 +1432,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 			got := &clusterv1.Cluster{}
 			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace}, got)).To(Succeed())
 			// Compare the spec of the two clusters to ensure that variables are defaulted correctly.
-			g.Expect(reflect.DeepEqual(got.Spec, tt.wantCluster.Spec)).To(BeTrue(), cmp.Diff(got.Spec, tt.wantCluster.Spec))
+			g.Expect(got.Spec).To(BeComparableTo(tt.wantCluster.Spec))
 		})
 	}
 }
@@ -1447,17 +1454,25 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 		WithTopology(
 			topologyBase.Build())
 	tests := []struct {
-		name              string
-		clusterClass      *clusterv1.ClusterClass
-		cluster           *clusterv1.Cluster
-		wantValidationErr bool
+		name                     string
+		clusterClass             *clusterv1.ClusterClass
+		cluster                  *clusterv1.Cluster
+		wantValidationErr        bool
+		wantValidationErrMessage string
 	}{
 		{
 			name: "Valid cluster should not throw validation error",
 			clusterClass: classBuilder.DeepCopy().
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name: "httpProxy",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: false, // variable is not required.
+							From:     clusterv1.VariableDefinitionFromInline,
+						},
+					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.DeepCopy().
 				Build(),
@@ -1475,10 +1490,30 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.
 				Build(),
 			wantValidationErr: true,
+		},
+		{
+			name: "Cluster cannot reconcile as the ClusterClass has not VariablesReconciled successfully",
+			clusterClass: classBuilder.DeepCopy().
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "httpProxy",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+						},
+					},
+				}).
+				WithConditions(*conditions.FalseCondition(clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError, "error message")).
+				Build(),
+			cluster: clusterBuilder.
+				Build(),
+			wantValidationErr:        true,
+			wantValidationErrMessage: "ClusterClass is not successfully reconciled: status of VariablesReconciled condition on ClusterClass must be \"True\"",
 		},
 		{
 			name: "Cluster invalid as it defines an MDTopology without a corresponding MDClass",
@@ -1492,6 +1527,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 						},
 					},
 				}).
+				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
 			cluster: clusterBuilder.WithTopology(
 				builder.ClusterTopology().DeepCopy().
@@ -1517,6 +1553,9 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 			// Reconcile will always return an error here as the topology is incomplete. This test checks specifically for
 			// validation errors.
 			validationErrMessage := fmt.Sprintf("Cluster.cluster.x-k8s.io %q is invalid:", tt.cluster.Name)
+			if tt.wantValidationErrMessage != "" {
+				validationErrMessage = tt.wantValidationErrMessage
+			}
 			if tt.wantValidationErr {
 				g.Expect(err.Error()).To(ContainSubstring(validationErrMessage))
 				return

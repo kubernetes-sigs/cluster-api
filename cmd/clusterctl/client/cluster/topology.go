@@ -140,15 +140,18 @@ func (t *topologyClient) Plan(ctx context.Context, in *TopologyPlanInput) (*Topo
 	// This mimics the defaulting and validation webhooks that will run on the objects during a real execution.
 	// Running defaulting and validation on these objects helps to improve the UX of using the plan operation.
 	// This is especially important when working with Clusters and ClusterClasses that use variable and patches.
-	if err := t.runDefaultAndValidationWebhooks(ctx, in, c); err != nil {
+	reconciledClusterClasses, err := t.runDefaultAndValidationWebhooks(ctx, in, c)
+	if err != nil {
 		return nil, errors.Wrap(err, "failed defaulting and validation on input objects")
 	}
 
 	objs := []client.Object{}
 	// Add all the objects from the input to the list used when initializing the dry run client.
-	for _, o := range in.Objs {
+	for _, o := range filterObjects(in.Objs, clusterv1.GroupVersion.WithKind("ClusterClass")) {
 		objs = append(objs, o)
 	}
+	// Note: We have to add the reconciled ClusterClasses, because the Cluster reconciler depends on that.
+	objs = append(objs, reconciledClusterClasses...)
 	// Add mock CRDs of all the provider objects in the input to the list used when initializing the dry run client.
 	// Adding these CRDs makes sure that UpdateReferenceAPIContract calls in the reconciler can work.
 	for _, o := range t.generateCRDs(in.Objs) {
@@ -200,9 +203,8 @@ func (t *topologyClient) Plan(ctx context.Context, in *TopologyPlanInput) (*Topo
 
 	res.ReconciledCluster = targetCluster
 	reconciler := &clustertopologycontroller.Reconciler{
-		Client:                    dryRunClient,
-		APIReader:                 dryRunClient,
-		UnstructuredCachingClient: dryRunClient,
+		Client:    dryRunClient,
+		APIReader: dryRunClient,
 	}
 	reconciler.SetupForDryRun(&noOpRecorder{})
 	request := reconcile.Request{NamespacedName: *targetCluster}
@@ -363,11 +365,11 @@ func (t *topologyClient) prepareClusters(ctx context.Context, clusters []*unstru
 // ValidateCreate is performed.
 // *Important Note*: We cannot perform defaulting and validation on provider objects as we do not have access to
 // that code.
-func (t *topologyClient) runDefaultAndValidationWebhooks(ctx context.Context, in *TopologyPlanInput, apiReader client.Reader) error {
+func (t *topologyClient) runDefaultAndValidationWebhooks(ctx context.Context, in *TopologyPlanInput, apiReader client.Reader) ([]client.Object, error) {
 	// Enable the ClusterTopology feature gate so that the defaulter and validators do not complain.
 	// Note: We don't need to disable it later because the CLI is short lived.
 	if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", feature.ClusterTopology, true)); err != nil {
-		return errors.Wrapf(err, "failed to enable %s feature gate", feature.ClusterTopology)
+		return nil, errors.Wrapf(err, "failed to enable %s feature gate", feature.ClusterTopology)
 	}
 
 	// From the inputs gather all the objects that are not Clusters or ClusterClasses.
@@ -396,7 +398,7 @@ func (t *topologyClient) runDefaultAndValidationWebhooks(ctx context.Context, in
 		ccWebhook,
 		apiReader,
 	); err != nil {
-		return errors.Wrap(err, "failed to run defaulting and validation on ClusterClasses")
+		return nil, errors.Wrap(err, "failed to run defaulting and validation on ClusterClasses")
 	}
 
 	// From the inputs gather all the objects that are not Clusters or ClusterClasses.
@@ -417,7 +419,7 @@ func (t *topologyClient) runDefaultAndValidationWebhooks(ctx context.Context, in
 	// during ClusterClass reconciliation.
 	reconciledClusterClasses, err := t.reconcileClusterClasses(ctx, in.Objs, apiReader)
 	if err != nil {
-		return errors.Wrapf(err, "failed to reconcile ClusterClasses for defaulting and validating")
+		return nil, errors.Wrapf(err, "failed to reconcile ClusterClasses for defaulting and validating")
 	}
 	objs = append(objs, reconciledClusterClasses...)
 
@@ -433,10 +435,10 @@ func (t *topologyClient) runDefaultAndValidationWebhooks(ctx context.Context, in
 		clusterWebhook,
 		apiReader,
 	); err != nil {
-		return errors.Wrap(err, "failed to run defaulting and validation on Clusters")
+		return nil, errors.Wrap(err, "failed to run defaulting and validation on Clusters")
 	}
 
-	return nil
+	return reconciledClusterClasses, nil
 }
 
 func (t *topologyClient) reconcileClusterClasses(ctx context.Context, inputObjects []*unstructured.Unstructured, apiReader client.Reader) ([]client.Object, error) {
@@ -515,8 +517,7 @@ func reconcileClusterClass(ctx context.Context, apiReader client.Reader, class c
 	reconcilerClient := dryrun.NewClient(apiReader, reconciliationObjects)
 
 	clusterClassReconciler := &clusterclasscontroller.Reconciler{
-		Client:                    reconcilerClient,
-		UnstructuredCachingClient: reconcilerClient,
+		Client: reconcilerClient,
 	}
 
 	if _, err := clusterClassReconciler.Reconcile(ctx, reconcile.Request{NamespacedName: targetClusterClass}); err != nil {
@@ -697,7 +698,8 @@ func (t *topologyClient) affectedClusters(ctx context.Context, in *TopologyPlanI
 	// Each of the Cluster that uses the ClusterClass in the input is an affected cluster.
 	for _, cc := range affectedClusterClasses {
 		for i := range clusterList.Items {
-			if clusterList.Items[i].Spec.Topology != nil && clusterList.Items[i].Spec.Topology.Class == cc.Name {
+			cluster := clusterList.Items[i]
+			if cluster.Spec.Topology != nil && cluster.GetClassKey().Name == cc.Name {
 				affectedClusters[client.ObjectKeyFromObject(&clusterList.Items[i])] = true
 			}
 		}

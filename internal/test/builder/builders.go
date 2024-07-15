@@ -114,12 +114,13 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 
 // ClusterTopologyBuilder contains the fields needed to build a testable ClusterTopology.
 type ClusterTopologyBuilder struct {
-	class                string
-	workers              *clusterv1.WorkersTopology
-	version              string
-	controlPlaneReplicas int32
-	controlPlaneMHC      *clusterv1.MachineHealthCheckTopology
-	variables            []clusterv1.ClusterVariable
+	class                 string
+	workers               *clusterv1.WorkersTopology
+	version               string
+	controlPlaneReplicas  int32
+	controlPlaneMHC       *clusterv1.MachineHealthCheckTopology
+	variables             []clusterv1.ClusterVariable
+	controlPlaneVariables []clusterv1.ClusterVariable
 }
 
 // ClusterTopology returns a ClusterTopologyBuilder.
@@ -144,6 +145,12 @@ func (c *ClusterTopologyBuilder) WithVersion(version string) *ClusterTopologyBui
 // WithControlPlaneReplicas adds the passed replicas value to the ClusterTopologyBuilder.
 func (c *ClusterTopologyBuilder) WithControlPlaneReplicas(replicas int32) *ClusterTopologyBuilder {
 	c.controlPlaneReplicas = replicas
+	return c
+}
+
+// WithControlPlaneVariables adds the passed variable values to the ClusterTopologyBuilder.
+func (c *ClusterTopologyBuilder) WithControlPlaneVariables(variables ...clusterv1.ClusterVariable) *ClusterTopologyBuilder {
+	c.controlPlaneVariables = variables
 	return c
 }
 
@@ -173,7 +180,7 @@ func (c *ClusterTopologyBuilder) WithVariables(vars ...clusterv1.ClusterVariable
 
 // Build returns a testable cluster Topology object with any values passed to the builder.
 func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
-	return &clusterv1.Topology{
+	t := &clusterv1.Topology{
 		Class:   c.class,
 		Workers: c.workers,
 		Version: c.version,
@@ -183,6 +190,14 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 		},
 		Variables: c.variables,
 	}
+
+	if len(c.controlPlaneVariables) > 0 {
+		t.ControlPlane.Variables = &clusterv1.ControlPlaneVariables{
+			Overrides: c.controlPlaneVariables,
+		}
+	}
+
+	return t
 }
 
 // MachineDeploymentTopologyBuilder holds the values needed to create a testable MachineDeploymentTopology.
@@ -329,6 +344,7 @@ type ClusterClassBuilder struct {
 	variables                                 []clusterv1.ClusterClassVariable
 	statusVariables                           []clusterv1.ClusterClassStatusVariable
 	patches                                   []clusterv1.ClusterClassPatch
+	conditions                                clusterv1.Conditions
 }
 
 // ClusterClass returns a ClusterClassBuilder with the given name and namespace.
@@ -408,6 +424,12 @@ func (c *ClusterClassBuilder) WithStatusVariables(vars ...clusterv1.ClusterClass
 	return c
 }
 
+// WithConditions adds the conditions to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithConditions(conditions ...clusterv1.Condition) *ClusterClassBuilder {
+	c.conditions = conditions
+	return c
+}
+
 // WithPatches adds the patches to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithPatches(patches []clusterv1.ClusterClassPatch) *ClusterClassBuilder {
 	c.patches = patches
@@ -448,7 +470,8 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Patches:   c.patches,
 		},
 		Status: clusterv1.ClusterClassStatus{
-			Variables: c.statusVariables,
+			Conditions: c.conditions,
+			Variables:  c.statusVariables,
 		},
 	}
 	if c.infrastructureClusterTemplate != nil {
@@ -1446,6 +1469,18 @@ func (c *TestControlPlaneBuilder) WithVersion(version string) *TestControlPlaneB
 	return c
 }
 
+// WithLabels adds the passed labels to the ControlPlaneBuilder.
+func (c *ControlPlaneBuilder) WithLabels(labels map[string]string) *ControlPlaneBuilder {
+	c.obj.SetLabels(labels)
+	return c
+}
+
+// WithAnnotations adds the passed annotations to the ControlPlaneBuilder.
+func (c *ControlPlaneBuilder) WithAnnotations(annotations map[string]string) *ControlPlaneBuilder {
+	c.obj.SetAnnotations(annotations)
+	return c
+}
+
 // WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
 // to the value of the spec field.
 //
@@ -1517,6 +1552,7 @@ type MachinePoolBuilder struct {
 	clusterName     string
 	replicas        *int32
 	labels          map[string]string
+	annotations     map[string]string
 	status          *expv1.MachinePoolStatus
 	minReadySeconds *int32
 }
@@ -1544,6 +1580,12 @@ func (m *MachinePoolBuilder) WithInfrastructure(ref *unstructured.Unstructured) 
 // WithLabels adds the given labels to the MachinePoolBuilder.
 func (m *MachinePoolBuilder) WithLabels(labels map[string]string) *MachinePoolBuilder {
 	m.labels = labels
+	return m
+}
+
+// WithAnnotations adds the given annotations to the MachinePoolBuilder.
+func (m *MachinePoolBuilder) WithAnnotations(annotations map[string]string) *MachinePoolBuilder {
+	m.annotations = annotations
 	return m
 }
 
@@ -1585,9 +1627,10 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 			APIVersion: expv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.name,
-			Namespace: m.namespace,
-			Labels:    m.labels,
+			Name:        m.name,
+			Namespace:   m.namespace,
+			Labels:      m.labels,
+			Annotations: m.annotations,
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName:     m.clusterName,
@@ -1625,6 +1668,7 @@ type MachineDeploymentBuilder struct {
 	replicas               *int32
 	generation             *int64
 	labels                 map[string]string
+	annotations            map[string]string
 	status                 *clusterv1.MachineDeploymentStatus
 	minReadySeconds        *int32
 }
@@ -1667,6 +1711,12 @@ func (m *MachineDeploymentBuilder) WithLabels(labels map[string]string) *Machine
 	return m
 }
 
+// WithAnnotations adds the given annotations to the MachineDeploymentBuilder.
+func (m *MachineDeploymentBuilder) WithAnnotations(annotations map[string]string) *MachineDeploymentBuilder {
+	m.annotations = annotations
+	return m
+}
+
 // WithVersion sets the passed version on the machine deployment spec.
 func (m *MachineDeploymentBuilder) WithVersion(version string) *MachineDeploymentBuilder {
 	m.version = &version
@@ -1705,9 +1755,10 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.name,
-			Namespace: m.namespace,
-			Labels:    m.labels,
+			Name:        m.name,
+			Namespace:   m.namespace,
+			Labels:      m.labels,
+			Annotations: m.annotations,
 		},
 	}
 	if m.generation != nil {

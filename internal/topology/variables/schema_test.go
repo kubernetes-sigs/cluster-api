@@ -17,9 +17,9 @@ limitations under the License.
 package variables
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -103,10 +103,10 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 						Minimum: ptr.To[int64](1),
 					},
 					"property2": {
-						Type:      "string",
-						Format:    "uri",
-						MinLength: ptr.To[int64](2),
-						MaxLength: ptr.To[int64](4),
+						Type:          "string",
+						Format:        "uri",
+						MinProperties: ptr.To[int64](2),
+						MaxProperties: ptr.To[int64](4),
 					},
 				},
 			},
@@ -117,10 +117,10 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 						Minimum: ptr.To[float64](1),
 					},
 					"property2": {
-						Type:      "string",
-						Format:    "uri",
-						MinLength: ptr.To[int64](2),
-						MaxLength: ptr.To[int64](4),
+						Type:          "string",
+						Format:        "uri",
+						MinProperties: ptr.To[int64](2),
+						MaxProperties: ptr.To[int64](4),
 					},
 				},
 			},
@@ -135,10 +135,10 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 							Minimum: ptr.To[int64](1),
 						},
 						"property2": {
-							Type:      "string",
-							Format:    "uri",
-							MinLength: ptr.To[int64](2),
-							MaxLength: ptr.To[int64](4),
+							Type:          "string",
+							Format:        "uri",
+							MinProperties: ptr.To[int64](2),
+							MaxProperties: ptr.To[int64](4),
 						},
 					},
 				},
@@ -153,10 +153,10 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 								Minimum: ptr.To[float64](1),
 							},
 							"property2": {
-								Type:      "string",
-								Format:    "uri",
-								MinLength: ptr.To[int64](2),
-								MaxLength: ptr.To[int64](4),
+								Type:          "string",
+								Format:        "uri",
+								MinProperties: ptr.To[int64](2),
+								MaxProperties: ptr.To[int64](4),
 							},
 						},
 					},
@@ -186,6 +186,53 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "pass for schema validation with CEL validation rules",
+			schema: &clusterv1.JSONSchemaProps{
+				Items: &clusterv1.JSONSchemaProps{
+					Type:      "integer",
+					Minimum:   ptr.To[int64](1),
+					Format:    "uri",
+					MinLength: ptr.To[int64](2),
+					MaxLength: ptr.To[int64](4),
+					XValidations: []clusterv1.ValidationRule{{
+						Rule:              "self > 0",
+						Message:           "value must be greater than 0",
+						MessageExpression: "value must be greater than 0",
+						FieldPath:         "a.field.path",
+					}, {
+						Rule:              "self > 0",
+						Message:           "value must be greater than 0",
+						MessageExpression: "value must be greater than 0",
+						FieldPath:         "a.field.path",
+						Reason:            clusterv1.FieldValueErrorReason("a reason"),
+					}},
+				},
+			},
+			want: &apiextensions.JSONSchemaProps{
+				Items: &apiextensions.JSONSchemaPropsOrArray{
+					Schema: &apiextensions.JSONSchemaProps{
+						Type:      "integer",
+						Minimum:   ptr.To[float64](1),
+						Format:    "uri",
+						MinLength: ptr.To[int64](2),
+						MaxLength: ptr.To[int64](4),
+						XValidations: apiextensions.ValidationRules{{
+							Rule:              "self > 0",
+							Message:           "value must be greater than 0",
+							MessageExpression: "value must be greater than 0",
+							FieldPath:         "a.field.path",
+						}, {
+							Rule:              "self > 0",
+							Message:           "value must be greater than 0",
+							MessageExpression: "value must be greater than 0",
+							FieldPath:         "a.field.path",
+							Reason:            ptr.To(apiextensions.FieldValueErrorReason("a reason")),
+						}},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -196,7 +243,7 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 				}
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
+			if !cmp.Equal(got, tt.want) {
 				t.Errorf("convertToAPIExtensionsJSONSchemaProps() got = %v, want %v", got, tt.want)
 			}
 		})

@@ -22,12 +22,14 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/compare"
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
@@ -39,7 +41,7 @@ import (
 // - mutated in-place (ex: NodeDrainTimeout)
 // - are not dictated by KCP (ex: ProviderID)
 // - are not relevant for the rollout decision (ex: failureDomain).
-func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
+func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool, error) {
 	mismatchReasons := []string{}
 
 	if !collections.MatchesKubernetesVersion(kcp.Spec.Version)(machine) {
@@ -50,7 +52,11 @@ func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, mach
 		mismatchReasons = append(mismatchReasons, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machineVersion, kcp.Spec.Version))
 	}
 
-	if reason, matches := matchesKubeadmBootstrapConfig(machineConfigs, kcp, machine); !matches {
+	reason, matches, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, machine)
+	if err != nil {
+		return "", false, errors.Wrapf(err, "failed to match Machine spec")
+	}
+	if !matches {
 		mismatchReasons = append(mismatchReasons, reason)
 	}
 
@@ -59,14 +65,14 @@ func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, mach
 	}
 
 	if len(mismatchReasons) > 0 {
-		return strings.Join(mismatchReasons, ","), false
+		return strings.Join(mismatchReasons, ","), false, nil
 	}
 
-	return "", true
+	return "", true, nil
 }
 
 // NeedsRollout checks if a Machine needs to be rolled out and returns the reason why.
-func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
+func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool, error) {
 	rolloutReasons := []string{}
 
 	// Machines whose certificates are about to expire.
@@ -81,15 +87,19 @@ func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *
 	}
 
 	// Machines that do not match with KCP config.
-	if mismatchReason, matches := matchesMachineSpec(infraConfigs, machineConfigs, kcp, machine); !matches {
+	mismatchReason, matches, err := matchesMachineSpec(infraConfigs, machineConfigs, kcp, machine)
+	if err != nil {
+		return "", false, errors.Wrapf(err, "failed to determine if Machine %s needs rollout", machine.Name)
+	}
+	if !matches {
 		rolloutReasons = append(rolloutReasons, mismatchReason)
 	}
 
 	if len(rolloutReasons) > 0 {
-		return fmt.Sprintf("Machine %s needs rollout: %s", machine.Name, strings.Join(rolloutReasons, ",")), true
+		return fmt.Sprintf("Machine %s needs rollout: %s", machine.Name, strings.Join(rolloutReasons, ",")), true, nil
 	}
 
-	return "", false
+	return "", false, nil
 }
 
 // matchesTemplateClonedFrom checks if a Machine has a corresponding infrastructure machine that
@@ -130,38 +140,46 @@ func matchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 // matchesKubeadmBootstrapConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
 // Note: Differences to the labels and annotations on the KubeadmConfig are not considered for matching
 // criteria, because changes to labels and annotations are propagated in-place to KubeadmConfig.
-func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
+func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool, error) {
 	if machine == nil {
-		return "Machine KubeadmConfig cannot be compared: Machine is nil", false
+		return "Machine KubeadmConfig cannot be compared: Machine is nil", false, nil
 	}
 
 	// Check if KCP and machine ClusterConfiguration matches, if not return
-	if !matchClusterConfiguration(kcp, machine) {
-		return "Machine ClusterConfiguration is outdated", false
+	match, diff, err := matchClusterConfiguration(kcp, machine)
+	if err != nil {
+		return "", false, errors.Wrapf(err, "failed to match KubeadmConfig")
+	}
+	if !match {
+		return fmt.Sprintf("Machine KubeadmConfig ClusterConfiguration is outdated: diff: %s", diff), false, nil
 	}
 
 	bootstrapRef := machine.Spec.Bootstrap.ConfigRef
 	if bootstrapRef == nil {
 		// Missing bootstrap reference should not be considered as unmatching.
 		// This is a safety precaution to avoid selecting machines that are broken, which in the future should be remediated separately.
-		return "", true
+		return "", true, nil
 	}
 
 	machineConfig, found := machineConfigs[machine.Name]
 	if !found {
 		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
 		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
-		return "", true
+		return "", true, nil
 	}
 
 	// Check if KCP and machine InitConfiguration or JoinConfiguration matches
 	// NOTE: only one between init configuration and join configuration is set on a machine, depending
 	// on the fact that the machine was the initial control plane node or a joining control plane node.
-	if !matchInitOrJoinConfiguration(machineConfig, kcp) {
-		return "Machine InitConfiguration or JoinConfiguration are outdated", false
+	match, diff, err = matchInitOrJoinConfiguration(machineConfig, kcp)
+	if err != nil {
+		return "", false, errors.Wrapf(err, "failed to match KubeadmConfig")
+	}
+	if !match {
+		return fmt.Sprintf("Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: %s", diff), false, nil
 	}
 
-	return "", true
+	return "", true, nil
 }
 
 // matchClusterConfiguration verifies if KCP and machine ClusterConfiguration matches.
@@ -169,11 +187,11 @@ func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 // If the annotation is not present (machine is either old or adopted), we won't roll out on any possible changes
 // made in KCP's ClusterConfiguration given that we don't have enough information to make a decision.
 // Users should use KCP.Spec.RolloutAfter field to force a rollout in this case.
-func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) bool {
+func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (bool, string, error) {
 	machineClusterConfigStr, ok := machine.GetAnnotations()[controlplanev1.KubeadmClusterConfigurationAnnotation]
 	if !ok {
 		// We don't have enough information to make a decision; don't' trigger a roll out.
-		return true
+		return true, "", nil
 	}
 
 	machineClusterConfig := &bootstrapv1.ClusterConfiguration{}
@@ -182,7 +200,7 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 	// otherwise we won't be able to handle a nil ClusterConfiguration (that is serialized into "null").
 	// See https://github.com/kubernetes-sigs/cluster-api/issues/3353.
 	if err := json.Unmarshal([]byte(machineClusterConfigStr), &machineClusterConfig); err != nil {
-		return false
+		return false, "", nil //nolint:nilerr // Intentionally not returning the error here
 	}
 
 	// If any of the compared values are nil, treat them the same as an empty ClusterConfiguration.
@@ -199,16 +217,20 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 	machineClusterConfig.DNS = kcpLocalClusterConfiguration.DNS
 
 	// Compare and return.
-	return reflect.DeepEqual(machineClusterConfig, kcpLocalClusterConfiguration)
+	match, diff, err := compare.Diff(machineClusterConfig, kcpLocalClusterConfiguration)
+	if err != nil {
+		return false, "", errors.Wrapf(err, "failed to match ClusterConfiguration")
+	}
+	return match, diff, nil
 }
 
 // matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.
 // NOTE: By extension this method takes care of detecting changes in other fields of the KubeadmConfig configuration (e.g. Files, Mounts etc.)
-func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) bool {
+func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) (bool, string, error) {
 	if machineConfig == nil {
 		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
 		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
-		return true
+		return true, "", nil
 	}
 
 	// takes the KubeadmConfigSpec from KCP and applies the transformations required
@@ -225,7 +247,11 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 	// cleanups all the fields that are not relevant for the comparison.
 	cleanupConfigFields(kcpConfig, machineConfig)
 
-	return reflect.DeepEqual(&machineConfig.Spec, kcpConfig)
+	match, diff, err := compare.Diff(&machineConfig.Spec, kcpConfig)
+	if err != nil {
+		return false, "", errors.Wrapf(err, "failed to match InitConfiguration or JoinConfiguration")
+	}
+	return match, diff, nil
 }
 
 // getAdjustedKcpConfig takes the KubeadmConfigSpec from KCP and applies the transformations required

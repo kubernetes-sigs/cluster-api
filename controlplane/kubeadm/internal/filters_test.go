@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -34,9 +35,12 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		m := &clusterv1.Machine{}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
+		match, diff, err := matchClusterConfiguration(kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
 	})
-	t.Run("machine without an invalid ClusterConfiguration annotation should not match (only solution is to rollout)", func(t *testing.T) {
+	t.Run("machine with an invalid ClusterConfiguration annotation should not match (only solution is to rollout)", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		m := &clusterv1.Machine{
@@ -46,7 +50,10 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(BeFalse())
+		match, diff, err := matchClusterConfiguration(kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		g.Expect(diff).To(BeEmpty())
 	})
 	t.Run("Return true if cluster configuration matches", func(t *testing.T) {
 		g := NewWithT(t)
@@ -66,7 +73,10 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
+		match, diff, err := matchClusterConfiguration(kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
 	})
 	t.Run("Return false if cluster configuration does not match", func(t *testing.T) {
 		g := NewWithT(t)
@@ -86,7 +96,16 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(BeFalse())
+		match, diff, err := matchClusterConfiguration(kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		g.Expect(diff).To(BeComparableTo(`&v1beta1.ClusterConfiguration{
+    ... // 10 identical fields
+    ImageRepository: "",
+    FeatureGates:    nil,
+-   ClusterName:     "bar",
++   ClusterName:     "foo",
+  }`))
 	})
 	t.Run("Return true if cluster configuration is nil (special case)", func(t *testing.T) {
 		g := NewWithT(t)
@@ -102,7 +121,10 @@ func TestMatchClusterConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
+		match, diff, err := matchClusterConfiguration(kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
 	})
 	t.Run("Return true although the DNS fields are different", func(t *testing.T) {
 		g := NewWithT(t)
@@ -124,6 +146,57 @@ func TestMatchClusterConfiguration(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					controlplanev1.KubeadmClusterConfigurationAnnotation: "{\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.9.3\"}}",
+				},
+			},
+		}
+		match, diff, err := matchClusterConfiguration(kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
+	})
+	t.Run("Check we are not introducing unexpected rollouts when changing the API", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						APIServer: bootstrapv1.APIServer{
+							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+								ExtraArgs: map[string]string{"foo": "bar"},
+							},
+						},
+						ControllerManager: bootstrapv1.ControlPlaneComponent{
+							ExtraArgs: map[string]string{"foo": "bar"},
+						},
+						Scheduler: bootstrapv1.ControlPlaneComponent{
+							ExtraArgs: map[string]string{"foo": "bar"},
+						},
+						DNS: bootstrapv1.DNS{
+							ImageMeta: bootstrapv1.ImageMeta{
+								ImageTag:        "v1.10.1",
+								ImageRepository: "gcr.io/capi-test",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// This is a point in time snapshot of how a serialized ClusterConfiguration looks like;
+		// we are hardcoding this in the test so we can detect if a change in the API impacts serialization.
+		// NOTE: changes in the json representation do not always trigger a rollout in KCP, but they are an heads up that should be investigated.
+		clusterConfigCheckPoint := []byte("{\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{\"extraArgs\":{\"foo\":\"bar\"}},\"scheduler\":{\"extraArgs\":{\"foo\":\"bar\"}},\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.10.1\"}}")
+
+		// compute how a serialized ClusterConfiguration looks like now
+		clusterConfig, err := json.Marshal(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(clusterConfig).To(Equal(clusterConfigCheckPoint))
+
+		// check the match function detects if a Machine with the annotation string above matches the object it originates from (round trip).
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					controlplanev1.KubeadmClusterConfigurationAnnotation: string(clusterConfig),
 				},
 			},
 		}
@@ -299,12 +372,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 	t.Run("returns true if the machine does not have a bootstrap config", func(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
-		g.Expect(matchInitOrJoinConfiguration(nil, kcp)).To(BeTrue())
-	})
-	t.Run("returns true if the there are problems reading the bootstrap config", func(t *testing.T) {
-		g := NewWithT(t)
-		kcp := &controlplanev1.KubeadmControlPlane{}
-		g.Expect(matchInitOrJoinConfiguration(nil, kcp)).To(BeTrue())
+		match, diff, err := matchInitOrJoinConfiguration(nil, kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
 	})
 	t.Run("returns true if one format is empty and the other one cloud-config", func(t *testing.T) {
 		g := NewWithT(t)
@@ -350,7 +421,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeTrue())
+		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -398,7 +472,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeTrue())
+		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
 	})
 	t.Run("returns false if InitConfiguration is NOT equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -450,7 +527,29 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeFalse())
+		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		g.Expect(diff).To(BeComparableTo(`&v1beta1.KubeadmConfigSpec{
+    ClusterConfiguration: nil,
+    InitConfiguration: &v1beta1.InitConfiguration{
+      TypeMeta:        {},
+      BootstrapTokens: nil,
+      NodeRegistration: v1beta1.NodeRegistrationOptions{
+-       Name:      "",
++       Name:      "A new name",
+        CRISocket: "",
+        Taints:    nil,
+        ... // 4 identical fields
+      },
+      LocalAPIEndpoint: {},
+      SkipPhases:       nil,
+      Patches:          nil,
+    },
+    JoinConfiguration: nil,
+    Files:             nil,
+    ... // 10 identical fields
+  }`))
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -498,7 +597,10 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeTrue())
+		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeTrue())
+		g.Expect(diff).To(BeEmpty())
 	})
 	t.Run("returns false if JoinConfiguration is NOT equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -550,7 +652,29 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeFalse())
+		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		g.Expect(diff).To(BeComparableTo(`&v1beta1.KubeadmConfigSpec{
+    ClusterConfiguration: nil,
+    InitConfiguration:    nil,
+    JoinConfiguration: &v1beta1.JoinConfiguration{
+      TypeMeta: {},
+      NodeRegistration: v1beta1.NodeRegistrationOptions{
+-       Name:      "",
++       Name:      "A new name",
+        CRISocket: "",
+        Taints:    nil,
+        ... // 4 identical fields
+      },
+      CACertPath: "",
+      Discovery:  {},
+      ... // 3 identical fields
+    },
+    Files:     nil,
+    DiskSetup: nil,
+    ... // 9 identical fields
+  }`))
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -599,7 +723,19 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeFalse())
+		match, diff, err := matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(match).To(BeFalse())
+		g.Expect(diff).To(BeComparableTo(`&v1beta1.KubeadmConfigSpec{
+    ClusterConfiguration: nil,
+    InitConfiguration:    &{NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
+    JoinConfiguration:    nil,
+-   Files:                nil,
++   Files:                []v1beta1.File{},
+    DiskSetup:            nil,
+    Mounts:               nil,
+    ... // 8 identical fields
+  }`))
 	})
 }
 
@@ -625,7 +761,8 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {},
 		}
-		reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -650,9 +787,16 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
 			m.Name: {},
 		}
-		reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(Equal("Machine ClusterConfiguration is outdated"))
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig ClusterConfiguration is outdated: diff: &v1beta1.ClusterConfiguration{
+    ... // 10 identical fields
+    ImageRepository: "",
+    FeatureGates:    nil,
+-   ClusterName:     "bar",
++   ClusterName:     "foo",
+  }`))
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -700,7 +844,8 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -754,9 +899,29 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(Equal("Machine InitConfiguration or JoinConfiguration are outdated"))
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta1.KubeadmConfigSpec{
+    ClusterConfiguration: nil,
+    InitConfiguration: &v1beta1.InitConfiguration{
+      TypeMeta:        {},
+      BootstrapTokens: nil,
+      NodeRegistration: v1beta1.NodeRegistrationOptions{
+-       Name:      "",
++       Name:      "foo",
+        CRISocket: "",
+        Taints:    nil,
+        ... // 4 identical fields
+      },
+      LocalAPIEndpoint: {},
+      SkipPhases:       nil,
+      Patches:          nil,
+    },
+    JoinConfiguration: nil,
+    Files:             nil,
+    ... // 10 identical fields
+  }`))
 	})
 	t.Run("returns true if JoinConfiguration is equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -804,7 +969,8 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeTrue())
 		g.Expect(reason).To(BeEmpty())
 	})
@@ -858,9 +1024,29 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(Equal("Machine InitConfiguration or JoinConfiguration are outdated"))
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta1.KubeadmConfigSpec{
+    ClusterConfiguration: nil,
+    InitConfiguration:    nil,
+    JoinConfiguration: &v1beta1.JoinConfiguration{
+      TypeMeta: {},
+      NodeRegistration: v1beta1.NodeRegistrationOptions{
+-       Name:      "",
++       Name:      "foo",
+        CRISocket: "",
+        Taints:    nil,
+        ... // 4 identical fields
+      },
+      CACertPath: "",
+      Discovery:  {},
+      ... // 3 identical fields
+    },
+    Files:     nil,
+    DiskSetup: nil,
+    ... // 9 identical fields
+  }`))
 	})
 	t.Run("returns false if some other configurations are not equal", func(t *testing.T) {
 		g := NewWithT(t)
@@ -909,9 +1095,19 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 				},
 			},
 		}
-		reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeFalse())
-		g.Expect(reason).To(Equal("Machine InitConfiguration or JoinConfiguration are outdated"))
+		g.Expect(reason).To(BeComparableTo(`Machine KubeadmConfig InitConfiguration or JoinConfiguration are outdated: diff: &v1beta1.KubeadmConfigSpec{
+    ClusterConfiguration: nil,
+    InitConfiguration:    &{NodeRegistration: {ImagePullPolicy: "IfNotPresent"}},
+    JoinConfiguration:    nil,
+-   Files:                nil,
++   Files:                []v1beta1.File{},
+    DiskSetup:            nil,
+    Mounts:               nil,
+    ... // 8 identical fields
+  }`))
 	})
 	t.Run("should match on labels and annotations", func(t *testing.T) {
 		kcp := &controlplanev1.KubeadmControlPlane{
@@ -973,7 +1169,8 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			g := NewWithT(t)
 			machineConfigs[m.Name].Annotations = nil
 			machineConfigs[m.Name].Labels = nil
-			reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(match).To(BeTrue())
 			g.Expect(reason).To(BeEmpty())
 		})
@@ -982,7 +1179,8 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			g := NewWithT(t)
 			machineConfigs[m.Name].Annotations = kcp.Spec.MachineTemplate.ObjectMeta.Annotations
 			machineConfigs[m.Name].Labels = nil
-			reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(match).To(BeTrue())
 			g.Expect(reason).To(BeEmpty())
 		})
@@ -991,7 +1189,8 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			g := NewWithT(t)
 			machineConfigs[m.Name].Annotations = nil
 			machineConfigs[m.Name].Labels = kcp.Spec.MachineTemplate.ObjectMeta.Labels
-			reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(match).To(BeTrue())
 			g.Expect(reason).To(BeEmpty())
 		})
@@ -1000,7 +1199,8 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			g := NewWithT(t)
 			machineConfigs[m.Name].Labels = kcp.Spec.MachineTemplate.ObjectMeta.Labels
 			machineConfigs[m.Name].Annotations = kcp.Spec.MachineTemplate.ObjectMeta.Annotations
-			reason, match := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			reason, match, err := matchesKubeadmBootstrapConfig(machineConfigs, kcp, m)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(match).To(BeTrue())
 			g.Expect(reason).To(BeEmpty())
 		})

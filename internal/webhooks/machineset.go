@@ -270,19 +270,14 @@ func validateSkippedMachineSetPreflightChecks(o client.Object) *field.Error {
 //
 // We are supporting the following use cases:
 // * A new MS is created and replicas should be managed by the autoscaler
-//   - Either via the default annotation or via the min size and max size annotations the replicas field
-//     is defaulted to a value which is within the (min size, max size) range so the autoscaler can take control.
+//   - If the min size and max size annotations are set, the replicas field is defaulted to the value of the min size
+//     annotation so the autoscaler can take control.
 //
 // * An existing MS which initially wasn't controlled by the autoscaler should be later controlled by the autoscaler
-//   - To adopt an existing MS users can use the default, min size and max size annotations to enable the autoscaler
-//     and to ensure the replicas field is within the (min size, max size) range. Without the annotations handing over
-//     control to the autoscaler by unsetting the replicas field would lead to the field being set to 1. This is very
-//     disruptive for existing Machines and if 1 is outside the (min size, max size) range the autoscaler won't take
-//     control.
-//
-// Notes:
-//   - While the min size and max size annotations of the autoscaler provide the best UX, other autoscalers can use the
-//     DefaultReplicasAnnotation if they have similar use cases.
+//   - To adopt an existing MS users can use the min size and max size annotations to enable the autoscaler
+//     and to ensure the replicas field is within the (min size, max size) range. Without defaulting based on the annotations, handing over
+//     control to the autoscaler by unsetting the replicas field would lead to the field being set to 1. This could be
+//     very disruptive if the previous value of the replica field is greater than 1.
 func calculateMachineSetReplicas(ctx context.Context, oldMS *clusterv1.MachineSet, newMS *clusterv1.MachineSet, dryRun bool) (int32, error) {
 	// If replicas is already set => Keep the current value.
 	if newMS.Spec.Replicas != nil {

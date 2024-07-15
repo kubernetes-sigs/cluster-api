@@ -71,7 +71,7 @@ func (r *ResourceSetBinding) GetResource(resourceRef ResourceRef) *ResourceBindi
 	return nil
 }
 
-// SetBinding sets resourceBinding for a resource in resourceSetbinding either by updating the existing one or
+// SetBinding sets resourceBinding for a resource in ResourceSetBinding either by updating the existing one or
 // creating a new one.
 func (r *ResourceSetBinding) SetBinding(resourceBinding ResourceBinding) {
 	for i := range r.Resources {

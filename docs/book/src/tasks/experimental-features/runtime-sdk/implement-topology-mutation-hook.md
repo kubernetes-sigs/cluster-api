@@ -96,6 +96,7 @@ status:
                 description: "comma-separated list of machine or domain names excluded from using the proxy."
       - name: http-proxy
         # definitionsConflict is true if there are non-equal definitions for a variable.
+        # Note: This conflict has to be resolved, until then corresponding Clusters are not reconciled.
         definitionsConflict: true
         definitions:
           - from: inline
@@ -121,13 +122,15 @@ Variables that are defined by an external DiscoverVariables hook will have the n
 Variables that are defined in the ClusterClass `.spec.variables` will have `inline` as the value of `from`.
 Note: `inline` is a reserved name for patches. It cannot be used as the name of an external patch to avoid conflicts.
 
-If all variables that share a name have equivalent schemas the variable definitions are not in conflict. These variables can
-be set without providing `definitionFrom` value - [see below](#setting-values-for-variables-in-the-cluster). The CAPI components will
-consider variable definitions to be equivalent when they share a name and their schema is exactly equal.
+If all variables that share a name have equivalent schemas the variable definitions are not in conflict. The CAPI components will
+consider variable definitions to be equivalent when they share a name and their schema is exactly equal. If variables are in conflict
+the `VariablesReconciled` will be set to false and the conflict has to be resolved. While there are variable conflicts, corresponding
+Clusters will **not be reconciled**.
+
+Note: We enforce that variable conflicts have to be resolved by ClusterClass authors, so that defining Cluster topology is as simply as possible for end users.
 
 ### Setting values for variables in the Cluster
-Setting variables that are defined with external variable definitions requires attention to be paid to variable definition conflicts, as exposed in the ClusterClass status. 
-Variable values are set in Cluster `.spec.topology.variables`.
+Variables that are defined with external variable definitions can be set like regular variables in Cluster `.spec.topology.variables`.
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -136,18 +139,10 @@ kind: Cluster
 spec:
     topology:
       variables:
-        # `definitionFrom` is not needed as this variable does not have conflicting definitions.
         - name: no-proxy
           value: "internal.domain.com"
-        # variables with the same name but different definitions require values for each individual schema.
         - name: http-proxy
-          definitionFrom: inline
           value: http://proxy.example2.com:1234
-        - name: http-proxy
-          definitionFrom: lbImageRepository
-          value:
-            host: proxy.example2.com
-            port: 1234
 ```
 
 ## Using one or multiple external patch extensions

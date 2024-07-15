@@ -190,7 +190,7 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 			g := gomega.NewWithT(t)
 			fuzzer := GetFuzzer(input.Scheme, input.FuzzerFuncs...)
 
-			for i := 0; i < 10000; i++ {
+			for range 10000 {
 				// Create the spoke and fuzz it
 				spokeBefore := input.Spoke.DeepCopyObject().(conversion.Convertible)
 				fuzzer.Fuzz(spokeBefore)
@@ -221,7 +221,7 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 			g := gomega.NewWithT(t)
 			fuzzer := GetFuzzer(input.Scheme, input.FuzzerFuncs...)
 
-			for i := 0; i < 10000; i++ {
+			for range 10000 {
 				// Create the hub and fuzz it
 				hubBefore := input.Hub.DeepCopyObject().(conversion.Hub)
 				fuzzer.Fuzz(hubBefore)

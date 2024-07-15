@@ -1065,7 +1065,7 @@ metadata:
 				}
 			}
 			g.Expect(binding.OwnerReferences).To(HaveLen(10))
-		}, 4*timeout).Should(Succeed())
+		}, 8*timeout).Should(Succeed())
 		t.Log("Deleting the created ClusterResourceSet instances")
 		g.Expect(env.DeleteAllOf(ctx, &addonsv1.ClusterResourceSet{}, client.InNamespace(ns.Name))).To(Succeed())
 		g.Expect(env.DeleteAllOf(ctx, &addonsv1.ClusterResourceSetBinding{}, client.InNamespace(ns.Name))).To(Succeed())

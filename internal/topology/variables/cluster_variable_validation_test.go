@@ -115,7 +115,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		{
 			name: "Error when no value for required definition.",
 			wantErrs: []validationMatch{
-				required("Required value: required variable with name \"cpu\" must be defined",
+				required("Required value: required variable \"cpu\" must be set",
 					"spec.topology.variables"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
@@ -211,7 +211,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		{
 			name: "Error if value has no definition.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"\\\"us-east-1\\\"\": no definitions found for variable \"location\"",
+				invalid("Invalid value: \"\\\"us-east-1\\\"\": variable is not defined",
 					"spec.topology.variables[location]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{},
@@ -228,10 +228,11 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		},
 		// Non-conflicting definition tests.
 		{
-			name: "Pass if a value with empty definitionFrom set for a non-conflicting definition",
+			name: "Pass if a value set for a non-conflicting definition",
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name: "cpu",
+					Name:                "cpu",
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Schema: clusterv1.VariableSchema{
@@ -265,55 +266,9 @@ func Test_ValidateClusterVariables(t *testing.T) {
 			validateRequired: true,
 		},
 		{
-			name: "Pass when there is a separate value for each required definition with no definition conflicts.",
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-							From:     clusterv1.VariableDefinitionFromInline,
-							Required: true,
-						},
-						{
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-							From:     "somepatch",
-							Required: true,
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				// Each value is set individually.
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					DefinitionFrom: "somepatch",
-				},
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`2`),
-					},
-					DefinitionFrom: "inline",
-				},
-			},
-			validateRequired: true,
-		},
-		{
-			name: "Fail if value DefinitionFrom field does not match any definition.",
+			name: "Fail if DefinitionFrom not empty.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": no definitions found for variable \"cpu\" from \"non-existent-patch\"",
+				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
 					"spec.topology.variables[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
@@ -324,7 +279,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							From: clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "string",
+									Type: "integer",
 								},
 							},
 						},
@@ -337,17 +292,17 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					// This definition does not exist.
-					DefinitionFrom: "non-existent-patch",
+					// Non-empty definitionFrom is not valid.
+					DefinitionFrom: clusterv1.VariableDefinitionFromInline,
 				},
 			},
 			validateRequired: true,
 		},
 		{
-			name: "Fail if a value is set twice with the same definitionFrom.",
+			name: "Fail if a value is set twice.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"[Name: cpu DefinitionFrom: somepatch,Name: cpu DefinitionFrom: somepatch]\": cluster variables not valid: variable \"cpu\" from \"somepatch\" is defined more than once",
-					"spec.topology.variables"),
+				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
+					"spec.topology.variables[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -370,23 +325,23 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					DefinitionFrom: "somepatch",
 				},
 				{
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`2`),
 					},
-					DefinitionFrom: "somepatch",
 				},
 			},
 			validateRequired: true,
 		},
 		{
-			name: "Fail if a value is set with empty and non-empty definitionFrom.",
+			name: "Fail if DefinitionFrom not empty and value is set twice.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"[Name: cpu DefinitionFrom: ,Name: cpu DefinitionFrom: somepatch]\": cluster variables not valid: variable \"cpu\" is defined with a mix of empty and non-empty values for definitionFrom",
-					"spec.topology.variables"),
+				invalid("Invalid value: \"2\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
+					"spec.topology.variables[cpu]"),
+				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
+					"spec.topology.variables[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -417,31 +372,28 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					// Mix of empty and non-empty definitionFrom is not valid.
-					DefinitionFrom: "",
 				},
 				{
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`2`),
 					},
+					// Non-empty definitionFrom is not valid.
 					DefinitionFrom: "somepatch",
 				},
 			},
 			validateRequired: true,
 		},
 		{
-			name: "Fail when values invalid by their definition schema.",
+			name: "Fail when value invalid by their definition schema.",
 			wantErrs: []validationMatch{
 				invalidType("Invalid value: \"1\": must be of type string: \"integer\"",
-					"spec.topology.variables[cpu].value"),
-				invalidType("Invalid value: \"\\\"one\\\"\": must be of type integer: \"string\"",
 					"spec.topology.variables[cpu].value"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: true,
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: clusterv1.VariableDefinitionFromInline,
@@ -455,7 +407,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 							From: "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
+									Type: "string",
 								},
 							},
 						},
@@ -468,176 +420,38 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					DefinitionFrom: "inline",
-				},
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`"one"`),
-					},
-					DefinitionFrom: "somepatch",
 				},
 			},
 			validateRequired: true,
 		},
 		// Conflicting definition tests.
 		{
-			name: "Pass with a value provided for each conflicting definition.",
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name:                "cpu",
-					DefinitionsConflict: true,
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							From: clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "string",
-								},
-							},
-						},
-						{
-							From: "somepatch",
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`"one"`),
-					},
-					DefinitionFrom: "inline",
-				},
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					DefinitionFrom: "somepatch",
-				},
-			},
-			validateRequired: true,
-		},
-		{
-			name: "Pass if non-required definition value doesn't include definitionFrom for each required definition when definitions conflict.",
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name:                "cpu",
-					DefinitionsConflict: true,
-					// There are conflicting definitions which means values should include a `definitionFrom` field.
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-							From:     "somepatch",
-							Required: true,
-						},
-						// This variable is not required so it does not need a value.
-						{
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-							From:     "anotherpatch",
-							Required: false,
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					DefinitionFrom: "somepatch",
-				},
-			},
-			validateRequired: true,
-		},
-		{
-			name: "Fail if value doesn't include definitionFrom when definitions conflict.",
+			name: "Fail if variables have definitions conflict.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": variable \"cpu\" has conflicting definitions. It requires a non-empty `definitionFrom`",
-					"spec.topology.variables[cpu]"),
-			},
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					// There are conflicting definitions which means values should include a `definitionFrom` field.
-					DefinitionsConflict: true,
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							From: clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "string",
-								},
-							},
-						},
-						{
-							From: "somepatch",
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
-								},
-							},
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					// No definitionFrom
-				},
-			},
-			validateRequired: true,
-		},
-		{
-			name: "Fail if value doesn't include definitionFrom for each required definition when definitions conflict.",
-			wantErrs: []validationMatch{
-				required("Required value: required variable with name \"cpu\" from \"inline\" must be defined",
+				invalidType("Invalid value: \"[Name: cpu]\": variable definitions in the ClusterClass not valid: variable \"cpu\" has conflicting definitions",
 					"spec.topology.variables"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:                "cpu",
+					Name: "cpu",
+					// There are conflicting definitions which means the conflict has to be resolved first.
 					DefinitionsConflict: true,
-					// There are conflicting definitions which means values should include a `definitionFrom` field.
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
+							From: clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",
 								},
 							},
-							From:     clusterv1.VariableDefinitionFromInline,
-							Required: true,
 						},
 						{
+							From: "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
 								},
 							},
-							From:     "somepatch",
-							Required: true,
 						},
 					},
 				},
@@ -648,7 +462,6 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					DefinitionFrom: "somepatch",
 				},
 			},
 			validateRequired: true,
@@ -2353,7 +2166,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 		{
 			name: "Error if value has no definition.",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"\\\"us-east-1\\\"\": no definitions found for variable \"location\"",
+				invalid("Invalid value: \"\\\"us-east-1\\\"\": variable is not defined",
 					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[location]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{},
@@ -2368,9 +2181,9 @@ func Test_ValidateMachineVariables(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail if value DefinitionFrom field does not match any definition.",
+			name: "Fail if value DefinitionFrom is not empty",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": no definitions found for variable \"cpu\" from \"non-existent-patch\"",
+				invalid("Invalid value: \"1\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
 					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
@@ -2394,23 +2207,21 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					// This definition does not exist.
+					// Non-empty definitionFrom is not valid.
 					DefinitionFrom: "non-existent-patch",
 				},
 			},
 		},
 		{
-			name: "Fail when values invalid by their definition schema.",
+			name: "Fail when value invalid by their definition schema.",
 			wantErrs: []validationMatch{
 				invalidType("Invalid value: \"1\": must be of type string: \"integer\"",
-					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu].value"),
-				invalidType("Invalid value: \"\\\"one\\\"\": must be of type integer: \"string\"",
 					"spec.topology.workers.machineDeployments[mdTopologyName].variables.overrides[cpu].value"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
-					DefinitionsConflict: true,
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: clusterv1.VariableDefinitionFromInline,
@@ -2424,7 +2235,7 @@ func Test_ValidateMachineVariables(t *testing.T) {
 							From: "somepatch",
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type: "integer",
+									Type: "string",
 								},
 							},
 						},
@@ -2437,14 +2248,6 @@ func Test_ValidateMachineVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`), // not a string
 					},
-					DefinitionFrom: "inline",
-				},
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`"one"`), // not an integer
-					},
-					DefinitionFrom: "somepatch",
 				},
 			},
 		},

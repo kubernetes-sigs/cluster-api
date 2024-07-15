@@ -31,14 +31,9 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
-const (
-	// emptyDefinitionFrom may be supplied in variable values.
-	emptyDefinitionFrom = ""
-)
-
 // Global returns variables that apply to all the templates, including user provided variables
 // and builtin variables for the Cluster object.
-func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, definitionFrom string, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
+func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
 	variables := []runtimehooksv1.Variable{}
 
 	// Add user defined variables from Cluster.spec.topology.variables.
@@ -47,12 +42,9 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, def
 		if variable.Name == runtimehooksv1.BuiltinsName {
 			continue
 		}
-		// Add the variable if it is defined for the current patch or it is defined for all the patches.
-		if variable.DefinitionFrom == emptyDefinitionFrom || variable.DefinitionFrom == definitionFrom {
-			// Add the variable if it has a definition from this patch in the ClusterClass.
-			if _, ok := patchVariableDefinitions[variable.Name]; ok {
-				variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
-			}
+		// Add the variable if it has a definition from this patch in the ClusterClass.
+		if _, ok := patchVariableDefinitions[variable.Name]; ok {
+			variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
 		}
 	}
 
@@ -95,18 +87,15 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster, def
 }
 
 // ControlPlane returns variables that apply to templates belonging to the ControlPlane.
-func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructureMachineTemplate *unstructured.Unstructured, definitionFrom string, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
+func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructureMachineTemplate *unstructured.Unstructured, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
 	variables := []runtimehooksv1.Variable{}
 
 	// Add variables overrides for the ControlPlane.
 	if cpTopology.Variables != nil {
 		for _, variable := range cpTopology.Variables.Overrides {
-			// Add the variable if it is defined for the current patch or it is defined for all the patches.
-			if variable.DefinitionFrom == emptyDefinitionFrom || variable.DefinitionFrom == definitionFrom {
-				// Add the variable if it has a definition from this patch in the ClusterClass.
-				if _, ok := patchVariableDefinitions[variable.Name]; ok {
-					variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
-				}
+			// Add the variable if it has a definition from this patch in the ClusterClass.
+			if _, ok := patchVariableDefinitions[variable.Name]; ok {
+				variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
 			}
 		}
 	}
@@ -160,18 +149,15 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 }
 
 // MachineDeployment returns variables that apply to templates belonging to a MachineDeployment.
-func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clusterv1.MachineDeployment, mdBootstrapTemplate, mdInfrastructureMachineTemplate *unstructured.Unstructured, definitionFrom string, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
+func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clusterv1.MachineDeployment, mdBootstrapTemplate, mdInfrastructureMachineTemplate *unstructured.Unstructured, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
 	variables := []runtimehooksv1.Variable{}
 
 	// Add variables overrides for the MachineDeployment.
 	if mdTopology.Variables != nil {
 		for _, variable := range mdTopology.Variables.Overrides {
-			// Add the variable if it is defined for the current patch or it is defined for all the patches.
-			if variable.DefinitionFrom == emptyDefinitionFrom || variable.DefinitionFrom == definitionFrom {
-				// Add the variable if it has a definition from this patch in the ClusterClass.
-				if _, ok := patchVariableDefinitions[variable.Name]; ok {
-					variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
-				}
+			// Add the variable if it has a definition from this patch in the ClusterClass.
+			if _, ok := patchVariableDefinitions[variable.Name]; ok {
+				variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
 			}
 		}
 	}
@@ -219,18 +205,15 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 }
 
 // MachinePool returns variables that apply to templates belonging to a MachinePool.
-func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *expv1.MachinePool, mpBootstrapObject, mpInfrastructureMachinePool *unstructured.Unstructured, definitionFrom string, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
+func MachinePool(mpTopology *clusterv1.MachinePoolTopology, mp *expv1.MachinePool, mpBootstrapObject, mpInfrastructureMachinePool *unstructured.Unstructured, patchVariableDefinitions map[string]bool) ([]runtimehooksv1.Variable, error) {
 	variables := []runtimehooksv1.Variable{}
 
 	// Add variables overrides for the MachinePool.
 	if mpTopology.Variables != nil {
 		for _, variable := range mpTopology.Variables.Overrides {
-			// Add the variable if it is defined for the current patch or it is defined for all the patches.
-			if variable.DefinitionFrom == emptyDefinitionFrom || variable.DefinitionFrom == definitionFrom {
-				// Add the variable if it has a definition from this patch in the ClusterClass.
-				if _, ok := patchVariableDefinitions[variable.Name]; ok {
-					variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
-				}
+			// Add the variable if it has a definition from this patch in the ClusterClass.
+			if _, ok := patchVariableDefinitions[variable.Name]; ok {
+				variables = append(variables, runtimehooksv1.Variable{Name: variable.Name, Value: variable.Value})
 			}
 		}
 	}

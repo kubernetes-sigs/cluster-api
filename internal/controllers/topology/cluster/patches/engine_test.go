@@ -699,7 +699,7 @@ func TestApply(t *testing.T) {
 			},
 		},
 		{
-			name: "Should correctly apply variables for a given patch definitionFrom",
+			name: "Should correctly apply variables with variables without conflicts",
 			varDefinitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name: "controlPlaneVariable",
@@ -726,8 +726,9 @@ func TestApply(t *testing.T) {
 					},
 				},
 				{
-					Name:                "infraCluster",
-					DefinitionsConflict: true,
+					Name: "infraCluster",
+					// Note: This variable is defined by multiple patches, but without conflicts.
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -1098,42 +1099,31 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					Variables: &clusterv1.ControlPlaneVariables{
 						Overrides: []clusterv1.ClusterVariable{
 							{
-								Name:           "controlPlaneVariable",
-								DefinitionFrom: "inline",
-								Value:          apiextensionsv1.JSON{Raw: []byte(`"control-plane-override-value"`)},
+								Name:  "controlPlaneVariable",
+								Value: apiextensionsv1.JSON{Raw: []byte(`"control-plane-override-value"`)},
 							},
 						},
 					},
 				},
 				Variables: []clusterv1.ClusterVariable{
 					{
-						Name:           "infraCluster",
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"value99"`)},
-						DefinitionFrom: "inline",
-					},
-					{
-						Name: "infraCluster",
-						// This variable should not be used as it is from "non-used-patch" which is not applied in any test.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"should-never-be-used"`)},
-						DefinitionFrom: "not-used-patch",
+						Name:  "infraCluster",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"value99"`)},
 					},
 					{
 						Name: "controlPlaneVariable",
 						// This value should be overwritten for the control plane.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"control-plane-cluster-wide-value"`)},
-						DefinitionFrom: "inline",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"control-plane-cluster-wide-value"`)},
 					},
 					{
 						Name: "defaultMDWorkerVariable",
 						// This value should be overwritten for the default-worker-topo1 MachineDeployment.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-md-cluster-wide-value"`)},
-						DefinitionFrom: "inline",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"default-md-cluster-wide-value"`)},
 					},
 					{
 						Name: "defaultMPWorkerVariable",
 						// This value should be overwritten for the default-mp-worker-topo1 MachinePool.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-cluster-wide-value"`)},
-						DefinitionFrom: "inline",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"default-mp-cluster-wide-value"`)},
 					},
 				},
 				Workers: &clusterv1.WorkersTopology{
@@ -1145,9 +1135,8 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Variables: &clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
-										Name:           "defaultMDWorkerVariable",
-										DefinitionFrom: "inline",
-										Value:          apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo1-override-value"`)},
+										Name:  "defaultMDWorkerVariable",
+										Value: apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo1-override-value"`)},
 									},
 								},
 							},
@@ -1167,9 +1156,8 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 							Variables: &clusterv1.MachinePoolVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
-										Name:           "defaultMPWorkerVariable",
-										DefinitionFrom: "inline",
-										Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo1-override-value"`)},
+										Name:  "defaultMPWorkerVariable",
+										Value: apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo1-override-value"`)},
 									},
 								},
 							},

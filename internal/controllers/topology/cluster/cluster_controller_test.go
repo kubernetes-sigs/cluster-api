@@ -1288,7 +1288,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 				Build(),
 			wantCluster: clusterBuilder.DeepCopy().
 				WithTopology(topologyBase.DeepCopy().WithVariables(
-					clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-east"`)}, DefinitionFrom: ""}).
+					clusterv1.ClusterVariable{Name: "location", Value: apiextensionsv1.JSON{Raw: []byte(`"us-east"`)}}).
 					Build()).
 				Build(),
 		},
@@ -1454,16 +1454,23 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 		WithTopology(
 			topologyBase.Build())
 	tests := []struct {
-		name              string
-		clusterClass      *clusterv1.ClusterClass
-		cluster           *clusterv1.Cluster
-		wantValidationErr bool
+		name                     string
+		clusterClass             *clusterv1.ClusterClass
+		cluster                  *clusterv1.Cluster
+		wantValidationErr        bool
+		wantValidationErrMessage string
 	}{
 		{
 			name: "Valid cluster should not throw validation error",
 			clusterClass: classBuilder.DeepCopy().
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name: "httpProxy",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: false, // variable is not required.
+							From:     clusterv1.VariableDefinitionFromInline,
+						},
+					},
 				}).
 				WithConditions(*conditions.TrueCondition(clusterv1.ClusterClassVariablesReconciledCondition)).
 				Build(),
@@ -1488,6 +1495,25 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 			cluster: clusterBuilder.
 				Build(),
 			wantValidationErr: true,
+		},
+		{
+			name: "Cluster cannot reconcile as the ClusterClass has not VariablesReconciled successfully",
+			clusterClass: classBuilder.DeepCopy().
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "httpProxy",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+						},
+					},
+				}).
+				WithConditions(*conditions.FalseCondition(clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError, "error message")).
+				Build(),
+			cluster: clusterBuilder.
+				Build(),
+			wantValidationErr:        true,
+			wantValidationErrMessage: "ClusterClass is not successfully reconciled: status of VariablesReconciled condition on ClusterClass must be \"True\"",
 		},
 		{
 			name: "Cluster invalid as it defines an MDTopology without a corresponding MDClass",
@@ -1527,6 +1553,9 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 			// Reconcile will always return an error here as the topology is incomplete. This test checks specifically for
 			// validation errors.
 			validationErrMessage := fmt.Sprintf("Cluster.cluster.x-k8s.io %q is invalid:", tt.cluster.Name)
+			if tt.wantValidationErrMessage != "" {
+				validationErrMessage = tt.wantValidationErrMessage
+			}
 			if tt.wantValidationErr {
 				g.Expect(err.Error()).To(ContainSubstring(validationErrMessage))
 				return

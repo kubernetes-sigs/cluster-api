@@ -315,6 +315,9 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	// metadata in topology should be valid
 	allErrs = append(allErrs, validateTopologyMetadata(newCluster.Spec.Topology, fldPath)...)
 
+	// ensure deprecationFrom is not set
+	allErrs = append(allErrs, validateTopologyDefinitionFrom(newCluster.Spec.Topology, fldPath)...)
+
 	// upgrade concurrency should be a numeric value.
 	if concurrency, ok := newCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
 		concurrencyAnnotationField := field.NewPath("metadata", "annotations", clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation)
@@ -1007,6 +1010,62 @@ func validateTopologyMetadata(topology *clusterv1.Topology, fldPath *field.Path)
 			)...)
 		}
 	}
+	return allErrs
+}
+
+func validateTopologyDefinitionFrom(topology *clusterv1.Topology, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+	for _, variable := range topology.Variables {
+		if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Child("variables").Key(variable.Name),
+				string(variable.Value.Raw),
+				fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+			)
+		}
+	}
+
+	if topology.ControlPlane.Variables != nil {
+		for _, variable := range topology.ControlPlane.Variables.Overrides {
+			if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+				allErrs = append(allErrs, field.Invalid(
+					fldPath.Child("controlPlane", "variables", "overrides").Key(variable.Name),
+					string(variable.Value.Raw),
+					fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+				)
+			}
+		}
+	}
+
+	if topology.Workers != nil {
+		for _, md := range topology.Workers.MachineDeployments {
+			if md.Variables != nil {
+				for _, variable := range md.Variables.Overrides {
+					if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+						allErrs = append(allErrs, field.Invalid(
+							fldPath.Child("workers", "machineDeployments").Key(md.Name).Child("variables", "overrides").Key(variable.Name),
+							string(variable.Value.Raw),
+							fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+						)
+					}
+				}
+			}
+		}
+		for _, mp := range topology.Workers.MachinePools {
+			if mp.Variables != nil {
+				for _, variable := range mp.Variables.Overrides {
+					if variable.DefinitionFrom != "" { //nolint:staticcheck // Intentionally using the deprecated field here to check that it is not set.
+						allErrs = append(allErrs, field.Invalid(
+							fldPath.Child("workers", "machinePools").Key(mp.Name).Child("variables", "overrides").Key(variable.Name),
+							string(variable.Value.Raw),
+							fmt.Sprintf("variable %q has DefinitionFrom set", variable.Name)),
+						)
+					}
+				}
+			}
+		}
+	}
+
 	return allErrs
 }
 

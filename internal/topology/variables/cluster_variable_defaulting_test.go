@@ -38,10 +38,32 @@ func Test_DefaultClusterVariables(t *testing.T) {
 		{
 			name: "Return error if variable is not defined in ClusterClass",
 			wantErrs: []validationMatch{
-				invalid("Invalid value: \"1\": no definitions found for variable \"cpu\"",
+				invalid("Invalid value: \"1\": variable is not defined",
 					"spec.topology.variables[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+			},
+			createVariables: true,
+		},
+		{
+			name: "Return error if variable has no definitions in ClusterClass",
+			wantErrs: []validationMatch{
+				invalidType("Invalid value: \"[Name: cpu]\": variable definitions in the ClusterClass not valid: variable \"cpu\" has no definitions",
+					"spec.topology.variables"),
+			},
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:        "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{},
+				},
+			},
 			values: []clusterv1.ClusterVariable{
 				{
 					Name: "cpu",
@@ -282,10 +304,11 @@ func Test_DefaultClusterVariables(t *testing.T) {
 		},
 		// Variables with multiple non-conflicting definitions.
 		{
-			name: "Don't default if a value is set with empty definitionFrom",
+			name: "Don't default if a value is set",
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name: "cpu",
+					Name:                "cpu",
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
@@ -316,7 +339,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`2`),
 					},
-					// This variable does not have definitionConflicts. An unset definitionFrom is valid.
 				},
 			},
 			createVariables: true,
@@ -334,7 +356,8 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			name: "Default many non-conflicting variables to one value in Cluster",
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name: "cpu",
+					Name:                "cpu",
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 
@@ -376,76 +399,20 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			createVariables: true,
 			want: []clusterv1.ClusterVariable{
 				{
-					// As this variable is non-conflicting it can be set only once in the Cluster through defaulting.
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-				},
-			},
-		},
-		{
-			name: "Default many non-conflicting definitions to many values in Cluster when some values are set with definitionFrom",
-			definitions: []clusterv1.ClusterClassStatusVariable{
-				{
-					Name: "cpu",
-					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-						{
-							Required: true,
-							From:     clusterv1.VariableDefinitionFromInline,
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type:    "integer",
-									Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
-								},
-							},
-						},
-						{
-							Required: true,
-							From:     "somepatch",
-							Schema: clusterv1.VariableSchema{
-								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-									Type:    "integer",
-									Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
-								},
-							},
-						},
-					},
-				},
-			},
-			values: []clusterv1.ClusterVariable{
-				// The variable is set with definitionFrom for one of two definitions.
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`2`),
-					},
-					DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-				},
-			},
-			createVariables: true,
-			want: []clusterv1.ClusterVariable{
-				// Expect the value in the Cluster to be retained.
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`2`),
-					},
-					DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-				},
-				// Expect defaulting for the definition with no value in the Cluster.
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					DefinitionFrom: "somepatch",
 				},
 			},
 		},
 		// Variables with conflicting definitions.
 		{
-			name: "Default many conflicting definitions to many values in Cluster",
+			name: "Error if there are any variable conflicts",
+			wantErrs: []validationMatch{
+				invalidType("Invalid value: \"[Name: cpu]\": variable definitions in the ClusterClass not valid: variable \"cpu\" has conflicting definitions",
+					"spec.topology.variables"),
+			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
@@ -478,27 +445,13 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			},
 			values:          []clusterv1.ClusterVariable{},
 			createVariables: true,
-			want: []clusterv1.ClusterVariable{
-				// As this variable has conflicting definitions expect one value in the Cluster
-				// for each "DefinitionFrom".
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-					DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-				},
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`2`),
-					},
-					DefinitionFrom: "somepatch",
-				},
-			},
 		},
 		{
-			name: "Default many conflicting definitions to many values in Cluster when some values are set with definitionFrom",
+			name: "Error if there are any variable conflicts when the value is set",
+			wantErrs: []validationMatch{
+				invalidType("Invalid value: \"[Name: cpu]\": variable definitions in the ClusterClass not valid: variable \"cpu\" has conflicting definitions",
+					"spec.topology.variables"),
+			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
 					Name:                "cpu",
@@ -535,34 +488,17 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`3`),
 					},
-					DefinitionFrom: clusterv1.VariableDefinitionFromInline,
 				},
 			},
 			createVariables: true,
-			want: []clusterv1.ClusterVariable{
-				// As this variable has conflicting definitions expect one value in the Cluster
-				// for each "DefinitionFrom" and retain values set in Cluster.
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`3`),
-					},
-					DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-				},
-				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`2`),
-					},
-					DefinitionFrom: "somepatch",
-				},
-			},
 		},
 		{
-			name: "Error if a value is set with empty and non-empty definitionFrom.",
+			name: "Error if a value is set with non-empty definitionFrom.",
 			wantErrs: []validationMatch{
-				invalid("cluster variables not valid: variable \"cpu\" is defined with a mix of empty and non-empty values for definitionFrom",
-					"spec.topology.variables"),
+				invalid("Invalid value: \"2\": variable \"cpu\" has DefinitionFrom set. DefinitionFrom is deprecated, must not be set anymore and is going to be removed in the next apiVersion",
+					"spec.topology.variables[cpu]"),
+				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
+					"spec.topology.variables[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -593,23 +529,22 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					// Mix of empty and non-empty definitionFrom is not valid.
-					DefinitionFrom: "",
 				},
 				{
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`2`),
 					},
+					// Non-empty definitionFrom is not valid.
 					DefinitionFrom: "somepatch",
 				},
 			},
 		},
 		{
-			name: "Error if a value is set twice with the same definitionFrom.",
+			name: "Error if a value is set twice.",
 			wantErrs: []validationMatch{
-				invalid("cluster variables not valid: variable \"cpu\" is defined more than once",
-					"spec.topology.variables"),
+				invalid("Invalid value: \"2\": variable \"cpu\" is set more than once",
+					"spec.topology.variables[cpu]"),
 			},
 			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
@@ -635,20 +570,17 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				},
 			},
 			values: []clusterv1.ClusterVariable{
-				// Identical definitionFrom and name for two different values.
 				{
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
-					DefinitionFrom: "",
 				},
 				{
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`2`),
 					},
-					DefinitionFrom: "",
 				},
 			},
 		},
@@ -670,21 +602,23 @@ func Test_DefaultClusterVariable(t *testing.T) {
 	tests := []struct {
 		name                 string
 		clusterVariable      *clusterv1.ClusterVariable
-		clusterClassVariable *statusVariableDefinition
+		clusterClassVariable *clusterv1.ClusterClassStatusVariable
 		createVariable       bool
 		want                 *clusterv1.ClusterVariable
 		wantErrs             []validationMatch
 	}{
 		{
 			name: "Default new integer variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "cpu",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "integer",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+							},
 						},
 					},
 				},
@@ -699,14 +633,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default new integer variable if variable creation is disabled",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "cpu",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "integer",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+							},
 						},
 					},
 				},
@@ -716,14 +652,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default existing integer variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "cpu",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "integer",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+							},
 						},
 					},
 				},
@@ -744,14 +682,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default new string variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "location",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "string",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "string",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+							},
 						},
 					},
 				},
@@ -766,14 +706,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default existing string variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "location",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "string",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "string",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+							},
 						},
 					},
 				},
@@ -794,14 +736,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default new number variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "cpu",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "number",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "number",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+							},
 						},
 					},
 				},
@@ -816,14 +760,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default existing number variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "cpu",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "number",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "number",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+							},
 						},
 					},
 				},
@@ -844,14 +790,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default new boolean variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "correct",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "boolean",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+							},
 						},
 					},
 				},
@@ -866,14 +814,16 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default existing boolean variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "correct",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "boolean",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+							},
 						},
 					},
 				},
@@ -894,23 +844,25 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default new object variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "object",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
-							Properties: map[string]clusterv1.JSONSchemaProps{
-								"enabled": {
-									Type: "boolean",
-								},
-								"url": {
-									Type: "string",
-								},
-								"noProxy": {
-									Type: "string",
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "object",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"enabled": {
+										Type: "boolean",
+									},
+									"url": {
+										Type: "string",
+									},
+									"noProxy": {
+										Type: "string",
+									},
 								},
 							},
 						},
@@ -927,23 +879,25 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default new object variable if there is no top-level default",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "object",
-							Properties: map[string]clusterv1.JSONSchemaProps{
-								"enabled": {
-									Type:    "boolean",
-									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
-								},
-								"url": {
-									Type: "string",
-								},
-								"noProxy": {
-									Type: "string",
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"enabled": {
+										Type:    "boolean",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+									},
+									"url": {
+										Type: "string",
+									},
+									"noProxy": {
+										Type: "string",
+									},
 								},
 							},
 						},
@@ -955,24 +909,26 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default new object variable if there is a top-level default",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "object",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`{"url":"test-url"}`)},
-							Properties: map[string]clusterv1.JSONSchemaProps{
-								"enabled": {
-									Type:    "boolean",
-									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
-								},
-								"url": {
-									Type: "string",
-								},
-								"noProxy": {
-									Type: "string",
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "object",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`{"url":"test-url"}`)},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"enabled": {
+										Type:    "boolean",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+									},
+									"url": {
+										Type: "string",
+									},
+									"noProxy": {
+										Type: "string",
+									},
 								},
 							},
 						},
@@ -990,24 +946,26 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default new object variable if there is a top-level default (which is an empty object)",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "object",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
-							Properties: map[string]clusterv1.JSONSchemaProps{
-								"enabled": {
-									Type:    "boolean",
-									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
-								},
-								"url": {
-									Type: "string",
-								},
-								"noProxy": {
-									Type: "string",
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "object",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`{}`)},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"enabled": {
+										Type:    "boolean",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+									},
+									"url": {
+										Type: "string",
+									},
+									"noProxy": {
+										Type: "string",
+									},
 								},
 							},
 						},
@@ -1025,23 +983,25 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default existing object variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "object",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
-							Properties: map[string]clusterv1.JSONSchemaProps{
-								"enabled": {
-									Type: "boolean",
-								},
-								"url": {
-									Type: "string",
-								},
-								"noProxy": {
-									Type: "string",
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "object",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": true}`)},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"enabled": {
+										Type: "boolean",
+									},
+									"url": {
+										Type: "string",
+									},
+									"noProxy": {
+										Type: "string",
+									},
 								},
 							},
 						},
@@ -1064,25 +1024,27 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default nested fields of existing object variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
 
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "object",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
-							Properties: map[string]clusterv1.JSONSchemaProps{
-								"enabled": {
-									Type: "boolean",
-								},
-								"url": {
-									Type:    "string",
-									Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
-								},
-								"noProxy": {
-									Type: "string",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "object",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"enabled": {
+										Type: "boolean",
+									},
+									"url": {
+										Type:    "string",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
+									},
+									"noProxy": {
+										Type: "string",
+									},
 								},
 							},
 						},
@@ -1099,32 +1061,35 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			want: &clusterv1.ClusterVariable{
 				Name: "httpProxy",
 				Value: apiextensionsv1.JSON{
+					// url is added by defaulting.
 					Raw: []byte(`{"enabled":false,"url":"https://example.com"}`),
 				},
 			},
 		},
 		{
 			name: "Default new map variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "object",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`{"proxy":{"enabled":false}}`)},
-							AdditionalProperties: &clusterv1.JSONSchemaProps{
-								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
-									"enabled": {
-										Type: "boolean",
-									},
-									"url": {
-										Type:    "string",
-										Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
-									},
-									"noProxy": {
-										Type: "string",
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "object",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`{"proxy":{"enabled":false}}`)},
+								AdditionalProperties: &clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"enabled": {
+											Type: "boolean",
+										},
+										"url": {
+											Type:    "string",
+											Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
+										},
+										"noProxy": {
+											Type: "string",
+										},
 									},
 								},
 							},
@@ -1142,25 +1107,27 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Default nested fields of existing map variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "httpProxy",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "object",
-							AdditionalProperties: &clusterv1.JSONSchemaProps{
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
-									"enabled": {
-										Type: "boolean",
-									},
-									"url": {
-										Type:    "string",
-										Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
-									},
-									"noProxy": {
-										Type: "string",
+								AdditionalProperties: &clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"enabled": {
+											Type: "boolean",
+										},
+										"url": {
+											Type:    "string",
+											Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
+										},
+										"noProxy": {
+											Type: "string",
+										},
 									},
 								},
 							},
@@ -1178,31 +1145,34 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			want: &clusterv1.ClusterVariable{
 				Name: "httpProxy",
 				Value: apiextensionsv1.JSON{
+					// url is added by defaulting.
 					Raw: []byte(`{"proxy1":{"enabled":false,"url":"https://example.com"},"proxy2":{"enabled":false,"url":"https://example.com"}}`),
 				},
 			},
 		},
 		{
 			name: "Default new array variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "testVariable",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "array",
-							Items: &clusterv1.JSONSchemaProps{
-								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
-									"enabled": {
-										Type: "boolean",
-									},
-									"url": {
-										Type: "string",
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "array",
+								Items: &clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"enabled": {
+											Type: "boolean",
+										},
+										"url": {
+											Type: "string",
+										},
 									},
 								},
+								Default: &apiextensionsv1.JSON{Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`)},
 							},
-							Default: &apiextensionsv1.JSON{Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`)},
 						},
 					},
 				},
@@ -1217,26 +1187,28 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		},
 		{
 			name: "Don't default existing array variable",
-			clusterClassVariable: &statusVariableDefinition{
+			clusterClassVariable: &clusterv1.ClusterClassStatusVariable{
 				Name: "testVariable",
-				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
 
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "array",
-							Items: &clusterv1.JSONSchemaProps{
-								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
-									"enabled": {
-										Type: "boolean",
-									},
-									"url": {
-										Type: "string",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "array",
+								Items: &clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"enabled": {
+											Type: "boolean",
+										},
+										"url": {
+											Type: "string",
+										},
 									},
 								},
+								Default: &apiextensionsv1.JSON{Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`)},
 							},
-							Default: &apiextensionsv1.JSON{Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`)},
 						},
 					},
 				},
@@ -1273,37 +1245,28 @@ func Test_getAllVariables(t *testing.T) {
 	g := NewWithT(t)
 	t.Run("Expect values to be correctly consolidated in allVariables", func(*testing.T) {
 		expectedValues := []clusterv1.ClusterVariable{
-			// var1 has a value with no DefinitionFrom set and only one definition. It should be retained as is.
+			// var1 is set and has only one definition.
+			// It should be retained as is.
 			{
 				Name: "var1",
 			},
 
-			// var2 has a value with DefinitionFrom "inline". It has a second definition with DefinitionFrom "somepatch".
-			// The value for the first definition should be retained and a value for the second definition should be added.
+			// var2 is set and has two definitions.
+			// The value should be retained and no additional value should be added.
 			{
-				Name:           "var2",
-				DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-			},
-			{
-				Name:           "var2",
-				DefinitionFrom: "somepatch",
+				Name: "var2",
 			},
 
-			// var3 had no values. It has two conflicting definitions. A value for each definition should be added.
+			// var3 is not set and has only one definition.
+			// One additional value should be added.
 			{
-				Name:           "var3",
-				DefinitionFrom: clusterv1.VariableDefinitionFromInline,
-			},
-			{
-				Name:           "var3",
-				DefinitionFrom: "somepatch",
+				Name: "var3",
 			},
 
-			// var4 had no values. It has two non-conflicting definitions. A single value with emptyDefinitionFrom should
-			// be added.
+			// var4 is not set and has two definitions.
+			// One additional value should be added.
 			{
-				Name:           "var4",
-				DefinitionFrom: emptyDefinitionFrom,
+				Name: "var4",
 			},
 		}
 
@@ -1312,8 +1275,7 @@ func Test_getAllVariables(t *testing.T) {
 				Name: "var1",
 			},
 			{
-				Name:           "var2",
-				DefinitionFrom: clusterv1.VariableDefinitionFromInline,
+				Name: "var2",
 			},
 		}
 		definitions := []clusterv1.ClusterClassStatusVariable{
@@ -1355,21 +1317,11 @@ func Test_getAllVariables(t *testing.T) {
 				},
 			},
 			{
-				Name:                "var3",
-				DefinitionsConflict: true,
+				Name: "var3",
 				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 					{
 						Required: false,
 						From:     clusterv1.VariableDefinitionFromInline,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type: "string",
-							},
-						},
-					},
-					{
-						Required: true,
-						From:     "somepatch",
 						Schema: clusterv1.VariableSchema{
 							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 								Type: "string",
@@ -1403,8 +1355,8 @@ func Test_getAllVariables(t *testing.T) {
 			},
 		}
 
-		valuesIndex, err := newValuesIndex(values)
-		g.Expect(err).ToNot(HaveOccurred())
+		valuesIndex, err := newValuesIndex(field.NewPath("spec", "topology", "variables"), values)
+		g.Expect(err).To(BeEmpty())
 		got := getAllVariables(values, valuesIndex, definitions)
 		g.Expect(got).To(BeComparableTo(expectedValues))
 	})

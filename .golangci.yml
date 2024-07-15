@@ -235,6 +235,10 @@ issues:
   - linters:
       - staticcheck
     text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated"
+  # Deprecations for MHC MaxUnhealthy, UnhealthyRange
+  - linters:
+      - staticcheck
+    text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"
   # Specific exclude rules for deprecated packages that are still part of the codebase. These
   # should be removed as the referenced deprecated packages are removed from the project.
   - linters:

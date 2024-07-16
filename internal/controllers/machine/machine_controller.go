@@ -341,28 +341,27 @@ type scope struct {
 	bootstrapConfig *unstructured.Unstructured
 }
 
-func is(err error) bool {
-	errs := []error{
-		errNoControlPlaneNodes, errLastControlPlaneNode,
-		errNilNodeRef, errClusterIsBeingDeleted,
-		errControlPlaneIsBeingDeleted,
-	}
-	for _, e := range errs {
-		if errors.Is(err, e) {
-			return true
-		}
-	}
-	return false
-}
-
 func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) { //nolint:gocyclo
 	log := ctrl.LoggerFrom(ctx)
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil
+	fn := func(err error) bool {
+		errs := []error{
+			errNoControlPlaneNodes, errLastControlPlaneNode,
+			errNilNodeRef, errClusterIsBeingDeleted,
+			errControlPlaneIsBeingDeleted,
+		}
+		for _, e := range errs {
+			if errors.Is(err, e) {
+				return true
+			}
+		}
+		return false
+	}
 	if err != nil {
 		switch {
-		case is(err):
+		case fn(err):
 			nodeName := ""
 			if m.Status.NodeRef != nil {
 				nodeName = m.Status.NodeRef.Name

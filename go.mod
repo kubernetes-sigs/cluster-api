@@ -44,11 +44,11 @@ require (
 	k8s.io/apimachinery v0.31.0-rc.0
 	k8s.io/apiserver v0.31.0-rc.0
 	k8s.io/client-go v0.31.0-rc.0
-	k8s.io/cluster-bootstrap v0.30.3
+	k8s.io/cluster-bootstrap v0.31.0-rc.0
 	k8s.io/component-base v0.31.0-rc.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
-	k8s.io/kubectl v0.30.3
+	k8s.io/kubectl v0.31.0-rc.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/yaml v1.4.0
@@ -80,7 +80,6 @@ require (
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/fvbommel/sortorder v1.1.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -174,9 +173,9 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/cli-runtime v0.30.3 // indirect
-	k8s.io/component-helpers v0.30.3 // indirect
-	k8s.io/metrics v0.30.3 // indirect
+	k8s.io/cli-runtime v0.31.0-rc.0 // indirect
+	k8s.io/component-helpers v0.31.0-rc.0 // indirect
+	k8s.io/metrics v0.31.0-rc.0 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.17.2 // indirect

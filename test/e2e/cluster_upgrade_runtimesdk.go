@@ -298,13 +298,31 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 	})
 
 	AfterEach(func() {
-		// Delete the extensionConfig first to ensure the BeforeDeleteCluster hook doesn't block deletion.
-		Eventually(func() error {
-			return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(specName, namespace.Name, input.ExtensionServiceNamespace, input.ExtensionServiceName))
-		}, 10*time.Second, 1*time.Second).Should(Succeed(), "delete extensionConfig failed")
+		// Dump all the resources in the spec namespace and the workload cluster.
+		framework.DumpAllResourcesAndLogs(ctx, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, clusterResources.Cluster)
 
-		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
-		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+		if !input.SkipCleanup {
+			// Delete the extensionConfig first to ensure the BeforeDeleteCluster hook doesn't block deletion.
+			Eventually(func() error {
+				return input.BootstrapClusterProxy.GetClient().Delete(ctx, extensionConfig(specName, namespace.Name, input.ExtensionServiceNamespace, input.ExtensionServiceName))
+			}, 10*time.Second, 1*time.Second).Should(Succeed(), "delete extensionConfig failed")
+
+			Byf("Deleting cluster %s", klog.KObj(clusterResources.Cluster))
+			// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
+			// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
+			// instead of DeleteClusterAndWait
+			framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
+				Client:    input.BootstrapClusterProxy.GetClient(),
+				Namespace: namespace.Name,
+			}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
+
+			Byf("Deleting namespace used for hosting the %q test spec", specName)
+			framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+				Deleter: input.BootstrapClusterProxy.GetClient(),
+				Name:    namespace.Name,
+			})
+		}
+		cancelWatches()
 	})
 }
 

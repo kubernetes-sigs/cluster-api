@@ -74,6 +74,10 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	node, err := r.getNode(ctx, remoteClient, *machine.Spec.ProviderID)
 	if err != nil {
 		if errors.Is(err, ErrNodeNotFound) {
+			if !s.machine.DeletionTimestamp.IsZero() {
+				// Tolerate node not found when the machine is being deleted.
+				return ctrl.Result{}, nil
+			}
 			// While a NodeRef is set in the status, failing to get that node means the node is deleted.
 			// If Status.NodeRef is not set before, node still can be in the provisioning state.
 			if machine.Status.NodeRef != nil {

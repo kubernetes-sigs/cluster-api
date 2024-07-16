@@ -207,7 +207,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 
 	// Get and parse Status.FailureDomains from the infrastructure provider.
 	failureDomains := clusterv1.FailureDomains{}
-	if err := util.UnstructuredUnmarshalField(infraConfig, &failureDomains, "status", "failureDomains"); err != nil && err != util.ErrUnstructuredFieldNotFound {
+	if err := util.UnstructuredUnmarshalField(infraConfig, &failureDomains, "status", "failureDomains"); err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Status.FailureDomains from infrastructure provider for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
 	}
@@ -295,7 +295,7 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1
 	switch {
 	case apierrors.IsNotFound(err):
 		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
-			if err == kubeconfig.ErrDependentCertificateNotFound {
+			if errors.Is(err, kubeconfig.ErrDependentCertificateNotFound) {
 				log.Info("Could not find secret for cluster, requeuing", "Secret", secret.ClusterCA)
 				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 			}

@@ -958,6 +958,32 @@ func TestPatchHelper(t *testing.T) {
 
 		g.Expect(patcher.Patch(ctx, machineSet)).NotTo(Succeed())
 	})
+
+	t.Run("Should not error if there are no finalizers and deletion timestamp is not nil", func(t *testing.T) {
+		g := NewWithT(t)
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "test-cluster",
+				Namespace:  ns.Name,
+				Finalizers: []string{"block-deletion"},
+			},
+			Status: clusterv1.ClusterStatus{},
+		}
+		key := client.ObjectKey{Name: cluster.GetName(), Namespace: cluster.GetNamespace()}
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		g.Expect(env.Delete(ctx, cluster)).To(Succeed())
+
+		// Ensure cluster still exists & get Cluster with deletionTimestamp set
+		g.Expect(env.Get(ctx, key, cluster)).To(Succeed())
+
+		// Patch helper will first remove the finalizer and then it will get a not found error when
+		// trying to patch status. This test validates that the not found error is ignored.
+		patcher, err := NewHelper(cluster, env)
+		g.Expect(err).ToNot(HaveOccurred())
+		cluster.Finalizers = []string{}
+		cluster.Status.Phase = "Running"
+		g.Expect(patcher.Patch(ctx, cluster)).To(Succeed())
+	})
 }
 
 func TestNewHelperNil(t *testing.T) {

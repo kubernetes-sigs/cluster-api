@@ -61,7 +61,7 @@ var (
 	retryableOperationTimeout  = 1 * time.Minute
 )
 
-var rateLimitError github.RateLimitError
+var rateLimitError *github.RateLimitError
 
 // gitHubRepository provides support for providers hosted on GitHub.
 //
@@ -505,7 +505,7 @@ func (g *gitHubRepository) handleGithubErr(err error, message string, args ...in
 		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 	}
 
-	var errorResponse github.ErrorResponse
+	var errorResponse *github.ErrorResponse
 	if errors.As(err, &errorResponse) {
 		ghErr := err.(*github.ErrorResponse)
 		if ghErr.Response.StatusCode == http.StatusNotFound {

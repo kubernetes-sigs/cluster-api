@@ -191,14 +191,14 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  "busybox",
-							Image: "busybox",
+							Name:            "pause",
+							Image:           "registry.k8s.io/pause",
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Resources: corev1.ResourceRequirements{
 								Requests: map[corev1.ResourceName]resource.Quantity{
 									corev1.ResourceMemory: *podMemory,
 								},
 							},
-							Command: []string{"/bin/sh", "-c", "echo \"up\" & sleep infinity"},
 						},
 					},
 				},

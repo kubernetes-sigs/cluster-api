@@ -48,11 +48,13 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
 	}
 
-	if cluster.Spec.InfrastructureRef != nil {
+	if cluster.Spec.InfrastructureRef != nil || cluster.Spec.ControlPlaneRef != nil {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
-	if cluster.Status.InfrastructureReady && cluster.Spec.ControlPlaneEndpoint.IsValid() {
+	if (cluster.Spec.InfrastructureRef == nil || cluster.Status.InfrastructureReady) &&
+		(cluster.Spec.ControlPlaneRef == nil || cluster.Status.ControlPlaneReady) &&
+		cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 
@@ -151,6 +153,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	log := ctrl.LoggerFrom(ctx)
 
 	if cluster.Spec.InfrastructureRef == nil {
+		// If the infrastructure ref is not set, marking the infrastructure as ready (no-op).
+		cluster.Status.InfrastructureReady = true
 		return ctrl.Result{}, nil
 	}
 

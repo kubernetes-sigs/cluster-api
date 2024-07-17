@@ -56,23 +56,7 @@ func TestClusterResourceSetReconciler(t *testing.T) {
 		resourceConfigMapsNamespace = "default"
 	)
 
-	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
-		t.Helper()
-
-		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
-		labels = map[string]string{clusterResourceSetName: "bar"}
-
-		ns, err := env.CreateNamespace(ctx, namespacePrefix)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
-		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: ns.Name}}
-
-		t.Log("Creating the Cluster")
-		g.Expect(env.Create(ctx, testCluster)).To(Succeed())
-		t.Log("Creating the remote Cluster kubeconfig")
-		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-
+	createConfigMapAndSecret := func(g Gomega, namespaceName, configmapName, secretName string) {
 		resourceConfigMap1Content := fmt.Sprintf(`metadata:
  name: %s
  namespace: %s
@@ -82,7 +66,7 @@ apiVersion: v1`, resourceConfigMap1Name, resourceConfigMapsNamespace)
 		testConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configmapName,
-				Namespace: ns.Name,
+				Namespace: namespaceName,
 			},
 			Data: map[string]string{
 				"cm": resourceConfigMap1Content,
@@ -98,7 +82,7 @@ metadata:
 		testSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
-				Namespace: ns.Name,
+				Namespace: namespaceName,
 			},
 			Type: "addons.cluster.x-k8s.io/resource-set",
 			StringData: map[string]string{
@@ -108,7 +92,28 @@ metadata:
 		t.Log("Creating a Secret and a ConfigMap with ConfigMap in their data field")
 		g.Expect(env.Create(ctx, testConfigmap)).To(Succeed())
 		g.Expect(env.Create(ctx, testSecret)).To(Succeed())
+	}
 
+	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+		t.Helper()
+
+		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
+		labels = map[string]string{clusterResourceSetName: "bar"}
+
+		ns, err := env.CreateNamespace(ctx, namespacePrefix)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
+		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: ns.Name}}
+
+		t.Log("Creating the Cluster")
+		g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
+		t.Log("Creating the remote Cluster kubeconfig")
+		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+		_, err = tracker.GetClient(ctx, client.ObjectKeyFromObject(testCluster))
+		g.Expect(err).ToNot(HaveOccurred())
+
+		createConfigMapAndSecret(g, ns.Name, configmapName, secretName)
 		return ns
 	}
 
@@ -1031,10 +1036,14 @@ metadata:
 		defer teardown(t, g, ns)
 
 		t.Log("Creating ClusterResourceSet instances that have same labels as selector")
-		for range 10 {
+		for i := range 10 {
+			configmapName := fmt.Sprintf("%s-%d", configmapName, i)
+			secretName := fmt.Sprintf("%s-%d", secretName, i)
+			createConfigMapAndSecret(g, ns.Name, configmapName, secretName)
+
 			clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      fmt.Sprintf("clusterresourceset-%s", util.RandomString(6)),
+					Name:      fmt.Sprintf("clusterresourceset-%d", i),
 					Namespace: ns.Name,
 				},
 				Spec: addonsv1.ClusterResourceSetSpec{

@@ -38,8 +38,9 @@ import (
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env     *envtest.Environment
+	tracker *remote.ClusterCacheTracker
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
@@ -76,7 +77,7 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start cache for metadata only Secret watches: %v", err))
 		}
 
-		tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
+		tracker, err = remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
 		}

@@ -974,7 +974,10 @@ func TestPatchHelper(t *testing.T) {
 		g.Expect(env.Delete(ctx, cluster)).To(Succeed())
 
 		// Ensure cluster still exists & get Cluster with deletionTimestamp set
-		g.Expect(env.Get(ctx, key, cluster)).To(Succeed())
+		// Note: Using the APIReader to ensure we get the cluster with deletionTimestamp is set.
+		// This is realistic because finalizers are removed in reconcileDelete code and that is only
+		// run if the deletionTimestamp is set.
+		g.Expect(env.GetAPIReader().Get(ctx, key, cluster)).To(Succeed())
 
 		// Patch helper will first remove the finalizer and then it will get a not found error when
 		// trying to patch status. This test validates that the not found error is ignored.

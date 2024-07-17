@@ -34,8 +34,9 @@ import (
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env     *envtest.Environment
+	tracker *remote.ClusterCacheTracker
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
@@ -46,7 +47,8 @@ func TestMain(m *testing.M) {
 	}
 
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
+		var err error
+		tracker, err = remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
 		}

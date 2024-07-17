@@ -161,6 +161,22 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Return an aggregated error if errors occurred.
 	if len(errs) > 0 {
+		// When there are more than one ClusterResourceSet targeting the same cluster,
+		// there might be conflict when reconciling those ClusterResourceSet in parallel because they all try to
+		// patch the same ClusterResourceSetBinding Object.
+		// In case of patching conflicts we don't want to go on exponential backoff, otherwise it might take an
+		// arbitrary long time to get to stable state due to the backoff delay quickly growing.
+		// Instead, we are requeueing with an interval to make the system a little bit more predictable (and stabilize tests).
+		// NOTE: Conflicts happens mostly when ClusterResourceSetBinding is initialized / an entry is added for each
+		// cluster resource set targeting the same cluster.
+		for _, err := range errs {
+			if aggregate, ok := err.(kerrors.Aggregate); ok {
+				if len(aggregate.Errors()) == 1 && apierrors.IsConflict(aggregate.Errors()[0]) {
+					log.Info("Conflict in patching a ClusterResourceSetBinding that is updated by more than one ClusterResourceSet, requeueing")
+					return ctrl.Result{RequeueAfter: 100 * time.Millisecond}, nil
+				}
+			}
+		}
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 

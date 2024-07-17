@@ -83,25 +83,27 @@ var (
 	controllerName = "cluster-api-controller-manager"
 
 	// flags.
-	enableLeaderElection        bool
-	leaderElectionLeaseDuration time.Duration
-	leaderElectionRenewDeadline time.Duration
-	leaderElectionRetryPeriod   time.Duration
-	watchFilterValue            string
-	watchNamespace              string
-	profilerAddress             string
-	enableContentionProfiling   bool
-	syncPeriod                  time.Duration
-	restConfigQPS               float32
-	restConfigBurst             int
-	webhookPort                 int
-	webhookCertDir              string
-	webhookCertName             string
-	webhookKeyName              string
-	healthAddr                  string
-	tlsOptions                  = flags.TLSOptions{}
-	diagnosticsOptions          = flags.DiagnosticsOptions{}
-	logOptions                  = logs.NewOptions()
+	enableLeaderElection           bool
+	leaderElectionLeaseDuration    time.Duration
+	leaderElectionRenewDeadline    time.Duration
+	leaderElectionRetryPeriod      time.Duration
+	watchFilterValue               string
+	watchNamespace                 string
+	profilerAddress                string
+	enableContentionProfiling      bool
+	syncPeriod                     time.Duration
+	restConfigQPS                  float32
+	restConfigBurst                int
+	clusterCacheTrackerClientQPS   float32
+	clusterCacheTrackerClientBurst int
+	webhookPort                    int
+	webhookCertDir                 string
+	webhookCertName                string
+	webhookKeyName                 string
+	healthAddr                     string
+	tlsOptions                     = flags.TLSOptions{}
+	diagnosticsOptions             = flags.DiagnosticsOptions{}
+	logOptions                     = logs.NewOptions()
 	// core Cluster API specific flags.
 	clusterTopologyConcurrency      int
 	clusterCacheTrackerConcurrency  int
@@ -207,10 +209,16 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
-		"Maximum queries per second from the controller client to the Kubernetes API server. Defaults to 20")
+		"Maximum queries per second from the controller client to the Kubernetes API server.")
 
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
+
+	fs.Float32Var(&clusterCacheTrackerClientQPS, "clustercachetracker-client-qps", 20,
+		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+
+	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
 
 	fs.DurationVar(&nodeDrainClientTimeout, "node-drain-client-timeout-duration", time.Second*10,
 		"The timeout of the client used for draining nodes. Defaults to 10s")
@@ -408,6 +416,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) webhooks.ClusterCac
 			ControllerName:      controllerName,
 			Log:                 &ctrl.Log,
 			Indexes:             []remote.Index{remote.NodeProviderIDIndex},
+			ClientQPS:           clusterCacheTrackerClientQPS,
+			ClientBurst:         clusterCacheTrackerClientBurst,
 		},
 	)
 	if err != nil {

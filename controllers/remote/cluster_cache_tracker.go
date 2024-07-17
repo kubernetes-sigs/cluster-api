@@ -67,8 +67,11 @@ var ErrClusterLocked = errors.New("cluster is locked already")
 
 // ClusterCacheTracker manages client caches for workload clusters.
 type ClusterCacheTracker struct {
-	log                   logr.Logger
+	log logr.Logger
+
 	clientUncachedObjects []client.Object
+	clientQPS             float32
+	clientBurst           int
 
 	client client.Client
 
@@ -116,7 +119,18 @@ type ClusterCacheTrackerOptions struct {
 	// it'll instead query the API server directly.
 	// Defaults to never caching ConfigMap and Secret if not set.
 	ClientUncachedObjects []client.Object
-	Indexes               []Index
+
+	// ClientQPS is the maximum queries per second from the controller client
+	// to the Kubernetes API server of workload clusters.
+	// Defaults to 20.
+	ClientQPS float32
+
+	// ClientBurst is the maximum number of queries that should be allowed in
+	// one burst from the controller client to the Kubernetes API server of workload clusters.
+	// Default 30.
+	ClientBurst int
+
+	Indexes []Index
 
 	// ControllerName is the name of the controller.
 	// This is used to calculate the user agent string.
@@ -138,6 +152,13 @@ func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
 		}
+	}
+
+	if opts.ClientQPS == 0 {
+		opts.ClientQPS = 20
+	}
+	if opts.ClientBurst == 0 {
+		opts.ClientBurst = 30
 	}
 }
 
@@ -170,6 +191,8 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		controllerPodMetadata: controllerPodMetadata,
 		log:                   *options.Log,
 		clientUncachedObjects: options.ClientUncachedObjects,
+		clientQPS:             options.ClientQPS,
+		clientBurst:           options.ClientBurst,
 		client:                manager.GetClient(),
 		secretCachingClient:   options.SecretCachingClient,
 		scheme:                manager.GetScheme(),
@@ -303,6 +326,8 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	if err != nil {
 		return nil, errors.Wrapf(err, "error fetching REST client config for remote cluster %q", cluster.String())
 	}
+	config.QPS = t.clientQPS
+	config.Burst = t.clientBurst
 
 	// Create a http client and a mapper for the cluster.
 	httpClient, mapper, err := t.createHTTPClientAndMapper(config, cluster)

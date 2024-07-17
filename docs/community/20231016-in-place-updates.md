@@ -1,5 +1,5 @@
 ---
-title: Feature Group for In-place Upgrades support in Cluster API
+title: Feature Group for In-place Updates support in Cluster API
 authors:
   - "@g-gaston"
 reviewers:
@@ -8,13 +8,13 @@ reviewers:
     - "@sbueringer"
     - "@fabriziopandini"
 creation-date: 2023-10-16
-last-updated: 2023-10-16
+last-updated: 2024-07-17
 status: proposed
 see-also:
   - https://github.com/kubernetes-sigs/cluster-api/issues/9489
   - https://docs.google.com/document/d/1CqQ1SAqJD264PsDeMj_Z3HhZxe7DViNkpJ9d5q-2Zck
 ---
-# In-place upgrades Feature Group
+# In-place Updates Feature Group
 
 This document briefly outlines the scope, communication media, and stakeholders for a formal Feature Group dedicated to defining a Cluster API-approved solution to upgrade the kubernetes components running in CAPI managed nodes without replacing those machines.
 
@@ -22,13 +22,13 @@ This document briefly outlines the scope, communication media, and stakeholders 
 
 As a CAPI Kubernetes cluster admin I want to upgrade the k8s components (for example, a minor Kubernetes upgrade) of my cluster without replacing the machines.
 
-At present, CAPI has "immutable infrastructure" as one of its axioms: once created, Machines are not updated, they are just replaced (a new one is created and old one is deleted). As a consequence, the only supported upgrade strategy is rolling update. However, for certain use cases (such as Single-Node Clusters with no spare capacity, Multi-Node Clusters with VM/OS customizations for high-performance/low-latency workloads or dependency on local persistent storage), upgrading a cluster via RollingUpdate strategy could either be not feasible or a costly operation (requiring to re-apply customizations on newer nodes and hence more downtime).
+At present, CAPI has "immutable infrastructure" as one of its axioms: once created, Machines are not updated, they are just replaced (a new one is created and old one is deleted). As a consequence, the only supported update strategy is rolling update. However, for certain use cases (such as Single-Node Clusters with no spare capacity, Multi-Node Clusters with VM/OS customizations for high-performance/low-latency workloads or dependency on local persistent storage), upgrading a cluster via RollingUpdate strategy could either be not feasible or a costly operation (requiring to re-apply customizations on newer nodes and hence more downtime).
 
 ## Scope
 
 The scope of this effort will be the following:
 
-1. Define the scope of what In-place upgrades means in the context of Cluster API.
+1. Define the scope of what In-place updates means in the context of Cluster API.
 2. Write a CAPI proposal with the recommended solution.
 
 ## Communication

@@ -479,14 +479,7 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 					Containers: []corev1.Container{
 						{
 							Name:  "web",
-							Image: "nginx:1.12",
-							Ports: []corev1.ContainerPort{
-								{
-									Name:          "http",
-									Protocol:      corev1.ProtocolTCP,
-									ContainerPort: 80,
-								},
-							},
+							Image: "registry.k8s.io/pause:latest",
 						},
 					},
 				},

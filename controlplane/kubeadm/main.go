@@ -84,8 +84,7 @@ var (
 	webhookCertName                string
 	webhookKeyName                 string
 	healthAddr                     string
-	tlsOptions                     = flags.TLSOptions{}
-	diagnosticsOptions             = flags.DiagnosticsOptions{}
+	managerOptions                 = flags.ManagerOptions{}
 	logOptions                     = logs.NewOptions()
 	// KCP specific flags.
 	kubeadmControlPlaneConcurrency  int
@@ -180,8 +179,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Use the deprecated naming convention for infra machines where they are named after the InfraMachineTemplate.")
 	_ = fs.MarkDeprecated("use-deprecated-infra-machine-naming", "This flag will be removed in v1.9.")
 
-	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
-	flags.AddTLSOptions(fs, &tlsOptions)
+	flags.AddManagerOptions(fs, &managerOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -214,13 +212,11 @@ func main() {
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
-	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
-		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
 	}
-
-	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
@@ -246,7 +242,7 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
-		Metrics:                    diagnosticsOpts,
+		Metrics:                    *metricsOptions,
 		Cache: cache.Options{
 			DefaultNamespaces: watchNamespaces,
 			SyncPeriod:        &syncPeriod,
@@ -278,7 +274,7 @@ func main() {
 				CertDir:  webhookCertDir,
 				CertName: webhookCertName,
 				KeyName:  webhookKeyName,
-				TLSOpts:  tlsOptionOverrides,
+				TLSOpts:  tlsOptions,
 			},
 		),
 	}

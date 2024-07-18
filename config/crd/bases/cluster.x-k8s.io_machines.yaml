@@ -1132,6 +1132,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               failureMessage:
                 description: |-
                   FailureMessage will be set in the event that there is a terminal problem

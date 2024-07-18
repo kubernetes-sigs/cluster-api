@@ -576,14 +576,14 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 					Name: "test-cluster",
 				},
 				Spec: clusterv1.ClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{ // This is set by the control plane ref controller when the cluster endpoint is available.
 						Host: "1.2.3.4",
 						Port: 8443,
 					},
 					ControlPlaneRef: &corev1.ObjectReference{},
 				},
 				Status: clusterv1.ClusterStatus{
-					ControlPlaneReady: true,
+					InfrastructureReady: true, // Note, this is automatically set when there is no cluster infrastructure (no-op).
 				},
 			},
 

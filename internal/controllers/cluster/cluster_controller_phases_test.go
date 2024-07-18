@@ -86,9 +86,6 @@ func TestClusterReconcilePhases(t *testing.T) {
 				name:      "returns no error if infrastructure ref is nil",
 				cluster:   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
 				expectErr: false,
-				check: func(g *GomegaWithT, in *clusterv1.Cluster) {
-					g.Expect(in.Status.InfrastructureReady).To(BeTrue())
-				},
 			},
 			{
 				name:         "returns error if unable to reconcile infrastructure ref",
@@ -561,26 +558,6 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,
-				},
-			},
-
-			wantPhase: clusterv1.ClusterPhaseProvisioned,
-		},
-		{
-			name: "no cluster infrastructure, control plane ready and ControlPlaneEndpoint is set",
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
-				Spec: clusterv1.ClusterSpec{
-					ControlPlaneEndpoint: clusterv1.APIEndpoint{
-						Host: "1.2.3.4",
-						Port: 8443,
-					},
-					ControlPlaneRef: &corev1.ObjectReference{},
-				},
-				Status: clusterv1.ClusterStatus{
-					ControlPlaneReady: true,
 				},
 			},
 

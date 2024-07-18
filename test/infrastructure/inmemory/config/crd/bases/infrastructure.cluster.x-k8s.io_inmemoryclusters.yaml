@@ -115,6 +115,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               ready:
                 description: Ready denotes that the in-memory cluster (infrastructure)
                   is ready.

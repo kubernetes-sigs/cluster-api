@@ -89,6 +89,8 @@ type Condition struct {
 // ANCHOR: Conditions
 
 // Conditions provide observations of the operational state of a Cluster API resource.
+// +listType=map
+// +listMapKey=type
 type Conditions []Condition
 
 // ANCHOR_END: Conditions

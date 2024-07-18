@@ -96,6 +96,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               v1beta2:
                 description: Phase1ObjStatusV1Beta2 defines the status.V1Beta2 of
                   a Phase1Obj.

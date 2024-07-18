@@ -52,9 +52,7 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
-	if (cluster.Spec.InfrastructureRef == nil || cluster.Status.InfrastructureReady) &&
-		(cluster.Spec.ControlPlaneRef == nil || cluster.Status.ControlPlaneReady) &&
-		cluster.Spec.ControlPlaneEndpoint.IsValid() {
+	if cluster.Status.InfrastructureReady && cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioned)
 	}
 

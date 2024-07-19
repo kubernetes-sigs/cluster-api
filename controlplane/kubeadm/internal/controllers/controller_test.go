@@ -136,7 +136,7 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 	g.Expect(got).To(BeNil())
 }
 
-func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
+func TestReconcileDoesNothingWhenOwnerClusterIsMissing(t *testing.T) {
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-reconcile-return-error")
@@ -165,7 +165,7 @@ func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 	g.Eventually(func() error {
 		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 		return err
-	}, 10*time.Second).Should(HaveOccurred())
+	}, 10*time.Second).Should(BeNil())
 }
 
 func TestReconcileUpdateObservedGeneration(t *testing.T) {

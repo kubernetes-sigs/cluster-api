@@ -745,8 +745,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		if input.UseKindForManagementCluster {
-			managementClusterProxy.Dispose(ctx)
-			managementClusterProvider.Dispose(ctx)
+			if !input.SkipCleanup {
+				managementClusterProxy.Dispose(ctx)
+				managementClusterProvider.Dispose(ctx)
+			}
 		} else {
 			framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		}

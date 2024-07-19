@@ -683,16 +683,9 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			// NOTE: we are doing this no matter of defaultOriginal to make sure that the web hook is up and running
 			// before calling NewServerSidePatchHelper down below.
 			g.Eventually(ctx, func(g Gomega) {
-				// create a new object
 				kct2 := kct.DeepCopy()
 				kct2.Name = fmt.Sprintf("%s-2", kct.Name)
-				g.Expect(env.Create(ctx, kct2)).To(Succeed())
-				defer func() {
-					_ = env.Delete(ctx, kct2)
-				}()
-
-				// check if it was defaulted
-				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct2), kct2)).To(Succeed())
+				g.Expect(env.Create(ctx, kct2, client.DryRunAll)).To(Succeed())
 				g.Expect(kct2.Spec.Template.Spec.Users).To(BeComparableTo([]bootstrapv1.User{{Name: "default-user"}}))
 			}, 5*time.Second).Should(Succeed())
 

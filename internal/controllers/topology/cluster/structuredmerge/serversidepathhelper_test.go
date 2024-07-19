@@ -679,22 +679,30 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 				g.Expect(env.CleanupAndWait(ctx, mutatingWebhookConfiguration)).To(Succeed())
 			}()
 
+			// Test if web hook is working
+			// NOTE: we are doing this no matter of defaultOriginal to make sure that the web hook is up and running
+			// before calling NewServerSidePatchHelper down below.
+			g.Eventually(ctx, func(g Gomega) {
+				kct2 := kct.DeepCopy()
+				kct2.Name = fmt.Sprintf("%s-2", kct.Name)
+				g.Expect(env.Create(ctx, kct2, client.DryRunAll)).To(Succeed())
+				g.Expect(kct2.Spec.Template.Spec.Users).To(BeComparableTo([]bootstrapv1.User{{Name: "default-user"}}))
+			}, 5*time.Second).Should(Succeed())
+
 			// Run defaulting on the KubeadmConfigTemplate (triggered by an "external controller")
-			// Note: We have to retry this with eventually as it seems to take a bit of time until
-			// the webhook is active.
 			if tt.defaultOriginal {
+				patchKCT := &bootstrapv1.KubeadmConfigTemplate{}
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
+
+				if patchKCT.Labels == nil {
+					patchKCT.Labels = map[string]string{}
+				}
+				patchKCT.Labels["trigger"] = "update"
+
+				g.Expect(env.Patch(ctx, patchKCT, client.MergeFrom(kct))).To(Succeed())
+
+				// Wait for cache to be updated with the defaulted object
 				g.Eventually(ctx, func(g Gomega) {
-					patchKCT := &bootstrapv1.KubeadmConfigTemplate{}
-					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
-
-					if patchKCT.Labels == nil {
-						patchKCT.Labels = map[string]string{}
-					}
-					patchKCT.Labels["trigger"] = "update"
-
-					g.Expect(env.Patch(ctx, patchKCT, client.MergeFrom(kct))).To(Succeed())
-
-					// Ensure patchKCT was defaulted.
 					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
 					g.Expect(patchKCT.Spec.Template.Spec.Users).To(BeComparableTo([]bootstrapv1.User{{Name: "default-user"}}))
 				}, 5*time.Second).Should(Succeed())
@@ -716,7 +724,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			// Apply modified.
 			p0, err = NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), ssaCache)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(p0.HasChanges()).To(Equal(tt.expectChanges))
+			g.Expect(p0.HasChanges()).To(Equal(tt.expectChanges), fmt.Sprintf("changes: %s", string(p0.Changes())))
 			g.Expect(p0.HasSpecChanges()).To(Equal(tt.expectSpecChanges))
 			g.Expect(p0.Patch(ctx)).To(Succeed())
 

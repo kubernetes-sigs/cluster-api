@@ -112,6 +112,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 
 		// Error reading the object - requeue the request.
+		log.Error(err, "Failed to fetch Cluster")
 		return ctrl.Result{}, err
 	}
 

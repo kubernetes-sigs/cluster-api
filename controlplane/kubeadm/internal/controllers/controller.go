@@ -145,9 +145,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-
-		// Error reading the object  - requeue the request.
-		log.Error(err, "Failed to fetch KubeadmControlPlane")
 		return ctrl.Result{}, err
 	}
 
@@ -155,7 +152,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			log.Error(err, "Failed to retrieve owner Cluster from the API Server")
 			return ctrl.Result{}, err
 		}
 	}

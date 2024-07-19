@@ -152,8 +152,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		// Error reading the object  - requeue the request.
-		log.Error(err, "Failed to fetch KubeadmConfig")
 		return ctrl.Result{}, err
 	}
 
@@ -164,7 +162,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Failed to retrieve owner Cluster from the API Server")
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get owner")
 	}
 	if configOwner == nil {

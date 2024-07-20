@@ -284,6 +284,61 @@ func TestCreateSecretWithOwner(t *testing.T) {
 	g.Expect(restClient.Host).To(Equal("https://localhost:6443"))
 }
 
+func TestCreateSecretWithOwnerHasEndpointPrefixIsSlush(t *testing.T) {
+	g := NewWithT(t)
+
+	caKey, err := certs.NewPrivateKey()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	caCert, err := getTestCACert(caKey)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	caSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test1-ca",
+			Namespace: "test",
+		},
+		Data: map[string][]byte{
+			secret.TLSKeyDataName: certs.EncodePrivateKeyPEM(caKey),
+			secret.TLSCrtDataName: certs.EncodeCertPEM(caCert),
+		},
+	}
+
+	c := fake.NewClientBuilder().WithObjects(caSecret).Build()
+
+	owner := metav1.OwnerReference{
+		Name:       "test1",
+		Kind:       "Cluster",
+		APIVersion: clusterv1.GroupVersion.String(),
+	}
+
+	err = CreateSecretWithOwner(
+		ctx,
+		c,
+		client.ObjectKey{
+			Name:      "test1",
+			Namespace: "test",
+		},
+		"/localhost:6443",
+		owner,
+	)
+
+	g.Expect(err).ToNot(HaveOccurred())
+
+	s := &corev1.Secret{}
+	key := client.ObjectKey{Name: "test1-kubeconfig", Namespace: "test"}
+	g.Expect(c.Get(ctx, key, s)).To(Succeed())
+	g.Expect(s.OwnerReferences).To(ContainElement(owner))
+	g.Expect(s.Type).To(Equal(clusterv1.ClusterSecretType))
+
+	clientConfig, err := clientcmd.NewClientConfigFromBytes(s.Data[secret.KubeconfigDataName])
+	g.Expect(err).ToNot(HaveOccurred())
+	restClient, err := clientConfig.ClientConfig()
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(restClient.CAData).To(Equal(certs.EncodeCertPEM(caCert)))
+	g.Expect(restClient.Host).To(Equal("https://localhost:6443"))
+}
+
 func TestCreateSecret(t *testing.T) {
 	g := NewWithT(t)
 

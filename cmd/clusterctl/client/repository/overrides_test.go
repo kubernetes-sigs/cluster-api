@@ -100,8 +100,7 @@ func TestGetLocalOverrides(t *testing.T) {
 	t.Run("returns contents of file successfully", func(t *testing.T) {
 		g := NewWithT(t)
 
-		tmpDir := createTempDir(t)
-		defer os.RemoveAll(tmpDir)
+		tmpDir := t.TempDir()
 
 		createLocalTestProviderFile(t, tmpDir, "infrastructure-myinfra/v1.0.1/infra-comp.yaml", "foo: bar")
 

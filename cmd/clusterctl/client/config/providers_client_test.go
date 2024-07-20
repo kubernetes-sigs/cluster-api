@@ -18,7 +18,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"testing"
 
@@ -148,13 +147,8 @@ func Test_providers_List(t *testing.T) {
 			g := NewWithT(t)
 
 			for k, v := range tt.envVars {
-				g.Expect(os.Setenv(k, v)).To(Succeed())
+				t.Setenv(k, v)
 			}
-			defer func() {
-				for k := range tt.envVars {
-					g.Expect(os.Unsetenv(k)).To(Succeed())
-				}
-			}()
 			p := &providersClient{
 				reader: tt.fields.configGetter,
 			}

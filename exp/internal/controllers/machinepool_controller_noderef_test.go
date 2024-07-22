@@ -36,9 +36,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		Client:   fake.NewClientBuilder().Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
-
-	nodeList := []client.Object{
-		&corev1.Node{
+	nodeRefsMap := map[string]*corev1.Node{
+		"aws://us-east-1/id-node-1": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-1",
 			},
@@ -54,7 +53,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				},
 			},
 		},
-		&corev1.Node{
+		"aws://us-west-2/id-node-2": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-2",
 			},
@@ -70,7 +69,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				},
 			},
 		},
-		&corev1.Node{
+		"aws://us-west-2/id-node-3": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-3",
 			},
@@ -78,7 +77,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				ProviderID: "aws://us-west-2/id-node-3",
 			},
 		},
-		&corev1.Node{
+		"gce://us-central1/gce-id-node-2": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "gce-node-2",
 			},
@@ -94,7 +93,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				},
 			},
 		},
-		&corev1.Node{
+		"azure://westus2/id-node-4": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "azure-node-4",
 			},
@@ -110,7 +109,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				},
 			},
 		},
-		&corev1.Node{
+		"azure://westus2/id-nodepool1/0": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "azure-nodepool1-0",
 			},
@@ -126,7 +125,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				},
 			},
 		},
-		&corev1.Node{
+		"azure://westus2/id-nodepool2/0": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "azure-nodepool2-0",
 			},
@@ -143,8 +142,6 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			},
 		},
 	}
-
-	client := fake.NewClientBuilder().WithObjects(nodeList...).Build()
 
 	testCases := []struct {
 		name            string
@@ -284,7 +281,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result, err := r.getNodeReferences(ctx, client, test.providerIDList, ptr.To(test.minReadySeconds))
+			result, err := r.getNodeReferences(ctx, test.providerIDList, ptr.To(test.minReadySeconds), nodeRefsMap)
 			if test.err == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

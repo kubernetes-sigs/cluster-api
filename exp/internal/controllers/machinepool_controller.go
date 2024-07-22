@@ -80,6 +80,21 @@ type MachinePoolReconciler struct {
 	externalTracker external.ObjectTracker
 }
 
+// scope holds the different objects that are read and used during the reconcile.
+type scope struct {
+	// cluster is the Cluster object the Machine belongs to.
+	// It is set at the beginning of the reconcile function.
+	cluster *clusterv1.Cluster
+
+	// machinePool is the MachinePool object. It is set at the beginning
+	// of the reconcile function.
+	machinePool *expv1.MachinePool
+
+	// nodeRefMapResult is a map of providerIDs to Nodes that are associated with the Cluster.
+	// It is set after reconcileInfrastructure is called.
+	nodeRefMap map[string]*corev1.Node
+}
+
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachinePools, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &expv1.MachinePoolList{}, mgr.GetScheme())
 	if err != nil {
@@ -210,7 +225,11 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Handle normal reconciliation loop.
-	res, err := r.reconcile(ctx, cluster, mp)
+	scope := &scope{
+		cluster:     cluster,
+		machinePool: mp,
+	}
+	res, err := r.reconcile(ctx, scope)
 	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 	// the current cluster because of concurrent access.
 	if errors.Is(err, remote.ErrClusterLocked) {
@@ -220,8 +239,10 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return res, err
 }
 
-func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+func (r *MachinePoolReconciler) reconcile(ctx context.Context, s *scope) (ctrl.Result, error) {
 	// Ensure the MachinePool is owned by the Cluster it belongs to.
+	cluster := s.cluster
+	mp := s.machinePool
 	mp.SetOwnerReferences(util.EnsureOwnerRef(mp.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
@@ -229,7 +250,7 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv
 		UID:        cluster.UID,
 	}))
 
-	phases := []func(context.Context, *clusterv1.Cluster, *expv1.MachinePool) (ctrl.Result, error){
+	phases := []func(context.Context, *scope) (ctrl.Result, error){
 		r.reconcileBootstrap,
 		r.reconcileInfrastructure,
 		r.reconcileNodeRefs,
@@ -239,7 +260,7 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv
 	errs := []error{}
 	for _, phase := range phases {
 		// Call the inner reconciliation methods.
-		phaseResult, err := phase(ctx, cluster, mp)
+		phaseResult, err := phase(ctx, s)
 		if err != nil {
 			errs = append(errs, err)
 		}

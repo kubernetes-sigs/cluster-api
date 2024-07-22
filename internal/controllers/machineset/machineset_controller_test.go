@@ -84,12 +84,71 @@ func TestMachineSetReconciler(t *testing.T) {
 		duration5m := &metav1.Duration{Duration: 5 * time.Minute}
 		replicas := int32(2)
 		version := "v1.14.2"
+		machineTemplateSpec := clusterv1.MachineTemplateSpec{
+			ObjectMeta: clusterv1.ObjectMeta{
+				Labels: map[string]string{
+					"label-1": "true",
+				},
+				Annotations: map[string]string{
+					"annotation-1": "true",
+					"precedence":   "MachineSet",
+				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: testCluster.Name,
+				Version:     &version,
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &corev1.ObjectReference{
+						APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericBootstrapConfigTemplate",
+						Name:       "ms-template",
+					},
+				},
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericInfrastructureMachineTemplate",
+					Name:       "ms-template",
+				},
+				NodeDrainTimeout:        duration10m,
+				NodeDeletionTimeout:     duration10m,
+				NodeVolumeDetachTimeout: duration10m,
+			},
+		}
+
+		machineDeployment := &clusterv1.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "md-",
+				Namespace:    namespace.Name,
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "10",
+				},
+			},
+			Spec: clusterv1.MachineDeploymentSpec{
+				ClusterName: testCluster.Name,
+				Replicas:    &replicas,
+				Template:    machineTemplateSpec,
+			},
+		}
+		g.Expect(env.Create(ctx, machineDeployment)).To(Succeed())
+
 		instance := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "ms-",
 				Namespace:    namespace.Name,
 				Labels: map[string]string{
-					"label-1": "true",
+					"label-1":                            "true",
+					clusterv1.MachineDeploymentNameLabel: machineDeployment.Name,
+				},
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "10",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "MachineDeployment",
+						Name:       machineDeployment.Name,
+						UID:        machineDeployment.UID,
+					},
 				},
 			},
 			Spec: clusterv1.MachineSetSpec{
@@ -100,36 +159,7 @@ func TestMachineSetReconciler(t *testing.T) {
 						"label-1": "true",
 					},
 				},
-				Template: clusterv1.MachineTemplateSpec{
-					ObjectMeta: clusterv1.ObjectMeta{
-						Labels: map[string]string{
-							"label-1": "true",
-						},
-						Annotations: map[string]string{
-							"annotation-1": "true",
-							"precedence":   "MachineSet",
-						},
-					},
-					Spec: clusterv1.MachineSpec{
-						ClusterName: testCluster.Name,
-						Version:     &version,
-						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: &corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-								Kind:       "GenericBootstrapConfigTemplate",
-								Name:       "ms-template",
-							},
-						},
-						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-							Kind:       "GenericInfrastructureMachineTemplate",
-							Name:       "ms-template",
-						},
-						NodeDrainTimeout:        duration10m,
-						NodeDeletionTimeout:     duration10m,
-						NodeVolumeDetachTimeout: duration10m,
-					},
-				},
+				Template: machineTemplateSpec,
 			},
 		}
 
@@ -405,6 +435,33 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Validate that the controller set the cluster name label in selector.
 		g.Expect(instance.Status.Selector).To(ContainSubstring(testCluster.Name))
+
+		t.Log("Verifying MachineSet can be scaled down when templates don't exist, and MachineSet is not current")
+		g.Expect(env.CleanupAndWait(ctx, bootstrapTmpl)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infraTmpl)).To(Succeed())
+
+		t.Log("Updating Replicas on MachineSet")
+		patchHelper, err = patch.NewHelper(instance, env)
+		g.Expect(err).ToNot(HaveOccurred())
+		instance.SetAnnotations(map[string]string{
+			clusterv1.RevisionAnnotation: "9",
+		})
+		instance.Spec.Replicas = ptr.To(int32(1))
+		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
+
+		// Verify that we have 1 replicas.
+		g.Eventually(func() (ready int) {
+			if err := env.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
+				return -1
+			}
+			for _, m := range machines.Items {
+				if !m.DeletionTimestamp.IsZero() {
+					continue
+				}
+				ready++
+			}
+			return
+		}, timeout*3).Should(BeEquivalentTo(1))
 	})
 }
 

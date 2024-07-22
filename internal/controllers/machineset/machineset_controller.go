@@ -240,12 +240,12 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, &machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := r.reconcileExternalTemplateReference(ctx, cluster, machineSet, &machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if machineSet.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+		if err := r.reconcileExternalTemplateReference(ctx, cluster, machineSet, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -1115,21 +1115,36 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, cluster *cl
 	return ctrl.Result{}, nil
 }
 
-func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, ref *corev1.ObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, c, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.UnstructuredCachingClient, ref); err != nil {
 		return err
 	}
 
-	obj, err := external.Get(ctx, c, ref, cluster.Namespace)
+	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, cluster.Namespace)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			if _, ok := ms.Labels[clusterv1.MachineDeploymentNameLabel]; !ok {
+				// If the MachineSet is not in a MachineDeployment, return the error immediately.
+				return err
+			}
+			// When the MachineSet is part of a MachineDeployment but isn't the current revision, we should
+			// ignore the not found references and allow the controller to proceed.
+			owner, err := r.getOwnerMachineDeployment(ctx, ms)
+			if err != nil {
+				return err
+			}
+			if owner.Annotations[clusterv1.RevisionAnnotation] != ms.Annotations[clusterv1.RevisionAnnotation] {
+				return nil
+			}
+		}
 		return err
 	}
 
-	patchHelper, err := patch.NewHelper(obj, c)
+	patchHelper, err := patch.NewHelper(obj, r.UnstructuredCachingClient)
 	if err != nil {
 		return err
 	}

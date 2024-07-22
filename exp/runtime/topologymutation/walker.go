@@ -147,14 +147,14 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 		var patch []byte
 		switch options.patchFormat {
 		case runtimehooksv1.JSONPatchType:
-			patch, err = createJSONPatch(original, modified)
+			patch, err = createJSONPatch(requestItem.Object.Raw, modified)
 			if err != nil {
 				resp.Status = runtimehooksv1.ResponseStatusFailure
 				resp.Message = err.Error()
 				return
 			}
 		case runtimehooksv1.JSONMergePatchType:
-			patch, err = createJSONMergePatch(original, modified)
+			patch, err = createJSONMergePatch(requestItem.Object.Raw, modified)
 			if err != nil {
 				resp.Status = runtimehooksv1.ResponseStatusFailure
 				resp.Message = err.Error()
@@ -174,12 +174,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 }
 
 // createJSONPatch creates a RFC 6902 JSON patch from the original and the modified object.
-func createJSONPatch(original, modified runtime.Object) ([]byte, error) {
-	marshalledOriginal, err := json.Marshal(original)
-	if err != nil {
-		return nil, errors.Errorf("failed to marshal original object: %v", err)
-	}
-
+func createJSONPatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {
 		return nil, errors.Errorf("failed to marshal modified object: %v", err)
@@ -199,12 +194,7 @@ func createJSONPatch(original, modified runtime.Object) ([]byte, error) {
 }
 
 // createJSONMergePatch creates a RFC 7396 JSON merge patch from the original and the modified object.
-func createJSONMergePatch(original, modified runtime.Object) ([]byte, error) {
-	marshalledOriginal, err := json.Marshal(original)
-	if err != nil {
-		return nil, errors.Errorf("failed to marshal original object: %v", err)
-	}
-
+func createJSONMergePatch(marshalledOriginal []byte, modified runtime.Object) ([]byte, error) {
 	marshalledModified, err := json.Marshal(modified)
 	if err != nil {
 		return nil, errors.Errorf("failed to marshal modified object: %v", err)

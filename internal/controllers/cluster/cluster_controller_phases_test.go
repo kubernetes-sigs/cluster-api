@@ -88,6 +88,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 				expectErr: false,
 				check: func(g *GomegaWithT, in *clusterv1.Cluster) {
 					g.Expect(in.Status.InfrastructureReady).To(BeTrue())
+					g.Expect(conditions.IsTrue(in, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
 				},
 			},
 			{

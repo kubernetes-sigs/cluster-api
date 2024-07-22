@@ -52,23 +52,21 @@ see-also:
 
 # Summary
 
-This documents defines how status in CAPI resources is going to evolve in the v1beta2 API version, with the goal of
+This documents defines how status across all Cluster API resources is going to evolve in the v1beta2 API version, focusin on
 improving usability and consistency across different resources in CAPI and with the rest of the ecosystem.
 
 # Motivation
 
-The Cluster API community recognize that nowadays Cluster API and Kubernetes users are rightfully focused on
-building higher systems and great applications on top on those platforms, which is great.
+The Cluster API community recognizes that nowadays most users are rightfully focused on
+building higher level systems, offerings, and applications on these platforms.
 
-However, as a consequence of this shifted focus, most of the users don’t have time to become deep expert of Cluster API
-like the first wave of adopters, and also Cluster API maintainers would like they don’t have to.
+However, as the focus shifted away, most of the users don’t have time to become deep experts on Cluster API.
 
-The effect of the trend above is the blurring of the lines not only between different Cluster API components, but also
-between Cluster API, core Kubernetes and a few other broadly adopted tools like Helm or Flux (and to some extents,
-also with many others awesome tools in the ecosystem).
+This trend is blurring the lines between different Cluster API components; between Cluster API and Kubernetes, and tools
+like Helm, Flux, Argo, and so on.
 
-This is why Cluster API status must become simpler to understand for users, and also more consistent not only across
-different CAPI resources, but with Kubernetes core and ideally with the entire ecosystem.
+This proposal focused on Cluster API's resource status which must become simpler to understand, more consistent with 
+Kubernetes, and ideally with the entire ecosystem.
 
 ### Goals
 
@@ -77,9 +75,9 @@ different CAPI resources, but with Kubernetes core and ideally with the entire e
     - Make the concept of Machine readiness extensible, thus allowing providers or external system to inject their readiness checks.
 - Review and standardize the usage of the concept of availability across Cluster API resources.
     - Make the concept of Cluster Availability extensible, thus allowing providers or external system to inject their availability checks.
-- Bubble up more information about both CP and worker Machines, ensuring consistent way across Cluster API resources.
-    - Standardize replica counters and bubble them up to the Cluster resource.
-    - Standardize control plane, MachineDeployment, Machine pool availability, and bubble them up to the Cluster resource.
+- Bubble up more information about both CP and worker Machines, ensuring consistency across Cluster API resources.
+    - Standardize replica counters on control plane, MachineDeployment, Machine pool, and bubble them up to the Cluster resource.
+    - Bubble up conditions about machine readiness to  control plane, MachineDeployment, Machine pool.
 - Introduce missing signals about connectivity to workload clusters, thus enabling to mark all the conditions
   depending on such connectivity being working with status Unknown after a certain amount of time.
 - Introduce a cleaner signal about Cluster API resources lifecycle transitions, e.g. scaling up or updating.
@@ -101,9 +99,11 @@ Some of those changes could be considered straight forward, e.g.
   (and improve Conditions to provide similar or even a better info as a replacement).
 - K8s resources do not have a concept similar to "terminal feature" existing in Cluster API resources, and users approaching
   the project are struggling with this idea; in some cases also provider's implementers are struggling with it.
-  Accordingly, Cluster API resources are dropping `FailureReason` and `FailureMessage` fields (terminal failures should be surfaced using
-  conditions, like any other error/warning/message)
-- Bubble up more information about both CP and worker Machines to the Cluster level.
+  Accordingly, Cluster API resources are dropping `FailureReason` and `FailureMessage` fields.
+  Like in K8s objects, terminal failures should be surfaced using conditions, with a well documented type/reason representing
+  a "terminal failure"; it is up to a consumers to treat them accordingly.
+- Bubble up more information about Machines to the owner resource (control plane, MachineSet, MachineDeployment, MachinePool)
+  and then to the Cluster.
 
 Some other changes requires a little bit more context, which is provided in following paragraphs:
 
@@ -148,14 +148,14 @@ e.g. Higher level abstractions in Cluster API are designed to remain operational
 for instance a Machine deployment is operational even if is rolling out.
 
 But the use cases above where hard to combine with the strict requirement to have all the conditions true, and
-as a result today Cluster APi resources barely have conditions surfacing that lifecycle operations are happening, or where
-those condition are defined they have a semantic which is not easy to understand, like e.g. 'Resized' or 'MachinesSpecUpToDate'.
+as a result today Cluster API resources barely have conditions surfacing that lifecycle operations are happening, or where
+those conditions are defined they have a semantic which is not easy to understand, like e.g. 'Resized' or 'MachinesSpecUpToDate'.
 
 e.g. when you look at higher level abstractions in Cluster API like Clusters, MachineDeployments and ControlPlanes, readiness
 might be confusing, because those resources usually accept a certain degree of not readiness, e.g. MachineDeployments are
 usually ok even if a few machine is not ready (up to MaxUnavailable).
 
-In order to address thi problem, Cluster API is going to align to K8s API conventions. As a consequence, the “Ready”
+In order to address this problem, Cluster API is going to align to K8s API conventions. As a consequence, the “Ready”
 condition won't be required anymore to exists on all the resources, nor when it exists, it will be required to include
 all the existing conditions in the ready summary.
 
@@ -205,9 +205,19 @@ With this proposal Cluster API will close the gap with K8s API conventions in re
 - Cluster API is also dropping its own Condition type and start using metav1.Conditions from the Kubernetes API.
 
 The last point have also another implication, which is the removal of the Severity field which is currently used
-to determine priority when merging conditions.
+to determine priority when merging conditions into the ready summary.
 
-TODO Document how we are going to replace severity (currently prototyping)
+However, considering all the work to clean up and improve readiness and availability, now dropping the severity field
+is not an issue anymore. Let's clarify this with an example:
+
+When Cluster API will compute Machine read there will be a very limited set of conditions
+to merge (see [next paragraph](#machine-newconditions)); considering this, it will be probably simpler and more informative
+for the users if we surface all the relevant messages instead of arbitrarily dropping some of them as we are doing
+today by inferring merge priority from severity.
+
+In case someone wants a more sophisticated control over the process of merging conditions, the new version of the
+condition utils in Cluster API, will allow developers to plug in custom functions to compute merge priority
+for a condition, e.g. by looking at status, reason, time since the condition transitioned, etc.
 
 ### Changes to Machine resource
 
@@ -446,16 +456,16 @@ TODO: check `FullyLabeledReplicas`, do we still need it?
 
 #### MachineSet (New)Conditions
 
-| Condition        | Note                                                                                                           |
-|------------------|----------------------------------------------------------------------------------------------------------------|
-| `ReplicaFailure` | This condition surfaces issues on creating Machines, if any.                                                   |
-| `MachinesReady`  | This condition surfaces detail of issues on the controlled machines, if any.                                   |
-| `ScalingUp`      | True if available replicas < desired replicas                                                                  |
-| `ScalingDown`    | True if replicas > desired replicas                                                                            |
-| `UpToDate`       | True if all the Machines controlled by this MachineSet are up to date (replicas = upToDate replicas)           |
-| `Remediating`    | True if there is at least one Machine controlled by this MachineSet is not passing health checks               |
-| `Deleted`        | True if MachineSet is deleted; Reason can be used to observe the cleanup progress when the resource is deleted |
-| `Paused`         | True if this MachineSet or the Cluster it belongs to are paused                                                |
+| Condition        | Note                                                                                                             |
+|------------------|------------------------------------------------------------------------------------------------------------------|
+| `ReplicaFailure` | This condition surfaces issues on creating a Machine replica in Kubernetes, if any. e.g. due to resource quotas. |
+| `MachinesReady`  | This condition surfaces detail of issues on the controlled machines, if any.                                     |
+| `ScalingUp`      | True if available replicas < desired replicas                                                                    |
+| `ScalingDown`    | True if replicas > desired replicas                                                                              |
+| `UpToDate`       | True if all the Machines controlled by this MachineSet are up to date (replicas = upToDate replicas)             |
+| `Remediating`    | True if there is at least one Machine controlled by this MachineSet is not passing health checks                 |
+| `Deleted`        | True if MachineSet is deleted; Reason can be used to observe the cleanup progress when the resource is deleted   |
+| `Paused`         | True if this MachineSet or the Cluster it belongs to are paused                                                  |
 
 > To better evaluate proposed changes, below you can find the list of current MachineSet's conditions:
 > Ready, MachinesCreated, Resized, MachinesReady.
@@ -539,7 +549,7 @@ Notes:
 | Condition        | Note                                                                                                                                                                                                                                                   |
 |------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Available`      | True if the MachineDeployment has minimum availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy, availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas |  
-| `ReplicaFailure` | This condition surfaces issues on creating Machines controlled by this MachineDeployment, if any.                                                                                                                                                      |
+| `ReplicaFailure` | This condition surfaces issues on creating a MachineSet replica in Kubernetes, if any. e.g. due to resource quotas.                                                                                                                                    |
 | `MachinesReady`  | This condition surfaces detail of issues on the controlled machines, if any.                                                                                                                                                                           |
 | `ScalingUp`      | True if available replicas < desired replicas                                                                                                                                                                                                          |
 | `ScalingDown`    | True if replicas > desired replicas                                                                                                                                                                                                                    |
@@ -783,7 +793,7 @@ type ClusterAvailabilityGate struct {
 
 Notes:
 - Similarly to Pod's `ReadinessGates`, also Machine's `AvailabilityGates` accept only conditions with positive polarity;
-  The Cluster API project might revisit this in future to stay aligned with Kubernetes or if there are use cases justifying this change.
+  The Cluster API project might revisit this in the future to stay aligned with Kubernetes or if there are use cases justifying this change.
 - In future the Cluster API project might consider ways to make `AvailabilityGates` configurable at ClusterClass level, but
   this can be implemented as a follow-up.
 
@@ -919,3 +929,12 @@ TODO
 ### Changes to Cluster API contract
 
 TODO
+
+## [WIP] Example use cases
+NOTE: Let me know if you want to add more use cases. I will try to collect more too and add a brief explanation about how
+each use case can be addressed with the improved status in CAPI resources 
+
+As a cluster admin with MachineDeployment ownership I'd like to understand if my MD is performing a rolling upgrade and why by looking at the MD status/conditions
+As a cluster admin with MachineDeployment ownership I'd like to understand why my MD rollout is blocked and why by looking at the MD status/conditions
+As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are failing to be available by looking at the MD status/conditions
+As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are stuck on deletion looking at the MD status/conditions

@@ -153,6 +153,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	if cluster.Spec.InfrastructureRef == nil {
 		// If the infrastructure ref is not set, marking the infrastructure as ready (no-op).
 		cluster.Status.InfrastructureReady = true
+		conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 		return ctrl.Result{}, nil
 	}
 

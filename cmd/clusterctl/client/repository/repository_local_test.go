@@ -129,16 +129,6 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 	}
 }
 
-func createTempDir(t *testing.T) string {
-	t.Helper()
-
-	dir, err := os.MkdirTemp("", "cc")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	return dir
-}
-
 func createLocalTestProviderFile(t *testing.T, tmpDir, path, msg string) string {
 	t.Helper()
 
@@ -155,8 +145,7 @@ func createLocalTestProviderFile(t *testing.T, tmpDir, path, msg string) string 
 func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	g := NewWithT(t)
 
-	tmpDir := createTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Create several release directories
 	createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "foo: bar")
@@ -182,8 +171,7 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 }
 
 func Test_localRepository_GetFile(t *testing.T) {
-	tmpDir := createTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Provider 1: URL is for the only release available
 	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "foo: bar")
@@ -319,8 +307,7 @@ func Test_localRepository_GetFile(t *testing.T) {
 }
 
 func Test_localRepository_GetVersions(t *testing.T) {
-	tmpDir := createTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Provider 1: has a single release available
 	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "foo: bar")

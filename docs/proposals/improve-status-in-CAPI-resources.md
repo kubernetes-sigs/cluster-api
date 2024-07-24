@@ -52,7 +52,7 @@ see-also:
 
 # Summary
 
-This documents defines how status across all Cluster API resources is going to evolve in the v1beta2 API version, focusin on
+This document defines how status across all Cluster API resources is going to evolve in the v1beta2 API version, focusing on
 improving usability and consistency across different resources in CAPI and with the rest of the ecosystem.
 
 # Motivation
@@ -72,22 +72,22 @@ Kubernetes, and ideally with the entire ecosystem.
 
 - Review and standardize the usage of the concept of readiness across Cluster API resources.
     - Drop or amend improper usage of readiness
-    - Make the concept of Machine readiness extensible, thus allowing providers or external system to inject their readiness checks.
+    - Make the concept of Machine readiness extensible, thus allowing providers or external systems to inject their readiness checks.
 - Review and standardize the usage of the concept of availability across Cluster API resources.
-    - Make the concept of Cluster Availability extensible, thus allowing providers or external system to inject their availability checks.
-- Bubble up more information about both CP and worker Machines, ensuring consistency across Cluster API resources.
-    - Standardize replica counters on control plane, MachineDeployment, Machine pool, and bubble them up to the Cluster resource.
-    - Bubble up conditions about machine readiness to  control plane, MachineDeployment, Machine pool.
+    - Make the concept of Cluster availability extensible, thus allowing providers or external systems to inject their availability checks.
+- Bubble up more information about both control plane and worker Machines, ensuring consistency across Cluster API resources.
+    - Standardize replica counters on control plane, MachineDeployment, MachinePool, and bubble them up to the Cluster resource.
+    - Bubble up conditions about Machine readiness to control plane, MachineDeployment, MachinePool.
 - Introduce missing signals about connectivity to workload clusters, thus enabling to mark all the conditions
-  depending on such connectivity being working with status Unknown after a certain amount of time.
+  depending on such connectivity with status Unknown after a certain amount of time.
 - Introduce a cleaner signal about Cluster API resources lifecycle transitions, e.g. scaling up or updating.
-- Ensure everything in status can be used as a signal informing monitoring tools/automation on top of Cluster 
+- Ensure everything in status can be used as a signal informing monitoring tools/automation on top of Cluster API 
   about lifecycle transitions/state of the Cluster and the underlying components as well.
 
 ### Non-Goals/Future Work
 
 - Resolving all the idiosyncrasies that exists in Cluster API, core Kubernetes, the rest of the ecosystem.
-  (Let’s stay focused in Cluster API and keep improving incrementally).
+  (Let’s stay focused on Cluster API and keep improving incrementally).
 
 ## Proposal
 
@@ -96,16 +96,16 @@ This proposal groups a set of changes to status fields in Cluster API resources.
 Some of those changes could be considered straight forward, e.g.
 
 - K8s API conventions suggest to deprecate and remove `phase` fields from status, Cluster API is going to align to this recommendation
-  (and improve Conditions to provide similar or even a better info as a replacement).
-- K8s resources do not have a concept similar to "terminal feature" existing in Cluster API resources, and users approaching
-  the project are struggling with this idea; in some cases also provider's implementers are struggling with it.
+  (and improve Conditions to provide similar or even better info as a replacement).
+- K8s resources do not have a concept similar to "terminal failure" in Cluster API resources, and users approaching
+  the project are struggling with this idea. In some cases also provider's implementers are struggling with it.
   Accordingly, Cluster API resources are dropping `FailureReason` and `FailureMessage` fields.
-  Like in K8s objects, terminal failures should be surfaced using conditions, with a well documented type/reason representing
-  a "terminal failure"; it is up to a consumers to treat them accordingly.
+  Like in K8s objects, "terminal failures" should be surfaced using conditions, with a well documented type/reason representing
+  a "terminal failure"; it is up to consumers to treat them accordingly. There is no special treatment for these conditions within Cluster API.
 - Bubble up more information about Machines to the owner resource (control plane, MachineSet, MachineDeployment, MachinePool)
   and then to the Cluster.
 
-Some other changes requires a little bit more context, which is provided in following paragraphs:
+Some other changes require a little bit more context, which is provided in following paragraphs:
 
 - Review and standardize the usage of the concept of readiness and availability to align to K8s API conventions / 
   conditions used in core K8s objects like `Pod`, `Node`, `Deployment`, `ReplicaSet` etc. 
@@ -119,7 +119,7 @@ over time; changes in this group will be detailed case by case in the following 
   (so everywhere Ready is used for a Machine it always means the same thing)
 - Add a new condition monitoring the status of the connectivity to workload clusters (`RemoteConnectionProbe`).
 
-In order to keep making progress on this proposal, the fist iteration will be focused on
+In order to keep making progress on this proposal, the first iteration will be focused on:
 
 - Machines
 - MachineSets
@@ -128,41 +128,41 @@ In order to keep making progress on this proposal, the fist iteration will be fo
 - KubeadmControlPlane (ControlPlanes)
 - Clusters
 
-Other resources will be added as soon as there will be agreement on the general direction.
+Other resources will be added as soon as there is agreement on the general direction.
 
 Overall, the union of all those changes, is expected to greatly improve status fields, conditions, replica counters 
 and print columns.
 
-Those improvements are expected to provide benefit to users interacting with the systems, using monitoring tools, and 
+Those improvements are expected to provide benefit to users interacting with the system, using monitoring tools, and 
 building higher level systems or products on top of Cluster API.
 
 ### Readiness and Availability
 
-The [condition CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md) in Cluster API introduced very strict requirements about “Ready” condition, mandating it 
-to exists on all resources and also mandating that Ready must be computed as the summary of all the to other existing
+The [condition CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md) in Cluster API introduced very strict requirements about `Ready` conditions, mandating it 
+to exists on all resources and also mandating that `Ready` must be computed as the summary of all other existing
 conditions.
 
-However, over time Cluster API maintainers recognized several limitations of the “one fit all”, strict approach.
+However, over time Cluster API maintainers recognized several limitations of the “one fits all”, strict approach.
 
-e.g. Higher level abstractions in Cluster API are designed to remain operational during lifecycle operations,
-for instance a Machine deployment is operational even if is rolling out.
+E.g., higher level abstractions in Cluster API are designed to remain operational during lifecycle operations,
+for instance a MachineDeployment is operational even if is rolling out.
 
-But the use cases above where hard to combine with the strict requirement to have all the conditions true, and
+But the use cases above were hard to combine with the strict requirement to have all the conditions true, and
 as a result today Cluster API resources barely have conditions surfacing that lifecycle operations are happening, or where
-those conditions are defined they have a semantic which is not easy to understand, like e.g. 'Resized' or 'MachinesSpecUpToDate'.
+those conditions are defined they have a semantic which is not easy to understand, like e.g. `Resized` or `MachinesSpecUpToDate`.
 
-e.g. when you look at higher level abstractions in Cluster API like Clusters, MachineDeployments and ControlPlanes, readiness
+E.g., when you look at higher level abstractions in Cluster API like Clusters, MachineDeployments and ControlPlanes, readiness
 might be confusing, because those resources usually accept a certain degree of not readiness, e.g. MachineDeployments are
-usually ok even if a few machine is not ready (up to MaxUnavailable).
+usually ok even if a few Machines are not ready (up to `MaxUnavailable`).
 
-In order to address this problem, Cluster API is going to align to K8s API conventions. As a consequence, the “Ready”
-condition won't be required anymore to exists on all the resources, nor when it exists, it will be required to include
-all the existing conditions in the ready summary.
+In order to address this problem, Cluster API is going to align to K8s API conventions. As a consequence, the `Ready`
+condition won't have to exist on all resources anymore. Nor when it exists, it will be required to include
+all the existing conditions when calculating the `Ready` condition.
 
 As a consequence, we will continue to use the ready condition *only* where it makes sense, and with a well-defined
 semantic that conveys important information to the users (vs applying "blindly" the same formula everywhere).
 
-The most important effect of this change is the definition of a new semantic for the Machine's “Ready” condition, that
+The most important effect of this change is the definition of a new semantic for the Machine's `Ready` condition, that
 will now clearly represent the "machine can host workloads" (prior art Kubernetes nodes are ready when "node can host pods"). 
 To improve the benefit of this change:
 
@@ -170,19 +170,19 @@ To improve the benefit of this change:
 - This proposal is also changing contract fields where ready was used improperly to represent 
   initial provisioning (k8s API conventions suggest to use ready only for long-running process).
 
-All in all, Machine's Ready should be much more clear, consistent, intuitive after proposed changes.
+All in all, Machine's Ready concept should be much more clear, consistent, intuitive after proposed changes.
 But there is more.
 
-This proposal is also dropping Ready condition from higher level abstractions in Cluster API.
+This proposal is also dropping the `Ready` condition from higher level abstractions in Cluster API.
 
-Instead, where not already present, this proposal is introducing a new Available condition that better represents
-the fact that those objects are operational even if there is a certain degree of not readiness in the system
-or if lifecycle operations are happening (prior art Available condition in K8s Deployments).
+Instead, where not already present, this proposal is introducing a new `Available` condition that better represents
+the fact that those objects are operational even if there is a certain degree of not readiness / disruption in the system
+or if lifecycle operations are happening (prior art `Available` condition in K8s Deployments).
 
 Last but not least:
 
-- With the changes to the semantic of Ready and Available conditions, it is now possible to add conditions about
-  surfacing that lifecycle operations are happening, e.g. scaling up.
+- With the changes to the semantic of `Ready` and `Available` conditions, it is now possible to add conditions to
+  surface ongoing lifecycle operations, e.g. scaling up.
 - As suggested by K8s API conventions, this proposal is also making sure all conditions are consistent and have
   uniform meaning across all resource types
 - Additionally, we are enforcing the same consistency for replica counters and other status fields.
@@ -199,24 +199,24 @@ even confusing new (and old) contributors.
 With this proposal Cluster API will close the gap with K8s API conventions in regard to:
 - Polarity: Condition type names should make sense for humans; neither positive nor negative polarity can be recommended
   as a general rule (already implemented by [#10550](https://github.com/kubernetes-sigs/cluster-api/pull/10550))
-- Use of the Reason field is required (currently in Cluster API reasons is added only when condition are false)
-- Controllers should apply their conditions to a resource the first time they visit the resource, even if the status is Unknown.
+- Use of the `Reason` field is required (currently in Cluster API reasons is added only when condition are false)
+- Controllers should apply their conditions to a resource the first time they visit the resource, even if the status is `Unknown`.
   (currently Cluster API controllers add conditions at different stages of the reconcile loops)
-- Cluster API is also dropping its own Condition type and start using metav1.Conditions from the Kubernetes API.
+- Cluster API is also dropping its own `Condition` type and will start using `metav1.Conditions` from the Kubernetes API.
 
-The last point have also another implication, which is the removal of the Severity field which is currently used
+The last point also has another implication, which is the removal of the `Severity` field which is currently used
 to determine priority when merging conditions into the ready summary.
 
-However, considering all the work to clean up and improve readiness and availability, now dropping the severity field
+However, considering all the work to clean up and improve readiness and availability, now dropping the `Severity` field
 is not an issue anymore. Let's clarify this with an example:
 
-When Cluster API will compute Machine read there will be a very limited set of conditions
-to merge (see [next paragraph](#machine-newconditions)); considering this, it will be probably simpler and more informative
-for the users if we surface all the relevant messages instead of arbitrarily dropping some of them as we are doing
-today by inferring merge priority from severity.
+When Cluster API will compute Machine `Ready` there will be a very limited set of conditions
+to merge (see [next paragraph](#machine-newconditions)). Considering this, it will be probably simpler and more informative
+for users if we surface all relevant messages instead of arbitrarily dropping some of them as we are doing
+today by inferring merge priority from the `Severity` field.
 
 In case someone wants a more sophisticated control over the process of merging conditions, the new version of the
-condition utils in Cluster API, will allow developers to plug in custom functions to compute merge priority
+condition utils in Cluster API will allow developers to plug in custom functions to compute merge priority
 for a condition, e.g. by looking at status, reason, time since the condition transitioned, etc.
 
 ### Changes to Machine resource
@@ -231,25 +231,26 @@ Following changes are implemented to Machine's status:
 - Transition to new, improved, K8s API conventions aligned conditions
 
 Below you can find the relevant fields in Machine Status v1beta2, after v1beta1 removal (end state);
-After golang types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+Below the Go types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
 ```golang
 type MachineStatus struct {
 
     // Initialization provides observations of the Machine initialization process.
-    // NOTE: fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+    // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
     // The value of those fields is never updated after provisioning is completed.
-    // Use conditions to monitor the operational state of the Machine's BootstrapSecret.
+    // Use conditions to monitor the operational state of the Machine.
     // +optional
     Initialization *MachineInitializationStatus `json:"initialization,omitempty"`
     
-    // Represents the observations of a Machine's current state.
+    // Conditions represent the observations of a Machine's current state.
+    // +optional
     // +listType=map
     // +listMapKey=type
     Conditions []metav1.Condition `json:"conditions,omitempty"`
     
     // Other fields...
-    // NOTE: `Phase`, `LastUpdated`, `FailureReason`, `FailureMessage` fields won't be there anymore
+    // NOTE: `Phase`, `LastUpdated`, `FailureReason`, `FailureMessage`, `BootstrapReady`, `InfrastructureReady` fields won't be there anymore
 }
 
 // MachineInitializationStatus provides observations of the Machine initialization process.
@@ -263,7 +264,7 @@ type MachineInitializationStatus struct {
     BootstrapSecretCreated bool `json:"bootstrapSecretCreated"`
     
     // InfrastructureProvisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
-    // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine  provisioning.
+    // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
     // The value of this field is never updated after provisioning is completed.
     // Use conditions to monitor the operational state of the Machine's infrastructure.
     // +optional
@@ -271,19 +272,19 @@ type MachineInitializationStatus struct {
 }
 ```
 
-| v1beta1 (current)             | v1beta2 (tentative Q1 2025)                              | v1beta1 removal (tentative Q1 2026)        |
-|-------------------------------|----------------------------------------------------------|--------------------------------------------|
-|                               | `Initialization` (new)                                   | `Initialization`                           |
-| `BootstrapReady`              | `Initialization.BootstrapSecretCreated` (renamed)        | `Initialization.BootstrapSecretCreated`    |
-| `InfrastructureReady`         | `Initialization.InfrastructureProvisioned` (renamed)     | `Initialization.InfrastructureProvisioned` |
-|                               | `BackCompatibilty` (new)                                 | (removed)                                  |
-| `Phase` (deprecated)          | `BackCompatibilty.Phase` (renamed) (deprecated)          | (removed)                                  |
-| `LastUpdated` (deprecated)    | `BackCompatibilty.LastUpdated` (renamed) (deprecated)    | (removed)                                  |
-| `FailureReason` (deprecated)  | `BackCompatibilty.FailureReason` (renamed) (deprecated)  | (removed)                                  |
-| `FailureMessage` (deprecated) | `BackCompatibilty.FailureMessage` (renamed) (deprecated) | (removed)                                  |
-| `Conditions`                  | `BackCompatibilty.Conditions` (renamed) (deprecated)     | (removed)                                  |
-| `ExprimentalConditions` (new) | `Conditions` (renamed)                                   | `Conditions`                               |
-| other fields...               | other fields...                                          | other fields...                            |
+| v1beta1 (current)              | v1beta2 (tentative Q1 2025)                              | v1beta1 removal (tentative Q1 2026)        |
+|--------------------------------|----------------------------------------------------------|--------------------------------------------|
+|                                | `Initialization` (new)                                   | `Initialization`                           |
+| `BootstrapReady`               | `Initialization.BootstrapSecretCreated` (renamed)        | `Initialization.BootstrapSecretCreated`    |
+| `InfrastructureReady`          | `Initialization.InfrastructureProvisioned` (renamed)     | `Initialization.InfrastructureProvisioned` |
+|                                | `BackCompatibilty` (new)                                 | (removed)                                  |
+| `Phase` (deprecated)           | `BackCompatibilty.Phase` (renamed) (deprecated)          | (removed)                                  |
+| `LastUpdated` (deprecated)     | `BackCompatibilty.LastUpdated` (renamed) (deprecated)    | (removed)                                  |
+| `FailureReason` (deprecated)   | `BackCompatibilty.FailureReason` (renamed) (deprecated)  | (removed)                                  |
+| `FailureMessage` (deprecated)  | `BackCompatibilty.FailureMessage` (renamed) (deprecated) | (removed)                                  |
+| `Conditions`                   | `BackCompatibilty.Conditions` (renamed) (deprecated)     | (removed)                                  |
+| `ExperimentalConditions` (new) | `Conditions` (renamed)                                   | `Conditions`                               |
+| other fields...                | other fields...                                          | other fields...                            |
 
 Notes:
 - The `BackCompatibilty` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
@@ -291,40 +292,41 @@ Notes:
 
 ##### Machine (New)Conditions
 
-| Condition              | Note                                                                                                                                                                                                                                                                        |
-|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`            | True if at the machine is Ready for at least MinReady seconds, as defined by the Machine's owner resource                                                                                                                                                                   |
-| `Ready`                | True if Machine's `BootstrapSecretReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are true; if other conditions are defined in `spec.readinessGates` are defined, those conditions should be true as well for the Machine to be ready. |
-| `UpToDate`             | True if the Machine spec matches the spec of the Machine's owner resource, e.g KubeadmControlPlane or MachineDeployment                                                                                                                                                     |
-| `BootstrapConfigReady` | Mirrors the corresponding condition from the Machine's BootstrapConfig resource                                                                                                                                                                                             |
-| `InfrastructureReady`  | Mirrors the corresponding condition from the Machine's Infrastructure resource                                                                                                                                                                                              |
-| `NodeReady`            | True if the Machine's Node is ready                                                                                                                                                                                                                                         |
-| `NodeHealthy`          | True if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure                                                                                                                                                                     |
-| `HealthCheckSucceeded` | True if MHC instances targeting this machine reports the Machine is healthy according to the definition of healthy present in the spec of the Machine Health Check object                                                                                                   |
-| `OwnerRemediated`      |                                                                                                                                                                                                                                                                             |
-| `Deleted`              | True if Machine is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                                                 |
-| `Paused`               | True if the Machine or the Cluster it belongs to are paused                                                                                                                                                                                                                 |
+| Condition              | Note                                                                                                                                                                                                                                                            |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`            | True if at the machine is Ready for at least MinReady seconds, as defined by the Machine's minReadySeconds field                                                                                                                                                |
+| `Ready`                | True if Machine's `BootstrapSecretReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are true; if other conditions are defined in `spec.readinessGates`, those conditions should be true as well for the Machine to be ready. |
+| `UpToDate`             | True if the Machine spec matches the spec of the Machine's owner resource, e.g KubeadmControlPlane or MachineDeployment                                                                                                                                         |
+| `BootstrapConfigReady` | Mirrors the corresponding condition from the Machine's BootstrapConfig resource                                                                                                                                                                                 |
+| `InfrastructureReady`  | Mirrors the corresponding condition from the Machine's Infrastructure resource                                                                                                                                                                                  |
+| `NodeReady`            | True if the Machine's Node is ready                                                                                                                                                                                                                             |
+| `NodeHealthy`          | True if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure                                                                                                                                                         |
+| `HealthCheckSucceeded` | True if MHC instances targeting this machine report the Machine is healthy according to the definition of healthy present in the spec of the Machine Health Check object                                                                                        |
+| `OwnerRemediated`      |                                                                                                                                                                                                                                                                 |
+| `Deleted`              | True if Machine is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                                     |
+| `Paused`               | True if the Machine or the Cluster it belongs to are paused                                                                                                                                                                                                     |
 
 > To better evaluate proposed changes, below you can find the list of current Machine's conditions:
-> Ready, InfrastructureReady, NodeHealthy, PreDrainDeleteHookSucceeded, VolumeDetachSucceeded, DrainingSucceeded.
+> Ready, InfrastructureReady, BootstrapReady, NodeHealthy, PreDrainDeleteHookSucceeded, VolumeDetachSucceeded, DrainingSucceeded.
 > Additionally:
 > - The MachineHealthCheck controller adds the HealthCheckSucceeded and the OwnerRemediated conditions.
-> - The KubeadmControlPlane adds the ApiServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy conditions.
+> - The KubeadmControlPlane adds the APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy conditions.
 
 Notes:
-- This proposal introduces a mechanism for extending the meaning of Machine Readiness, `ReadinessGates` (see [changes to Machine.Spec](#machine-spec)).
+- This proposal introduces a mechanism for extending the meaning of Machine readiness, `ReadinessGates` (see [changes to Machine.Spec](#machine-spec)).
 - While `Ready` is the main signal for machines operational state, higher level abstractions in Cluster API like e.g. 
   MachineDeployment are relying on the concept of Machine's `Availability`, which can be seen as readiness + stability.
   In order to standardize this concept across different higher level abstractions, this proposal is surfacing `Availability`
   condition at Machine level as well as adding a new `MinReadySeconds` field (see [changes to Machine.Spec](#machine-spec))
   that will be used to compute this condition.
-- Similarly, this proposal is standardizing the concept of Machine's `UpToDate`, however in this case it will be up to
+- Similarly, this proposal is standardizing the concept of Machine's `UpToDate` condition, however in this case it will be up to
   the Machine's owner controllers to set this condition.
-- Conditions like `NodeReady` and `NodeHealthy` which depends on the connection to the remote cluster will take benefit
-  of the new `RemoteConnectionProbe` condition at cluster level (see [Cluster (New)Conditions](#cluster-newconditions));
-  more specifically those condition should be set to `Unknown` after the cluster Probe fails
+- Conditions like `NodeReady` and `NodeHealthy` which depend on the connection to the remote cluster will benefit
+  from the new `RemoteConnectionProbe` condition at cluster level (see [Cluster (New)Conditions](#cluster-newconditions));
+  more specifically those condition should be set to `Unknown` after the cluster probe fails
   (or after whatever period is defined in the `--remote-conditions-grace-period` flag)
-- `HealthCheckSucceeded` and `OwnerRemediated` (or `ExternalRemediationRequestAvailable`) are set by the MachineHealthCheck controller in case a resource instance targets the machine.
+- `HealthCheckSucceeded` and `OwnerRemediated` (or `ExternalRemediationRequestAvailable`) conditions are set by the 
+  MachineHealthCheck controller in case a MachineHealthCheck targets the machine.
 - KubeadmControlPlane also adds additional conditions to Machines, but those conditions are not included in the table above
   for sake of simplicity (however they are documented in the KubeadmControlPlane paragraph).
 
@@ -332,23 +334,23 @@ TODO: think carefully at remote conditions becoming unknown, this could block a 
 
 #### Machine Spec
 
-Machine's spec is going to be improved to allow 3rd party to extend the semantic of the new Machine's `Ready` condition
-as well to standardize the concept of Machine's `Availability`.
+Machine's spec is going to be improved to allow 3rd party components to extend the semantic of the new Machine's `Ready` condition
+as well as to standardize the concept of Machine's `Availability`.
 
 Below you can find the relevant fields in Machine Status v1beta2, after v1beta1 removal (end state);
-After golang types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+Below the Go types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
 ```go
 type MachineSpec struct {
-    
-    // MinReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
+
+    // MinReadySeconds is the minimum number of seconds for which a Machine should be ready before considering the replica available.
     // Defaults to 0 (machine will be considered available as soon as the Node is ready)
     // +optional
     MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
     // If specified, all readiness gates will be evaluated for Machine readiness.
     // A Machine is ready when `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are "True"; 
-    // if other conditions are defined this field, those conditions should be "True" as well for the Machine to be ready.
+    // if other conditions are defined in this field, those conditions should be "True" as well for the Machine to be ready.
     // +optional
     // +listType=map
     // +listMapKey=conditionType
@@ -409,7 +411,7 @@ Following changes are implemented to MachineSet's status:
 - Transition to new, improved, K8s API conventions aligned conditions
 
 Below you can find the relevant fields in Machine Status v1beta2, after v1beta1 removal (end state);
-After golang types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+Below the Go types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
 ```golang
 type MachineSetStatus struct {
@@ -463,7 +465,7 @@ TODO: check `FullyLabeledReplicas`, do we still need it?
 | `ScalingUp`      | True if available replicas < desired replicas                                                                    |
 | `ScalingDown`    | True if replicas > desired replicas                                                                              |
 | `UpToDate`       | True if all the Machines controlled by this MachineSet are up to date (replicas = upToDate replicas)             |
-| `Remediating`    | True if there is at least one Machine controlled by this MachineSet is not passing health checks                 |
+| `Remediating`    | True if there is at least one Machine controlled by this MachineSet that is not passing health checks            |
 | `Deleted`        | True if MachineSet is deleted; Reason can be used to observe the cleanup progress when the resource is deleted   |
 | `Paused`         | True if this MachineSet or the Cluster it belongs to are paused                                                  |
 
@@ -576,7 +578,7 @@ Notes:
 | `AGE`                   | `AGE`                  |
 | `VERSION`               | `VERSION`              |
 
-TODO: consider if to add Machine deployment `AVAILABLE`, but we should find a way to differentiate from `AVAILABLE` replicas
+TODO: consider if to add MachineDeployment `AVAILABLE`, but we should find a way to differentiate from `AVAILABLE` replicas
   Stefan +1 to have AVAILABLE, not sure if we can have two columns with the same header
 
 (*) visible only when using `kubectl get -o wide`
@@ -595,7 +597,7 @@ Following changes are implemented to Cluster's status:
 - Surface information about ControlPlane connection heartbeat (see new conditions)
 
 Below you can find the relevant fields in Machine Status v1beta2, after v1beta1 removal (end state);
-After golang types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+Below the Go types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
 ```golang
 type ClusterStatus struct {
@@ -618,7 +620,7 @@ type ClusterStatus struct {
     
     // Workers groups all the observations about Cluster's Workers current state.
     // +optional
-    Workers ClusterControlPlaneStatus `json:"workers,omitempty"`
+    Workers *ClusterControlPlaneStatus `json:"workers,omitempty"`
     
     // other fields
 }
@@ -736,7 +738,8 @@ notes:
 |---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Available`               | True if Cluster `RemoteConnectionProbe` is true, if Cluster's control plane `Available` condition is true, if all MachineDeployment and MachinePool's `Available` condition are true; if conditions are defined in `spec.availabilityGates`, those conditions should be true as well for the Cluster to be available. |
 | `ControlPlaneInitialized` | True when the Cluster's control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists.                                               |
-| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 40s after the first connection problem is detected (or whatever period is defined in the `--cluster-probe-grace-period` flag) the cluster cannot be reached        |
+| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 40s after the first connection problem is detected (or whatever period is defined in the `--remote-connection-grace-period` flag) the cluster cannot be reached    |
+| `InfrastructureReady`     | Mirror of Cluster's infrastructure `Ready` condition                                                                                                                                                                                                                                                                  |
 | `ControlPlaneAvailable`   | Mirror of Cluster's control plane `Available` condition                                                                                                                                                                                                                                                               |
 | `WorkersAvaiable`         | Summary of MachineDeployment and MachinePool's `Available` condition                                                                                                                                                                                                                                                  |
 | `TopologyReconciled`      |                                                                                                                                                                                                                                                                                                                       |
@@ -753,8 +756,8 @@ notes:
 Notes:
 - `TopologyReconciled` exists only for classy clusters; this condition is managed by the topology reconciler.
 - Cluster API is going to maintain a `lastRemoteConnectionProbeTime` and use it in combination with the
-  `--cluster-probe-grace-period` flag to avoid flakes on `RemoteConnectionProbe`.
-- Similarly to `lastHeartbeatTime` in Kubernetes conditions, also `lastControlPlaneProbeTime` will not surface on the 
+  `--remote-connection-grace-period` flag to avoid flakes on `RemoteConnectionProbe`.
+- Similarly to `lastHeartbeatTime` in Kubernetes conditions, also `lastRemoteConnectionProbeTime` will not surface on the 
   API in order to avoid costly, continuous reconcile events.
 
 #### Cluster Spec
@@ -771,10 +774,12 @@ After golang types, you can find a summary table that also shows how changes wil
 
 ```golang
 type ClusterSpec struct {
-    // If specified, all availability gates will be evaluated for Cluster readiness.
-    // A Cluster is available when True if Cluster `ControlHeartbeat` and `TopologyReconciled` are true, if Cluster's 
-    // control plane `Available` condition is true, if all worker resource's `Available` condition are true;
-    // if conditions are defined in `spec.availabilityGates` are defined, those conditions should be true as well.
+    // AvailabilityGates specifies additional conditions to include when evaluating Cluster availability.
+    // A Cluster is available if:
+	// * Cluster's `RemoteConnectionProbe` and `TopologyReconciled` conditions are true and
+	// * the control plane `Available` condition is true and
+	// * all worker resource's `Available` conditions are true and
+    // * all conditions defined in AvailabilityGates are true as well.
     // +optional
     // +listType=map
     // +listMapKey=conditionType
@@ -824,7 +829,7 @@ Notes:
 
 #### KubeadmControlPlane Status
 
-Following changes are implemented to MachineSet's status:
+Following changes are implemented to KubeadmControlPlane's status:
 
 - TODO: figure out what to do with contract fields + conditions
 - Update `ReadyReplicas` counter to use the same semantic Machine's `Ready` condition and add missing `UpToDateReplicas`.
@@ -832,7 +837,7 @@ Following changes are implemented to MachineSet's status:
 - Transition to new, improved, K8s API conventions aligned conditions
 
 Below you can find the relevant fields in Machine Status v1beta2, after v1beta1 removal (end state);
-After golang types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+Below the Go types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
 
 ```golang
 type KubeadmControlPlaneStatus struct {

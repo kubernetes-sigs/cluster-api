@@ -214,6 +214,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
+
 		return ctrl.Result{}, err
 	}
 
@@ -273,25 +274,36 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, s *scope) (ctrl.R
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) error {
-	if ok, err := r.reconcileDeleteExternal(ctx, mp); !ok || err != nil {
+// reconcileDelete delete machinePool related resources.
+func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool) error {
+	if ok, err := r.reconcileDeleteExternal(ctx, machinePool); !ok || err != nil {
 		// Return early and don't remove the finalizer if we got an error or
 		// the external reconciliation deletion isn't ready.
 		return err
 	}
 
-	if err := r.reconcileDeleteNodes(ctx, cluster, mp); err != nil {
-		// Return early and don't remove the finalizer if we got an error.
-		return err
+	// check nodes delete timeout passed.
+	if !r.isMachinePoolNodeDeleteTimeoutPassed(machinePool) {
+		if err := r.reconcileDeleteNodes(ctx, cluster, machinePool); err != nil {
+			// Return early and don't remove the finalizer if we got an error.
+			return err
+		}
+	} else {
+		ctrl.LoggerFrom(ctx).Info("NodeDeleteTimeout passed, skipping Nodes deletion")
 	}
 
-	controllerutil.RemoveFinalizer(mp, expv1.MachinePoolFinalizer)
+	controllerutil.RemoveFinalizer(machinePool, expv1.MachinePoolFinalizer)
 	return nil
 }
 
-func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinepool *expv1.MachinePool) error {
-	if len(machinepool.Status.NodeRefs) == 0 {
+// reconcileDeleteNodes delete the cluster nodes.
+func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool) error {
+	if len(machinePool.Status.NodeRefs) == 0 {
 		return nil
+	}
+
+	if r.Tracker == nil {
+		return errors.New("Cannot establish cluster client to delete nodes")
 	}
 
 	clusterClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
@@ -299,15 +311,30 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 		return err
 	}
 
-	return r.deleteRetiredNodes(ctx, clusterClient, machinepool.Status.NodeRefs, machinepool.Spec.ProviderIDList)
+	return r.deleteRetiredNodes(ctx, clusterClient, machinePool.Status.NodeRefs, machinePool.Spec.ProviderIDList)
+}
+
+// isMachinePoolDeleteTimeoutPassed check the machinePool node delete time out.
+func (r *MachinePoolReconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool *expv1.MachinePool) bool {
+	if !machinePool.DeletionTimestamp.IsZero() && machinePool.Spec.Template.Spec.NodeDeletionTimeout != nil {
+		if machinePool.Spec.Template.Spec.NodeDeletionTimeout.Duration.Nanoseconds() != 0 {
+			deleteTimePlusDuration := machinePool.DeletionTimestamp.Add(machinePool.Spec.Template.Spec.NodeDeletionTimeout.Duration)
+			return deleteTimePlusDuration.Before(time.Now())
+		}
+	}
+	return false
 }
 
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
-func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *expv1.MachinePool) (bool, error) {
+func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, machinePool *expv1.MachinePool) (bool, error) {
 	objects := []*unstructured.Unstructured{}
-	references := []*corev1.ObjectReference{
-		m.Spec.Template.Spec.Bootstrap.ConfigRef,
-		&m.Spec.Template.Spec.InfrastructureRef,
+	references := []*corev1.ObjectReference{}
+	// check for external ref
+	if machinePool.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+		references = append(references, machinePool.Spec.Template.Spec.Bootstrap.ConfigRef)
+	}
+	if machinePool.Spec.Template.Spec.InfrastructureRef != (corev1.ObjectReference{}) {
+		references = append(references, &machinePool.Spec.Template.Spec.InfrastructureRef)
 	}
 
 	// Loop over the references and try to retrieve it with the client.
@@ -316,10 +343,10 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *
 			continue
 		}
 
-		obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
+		obj, err := external.Get(ctx, r.Client, ref, machinePool.Namespace)
 		if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 			return false, errors.Wrapf(err, "failed to get %s %q for MachinePool %q in namespace %q",
-				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
+				ref.GroupVersionKind(), ref.Name, machinePool.Name, machinePool.Namespace)
 		}
 		if obj != nil {
 			objects = append(objects, obj)
@@ -331,7 +358,7 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, m *
 		if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
 			return false, errors.Wrapf(err,
 				"failed to delete %v %q for MachinePool %q in namespace %q",
-				obj.GroupVersionKind(), obj.GetName(), m.Name, m.Namespace)
+				obj.GroupVersionKind(), obj.GetName(), machinePool.Name, machinePool.Namespace)
 		}
 	}
 

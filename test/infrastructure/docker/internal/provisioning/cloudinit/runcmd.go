@@ -56,7 +56,7 @@ func (a *runCmd) Commands() ([]provisioning.Cmd, error) {
 }
 
 // ignorePreflightErrors are preflight errors that fail in CAPD and thus we have to ignore them.
-const ignorePreflightErrors = "SystemVerification,Swap,FileContent--proc-sys-net-bridge-bridge-nf-call-iptables"
+const ignorePreflightErrors = "SystemVerification,Swap,FileContent--proc-sys-net-bridge-bridge-nf-call-iptables,FileContent--proc-sys-net-bridge-bridge-nf-call-ip6tables"
 
 func hackKubeadmIgnoreErrors(c provisioning.Cmd) provisioning.Cmd {
 	// case kubeadm commands are defined as a string

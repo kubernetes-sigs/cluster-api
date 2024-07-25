@@ -302,10 +302,6 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 		return nil
 	}
 
-	if r.Tracker == nil {
-		return errors.New("Cannot establish cluster client to delete nodes")
-	}
-
 	clusterClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return err
@@ -328,13 +324,9 @@ func (r *MachinePoolReconciler) isMachinePoolNodeDeleteTimeoutPassed(machinePool
 // reconcileDeleteExternal tries to delete external references, returning true if it cannot find any.
 func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, machinePool *expv1.MachinePool) (bool, error) {
 	objects := []*unstructured.Unstructured{}
-	references := []*corev1.ObjectReference{}
-	// check for external ref
-	if machinePool.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		references = append(references, machinePool.Spec.Template.Spec.Bootstrap.ConfigRef)
-	}
-	if machinePool.Spec.Template.Spec.InfrastructureRef != (corev1.ObjectReference{}) {
-		references = append(references, &machinePool.Spec.Template.Spec.InfrastructureRef)
+	references := []*corev1.ObjectReference{
+		machinePool.Spec.Template.Spec.Bootstrap.ConfigRef,
+		&machinePool.Spec.Template.Spec.InfrastructureRef,
 	}
 
 	// Loop over the references and try to retrieve it with the client.
@@ -371,11 +363,6 @@ func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *
 
 	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		log.V(5).Info("Skipping node watching setup because control plane is not initialized")
-		return nil
-	}
-
-	// If there is no tracker, don't watch remote nodes
-	if r.Tracker == nil {
 		return nil
 	}
 

@@ -34,6 +34,18 @@ source "${REPO_ROOT}/hack/ensure-kind.sh"
 # Make sure the tools binaries are on the path.
 export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 
+# some debugging info
+
+echo "### DEBUG: Running some commands to see more from the env ###"
+echo "$ lsmod"
+lsmod
+echo "$ uname -a"
+uname -a
+echo "$ find /proc/sys/net/bridge/"
+find /proc/sys/net/bridge/
+
+echo "### END DEBUG ###"
+
 # Builds CAPI (and CAPD) images.
 capi:buildDockerImages
 

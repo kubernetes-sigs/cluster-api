@@ -102,8 +102,7 @@ var (
 	webhookCertName                string
 	webhookKeyName                 string
 	healthAddr                     string
-	tlsOptions                     = flags.TLSOptions{}
-	diagnosticsOptions             = flags.DiagnosticsOptions{}
+	managerOptions                 = flags.ManagerOptions{}
 	logOptions                     = logs.NewOptions()
 	// core Cluster API specific flags.
 	clusterTopologyConcurrency      int
@@ -243,8 +242,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Use deprecated infrastructure machine naming")
 	_ = fs.MarkDeprecated("use-deprecated-infra-machine-naming", "This flag will be removed in v1.9.")
 
-	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
-	flags.AddTLSOptions(fs, &tlsOptions)
+	flags.AddManagerOptions(fs, &managerOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -292,13 +290,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
-		setupLog.Error(err, "Unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
 	}
-
-	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
@@ -324,7 +320,7 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
-		Metrics:                    diagnosticsOpts,
+		Metrics:                    *metricsOptions,
 		Cache: cache.Options{
 			DefaultNamespaces: watchNamespaces,
 			SyncPeriod:        &syncPeriod,
@@ -353,7 +349,7 @@ func main() {
 				CertDir:  webhookCertDir,
 				CertName: webhookCertName,
 				KeyName:  webhookKeyName,
-				TLSOpts:  tlsOptionOverrides,
+				TLSOpts:  tlsOptions,
 			},
 		),
 	}

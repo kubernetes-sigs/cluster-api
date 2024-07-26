@@ -33,12 +33,22 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := ctrl.LoggerFrom(ctx)
 
 	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
+
+	// We intentionally only parse major/minor/patch so that the subsequent code
+	// also already applies to beta versions of new releases.
+	parsedVersionTolerant, err := version.ParseMajorMinorPatchTolerant(controlPlane.KCP.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
+	}
+	internal.DefaultFeatureGates(bootstrapSpec, parsedVersionTolerant)
+
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -64,6 +74,15 @@ func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context,
 
 	// Create the bootstrap configuration
 	bootstrapSpec := controlPlane.JoinControlPlaneConfig()
+
+	// We intentionally only parse major/minor/patch so that the subsequent code
+	// also already applies to beta versions of new releases.
+	parsedVersionTolerant, err := version.ParseMajorMinorPatchTolerant(controlPlane.KCP.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
+	}
+	internal.DefaultFeatureGates(bootstrapSpec, parsedVersionTolerant)
+
 	fd, err := controlPlane.NextFailureDomainForScaleUp(ctx)
 	if err != nil {
 		return ctrl.Result{}, err

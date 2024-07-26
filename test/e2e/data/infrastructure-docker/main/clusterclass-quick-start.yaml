@@ -480,20 +480,6 @@ spec:
             path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/v"
             valueFrom:
               variable: kubeletLogLevel
-  - name: kubeadmFeatureGate
-    description: "Sets the ControlPlaneKubeletLocalMode feature gate for Kubernetes >= 1.31"
-    definitions:
-      - selector:
-          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-          kind: KubeadmControlPlaneTemplate
-          matchResources:
-            controlPlane: true
-        jsonPatches:
-          - op: add
-            path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/featureGates"
-            value:
-              ControlPlaneKubeletLocalMode: true
-    enabledIf: '{{ semverCompare ">= v1.31.0-0" .builtin.controlPlane.version }}'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate

@@ -2351,7 +2351,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 				},
 			},
 			Replicas: ptr.To[int32](int32(3)),
-			Version:  "v1.16.6",
+			Version:  "v1.31.0",
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
 				Type: "RollingUpdate",
 				RollingUpdate: &controlplanev1.RollingUpdate{

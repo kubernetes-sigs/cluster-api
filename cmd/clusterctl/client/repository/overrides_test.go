@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 

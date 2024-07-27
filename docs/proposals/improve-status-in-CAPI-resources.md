@@ -942,7 +942,138 @@ Notes:
 
 ### Changes to MachinePool resource
 
-TODO
+#### MachinePool Status
+
+Following changes are implemented to MachinePool's status:
+
+- Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
+- Update `ReadyReplicas` counter to use the same semantic Machine's `Ready` condition and add missing `UpToDateReplicas`.
+- Align Machine pools replica counters to other CAPI resources
+- Align to K8s API conventions by deprecating `Phase`
+- Remove `FailureReason` and `FailureMessage` to get rid of the confusing concept of terminal failures
+- Transition to new, improved, K8s API conventions aligned conditions
+
+Below you can find the relevant fields in MachinePool Status v1beta2, after v1beta1 removal (end state);
+Below the Go types, you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+```golang
+type MachinePoolStatus struct {
+
+    // The number of ready replicas for this MachinePool. A machine is considered ready when Machine's Ready condition is true.
+    // +optional
+    ReadyReplicas int32 `json:"readyReplicas"`
+
+    // The number of available replicas for this MachinePool. A machine is considered available when Machine's Available condition is true.
+    // +optional
+    AvailableReplicas int32 `json:"availableReplicas"`
+
+    // The number of up-to-date replicas targeted by this MachinePool.
+    // +optional
+    UpToDateReplicas int32 `json:"upToDateReplicas"`
+
+    // Initialization provides observations of the MachinePool initialization process.
+    // NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial MachinePool provisioning.
+    // The value of those fields is never updated after provisioning is completed.
+    // Use conditions to monitor the operational state of the MachinePool.
+    // +optional
+    Initialization *MachineInitializationStatus `json:"initialization,omitempty"`
+    
+    // Conditions represent the observations of a MachinePool's current state.
+    // +optional
+    // +listType=map
+    // +listMapKey=type
+    Conditions []metav1.Condition `json:"conditions,omitempty"`
+    
+    // Other fields...
+    // NOTE: `Phase`, `FailureReason`, `FailureMessage`, `BootstrapReady`, `InfrastructureReady` fields won't be there anymore
+}
+
+// MachinePoolInitializationStatus provides observations of the MachinePool initialization process.
+type MachinePoolInitializationStatus struct {
+
+    // BootstrapDataSecretCreated is true when the bootstrap provider reports that the MachinePool's boostrap data secret is created.
+    // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial MachinePool provisioning.
+    // The value of this field is never updated after provisioning is completed.
+    // Use conditions to monitor the operational state of the MachinePool's BootstrapSecret.
+    // +optional
+    BootstrapDataSecretCreated bool `json:"bootstrapDataSecretCreated"`
+    
+    // InfrastructureProvisioned is true when the infrastructure provider reports that the MachinePool's infrastructure is fully provisioned.
+    // NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial MachinePool provisioning.
+    // The value of this field is never updated after provisioning is completed.
+    // Use conditions to monitor the operational state of the MachinePool's infrastructure.
+    // +optional
+    InfrastructureProvisioned bool `json:"infrastructureProvisioned"`
+}
+```
+
+| v1beta1 (current)                    | v1beta2 (tentative Q1 2025)                                 | v1beta2 after v1beta1 removal (tentative Q1 2026) |
+|--------------------------------------|-------------------------------------------------------------|---------------------------------------------------|
+|                                      | `Initialization` (new)                                      | `Initialization`                                  |
+| `BootstrapReady`                     | `Initialization.BootstrapDataSecretCreated` (renamed)       | `Initialization.BootstrapDataSecretCreated`       |
+| `InfrastructureReady`                | `Initialization.InfrastructureProvisioned` (renamed)        | `Initialization.InfrastructureProvisioned`        |
+| `UpdatedReplicas` (new)              | `UpToDateReplicas`                                          | `UpToDateReplicas`                                |
+| `ExprimentalReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                   | `ReadyReplicas`                                   |
+| `ExprimentalAvailableReplicas` (new) | `AvailableReplicas` (renamed)                               | `AvailableReplicas`                               |
+|                                      | `BackCompatibilty` (new)                                    | (removed)                                         |
+| `ReadyReplicas` (deprecated)         | `BackCompatibilty.ReadyReplicas` (renamed) (deprecated)     | (removed)                                         |
+| `AvailableReplicas` (deprecated)     | `BackCompatibilty.AvailableReplicas` (renamed) (deprecated) | (removed)                                         |
+| `Phase` (deprecated)                 | `BackCompatibilty.Phase` (renamed) (deprecated)             | (removed)                                         |
+| `FailureReason` (deprecated)         | `BackCompatibilty.FailureReason` (renamed) (deprecated)     | (removed)                                         |
+| `FailureMessage` (deprecated)        | `BackCompatibilty.FailureMessage` (renamed) (deprecated)    | (removed)                                         |
+| `Conditions`                         | `BackCompatibilty.Conditions` (renamed) (deprecated)        | (removed)                                         |
+| `ExperimentalConditions` (new)       | `Conditions` (renamed)                                      | `Conditions`                                      |
+| other fields...                      | other fields...                                             | other fields...                                   |
+
+Notes:
+- The `BackCompatibilty` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
+  Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
+
+##### MachinePool (New)Conditions
+
+| Condition              | Note                                                                                                              |
+|------------------------|-------------------------------------------------------------------------------------------------------------------|
+| `Available`            | True when `InfrastructureReady` and available replicas >= desired replicas (see notes below)                      |
+| `BootstrapConfigReady` | Mirrors the corresponding condition from the MachinePool's BootstrapConfig resource                               |
+| `InfrastructureReady`  | Mirrors the corresponding condition from the MachinePool's Infrastructure resource                                |
+| `ReplicaFailure`       | This condition surfaces issues on creating a Machines replica in Kubernetes, if any. e.g. due to resource quotas. |
+| `MachinesReady`        | This condition surfaces detail of issues on the controlled machines, if any.                                      |
+| `ScalingUp`            | True if available replicas < desired replicas                                                                     |
+| `ScalingDown`          | True if replicas > desired replicas                                                                               |
+| `UpToDate`             | True if all the Machines controlled by this MachinePool are up to date (replicas = upToDate replicas)             |
+| `Remediating`          | True if there is at least one machine controlled by this MachinePool is not passing health checks                 |
+| `Deleted`              | True if MachinePool is deleted; Reason can be used to observe the cleanup progress when the resource is deleted   |
+| `Paused`               | True if this MachinePool or the Cluster it belongs to are paused                                                  |
+
+> To better evaluate proposed changes, below you can find the list of current MachinePool's conditions:
+> Ready, BootstrapReady, InfrastructureReady, ReplicasReady.
+
+Notes:
+- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` are intended to provide visibility on the corresponding lifecycle operation.
+  e.g. If the scaling up operation is being blocked by a machine having issues while deleting, this should surface with a reason/message in
+  the `ScalingDown` condition.
+- As of today MachinePool does not have a notion similar to MachineDeployment's MaxUnavailability.
+
+#### MachinePool Print columns
+
+| Current           | To be                  |
+|-------------------|------------------------|
+| `NAME`            | `NAME`                 |
+| `CLUSTER`         | `CLUSTER`              |
+| `DESIRED` (*)     | `PAUSED` (new) (*)     |
+| `REPLICAS`        | `DESIRED`              |
+| `PHASE` (deleted) | `CURRENT` (*)          |
+| `AGE`             | `READY`                |
+| `VERSION`         | `AVAILABLE` (new)      |
+|                   | `UP-TO-DATE` (renamed) |
+|                   | `AGE`                  |
+|                   | `VERSION`              |
+
+(*) visible only when using `kubectl get -o wide`
+
+Notes:
+- Print columns are not subject to any deprecation rule, so it will be possible to iteratively improve them without waiting for the next API version.
+- During the implementation we are going to verify if the resulting layout and eventually make final adjustments to the column list.
 
 ### Changes to Cluster API contract
 

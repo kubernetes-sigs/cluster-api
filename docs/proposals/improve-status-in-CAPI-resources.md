@@ -84,10 +84,12 @@ Kubernetes, and ideally with the entire ecosystem.
 - Ensure everything in status can be used as a signal informing monitoring tools/automation on top of Cluster API 
   about lifecycle transitions/state of the Cluster and the underlying components as well.
 
-### Non-Goals/Future Work
+### Non-Goals
 
 - Resolving all the idiosyncrasies that exists in Cluster API, core Kubernetes, the rest of the ecosystem.
   (Let’s stay focused on Cluster API and keep improving incrementally).
+- To change how the Cluster API contract with infrastructure, bootstrap and control providers currently works
+  (by using status fields).
 
 ## Proposal
 
@@ -1077,7 +1079,154 @@ Notes:
 
 ### Changes to Cluster API contract
 
-TODO
+The Cluster API contract defines a set of rules a provider is expected to comply with in order to interact with Cluster API.
+
+When the v1beta2 API will be released (tentative Q1 2025), also the Cluster API contract will be bumped to v1beta2.
+
+As defined at the beginning of this document, this proposal is not going to change how the Cluster API contract
+with infrastructure, bootstrap and control providers currently works (by using status fields).
+
+Similarly, this proposal is not going to change the fact that the Cluster API contract do not require providers to implement
+conditions, even if this is recommended because conditions greatly improve user's experience.
+
+However, this proposal is introducing a few changes into the v1beta2 version of the Cluster API contract in order to:
+- Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
+- Remove `failureReason` and `failureMessage`.
+
+What is worth to notice is that for the first time in the history of the project, this proposal is introducing
+a mechanism that allows providers to adapt to new contract incrementally, more specifically:
+
+- Providers won't be required to synchronize their changes to adapt to the Cluster API v1beta2 contract with the
+  Cluster API's v1beta2 release.
+
+- Each provider can implement changes described in the following paragraphs at its own pace, but the transition
+  _must be completed_ before v1beta1 removal (tentative Q1 2026).
+
+- Starting from the CAPI release when v1beta1 removal will happen (tentative Q1 2026), providers which are implementing
+  the v1beta1 contract will stop to work (they will work only with older versions of Cluster API).
+
+Additionally:
+
+- Providers implementing conditions won't be required to do the transition from custom Cluster API custom Condition type
+  to Kubernetes metav1.Conditions type (but this transition is recommended because it improves the consistency of each provider
+  with Kubernetes, Cluster API, the ecosystem).
+
+- However, providers choosing to keep using Cluster API custom conditions should be aware that starting from the
+  CAPI release when v1beta1 removal will happen (tentative Q1 2026), the Cluster API project will remove the
+  cluster API condition type, the `util\conditions` package, the code handling conditions in `util\patch.Helper`,
+  everything related to custom cluster API condition type.
+  (in other words, Cluster API custom condition must be replaced by provider's own custom conditions).
+
+#### Contract for infrastructure providers
+
+Note: given that the contract only defines expected names for fields in a resources at yaml/json level, we are
+using those in this paragraph (instead of golang field names).
+
+##### InfrastructureCluster
+
+Following changes are planned for the contract for the InfrastructureCluster resource:
+
+- Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
+  - Rename `status.ready` into `status.initialization.provisioned`.
+- Remove `failureReason` and `failureMessage`.
+
+| v1beta1 (current)                                                     | v1beta2 (tentative Q1 2025)                                                                                      | v1beta2 after v1beta1 removal (tentative Q1 2026)                                          |
+|-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.provisioned` required               | (removed)                                                                                  |
+|                                                                       | `status.initialization.provisioned` (new), one of `status.ready` or `status.initialization.provisioned` required | `status.initialization.provisioned`                                                        |
+| `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.conditions[Ready]`, optional with fall back on `status.ready` or `status.initialization.provisioned`     | `status.conditions[Ready]`, optional with fall back on `status.initialization.provisioned` |
+| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                    | (removed)                                                                                  |
+| `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                   | (removed)                                                                                  |
+| other fields/rules...                                                 | other fields/rules...                                                                                            |                                                                                            |
+
+Notes:
+- InfrastructureCluster's `status.initialization.provisioned` will surface into Cluster's `status.initialization.infrastructureProvisioned` field.
+- InfrastructureCluster's `status.initialization.provisioned` must signal the completion of the initial provisioning of the cluster infrastructure.
+  The value of this field should never be updated after provisioning is completed, and Cluster API will ignore any changes to it.
+- InfrastructureCluster's `status.conditions[Ready]` will surface into Cluster's `status.conditions[InfrastructureReady]` condition.
+- InfrastructureCluster's `status.conditions[Ready]` must surface issues during the entire lifecycle of the InfrastructureCluster
+  (both during initial InfrastructureCluster provisioning and after the initial provisioning is completed).
+
+##### InfrastructureMachine
+
+Following changes are planned for the contract for the InfrastructureMachine resource:
+
+- Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
+  - Rename `status.ready` into `status.initialization.provisioned`.
+- Remove `failureReason` and `failureMessage`.
+
+| v1beta1 (current)                                                     | v1beta2 (tentative Q1 2025)                                                                                      | v1beta2 after v1beta1 removal (tentative Q1 2026)                                          |
+|-----------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.provisioned` required               | (removed)                                                                                  |
+|                                                                       | `status.initialization.provisioned` (new), one of `status.ready` or `status.initialization.provisioned` required | `status.initialization.provisioned`                                                        |
+| `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.conditions[Ready]`, optional with fall back on `status.ready` or `status.initialization.provisioned`     | `status.conditions[Ready]`, optional with fall back on `status.initialization.provisioned` |
+| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                    | (removed)                                                                                  |
+| `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                   | (removed)                                                                                  |
+| other fields/rules...                                                 | other fields/rules...                                                                                            |                                                                                            |
+
+Notes:
+- InfrastructureMachine's `status.initialization.provisioned` will surface into Machine's `status.initialization.infrastructureProvisioned` field.
+- InfrastructureMachine's `status.initialization.provisioned` must signal the completion of the initial provisioning of the machine infrastructure.
+  The value of this field should never be updated after provisioning is completed, and Cluster API will ignore any changes to it.
+- InfrastructureMachine's `status.conditions[Ready]` will surface into Machine's `status.conditions[InfrastructureReady]` condition.
+- InfrastructureMachine's `status.conditions[Ready]` must surface issues during the entire lifecycle of the Machine
+  (both during initial InfrastructureCluster provisioning and after the initial provisioning is completed).
+
+#### Contract for bootstrap providers
+
+Following changes are planned for the contract for the BootstrapConfig resource:
+
+- Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
+  - Rename `status.ready` into `status.initialization.dataSecretCreated`.
+- Remove `failureReason` and `failureMessage`.
+
+| v1beta1 (current)                                                     | v1beta2 (tentative Q1 2025)                                                                                                   | v1beta2 after v1beta1 removal (tentative Q1 2026)                                                    |
+|-----------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.dataSecretCreated`, required                     | (removed)                                                                                            |
+|                                                                       | `status.initialization.dataSecretCreated` (new), one of `status.ready` or `status.initialization.dataSecretCreated`, required | `status.initialization.dataSecretCreated`, required                                                  |
+| `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.conditions[Ready]`, optional with fall back on `status.ready` or `status.initialization.dataSecretCreated` set        | `status.conditions[Ready]`, optional with fall back on `status.initialization.DataSecretCreated` set |
+| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                 | (removed)                                                                                            |
+| `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                                | (removed)                                                                                            |
+| other fields/rules...                                                 | other fields/rules...                                                                                                         |                                                                                                      |
+
+Notes:
+- BootstrapConfig's `status.initialization.dataSecretCreated` will surface into Machine's `status.initialization.BootstrapDataSecretCreated` field.
+- BootstrapConfig's `status.initialization.dataSecretCreated` must signal the completion of the initial provisioning of the bootstrap data secret.
+  The value of this field should never be updated after provisioning is completed, and Cluster API will ignore any changes to it.
+- BootstrapConfig's `status.conditions[Ready]` will surface into Machine's `status.conditions[BootstrapConfigReady]` condition.
+- BootstrapConfig's `status.conditions[Ready]` must surface issues during the entire lifecycle of the BootstrapConfig
+  (both during initial InfrastructureCluster provisioning and after the initial provisioning is completed).
+
+#### Contract for control plane Providers
+
+Following changes are planned for the contract for the ControlPlane resource:
+
+- Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
+  - Remove `status.ready` (`status.ready` is a redundant signal of the control plane being initialized).
+  - Rename `status.initialized` into `status.initialization.controlPlaneInitialized`.
+- Remove `failureReason` and `failureMessage`.
+
+| v1beta1 (current)                                                     | v1beta2 (tentative Q1 2025)                                                                                                                                          | v1beta2 after v1beta1 removal (tentative Q1 2026)                                                           |
+|-----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                                                       | (removed)                                                                                                   |
+| `status.initialized`, required                                        | `status.initialization.controlPlaneInitialized` (renamed), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                         | `status.initialization.controlPlaneInitialized`, required                                                   |
+| `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.backCompatibilty.conditions[Ready]` (renamed, deprecated), optional with fall back on `status.ready` or `status.Initializiation.ControlPlaneInitialized` set | (removed)                                                                                                   |
+|                                                                       | `status.conditions[Available]` (new), optional with fall back optional with fall back on `status.ready` or `status.Initializiation.ControlPlaneInitialized` set      | `status.conditions[Available]`, optional with fall back on `status.initializiation.controlPlaneInitialized` |
+| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                        | (removed)                                                                                                   |
+| `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                                                                       | (removed)                                                                                                   |
+| other fields/rules...                                                 | other fields/rules...                                                                                                                                                |                                                                                                             |
+
+Notes:
+- ControlPlane's `status.initialization.controlPlaneInitialized` will surface into Cluster's `staus.initialization.controlPlaneInitialized` field; also,
+  the fact that the control plane is available to receive requests will be recorded in Cluster's `status.conditions[ControlPlaneInitialized]` condition.
+  The value of this field should never be updated after provisioning is completed, and Cluster API will ignore any changes to it.
+- The new ControlPlane's `status.conditions[Available]` condition must surface control plane availability, e.g. the ability to
+  accept and process API server call, having etcd quorum etc.
+- It is up to each control plane provider to determine what could impact the overall availability in their own
+  specific control plane implementation.
+- As a general guideline, control plane providers implementing solutions with redundant instances of Kubernetes control plane components,
+  should not consider the temporary unavailability of one of those instances as relevant for the overall control plane availability.
+  e.g. one kube-apiserver over three down, should not impact the overall control plane availability.
 
 ## [WIP] Example use cases
 NOTE: Let me know if you want to add more use cases. I will try to collect more too and add a brief explanation about how

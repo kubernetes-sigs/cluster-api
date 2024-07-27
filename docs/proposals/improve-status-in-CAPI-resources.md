@@ -1,15 +1,23 @@
-
 ---
 title: Proposal Template
 authors:
 - "@fabriziopandini"
 reviewers:
-- "add"
+- "@neolit123"
+- "@enxebre"
+- "@JoelSpeed"
+- "@vincepri"
+- "@sbueringer"
+- "@chrischdi"
+- "@peterochodo"
+- "@zjs"
 creation-date: 2024-07-17
-last-updated: 2024-07-17
-status: provisional
+last-updated: 2024-07-27
+status: implementable
 see-also:
-- ...
+- [proposal about custom Cluster API conditions (superseed by this document)](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md#the-ready-condition)
+- [Kubernetes API guidelines](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md)
+- [Kubernetes API deprecation rules](https://kubernetes.io/docs/reference/using-api/deprecation-policy/#fields-of-rest-resources)
 ---
 
 # Improving status in CAPI resources
@@ -21,7 +29,7 @@ see-also:
 - [Summary](#summary)
 - [Motivation](#motivation)
     - [Goals](#goals)
-    - [Non-Goals/Future Work](#non-goalsfuture-work)
+    - [Non-Goals](#non-goals)
   - [Proposal](#proposal)
     - [Readiness and Availability](#readiness-and-availability)
     - [Transition to K8s API conventions aligned conditions](#transition-to-k8s-api-conventions-aligned-conditions)
@@ -48,7 +56,21 @@ see-also:
       - [KubeadmControlPlane (New)Conditions](#kubeadmcontrolplane-newconditions)
       - [KubeadmControlPlane Print columns](#kubeadmcontrolplane-print-columns)
     - [Changes to MachinePool resource](#changes-to-machinepool-resource)
+      - [MachinePool Status](#machinepool-status)
+        - [MachinePool (New)Conditions](#machinepool-newconditions)
+      - [MachinePool Print columns](#machinepool-print-columns)
     - [Changes to Cluster API contract](#changes-to-cluster-api-contract)
+      - [Contract for infrastructure providers](#contract-for-infrastructure-providers)
+        - [InfrastructureCluster](#infrastructurecluster)
+        - [InfrastructureMachine](#infrastructuremachine)
+      - [Contract for bootstrap providers](#contract-for-bootstrap-providers)
+      - [Contract for control plane Providers](#contract-for-control-plane-providers)
+    - [\[WIP\] Example use cases](#wip-example-use-cases)
+    - [Security Model](#security-model)
+    - [Risks and Mitigations](#risks-and-mitigations)
+  - [Alternatives](#alternatives)
+  - [Upgrade Strategy](#upgrade-strategy)
+  - [Implementation History](#implementation-history)
 
 # Summary
 
@@ -1228,7 +1250,7 @@ Notes:
   should not consider the temporary unavailability of one of those instances as relevant for the overall control plane availability.
   e.g. one kube-apiserver over three down, should not impact the overall control plane availability.
 
-## [WIP] Example use cases
+### [WIP] Example use cases
 NOTE: Let me know if you want to add more use cases. I will try to collect more too and add a brief explanation about how
 each use case can be addressed with the improved status in CAPI resources 
 
@@ -1236,3 +1258,67 @@ As a cluster admin with MachineDeployment ownership I'd like to understand if my
 As a cluster admin with MachineDeployment ownership I'd like to understand why my MD rollout is blocked and why by looking at the MD status/conditions
 As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are failing to be available by looking at the MD status/conditions
 As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are stuck on deletion looking at the MD status/conditions
+
+### Security Model
+
+This proposal does not impact Cluster API security model.
+
+### Risks and Mitigations
+
+_Like any API change, this proposal will have impact on Cluster API users_
+
+Mitigations:
+
+This proposal abides to Kubernetes deprecation rules, and it also ensures isomorphic conversions to/from v1beta1 APIs
+can be supported (until v1beta1 removal, tentative Q1 2026).
+
+On top of that, a few design decisions have been made with the specific intent to further minimize impact on
+users and providers e.g.
+- The decision to keep `BackCompatibility` fields in v1beta2 API (until v1beta1 removal, tentative Q1 2026).
+- The decision to allow providers to adopt the Cluster API v1beta2 contract at their own pace (transition _must be completed_
+  before v1beta1 removal, tentative Q1 2026).
+
+All in all, those decisions are consistent with the fact that in Cluster API we are already treating our APIs
+(and the Cluster API contract) as fully graduated APIs no matter if they are still beta.
+
+_This proposal requires a considerable amount of work, and it can be risky to implement this in a single release cycle_
+
+This proposal intentionally highlights changes that can be implemented before the actual work for the v1beta2 API version starts.
+
+Those changes not only allow will users to take benefits from this work ASAP, but also provides a way to split the work
+across more than one release cycle (tentatively two release cycles).
+
+## Alternatives
+
+_Keep Cluster API custom condition types, eventually improve them incrementally_
+
+This idea was considered, but ultimately discarded because the end state we are aiming for is to align to Kubernetes.
+Therefore, the sooner, the better, and the opportunity materialized when discussing the scope for v1beta2 API version.
+
+_Implement down conversion instead of maintaining `BackCompatibility` fields_
+
+This idea was considered, but discarded because the constraint of ensuring down conversion for every new field/condition
+would have prevented this proposal from designing the ideal target state we are aiming to.
+
+Additionally, the idea of dropping all the existing status fields/conditions in the new v1beta2 API (by supporting down conversion),
+was considered negatively because it implies a sudden, big change both for users and providers.
+
+Instead, we would like to minimize impacts on users and providers by preserving old fields in `BackCompatibility` until v1beta1 removal,
+which is ultimately the same process suggested for removal of API fields from graduated APIs.
+
+Note: There will still be some impacts because `BackCompatibility` fields will be in a different location from where the
+original fields was, but this should be easier to handle than being forced to immediately adapt the new status fields/conditions.
+
+## Upgrade Strategy
+
+Transition from v1beta1 API/contract to v1beta2 contract is detailed in previous paragraphs. Notably:
+- Isomorphic conversions to/from v1beta1 APIs are supported until v1beta1 removal, as required by Kubernetes deprecation rules.
+- Providers will be allowed to adopt the Cluster API v1beta2 contract at their own pace (transition _must be completed_
+  before v1beta1 removal).
+
+## Implementation History
+
+- [x] 07/17/2024: Open proposal PR, still WIP
+- [x] 07/17/2024: Present proposal at a [community meeting](https://www.youtube.com/watch?v=frCg522ZfRQ)
+  - [10000 feet overview](https://docs.google.com/presentation/d/1hhgCufOIuqHz6YR_RUPGo0uTjfm5YafjCb6JHY1_clY/edit?usp=sharing)
+- [x] MM/DD/YYYY: Remove WIP from the proposal PR

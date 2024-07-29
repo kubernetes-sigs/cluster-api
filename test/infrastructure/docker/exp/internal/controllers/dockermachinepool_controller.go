@@ -378,7 +378,7 @@ func dockerMachineToDockerMachinePool(_ context.Context, o client.Object) []ctrl
 }
 
 // updateStatus updates the Status field for the MachinePool object.
-// It checks for the current state of the replicas and updates the Status of the MachineSet.
+// It checks for the current state of the replicas and updates the Status of the MachinePool.
 func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool, dockerMachines []infrav1.DockerMachine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -405,10 +405,10 @@ func (r *DockerMachinePoolReconciler) updateStatus(ctx context.Context, cluster 
 	switch {
 	// We are scaling up
 	case readyReplicaCount < desiredReplicas:
-		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachineSet to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning, "Scaling up MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
 	// We are scaling down
 	case readyReplicaCount > desiredReplicas:
-		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachineSet to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
+		conditions.MarkFalse(dockerMachinePool, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning, "Scaling down MachinePool to %d replicas (actual %d)", desiredReplicas, readyReplicaCount)
 	default:
 		// Make sure last resize operation is marked as completed.
 		// NOTE: we are checking the number of machines ready so we report resize completed only when the machines

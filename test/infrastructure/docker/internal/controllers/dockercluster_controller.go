@@ -198,15 +198,16 @@ func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerClu
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockercluster")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DockerCluster"), mgr.GetClient(), &infrav1.DockerCluster{})),
 			builder.WithPredicates(
-				predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+				predicates.ClusterUnpaused(predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

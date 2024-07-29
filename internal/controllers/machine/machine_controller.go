@@ -94,6 +94,7 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "machine")
 	clusterToMachines, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -114,18 +115,18 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.Any(ctrl.LoggerFrom(ctx),
-						predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-						predicates.ClusterControlPlaneInitialized(ctrl.LoggerFrom(ctx)),
+				predicates.All(predicateLog,
+					predicates.Any(predicateLog,
+						predicates.ClusterUnpaused(predicateLog),
+						predicates.ClusterControlPlaneInitialized(predicateLog),
 					),
-					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+					predicates.ResourceHasFilterLabel(predicateLog, r.WatchFilterValue),
 				),
 			)).
 		Watches(

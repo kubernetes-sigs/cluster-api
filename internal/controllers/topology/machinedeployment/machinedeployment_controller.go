@@ -59,6 +59,7 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/machinedeployment")
 	clusterToMachineDeployments, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -67,21 +68,21 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{},
 			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx)),
-					predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))),
+				predicates.All(predicateLog,
+					predicates.ResourceIsTopologyOwned(predicateLog),
+					predicates.ResourceNotPaused(predicateLog)),
 			),
 		).
 		Named("topology/machinedeployment").
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 			builder.WithPredicates(
-				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
-					predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
+				predicates.All(predicateLog,
+					predicates.ClusterUnpaused(predicateLog),
+					predicates.ClusterHasTopology(predicateLog),
 				),
 			),
 		).

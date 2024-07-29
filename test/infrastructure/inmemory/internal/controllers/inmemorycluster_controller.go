@@ -208,15 +208,16 @@ func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *
 
 // SetupWithManager will add watches for this controller.
 func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "inmemorycluster")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.InMemoryCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("InMemoryCluster"), mgr.GetClient(), &infrav1.InMemoryCluster{})),
 			builder.WithPredicates(
-				predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+				predicates.ClusterUnpaused(predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

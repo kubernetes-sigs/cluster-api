@@ -68,6 +68,7 @@ type ClusterResourceSetReconciler struct {
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterresourceset")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(
@@ -80,7 +81,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 				resourceToClusterResourceSetFunc[client.Object](r.Client),
 			),
 			builder.WithPredicates(
-				resourcepredicates.TypedResourceCreateOrUpdate[client.Object](ctrl.LoggerFrom(ctx)),
+				resourcepredicates.TypedResourceCreateOrUpdate[client.Object](predicateLog),
 			),
 		).
 		WatchesRawSource(source.Kind(
@@ -94,10 +95,10 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.TypedEnqueueRequestsFromMapFunc(
 				resourceToClusterResourceSetFunc[*metav1.PartialObjectMetadata](r.Client),
 			),
-			resourcepredicates.TypedResourceCreateOrUpdate[*metav1.PartialObjectMetadata](ctrl.LoggerFrom(ctx)),
+			resourcepredicates.TypedResourceCreateOrUpdate[*metav1.PartialObjectMetadata](predicateLog),
 		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue)).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

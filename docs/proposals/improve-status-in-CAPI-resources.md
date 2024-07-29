@@ -511,7 +511,6 @@ Notes:
 
 | Condition        | Note                                                                                                             |
 |------------------|------------------------------------------------------------------------------------------------------------------|
-| `ReplicaFailure` | This condition surfaces issues on creating a Machine replica in Kubernetes, if any. e.g. due to resource quotas. |
 | `MachinesReady`  | This condition surfaces detail of issues on the controlled machines, if any.                                     |
 | `ScalingUp`      | True if available replicas < desired replicas                                                                    |
 | `ScalingDown`    | True if replicas > desired replicas                                                                              |
@@ -622,8 +621,7 @@ Notes:
 
 | Condition        | Note                                                                                                                                                                                                                                                   |
 |------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`      | True if the MachineDeployment has minimum availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy, availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas |  
-| `ReplicaFailure` | This condition surfaces issues on creating a MachineSet replica in Kubernetes, if any. e.g. due to resource quotas.                                                                                                                                    |
+| `Available`      | True if the MachineDeployment has minimum availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy, availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas |
 | `MachinesReady`  | This condition surfaces detail of issues on the controlled machines, if any.                                                                                                                                                                           |
 | `ScalingUp`      | True if available replicas < desired replicas                                                                                                                                                                                                          |
 | `ScalingDown`    | True if replicas > desired replicas                                                                                                                                                                                                                    |
@@ -965,7 +963,6 @@ TODO: double check usages of status.ready.
 |-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Available`             | True if the control plane can be reached, `EtcdClusterAvailable` is true, and `CertificatesAvailable` is true                                                                                                                                                             |
 | `CertificatesAvailable` | True if all the cluster certificates exist.                                                                                                                                                                                                                               |
-| `ReplicaFailure`        | This condition surfaces issues on creating Machines controlled by this KubeadmControlPlane, if any.                                                                                                                                                                       |
 | `EtcdClusterAvailable`  | This condition surfaces issues to the managed etcd cluster, if any. It is computed as aggregation of Machines's `EtcdMemberHealthy` (if not using an external etcd) conditions plus additional checks validating potential issues to etcd quorum                          |
 | `MachinesReady`         | This condition surfaces detail of issues on the controlled machines, if any. Please note this will include also `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, and if not using an external etcd also `EtcdPodHealthy`, `EtcdMemberHealthy` |
 | `ScalingUp`             | True if available replicas < desired replicas                                                                                                                                                                                                                             |
@@ -1105,7 +1102,6 @@ Notes:
 | `Available`            | True when `InfrastructureReady` and available replicas >= desired replicas (see notes below)                      |
 | `BootstrapConfigReady` | Mirrors the corresponding condition from the MachinePool's BootstrapConfig resource                               |
 | `InfrastructureReady`  | Mirrors the corresponding condition from the MachinePool's Infrastructure resource                                |
-| `ReplicaFailure`       | This condition surfaces issues on creating a Machines replica in Kubernetes, if any. e.g. due to resource quotas. |
 | `MachinesReady`        | This condition surfaces detail of issues on the controlled machines, if any.                                      |
 | `ScalingUp`            | True if available replicas < desired replicas                                                                     |
 | `ScalingDown`          | True if replicas > desired replicas                                                                               |

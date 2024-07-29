@@ -2434,7 +2434,7 @@ func Test_applyMutators(t *testing.T) {
 			}(),
 		},
 		{
-			name:     "return error if any element in mutators slice is nil ",
+			name:     "return error if any element in mutators slice is nil",
 			mutators: []ResourceMutatorFunc{nil},
 			object:   test.NewFakeCluster("example", "example").Objs()[0],
 			wantErr:  true,

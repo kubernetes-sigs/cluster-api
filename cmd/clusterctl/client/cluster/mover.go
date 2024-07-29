@@ -1333,7 +1333,7 @@ func applyMutators(object client.Object, mutators ...ResourceMutatorFunc) (*unst
 		if mutator != nil {
 			err = mutator(u)
 		} else {
-			err = fmt.Errorf("mutator is nil")
+			err = errors.New("mutator is nil")
 		}
 		if err != nil {
 			return nil, errors.Wrapf(err, "error applying resource mutator to %q %s/%s",

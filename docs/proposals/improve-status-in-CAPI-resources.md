@@ -509,15 +509,15 @@ Notes:
 
 #### MachineSet (New)Conditions
 
-| Condition        | Note                                                                                                             |
-|------------------|------------------------------------------------------------------------------------------------------------------|
-| `MachinesReady`  | This condition surfaces detail of issues on the controlled machines, if any.                                     |
-| `ScalingUp`      | True if available replicas < desired replicas                                                                    |
-| `ScalingDown`    | True if replicas > desired replicas                                                                              |
-| `UpToDate`       | True if all the Machines controlled by this MachineSet are up to date (replicas = upToDateReplicas)              |
-| `Remediating`    | True if there is at least one Machine controlled by this MachineSet that is not passing health checks            |
-| `Deleted`        | True if MachineSet is deleted; Reason can be used to observe the cleanup progress when the resource is deleted   |
-| `Paused`         | True if this MachineSet or the Cluster it belongs to are paused                                                  |
+| Condition           | Note                                                                                                           |
+|---------------------|----------------------------------------------------------------------------------------------------------------|
+| `MachinesAvailable` | This condition surfaces detail of issues on the controlled machines, if any.                                   |
+| `ScalingUp`         | True if available replicas < desired replicas                                                                  |
+| `ScalingDown`       | True if replicas > desired replicas                                                                            |
+| `UpToDate`          | True if all the Machines controlled by this MachineSet are up to date (replicas = upToDateReplicas)            |
+| `Remediating`       | True if there is at least one Machine controlled by this MachineSet that is not passing health checks          |
+| `Deleted`           | True if MachineSet is deleted; Reason can be used to observe the cleanup progress when the resource is deleted |
+| `Paused`            | True if this MachineSet or the Cluster it belongs to are paused                                                |
 
 > To better evaluate proposed changes, below you can find the list of current MachineSet's conditions:
 > Ready, MachinesCreated, Resized, MachinesReady.
@@ -619,16 +619,16 @@ Notes:
 
 #### MachineDeployment (New)Conditions
 
-| Condition        | Note                                                                                                                                                                                                                                                   |
-|------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`      | True if the MachineDeployment has minimum availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy, availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas |
-| `MachinesReady`  | This condition surfaces detail of issues on the controlled machines, if any.                                                                                                                                                                           |
-| `ScalingUp`      | True if available replicas < desired replicas                                                                                                                                                                                                          |
-| `ScalingDown`    | True if replicas > desired replicas                                                                                                                                                                                                                    |
-| `UpToDate`       | True if all the Machines controlled by this MachineDeployment are up to date (replicas = upToDateReplicas)                                                                                                                                             |
-| `Remediating`    | True if there is at least one Machine controlled by this MachineDeployment that is not passing health checks                                                                                                                                           |
-| `Deleted`        | True if MachineDeployment is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                  |
-| `Paused`         | True if this MachineDeployment or the Cluster it belongs to are paused                                                                                                                                                                                 |
+| Condition           | Note                                                                                                                                                                                                                                                   |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`         | True if the MachineDeployment has minimum availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy, availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas |
+| `MachinesAvailable` | This condition surfaces detail of issues on the controlled machines, if any.                                                                                                                                                                           |
+| `ScalingUp`         | True if available replicas < desired replicas                                                                                                                                                                                                          |
+| `ScalingDown`       | True if replicas > desired replicas                                                                                                                                                                                                                    |
+| `UpToDate`          | True if all the Machines controlled by this MachineDeployment are up to date (replicas = upToDateReplicas)                                                                                                                                             |
+| `Remediating`       | True if there is at least one Machine controlled by this MachineDeployment that is not passing health checks                                                                                                                                           |
+| `Deleted`           | True if MachineDeployment is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                  |
+| `Paused`            | True if this MachineDeployment or the Cluster it belongs to are paused                                                                                                                                                                                 |
 
 > To better evaluate proposed changes, below you can find the list of current MachineDeployment's conditions:
 > Ready, Available.
@@ -964,7 +964,7 @@ TODO: double check usages of status.ready.
 | `Available`             | True if the control plane can be reached, `EtcdClusterAvailable` is true, and `CertificatesAvailable` is true                                                                                                                                                             |
 | `CertificatesAvailable` | True if all the cluster certificates exist.                                                                                                                                                                                                                               |
 | `EtcdClusterAvailable`  | This condition surfaces issues to the managed etcd cluster, if any. It is computed as aggregation of Machines's `EtcdMemberHealthy` (if not using an external etcd) conditions plus additional checks validating potential issues to etcd quorum                          |
-| `MachinesReady`         | This condition surfaces detail of issues on the controlled machines, if any. Please note this will include also `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, and if not using an external etcd also `EtcdPodHealthy`, `EtcdMemberHealthy` |
+| `MachinesAvailable`     | This condition surfaces detail of issues on the controlled machines, if any. Please note this will include also `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, and if not using an external etcd also `EtcdPodHealthy`, `EtcdMemberHealthy` |
 | `ScalingUp`             | True if available replicas < desired replicas                                                                                                                                                                                                                             |
 | `ScalingDown`           | True if replicas > desired replicas                                                                                                                                                                                                                                       |
 | `UpToDate`              | True if all the Machines controlled by this ControlPlane are up to date                                                                                                                                                                                                   |
@@ -1097,18 +1097,18 @@ Notes:
 
 ##### MachinePool (New)Conditions
 
-| Condition              | Note                                                                                                              |
-|------------------------|-------------------------------------------------------------------------------------------------------------------|
-| `Available`            | True when `InfrastructureReady` and available replicas >= desired replicas (see notes below)                      |
-| `BootstrapConfigReady` | Mirrors the corresponding condition from the MachinePool's BootstrapConfig resource                               |
-| `InfrastructureReady`  | Mirrors the corresponding condition from the MachinePool's Infrastructure resource                                |
-| `MachinesReady`        | This condition surfaces detail of issues on the controlled machines, if any.                                      |
-| `ScalingUp`            | True if available replicas < desired replicas                                                                     |
-| `ScalingDown`          | True if replicas > desired replicas                                                                               |
-| `UpToDate`             | True if all the Machines controlled by this MachinePool are up to date (replicas = upToDateReplicas)              |
-| `Remediating`          | True if there is at least one Machine controlled by this MachinePool that is not passing health checks            |
-| `Deleted`              | True if MachinePool is deleted; Reason can be used to observe the cleanup progress when the resource is deleted   |
-| `Paused`               | True if this MachinePool or the Cluster it belongs to are paused                                                  |
+| Condition              | Note                                                                                                            |
+|------------------------|-----------------------------------------------------------------------------------------------------------------|
+| `Available`            | True when `InfrastructureReady` and available replicas >= desired replicas (see notes below)                    |
+| `BootstrapConfigReady` | Mirrors the corresponding condition from the MachinePool's BootstrapConfig resource                             |
+| `InfrastructureReady`  | Mirrors the corresponding condition from the MachinePool's Infrastructure resource                              |
+| `MachinesAvailable`    | This condition surfaces detail of issues on the controlled machines, if any.                                    |
+| `ScalingUp`            | True if available replicas < desired replicas                                                                   |
+| `ScalingDown`          | True if replicas > desired replicas                                                                             |
+| `UpToDate`             | True if all the Machines controlled by this MachinePool are up to date (replicas = upToDateReplicas)            |
+| `Remediating`          | True if there is at least one Machine controlled by this MachinePool that is not passing health checks          |
+| `Deleted`              | True if MachinePool is deleted; Reason can be used to observe the cleanup progress when the resource is deleted |
+| `Paused`               | True if this MachinePool or the Cluster it belongs to are paused                                                |
 
 > To better evaluate proposed changes, below you can find the list of current MachinePool's conditions:
 > Ready, BootstrapReady, InfrastructureReady, ReplicasReady.
@@ -1311,7 +1311,7 @@ As a cluster admin with MachineDeployment ownership I'd like to understand why m
 
 As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are failing to be available by looking at the MD status/conditions
 
-> `MD.Status.Conditions[MachinesReady]` condition will aggregate errors from all the Machines controlled by a MD.
+> `MD.Status.Conditions[MachinesAvailable]` condition will aggregate errors from all the Machines controlled by a MD.
 
 As a cluster admin with MachineDeployment ownership I'd like to understand why Machines are stuck on deletion looking at the MD status/conditions
 

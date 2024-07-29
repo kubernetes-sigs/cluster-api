@@ -232,20 +232,22 @@ func ScaleMachinePoolTopologyAndWait(ctx context.Context, input ScaleMachinePool
 		return patchHelper.Patch(ctx, input.Cluster)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine pool topology %s", mpTopology.Name)
 
-	log.Logf("Waiting for correct number of replicas to exist")
+	log.Logf("Waiting for correct number of replicas to exist and have correct number for .spec.replicas")
 	mpList := &expv1.MachinePoolList{}
-	Eventually(func() error {
-		return input.ClusterProxy.GetClient().List(ctx, mpList,
+	mp := expv1.MachinePool{}
+	Eventually(func(g Gomega) int32 {
+		g.Expect(input.ClusterProxy.GetClient().List(ctx, mpList,
 			client.InNamespace(input.Cluster.Namespace),
 			client.MatchingLabels{
 				clusterv1.ClusterNameLabel:                    input.Cluster.Name,
 				clusterv1.ClusterTopologyMachinePoolNameLabel: mpTopology.Name,
 			},
-		)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+		)).ToNot(HaveOccurred())
+		g.Expect(mpList.Items).To(HaveLen(1))
+		mp = mpList.Items[0]
+		return *mp.Spec.Replicas
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Equal(input.Replicas), "MachinePool replicas for Cluster %s does not match set topology replicas", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 
-	Expect(mpList.Items).To(HaveLen(1))
-	mp := mpList.Items[0]
 	WaitForMachinePoolNodesToExist(ctx, WaitForMachinePoolNodesToExistInput{
 		Getter:      input.Getter,
 		MachinePool: &mp,

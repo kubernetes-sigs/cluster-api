@@ -679,7 +679,7 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 					Cluster: cluster,
 				})
 				framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-					Getter:  c,
+					Client:  c,
 					Cluster: cluster,
 				})
 

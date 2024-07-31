@@ -478,7 +478,7 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 		return cl.Get(ctx, key, cluster)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 
-	return cluster.Spec.InfrastructureRef.Kind == "DockerCluster"
+	return cluster.Spec.InfrastructureRef != nil && cluster.Spec.InfrastructureRef.Kind == "DockerCluster"
 }
 
 func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.Config) {

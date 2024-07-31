@@ -312,8 +312,9 @@ func ClusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() Cl
 			// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 			// instead of DeleteClusterAndWait
 			framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-				Client:    input.BootstrapClusterProxy.GetClient(),
-				Namespace: namespace.Name,
+				Client:         input.BootstrapClusterProxy.GetClient(),
+				Namespace:      namespace.Name,
+				ArtifactFolder: input.ArtifactFolder,
 			}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 
 			Byf("Deleting namespace used for hosting the %q test spec", specName)

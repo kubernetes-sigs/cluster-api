@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -159,21 +160,39 @@ func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
 
 // WaitForClusterDeletedInput is the input for WaitForClusterDeleted.
 type WaitForClusterDeletedInput struct {
-	Getter  Getter
+	Client  client.Client
 	Cluster *clusterv1.Cluster
+	// ArtifactFolder, if set, clusters will be dumped if deletion times out
+	ArtifactFolder string
 }
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
 func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
 	Byf("Waiting for cluster %s to be deleted", klog.KObj(input.Cluster))
+	// Note: dumpArtifactsOnDeletionTimeout is passed in as a func so it gets only executed if and after the Eventually failed.
 	Eventually(func() bool {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
 			Namespace: input.Cluster.GetNamespace(),
 			Name:      input.Cluster.GetName(),
 		}
-		return apierrors.IsNotFound(input.Getter.Get(ctx, key, cluster))
-	}, intervals...).Should(BeTrue())
+		return apierrors.IsNotFound(input.Client.Get(ctx, key, cluster))
+	}, intervals...).Should(BeTrue(), func() string {
+		return dumpArtifactsOnDeletionTimeout(ctx, input.Client, input.Cluster, input.ArtifactFolder)
+	})
+}
+
+func dumpArtifactsOnDeletionTimeout(ctx context.Context, client client.Client, cluster *clusterv1.Cluster, artifactFolder string) string {
+	if artifactFolder != "" {
+		// Dump all Cluster API related resources to artifacts.
+		DumpAllResources(ctx, DumpAllResourcesInput{
+			Lister:    client,
+			Namespace: cluster.Namespace,
+			LogPath:   filepath.Join(artifactFolder, "clusters-afterDeletionTimedOut", cluster.Name, "resources"),
+		})
+	}
+
+	return "waiting for cluster deletion timed out"
 }
 
 // DiscoveryAndWaitForClusterInput is the input type for DiscoveryAndWaitForCluster.
@@ -214,6 +233,8 @@ func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForCl
 type DeleteClusterAndWaitInput struct {
 	Client  client.Client
 	Cluster *clusterv1.Cluster
+	// ArtifactFolder, if set, clusters will be dumped if deletion times out
+	ArtifactFolder string
 }
 
 // DeleteClusterAndWait deletes a cluster object and waits for it to be gone.
@@ -228,10 +249,7 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 	})
 
 	log.Logf("Waiting for the Cluster object to be deleted")
-	WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
-		Getter:  input.Client,
-		Cluster: input.Cluster,
-	}, intervals...)
+	WaitForClusterDeleted(ctx, WaitForClusterDeletedInput(input), intervals...)
 
 	//TODO: consider if to move in another func (what if there are more than one cluster?)
 	log.Logf("Check for all the Cluster API resources being deleted")
@@ -247,6 +265,8 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 type DeleteAllClustersAndWaitInput struct {
 	Client    client.Client
 	Namespace string
+	// ArtifactFolder, if set, clusters will be dumped if deletion times out
+	ArtifactFolder string
 }
 
 // DeleteAllClustersAndWait deletes a cluster object and waits for it to be gone.
@@ -270,8 +290,9 @@ func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWai
 	for _, c := range clusters {
 		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
 		WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
-			Getter:  input.Client,
-			Cluster: c,
+			Client:         input.Client,
+			Cluster:        c,
+			ArtifactFolder: input.ArtifactFolder,
 		}, intervals...)
 	}
 }

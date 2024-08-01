@@ -535,6 +535,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 			Mounts:              scope.Config.Spec.Mounts,
 			DiskSetup:           scope.Config.Spec.DiskSetup,
 			KubeadmVerbosity:    verbosityFlag,
+			KubernetesVersion:   parsedVersion,
 		},
 		InitConfiguration:    initdata,
 		ClusterConfiguration: clusterdata,
@@ -656,6 +657,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 			DiskSetup:            scope.Config.Spec.DiskSetup,
 			KubeadmVerbosity:     verbosityFlag,
 			UseExperimentalRetry: scope.Config.Spec.UseExperimentalRetryJoin,
+			KubernetesVersion:    parsedVersion,
 		},
 		JoinConfiguration: joinData,
 	}
@@ -774,6 +776,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 			DiskSetup:            scope.Config.Spec.DiskSetup,
 			KubeadmVerbosity:     verbosityFlag,
 			UseExperimentalRetry: scope.Config.Spec.UseExperimentalRetryJoin,
+			KubernetesVersion:    parsedVersion,
 		},
 	}
 

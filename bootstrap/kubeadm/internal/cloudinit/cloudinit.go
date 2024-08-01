@@ -22,9 +22,11 @@ import (
 	"fmt"
 	"text/template"
 
+	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const (
@@ -56,6 +58,7 @@ type BaseUserData struct {
 	KubeadmCommand       string
 	KubeadmVerbosity     string
 	SentinelFileCommand  string
+	KubernetesVersion    semver.Version
 }
 
 func (input *BaseUserData) prepare() error {
@@ -64,7 +67,7 @@ func (input *BaseUserData) prepare() error {
 	input.KubeadmCommand = fmt.Sprintf(standardJoinCommand, input.KubeadmVerbosity)
 	if input.UseExperimentalRetry {
 		input.KubeadmCommand = retriableJoinScriptName
-		joinScriptFile, err := generateBootstrapScript(input)
+		joinScriptFile, err := generateBootstrapScript(input, input.KubernetesVersion)
 		if err != nil {
 			return errors.Wrap(err, "failed to generate user data for machine joining control plane")
 		}
@@ -118,12 +121,23 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 }
 
 var (
+	//go:embed kubeadm-bootstrap-script-pre-k8s-1-31.sh
+	kubeadmBootstrapScriptPre1_31 string
 	//go:embed kubeadm-bootstrap-script.sh
 	kubeadmBootstrapScript string
+
+	// kubernetesVersion1_31 is the version where kubeadm removed the update-status phase
+	// and introduced new phases with the ControlPlaneKubeletLocalMode feature gate.
+	kubernetesVersion1_31 = semver.MustParse("1.31.0")
 )
 
-func generateBootstrapScript(input interface{}) (*bootstrapv1.File, error) {
-	joinScript, err := generate("JoinScript", kubeadmBootstrapScript, input)
+func generateBootstrapScript(input interface{}, parsedversion semver.Version) (*bootstrapv1.File, error) {
+	bootstrapScript := kubeadmBootstrapScript
+	if useKubeadmBootstrapScriptPre1_31(parsedversion) {
+		bootstrapScript = kubeadmBootstrapScriptPre1_31
+	}
+
+	joinScript, err := generate("JoinScript", bootstrapScript, input)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to bootstrap script for machine joins")
 	}
@@ -133,4 +147,8 @@ func generateBootstrapScript(input interface{}) (*bootstrapv1.File, error) {
 		Permissions: retriableJoinScriptPermissions,
 		Content:     string(joinScript),
 	}, nil
+}
+
+func useKubeadmBootstrapScriptPre1_31(parsedversion semver.Version) bool {
+	return version.Compare(parsedversion, kubernetesVersion1_31, version.WithoutPreReleases()) < 0
 }

@@ -30,6 +30,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -1202,7 +1203,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(ctx, graph, toProxy, nil)
+			err := mover.move(ctx, graph, toProxy)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1876,7 +1877,6 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			expectedNamespaces: []string{"namespace-1", "namespace-2"},
 		},
 		{
-
 			name: "ensureNamespaces moves namespace-2 to target which already has namespace-1",
 			fields: fields{
 				objs: cluster2.Objs(),
@@ -2400,6 +2400,51 @@ func TestWaitReadyForMove(t *testing.T) {
 				}
 			}
 			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, backoff)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func Test_applyMutators(t *testing.T) {
+	tests := []struct {
+		name     string
+		object   client.Object
+		mutators []ResourceMutatorFunc
+		want     *unstructured.Unstructured
+		wantErr  bool
+	}{
+		{
+			name: "do nothing if object is nil",
+		},
+		{
+			name:   "do nothing if mutators is a nil slice",
+			object: test.NewFakeCluster("example", "example").Objs()[0],
+			want: func() *unstructured.Unstructured {
+				g := NewWithT(t)
+				obj := test.NewFakeCluster("example", "example").Objs()[0]
+				u := &unstructured.Unstructured{}
+				to, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+				g.Expect(err).NotTo(HaveOccurred())
+				u.SetUnstructuredContent(to)
+				return u
+			}(),
+		},
+		{
+			name:     "return error if any element in mutators slice is nil",
+			mutators: []ResourceMutatorFunc{nil},
+			object:   test.NewFakeCluster("example", "example").Objs()[0],
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got, err := applyMutators(tt.object, tt.mutators...)
+			g.Expect(got).To(Equal(tt.want))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

@@ -135,12 +135,16 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 
 // AddScaleUpDeploymentAndWaitInput is the input for AddScaleUpDeploymentAndWait.
 type AddScaleUpDeploymentAndWaitInput struct {
-	ClusterProxy ClusterProxy
+	ClusterProxy   ClusterProxy
+	ContainerImage string
 }
 
 // AddScaleUpDeploymentAndWait create a deployment that will trigger the autoscaler to scale up and create a new machine.
 func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
 	By("Create a scale up deployment with resource requests to force scale up")
+	if input.ContainerImage == "" {
+		input.ContainerImage = "registry.k8s.io/pause"
+	}
 
 	// gets the node size
 	nodes := &corev1.NodeList{}
@@ -192,7 +196,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 					Containers: []corev1.Container{
 						{
 							Name:            "pause",
-							Image:           "registry.k8s.io/pause",
+							Image:           input.ContainerImage,
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Resources: corev1.ResourceRequirements{
 								Requests: map[corev1.ResourceName]resource.Quantity{

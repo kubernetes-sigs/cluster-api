@@ -359,8 +359,8 @@ Notes:
   the Machine's owner controllers to set this condition.
 - Conditions like `NodeReady` and `NodeHealthy` which depend on the connection to the remote cluster will benefit
   from the new `RemoteConnectionProbe` condition at cluster level (see [Cluster (New)Conditions](#cluster-newconditions));
-  more specifically those condition should be set to `Unknown` after the cluster probe fails
-  (or after whatever period is defined in the `--remote-conditions-grace-period` flag)
+  more specifically those condition should be set to `Unknown` when after `lastRemoteConnectionProbeTime` plus the value
+  defined in the `--remote-conditions-grace-period` flag.
 - `HealthCheckSucceeded` and `OwnerRemediated` (or `ExternalRemediationRequestAvailable`) conditions are set by the
   MachineHealthCheck controller in case a MachineHealthCheck targets the machine.
 - KubeadmControlPlane also adds additional conditions to Machines, but those conditions are not included in the table above

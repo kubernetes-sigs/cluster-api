@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -302,6 +303,8 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *dockerMachine.Spec.ProviderID)
 		}
 	}
+	// Ensure the providerIDList is deterministic (getDockerMachines doesn't guarantee a specific order)
+	sort.Strings(dockerMachinePool.Spec.ProviderIDList)
 
 	dockerMachinePool.Status.Replicas = int32(len(dockerMachineList.Items))
 

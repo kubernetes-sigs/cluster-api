@@ -627,9 +627,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				input.PostUpgrade(managementClusterProxy, workloadClusterNamespace, managementClusterName)
 			}
 
-			// After the upgrade check that MachineList is available. This ensures the APIServer is serving without
-			// error before checking that it `Consistently` returns the MachineList later on.
-			Byf("[%d] Waiting for MachineList to be available", i)
+			// After the upgrade: wait for MachineList to be available after the upgrade.
 			Eventually(func() error {
 				postUpgradeMachineList := &unstructured.UnstructuredList{}
 				postUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
@@ -637,33 +635,34 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					Version: coreCAPIStorageVersion,
 					Kind:    "MachineList",
 				})
-				err = managementClusterProxy.GetClient().List(
+				return managementClusterProxy.GetClient().List(
 					ctx,
 					postUpgradeMachineList,
 					client.InNamespace(workloadCluster.GetNamespace()),
 					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
 				)
-				return err
 			}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 
-			// After the upgrade check that there were no unexpected rollouts.
-			Byf("[%d] Verify there are no unexpected rollouts", i)
-			Consistently(func() bool {
-				postUpgradeMachineList := &unstructured.UnstructuredList{}
+			Byf("[%d] Waiting for three minutes before checking if an unexpected rollout happened", i)
+			time.Sleep(time.Minute * 3)
+
+			// After the upgrade: check that there were no unexpected rollouts.
+			postUpgradeMachineList := &unstructured.UnstructuredList{}
+			Byf("[%d] Verifing there are no unexpected rollouts", i)
+			Eventually(func() error {
 				postUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 					Group:   clusterv1.GroupVersion.Group,
 					Version: coreCAPIStorageVersion,
 					Kind:    "MachineList",
 				})
-				err = managementClusterProxy.GetClient().List(
+				return managementClusterProxy.GetClient().List(
 					ctx,
 					postUpgradeMachineList,
 					client.InNamespace(workloadCluster.GetNamespace()),
 					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
 				)
-				Expect(err).ToNot(HaveOccurred())
-				return validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)
-			}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
+			}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
+			Expect(validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)).To(BeTrue(), "Machines should remain the same after the upgrade")
 
 			// Scale up to 2 and back down to 1 so we can repeat this multiple times.
 			Byf("[%d] Scale MachineDeployment to ensure the providers work", i)

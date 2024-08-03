@@ -136,7 +136,7 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 	g.Expect(got).To(BeNil())
 }
 
-func TestReconcileDoesNothingWhenOwnerClusterIsMissing(t *testing.T) {
+func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 	g := NewWithT(t)
 
 	ns, err := env.CreateNamespace(ctx, "test-reconcile-return-error")
@@ -165,7 +165,7 @@ func TestReconcileDoesNothingWhenOwnerClusterIsMissing(t *testing.T) {
 	g.Eventually(func() error {
 		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 		return err
-	}, 10*time.Second).Should(BeNil())
+	}, 10*time.Second).Should(HaveOccurred())
 }
 
 func TestReconcileUpdateObservedGeneration(t *testing.T) {
@@ -343,7 +343,7 @@ func TestReconcileNoCluster(t *testing.T) {
 	}
 
 	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
-	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(err).To(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(metav1.NamespaceDefault))).To(Succeed())

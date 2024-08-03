@@ -95,6 +95,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+		// Error reading the object  - requeue the request.
 		return ctrl.Result{}, err
 	}
 

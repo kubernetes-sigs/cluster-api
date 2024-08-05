@@ -880,7 +880,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 5 * time.Second}
+		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 10 * time.Second}
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -978,7 +978,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 5 * time.Second}
+		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 10 * time.Second}
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {

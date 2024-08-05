@@ -120,7 +120,7 @@ metadata:
 	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
 		t.Helper()
 
-		t.Log("Deleting the Kubeconfigsecret")
+		t.Log("Deleting the Kubeconfig Secret")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName + "-kubeconfig",
@@ -129,26 +129,16 @@ metadata:
 		}
 		g.Expect(env.Delete(ctx, secret)).To(Succeed())
 
+		t.Log("Deleting the ClusterResourceSet")
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterResourceSetName,
 				Namespace: ns.Name,
 			},
 		}
-
-		err := env.Get(ctx, client.ObjectKey{Namespace: clusterResourceSetInstance.Namespace, Name: clusterResourceSetInstance.Name}, clusterResourceSetInstance)
-		if err == nil {
-			g.Expect(env.Delete(ctx, clusterResourceSetInstance)).To(Succeed())
-		}
-
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, clusterResourceSetInstance))).To(Succeed())
 		g.Eventually(func() bool {
-			crsKey := client.ObjectKey{
-				Namespace: clusterResourceSetInstance.Namespace,
-				Name:      clusterResourceSetInstance.Name,
-			}
-			crs := &addonsv1.ClusterResourceSet{}
-			err := env.Get(ctx, crsKey, crs)
-			return err != nil
+			return apierrors.IsNotFound(env.Get(ctx, client.ObjectKeyFromObject(clusterResourceSetInstance), &addonsv1.ClusterResourceSet{}))
 		}, timeout).Should(BeTrue())
 
 		g.Expect(env.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
@@ -166,25 +156,19 @@ metadata:
 				Namespace: resourceConfigMapsNamespace,
 			},
 		}
-		if err = env.Get(ctx, client.ObjectKeyFromObject(cm1), cm1); err == nil {
-			g.Expect(env.Delete(ctx, cm1)).To(Succeed())
-		}
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, cm1))).To(Succeed())
+
 		cm2 := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      resourceConfigMap2Name,
 				Namespace: resourceConfigMapsNamespace,
 			},
 		}
-		if err = env.Get(ctx, client.ObjectKeyFromObject(cm2), cm2); err == nil {
-			g.Expect(env.Delete(ctx, cm2)).To(Succeed())
-		}
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, cm2))).To(Succeed())
 
 		g.Expect(env.Delete(ctx, ns)).To(Succeed())
 
-		clusterKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
-		if err = env.Get(ctx, clusterKey, testCluster); err == nil {
-			g.Expect(env.Delete(ctx, testCluster)).To(Succeed())
-		}
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, testCluster))).To(Succeed())
 	}
 
 	t.Run("Should reconcile a ClusterResourceSet with multiple resources when a cluster with matching label exists", func(t *testing.T) {

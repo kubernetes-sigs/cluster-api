@@ -175,9 +175,12 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 			ShouldFilter: ssa.IsPathIgnored([]contract.Path{[]string{"metadata", "managedFields"}}),
 		})
 
-		changes, err = json.Marshal(diff.Object)
-		if err != nil {
-			return false, false, nil, errors.Wrapf(err, "failed to marshal diff")
+		// changes should be empty (not "{}") if diff.Object is empty
+		if len(diff.Object) != 0 {
+			changes, err = json.Marshal(diff.Object)
+			if err != nil {
+				return false, false, nil, errors.Wrapf(err, "failed to marshal diff")
+			}
 		}
 	}
 

@@ -388,7 +388,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
-		g.Expect(p0.Changes()).To(Equal([]byte(`{}`))) // Note: metadata.managedFields have been removed from the diff to reduce log verbosity.
+		g.Expect(p0.Changes()).To(BeEmpty()) // Note: metadata.managedFields have been removed from the diff to reduce log verbosity.
 
 		// Create the object using server side apply
 		g.Expect(p0.Patch(ctx)).To(Succeed())

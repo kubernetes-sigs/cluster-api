@@ -999,11 +999,6 @@ serve-book: ## Build and serve the book (with live-reload)
 
 ## latest git tag for the commit, e.g., v0.3.10
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
-ifneq (,$(findstring -,$(RELEASE_TAG)))
-    PRE_RELEASE=true
-endif
-# the previous release tag, e.g., v0.3.9, excluding pre-release tags
-PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
 ## set by Prow, ref name of the base branch, e.g., main
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
@@ -1180,7 +1175,7 @@ release-notes-tool:
 
 .PHONY: release-notes
 release-notes: release-notes-tool
-	./bin/notes --release $(RELEASE_TAG) > CHANGELOG/$(RELEASE_TAG).md
+	./bin/notes --release $(RELEASE_TAG) --previous-release-version "$(PREVIOUS_RELEASE_TAG)" > CHANGELOG/$(RELEASE_TAG).md
 
 .PHONY: test-release-notes-tool
 test-release-notes-tool:

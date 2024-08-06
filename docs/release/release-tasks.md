@@ -361,15 +361,22 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
 
 #### Create PR for release notes
 1. Checkout the `main` branch.
-1. Generate release notes with:
+2. Generate release notes with:
 
+   1. RELEASE CANDIDATE/BETA RELEASE example:
    ```bash
    # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
-   # Can be also used for pre-releases. The warning banner for RC and beta releases will be determined automatically.
-   RELEASE_TAG=v1.6.x make release-notes
+   # PREVIOUS_RELEASE_TAG is the previous released tag for determining the changes.
+   RELEASE_TAG=v1.7.x-rc.1 PREVIOUS_RELEASE_TAG=tags/v1.7.x-rc.0 make release-notes
+   ```
+   **Note**: For a first pre-release version without a pre-release precedent, use above command without `PREVIOUS_RELEASE_TAG`.
+   2. STABLE RELEASE example
+   ```bash
+   # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
+   RELEASE_TAG=v1.7.x make release-notes
    ```
 
-1. This will generate a new release notes file at `CHANGELOG/<RELEASE_TAG>.md`. Finalize the release notes:
+3. This will generate a new release notes file at `CHANGELOG/<RELEASE_TAG>.md`. Finalize the release notes:
     - [ ] Look for any `MISSING_AREA` entries. Add the corresponding label to the PR and regenerate the notes.
     - [ ] Look for any `MULTIPLE_AREAS` entries. If the PR does indeed guarantee multiple areas, just remove the `MULTIPLE_AREAS` prefix and just leave the areas. Otherwise, fix the labels in the PR and regenerate the notes.
     - [ ] Review that all areas are correctly assigned to each PR. If not, correct the labels and regenerate the notes.
@@ -382,8 +389,8 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
     - [ ] Sort manually all entries if you made any manual edits that might have altered the correct order.
     - [ ] **For minor releases:** Modify `Changes since v1.x.y` to `Changes since v1.x`
        <br>**Note**: The release notes tool includes all merges since the previous release branch was branched of.
-1. Checkout `main`, branch out from it and add `CHANGELOG/<RELEASE_TAG>.md`.
-1. Open a pull request **against the main branch** with all manual edits to `CHANGELOG/<RELEASE_TAG>.md` which is used for the new release notes. The commit and PR title should be `🚀 Release v1.x.y`.
+4. Checkout `main`, branch out from it and add `CHANGELOG/<RELEASE_TAG>.md`.
+5. Open a pull request **against the main branch** with all manual edits to `CHANGELOG/<RELEASE_TAG>.md` which is used for the new release notes. The commit and PR title should be `🚀 Release v1.x.y`.
        <br>**Note**: Important! The commit should only contain the release notes file, nothing else, otherwise automation will not work.
 
 

@@ -95,7 +95,7 @@ func newNotesCmd() *notesCmd {
 
 func (cmd *notesCmd) run() error {
 	releaseType := releaseTypeFromNewTag(cmd.config.newTag)
-	if err := validateConfig(cmd.config, releaseType); err != nil {
+	if err := validateConfig(cmd.config); err != nil {
 		return err
 	}
 
@@ -166,7 +166,7 @@ func commandExists(cmd string) bool {
 	return err == nil
 }
 
-func validateConfig(config *notesCmdConfig, releaseType string) error {
+func validateConfig(config *notesCmdConfig) error {
 	if config.fromRef == "" && config.newTag == "" {
 		return errors.New("at least one of --from or --release need to be set")
 	}

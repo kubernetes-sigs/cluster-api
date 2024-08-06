@@ -1161,7 +1161,7 @@ release-notes-tool:
 
 .PHONY: release-notes
 release-notes: release-notes-tool
-	./bin/notes --release $(RELEASE_TAG) --previous-release-version "$(PREVIOUS_VERSION_TAG)" > CHANGELOG/$(RELEASE_TAG).md
+	./bin/notes --release $(RELEASE_TAG) --previous-release-version "$(PREVIOUS_RELEASE_TAG)" > CHANGELOG/$(RELEASE_TAG).md
 
 .PHONY: test-release-notes-tool
 test-release-notes-tool:

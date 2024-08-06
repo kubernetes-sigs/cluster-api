@@ -346,26 +346,26 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		ignore := *registration.FailurePolicy == runtimev1.FailurePolicyIgnore
 		if _, ok := err.(errCallingExtensionHandler); ok && ignore {
 			// Update the response to a default success response and return.
-			log.Error(err, fmt.Sprintf("ignoring error calling extension handler because of FailurePolicy %q", *registration.FailurePolicy))
+			log.Error(err, fmt.Sprintf("Ignoring error calling extension handler because of FailurePolicy %q", *registration.FailurePolicy))
 			response.SetStatus(runtimehooksv1.ResponseStatusSuccess)
 			response.SetMessage("")
 			return nil
 		}
-		log.Error(err, "failed to call extension handler")
+		log.Error(err, "Failed to call extension handler")
 		return errors.Wrapf(err, "failed to call extension handler %q", name)
 	}
 
 	// If the received response is a failure then return an error.
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-		log.Info(fmt.Sprintf("failed to call extension handler %q: got failure response with message %v", name, response.GetMessage()))
+		log.Info(fmt.Sprintf("Failed to call extension handler %q: got failure response with message %v", name, response.GetMessage()))
 		// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
 		return errors.Errorf("failed to call extension handler %q: got failure response", name)
 	}
 
 	if retryResponse, ok := response.(runtimehooksv1.RetryResponseObject); ok && retryResponse.GetRetryAfterSeconds() != 0 {
-		log.Info(fmt.Sprintf("extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
+		log.Info(fmt.Sprintf("Extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
 	} else {
-		log.Info("extension handler returned success response")
+		log.Info("Extension handler returned success response")
 	}
 
 	// Received a successful response from the extension handler. The `response` object

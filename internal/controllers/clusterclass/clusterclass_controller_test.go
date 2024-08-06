@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 	utilversion "k8s.io/apiserver/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -42,7 +43,6 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
@@ -384,7 +384,7 @@ func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) 
 		}
 	}
 	if !found {
-		return fmt.Errorf("object %s does not have OwnerReference %s", tlog.KObj{Obj: obj}, &ownerRef)
+		return fmt.Errorf("%s does not have OwnerReference %s", klog.KObj(obj), &ownerRef)
 	}
 	return nil
 }

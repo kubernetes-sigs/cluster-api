@@ -33,7 +33,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/labels"
@@ -185,11 +184,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 	// Delete unused templates.
 	ref := md.Spec.Template.Spec.Bootstrap.ConfigRef
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete bootstrap template for %s", tlog.KObj{Obj: md})
+		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(md))
 	}
 	ref = &md.Spec.Template.Spec.InfrastructureRef
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete infrastructure template for %s", tlog.KObj{Obj: md})
+		return errors.Wrapf(err, "failed to delete %s %s for MachineDeployment %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(md))
 	}
 
 	// If the MachineDeployment has a MachineHealthCheck delete it.
@@ -214,7 +213,7 @@ func (r *Reconciler) deleteMachineHealthCheckForMachineDeployment(ctx context.Co
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: mhc})
+		return errors.Wrapf(err, "failed to delete MachineHealthCheck %s", klog.KObj(mhc))
 	}
 	return nil
 }

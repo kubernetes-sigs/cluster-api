@@ -132,6 +132,10 @@ type MachineSpec struct {
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+	
+	// NodeDrainPodFilters allows to specify filters for pods to be excluded during node drain
+	// +optional
+	NodeDrainPodFilters *metav1.LabelSelector `json:"nodeDrainPodFilters,omitempty"`
 }
 
 // ANCHOR_END: MachineSpec

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -50,6 +53,10 @@ var (
 	// machineDeploymentKind contains the schema.GroupVersionKind for the MachineDeployment type.
 	machineDeploymentKind = clusterv1.GroupVersion.WithKind("MachineDeployment")
 )
+
+// deleteRequeueAfter is how long to wait before checking again to see if the MachineDeployment
+// still has owned MachineSets.
+const deleteRequeueAfter = 5 * time.Second
 
 // machineDeploymentManagerName is the manager name used for Server-Side-Apply (SSA) operations
 // in the MachineDeployment controller.
@@ -154,9 +161,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}()
 
-	// Ignore deleted MachineDeployments, this can happen when foregroundDeletion
-	// is enabled
+	// Handle deletion reconciliation loop.
 	if !deployment.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, deployment)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(deployment, clusterv1.MachineDeploymentFinalizer) {
+		controllerutil.AddFinalizer(deployment, clusterv1.MachineDeploymentFinalizer)
 		return ctrl.Result{}, nil
 	}
 
@@ -280,6 +293,33 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
+}
+
+func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineDeployment) (reconcile.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	msList, err := r.getMachineSetsForDeployment(ctx, md)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// If all the descendant machinesets are deleted, then remove the machinedeployment's finalizer.
+	if len(msList) == 0 {
+		controllerutil.RemoveFinalizer(md, clusterv1.MachineDeploymentFinalizer)
+		return ctrl.Result{}, nil
+	}
+
+	// else delete owned machinesets.
+	log.Info("MachineDeployment still has owned MachineSets, deleting them first")
+	for _, ms := range msList {
+		if ms.DeletionTimestamp.IsZero() {
+			log.Info("Deleting MachineSet", "MachineSet", klog.KObj(ms))
+			if err := r.Client.Delete(ctx, ms); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to delete MachineSet %s", klog.KObj(ms))
+			}
+		}
+	}
+
+	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.

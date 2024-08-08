@@ -24,7 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// GetObjectReferences accepts arguments in resource/name form (e.g. 'resource/<resource_name>') and returns a  ObjectReference for each resource/name.
+// GetObjectReferences accepts arguments in resource.apiversion/name or resource/name form (e.g. 'resource.apiversion/<resource_name>' or 'resource/<resource_name>') and returns an ObjectReference for each resource/name.
 func GetObjectReferences(namespace string, args ...string) ([]corev1.ObjectReference, error) {
 	var objRefs []corev1.ObjectReference
 	if ok, err := hasCombinedTypeArgs(args); ok {
@@ -41,7 +41,7 @@ func GetObjectReferences(namespace string, args ...string) ([]corev1.ObjectRefer
 			}
 		}
 	} else {
-		return objRefs, fmt.Errorf("arguments must be in resource/name format (e.g. machinedeployment/md-1)")
+		return objRefs, fmt.Errorf("arguments must be in resource.apiversion/name or resource/name format (e.g. deployment.v1/md-1 or deployment/md-1)")
 	}
 	return objRefs, nil
 }
@@ -62,13 +62,13 @@ func hasCombinedTypeArgs(args []string) (bool, error) {
 			baseCmdSlice := strings.Split(os.Args[0], "/")
 			baseCmd = baseCmdSlice[len(baseCmdSlice)-1]
 		}
-		return true, fmt.Errorf("there is no need to specify a resource type as a separate argument when passing arguments in resource/name form (e.g. '%s get resource/<resource_name>' instead of '%s get resource resource/<resource_name>'", baseCmd, baseCmd)
+		return true, fmt.Errorf("there is no need to specify a resource type as a separate argument when passing arguments in resource.apiversion/name or resource/name form (e.g. '%s get resource.apiversion/<resource_name>' instead of '%s get resource resource.apiversion/<resource_name>'", baseCmd, baseCmd)
 	default:
 		return false, nil
 	}
 }
 
-// convertToObjectRef handles type/name resource formats and returns a ObjectReference
+// convertToObjectRef handles resource.apiversion/name or resource/name resource formats and returns an ObjectReference
 // (empty or not), whether it successfully found one, and an error.
 func convertToObjectRef(namespace, s string) (corev1.ObjectReference, bool, error) {
 	if !strings.Contains(s, "/") {
@@ -76,15 +76,30 @@ func convertToObjectRef(namespace, s string) (corev1.ObjectReference, bool, erro
 	}
 	seg := strings.Split(s, "/")
 	if len(seg) != 2 {
-		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource/name form may not have more than one slash")
+		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource.apiversion/name or resource/name form may not have more than one slash")
 	}
-	resource, name := seg[0], seg[1]
-	if resource == "" || name == "" {
-		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource/name form must have a single resource and name")
+	resourceVersion, name := seg[0], seg[1]
+	if resourceVersion == "" || name == "" {
+		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource.apiversion/name or resource/name form must have a resource and name")
 	}
+
+	var resource, apiVersion string
+	resourceVersionSeg := strings.Split(resourceVersion, ".")
+	if len(resourceVersionSeg) == 2 {
+		resource, apiVersion = resourceVersionSeg[0], resourceVersionSeg[1]
+	} else if len(resourceVersionSeg) == 1 {
+		resource = resourceVersionSeg[0]
+	} else {
+		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource.apiversion/name or resource/name form must have a valid resource and optionally an apiversion separated by a dot")
+	}
+	if resource == "" {
+		return corev1.ObjectReference{}, false, fmt.Errorf("resource in resource.apiversion/name or resource/name form must not be empty")
+	}
+
 	return corev1.ObjectReference{
-		Kind:      resource,
-		Name:      name,
-		Namespace: namespace,
+		Kind:       resource,
+		Name:       name,
+		Namespace:  namespace,
+		APIVersion: apiVersion,
 	}, true, nil
 }

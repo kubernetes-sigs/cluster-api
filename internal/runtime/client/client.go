@@ -346,7 +346,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		ignore := *registration.FailurePolicy == runtimev1.FailurePolicyIgnore
 		if _, ok := err.(errCallingExtensionHandler); ok && ignore {
 			// Update the response to a default success response and return.
-			log.Info(fmt.Sprintf("ignoring error calling extension handler because of FailurePolicy %q", *registration.FailurePolicy))
+			log.Error(err, fmt.Sprintf("ignoring error calling extension handler because of FailurePolicy %q", *registration.FailurePolicy))
 			response.SetStatus(runtimehooksv1.ResponseStatusSuccess)
 			response.SetMessage("")
 			return nil

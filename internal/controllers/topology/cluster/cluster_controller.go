@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -111,7 +112,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -160,13 +161,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	// Return early if the Cluster is paused.
-	// TODO: What should we do if the cluster class is paused?
-	if annotations.IsPaused(cluster, cluster) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	patchHelper, err := patch.NewHelper(cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -184,6 +178,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		options := []patch.Option{
 			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 				clusterv1.TopologyReconciledCondition,
+				clusterv1.PausedCondition,
 			}},
 			patch.WithForceOverwriteConditions{},
 		}
@@ -192,6 +187,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return
 		}
 	}()
+
+	// Return early and set the paused condition to True if the object or Cluster
+	// is paused.
+	// TODO: What should we do if the cluster class is paused?
+	if annotations.IsPaused(cluster, cluster) {
+		log.Info("Reconciliation is paused for this object")
+
+		newPausedCondition := &clusterv1.Condition{
+			Type:     clusterv1.PausedCondition,
+			Status:   corev1.ConditionTrue,
+			Severity: clusterv1.ConditionSeverityInfo,
+			Reason:   clusterv1.ClusterPausedReason,
+		}
+
+		conditions.Set(cluster, newPausedCondition)
+		return ctrl.Result{}, nil
+	}
+
+	conditions.MarkFalseWithNegativePolarity(cluster, clusterv1.PausedCondition)
 
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).

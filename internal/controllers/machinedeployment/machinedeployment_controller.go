@@ -87,14 +87,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(ctrl.LoggerFrom(ctx),
-					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+					predicates.ClusterCreateUpdateEvent(ctrl.LoggerFrom(ctx)),
 				),
 			),
 		).Complete(r)
@@ -130,12 +130,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, deployment) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(deployment, r.Client)
 	if err != nil {
@@ -153,6 +147,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
+
+	// Return early and set the paused condition to True if the object or Cluster
+	// is paused.
+	if annotations.IsPaused(cluster, deployment) {
+		log.Info("Reconciliation is paused for this object")
+
+		newPausedCondition := &clusterv1.Condition{
+			Type:     clusterv1.PausedCondition,
+			Status:   corev1.ConditionTrue,
+			Severity: clusterv1.ConditionSeverityInfo,
+		}
+
+		if cluster.Spec.Paused {
+			newPausedCondition.Reason = clusterv1.ClusterPausedReason
+		} else {
+			newPausedCondition.Reason = clusterv1.AnnotationPausedReason
+		}
+
+		conditions.Set(deployment, newPausedCondition)
+		return ctrl.Result{}, nil
+	}
+
+	conditions.MarkFalseWithNegativePolarity(deployment, clusterv1.PausedCondition)
 
 	// Ignore deleted MachineDeployments, this can happen when foregroundDeletion
 	// is enabled
@@ -261,6 +278,15 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	if md.Spec.Paused {
+		log.Info("This machine deployment is paused. Sync and status updates will still be reconciled")
+		newPausedCondition := &clusterv1.Condition{
+			Type:     clusterv1.PausedCondition,
+			Status:   corev1.ConditionTrue,
+			Severity: clusterv1.ConditionSeverityInfo,
+			Reason:   clusterv1.MachineDeploymentPausedReason,
+		}
+
+		conditions.Set(md, newPausedCondition)
 		return r.sync(ctx, md, msList)
 	}
 

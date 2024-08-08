@@ -42,8 +42,13 @@ A machine infrastructure provider must define an API type for "infrastructure ma
             defined as:
             - `type` (string): one of `Hostname`, `ExternalIP`, `InternalIP`, `ExternalDNS`, `InternalDNS`
             - `address` (string)
-7. Should have a conditions field with the following:
-   1. A Ready condition to represent the overall operational state of the component. It can be based on the summary of more detailed conditions existing on the same object, e.g. instanceReady, SecurityGroupsReady conditions.
+7. Should have a `Status.Conditions` field with the following:
+   1. A `Ready` condition to represent the overall operational state of the component. It can be based on the summary of more detailed conditions existing on the same object, e.g. instanceReady, SecurityGroupsReady conditions.
+   2. A `Paused` condition to report if the cluster or infrastructure machine is paused. It should check if 'spec.paused' is set on the cluster, and for the paused annotation on the infrastructure. This is currently optional, but will be required in the future.
+   ```go
+{{#include code-examples.md:2:28}}
+   ```
+
 
 Note: once any of `failureReason` or `failureMessage` surface on the machine who is referencing the infrastructureMachine object,
 they cannot be restored anymore (it is considered a terminal error; the only way to recover is to delete and recreate the machine).

@@ -26,7 +26,7 @@ RESULT=0
 SUMMARY=$(cat ./docs/book/src/SUMMARY.md)
 
 pushd ./docs/book/src > /dev/null
-FILES=$(find -- * -name "*.md" ! -name "SUMMARY.md")
+FILES=$(find -- * -name "*.md" ! -name "SUMMARY.md" ! -name "code-examples.md")
 while read -r file; do
   if ! [[ $SUMMARY == *"${file}"* ]]; then
     RESULT=1

@@ -8,13 +8,6 @@ rules:
   - ""
   resources:
   - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - secrets
   verbs:
   - get
@@ -36,17 +29,9 @@ rules:
   - cluster.x-k8s.io
   resources:
   - clusters
-  - machines
-  - machinesets
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machinepools
   - machinepools/status
+  - machinesets
   verbs:
   - get
   - list
@@ -64,45 +49,7 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - dockerclusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - dockerclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - dockermachinepools
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - dockermachinepools/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - dockermachines
   verbs:
   - create
@@ -115,6 +62,8 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - dockerclusters/status
+  - dockermachinepools/status
   - dockermachines/status
   verbs:
   - get

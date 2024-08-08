@@ -44,7 +44,7 @@ func (c *cache) startSyncer(ctx context.Context) error {
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	log.Info("Starting syncer queue")
-	c.syncQueue = workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
+	c.syncQueue = workqueue.NewTypedRateLimitingQueue[any](workqueue.DefaultTypedControllerRateLimiter[any]())
 	go func() {
 		<-ctx.Done()
 		c.syncQueue.ShutDown()

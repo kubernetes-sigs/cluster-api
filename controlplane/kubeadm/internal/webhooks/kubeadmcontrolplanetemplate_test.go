@@ -33,7 +33,7 @@ import (
 )
 
 func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	g := NewWithT(t)
 
@@ -63,7 +63,7 @@ func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
 }
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	t.Run("create kubeadmcontrolplanetemplate should pass if gate enabled and valid kubeadmcontrolplanetemplate", func(t *testing.T) {
 		testnamespace := "test"

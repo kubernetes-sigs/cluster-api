@@ -518,7 +518,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(ctx context.C
 }
 
 // resourceToClusterResourceSetFunc returns a typed mapper function that maps resources to ClusterResourceSet.
-func resourceToClusterResourceSetFunc[T client.Object](ctrlClient client.Client) handler.TypedMapFunc[T] {
+func resourceToClusterResourceSetFunc[T client.Object](ctrlClient client.Client) handler.TypedMapFunc[T, ctrl.Request] {
 	return func(ctx context.Context, o T) []ctrl.Request {
 		result := []ctrl.Request{}
 

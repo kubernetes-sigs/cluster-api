@@ -216,7 +216,7 @@ func handlePlugins() {
 			case "help", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
 				// Don't search for a plugin
 			default:
-				if err := kubectlcmd.HandlePluginCommand(pluginHandler, cmdPathPieces, false); err != nil {
+				if err := kubectlcmd.HandlePluginCommand(pluginHandler, cmdPathPieces, 0); err != nil { // FIXME: figure out what the right value for minArgs is
 					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 					os.Exit(1)
 				}

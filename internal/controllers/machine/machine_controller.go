@@ -562,8 +562,28 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		return errClusterIsBeingDeleted
 	}
 
-	// Cannot delete something that doesn't exist.
+	if machine.Status.NodeRef == nil && machine.Spec.ProviderID != nil {
+		// If we don't have a node reference, but a provider id has been set,
+		// try to retrieve the node one more time.
+		remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+		if err != nil {
+			return err
+		}
+		node, err := r.getNode(ctx, remoteClient, *machine.Spec.ProviderID)
+		if err != nil && err != ErrNodeNotFound {
+			return err
+		} else if err == nil {
+			machine.Status.NodeRef = &corev1.ObjectReference{
+				APIVersion: corev1.SchemeGroupVersion.String(),
+				Kind:       "Node",
+				Name:       node.Name,
+				UID:        node.UID,
+			}
+		}
+	}
+
 	if machine.Status.NodeRef == nil {
+		// Cannot delete something that doesn't exist.
 		return errNilNodeRef
 	}
 

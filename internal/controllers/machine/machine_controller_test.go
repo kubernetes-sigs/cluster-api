@@ -2631,10 +2631,11 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
 
 			r := &Reconciler{
-				Client:                   fakeClient,
-				Tracker:                  tracker,
-				recorder:                 record.NewFakeRecorder(10),
-				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+				UnstructuredCachingClient: fakeClient,
+				Client:                    fakeClient,
+				Tracker:                   tracker,
+				recorder:                  record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout:  10 * time.Millisecond,
 			}
 
 			cluster := testCluster.DeepCopy()

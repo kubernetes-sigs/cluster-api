@@ -2547,6 +2547,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				clusterv1.MachineControlPlaneLabel: "",
+				clusterv1.ClusterNameLabel:         "test-cluster",
 			},
 			Annotations: map[string]string{
 				"machine.cluster.x-k8s.io/exclude-node-draining": "",
@@ -2592,7 +2593,6 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 		name               string
 		deletionTimeout    *metav1.Duration
 		resultErr          bool
-		clusterDeleted     bool
 		expectNodeDeletion bool
 		createFakeClient   func(...client.Object) client.Client
 	}{
@@ -2627,10 +2627,6 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			}
 
 			cluster := testCluster.DeepCopy()
-			if tc.clusterDeleted {
-				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
-			}
-
 			_, err := r.reconcileDelete(context.Background(), cluster, m)
 
 			if tc.resultErr {
@@ -2639,7 +2635,7 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				if tc.expectNodeDeletion {
 					n := &corev1.Node{}
-					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+					g.Expect(apierrors.IsNotFound(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n))).To(BeTrue())
 				}
 			}
 		})

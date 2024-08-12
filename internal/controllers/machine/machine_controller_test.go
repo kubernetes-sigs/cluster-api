@@ -2533,6 +2533,131 @@ func TestNodeDeletion(t *testing.T) {
 	}
 }
 
+func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
+	g := NewWithT(t)
+
+	deletionTime := metav1.Now().Add(-1 * time.Second)
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Annotations: map[string]string{
+				"machine.cluster.x-k8s.io/exclude-node-draining": "",
+			},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "infra-config1",
+			},
+			Bootstrap:  clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+			ProviderID: ptr.To("test://id-1"),
+		},
+	}
+
+	cpmachine1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: corev1.ObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "cp1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name               string
+		deletionTimeout    *metav1.Duration
+		resultErr          bool
+		clusterDeleted     bool
+		expectNodeDeletion bool
+		createFakeClient   func(...client.Object) client.Client
+	}{
+		{
+			name:               "should return no error when the node exists and matches the provider id",
+			deletionTimeout:    &metav1.Duration{Duration: time.Second},
+			resultErr:          false,
+			expectNodeDeletion: true,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
+					WithStatusSubresource(&clusterv1.Machine{}).
+					Build()
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(*testing.T) {
+			m := testMachine.DeepCopy()
+			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+
+			fakeClient := tc.createFakeClient(node, m, cpmachine1)
+			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
+
+			r := &Reconciler{
+				UnstructuredCachingClient: fakeClient,
+				Client:                    fakeClient,
+				Tracker:                   tracker,
+				recorder:                  record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout:  10 * time.Millisecond,
+			}
+
+			cluster := testCluster.DeepCopy()
+			if tc.clusterDeleted {
+				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
+			}
+
+			_, err := r.reconcileDelete(context.Background(), cluster, m)
+
+			if tc.resultErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				if tc.expectNodeDeletion {
+					n := &corev1.Node{}
+					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+				}
+			}
+		})
+	}
+}
+
 // adds a condition list to an external object.
 func addConditionsToExternal(u *unstructured.Unstructured, newConditions clusterv1.Conditions) {
 	existingConditions := clusterv1.Conditions{}

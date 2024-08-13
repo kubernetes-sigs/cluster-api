@@ -368,7 +368,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		conditions.MarkTrue(m, clusterv1.PreDrainDeleteHookSucceededCondition)
 
 		// Drain node before deletion and issue a patch in order to make this operation visible to the users.
-		if r.isNodeDrainAllowed(m) {
+		if r.isNodeDrainAllowed(m) && !conditions.IsTrue(m, clusterv1.DrainingSucceededCondition) {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
 				return ctrl.Result{}, err

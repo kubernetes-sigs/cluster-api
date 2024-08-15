@@ -85,11 +85,20 @@ providers:
     type: "url"
     contract: v1beta1
     replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1.7/metadata.yaml"
-  - name: v1.8.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.8}" # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/core-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.8/metadata.yaml"
+  - name: v1.9.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
     - old: "--leader-elect"
@@ -154,7 +163,16 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.7/metadata.yaml"
-  - name: v1.8.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.8}" # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.8/metadata.yaml"
+  - name: v1.9.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: "--leader-elect"
@@ -219,7 +237,16 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.7/metadata.yaml"
-  - name: v1.8.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.8}" # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.8/metadata.yaml"
+  - name: v1.9.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: "--leader-elect"
@@ -296,7 +323,19 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1.7/cluster-template.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.7/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/v1.7/clusterclass-quick-start.yaml"
-  - name: v1.8.99 # next; use manifest from source files
+  - name: "{go://sigs.k8s.io/cluster-api@v1.8}" # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/infrastructure-components-development.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1.8/metadata.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.8/cluster-template.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.8/cluster-template-topology.yaml"
+      - sourcePath: "../data/infrastructure-docker/v1.8/clusterclass-quick-start.yaml"
+  - name: v1.9.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: "--leader-elect"
@@ -326,7 +365,7 @@ providers:
 - name: in-memory
   type: InfrastructureProvider
   versions:
-  - name: v1.8.99 # next; use manifest from source files
+  - name: v1.9.99 # next; use manifest from source files
     value: ../../../test/infrastructure/inmemory/config/default
     replacements:
     - old: "--leader-elect"
@@ -340,7 +379,7 @@ providers:
 - name: test-extension
   type: RuntimeExtensionProvider
   versions:
-    - name: v1.8.99 # next; use manifest from source files
+    - name: v1.9.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
       replacements:
       - old: "--leader-elect"

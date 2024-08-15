@@ -102,7 +102,7 @@ This comes down to changing occurrences of the old version to the new version, e
           Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest management cluster version supported by the respective Cluster API version.
        2. Please ping maintainers after these changes are made for a first round of feedback before continuing with the steps below.
    2. Update providers in `docker.yaml`:
-       1. Add a new `v1.6.0` entry.
+       1. Add a new `v1.6` entry.
        2. Remove providers that are not used anymore in clusterctl upgrade tests.
        3. Change `v1.5.99` to `v1.6.99`.
    3. Adjust `metadata.yaml`'s:

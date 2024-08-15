@@ -92,7 +92,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)
 			webhook := ExtensionConfig{}
 			g := NewWithT(t)
 			warnings, err := webhook.validate(context.TODO(), tt.old, tt.new)
@@ -109,7 +109,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 
 func TestExtensionConfigDefault(t *testing.T) {
 	g := NewWithT(t)
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	extensionConfig := &runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
@@ -333,7 +333,7 @@ func TestExtensionConfigValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)()
+			utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)
 			g := NewWithT(t)
 			webhook := &ExtensionConfig{}
 			// Default the objects so we're not handling defaulted cases.

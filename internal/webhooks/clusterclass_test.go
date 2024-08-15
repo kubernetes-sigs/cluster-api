@@ -25,6 +25,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/version"
+	utilversion "k8s.io/apiserver/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -52,7 +54,7 @@ func init() {
 func TestClusterClassDefaultNamespaces(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	namespace := "default"
 
@@ -223,7 +225,7 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 func TestClusterClassValidation(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	ref := &corev1.ObjectReference{
 		APIVersion: "group.test.io/foo",
@@ -1855,6 +1857,17 @@ func TestClusterClassValidation(t *testing.T) {
 				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
 				Build()
 
+			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor
+			// the unit tests that verify that compatibility is handled correctly.
+			effectiveVer := utilversion.DefaultComponentGlobalsRegistry.EffectiveVersionFor(utilversion.DefaultKubeComponent)
+			if effectiveVer != nil {
+				g.Expect(effectiveVer.MinCompatibilityVersion()).To(Equal(version.MustParse("v1.29")))
+			} else {
+				v := utilversion.DefaultKubeEffectiveVersion()
+				v.SetMinCompatibilityVersion(version.MustParse("v1.29"))
+				g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
+			}
+
 			// Create the webhook and add the fakeClient as its client.
 			webhook := &ClusterClass{Client: fakeClient}
 			err := webhook.validate(ctx, tt.old, tt.in)
@@ -1870,7 +1883,7 @@ func TestClusterClassValidation(t *testing.T) {
 func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
 	// Enabling the feature flag temporarily for this test.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	tests := []struct {
 		name            string

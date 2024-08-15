@@ -129,8 +129,7 @@ type ClusterConfiguration struct {
 // ControlPlaneComponent holds settings common to control plane component of the cluster.
 type ControlPlaneComponent struct {
 	// ExtraArgs is an extra set of flags to pass to the control plane component.
-	// TODO: This is temporary and ideally we would like to switch all components to
-	// use ComponentConfig + ConfigMaps.
+	// TODO: This is temporary and ideally we would like to switch all components to use ComponentConfig + ConfigMaps.
 	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
 
 	// ExtraVolumes is an extra set of host volumes, mounted to the control plane component.

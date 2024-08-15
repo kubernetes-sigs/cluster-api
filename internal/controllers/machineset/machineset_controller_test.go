@@ -1439,7 +1439,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 	t.Run("should delete unhealthy machines if preflight checks pass", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
 
 		g := NewWithT(t)
 
@@ -1499,7 +1499,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 	})
 
 	t.Run("should update the unhealthy machine MachineOwnerRemediated condition if preflight checks did not pass", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
 
 		g := NewWithT(t)
 
@@ -1914,7 +1914,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 	t.Run("should hold off on creating new machines when preflight checks do not pass", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
 
 		g := NewWithT(t)
 

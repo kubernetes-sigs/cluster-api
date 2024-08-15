@@ -143,8 +143,7 @@ type ControlPlaneComponent struct {
 	// ExtraArgs is an extra set of flags to pass to the control plane component.
 	// A key in this map is the flag name as it appears on the
 	// command line except without leading dash(es).
-	// TODO: This is temporary and ideally we would like to switch all components to
-	// use ComponentConfig + ConfigMaps.
+	// TODO: This is temporary and ideally we would like to switch all components to use ComponentConfig + ConfigMaps.
 	ExtraArgs map[string]string `json:"extraArgs,omitempty"`
 
 	// ExtraVolumes is an extra set of host volumes, mounted to the control plane component.

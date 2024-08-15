@@ -268,7 +268,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			if tt.enableIgnitionFeature {
 				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
 				// Enabling the feature flag temporarily for this test.
-				defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)()
+				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)
 			}
 
 			g := NewWithT(t)
@@ -1052,7 +1052,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			if tt.enableIgnitionFeature {
 				// NOTE: KubeadmBootstrapFormatIgnition feature flag is disabled by default.
 				// Enabling the feature flag temporarily for this test.
-				defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)()
+				utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.KubeadmBootstrapFormatIgnition, true)
 			}
 
 			g := NewWithT(t)

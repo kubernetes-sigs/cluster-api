@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: clusterclasses.cluster.x-k8s.io
 spec:
   group: cluster.x-k8s.io
@@ -29,7 +29,6 @@ spec:
       openAPIV3Schema:
         description: |-
           ClusterClass is a template which can be used to create managed topologies.
-
 
           Deprecated: This type will be removed in one of the next releases.
         properties:
@@ -63,7 +62,6 @@ spec:
                       MachineTemplate defines the metadata and infrastructure information
                       for control plane machines.
 
-
                       This field is supported if and only if the control plane provider template
                       referenced above is Machine based and supports setting replicas.
                     properties:
@@ -84,7 +82,6 @@ spec:
                               the event) or if no container name is specified "spec.containers[2]" (container with
                               index 2 in this pod). This syntax is chosen only to have some well-defined way of
                               referencing a part of an object.
-                              TODO: this design is not final and this field is subject to change in the future.
                             type: string
                           kind:
                             description: |-
@@ -120,7 +117,6 @@ spec:
                     description: |-
                       Metadata is the metadata applied to the machines of the ControlPlane.
                       At runtime this metadata is merged with the corresponding metadata from the topology.
-
 
                       This field is supported if and only if the control plane provider template
                       referenced is Machine based.
@@ -161,7 +157,6 @@ spec:
                           the event) or if no container name is specified "spec.containers[2]" (container with
                           index 2 in this pod). This syntax is chosen only to have some well-defined way of
                           referencing a part of an object.
-                          TODO: this design is not final and this field is subject to change in the future.
                         type: string
                       kind:
                         description: |-
@@ -218,7 +213,6 @@ spec:
                           the event) or if no container name is specified "spec.containers[2]" (container with
                           index 2 in this pod). This syntax is chosen only to have some well-defined way of
                           referencing a part of an object.
-                          TODO: this design is not final and this field is subject to change in the future.
                         type: string
                       kind:
                         description: |-
@@ -298,7 +292,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -352,7 +345,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -479,13 +471,11 @@ spec:
                           to consider a Machine unhealthy if a corresponding Node isn't associated
                           through a `Spec.ProviderID` field.
 
-
                           The duration set in this field is compared to the greatest of:
                           - Cluster's infrastructure ready condition timestamp (if and when available)
                           - Control Plane's initialized condition timestamp (if and when available)
                           - Machine's infrastructure ready condition timestamp (if and when available)
                           - Machine's metadata creation timestamp
-
 
                           Defaults to 10 minutes.
                           If you wish to disable this feature, set the value explicitly to 0.
@@ -494,7 +484,6 @@ spec:
                         description: |-
                           RemediationTemplate is a reference to a remediation template
                           provided by an infrastructure provider.
-
 
                           This field is completely optional, when filled, the MachineHealthCheck controller
                           creates a new object from the template referenced and hands off remediation of the machine to
@@ -512,7 +501,6 @@ spec:
                               the event) or if no container name is specified "spec.containers[2]" (container with
                               index 2 in this pod). This syntax is chosen only to have some well-defined way of
                               referencing a part of an object.
-                              TODO: this design is not final and this field is subject to change in the future.
                             type: string
                           kind:
                             description: |-
@@ -581,7 +569,6 @@ spec:
                       MachineInfrastructure defines the metadata and infrastructure information
                       for control plane machines.
 
-
                       This field is supported if and only if the control plane provider template
                       referenced above is Machine based and supports setting replicas.
                     properties:
@@ -602,7 +589,6 @@ spec:
                               the event) or if no container name is specified "spec.containers[2]" (container with
                               index 2 in this pod). This syntax is chosen only to have some well-defined way of
                               referencing a part of an object.
-                              TODO: this design is not final and this field is subject to change in the future.
                             type: string
                           kind:
                             description: |-
@@ -640,7 +626,6 @@ spec:
                       if the ControlPlaneTemplate referenced is machine based. If not, it is applied only to the
                       ControlPlane.
                       At runtime this metadata is merged with the corresponding metadata from the topology.
-
 
                       This field is supported if and only if the control plane provider template
                       referenced is Machine based.
@@ -716,7 +701,6 @@ spec:
                           the event) or if no container name is specified "spec.containers[2]" (container with
                           index 2 in this pod). This syntax is chosen only to have some well-defined way of
                           referencing a part of an object.
-                          TODO: this design is not final and this field is subject to change in the future.
                         type: string
                       kind:
                         description: |-
@@ -773,7 +757,6 @@ spec:
                           the event) or if no container name is specified "spec.containers[2]" (container with
                           index 2 in this pod). This syntax is chosen only to have some well-defined way of
                           referencing a part of an object.
-                          TODO: this design is not final and this field is subject to change in the future.
                         type: string
                       kind:
                         description: |-
@@ -995,7 +978,6 @@ spec:
                         Metadata is the metadata of a variable.
                         It can be used to add additional data for higher level tools to
                         a ClusterClassVariable.
-
 
                         Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.
                       properties:
@@ -1248,7 +1230,7 @@ spec:
                                       < 10\"}\n- Rule scoped to a list of integers:
                                       {\"rule\": \"self.values.all(value, value >=
                                       0 && value < 100)\"}\n- Rule scoped to a string
-                                      value: {\"rule\": \"self.startsWith('kube')\"}\n\n\nUnknown
+                                      value: {\"rule\": \"self.startsWith('kube')\"}\n\nUnknown
                                       data preserved in custom resources via x-kubernetes-preserve-unknown-fields
                                       is not accessible in CEL\nexpressions. This
                                       includes:\n- Unknown field values that are preserved
@@ -1260,31 +1242,31 @@ spec:
                                       set to true\n  - An array where the items schema
                                       is of an \"unknown type\"\n  - An object where
                                       the additionalProperties schema is of an \"unknown
-                                      type\"\n\n\nOnly property names of the form
-                                      `[a-zA-Z_.-/][a-zA-Z0-9_.-/]*` are accessible.\nAccessible
-                                      property names are escaped according to the
-                                      following rules when accessed in the expression:\n-
-                                      '__' escapes to '__underscores__'\n- '.' escapes
-                                      to '__dot__'\n- '-' escapes to '__dash__'\n-
-                                      '/' escapes to '__slash__'\n- Property names
-                                      that exactly match a CEL RESERVED keyword escape
-                                      to '__{keyword}__'. The keywords are:\n\t  \"true\",
-                                      \"false\", \"null\", \"in\", \"as\", \"break\",
-                                      \"const\", \"continue\", \"else\", \"for\",
-                                      \"function\", \"if\",\n\t  \"import\", \"let\",
-                                      \"loop\", \"package\", \"namespace\", \"return\".\nExamples:\n
+                                      type\"\n\nOnly property names of the form `[a-zA-Z_.-/][a-zA-Z0-9_.-/]*`
+                                      are accessible.\nAccessible property names are
+                                      escaped according to the following rules when
+                                      accessed in the expression:\n- '__' escapes
+                                      to '__underscores__'\n- '.' escapes to '__dot__'\n-
+                                      '-' escapes to '__dash__'\n- '/' escapes to
+                                      '__slash__'\n- Property names that exactly match
+                                      a CEL RESERVED keyword escape to '__{keyword}__'.
+                                      The keywords are:\n\t  \"true\", \"false\",
+                                      \"null\", \"in\", \"as\", \"break\", \"const\",
+                                      \"continue\", \"else\", \"for\", \"function\",
+                                      \"if\",\n\t  \"import\", \"let\", \"loop\",
+                                      \"package\", \"namespace\", \"return\".\nExamples:\n
                                       \ - Rule accessing a property named \"namespace\":
                                       {\"rule\": \"self.__namespace__ > 0\"}\n  -
                                       Rule accessing a property named \"x-prop\":
                                       {\"rule\": \"self.x__dash__prop > 0\"}\n  -
                                       Rule accessing a property named \"redact__d\":
-                                      {\"rule\": \"self.redact__underscores__d > 0\"}\n\n\nIf
+                                      {\"rule\": \"self.redact__underscores__d > 0\"}\n\nIf
                                       `rule` makes use of the `oldSelf` variable it
-                                      is implicitly a\n`transition rule`.\n\n\nBy
-                                      default, the `oldSelf` variable is the same
-                                      type as `self`.\n\n\nTransition rules by default
-                                      are applied only on UPDATE requests and are\nskipped
-                                      if an old value could not be found."
+                                      is implicitly a\n`transition rule`.\n\nBy default,
+                                      the `oldSelf` variable is the same type as `self`.\n\nTransition
+                                      rules by default are applied only on UPDATE
+                                      requests and are\nskipped if an old value could
+                                      not be found."
                                     type: string
                                 required:
                                 - rule
@@ -1371,13 +1353,11 @@ spec:
                                 to consider a Machine unhealthy if a corresponding Node isn't associated
                                 through a `Spec.ProviderID` field.
 
-
                                 The duration set in this field is compared to the greatest of:
                                 - Cluster's infrastructure ready condition timestamp (if and when available)
                                 - Control Plane's initialized condition timestamp (if and when available)
                                 - Machine's infrastructure ready condition timestamp (if and when available)
                                 - Machine's metadata creation timestamp
-
 
                                 Defaults to 10 minutes.
                                 If you wish to disable this feature, set the value explicitly to 0.
@@ -1386,7 +1366,6 @@ spec:
                               description: |-
                                 RemediationTemplate is a reference to a remediation template
                                 provided by an infrastructure provider.
-
 
                                 This field is completely optional, when filled, the MachineHealthCheck controller
                                 creates a new object from the template referenced and hands off remediation of the machine to
@@ -1404,7 +1383,6 @@ spec:
                                     the event) or if no container name is specified "spec.containers[2]" (container with
                                     index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                     referencing a part of an object.
-                                    TODO: this design is not final and this field is subject to change in the future.
                                   type: string
                                 kind:
                                   description: |-
@@ -1531,19 +1509,15 @@ spec:
                                   description: |-
                                     MaxInFlight determines how many in flight remediations should happen at the same time.
 
-
                                     Remediation only happens on the MachineSet with the most current revision, while
                                     older MachineSets (usually present during rollout operations) aren't allowed to remediate.
-
 
                                     Note: In general (independent of remediations), unhealthy machines are always
                                     prioritized during scale down operations over healthy ones.
 
-
                                     MaxInFlight can be set to a fixed number or a percentage.
                                     Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
                                     the desired replicas.
-
 
                                     If not set, remediation is limited to all machines (bounded by replicas)
                                     under the active MachineSet's management.
@@ -1638,7 +1612,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -1692,7 +1665,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -1855,7 +1827,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -1909,7 +1880,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -2056,7 +2026,6 @@ spec:
                               Metadata is the metadata of a variable.
                               It can be used to add additional data for higher level tools to
                               a ClusterClassVariable.
-
 
                               Deprecated: This field is deprecated and is going to be removed in the next apiVersion.
                             properties:
@@ -2312,7 +2281,7 @@ spec:
                                             10\"}\n- Rule scoped to a list of integers:
                                             {\"rule\": \"self.values.all(value, value
                                             >= 0 && value < 100)\"}\n- Rule scoped
-                                            to a string value: {\"rule\": \"self.startsWith('kube')\"}\n\n\nUnknown
+                                            to a string value: {\"rule\": \"self.startsWith('kube')\"}\n\nUnknown
                                             data preserved in custom resources via
                                             x-kubernetes-preserve-unknown-fields is
                                             not accessible in CEL\nexpressions. This
@@ -2325,7 +2294,7 @@ spec:
                                             set to true\n  - An array where the items
                                             schema is of an \"unknown type\"\n  -
                                             An object where the additionalProperties
-                                            schema is of an \"unknown type\"\n\n\nOnly
+                                            schema is of an \"unknown type\"\n\nOnly
                                             property names of the form `[a-zA-Z_.-/][a-zA-Z0-9_.-/]*`
                                             are accessible.\nAccessible property names
                                             are escaped according to the following
@@ -2346,10 +2315,10 @@ spec:
                                             {\"rule\": \"self.x__dash__prop > 0\"}\n
                                             \ - Rule accessing a property named \"redact__d\":
                                             {\"rule\": \"self.redact__underscores__d
-                                            > 0\"}\n\n\nIf `rule` makes use of the
-                                            `oldSelf` variable it is implicitly a\n`transition
-                                            rule`.\n\n\nBy default, the `oldSelf`
-                                            variable is the same type as `self`.\n\n\nTransition
+                                            > 0\"}\n\nIf `rule` makes use of the `oldSelf`
+                                            variable it is implicitly a\n`transition
+                                            rule`.\n\nBy default, the `oldSelf` variable
+                                            is the same type as `self`.\n\nTransition
                                             rules by default are applied only on UPDATE
                                             requests and are\nskipped if an old value
                                             could not be found."

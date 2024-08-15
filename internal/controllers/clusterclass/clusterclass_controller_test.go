@@ -29,6 +29,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/version"
+	utilversion "k8s.io/apiserver/pkg/util/version"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -827,7 +829,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 								},
 								XValidations: []clusterv1.ValidationRule{{
 									Rule:              "true",
-									MessageExpression: "'test error message, got value %s'.format([self])",
+									MessageExpression: "'test error message, got value %s'.format([self.enabled])",
 									FieldPath:         ".enabled",
 								}},
 							},
@@ -889,7 +891,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 									},
 									XValidations: []clusterv1.ValidationRule{{
 										Rule:              "true",
-										MessageExpression: "'test error message, got value %s'.format([self])",
+										MessageExpression: "'test error message, got value %s'.format([self.enabled])",
 										FieldPath:         ".enabled",
 									}},
 								},
@@ -1196,6 +1198,17 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				RuntimeClient: fakeRuntimeClient,
 			}
 
+			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor
+			// the unit tests that verify that compatibility is handled correctly.
+			effectiveVer := utilversion.DefaultComponentGlobalsRegistry.EffectiveVersionFor(utilversion.DefaultKubeComponent)
+			if effectiveVer != nil {
+				g.Expect(effectiveVer.MinCompatibilityVersion()).To(Equal(version.MustParse("v1.29")))
+			} else {
+				v := utilversion.DefaultKubeEffectiveVersion()
+				v.SetMinCompatibilityVersion(version.MustParse("v1.29"))
+				g.Expect(utilversion.DefaultComponentGlobalsRegistry.Register(utilversion.DefaultKubeComponent, v, nil)).To(Succeed())
+			}
+
 			err := r.reconcileVariables(ctx, tt.clusterClass)
 
 			// Cleanup condition timestamps for easier comparison.
@@ -1204,6 +1217,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 			}
 			g.Expect(tt.wantConditions).To(Equal(tt.clusterClass.Status.Conditions))
 			if tt.wantErrMessage != "" {
+				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(Equal(tt.wantErrMessage))
 				return
 			}

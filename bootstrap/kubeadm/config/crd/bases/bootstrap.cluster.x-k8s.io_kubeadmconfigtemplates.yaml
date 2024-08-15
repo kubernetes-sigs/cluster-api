@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: kubeadmconfigtemplates.bootstrap.cluster.x-k8s.io
 spec:
   group: bootstrap.cluster.x-k8s.io
@@ -22,7 +22,6 @@ spec:
       openAPIV3Schema:
         description: |-
           KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.
-
 
           Deprecated: This type will be removed in one of the next releases.
         properties:
@@ -71,10 +70,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
@@ -152,10 +149,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
@@ -343,10 +338,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
@@ -702,7 +695,6 @@ spec:
                               CACertPath is the path to the SSL certificate authority used to
                               secure comunications between node and control-plane.
                               Defaults to "/etc/kubernetes/pki/ca.crt".
-                              TODO: revisit when there is defaulting from k/k
                             type: string
                           controlPlane:
                             description: |-
@@ -730,9 +722,8 @@ spec:
                                 type: object
                             type: object
                           discovery:
-                            description: |-
-                              Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-                              TODO: revisit when there is defaulting from k/k
+                            description: Discovery specifies the options for the kubelet
+                              to use during the TLS Bootstrap process
                             properties:
                               bootstrapToken:
                                 description: |-
@@ -793,7 +784,6 @@ spec:
                                   TLSBootstrapToken is a token used for TLS bootstrapping.
                                   If .BootstrapToken is set, this field is defaulted to .BootstrapToken.Token, but can be overridden.
                                   If .File is set, this field **must be set** in case the KubeConfigFile does not contain any other authentication information
-                                  TODO: revisit when there is defaulting from k/k
                                 type: string
                             type: object
                           kind:
@@ -905,14 +895,11 @@ spec:
                           UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
                           script with retries for joins.
 
-
                           This is meant to be an experimental temporary workaround on some environments
                           where joins fail due to timing (and other issues). The long term goal is to add retries to
                           kubeadm proper and use that functionality.
 
-
                           This will add about 40KB to userdata
-
 
                           For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
                         type: boolean
@@ -995,7 +982,6 @@ spec:
         description: |-
           KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.
 
-
           Deprecated: This type will be removed in one of the next releases.
         properties:
           apiVersion:
@@ -1043,10 +1029,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
@@ -1124,10 +1108,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
@@ -1312,10 +1294,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraVolumes:
                                 description: ExtraVolumes is an extra set of host
@@ -1670,7 +1650,6 @@ spec:
                               CACertPath is the path to the SSL certificate authority used to
                               secure comunications between node and control-plane.
                               Defaults to "/etc/kubernetes/pki/ca.crt".
-                              TODO: revisit when there is defaulting from k/k
                             type: string
                           controlPlane:
                             description: |-
@@ -1695,9 +1674,8 @@ spec:
                                 type: object
                             type: object
                           discovery:
-                            description: |-
-                              Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-                              TODO: revisit when there is defaulting from k/k
+                            description: Discovery specifies the options for the kubelet
+                              to use during the TLS Bootstrap process
                             properties:
                               bootstrapToken:
                                 description: |-
@@ -1875,14 +1853,11 @@ spec:
                           UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
                           script with retries for joins.
 
-
                           This is meant to be an experimental temporary workaround on some environments
                           where joins fail due to timing (and other issues). The long term goal is to add retries to
                           kubeadm proper and use that functionality.
 
-
                           This will add about 40KB to userdata
-
 
                           For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
                         type: boolean
@@ -2034,10 +2009,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraEnvs:
                                 description: |-
@@ -2081,9 +2054,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the ConfigMap
@@ -2153,9 +2124,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the Secret
@@ -2246,10 +2215,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraEnvs:
                                 description: |-
@@ -2293,9 +2260,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the ConfigMap
@@ -2365,9 +2330,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the Secret
@@ -2529,9 +2492,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -2602,9 +2563,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -2705,10 +2664,8 @@ spec:
                               extraArgs:
                                 additionalProperties:
                                   type: string
-                                description: |-
-                                  ExtraArgs is an extra set of flags to pass to the control plane component.
-                                  TODO: This is temporary and ideally we would like to switch all components to
-                                  use ComponentConfig + ConfigMaps.
+                                description: ExtraArgs is an extra set of flags to
+                                  pass to the control plane component.
                                 type: object
                               extraEnvs:
                                 description: |-
@@ -2752,9 +2709,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the ConfigMap
@@ -2824,9 +2779,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the Secret
@@ -3039,7 +2992,6 @@ spec:
                                 description: |-
                                   AdditionalConfig contains additional configuration to be merged with the Ignition
                                   configuration generated by the bootstrapper controller. More info: https://coreos.github.io/ignition/operator-notes/#config-merging
-
 
                                   The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/
                                 type: string
@@ -3266,7 +3218,6 @@ spec:
                               CACertPath is the path to the SSL certificate authority used to
                               secure comunications between node and control-plane.
                               Defaults to "/etc/kubernetes/pki/ca.crt".
-                              TODO: revisit when there is defaulting from k/k
                             type: string
                           controlPlane:
                             description: |-
@@ -3291,9 +3242,8 @@ spec:
                                 type: object
                             type: object
                           discovery:
-                            description: |-
-                              Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-                              TODO: revisit when there is defaulting from k/k
+                            description: Discovery specifies the options for the kubelet
+                              to use during the TLS Bootstrap process
                             properties:
                               bootstrapToken:
                                 description: |-
@@ -3342,14 +3292,12 @@ spec:
                                       KubeConfig is used (optionally) to generate a KubeConfig based on the KubeadmConfig's information.
                                       The file is generated at the path specified in KubeConfigPath.
 
-
                                       Host address (server field) information is automatically populated based on the Cluster's ControlPlaneEndpoint.
                                       Certificate Authority (certificate-authority-data field) is gathered from the cluster's CA secret.
                                     properties:
                                       cluster:
                                         description: |-
                                           Cluster contains information about how to communicate with the kubernetes cluster.
-
 
                                           By default the following fields are automatically populated:
                                           - Server with the Cluster's ControlPlaneEndpoint.
@@ -3358,7 +3306,6 @@ spec:
                                           certificateAuthorityData:
                                             description: |-
                                               CertificateAuthorityData contains PEM-encoded certificate authority certificates.
-
 
                                               Defaults to the Cluster's CA certificate if empty.
                                             format: byte
@@ -3378,14 +3325,12 @@ spec:
                                               https_proxy environment variables. If these environment variables are not
                                               set, the client does not attempt to proxy requests.
 
-
                                               socks5 proxying does not currently support spdy streaming endpoints (exec,
                                               attach, port forward).
                                             type: string
                                           server:
                                             description: |-
                                               Server is the address of the kubernetes cluster (https://hostname:port).
-
 
                                               Defaults to https:// + Cluster.Spec.ControlPlaneEndpoint.
                                             type: string
@@ -3652,17 +3597,13 @@ spec:
                           UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
                           script with retries for joins.
 
-
                           This is meant to be an experimental temporary workaround on some environments
                           where joins fail due to timing (and other issues). The long term goal is to add retries to
                           kubeadm proper and use that functionality.
 
-
                           This will add about 40KB to userdata
 
-
                           For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
-
 
                           Deprecated: This experimental fix is no longer needed and this field will be removed in a future release.
                           When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml

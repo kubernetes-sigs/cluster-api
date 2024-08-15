@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: clusters.cluster.x-k8s.io
 spec:
   group: cluster.x-k8s.io
@@ -114,7 +114,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -160,7 +159,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -315,7 +313,6 @@ spec:
         description: |-
           Cluster is the Schema for the clusters API.
 
-
           Deprecated: This type will be removed in one of the next releases.
         properties:
           apiVersion:
@@ -403,7 +400,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -449,7 +445,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -500,7 +495,6 @@ spec:
                         description: |-
                           Metadata is the metadata applied to the machines of the ControlPlane.
                           At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
-
 
                           This field is supported if and only if the control plane provider template
                           referenced in the ClusterClass is Machine based.
@@ -820,7 +814,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -866,7 +859,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -922,13 +914,10 @@ spec:
                             description: |-
                               Enable controls if a MachineHealthCheck should be created for the target machines.
 
-
                               If false: No MachineHealthCheck will be created.
-
 
                               If not set(default): A MachineHealthCheck will be created if it is defined here or
                                in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.
-
 
                               If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will
                               block if `enable` is true and no MachineHealthCheck definition is available.
@@ -947,13 +936,11 @@ spec:
                               to consider a Machine unhealthy if a corresponding Node isn't associated
                               through a `Spec.ProviderID` field.
 
-
                               The duration set in this field is compared to the greatest of:
                               - Cluster's infrastructure ready condition timestamp (if and when available)
                               - Control Plane's initialized condition timestamp (if and when available)
                               - Machine's infrastructure ready condition timestamp (if and when available)
                               - Machine's metadata creation timestamp
-
 
                               Defaults to 10 minutes.
                               If you wish to disable this feature, set the value explicitly to 0.
@@ -962,7 +949,6 @@ spec:
                             description: |-
                               RemediationTemplate is a reference to a remediation template
                               provided by an infrastructure provider.
-
 
                               This field is completely optional, when filled, the MachineHealthCheck controller
                               creates a new object from the template referenced and hands off remediation of the machine to
@@ -980,7 +966,6 @@ spec:
                                   the event) or if no container name is specified "spec.containers[2]" (container with
                                   index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                   referencing a part of an object.
-                                  TODO: this design is not final and this field is subject to change in the future.
                                 type: string
                               kind:
                                 description: |-
@@ -1111,7 +1096,6 @@ spec:
                                   description: |-
                                     DefinitionFrom specifies where the definition of this Variable is from.
 
-
                                     Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                   type: string
                                 name:
@@ -1142,7 +1126,6 @@ spec:
                       RolloutAfter performs a rollout of the entire cluster one component at a time,
                       control plane first and then machine deployments.
 
-
                       Deprecated: This field has no function and is going to be removed in the next apiVersion.
                     format: date-time
                     type: string
@@ -1159,7 +1142,6 @@ spec:
                         definitionFrom:
                           description: |-
                             DefinitionFrom specifies where the definition of this Variable is from.
-
 
                             Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                           type: string
@@ -1220,13 +1202,10 @@ spec:
                                   description: |-
                                     Enable controls if a MachineHealthCheck should be created for the target machines.
 
-
                                     If false: No MachineHealthCheck will be created.
-
 
                                     If not set(default): A MachineHealthCheck will be created if it is defined here or
                                      in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.
-
 
                                     If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will
                                     block if `enable` is true and no MachineHealthCheck definition is available.
@@ -1245,13 +1224,11 @@ spec:
                                     to consider a Machine unhealthy if a corresponding Node isn't associated
                                     through a `Spec.ProviderID` field.
 
-
                                     The duration set in this field is compared to the greatest of:
                                     - Cluster's infrastructure ready condition timestamp (if and when available)
                                     - Control Plane's initialized condition timestamp (if and when available)
                                     - Machine's infrastructure ready condition timestamp (if and when available)
                                     - Machine's metadata creation timestamp
-
 
                                     Defaults to 10 minutes.
                                     If you wish to disable this feature, set the value explicitly to 0.
@@ -1260,7 +1237,6 @@ spec:
                                   description: |-
                                     RemediationTemplate is a reference to a remediation template
                                     provided by an infrastructure provider.
-
 
                                     This field is completely optional, when filled, the MachineHealthCheck controller
                                     creates a new object from the template referenced and hands off remediation of the machine to
@@ -1278,7 +1254,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -1423,19 +1398,15 @@ spec:
                                       description: |-
                                         MaxInFlight determines how many in flight remediations should happen at the same time.
 
-
                                         Remediation only happens on the MachineSet with the most current revision, while
                                         older MachineSets (usually present during rollout operations) aren't allowed to remediate.
-
 
                                         Note: In general (independent of remediations), unhealthy machines are always
                                         prioritized during scale down operations over healthy ones.
 
-
                                         MaxInFlight can be set to a fixed number or a percentage.
                                         Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
                                         the desired replicas.
-
 
                                         If not set, remediation is limited to all machines (bounded by replicas)
                                         under the active MachineSet's management.
@@ -1518,7 +1489,6 @@ spec:
                                       definitionFrom:
                                         description: |-
                                           DefinitionFrom specifies where the definition of this Variable is from.
-
 
                                           Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string
@@ -1652,7 +1622,6 @@ spec:
                                       definitionFrom:
                                         description: |-
                                           DefinitionFrom specifies where the definition of this Variable is from.
-
 
                                           Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string

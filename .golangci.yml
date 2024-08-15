@@ -238,7 +238,7 @@ issues:
   # Deprecations for MD revision management
   - linters:
       - staticcheck
-    text: "SA1019: (deployment|m|md)(.Spec.RevisionHistoryLimit)|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo is deprecated"
+    text: "SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated"
     # Deprecations for MHC MaxUnhealthy, UnhealthyRange
   - linters:
       - staticcheck

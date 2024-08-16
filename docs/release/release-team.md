@@ -70,8 +70,6 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 **Notes**:
 
 * The examples in these documents are based on the v1.6 release cycle.
-* The documents focus on tasks that are done for every release. One-time improvement tasks are out of scope.
-* If a task is prefixed with `[Track]` it means it should be ensured that this task is done, but the folks with the corresponding role are not responsible to do it themselves.
 
 | Role | Handbook |
 |---|---|

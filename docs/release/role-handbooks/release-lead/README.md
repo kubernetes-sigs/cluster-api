@@ -55,10 +55,12 @@ is used for e.g. local development and e2e tests. We also modify tests so that t
 This comes down to changing occurrences of the old version to the new version, e.g. `v1.5` to `v1.6`:
 
 1. Setup E2E tests for the new release:
-   1. Goal is that we have clusterctl upgrade tests for the latest stable versions of each contract / for each supported branch. For `v1.6` this means:
-      * v1beta1: `v1.0`, `v1.4`, `v1.5` (will change with each new release)
+   1. Goal is that we have clusterctl upgrade tests for all relevant upgrade cases
+       1. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go`. Please note the comments above each test case (look for `This test should be changed during "prepare main branch"`)
+          Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest management cluster version supported by the respective Cluster API version.
+       2. Please ping maintainers after these changes are made for a first round of feedback before continuing with the steps below.
    2. Update providers in `docker.yaml`:
-       1. Add a new `v1.6.0` entry.
+       1. Add a new `v1.6` entry.
        2. Remove providers that are not used anymore in clusterctl upgrade tests.
        3. Change `v1.5.99` to `v1.6.99`.
    3. Adjust `metadata.yaml`'s:
@@ -70,8 +72,7 @@ This comes down to changing occurrences of the old version to the new version, e
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
       1. Create a new `v1.6` folder. It should be created based on the `main` folder and only contain the templates we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
       2. Remove old folders that are not used anymore in clusterctl upgrade tests.
-   5. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
-      Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
+   5. Add a new Makefile target (e.g. `generate-e2e-templates-v1.6`) and potentially remove the Makefile target of versions that are not used anymore (if something was removed in 4.2)
 2. Update `create-local-repository.py` and `tools/internal/tilt-prepare/main.go`: `v1.5.99` => `v1.6.99`.
 3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-27-latest-main`).
 4. Remove an unsupported release version of Cluster API from the Makefile target that generates e2e templates. For example, remove `v1.3` while working on `v1.6`.
@@ -81,6 +82,7 @@ Prior art:
 * 1.5 - https://github.com/kubernetes-sigs/cluster-api/pull/8430/files
 * 1.6 - https://github.com/kubernetes-sigs/cluster-api/pull/9097/files
 * 1.7 - https://github.com/kubernetes-sigs/cluster-api/pull/9799/files
+* 1.9 - https://github.com/kubernetes-sigs/cluster-api/pull/11059
 
 #### Create a new GitHub milestone for the next release
 

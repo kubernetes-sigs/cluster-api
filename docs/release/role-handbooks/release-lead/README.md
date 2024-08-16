@@ -10,6 +10,19 @@
   - [Finalize release schedule and team](#finalize-release-schedule-and-team)
   - [Add/remove release team members](#addremove-release-team-members)
   - [Prepare main branch for development of the new release](#prepare-main-branch-for-development-of-the-new-release)
+  - [Create a new GitHub milestone for the next release](#create-a-new-github-milestone-for-the-next-release)
+  - [[Track] Remove previously deprecated code](#track-remove-previously-deprecated-code)
+  - [[Track] Bump dependencies](#track-bump-dependencies)
+  - [Set a tentative release date for the next minor release](#set-a-tentative-release-date-for-the-next-minor-release)
+  - [Assemble next release team](#assemble-next-release-team)
+  - [Update milestone applier and GitHub Actions](#update-milestone-applier-and-github-actions)
+  - [[Continuously] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
+  - [[Continuously] Bump the Go version](#continuously-bump-the-go-version)
+  - [[Repeatedly] Cut a release](#repeatedly-cut-a-release)
+  - [[Optional] Public release session](#optional-public-release-session)
+  - [[Optional] [Track] Bump the Cluster API apiVersion](#optional-track-bump-the-cluster-api-apiversion)
+  - [[Optional] [Track] Bump the Kubernetes version](#optional-track-bump-the-kubernetes-version)
+  - [[Optional] Track Release and Improvement tasks](#optional-track-release-and-improvement-tasks)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

@@ -189,7 +189,6 @@ to a newer Go minor version according to our [backport policy](./../../../../CON
 
 4. Publish the release in GitHub:
    1. Reach out to one of the maintainers over the Slack to publish the release in GitHub.
-      * **NOTE:** clusterctl will have issues installing providers between the time the release tag is cut and the Github release is published. See [issue 7889](https://github.com/kubernetes-sigs/cluster-api/issues/7889) for more details.
       * The draft release should be automatically created via the [Create Release GitHub Action](https://github.com/kubernetes-sigs/cluster-api/actions/workflows/release.yaml) with release notes previously committed to the repo by the release team. Ensure by reminding the maintainer that release is flagged as `pre-release` for all `beta` and `rc` releases or `latest` for a new release in the most recent release branch.
 
 5. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/c/clusterctl.rb).

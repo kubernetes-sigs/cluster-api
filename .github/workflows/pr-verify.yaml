@@ -12,8 +12,26 @@ jobs:
     runs-on: ubuntu-latest
     name: verify PR contents
     steps:
-    - name: Verifier action
-      id: verifier
-      uses: kubernetes-sigs/kubebuilder-release-tools@012269a88fa4c034a0acf1ba84c26b195c0dbab4 # tag=v0.4.3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
+
+      - name: Verifier PR type
+        run:  |
+          targets=(":sparkles:" ":bug:" ":book:" ":seedling:" ":warning:" ":rocket:" ":running:" "✨" "🐛" "📚" "🌱" "⚠️" "🚀" "🏃")
+          for target in "${targets[@]}"; do
+            if echo '${{ github.event.pull_request.title }}' | grep -o ^$target; then
+              echo "PR title contains a PR type"
+              exit 0
+            fi
+          done
+          echo "PR title does not contain a PR type"
+          exit 1
+
+      - name: Check if there is no Issue or PR number
+        run: |
+          if echo '${{ github.event.pull_request.title }}' | grep -o '#[0-9]+'; then
+            echo "PR title contains an Issue or PR number"
+            exit 1
+          fi
+          echo "PR title does not contain an Issue or PR number"
+          exit 0
+

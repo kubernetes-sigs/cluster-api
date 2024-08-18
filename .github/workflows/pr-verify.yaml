@@ -1,12 +1,11 @@
 name: PR verify
 
 on:
-  # pull_request_target:
-  #   types: [opened, edited, synchronize, reopened]
-  pull_request:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
 
 permissions:
-  checks: write # Allow access to checks to write check runs.
+  contents: write
 
 jobs:
   verify-pr-type:
@@ -68,7 +67,7 @@ jobs:
               issue_number: context.issue.number,
               body: `The title should just be descriptive.
 
-                Issue numbers belong in the PR body as either "Fixes #XYZ" (if it closes the issue or PR), or something like "Related to #XYZ" (if it's just related).`,
+                Issue numbers belong in the PR body as either "Fixes #XYZ" (if it closes the issue or PR), or something like "Related to #XYZ" (if it's just related).
               `
             })
 

@@ -8,30 +8,54 @@ permissions:
   checks: write # Allow access to checks to write check runs.
 
 jobs:
-  verify:
+  verify-pr-title:
     runs-on: ubuntu-latest
     name: verify PR contents
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
 
-      - name: Verifier PR type
+      - name: Check if PR title has acceptable prefix
+        uses: actions/github-script@v7
         run:  |
           targets=(":sparkles:" ":bug:" ":book:" ":seedling:" ":warning:" ":rocket:" ":running:" "✨" "🐛" "📚" "🌱" "⚠️" "🚀" "🏃")
           for target in "${targets[@]}"; do
             if echo '${{ github.event.pull_request.title }}' | grep -o ^$target; then
-              echo "PR title contains a PR type"
               exit 0
             fi
           done
-          echo "PR title does not contain a PR type"
-          exit 1
+
+
+          github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: `I saw a title of ${{ github.event.pull_request.title }}, which doesn't seem to have any of the acceptable prefixes.
+
+              You need to have one of these as the prefix of your PR title:
+              
+              - Breaking change: ⚠ ("warning")
+              - Non-breaking feature: ✨ ("sparkles")
+              - Patch fix: 🐛 ("bug")
+              - Docs: 📖 ("book")
+              - Release: 🚀 ("rocket")
+              - Infra/Tests/Other: 🌱 ("seedling")
+            `
+          })
 
       - name: Check if there is no Issue or PR number
+        uses: actions/github-script@v7
         run: |
           if echo '${{ github.event.pull_request.title }}' | grep -o '#[0-9]+'; then
-            echo "PR title contains an Issue or PR number"
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `The title should just be descriptive.
+
+                Issue numbers belong in the PR body as either "Fixes #XYZ" (if it closes the issue or PR), or something like "Related to #XYZ" (if it's just related).`,
+              `
+            })
             exit 1
           fi
-          echo "PR title does not contain an Issue or PR number"
           exit 0
 

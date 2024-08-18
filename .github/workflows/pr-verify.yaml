@@ -5,7 +5,11 @@ on:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
-  contents: write
+  contents: read
+  pull-requests: write
+
+env:
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   verify-pr-type:
@@ -23,54 +27,42 @@ jobs:
             fi
           done
 
-      - name: Create a comment if PR title doesn't have acceptable prefix
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `I saw a title of ${{ github.event.pull_request.title }}, which doesn't seem to have any of the acceptable prefixes.
+          cat <<EOF > /tmp/comment
+          I saw a title of ${{ github.event.pull_request.title }}, which doesn't seem to have any of the acceptable prefixes.
 
-                You need to have one of these as the prefix of your PR title:
+          You need to have one of these as the prefix of your PR title:
                 
-                - Breaking change: ⚠ ("warning")
-                - Non-breaking feature: ✨ ("sparkles")
-                - Patch fix: 🐛 ("bug")
-                - Docs: 📖 ("book")
-                - Release: 🚀 ("rocket")
-                - Infra/Tests/Other: 🌱 ("seedling")
-              `
-            })
+          - Breaking change: ⚠ ("warning")
+          - Non-breaking feature: ✨ ("sparkles")
+          - Patch fix: 🐛 ("bug")
+          - Docs: 📖 ("book")
+          - Release: 🚀 ("rocket")
+          - Infra/Tests/Other: 🌱 ("seedling")
+          EOF
 
-      - name: exit 1
-        run: exit 1
+          gh pr comment ${{ github.event.number }} -F /tmp/comment
+
+          exit 1
 
   verify-pr-no-issue-number:
     runs-on: ubuntu-latest
     name: verify PR no issue number
     steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
+
       - name: Check if there is no Issue or PR number
         run: |
           if echo '${{ github.event.pull_request.title }}' | grep -o -E -v '#[0-9]+'; then
             exit 0
           fi
 
-      - name: Create a comment if PR title has issue or PR number
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: `The title should just be descriptive.
+          cat <<EOF > /tmp/comment
+          The title should just be descriptive.
 
-                Issue numbers belong in the PR body as either "Fixes #XYZ" (if it closes the issue or PR), or something like "Related to #XYZ" (if it's just related).
-              `
-            })
+          Issue numbers belong in the PR body as either "Fixes #XYZ" (if it closes the issue or PR), or something like "Related to #XYZ" (if it's just related).
+          EOF
 
-      - name: exit 1
-        run: exit 1
+          gh pr comment ${{ github.event.number }} -F /tmp/comment
+
+          exit 1
 

@@ -11,7 +11,7 @@ permissions:
 jobs:
   verify-pr-type:
     runs-on: ubuntu-latest
-    name: verify PR contents
+    name: verify PR type
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
 
@@ -49,6 +49,9 @@ jobs:
         run: exit 1
 
   verify-pr-no-issue-number:
+    runs-on: ubuntu-latest
+    name: verify PR no issue number
+    steps:
       - name: Check if there is no Issue or PR number
         run: |
           if echo '${{ github.event.pull_request.title }}' | grep -o -E -v '#[0-9]+'; then

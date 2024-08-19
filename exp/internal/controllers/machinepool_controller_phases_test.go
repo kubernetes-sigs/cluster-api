@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -586,7 +587,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinePool.Status.ReadyReplicas = 1
 		machinePool.Status.Replicas = 1
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 		r := &MachinePoolReconciler{
 			Client:  fakeClient,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), fakeClient, fakeClient, fakeClient.Scheme(), client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -672,7 +673,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinePool.Status.ReadyReplicas = 1
 		machinePool.Status.Replicas = 1
 
-		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinePool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 		r := &MachinePoolReconciler{
 			Client:  fakeClient,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), fakeClient, fakeClient, fakeClient.Scheme(), client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -1786,7 +1787,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 		r := &MachinePoolReconciler{
 			Client:   fakeClient,
 			Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), env.GetClient(), env.GetClient(), env.GetClient().Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
@@ -1848,7 +1849,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 		r := &MachinePoolReconciler{
 			Client:   fakeClient,
 			Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), env.GetClient(), env.GetClient(), env.GetClient().Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
@@ -1893,7 +1894,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err := unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 		r := &MachinePoolReconciler{
 			Client:   fakeClient,
 			recorder: record.NewFakeRecorder(32),
@@ -1934,7 +1935,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err := unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 		r := &MachinePoolReconciler{
 			Client:   fakeClient,
 			recorder: record.NewFakeRecorder(32),
@@ -1997,7 +1998,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build()
+		fakeClient := fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 		r := &MachinePoolReconciler{
 			Client:   fakeClient,
 			Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), env.GetClient(), env.GetClient(), env.GetClient().Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
@@ -2110,10 +2111,11 @@ func getMachinePool(replicas int, mpName, clusterName, nsName string) expv1.Mach
 
 func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 	testCases := []struct {
-		name     string
-		nodeList []client.Object
-		expected map[string]*corev1.Node
-		err      error
+		name           string
+		nodeList       []client.Object
+		expected       map[string]*corev1.Node
+		providerIDList []string
+		err            error
 	}{
 		{
 			name: "all valid provider ids",
@@ -2169,6 +2171,7 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 					},
 				},
 			},
+			providerIDList: []string{"aws://us-east-1/id-node-1", "gce://us-central1/gce-id-node-2", "azure://westus2/id-node-4"},
 		},
 		{
 			name: "missing provider id",
@@ -2213,6 +2216,7 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 					},
 				},
 			},
+			providerIDList: []string{"aws://us-east-1/id-node-1", "gce://us-central1/gce-id-node-2"},
 		},
 		{
 			name:     "empty node list",
@@ -2226,8 +2230,8 @@ func TestMachinePoolReconciler_getNodeRefMap(t *testing.T) {
 				Client:   fake.NewClientBuilder().Build(),
 				recorder: record.NewFakeRecorder(32),
 			}
-			client := fake.NewClientBuilder().WithObjects(tt.nodeList...).Build()
-			result, err := r.getNodeRefMap(ctx, client)
+			client := fake.NewClientBuilder().WithObjects(tt.nodeList...).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
+			result, err := r.getNodeRefMap(ctx, tt.providerIDList, client)
 			if tt.err == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {

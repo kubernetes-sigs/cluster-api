@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
@@ -535,7 +536,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				bootstrapConfig,
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachinePoolCRD,
-			).WithStatusSubresource(&expv1.MachinePool{}).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			trackerObjects := []client.Object{}
 			for _, node := range tc.nodes {
@@ -548,7 +549,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					}
 					return nil
 				},
-			}).WithObjects(trackerObjects...).Build()
+			}).WithObjects(trackerObjects...).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
@@ -1090,7 +1091,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				&nodes.Items[1],
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachineTemplateCRD,
-			).WithStatusSubresource(&expv1.MachinePool{}).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			r := &MachinePoolReconciler{
 				Client:    clientFake,

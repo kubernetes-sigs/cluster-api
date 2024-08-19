@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -292,7 +293,7 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, s *
 
 	var getNodeRefsErr error
 	// Get the nodeRefsMap from the cluster.
-	s.nodeRefMap, getNodeRefsErr = r.getNodeRefMap(ctx, clusterClient)
+	s.nodeRefMap, getNodeRefsErr = r.getNodeRefMap(ctx, mp.Spec.ProviderIDList, clusterClient)
 
 	err = r.reconcileMachines(ctx, s, infraConfig)
 
@@ -569,28 +570,41 @@ func (r *MachinePoolReconciler) waitForMachineCreation(ctx context.Context, mach
 	return nil
 }
 
-func (r *MachinePoolReconciler) getNodeRefMap(ctx context.Context, c client.Client) (map[string]*corev1.Node, error) {
+func (r *MachinePoolReconciler) getNodeRefMap(ctx context.Context, providerIDList []string, c client.Client) (map[string]*corev1.Node, error) {
 	log := ctrl.LoggerFrom(ctx)
 	nodeRefsMap := make(map[string]*corev1.Node)
 	nodeList := corev1.NodeList{}
-	for {
-		if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
+	completeList := true
+	for _, providerID := range providerIDList {
+		if err := c.List(ctx, &nodeList, client.MatchingFields{index.NodeProviderIDField: providerID}); err != nil {
 			return nil, err
 		}
-
-		for _, node := range nodeList.Items {
-			if node.Spec.ProviderID == "" {
-				log.V(2).Info("No ProviderID detected, skipping", "providerID", node.Spec.ProviderID)
-				continue
-			}
-
-			nodeRefsMap[node.Spec.ProviderID] = &node
-		}
-
-		if nodeList.Continue == "" {
+		if len(nodeList.Items) == 0 {
+			// If for whatever reason an index isn't registered or available, we fallback to retrieving the whole list.
+			completeList = false
 			break
 		}
+		nodeRefsMap[providerID] = &nodeList.Items[0]
 	}
+	if !completeList || len(providerIDList) == 0 {
+		for {
+			if err := c.List(ctx, &nodeList, client.Continue(nodeList.Continue)); err != nil {
+				return nil, err
+			}
 
+			for _, node := range nodeList.Items {
+				if node.Spec.ProviderID == "" {
+					log.V(2).Info("No ProviderID detected, skipping", "providerID", node.Spec.ProviderID)
+					continue
+				}
+
+				nodeRefsMap[node.Spec.ProviderID] = &node
+			}
+
+			if nodeList.Continue == "" {
+				break
+			}
+		}
+	}
 	return nodeRefsMap, nil
 }

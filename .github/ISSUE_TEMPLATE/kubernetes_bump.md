@@ -92,6 +92,7 @@ run the Cluster API controllers on the new Kubernetes version.
   * Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/10452
 * [ ] Bumps in Cluster API repo:
   * controller-runtime & controller-tools in go.mod files
+  * setup-envtest via `SETUP_ENVTEST_VER` in `Makefile`
   * controller-gen via `CONTROLLER_GEN_VER` in `Makefile`
   * conversion-gen via `CONVERSION_GEN_VER` in `Makefile`
   * Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/10803

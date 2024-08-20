@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -65,18 +64,14 @@ type MachineReconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
-
-	// NodeDrainClientTimeout timeout of the client used for draining nodes.
-	NodeDrainClientTimeout time.Duration
 }
 
 func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinecontroller.Reconciler{
-		Client:                 r.Client,
-		APIReader:              r.APIReader,
-		Tracker:                r.Tracker,
-		WatchFilterValue:       r.WatchFilterValue,
-		NodeDrainClientTimeout: r.NodeDrainClientTimeout,
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 

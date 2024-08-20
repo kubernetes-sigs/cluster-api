@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,6 +43,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -1465,6 +1467,390 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 	}
 }
 
+func TestDrainNode(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceDefault,
+			Name:      "test-cluster",
+		},
+	}
+	testMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceDefault,
+			Name:      "test-machine",
+		},
+	}
+
+	tests := []struct {
+		name          string
+		nodeName      string
+		node          *corev1.Node
+		pods          []*corev1.Pod
+		wantCondition *clusterv1.Condition
+		wantResult    ctrl.Result
+		wantErr       string
+	}{
+		{
+			name:     "Node does not exist, no-op",
+			nodeName: "node-does-not-exist",
+		},
+		{
+			name:     "Node does exist, should be cordoned",
+			nodeName: "node-1",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+			},
+		},
+		{
+			name:     "Node does exist, should stay cordoned",
+			nodeName: "node-1",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Spec: corev1.NodeSpec{
+					Unschedulable: true,
+				},
+			},
+		},
+		{
+			name:     "Node does exist, only Pods that don't have to be drained",
+			nodeName: "node-1",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Spec: corev1.NodeSpec{
+					Unschedulable: true,
+				},
+			},
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "pod-1-skip-mirror-pod",
+						Annotations: map[string]string{
+							corev1.MirrorPodAnnotationKey: "some-value",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "pod-4-skip-daemonset-pod",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								Kind:       "DaemonSet",
+								Name:       "daemonset-does-exist",
+								Controller: ptr.To(true),
+							},
+						},
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodRunning,
+					},
+				},
+			},
+		},
+		{
+			name:     "Node does exist, some Pods have to be drained",
+			nodeName: "node-1",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Spec: corev1.NodeSpec{
+					Unschedulable: true,
+				},
+			},
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "pod-1-skip-mirror-pod",
+						Annotations: map[string]string{
+							corev1.MirrorPodAnnotationKey: "some-value",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "pod-2-delete-running-deployment-pod",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								Kind:       "Deployment",
+								Controller: ptr.To(true),
+							},
+						},
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodRunning,
+					},
+				},
+			},
+			wantResult: ctrl.Result{RequeueAfter: 20 * time.Second},
+			wantCondition: &clusterv1.Condition{
+				Type:     clusterv1.DrainingSucceededCondition,
+				Status:   corev1.ConditionFalse,
+				Severity: clusterv1.ConditionSeverityInfo,
+				Reason:   clusterv1.DrainingReason,
+				Message: `Drain not completed yet:
+* Pods with deletionTimestamp that still exist: pod-2-delete-running-deployment-pod`,
+			},
+		},
+		{
+			name:     "Node does exist but is unreachable, no Pods have to be drained because they all have old deletionTimestamps",
+			nodeName: "node-1",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Spec: corev1.NodeSpec{
+					Unschedulable: true,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{ // unreachable.
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionUnknown,
+						},
+					},
+				},
+			},
+			pods: []*corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "pod-1-skip-pod-old-deletionTimestamp",
+						DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Duration(1) * time.Hour * -1)},
+						Finalizers:        []string{"block-deletion"},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Setting NodeName here to avoid noise in the table above.
+			for i := range tt.pods {
+				tt.pods[i].Spec.NodeName = tt.nodeName
+			}
+
+			// Making a copy because drainNode will modify the Machine.
+			testMachine := testMachine.DeepCopy()
+
+			var objs []client.Object
+			objs = append(objs, testCluster, testMachine)
+			c := fake.NewClientBuilder().
+				WithObjects(objs...).
+				Build()
+
+			var remoteObjs []client.Object
+			if tt.node != nil {
+				remoteObjs = append(remoteObjs, tt.node)
+			}
+			for _, p := range tt.pods {
+				remoteObjs = append(remoteObjs, p)
+			}
+			remoteObjs = append(remoteObjs, &appsv1.DaemonSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "daemonset-does-exist",
+				},
+			})
+			remoteClient := fake.NewClientBuilder().
+				WithIndex(&corev1.Pod{}, "spec.nodeName", podByNodeName).
+				WithObjects(remoteObjs...).
+				Build()
+
+			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, c, remoteClient, fakeScheme, client.ObjectKeyFromObject(testCluster))
+			r := &Reconciler{
+				Client:     c,
+				Tracker:    tracker,
+				drainCache: drain.NewCache(),
+			}
+
+			res, err := r.drainNode(ctx, testCluster, testMachine, tt.nodeName)
+			g.Expect(res).To(BeComparableTo(tt.wantResult))
+			if tt.wantErr == "" {
+				g.Expect(err).ToNot(HaveOccurred())
+			} else {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(BeComparableTo(tt.wantErr))
+			}
+
+			gotCondition := conditions.Get(testMachine, clusterv1.DrainingSucceededCondition)
+			if tt.wantCondition == nil {
+				g.Expect(gotCondition).To(BeNil())
+			} else {
+				g.Expect(gotCondition).ToNot(BeNil())
+				// Cleanup for easier comparison
+				gotCondition.LastTransitionTime = metav1.Time{}
+				g.Expect(gotCondition).To(BeComparableTo(tt.wantCondition))
+			}
+
+			// If there is a Node it should be cordoned.
+			if tt.node != nil {
+				gotNode := &corev1.Node{}
+				g.Expect(remoteClient.Get(ctx, client.ObjectKeyFromObject(tt.node), gotNode)).To(Succeed())
+				g.Expect(gotNode.Spec.Unschedulable).To(BeTrue())
+			}
+		})
+	}
+}
+
+func TestDrainNode_withCaching(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceDefault,
+			Name:      "test-cluster",
+		},
+	}
+	testMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceDefault,
+			Name:      "test-machine",
+		},
+	}
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node-1",
+		},
+		Spec: corev1.NodeSpec{
+			Unschedulable: true,
+		},
+	}
+
+	pods := []*corev1.Pod{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "pod-delete-running-deployment-pod",
+				Finalizers: []string{
+					// Add a finalizer so the Pod doesn't go away after eviction.
+					"cluster.x-k8s.io/block",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						Kind:       "Deployment",
+						Controller: ptr.To(true),
+					},
+				},
+			},
+			Spec: corev1.PodSpec{
+				NodeName: "node-1",
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+		},
+	}
+
+	g := NewWithT(t)
+
+	var objs []client.Object
+	objs = append(objs, testCluster, testMachine)
+	c := fake.NewClientBuilder().
+		WithObjects(objs...).
+		Build()
+
+	remoteObjs := []client.Object{node}
+	for _, p := range pods {
+		remoteObjs = append(remoteObjs, p)
+	}
+	remoteClient := fake.NewClientBuilder().
+		WithIndex(&corev1.Pod{}, "spec.nodeName", podByNodeName).
+		WithObjects(remoteObjs...).
+		Build()
+
+	tracker := remote.NewTestClusterCacheTracker(ctrl.Log, c, remoteClient, fakeScheme, client.ObjectKeyFromObject(testCluster))
+	drainCache := drain.NewCache()
+	r := &Reconciler{
+		Client:     c,
+		Tracker:    tracker,
+		drainCache: drainCache,
+	}
+
+	// The first reconcile will cordon the Node, evict the one Pod running on the Node and then requeue.
+	res, err := r.drainNode(ctx, testCluster, testMachine, "node-1")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res).To(BeComparableTo(ctrl.Result{RequeueAfter: drainRetryInterval}))
+	// Condition should report the one Pod that has been evicted.
+	gotCondition := conditions.Get(testMachine, clusterv1.DrainingSucceededCondition)
+	g.Expect(gotCondition).ToNot(BeNil())
+	// Cleanup for easier comparison
+	gotCondition.LastTransitionTime = metav1.Time{}
+	g.Expect(gotCondition).To(BeComparableTo(&clusterv1.Condition{
+		Type:     clusterv1.DrainingSucceededCondition,
+		Status:   corev1.ConditionFalse,
+		Severity: clusterv1.ConditionSeverityInfo,
+		Reason:   clusterv1.DrainingReason,
+		Message: `Drain not completed yet:
+* Pods with deletionTimestamp that still exist: pod-delete-running-deployment-pod`,
+	}))
+	// Node should be cordoned.
+	gotNode := &corev1.Node{}
+	g.Expect(remoteClient.Get(ctx, client.ObjectKeyFromObject(node), gotNode)).To(Succeed())
+	g.Expect(gotNode.Spec.Unschedulable).To(BeTrue())
+
+	// Drain cache should have an entry for the Machine
+	gotEntry1, ok := drainCache.Has(client.ObjectKeyFromObject(testMachine))
+	g.Expect(ok).To(BeTrue())
+
+	// The second reconcile will just requeue with a duration < drainRetryInterval because there already was
+	// one drain within the drainRetryInterval.
+	res, err = r.drainNode(ctx, testCluster, testMachine, "node-1")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.RequeueAfter).To(BeNumerically(">", time.Duration(0)))
+	g.Expect(res.RequeueAfter).To(BeNumerically("<", drainRetryInterval))
+
+	// LastDrain in the drain cache entry should not have changed
+	gotEntry2, ok := drainCache.Has(client.ObjectKeyFromObject(testMachine))
+	g.Expect(ok).To(BeTrue())
+	g.Expect(gotEntry1).To(BeComparableTo(gotEntry2))
+}
+
+func TestShouldRequeueDrain(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name             string
+		now              time.Time
+		lastDrain        time.Time
+		wantRequeue      bool
+		wantRequeueAfter time.Duration
+	}{
+		{
+			name:             "Requeue after 15s last drain was 5s ago (drainRetryInterval: 20s)",
+			now:              now,
+			lastDrain:        now.Add(-time.Duration(5) * time.Second),
+			wantRequeue:      true,
+			wantRequeueAfter: time.Duration(15) * time.Second,
+		},
+		{
+			name:             "Don't requeue last drain was 20s ago (drainRetryInterval: 20s)",
+			now:              now,
+			lastDrain:        now.Add(-time.Duration(20) * time.Second),
+			wantRequeue:      false,
+			wantRequeueAfter: time.Duration(0),
+		},
+		{
+			name:             "Don't requeue last drain was 60s ago (drainRetryInterval: 20s)",
+			now:              now,
+			lastDrain:        now.Add(-time.Duration(60) * time.Second),
+			wantRequeue:      false,
+			wantRequeueAfter: time.Duration(0),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			gotRequeueAfter, gotRequeue := shouldRequeueDrain(tt.now, tt.lastDrain)
+			g.Expect(gotRequeue).To(Equal(tt.wantRequeue))
+			g.Expect(gotRequeueAfter).To(Equal(tt.wantRequeueAfter))
+		})
+	}
+}
+
 func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
@@ -2682,4 +3068,17 @@ func assertCondition(t *testing.T, from conditions.Getter, condition *clusterv1.
 			g.Expect(conditionToBeAsserted.Message).To(Equal(condition.Message))
 		}
 	}
+}
+
+func podByNodeName(o client.Object) []string {
+	pod, ok := o.(*corev1.Pod)
+	if !ok {
+		panic(fmt.Sprintf("Expected a Pod but got a %T", o))
+	}
+
+	if pod.Spec.NodeName == "" {
+		return nil
+	}
+
+	return []string{pod.Spec.NodeName}
 }

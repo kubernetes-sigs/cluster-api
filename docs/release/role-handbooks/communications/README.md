@@ -7,6 +7,7 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
 - [Responsibilities](#responsibilities)
 - [Tasks](#tasks)
   - [Add docs to collect release notes for users and migration notes for provider implementers](#add-docs-to-collect-release-notes-for-users-and-migration-notes-for-provider-implementers)
@@ -84,21 +85,26 @@ The goal of this task is to keep the CAPI community updated on recent PRs that h
    ```
 
 ### Create PR for release notes
+
 1. Checkout the `main` branch.
 2. Generate release notes with:
 
    1. RELEASE CANDIDATE/BETA RELEASE example:
-   ```bash
-   # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
-   # PREVIOUS_RELEASE_TAG is the previous released tag for determining the changes.
-   RELEASE_TAG=v1.7.x-rc.1 PREVIOUS_RELEASE_TAG=tags/v1.7.x-rc.0 make release-notes
-   ```
-   **Note**: For a first pre-release version without a pre-release precedent, use above command without `PREVIOUS_RELEASE_TAG`.
-   2. STABLE RELEASE example
-   ```bash
-   # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
-   RELEASE_TAG=v1.7.x make release-notes
-   ```
+
+      ```bash
+      # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
+      # PREVIOUS_RELEASE_TAG is the previous released tag for determining the changes.
+      RELEASE_TAG=v1.7.x-rc.1 PREVIOUS_RELEASE_TAG=tags/v1.7.x-rc.0 make release-notes
+      ```
+
+      **Note**: For a first pre-release version without a pre-release precedent, use above command without `PREVIOUS_RELEASE_TAG`.
+
+   2. STABLE RELEASE example:
+
+      ```bash
+      # RELEASE_TAG should be the new desired tag (note: at this point the tag does not yet exist).
+      RELEASE_TAG=v1.7.x make release-notes
+      ```
 
 3. This will generate a new release notes file at `CHANGELOG/<RELEASE_TAG>.md`. Finalize the release notes:
     - [ ] Look for any `MISSING_AREA` entries. Add the corresponding label to the PR and regenerate the notes.

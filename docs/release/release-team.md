@@ -3,21 +3,21 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Cluster API Release Team](#cluster-api-release-team)
-  - [Overview](#overview)
-    - [Goals](#goals)
-    - [Non-Goals/Future work](#non-goalsfuture-work)
-  - [Duration of Term](#duration-of-term)
-  - [Specific Responsibilities](#specific-responsibilities)
-  - [Team Roles](#team-roles)
-  - [Team repo permissions](#team-repo-permissions)
-  - [Team Selection](#team-selection)
-    - [Selection Criteria](#selection-criteria)
-  - [Time Commitment](#time-commitment)
-  - [Release Team/Day Meetings](#release-teamday-meetings)
-  - [Suggestions for Team Leads](#suggestions-for-team-leads)
-  - [Why should I volunteer?](#why-should-i-volunteer)
-  - [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
+
+- [Overview](#overview)
+  - [Goals](#goals)
+  - [Non-Goals/Future work](#non-goalsfuture-work)
+- [Duration of Term](#duration-of-term)
+- [Specific Responsibilities](#specific-responsibilities)
+- [Team Roles](#team-roles)
+- [Team repo permissions](#team-repo-permissions)
+- [Team Selection](#team-selection)
+  - [Selection Criteria](#selection-criteria)
+- [Time Commitment](#time-commitment)
+- [Release Team/Day Meetings](#release-teamday-meetings)
+- [Suggestions for Team Leads](#suggestions-for-team-leads)
+- [Why should I volunteer?](#why-should-i-volunteer)
+- [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 

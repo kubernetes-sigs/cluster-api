@@ -24,19 +24,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When testing Cluster API working on self-hosted clusters", func() {
-	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
-		return SelfHostedSpecInput{
-			E2EConfig:              e2eConfig,
-			ClusterctlConfigPath:   clusterctlConfigPath,
-			BootstrapClusterProxy:  bootstrapClusterProxy,
-			ArtifactFolder:         artifactFolder,
-			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: ptr.To("docker"),
-		}
-	})
-})
-
 var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass [ClusterClass]", func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{

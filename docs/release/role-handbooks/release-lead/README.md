@@ -7,6 +7,7 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
 - [Responsibilities](#responsibilities)
 - [Tasks](#tasks)
   - [Finalize release schedule and team](#finalize-release-schedule-and-team)
@@ -90,23 +91,19 @@ This comes down to changing occurrences of the old version to the new version, e
    5. Add a new Makefile target (e.g. `generate-e2e-templates-v1.6`) and potentially remove the Makefile target of versions that are not used anymore (if something was removed in 4.2)
 2. Update `create-local-repository.py` and `tools/internal/tilt-prepare/main.go`: `v1.5.99` => `v1.6.99`.
 3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-27-latest-main`).
-4. Remove an unsupported release version of Cluster API from the Makefile target that generates e2e templates. For example, remove `v1.3` while working on `v1.6`.
 
-Prior art: 
+Prior art:
 
-* 1.5 - https://github.com/kubernetes-sigs/cluster-api/pull/8430/files
-* 1.6 - https://github.com/kubernetes-sigs/cluster-api/pull/9097/files
-* 1.7 - https://github.com/kubernetes-sigs/cluster-api/pull/9799/files
 * 1.9 - https://github.com/kubernetes-sigs/cluster-api/pull/11059
 
-#### Create a new GitHub milestone for the next release
+### Create a new GitHub milestone for the next release
 
 The goal of this task is to create [a new GitHub milestone](https://github.com/kubernetes-sigs/cluster-api/milestones) for the next release, so that we can already move tasks
 out of the current milestone if necessary.
 
 1. Create the milestone for the new release via GitHub UI.
 
-#### [Track] Remove previously deprecated code
+### [Track] Remove previously deprecated code
 
 The goal of this task is to remove all previously deprecated code that can be now removed.
 
@@ -116,7 +113,7 @@ The goal of this task is to remove all previously deprecated code that can be no
 
 Prior art: [Remove code deprecated in v1.6](https://github.com/kubernetes-sigs/cluster-api/pull/9136)
 
-#### [Track] Bump dependencies
+### [Track] Bump dependencies
 
 The goal of this task is to ensure that we have relatively up-to-date dependencies at the time of the release.
 This reduces the risk that CVEs are found in outdated dependencies after our release.
@@ -126,17 +123,17 @@ We should take a look at the following dependencies:
 * Go dependencies in `go.mod` files.
 * Tools used in our Makefile (e.g. kustomize).
 
-#### Set a tentative release date for the next minor release
+### Set a tentative release date for the next minor release
 
 1. Set a tentative release date for the next minor release and document it by creating a `release-X.Y.md` in [docs/release/releases](../../releases).
    <br>Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/9635
 
-#### Assemble next release team
+### Assemble next release team
 
 There is currently no formalized process to assemble the release team.
 As of now we ask for volunteers in Slack and office hours.
 
-#### Update milestone applier and GitHub Actions
+### Update milestone applier and GitHub Actions
 
 Once release branch is created by GitHub Automation, the goal of this task would be to ensure we have the milestone
 applier that applies milestones accordingly and to update GitHub actions to work with new release version.
@@ -148,7 +145,7 @@ From this point forward changes which should land in the release have to be cher
 2. Update the GitHub Actions to work with the new release version.
    <br>Prior art: [Update actions for v1.7](https://github.com/kubernetes-sigs/cluster-api/pull/10357)
 
-#### [Continuously] Maintain the GitHub release milestone
+### [Continuously] Maintain the GitHub release milestone
 
 The goal of this task is to keep an overview over the current release milestone and the implementation
 progress of issues assigned to the milestone.
@@ -159,7 +156,7 @@ This can be done by:
 2. If nobody is working on an issue in the milestone, drop it from the milestone.
 3. Ensuring we have a plan to get `release-blocking` issues implemented in time.
 
-#### [Continuously] Bump the Go version
+### [Continuously] Bump the Go version
 
 The goal of this task is to ensure we are always using the latest Go version for our releases.
 
@@ -170,7 +167,7 @@ The goal of this task is to ensure we are always using the latest Go version for
 Note: If the Go minor version of one of our supported branches goes out of supported, we should consider bumping
 to a newer Go minor version according to our [backport policy](./../../../../CONTRIBUTING.md#backporting-a-patch).
 
-#### [Repeatedly] Cut a release
+### [Repeatedly] Cut a release
 
 1. Ensure CI is stable before cutting the release (e.g. by checking with the CI manager)
    Note: special attention should be given to image scan results, so we can avoid cutting a release with CVE or document known CVEs in release notes.
@@ -227,13 +224,13 @@ Additional information:
   * Create a release tag on the GitHub repository.
   * Create/update/publish GitHub releases.
 
-#### [Optional] Public release session
+### [Optional] Public release session
    1. Host a release session over a public zoom meeting.
    2. Record the session for future reference and transparency.
    3. Use release process-related waiting periods as a forum for discussing issues/questions.
    4. Publish the recording on YouTube channel.
 
-#### [Optional] [Track] Bump the Cluster API apiVersion
+### [Optional] [Track] Bump the Cluster API apiVersion
 
 **Note** This should only be done when we have to bump the apiVersion of our APIs.
 
@@ -250,12 +247,12 @@ Additional information:
 5. Add test data for the new version in `test/e2e/data/{infrastructure-docker,shared}` (also update top-level `.gitignore`).
 6. Update `docker.yaml`, make sure all tests are successful in CI.
 
-#### [Optional] [Track] Bump the Kubernetes version
+### [Optional] [Track] Bump the Kubernetes version
 
 1. Create an issue for the new Kubernetes version via: [New Issue: Kubernetes bump](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose).
 2. Track the issue to ensure the work is completed in time.
 
-#### [Optional] Track Release and Improvement tasks
+### [Optional] Track Release and Improvement tasks
 
 1. Create an issue for easier tracking of all the tasks for the release cycle in question.
    <br>Prior art: [Tasks for v1.6 release cycle](https://github.com/kubernetes-sigs/cluster-api/issues/9094)

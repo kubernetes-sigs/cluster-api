@@ -76,7 +76,7 @@ The goal of this task is to keep our tests running in CI stable.
    Eventually open issues as described above.
 7. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
 
-#### [Continuously] Reduce the amount of flaky tests
+### [Continuously] Reduce the amount of flaky tests
 
 The Cluster API tests are pretty stable, but there are still some flaky tests from time to time.
 

@@ -153,7 +153,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	if err != nil {
 		// It should be an issue to be investigated if the controller get the NotFound status.
 		// So, it should return the error.
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve owner Cluster")
 	}
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")

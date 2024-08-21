@@ -33,7 +33,7 @@ import (
 var ctx = ctrl.SetupSignalHandler()
 
 func TestDockerClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	t.Run("create dockerclustertemplate should pass if gate enabled and valid dockerclustertemplate", func(t *testing.T) {
 		g := NewWithT(t)
@@ -78,7 +78,7 @@ func TestDockerClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
 }
 
 func TestDockerClusterTemplateValidationMetadata(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	tests := []struct {
 		name        string

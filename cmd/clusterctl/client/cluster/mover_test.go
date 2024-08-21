@@ -30,6 +30,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -1202,7 +1203,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(ctx, graph, toProxy, nil)
+			err := mover.move(ctx, graph, toProxy)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1876,7 +1877,6 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			expectedNamespaces: []string{"namespace-1", "namespace-2"},
 		},
 		{
-
 			name: "ensureNamespaces moves namespace-2 to target which already has namespace-1",
 			fields: fields{
 				objs: cluster2.Objs(),
@@ -1956,6 +1956,7 @@ func Test_createTargetObject(t *testing.T) {
 		fromProxy Proxy
 		toProxy   Proxy
 		node      *node
+		mutators  []ResourceMutatorFunc
 	}
 
 	tests := []struct {
@@ -2076,6 +2077,52 @@ func Test_createTargetObject(t *testing.T) {
 			},
 		},
 		{
+			name: "updates object whose namespace is mutated, if it already exists and the object is not Global/GlobalHierarchy",
+			args: args{
+				fromProxy: test.NewFakeProxy().WithObjs(
+					&clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "foo",
+							Namespace: "ns1",
+						},
+					},
+				),
+				toProxy: test.NewFakeProxy().WithObjs(
+					&clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:        "foo",
+							Namespace:   "mutatedns1",
+							Annotations: map[string]string{"foo": "bar"},
+						},
+					},
+				),
+				node: &node{
+					identity: corev1.ObjectReference{
+						Kind:       "Cluster",
+						Namespace:  "ns1",
+						Name:       "foo",
+						APIVersion: "cluster.x-k8s.io/v1beta1",
+					},
+				},
+				mutators: []ResourceMutatorFunc{
+					func(u *unstructured.Unstructured) error {
+						return unstructured.SetNestedField(u.Object,
+							"mutatedns1",
+							"metadata", "namespace")
+					},
+				},
+			},
+			want: func(g *WithT, toClient client.Client) {
+				c := &clusterv1.Cluster{}
+				key := client.ObjectKey{
+					Namespace: "mutatedns1",
+					Name:      "foo",
+				}
+				g.Expect(toClient.Get(context.Background(), key, c)).ToNot(HaveOccurred())
+				g.Expect(c.Annotations).To(BeEmpty())
+			},
+		},
+		{
 			name: "should not update Global objects",
 			args: args{
 				fromProxy: test.NewFakeProxy().WithObjs(
@@ -2163,7 +2210,7 @@ func Test_createTargetObject(t *testing.T) {
 				fromProxy: tt.args.fromProxy,
 			}
 
-			err := mover.createTargetObject(ctx, tt.args.node, tt.args.toProxy, nil, sets.New[string]())
+			err := mover.createTargetObject(ctx, tt.args.node, tt.args.toProxy, tt.args.mutators, sets.New[string]())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -2400,6 +2447,51 @@ func TestWaitReadyForMove(t *testing.T) {
 				}
 			}
 			err := waitReadyForMove(ctx, graph.proxy, graph.getMoveNodes(), false, backoff)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func Test_applyMutators(t *testing.T) {
+	tests := []struct {
+		name     string
+		object   client.Object
+		mutators []ResourceMutatorFunc
+		want     *unstructured.Unstructured
+		wantErr  bool
+	}{
+		{
+			name: "do nothing if object is nil",
+		},
+		{
+			name:   "do nothing if mutators is a nil slice",
+			object: test.NewFakeCluster("example", "example").Objs()[0],
+			want: func() *unstructured.Unstructured {
+				g := NewWithT(t)
+				obj := test.NewFakeCluster("example", "example").Objs()[0]
+				u := &unstructured.Unstructured{}
+				to, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+				g.Expect(err).NotTo(HaveOccurred())
+				u.SetUnstructuredContent(to)
+				return u
+			}(),
+		},
+		{
+			name:     "return error if any element in mutators slice is nil",
+			mutators: []ResourceMutatorFunc{nil},
+			object:   test.NewFakeCluster("example", "example").Objs()[0],
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got, err := applyMutators(tt.object, tt.mutators...)
+			g.Expect(got).To(Equal(tt.want))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

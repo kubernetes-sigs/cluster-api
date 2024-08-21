@@ -25,6 +25,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -34,18 +35,17 @@ import (
 )
 
 func TestGlobal(t *testing.T) {
+	clusterUID := "8a35f406-6b9b-4b78-8c93-a7f878d90623"
 	tests := []struct {
 		name                        string
 		clusterTopology             *clusterv1.Topology
 		cluster                     *clusterv1.Cluster
-		forPatch                    string
 		variableDefinitionsForPatch map[string]bool
 		want                        []runtimehooksv1.Variable
 	}{
 		{
 			name:                        "Should calculate global variables",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -68,6 +68,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -100,6 +101,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
   						  	"version": "v1.21.1",
  						   	"class": "clusterClass1"
@@ -115,33 +117,22 @@ func TestGlobal(t *testing.T) {
 			},
 		},
 		{
-			name:                        "Should calculate global variables for a given forPatch",
-			forPatch:                    "patch1",
+			name:                        "Should calculate global variables based on the variables defined for the patch",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
-						Name:           "location",
-						Value:          toJSON("\"us-central\""),
-						DefinitionFrom: "patch1",
-					},
-					{
 						Name:  "location",
-						Value: toJSON("\"internal.proxy.com\""),
-						// This variable should be excluded because it is defined for a different patch.
-						DefinitionFrom: "anotherPatch",
+						Value: toJSON("\"us-central\""),
 					},
 					{
 						Name:  "https-proxy",
 						Value: toJSON("\"internal.proxy.com\""),
 						// This variable should be excluded because it is not among variableDefinitionsForPatch.
-						DefinitionFrom: "",
 					},
-
 					{
 						Name:  "cpu",
 						Value: toJSON("8"),
-						// This variable should be included because it is defined for all patches.
 					},
 				},
 			},
@@ -149,6 +140,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -181,6 +173,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
   						  	"version": "v1.21.1",
  						   	"class": "clusterClass1"
@@ -198,7 +191,6 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate when serviceDomain is not set",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -221,6 +213,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -252,6 +245,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						 "topology":{
   						  	"version": "v1.21.1",
  						   	"class": "clusterClass1"
@@ -268,7 +262,6 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate where some variables are nil",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -291,6 +284,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -319,6 +313,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
   						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
  						"topology":{
     						"version": "v1.21.1",
     						"class": "clusterClass1"
@@ -334,7 +329,6 @@ func TestGlobal(t *testing.T) {
 		{
 			name:                        "Should calculate where ClusterNetwork is nil",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -357,6 +351,7 @@ func TestGlobal(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "cluster1",
 					Namespace: metav1.NamespaceDefault,
+					UID:       types.UID(clusterUID),
 				},
 				Spec: clusterv1.ClusterSpec{
 					Topology: &clusterv1.Topology{
@@ -381,6 +376,7 @@ func TestGlobal(t *testing.T) {
 					"cluster":{
   						"name": "cluster1",
   						"namespace": "default",
+						"uid": "8a35f406-6b9b-4b78-8c93-a7f878d90623",
   						"topology":{
 							"version": "v1.21.1",
    						 	"class": "clusterClass1"
@@ -394,7 +390,7 @@ func TestGlobal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := Global(tt.clusterTopology, tt.cluster, tt.forPatch, tt.variableDefinitionsForPatch)
+			got, err := Global(tt.clusterTopology, tt.cluster, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})
@@ -405,12 +401,108 @@ func TestControlPlane(t *testing.T) {
 	tests := []struct {
 		name                                      string
 		controlPlaneTopology                      *clusterv1.ControlPlaneTopology
+		variableDefinitionsForPatch               map[string]bool
 		controlPlane                              *unstructured.Unstructured
 		controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 		want                                      []runtimehooksv1.Variable
 	}{
 		{
-			name: "Should calculate ControlPlane variables",
+			name:                        "Should calculate ControlPlane variables",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
+				Replicas: ptr.To[int32](3),
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
+			},
+			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
+				WithReplicas(3).
+				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
+				WithAnnotations(map[string]string{"fizz": "buzz"}).
+				Build(),
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: runtimehooksv1.BuiltinsName,
+					Value: toJSONCompact(`{
+					"controlPlane":{
+						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
+						"name":"controlPlane1",
+						"replicas":3
+					}}`),
+				},
+			},
+		},
+		{
+			name:                        "Should calculate ControlPlane variables based on the variables defined for the patch",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
+				Replicas: ptr.To[int32](3),
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "http-proxy",
+							Value: toJSON("\"internal.proxy.com\""),
+							// This variable should be excluded because it is not in variableDefinitionsForPatch.
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
+			},
+			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
+				WithReplicas(3).
+				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
+				Build(),
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: runtimehooksv1.BuiltinsName,
+					Value: toJSONCompact(`{
+					"controlPlane":{
+						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}},
+						"name":"controlPlane1",
+						"replicas":3
+					}}`),
+				},
+			},
+		},
+		{
+			name:                        "Should calculate ControlPlane variables (without overrides)",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
 				Replicas: ptr.To[int32](3),
 			},
@@ -431,12 +523,34 @@ func TestControlPlane(t *testing.T) {
 			},
 		},
 		{
-			name:                 "Should calculate ControlPlane variables, replicas not set",
-			controlPlaneTopology: &clusterv1.ControlPlaneTopology{},
+			name:                        "Should calculate ControlPlane variables, replicas not set",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
+			},
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithVersion("v1.21.1").
 				Build(),
 			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
 				{
 					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
@@ -448,9 +562,22 @@ func TestControlPlane(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate ControlPlane variables with InfrastructureMachineTemplate",
+			name:                        "Should calculate ControlPlane variables with InfrastructureMachineTemplate",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			controlPlaneTopology: &clusterv1.ControlPlaneTopology{
 				Replicas: ptr.To[int32](3),
+				Variables: &clusterv1.ControlPlaneVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
 			},
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithReplicas(3).
@@ -459,6 +586,14 @@ func TestControlPlane(t *testing.T) {
 			controlPlaneInfrastructureMachineTemplate: builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "controlPlaneInfrastructureMachineTemplate1").
 				Build(),
 			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
 				{
 					Name: runtimehooksv1.BuiltinsName,
 					Value: toJSONCompact(`{
@@ -480,7 +615,7 @@ func TestControlPlane(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := ControlPlane(tt.controlPlaneTopology, tt.controlPlane, tt.controlPlaneInfrastructureMachineTemplate)
+			got, err := ControlPlane(tt.controlPlaneTopology, tt.controlPlane, tt.controlPlaneInfrastructureMachineTemplate, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})
@@ -491,7 +626,6 @@ func TestMachineDeployment(t *testing.T) {
 	tests := []struct {
 		name                            string
 		mdTopology                      *clusterv1.MachineDeploymentTopology
-		forPatch                        string
 		variableDefinitionsForPatch     map[string]bool
 		md                              *clusterv1.MachineDeployment
 		mdBootstrapTemplate             *unstructured.Unstructured
@@ -501,7 +635,6 @@ func TestMachineDeployment(t *testing.T) {
 		{
 			name:                        "Should calculate MachineDeployment variables",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
@@ -522,6 +655,8 @@ func TestMachineDeployment(t *testing.T) {
 			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
 				WithReplicas(3).
 				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
+				WithAnnotations(map[string]string{"fizz": "buzz"}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -537,6 +672,7 @@ func TestMachineDeployment(t *testing.T) {
 					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
 						"class": "md-class",
 						"name": "md1",
 						"topologyName": "md-topology",
@@ -546,8 +682,7 @@ func TestMachineDeployment(t *testing.T) {
 			},
 		},
 		{
-			name:     "Should calculate MachineDeployment variables for a given patch name",
-			forPatch: "patch1",
+			name: "Should calculate MachineDeployment variables based on the variables defined for the patch",
 			variableDefinitionsForPatch: map[string]bool{
 				"location": true,
 				"cpu":      true,
@@ -559,27 +694,17 @@ func TestMachineDeployment(t *testing.T) {
 				Variables: &clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
-							Name:           "location",
-							Value:          toJSON("\"us-central\""),
-							DefinitionFrom: "patch1",
-						},
-						{
 							Name:  "location",
-							Value: toJSON("\"us-east\""),
-							// This variable should be excluded because it is defined for a different patch.
-							DefinitionFrom: "anotherPatch",
+							Value: toJSON("\"us-central\""),
 						},
-
 						{
-							Name:  "http-proxy",
+							Name:  "https-proxy",
 							Value: toJSON("\"internal.proxy.com\""),
 							// This variable should be excluded because it is not in variableDefinitionsForPatch.
-							DefinitionFrom: "",
 						},
 						{
 							Name:  "cpu",
 							Value: toJSON("8"),
-							// This variable should be included because it is defined for all patches.
 						},
 					},
 				},
@@ -612,7 +737,6 @@ func TestMachineDeployment(t *testing.T) {
 		},
 		{
 			name:                        "Should calculate MachineDeployment variables (without overrides)",
-			forPatch:                    "patch1",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: ptr.To[int32](3),
@@ -639,7 +763,6 @@ func TestMachineDeployment(t *testing.T) {
 		},
 		{
 			name:                        "Should calculate MachineDeployment variables, replicas not set",
-			forPatch:                    "patch1",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Name:  "md-topology",
@@ -684,7 +807,6 @@ func TestMachineDeployment(t *testing.T) {
 		{
 			name:                        "Should calculate MachineDeployment variables with BoostrapTemplate",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
@@ -737,7 +859,6 @@ func TestMachineDeployment(t *testing.T) {
 		{
 			name:                        "Should calculate MachineDeployment variables with InfrastructureMachineTemplate",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
@@ -788,7 +909,6 @@ func TestMachineDeployment(t *testing.T) {
 		{
 			name:                        "Should calculate MachineDeployment variables with BootstrapTemplate and InfrastructureMachineTemplate",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "md-topology",
@@ -847,7 +967,7 @@ func TestMachineDeployment(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := MachineDeployment(tt.mdTopology, tt.md, tt.mdBootstrapTemplate, tt.mdInfrastructureMachineTemplate, tt.forPatch, tt.variableDefinitionsForPatch)
+			got, err := MachineDeployment(tt.mdTopology, tt.md, tt.mdBootstrapTemplate, tt.mdInfrastructureMachineTemplate, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})
@@ -858,7 +978,6 @@ func TestMachinePool(t *testing.T) {
 	tests := []struct {
 		name                        string
 		mpTopology                  *clusterv1.MachinePoolTopology
-		forPatch                    string
 		variableDefinitionsForPatch map[string]bool
 		mp                          *expv1.MachinePool
 		mpBootstrapConfig           *unstructured.Unstructured
@@ -868,7 +987,6 @@ func TestMachinePool(t *testing.T) {
 		{
 			name:                        "Should calculate MachinePool variables",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
@@ -889,6 +1007,8 @@ func TestMachinePool(t *testing.T) {
 			mp: builder.MachinePool(metav1.NamespaceDefault, "mp1").
 				WithReplicas(3).
 				WithVersion("v1.21.1").
+				WithLabels(map[string]string{"foo": "bar"}).
+				WithAnnotations(map[string]string{"fizz": "buzz"}).
 				Build(),
 			want: []runtimehooksv1.Variable{
 				{
@@ -904,6 +1024,7 @@ func TestMachinePool(t *testing.T) {
 					Value: toJSONCompact(`{
 					"machinePool":{
 						"version": "v1.21.1",
+						"metadata": {"labels":{"foo":"bar"}, "annotations":{"fizz":"buzz"}},
 						"class": "mp-class",
 						"name": "mp1",
 						"topologyName": "mp-topology",
@@ -913,8 +1034,7 @@ func TestMachinePool(t *testing.T) {
 			},
 		},
 		{
-			name:     "Should calculate MachinePool variables for a given patch name",
-			forPatch: "patch1",
+			name: "Should calculate MachinePool variables based on the variables defined for the patch",
 			variableDefinitionsForPatch: map[string]bool{
 				"location": true,
 				"cpu":      true,
@@ -926,27 +1046,17 @@ func TestMachinePool(t *testing.T) {
 				Variables: &clusterv1.MachinePoolVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
-							Name:           "location",
-							Value:          toJSON("\"us-central\""),
-							DefinitionFrom: "patch1",
-						},
-						{
 							Name:  "location",
-							Value: toJSON("\"us-east\""),
-							// This variable should be excluded because it is defined for a different patch.
-							DefinitionFrom: "anotherPatch",
+							Value: toJSON("\"us-central\""),
 						},
-
 						{
-							Name:  "http-proxy",
+							Name:  "https-proxy",
 							Value: toJSON("\"internal.proxy.com\""),
 							// This variable should be excluded because it is not in variableDefinitionsForPatch.
-							DefinitionFrom: "",
 						},
 						{
 							Name:  "cpu",
 							Value: toJSON("8"),
-							// This variable should be included because it is defined for all patches.
 						},
 					},
 				},
@@ -979,7 +1089,6 @@ func TestMachinePool(t *testing.T) {
 		},
 		{
 			name:                        "Should calculate MachinePool variables (without overrides)",
-			forPatch:                    "patch1",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mpTopology: &clusterv1.MachinePoolTopology{
 				Replicas: ptr.To[int32](3),
@@ -1006,7 +1115,6 @@ func TestMachinePool(t *testing.T) {
 		},
 		{
 			name:                        "Should calculate MachinePool variables, replicas not set",
-			forPatch:                    "patch1",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mpTopology: &clusterv1.MachinePoolTopology{
 				Name:  "mp-topology",
@@ -1051,7 +1159,6 @@ func TestMachinePool(t *testing.T) {
 		{
 			name:                        "Should calculate MachinePool variables with BoostrapConfig",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
@@ -1104,7 +1211,6 @@ func TestMachinePool(t *testing.T) {
 		{
 			name:                        "Should calculate MachinePool variables with InfrastructureMachinePool",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
@@ -1155,7 +1261,6 @@ func TestMachinePool(t *testing.T) {
 		{
 			name:                        "Should calculate MachinePool variables with BootstrapConfig and InfrastructureMachinePool",
 			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
-			forPatch:                    "patch1",
 			mpTopology: &clusterv1.MachinePoolTopology{
 				Replicas: ptr.To[int32](3),
 				Name:     "mp-topology",
@@ -1214,7 +1319,7 @@ func TestMachinePool(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := MachinePool(tt.mpTopology, tt.mp, tt.mpBootstrapConfig, tt.mpInfrastructureMachinePool, tt.forPatch, tt.variableDefinitionsForPatch)
+			got, err := MachinePool(tt.mpTopology, tt.mp, tt.mpBootstrapConfig, tt.mpInfrastructureMachinePool, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(BeComparableTo(tt.want))
 		})

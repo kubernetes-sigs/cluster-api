@@ -62,7 +62,7 @@ func (r *DockerMachinePoolReconciler) reconcileDockerContainers(ctx context.Cont
 
 	matchingMachineCount := len(machinesMatchingInfrastructureSpec(ctx, machines, machinePool, dockerMachinePool))
 	numToCreate := int(*machinePool.Spec.Replicas) - matchingMachineCount
-	for i := 0; i < numToCreate; i++ {
+	for range numToCreate {
 		log.V(2).Info("Creating a new Docker container for machinePool", "MachinePool", klog.KObj(machinePool))
 		name := fmt.Sprintf("worker-%s", util.RandomString(6))
 		if err := createDockerContainer(ctx, name, cluster, machinePool, dockerMachinePool); err != nil {
@@ -312,16 +312,19 @@ func (r *DockerMachinePoolReconciler) deleteMachinePoolMachine(ctx context.Conte
 // propagateMachineDeleteAnnotation returns the DockerMachines for a MachinePool and for each DockerMachine, it copies the owner
 // Machine's delete annotation to each DockerMachine if it's present. This is done just in time to ensure that the annotations are
 // up to date when we sort for DockerMachine deletion.
-func (r *DockerMachinePoolReconciler) propagateMachineDeleteAnnotation(ctx context.Context, dockerMachineSet map[string]infrav1.DockerMachine) ([]infrav1.DockerMachine, error) {
+func (r *DockerMachinePoolReconciler) propagateMachineDeleteAnnotation(ctx context.Context, dockerMachineMap map[string]infrav1.DockerMachine) ([]infrav1.DockerMachine, error) {
 	_ = ctrl.LoggerFrom(ctx)
 
 	dockerMachines := []infrav1.DockerMachine{}
-	for _, dockerMachine := range dockerMachineSet {
+	for _, dockerMachine := range dockerMachineMap {
 		machine, err := util.GetOwnerMachine(ctx, r.Client, dockerMachine.ObjectMeta)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error getting owner Machine for DockerMachine %s/%s", dockerMachine.Namespace, dockerMachine.Name)
 		}
 		if machine != nil && machine.Annotations != nil {
+			if dockerMachine.Annotations == nil {
+				dockerMachine.Annotations = map[string]string{}
+			}
 			if _, hasDeleteAnnotation := machine.Annotations[clusterv1.DeleteMachineAnnotation]; hasDeleteAnnotation {
 				dockerMachine.Annotations[clusterv1.DeleteMachineAnnotation] = machine.Annotations[clusterv1.DeleteMachineAnnotation]
 			}

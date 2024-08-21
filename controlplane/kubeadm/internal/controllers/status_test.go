@@ -134,7 +134,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
 		objs = append(objs, n, m)
@@ -207,7 +207,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
 	machines := map[string]*clusterv1.Machine{}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, true)
 		objs = append(objs, n, m)
@@ -287,7 +287,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 	g.Expect(err).ToNot(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
 		machines[m.Name] = m
@@ -369,7 +369,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 	// Create the desired number of machines
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		name := fmt.Sprintf("test-%d", i)
 		m, n := createMachineNodePair(name, cluster, kcp, false)
 		machines[m.Name] = m

@@ -62,7 +62,7 @@ const (
 	kubeadmControlPlaneKind = "KubeadmControlPlane"
 )
 
-// +kubebuilder:rbac:groups=core,resources=events,verbs=create
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
@@ -214,7 +214,11 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 
 		// Always attempt to Patch the KubeadmControlPlane object and status after each reconciliation.
-		if err := patchKubeadmControlPlane(ctx, patchHelper, kcp); err != nil {
+		patchOpts := []patch.Option{}
+		if reterr == nil {
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+		}
+		if err := patchKubeadmControlPlane(ctx, patchHelper, kcp, patchOpts...); err != nil {
 			log.Error(err, "Failed to patch KubeadmControlPlane")
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
@@ -307,7 +311,7 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 	return controlPlane, false, nil
 }
 
-func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane) error {
+func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(kcp,
 		conditions.WithConditions(
@@ -321,20 +325,19 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
-	return patchHelper.Patch(
-		ctx,
-		kcp,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			controlplanev1.MachinesCreatedCondition,
-			clusterv1.ReadyCondition,
-			controlplanev1.MachinesSpecUpToDateCondition,
-			controlplanev1.ResizedCondition,
-			controlplanev1.MachinesReadyCondition,
-			controlplanev1.AvailableCondition,
-			controlplanev1.CertificatesAvailableCondition,
-		}},
-		patch.WithStatusObservedGeneration{},
-	)
+	// Also, if requested, we are adding additional options like e.g. Patch ObservedGeneration when issuing the
+	// patch at the end of the reconcile loop.
+	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		controlplanev1.MachinesCreatedCondition,
+		clusterv1.ReadyCondition,
+		controlplanev1.MachinesSpecUpToDateCondition,
+		controlplanev1.ResizedCondition,
+		controlplanev1.MachinesReadyCondition,
+		controlplanev1.AvailableCondition,
+		controlplanev1.CertificatesAvailableCondition,
+	}})
+
+	return patchHelper.Patch(ctx, kcp, options...)
 }
 
 // reconcile handles KubeadmControlPlane reconciliation.

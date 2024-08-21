@@ -2661,6 +2661,8 @@ func TestReconcileMachinePools(t *testing.T) {
 					if gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
 						wantMachinePoolState.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Name = gotMachinePool.Spec.Template.Spec.Bootstrap.ConfigRef.Name
 					}
+					// expect default value for the node deletion timeout.
+					wantMachinePoolState.Object.Spec.Template.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 10 * time.Second}
 
 					// Compare MachinePool.
 					// Note: We're intentionally only comparing Spec as otherwise we would have to account for

@@ -48,7 +48,7 @@ func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluste
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
 	}
 
-	if cluster.Spec.InfrastructureRef != nil {
+	if cluster.Spec.InfrastructureRef != nil || cluster.Spec.ControlPlaneRef != nil {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhaseProvisioning)
 	}
 
@@ -83,7 +83,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		return external.ReconcileOutput{}, err
 	}
 
-	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, cluster.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			log.Info("Could not find external object for cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
@@ -151,6 +151,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	log := ctrl.LoggerFrom(ctx)
 
 	if cluster.Spec.InfrastructureRef == nil {
+		// If the infrastructure ref is not set, marking the infrastructure as ready (no-op).
+		cluster.Status.InfrastructureReady = true
+		conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
@@ -199,7 +202,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 
 	// Get and parse Spec.ControlPlaneEndpoint field from the infrastructure provider.
 	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-		if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil {
+		if err := util.UnstructuredUnmarshalField(infraConfig, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil && err != util.ErrUnstructuredFieldNotFound {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from infrastructure provider for Cluster %q in namespace %q",
 				cluster.Name, cluster.Namespace)
 		}
@@ -218,6 +221,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 
 // reconcileControlPlane reconciles the Spec.ControlPlaneRef object on a Cluster.
 func (r *Reconciler) reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	if cluster.Spec.ControlPlaneRef == nil {
 		return ctrl.Result{}, nil
 	}
@@ -271,6 +276,19 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, cluster *cluster
 			conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		} else {
 			conditions.MarkFalse(cluster, clusterv1.ControlPlaneInitializedCondition, clusterv1.WaitingForControlPlaneProviderInitializedReason, clusterv1.ConditionSeverityInfo, "Waiting for control plane provider to indicate the control plane has been initialized")
+		}
+	}
+
+	if !ready {
+		log.V(3).Info("Control Plane provider is not ready yet")
+		return ctrl.Result{}, nil
+	}
+
+	// Get and parse Spec.ControlPlaneEndpoint field from the control plane provider.
+	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
+		if err := util.UnstructuredUnmarshalField(controlPlaneConfig, &cluster.Spec.ControlPlaneEndpoint, "spec", "controlPlaneEndpoint"); err != nil && err != util.ErrUnstructuredFieldNotFound {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ControlPlaneEndpoint from control plane provider for Cluster %q in namespace %q",
+				cluster.Name, cluster.Namespace)
 		}
 	}
 

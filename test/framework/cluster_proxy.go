@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	goruntime "runtime"
 	"sync"
@@ -30,9 +29,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -44,9 +47,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (
@@ -89,8 +92,8 @@ type ClusterProxy interface {
 	// GetLogCollector returns the machine log collector for the Kubernetes cluster.
 	GetLogCollector() ClusterLogCollector
 
-	// Apply to apply YAML to the Kubernetes cluster, `kubectl apply`.
-	Apply(ctx context.Context, resources []byte, args ...string) error
+	// CreateOrUpdate creates or updates objects using the clusterProxy client
+	CreateOrUpdate(ctx context.Context, resources []byte, options ...CreateOrUpdateOption) error
 
 	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
 	GetWorkloadCluster(ctx context.Context, namespace, name string, options ...Option) ClusterProxy
@@ -101,6 +104,21 @@ type ClusterProxy interface {
 	// Dispose proxy's internal resources (the operation does not affects the Kubernetes cluster).
 	// This should be implemented as a synchronous function.
 	Dispose(context.Context)
+}
+
+// createOrUpdateConfig contains options for use with CreateOrUpdate.
+type createOrUpdateConfig struct {
+	labelSelector labels.Selector
+}
+
+// CreateOrUpdateOption is a configuration option supplied to CreateOrUpdate.
+type CreateOrUpdateOption func(*createOrUpdateConfig)
+
+// WithLabelSelector allows definition of the LabelSelector to be used in CreateOrUpdate.
+func WithLabelSelector(labelSelector labels.Selector) CreateOrUpdateOption {
+	return func(c *createOrUpdateConfig) {
+		c.labelSelector = labelSelector
+	}
 }
 
 // ClusterLogCollector defines an object that can collect logs from a machine.
@@ -123,6 +141,15 @@ func WithMachineLogCollector(logCollector ClusterLogCollector) Option {
 	}
 }
 
+// WithRESTConfigModifier allows to modify the rest config in GetRESTConfig.
+// Using this function it is possible to create ClusterProxy that can work with workload clusters hosted in places
+// not directly accessible from the machine where we run the E2E tests, e.g. inside kind.
+func WithRESTConfigModifier(f func(*rest.Config)) Option {
+	return func(c *clusterProxy) {
+		c.restConfigModifier = f
+	}
+}
+
 // clusterProxy provides a base implementation of the ClusterProxy interface.
 type clusterProxy struct {
 	name                    string
@@ -132,6 +159,8 @@ type clusterProxy struct {
 	logCollector            ClusterLogCollector
 	cache                   cache.Cache
 	onceCache               sync.Once
+
+	restConfigModifier func(*rest.Config)
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
@@ -247,20 +276,52 @@ func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 	return p.cache
 }
 
-// Apply wraps `kubectl apply ...` and prints the output so we can see what gets applied to the cluster.
-func (p *clusterProxy) Apply(ctx context.Context, resources []byte, args ...string) error {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for Apply")
-	Expect(resources).NotTo(BeNil(), "resources is required for Apply")
-
-	if err := testexec.KubectlApply(ctx, p.kubeconfigPath, resources, args...); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return pkgerrors.New(fmt.Sprintf("%s: stderr: %s", err.Error(), exitErr.Stderr))
-		}
+// CreateOrUpdate creates or updates objects using the clusterProxy client.
+func (p *clusterProxy) CreateOrUpdate(ctx context.Context, resources []byte, opts ...CreateOrUpdateOption) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateOrUpdate")
+	Expect(resources).NotTo(BeNil(), "resources is required for CreateOrUpdate")
+	labelSelector := labels.Everything()
+	config := &createOrUpdateConfig{}
+	for _, opt := range opts {
+		opt(config)
+	}
+	if config.labelSelector != nil {
+		labelSelector = config.labelSelector
+	}
+	objs, err := yaml.ToUnstructured(resources)
+	if err != nil {
 		return err
 	}
 
-	return nil
+	existingObject := &unstructured.Unstructured{}
+	var retErrs []error
+	for _, o := range objs {
+		objectKey := types.NamespacedName{
+			Name:      o.GetName(),
+			Namespace: o.GetNamespace(),
+		}
+		existingObject.SetAPIVersion(o.GetAPIVersion())
+		existingObject.SetKind(o.GetKind())
+		labels := labels.Set(o.GetLabels())
+		if labelSelector.Matches(labels) {
+			if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
+				// Expected error -- if the object does not exist, create it
+				if apierrors.IsNotFound(err) {
+					if err := p.GetClient().Create(ctx, &o); err != nil {
+						retErrs = append(retErrs, err)
+					}
+				} else {
+					retErrs = append(retErrs, err)
+				}
+			} else {
+				o.SetResourceVersion(existingObject.GetResourceVersion())
+				if err := p.GetClient().Update(ctx, &o); err != nil {
+					retErrs = append(retErrs, err)
+				}
+			}
+		}
+	}
+	return kerrors.NewAggregate(retErrs)
 }
 
 func (p *clusterProxy) GetRESTConfig() *rest.Config {
@@ -271,6 +332,11 @@ func (p *clusterProxy) GetRESTConfig() *rest.Config {
 	Expect(err).ToNot(HaveOccurred(), "Failed to get ClientConfig from %q", p.kubeconfigPath)
 
 	restConfig.UserAgent = "cluster-api-e2e"
+
+	if p.restConfigModifier != nil {
+		p.restConfigModifier(restConfig)
+	}
+
 	return restConfig
 }
 
@@ -412,7 +478,7 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 		return cl.Get(ctx, key, cluster)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 
-	return cluster.Spec.InfrastructureRef.Kind == "DockerCluster"
+	return cluster.Spec.InfrastructureRef != nil && cluster.Spec.InfrastructureRef.Kind == "DockerCluster"
 }
 
 func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.Config) {

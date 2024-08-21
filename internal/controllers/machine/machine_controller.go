@@ -65,7 +65,7 @@ var (
 	errControlPlaneIsBeingDeleted = errors.New("control plane is being deleted")
 )
 
-// +kubebuilder:rbac:groups=core,resources=events,verbs=create
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
@@ -73,10 +73,9 @@ var (
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client                    client.Client
-	UnstructuredCachingClient client.Client
-	APIReader                 client.Reader
-	Tracker                   *remote.ClusterCacheTracker
+	Client    client.Client
+	APIReader client.Reader
+	Tracker   *remote.ClusterCacheTracker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -401,6 +400,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 
 		// After node draining is completed, and if isNodeVolumeDetachingAllowed returns True, make sure all
 		// volumes are detached before proceeding to delete the Node.
+		// In case the node is unreachable, the detachment is skipped.
 		if r.isNodeVolumeDetachingAllowed(m) {
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time,
 			// so its transition time can be used to record the first time we wait for volume detachment.
@@ -562,8 +562,33 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		return errClusterIsBeingDeleted
 	}
 
-	// Cannot delete something that doesn't exist.
+	if machine.Status.NodeRef == nil && machine.Spec.ProviderID != nil {
+		// If we don't have a node reference, but a provider id has been set,
+		// try to retrieve the node one more time.
+		//
+		// NOTE: The following is a best-effort attempt to retrieve the node,
+		// errors are logged but not returned to ensure machines are deleted
+		// even if the node cannot be retrieved.
+		remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+		if err != nil {
+			log.Error(err, "Failed to get cluster client while deleting Machine and checking for nodes")
+		} else {
+			node, err := r.getNode(ctx, remoteClient, *machine.Spec.ProviderID)
+			if err != nil && err != ErrNodeNotFound {
+				log.Error(err, "Failed to get node while deleting Machine")
+			} else if err == nil {
+				machine.Status.NodeRef = &corev1.ObjectReference{
+					APIVersion: corev1.SchemeGroupVersion.String(),
+					Kind:       "Node",
+					Name:       node.Name,
+					UID:        node.UID,
+				}
+			}
+		}
+	}
+
 	if machine.Status.NodeRef == nil {
+		// Cannot delete something that doesn't exist.
 		return errNilNodeRef
 	}
 
@@ -670,8 +695,18 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	if noderefutil.IsNodeUnreachable(node) {
-		// When the node is unreachable and some pods are not evicted for as long as this timeout, we ignore them.
-		drainer.SkipWaitForDeleteTimeoutSeconds = 60 * 5 // 5 minutes
+		// Kubelet is unreachable, pods will never disappear.
+
+		// SkipWaitForDeleteTimeoutSeconds ensures the drain completes
+		// even if pod objects are not deleted.
+		drainer.SkipWaitForDeleteTimeoutSeconds = 1
+
+		// kube-apiserver sets the `deletionTimestamp` to a future date computed using the grace period.
+		// We are effectively waiting for GracePeriodSeconds + SkipWaitForDeleteTimeoutSeconds.
+		// Override the grace period of pods to reduce the time needed to skip them.
+		drainer.GracePeriodSeconds = 1
+
+		log.V(5).Info("Node is unreachable, draining will ignore gracePeriod. PDBs are still honored.")
 	}
 
 	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {
@@ -690,7 +725,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	return ctrl.Result{}, nil
 }
 
-// shouldWaitForNodeVolumes returns true if node status still have volumes attached
+// shouldWaitForNodeVolumes returns true if node status still have volumes attached and the node is reachable
 // pod deletion and volume detach happen asynchronously, so pod could be deleted before volume detached from the node
 // this could cause issue for some storage provisioner, for example, vsphere-volume this is problematic
 // because if the node is deleted before detach success, then the underline VMDK will be deleted together with the Machine
@@ -710,6 +745,14 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 			return false, nil
 		}
 		return true, err
+	}
+
+	if noderefutil.IsNodeUnreachable(node) {
+		// If a node is unreachable, we can't detach the volume.
+		// We need to skip the detachment as we otherwise block deletions
+		// of unreachable nodes when a volume is attached.
+		log.Info("Skipping volume detachment as node is unreachable.")
+		return false, nil
 	}
 
 	return len(node.Status.VolumesAttached) != 0, nil
@@ -786,7 +829,7 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, cluster *clust
 	}
 
 	// get the external object
-	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, m.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 		return nil, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 			ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: extensionconfigs.runtime.cluster.x-k8s.io
 spec:
   group: runtime.cluster.x-k8s.io
@@ -62,7 +62,6 @@ spec:
                       Service is a reference to the Kubernetes service for the Extension server.
                       Note: Exactly one of `url` or `service` must be specified.
 
-
                       If the Extension server is running within a cluster, then you should use `service`.
                     properties:
                       name:
@@ -93,17 +92,13 @@ spec:
                       (`scheme://host:port/path`).
                       Note: Exactly one of `url` or `service` must be specified.
 
-
                       The scheme must be "https".
-
 
                       The `host` should not refer to a service running in the cluster; use
                       the `service` field instead.
 
-
                       A path is optional, and if present may be any string permissible in
                       a URL. If a path is set it will be used as prefix to the hook-specific path.
-
 
                       Attempting to use a user or basic auth e.g. "user:password@" is not
                       allowed. Fragments ("#...") and query parameters ("?...") are not

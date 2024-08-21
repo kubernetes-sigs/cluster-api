@@ -75,7 +75,7 @@ func Test_cache_scale(t *testing.T) {
 		return fmt.Sprintf("machine-%d", j)
 	}
 
-	for i := 0; i < resourceGroups; i++ {
+	for i := range resourceGroups {
 		resourceGroup := fmt.Sprintf("resourceGroup-%d", i)
 		c.AddResourceGroup(resourceGroup)
 

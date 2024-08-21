@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -35,65 +36,119 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		Client:   fake.NewClientBuilder().Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
-
-	nodeList := []client.Object{
-		&corev1.Node{
+	nodeRefsMap := map[string]*corev1.Node{
+		"aws://us-east-1/id-node-1": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-1",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-east-1/id-node-1",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
-		&corev1.Node{
+		"aws://us-west-2/id-node-2": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "node-2",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "aws://us-west-2/id-node-2",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
-		&corev1.Node{
+		"aws://us-west-2/id-node-3": {
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-3",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-west-2/id-node-3",
+			},
+		},
+		"gce://us-central1/gce-id-node-2": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "gce-node-2",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "gce://us-central1/gce-id-node-2",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
-		&corev1.Node{
+		"azure://westus2/id-node-4": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "azure-node-4",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "azure://westus2/id-node-4",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
-		&corev1.Node{
+		"azure://westus2/id-nodepool1/0": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "azure-nodepool1-0",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "azure://westus2/id-nodepool1/0",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
-		&corev1.Node{
+		"azure://westus2/id-nodepool2/0": {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "azure-nodepool2-0",
 			},
 			Spec: corev1.NodeSpec{
 				ProviderID: "azure://westus2/id-nodepool2/0",
 			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
 		},
 	}
 
-	client := fake.NewClientBuilder().WithObjects(nodeList...).Build()
-
 	testCases := []struct {
-		name           string
-		providerIDList []string
-		expected       *getNodeReferencesResult
-		err            error
+		name            string
+		providerIDList  []string
+		expected        *getNodeReferencesResult
+		err             error
+		minReadySeconds int32
 	}{
 		{
 			name:           "valid provider id, valid aws node",
@@ -102,6 +157,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "node-1"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -111,6 +168,19 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "node-2"},
 				},
+				available: 1,
+				ready:     1,
+			},
+		},
+		{
+			name:           "valid provider id, valid aws node, nodeReady condition set to false",
+			providerIDList: []string{"aws://us-west-2/id-node-3"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{
+					{Name: "node-3"},
+				},
+				available: 0,
+				ready:     0,
 			},
 		},
 		{
@@ -120,6 +190,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "gce-node-2"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -129,6 +201,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "azure-node-4"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -139,6 +213,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "node-1"},
 					{Name: "azure-node-4"},
 				},
+				available: 2,
+				ready:     2,
 			},
 		},
 		{
@@ -163,6 +239,8 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{
 					{Name: "azure-nodepool1-0"},
 				},
+				available: 1,
+				ready:     1,
 			},
 		},
 		{
@@ -173,7 +251,29 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 					{Name: "azure-nodepool1-0"},
 					{Name: "azure-nodepool2-0"},
 				},
+				available: 2,
+				ready:     2,
 			},
+		},
+		{
+			name:           "valid provider id, valid aws node, with minReadySeconds",
+			providerIDList: []string{"aws://us-east-1/id-node-1"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{{Name: "node-1"}},
+				available:  0,
+				ready:      1,
+			},
+			minReadySeconds: 20,
+		},
+		{
+			name:           "valid provider id, valid aws node, with minReadySeconds equals 0",
+			providerIDList: []string{"aws://us-east-1/id-node-1"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{{Name: "node-1"}},
+				available:  1,
+				ready:      1,
+			},
+			minReadySeconds: 0,
 		},
 	}
 
@@ -181,7 +281,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result, err := r.getNodeReferences(ctx, client, test.providerIDList)
+			result, err := r.getNodeReferences(ctx, test.providerIDList, ptr.To(test.minReadySeconds), nodeRefsMap)
 			if test.err == nil {
 				g.Expect(err).ToNot(HaveOccurred())
 			} else {
@@ -194,6 +294,9 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			}
 
 			g.Expect(result.references).To(HaveLen(len(test.expected.references)), "Expected NodeRef count to be %v, got %v", len(result.references), len(test.expected.references))
+
+			g.Expect(result.available).To(Equal(test.expected.available), "Expected available node count to be %v, got %v", test.expected.available, result.available)
+			g.Expect(result.ready).To(Equal(test.expected.ready), "Expected ready node count to be %v, got %v", test.expected.ready, result.ready)
 
 			for n := range test.expected.references {
 				g.Expect(result.references[n].Name).To(Equal(test.expected.references[n].Name), "Expected NodeRef's name to be %v, got %v", result.references[n].Name, test.expected.references[n].Name)

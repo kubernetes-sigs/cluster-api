@@ -149,11 +149,15 @@ type WorkersClass struct {
 	// MachineDeployments is a list of machine deployment classes that can be used to create
 	// a set of worker nodes.
 	// +optional
+	// +listType=map
+	// +listMapKey=class
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
 
 	// MachinePools is a list of machine pool classes that can be used to create
 	// a set of worker nodes.
 	// +optional
+	// +listType=map
+	// +listMapKey=class
 	MachinePools []MachinePoolClass `json:"machinePools,omitempty"`
 }
 
@@ -270,8 +274,17 @@ type MachineHealthCheckClass struct {
 	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
-	// Machines older than this duration without a node will be considered to have
-	// failed and will be remediated.
+	// NodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+	// to consider a Machine unhealthy if a corresponding Node isn't associated
+	// through a `Spec.ProviderID` field.
+	//
+	// The duration set in this field is compared to the greatest of:
+	// - Cluster's infrastructure ready condition timestamp (if and when available)
+	// - Control Plane's initialized condition timestamp (if and when available)
+	// - Machine's infrastructure ready condition timestamp (if and when available)
+	// - Machine's metadata creation timestamp
+	//
+	// Defaults to 10 minutes.
 	// If you wish to disable this feature, set the value explicitly to 0.
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
@@ -387,6 +400,9 @@ type ClusterClassVariable struct {
 	// Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please use XMetadata in JSONSchemaProps instead.
+	//
 	// +optional
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 
@@ -397,6 +413,8 @@ type ClusterClassVariable struct {
 // ClusterClassVariableMetadata is the metadata of a variable.
 // It can be used to add additional data for higher level tools to
 // a ClusterClassVariable.
+//
+// Deprecated: This struct is deprecated and is going to be removed in the next apiVersion.
 type ClusterClassVariableMetadata struct {
 	// Map of string keys and values that can be used to organize and categorize
 	// (scope and select) variables.
@@ -417,6 +435,8 @@ type VariableSchema struct {
 	// Kubernetes CRDs.
 	OpenAPIV3Schema JSONSchemaProps `json:"openAPIV3Schema"`
 }
+
+// Adapted from https://github.com/kubernetes/apiextensions-apiserver/blob/v0.28.5/pkg/apis/apiextensions/v1/types_jsonschema.go#L40
 
 // JSONSchemaProps is a JSON-Schema following Specification Draft 4 (http://json-schema.org/).
 // This struct has been initially copied from apiextensionsv1.JSONSchemaProps, but all fields
@@ -451,6 +471,16 @@ type JSONSchemaProps struct {
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	AdditionalProperties *JSONSchemaProps `json:"additionalProperties,omitempty"`
+
+	// MaxProperties is the maximum amount of entries in a map or properties in an object.
+	// NOTE: Can only be set if type is object.
+	// +optional
+	MaxProperties *int64 `json:"maxProperties,omitempty"`
+
+	// MinProperties is the minimum amount of entries in a map or properties in an object.
+	// NOTE: Can only be set if type is object.
+	// +optional
+	MinProperties *int64 `json:"minProperties,omitempty"`
 
 	// Required specifies which fields of an object are required.
 	// NOTE: Can only be set if type is object.
@@ -542,7 +572,143 @@ type JSONSchemaProps struct {
 	// NOTE: Can be set for all types.
 	// +optional
 	Default *apiextensionsv1.JSON `json:"default,omitempty"`
+
+	// XValidations describes a list of validation rules written in the CEL expression language.
+	// +optional
+	// +listType=map
+	// +listMapKey=rule
+	XValidations []ValidationRule `json:"x-kubernetes-validations,omitempty"`
+
+	// XMetadata is the metadata of a variable or a nested field within a variable.
+	// It can be used to add additional data for higher level tools.
+	// +optional
+	XMetadata *VariableSchemaMetadata `json:"x-metadata,omitempty"`
 }
+
+// VariableSchemaMetadata is the metadata of a variable or a nested field within a variable.
+// It can be used to add additional data for higher level tools.
+type VariableSchemaMetadata struct {
+	// Map of string keys and values that can be used to organize and categorize
+	// (scope and select) variables.
+	// +optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Annotations is an unstructured key value map that can be used to store and
+	// retrieve arbitrary metadata.
+	// They are not queryable.
+	// +optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// ValidationRule describes a validation rule written in the CEL expression language.
+type ValidationRule struct {
+	// Rule represents the expression which will be evaluated by CEL.
+	// ref: https://github.com/google/cel-spec
+	// The Rule is scoped to the location of the x-kubernetes-validations extension in the schema.
+	// The `self` variable in the CEL expression is bound to the scoped value.
+	// If the Rule is scoped to an object with properties, the accessible properties of the object are field selectable
+	// via `self.field` and field presence can be checked via `has(self.field)`.
+	// If the Rule is scoped to an object with additionalProperties (i.e. a map) the value of the map
+	// are accessible via `self[mapKey]`, map containment can be checked via `mapKey in self` and all entries of the map
+	// are accessible via CEL macros and functions such as `self.all(...)`.
+	// If the Rule is scoped to an array, the elements of the array are accessible via `self[i]` and also by macros and
+	// functions.
+	// If the Rule is scoped to a scalar, `self` is bound to the scalar value.
+	// Examples:
+	// - Rule scoped to a map of objects: {"rule": "self.components['Widget'].priority < 10"}
+	// - Rule scoped to a list of integers: {"rule": "self.values.all(value, value >= 0 && value < 100)"}
+	// - Rule scoped to a string value: {"rule": "self.startsWith('kube')"}
+	//
+	// Unknown data preserved in custom resources via x-kubernetes-preserve-unknown-fields is not accessible in CEL
+	// expressions. This includes:
+	// - Unknown field values that are preserved by object schemas with x-kubernetes-preserve-unknown-fields.
+	// - Object properties where the property schema is of an "unknown type". An "unknown type" is recursively defined as:
+	//   - A schema with no type and x-kubernetes-preserve-unknown-fields set to true
+	//   - An array where the items schema is of an "unknown type"
+	//   - An object where the additionalProperties schema is of an "unknown type"
+	//
+	// Only property names of the form `[a-zA-Z_.-/][a-zA-Z0-9_.-/]*` are accessible.
+	// Accessible property names are escaped according to the following rules when accessed in the expression:
+	// - '__' escapes to '__underscores__'
+	// - '.' escapes to '__dot__'
+	// - '-' escapes to '__dash__'
+	// - '/' escapes to '__slash__'
+	// - Property names that exactly match a CEL RESERVED keyword escape to '__{keyword}__'. The keywords are:
+	//	  "true", "false", "null", "in", "as", "break", "const", "continue", "else", "for", "function", "if",
+	//	  "import", "let", "loop", "package", "namespace", "return".
+	// Examples:
+	//   - Rule accessing a property named "namespace": {"rule": "self.__namespace__ > 0"}
+	//   - Rule accessing a property named "x-prop": {"rule": "self.x__dash__prop > 0"}
+	//   - Rule accessing a property named "redact__d": {"rule": "self.redact__underscores__d > 0"}
+	//
+	//
+	// If `rule` makes use of the `oldSelf` variable it is implicitly a
+	// `transition rule`.
+	//
+	// By default, the `oldSelf` variable is the same type as `self`.
+	//
+	// Transition rules by default are applied only on UPDATE requests and are
+	// skipped if an old value could not be found.
+	//
+	// +kubebuilder:validation:Required
+	Rule string `json:"rule"`
+	// Message represents the message displayed when validation fails. The message is required if the Rule contains
+	// line breaks. The message must not contain line breaks.
+	// If unset, the message is "failed rule: {Rule}".
+	// e.g. "must be a URL with the host matching spec.host"
+	// +optional
+	Message string `json:"message,omitempty"`
+	// MessageExpression declares a CEL expression that evaluates to the validation failure message that is returned when this rule fails.
+	// Since messageExpression is used as a failure message, it must evaluate to a string.
+	// If both message and messageExpression are present on a rule, then messageExpression will be used if validation
+	// fails. If messageExpression results in a runtime error, the validation failure message is produced
+	// as if the messageExpression field were unset. If messageExpression evaluates to an empty string, a string with only spaces, or a string
+	// that contains line breaks, then the validation failure message will also be produced as if the messageExpression field were unset.
+	// messageExpression has access to all the same variables as the rule; the only difference is the return type.
+	// Example:
+	// "x must be less than max ("+string(self.max)+")"
+	// +optional
+	MessageExpression string `json:"messageExpression,omitempty"`
+	// Reason provides a machine-readable validation failure reason that is returned to the caller when a request fails this validation rule.
+	// The currently supported reasons are: "FieldValueInvalid", "FieldValueForbidden", "FieldValueRequired", "FieldValueDuplicate".
+	// If not set, default to use "FieldValueInvalid".
+	// All future added reasons must be accepted by clients when reading this value and unknown reasons should be treated as FieldValueInvalid.
+	// +optional
+	// +kubebuilder:validation:Enum=FieldValueInvalid;FieldValueForbidden;FieldValueRequired;FieldValueDuplicate
+	// +kubebuilder:default=FieldValueInvalid
+	// +default=ref(sigs.k8s.io/cluster-api/api/v1beta1.FieldValueInvalid)
+	Reason FieldValueErrorReason `json:"reason,omitempty"`
+	// FieldPath represents the field path returned when the validation fails.
+	// It must be a relative JSON path (i.e. with array notation) scoped to the location of this x-kubernetes-validations extension in the schema and refer to an existing field.
+	// e.g. when validation checks if a specific attribute `foo` under a map `testMap`, the fieldPath could be set to `.testMap.foo`
+	// If the validation checks two lists must have unique attributes, the fieldPath could be set to either of the list: e.g. `.testList`
+	// It does not support list numeric index.
+	// It supports child operation to refer to an existing field currently. Refer to [JSONPath support in Kubernetes](https://kubernetes.io/docs/reference/kubectl/jsonpath/) for more info.
+	// Numeric index of array is not supported.
+	// For field name which contains special characters, use `['specialName']` to refer the field name.
+	// e.g. for attribute `foo.34$` appears in a list `testList`, the fieldPath could be set to `.testList['foo.34$']`
+	// +optional
+	FieldPath string `json:"fieldPath,omitempty"`
+}
+
+// FieldValueErrorReason is a machine-readable value providing more detail about why a field failed the validation.
+type FieldValueErrorReason string
+
+const (
+	// FieldValueRequired is used to report required values that are not
+	// provided (e.g. empty strings, null values, or empty arrays).
+	FieldValueRequired FieldValueErrorReason = "FieldValueRequired"
+	// FieldValueDuplicate is used to report collisions of values that must be
+	// unique (e.g. unique IDs).
+	FieldValueDuplicate FieldValueErrorReason = "FieldValueDuplicate"
+	// FieldValueInvalid is used to report malformed values (e.g. failed regex
+	// match, too long, out of bounds).
+	FieldValueInvalid FieldValueErrorReason = "FieldValueInvalid"
+	// FieldValueForbidden is used to report valid (as per formatting rules)
+	// values which would be accepted under some conditions, but which are not
+	// permitted by the current conditions (such as security policy).
+	FieldValueForbidden FieldValueErrorReason = "FieldValueForbidden"
+)
 
 // ClusterClassPatch defines a patch which is applied to customize the referenced templates.
 type ClusterClassPatch struct {
@@ -760,6 +926,9 @@ type ClusterClassStatusVariableDefinition struct {
 	// Metadata is the metadata of a variable.
 	// It can be used to add additional data for higher level tools to
 	// a ClusterClassVariable.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion.
+	//
 	// +optional
 	Metadata ClusterClassVariableMetadata `json:"metadata,omitempty"`
 

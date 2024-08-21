@@ -107,7 +107,7 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 		},
 	})
 	Expect(err).ToNot(HaveOccurred(), "failed to parse %s", workloadYamlTemplate)
-	Expect(input.WorkloadClusterProxy.Apply(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
+	Expect(input.WorkloadClusterProxy.CreateOrUpdate(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
 
 	By("Wait for the autoscaler deployment and collect logs")
 	deployment := &appsv1.Deployment{
@@ -135,12 +135,16 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 
 // AddScaleUpDeploymentAndWaitInput is the input for AddScaleUpDeploymentAndWait.
 type AddScaleUpDeploymentAndWaitInput struct {
-	ClusterProxy ClusterProxy
+	ClusterProxy   ClusterProxy
+	ContainerImage string
 }
 
 // AddScaleUpDeploymentAndWait create a deployment that will trigger the autoscaler to scale up and create a new machine.
 func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
 	By("Create a scale up deployment with resource requests to force scale up")
+	if input.ContainerImage == "" {
+		input.ContainerImage = "registry.k8s.io/pause"
+	}
 
 	// gets the node size
 	nodes := &corev1.NodeList{}
@@ -154,7 +158,7 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 		if _, ok := n.Labels[nodeRoleOldControlPlane]; ok {
 			continue
 		}
-		memory = n.Status.Capacity.Memory() // Assume that all nodes have the same memory.
+		memory = n.Status.Allocatable.Memory() // Assume that all nodes have the same memory.
 		workers++
 	}
 	Expect(memory).ToNot(BeNil(), "failed to get memory for the worker node")
@@ -191,14 +195,14 @@ func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeployment
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:  "busybox",
-							Image: "busybox",
+							Name:            "pause",
+							Image:           input.ContainerImage,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Resources: corev1.ResourceRequirements{
 								Requests: map[corev1.ResourceName]resource.Quantity{
 									corev1.ResourceMemory: *podMemory,
 								},
 							},
-							Command: []string{"/bin/sh", "-c", "echo \"up\" & sleep infinity"},
 						},
 					},
 				},

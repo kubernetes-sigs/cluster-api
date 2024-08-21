@@ -19,12 +19,12 @@ linters:
   - bidichk
   - bodyclose
   - containedctx
+  - copyloopvar
   - dogsled
   - dupword
   - durationcheck
   - errcheck
   - errchkjson
-  - exportloopref
   - gci
   - ginkgolinter
   - goconst
@@ -38,6 +38,7 @@ linters:
   - govet
   - importas
   - ineffassign
+  - intrange
   - loggercheck
   - misspell
   - nakedret
@@ -51,6 +52,7 @@ linters:
   - rowserrcheck
   - staticcheck
   - stylecheck
+  - tenv
   - thelper
   - typecheck
   - unconvert
@@ -232,7 +234,15 @@ issues:
   # should be removed as the referenced deprecated item is removed from the project.
   - linters:
       - staticcheck
-    text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|c.TopologyPlan) is deprecated"
+    text: "SA1019: (bootstrapv1.ClusterStatus|KubeadmConfigSpec.UseExperimentalRetryJoin|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped|c.TopologyPlan|clusterv1.ClusterClassVariableMetadata|(variable|currentDefinition|specVar|newVariableDefinition|statusVarDefinition).Metadata) is deprecated"
+  # Deprecations for MD revision management
+  - linters:
+      - staticcheck
+    text: "SA1019: ((deployment|m|md).Spec.RevisionHistoryLimit|clusterv1.RevisionHistoryAnnotation|c.RolloutUndo) is deprecated"
+    # Deprecations for MHC MaxUnhealthy, UnhealthyRange
+  - linters:
+      - staticcheck
+    text: "SA1019: (mhc|m)(.Spec.MaxUnhealthy|.Spec.UnhealthyRange) is deprecated"
   # Specific exclude rules for deprecated packages that are still part of the codebase. These
   # should be removed as the referenced deprecated packages are removed from the project.
   - linters:
@@ -288,6 +298,12 @@ issues:
     - stylecheck
     path: util/defaulting/defaulting.go
     text: should not use dot imports
+  # Large parts of this file are duplicate from k/k. Let's ignore "emptyStringTest" to reduce the noise in diffs
+  # and to avoid making mistakes by diverging from upstream just because of this purely stylistic linter finding.
+  - linters:
+      - gocritic
+    text: "emptyStringTest"
+    path: internal/topology/variables/clusterclass_variable_validation.go
   # Append should be able to assign to a different var/slice.
   - linters:
     - gocritic

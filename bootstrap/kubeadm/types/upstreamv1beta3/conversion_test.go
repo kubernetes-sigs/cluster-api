@@ -63,40 +63,72 @@ func TestFuzzyConversion(t *testing.T) {
 
 func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		nodeRegistrationOptionsFuzzer,
 		initConfigurationFuzzer,
 		joinConfigurationFuzzer,
+		bootstrapv1JoinConfigurationFuzzer,
+		nodeRegistrationOptionsFuzzer,
 		joinControlPlanesFuzzer,
+		bootstrapv1ControlPlaneComponentFuzzer,
+		bootstrapv1LocalEtcdFuzzer,
+		bootstrapv1NodeRegistrationOptionsFuzzer,
 	}
 }
 
-func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// NodeRegistrationOptions.IgnorePreflightErrors does not exists in v1alpha4, so setting it to nil in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
-	obj.IgnorePreflightErrors = nil
-}
-
-func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
-	c.FuzzNoCustom(obj)
-
-	// JoinControlPlane.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
-	obj.CertificateKey = ""
-}
+// Custom fuzzers for kubeadm v1beta3 types.
+// NOTES:
+// - When fields do not exist in cabpk v1beta1 types, pinning it to avoid kubeadm v1beta3 --> cabpk v1beta1 --> kubeadm v1beta3 round trip errors.
 
 func initConfigurationFuzzer(obj *InitConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// InitConfiguration.CertificateKey does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
 	obj.CertificateKey = ""
-
-	// InitConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
 	obj.SkipPhases = nil
 }
 
 func joinConfigurationFuzzer(obj *JoinConfiguration, c fuzz.Continue) {
 	c.Fuzz(obj)
 
-	// JoinConfiguration.SkipPhases does not exists in v1alpha4, so setting it to empty string in order to avoid v1beta3 --> v1alpha4 --> v1beta3 round trip errors.
 	obj.SkipPhases = nil
+}
+
+func bootstrapv1JoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	if obj.Discovery.File != nil {
+		obj.Discovery.File.KubeConfig = nil
+	}
+}
+
+func nodeRegistrationOptionsFuzzer(obj *NodeRegistrationOptions, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.IgnorePreflightErrors = nil
+}
+
+func joinControlPlanesFuzzer(obj *JoinControlPlane, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.CertificateKey = ""
+}
+
+// Custom fuzzers for CABPK v1beta1 types.
+// NOTES:
+// - When fields do not exist in kubeadm v1beta4 types, pinning them to avoid cabpk v1beta1 --> kubeadm v1beta4 --> cabpk v1beta1 round trip errors.
+
+func bootstrapv1ControlPlaneComponentFuzzer(obj *bootstrapv1.ControlPlaneComponent, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func bootstrapv1LocalEtcdFuzzer(obj *bootstrapv1.LocalEtcd, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ExtraEnvs = nil
+}
+
+func bootstrapv1NodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	obj.ImagePullSerial = nil
 }

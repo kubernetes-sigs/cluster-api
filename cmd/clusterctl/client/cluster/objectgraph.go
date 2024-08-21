@@ -148,7 +148,7 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 			if n.additionalInfo == nil {
 				n.additionalInfo = map[string]interface{}{}
 			}
-			n.additionalInfo[clusterTopologyNameKey] = cluster.Spec.Topology.Class
+			n.additionalInfo[clusterTopologyNameKey] = cluster.GetClassKey().Name
 		}
 	}
 

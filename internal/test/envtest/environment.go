@@ -260,6 +260,8 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 		Client: client.Options{
 			Cache: &client.CacheOptions{
 				DisableFor: uncachedObjs,
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
 			},
 		},
 		WebhookServer: webhook.NewServer(
@@ -381,7 +383,7 @@ func (e *Environment) waitForWebhooks() {
 
 // CreateKubeconfigSecret generates a new Kubeconfig secret from the envtest config.
 func (e *Environment) CreateKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster) error {
-	return e.Create(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(e.Config, cluster)))
+	return e.CreateAndWait(ctx, kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(e.Config, cluster)))
 }
 
 // Cleanup deletes all the given objects.

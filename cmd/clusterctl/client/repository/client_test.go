@@ -18,7 +18,6 @@ package repository
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -34,8 +33,7 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 
 	ctx := context.Background()
 
-	tmpDir := createTempDir(t)
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	dst1 := createLocalTestProviderFile(t, tmpDir, "bootstrap-foo/v1.0.0/bootstrap-components.yaml", "")
 	dst2 := createLocalTestProviderFile(t, tmpDir, "bootstrap-bar/v2.0.0/bootstrap-components.yaml", "")

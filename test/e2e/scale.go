@@ -290,7 +290,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 				clusterClassYAML := bytes.Replace(baseClusterClassYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespace.Name), -1)
 				log.Logf("Apply ClusterClass")
 				Eventually(func() error {
-					return input.BootstrapClusterProxy.Apply(ctx, clusterClassYAML)
+					return input.BootstrapClusterProxy.CreateOrUpdate(ctx, clusterClassYAML)
 				}, 1*time.Minute).Should(Succeed())
 			} else {
 				log.Logf("ClusterClass already exists. Skipping creation.")
@@ -481,7 +481,7 @@ func workConcurrentlyAndWait(ctx context.Context, input workConcurrentlyAndWaitI
 	defer cancel()
 
 	// Start the workers.
-	for i := int64(0); i < input.Concurrency; i++ {
+	for range input.Concurrency {
 		wg.Add(1)
 		go input.WorkerFunc(ctx, inputChan, resultChan, wg)
 	}
@@ -551,7 +551,7 @@ func getClusterCreateAndWaitFn(input clusterctl.ApplyCustomClusterTemplateAndWai
 			WaitForClusterIntervals:      input.WaitForClusterIntervals,
 			WaitForControlPlaneIntervals: input.WaitForControlPlaneIntervals,
 			WaitForMachineDeployments:    input.WaitForMachineDeployments,
-			Args:                         input.Args,
+			CreateOrUpdateOpts:           input.CreateOrUpdateOpts,
 			PreWaitForCluster:            input.PreWaitForCluster,
 			PostMachinesProvisioned:      input.PostMachinesProvisioned,
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
@@ -563,7 +563,7 @@ func getClusterCreateFn(clusterProxy framework.ClusterProxy) clusterCreator {
 	return func(ctx context.Context, namespace, clusterName string, clusterTemplateYAML []byte) {
 		log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(namespace, clusterName))
 		Eventually(func() error {
-			return clusterProxy.Apply(ctx, clusterTemplateYAML)
+			return clusterProxy.CreateOrUpdate(ctx, clusterTemplateYAML)
 		}, 1*time.Minute).Should(Succeed(), "Failed to apply the cluster template of cluster %s", klog.KRef(namespace, clusterName))
 	}
 }
@@ -616,7 +616,7 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 					log.Logf("Apply ClusterClass in namespace %", namespaceName)
 					clusterClassYAML := bytes.Replace(baseClusterClassYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
 					Eventually(func() error {
-						return clusterProxy.Apply(ctx, clusterClassYAML)
+						return clusterProxy.CreateOrUpdate(ctx, clusterClassYAML)
 					}, 1*time.Minute).Should(Succeed())
 				}
 
@@ -679,7 +679,7 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 					Cluster: cluster,
 				})
 				framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
-					Getter:  c,
+					Client:  c,
 					Cluster: cluster,
 				})
 

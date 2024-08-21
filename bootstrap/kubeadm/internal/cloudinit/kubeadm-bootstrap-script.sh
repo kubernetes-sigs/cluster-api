@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2020 The Kubernetes Authors.
+# Copyright 2024 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -128,10 +128,8 @@ retry-command kubeadm join phase control-plane-prepare kubeconfig
 retry-command kubeadm join phase control-plane-prepare control-plane
 # {{ end }}
 retry-command kubeadm join phase kubelet-start
-# {{ if .ControlPlane }}
-try-or-die-command kubeadm join phase control-plane-join etcd
-retry-command kubeadm join phase control-plane-join update-status
-retry-command kubeadm join phase control-plane-join mark-control-plane
-# {{ end }}
+
+# Run kubeadm join and skip all already executed phases.
+try-or-die-command kubeadm join --skip-phases preflight,control-plane-prepare,kubelet-start
 
 log::success_exit

@@ -69,25 +69,26 @@ var (
 	controllerName = "cluster-api-docker-controller-manager"
 
 	// flags.
-	enableLeaderElection        bool
-	leaderElectionLeaseDuration time.Duration
-	leaderElectionRenewDeadline time.Duration
-	leaderElectionRetryPeriod   time.Duration
-	watchFilterValue            string
-	watchNamespace              string
-	profilerAddress             string
-	enableContentionProfiling   bool
-	syncPeriod                  time.Duration
-	restConfigQPS               float32
-	restConfigBurst             int
-	webhookPort                 int
-	webhookCertDir              string
-	webhookCertName             string
-	webhookKeyName              string
-	healthAddr                  string
-	tlsOptions                  = flags.TLSOptions{}
-	diagnosticsOptions          = flags.DiagnosticsOptions{}
-	logOptions                  = logs.NewOptions()
+	enableLeaderElection           bool
+	leaderElectionLeaseDuration    time.Duration
+	leaderElectionRenewDeadline    time.Duration
+	leaderElectionRetryPeriod      time.Duration
+	watchFilterValue               string
+	watchNamespace                 string
+	profilerAddress                string
+	enableContentionProfiling      bool
+	syncPeriod                     time.Duration
+	restConfigQPS                  float32
+	restConfigBurst                int
+	clusterCacheTrackerClientQPS   float32
+	clusterCacheTrackerClientBurst int
+	webhookPort                    int
+	webhookCertDir                 string
+	webhookCertName                string
+	webhookKeyName                 string
+	healthAddr                     string
+	managerOptions                 = flags.ManagerOptions{}
+	logOptions                     = logs.NewOptions()
 	// CAPD specific flags.
 	concurrency                    int
 	clusterCacheTrackerConcurrency int
@@ -143,10 +144,16 @@ func InitFlags(fs *pflag.FlagSet) {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 
 	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
-		"Maximum queries per second from the controller client to the Kubernetes API server. Defaults to 20")
+		"Maximum queries per second from the controller client to the Kubernetes API server.")
 
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
+
+	fs.Float32Var(&clusterCacheTrackerClientQPS, "clustercachetracker-client-qps", 20,
+		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+
+	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
@@ -163,8 +170,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
-	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
-	flags.AddTLSOptions(fs, &tlsOptions)
+	flags.AddManagerOptions(fs, &managerOptions)
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -202,13 +208,11 @@ func main() {
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
-	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
-		setupLog.Error(err, "Unable to add TLS settings to the webhook server")
+		setupLog.Error(err, "Unable to start manager: invalid flags")
 		os.Exit(1)
 	}
-
-	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
 
 	var watchNamespaces map[string]cache.Config
 	if watchNamespace != "" {
@@ -234,7 +238,7 @@ func main() {
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
 		HealthProbeBindAddress:     healthAddr,
 		PprofBindAddress:           profilerAddress,
-		Metrics:                    diagnosticsOpts,
+		Metrics:                    *metricsOptions,
 		Cache: cache.Options{
 			DefaultNamespaces: watchNamespaces,
 			SyncPeriod:        &syncPeriod,
@@ -253,6 +257,8 @@ func main() {
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
 				},
+				// Use the cache for all Unstructured get/list calls.
+				Unstructured: true,
 			},
 		},
 		WebhookServer: webhook.NewServer(
@@ -261,7 +267,7 @@ func main() {
 				CertDir:  webhookCertDir,
 				CertName: webhookCertName,
 				KeyName:  webhookKeyName,
-				TLSOpts:  tlsOptionOverrides,
+				TLSOpts:  tlsOptions,
 			},
 		),
 	}
@@ -323,6 +329,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			SecretCachingClient: secretCachingClient,
 			ControllerName:      controllerName,
 			Log:                 &ctrl.Log,
+			ClientQPS:           clusterCacheTrackerClientQPS,
+			ClientBurst:         clusterCacheTrackerClientBurst,
 		},
 	)
 	if err != nil {

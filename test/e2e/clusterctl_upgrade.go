@@ -66,6 +66,9 @@ type ClusterctlUpgradeSpecInput struct {
 	// NOTE: given that the bootstrap cluster could be shared by several tests, it is not practical to use it for testing clusterctl upgrades.
 	// So we are creating a new management cluster where to install older version of providers
 	UseKindForManagementCluster bool
+	// KindManagementClusterNewClusterProxyFunc is used to create the ClusterProxy used in the test after creating the kind based management cluster.
+	// This allows to use a custom ClusterProxy implementation or create a ClusterProxy with a custom scheme and options.
+	KindManagementClusterNewClusterProxyFunc func(name string, kubeconfigPath string) framework.ClusterProxy
 
 	// InitWithBinary must be used to specify the URL of the clusterctl binary of the old version of Cluster API. The spec will interpolate the
 	// strings `{OS}` and `{ARCH}` to `runtime.GOOS` and `runtime.GOARCH` respectively, e.g. https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.23/clusterctl-{OS}-{ARCH}
@@ -201,14 +204,9 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		initKubernetesVersion   string
 
 		workloadClusterName string
-
-		scheme *apiruntime.Scheme
 	)
 
 	BeforeEach(func() {
-		scheme = apiruntime.NewScheme()
-		framework.TryAddDefaultSchemes(scheme)
-
 		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
 		input = inputGetter()
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
@@ -216,6 +214,13 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(input.InitWithBinary).ToNot(BeEmpty(), "Invalid argument. input.InitWithBinary can't be empty when calling %s spec", specName)
 		Expect(input.InitWithKubernetesVersion).ToNot(BeEmpty(), "Invalid argument. input.InitWithKubernetesVersion can't be empty when calling %s spec", specName)
+		if input.KindManagementClusterNewClusterProxyFunc == nil {
+			input.KindManagementClusterNewClusterProxyFunc = func(name string, kubeconfigPath string) framework.ClusterProxy {
+				scheme := apiruntime.NewScheme()
+				framework.TryAddDefaultSchemes(scheme)
+				return framework.NewClusterProxy(name, kubeconfigPath, scheme)
+			}
+		}
 
 		clusterctlBinaryURLTemplate := input.InitWithBinary
 		clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
@@ -276,7 +281,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			kubeconfigPath := managementClusterProvider.GetKubeconfigPath()
 			Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the kind cluster")
 
-			managementClusterProxy = framework.NewClusterProxy(managementClusterName, kubeconfigPath, scheme)
+			managementClusterProxy = input.KindManagementClusterNewClusterProxyFunc(managementClusterName, kubeconfigPath)
 			Expect(managementClusterProxy).ToNot(BeNil(), "Failed to get a kind cluster proxy")
 
 			managementClusterResources.Cluster = &clusterv1.Cluster{
@@ -443,7 +448,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 		log.Logf("Applying the cluster template yaml to the cluster")
-		Expect(managementClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
+		Expect(managementClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)).To(Succeed())
 
 		if input.PreWaitForCluster != nil {
 			By("Running PreWaitForCluster steps against the management cluster")
@@ -607,9 +612,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				input.PostUpgrade(managementClusterProxy, workloadClusterNamespace, managementClusterName)
 			}
 
-			// After the upgrade check that MachineList is available. This ensures the APIServer is serving without
-			// error before checking that it `Consistently` returns the MachineList later on.
-			Byf("[%d] Waiting for MachineList to be available", i)
+			// After the upgrade: wait for MachineList to be available after the upgrade.
 			Eventually(func() error {
 				postUpgradeMachineList := &unstructured.UnstructuredList{}
 				postUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
@@ -617,33 +620,34 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					Version: coreCAPIStorageVersion,
 					Kind:    "MachineList",
 				})
-				err = managementClusterProxy.GetClient().List(
+				return managementClusterProxy.GetClient().List(
 					ctx,
 					postUpgradeMachineList,
 					client.InNamespace(workloadCluster.GetNamespace()),
 					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
 				)
-				return err
 			}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
 
-			// After the upgrade check that there were no unexpected rollouts.
-			Byf("[%d] Verify there are no unexpected rollouts", i)
-			Consistently(func() bool {
-				postUpgradeMachineList := &unstructured.UnstructuredList{}
+			Byf("[%d] Waiting for three minutes before checking if an unexpected rollout happened", i)
+			time.Sleep(time.Minute * 3)
+
+			// After the upgrade: check that there were no unexpected rollouts.
+			postUpgradeMachineList := &unstructured.UnstructuredList{}
+			Byf("[%d] Verifing there are no unexpected rollouts", i)
+			Eventually(func() error {
 				postUpgradeMachineList.SetGroupVersionKind(schema.GroupVersionKind{
 					Group:   clusterv1.GroupVersion.Group,
 					Version: coreCAPIStorageVersion,
 					Kind:    "MachineList",
 				})
-				err = managementClusterProxy.GetClient().List(
+				return managementClusterProxy.GetClient().List(
 					ctx,
 					postUpgradeMachineList,
 					client.InNamespace(workloadCluster.GetNamespace()),
 					client.MatchingLabels{clusterv1.ClusterNameLabel: workloadCluster.GetName()},
 				)
-				Expect(err).ToNot(HaveOccurred())
-				return validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)
-			}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
+			}, "3m", "30s").ShouldNot(HaveOccurred(), "MachineList should be available after the upgrade")
+			Expect(validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)).To(BeTrue(), "Machines should remain the same after the upgrade")
 
 			// Scale up to 2 and back down to 1 so we can repeat this multiple times.
 			Byf("[%d] Scale MachineDeployment to ensure the providers work", i)
@@ -740,8 +744,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		if input.UseKindForManagementCluster {
-			managementClusterProxy.Dispose(ctx)
-			managementClusterProvider.Dispose(ctx)
+			if !input.SkipCleanup {
+				managementClusterProxy.Dispose(ctx)
+				managementClusterProvider.Dispose(ctx)
+			}
 		} else {
 			framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 		}
@@ -826,7 +832,7 @@ func discoveryAndWaitForCluster(ctx context.Context, input discoveryAndWaitForCl
 		clusterPhase, ok, err := unstructured.NestedString(cluster.Object, "status", "phase")
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ok).To(BeTrue(), "could not get status.phase field")
-		g.Expect(clusterPhase).To(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision")
+		g.Expect(clusterPhase).To(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision", klog.KObj(cluster))
 	}, intervals...).Should(Succeed(), "Failed to get Cluster object %s", klog.KRef(input.Namespace, input.Name))
 
 	return cluster
@@ -891,7 +897,6 @@ func calculateExpectedMachinePoolMachineCount(ctx context.Context, c client.Clie
 		client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 	); err == nil {
 		for _, mp := range machinePoolList.Items {
-			mp := mp
 			infraMachinePool, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef, workloadClusterNamespace)
 			if err != nil {
 				return 0, err
@@ -1039,7 +1044,6 @@ func validateMachineRollout(preMachineList, postMachineList *unstructured.Unstru
 	if len(newMachines) > 0 {
 		log.Logf("Detected new Machines")
 		for _, obj := range postMachineList.Items {
-			obj := obj
 			if newMachines.Has(obj.GetName()) {
 				resourceYAML, err := yaml.Marshal(obj)
 				Expect(err).ToNot(HaveOccurred())
@@ -1051,7 +1055,6 @@ func validateMachineRollout(preMachineList, postMachineList *unstructured.Unstru
 	if len(deletedMachines) > 0 {
 		log.Logf("Detected deleted Machines")
 		for _, obj := range preMachineList.Items {
-			obj := obj
 			if deletedMachines.Has(obj.GetName()) {
 				resourceYAML, err := yaml.Marshal(obj)
 				Expect(err).ToNot(HaveOccurred())

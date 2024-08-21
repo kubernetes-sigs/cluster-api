@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -79,7 +78,10 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
 func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
 	reconciliationTime := metav1.Now()
-	allOldMSs := mdutil.FindOldMachineSets(md, msList, &reconciliationTime)
+	allOldMSs, err := mdutil.FindOldMachineSets(md, msList, &reconciliationTime)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Get new machine set with the updated revision number
 	newMS, err := r.getNewMachineSet(ctx, md, msList, allOldMSs, createIfNotExisted, &reconciliationTime)
@@ -101,7 +103,10 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.Machine
 	// If we don't find a matching MachineSet, we need a rollout and thus create a new MachineSet.
 	// Note: The in-place mutable fields can be just updated inline, because they do not affect the actual machines
 	// themselves (i.e. the infrastructure and the software running on the Machines not the Machine object).
-	matchingMS := mdutil.FindNewMachineSet(md, msList, reconciliationTime)
+	matchingMS, createReason, err := mdutil.FindNewMachineSet(md, msList, reconciliationTime)
+	if err != nil {
+		return nil, err
+	}
 
 	// If there is a MachineSet that matches the intent of the MachineDeployment, update the MachineSet
 	// to propagate all in-place mutable fields from MachineDeployment to the MachineSet.
@@ -121,7 +126,7 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.Machine
 	}
 
 	// Create a new MachineSet and wait until the new MachineSet exists in the cache.
-	newMS, err := r.createMachineSetAndWait(ctx, md, oldMSs)
+	newMS, err := r.createMachineSetAndWait(ctx, md, oldMSs, createReason)
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +159,7 @@ func (r *Reconciler) updateMachineSet(ctx context.Context, deployment *clusterv1
 
 // createMachineSetAndWait creates a new MachineSet with the desired intent of the MachineDeployment.
 // It waits for the cache to be updated with the newly created MachineSet.
-func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet) (*clusterv1.MachineSet, error) {
+func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, createReason string) (*clusterv1.MachineSet, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Compute the desired MachineSet.
@@ -163,12 +168,17 @@ func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *cl
 		return nil, errors.Wrap(err, "failed to create new MachineSet")
 	}
 
+	log = log.WithValues("MachineSet", klog.KObj(newMS))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	log.Info(fmt.Sprintf("Creating new MachineSet, %s", createReason))
+
 	// Create the MachineSet.
 	if err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, newMS); err != nil {
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(newMS), err)
 		return nil, errors.Wrapf(err, "failed to create new MachineSet %s", klog.KObj(newMS))
 	}
-	log.V(4).Info("Created new MachineSet", "MachineSet", klog.KObj(newMS))
+	log.V(4).Info("Created new MachineSet")
 	r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %s", klog.KObj(newMS))
 
 	// Keep trying to get the MachineSet. This will force the cache to update and prevent any future reconciliation of
@@ -230,11 +240,6 @@ func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *c
 		name, randomSuffix = computeNewMachineSetName(deployment.Name + "-")
 		uniqueIdentifierLabelValue = fmt.Sprintf("%d-%s", templateHash, randomSuffix)
 
-		// Add foregroundDeletion finalizer to MachineSet if the MachineDeployment has it.
-		if sets.New[string](deployment.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
-			finalizers = []string{metav1.FinalizerDeleteDependents}
-		}
-
 		replicas, err = mdutil.NewMSNewReplicas(deployment, oldMSs, 0)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to compute desired MachineSet")
@@ -257,15 +262,8 @@ func (r *Reconciler) computeDesiredMachineSet(ctx context.Context, deployment *c
 		name = existingMS.Name
 		uid = existingMS.UID
 
-		// Keep foregroundDeletion finalizer if the existingMS has it.
-		// Note: This case is a little different from the create case. In the update case we preserve
-		// the finalizer on the MachineSet if it already exists. Because of SSA we should not build
-		// the finalizer information from the MachineDeployment when updating a MachineSet because that could lead
-		// to dropping the finalizer from the MachineSet if it is dropped from the MachineDeployment.
-		// We should not drop the finalizer on the MachineSet if the finalizer is dropped from the MachineDeployment.
-		if sets.New[string](existingMS.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
-			finalizers = []string{metav1.FinalizerDeleteDependents}
-		}
+		// Preserve all existing finalizers (including foregroundDeletion finalizer).
+		finalizers = existingMS.Finalizers
 
 		replicas = *existingMS.Spec.Replicas
 
@@ -619,7 +617,7 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(cleanableMSes))
 	log.V(4).Info("Looking to cleanup old machine sets for deployment")
 
-	for i := int32(0); i < diff; i++ {
+	for i := range diff {
 		ms := cleanableMSes[i]
 		if ms.Spec.Replicas == nil {
 			return errors.Errorf("spec replicas for machine set %v is nil, this is unexpected", ms.Name)

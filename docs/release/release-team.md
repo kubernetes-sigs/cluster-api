@@ -1,25 +1,25 @@
+# Cluster API Release Team
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Cluster API Release Team](#cluster-api-release-team)
-  - [Overview](#overview)
-    - [Goals](#goals)
-    - [Non-Goals/Future work](#non-goalsfuture-work)
-  - [Duration of Term](#duration-of-term)
-  - [Specific Responsibilities](#specific-responsibilities)
-  - [Team Roles](#team-roles)
-  - [Team repo permissions](#team-repo-permissions)
-  - [Team Selection](#team-selection)
-    - [Selection Criteria](#selection-criteria)
-  - [Time Commitment](#time-commitment)
-  - [Release Team/Day Meetings](#release-teamday-meetings)
-  - [Suggestions for Team Leads](#suggestions-for-team-leads)
-  - [Why should I volunteer?](#why-should-i-volunteer)
-  - [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
+
+- [Overview](#overview)
+  - [Goals](#goals)
+  - [Non-Goals/Future work](#non-goalsfuture-work)
+- [Duration of Term](#duration-of-term)
+- [Specific Responsibilities](#specific-responsibilities)
+- [Team Roles](#team-roles)
+- [Team repo permissions](#team-repo-permissions)
+- [Team Selection](#team-selection)
+  - [Selection Criteria](#selection-criteria)
+- [Time Commitment](#time-commitment)
+- [Release Team/Day Meetings](#release-teamday-meetings)
+- [Suggestions for Team Leads](#suggestions-for-team-leads)
+- [Why should I volunteer?](#why-should-i-volunteer)
+- [Cluster API release team vs kubernetes/kubernetes-SIG membership](#cluster-api-release-team-vs-kuberneteskubernetes-sig-membership)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-# Cluster API Release Team
 
 ## Overview
 
@@ -42,7 +42,7 @@ This document introduces the concept of a release team with the following goals 
 
 Note that this document is intended to be a starting point for the release team. It is not a complete release process document.
 
-More details on the CAPI release process can be found in the [release cycle](./release-cycle.md) and [release task](./release-tasks.md) documentation.
+More details on the CAPI release process can be found in the [release cycle](./release-cycle.md) and the respective [role handbooks](./role-handbooks) documentation.
 
 ## Duration of Term
 
@@ -67,11 +67,15 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 
 ## Team Roles
 
-- **Release Lead**: responsible for coordinating release activities, assembling the release team, taking ultimate accountability for all release tasks to be completed on time, and ensuring that a retrospective happens. The lead is also responsible for ensuring a successor is selected and trained for future release cycles.
-- **Communications/Docs/Release Notes Manager**: Responsible for communicating key dates to the community, improving release process documentation, and polishing release notes. Also responsible for ensuring the user-facing Netlify book and provider upgrade documentation are up to date.
-- **CI Signal/Bug Triage/Automation Manager**: Assumes the responsibility of the quality gate for the release and makes sure blocking issues and bugs are triaged and dealt with in a timely fashion. Helps improve release automation and tools.
-- **Team member**: Any Release Team lead or manager may select one or more additional members to help with their tasks. These team members will help fulfill future Release Team staffing requirements and continue to grow the CAPI community in general.
-*Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.
+**Notes**:
+
+* The examples in these documents are based on the v1.6 release cycle.
+
+| Role | Handbook |
+|---|---|
+| Release Lead | [Lead Handbook](role-handbooks/release-lead/README.md) |
+| CI Signal | [CI Signal Handbook](role-handbooks/ci-signal/README.md) |
+| Communications | [Communications Handbook](role-handbooks/communications/README.md) |
 
 ## Team repo permissions
 - Release notes (`CHANGELOG` folder)

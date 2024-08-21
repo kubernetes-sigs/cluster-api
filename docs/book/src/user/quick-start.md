@@ -171,17 +171,17 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.7.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.8.x"}} -o clusterctl
 ```
 
 Download for ARM64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.7.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.8.x"}} -o clusterctl
 ```
 
 Download for PPC64LE:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.7.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.8.x"}} -o clusterctl
 ```
 
 Install clusterctl:
@@ -201,12 +201,12 @@ If you are unsure you can determine your computers architecture by running `unam
 
 Download for AMD64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.7.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.8.x"}} -o clusterctl
 ```
 
 Download for M1 CPU ("Apple Silicon") / ARM64:
 ```bash
-curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.7.x"}} -o clusterctl
+curl -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.8.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.
@@ -245,7 +245,7 @@ Go to the working directory where you want clusterctl downloaded.
 
 Download the latest release; on Windows, type:
 ```powershell
-curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.7.x"}} -o clusterctl.exe
+curl.exe -L {{#releaselink repo:"https://github.com/kubernetes-sigs/cluster-api" gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.8.x"}} -o clusterctl.exe
 ```
 Append or prepend the path of that directory to the `PATH` environment variable.
 
@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -471,13 +471,8 @@ export AZURE_SUBSCRIPTION_ID="<SubscriptionId>"
 # Create an Azure Service Principal and paste the output here
 export AZURE_TENANT_ID="<Tenant>"
 export AZURE_CLIENT_ID="<AppId>"
+export AZURE_CLIENT_ID_USER_ASSIGNED_IDENTITY=$AZURE_CLIENT_ID # for compatibility with CAPZ v1.16 templates
 export AZURE_CLIENT_SECRET="<Password>"
-
-# Base64 encode the variables
-export AZURE_SUBSCRIPTION_ID_B64="$(echo -n "$AZURE_SUBSCRIPTION_ID" | base64 | tr -d '\n')"
-export AZURE_TENANT_ID_B64="$(echo -n "$AZURE_TENANT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_ID_B64="$(echo -n "$AZURE_CLIENT_ID" | base64 | tr -d '\n')"
-export AZURE_CLIENT_SECRET_B64="$(echo -n "$AZURE_CLIENT_SECRET" | base64 | tr -d '\n')"
 
 # Settings needed for AzureClusterIdentity used by the AzureCluster
 export AZURE_CLUSTER_IDENTITY_SECRET_NAME="cluster-identity-secret"
@@ -604,6 +599,18 @@ clusterctl init --infrastructure ibmcloud
 ```
 
 {{#/tab }}
+{{#tab IONOS Cloud}}
+
+The IONOS Cloud credentials are configured in the `IONOSCloudCluster`.
+Therefore, there is no need to specify them during the provider initialization.
+
+```bash
+clusterctl init --infrastructure ionoscloud-ionoscloud
+```
+
+For more information, please visit the [IONOS Cloud project][ionoscloud provider].
+
+{{#/tab }}
 {{#tab K0smotron}}
 
 ```bash
@@ -719,14 +726,8 @@ clusterctl init --infrastructure outscale
 
 {{#tab Proxmox}}
 
-First, we need to add the IPAM provider to your [clusterctl config file](../clusterctl/configuration.md) (`$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`):
-
-```yaml
-providers:
-  - name: in-cluster
-    url: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml
-    type: IPAMProvider
-```
+The Proxmox credentials are optional, when creating a cluster they can be set in the `ProxmoxCluster` resource,
+if you do not set them here.
 
 ```bash
 # The host for the Proxmox cluster
@@ -861,7 +862,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1071,6 +1072,29 @@ export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
 ```
 
 Please visit the [IBM Cloud provider] for more information.
+
+{{#/tab }}
+{{#tab IONOS Cloud}}
+
+A ClusterAPI compatible image must be available in your IONOS Cloud contract.
+For instructions on how to build a compatible Image, see [our docs](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/custom-image.md).
+
+```bash
+# The token which is used to authenticate against the IONOS Cloud API
+export IONOS_TOKEN=<your-token>
+# The datacenter ID where the cluster will be deployed
+export IONOSCLOUD_DATACENTER_ID="<your-datacenter-id>"
+# The IP of the control plane endpoint
+export CONTROL_PLANE_ENDPOINT_IP=10.10.10.4
+# The location of the data center where the cluster will be deployed
+export CONTROL_PLANE_ENDPOINT_LOCATION=de/txl 
+# The image ID of the custom image that will be used for the VMs
+export IONOSCLOUD_MACHINE_IMAGE_ID="<your-image-id>"
+# The SSH key that will be used to access the VMs
+export IONOSCLOUD_MACHINE_SSH_KEYS="<your-ssh-key>"
+```
+
+For more configuration options check our list of [available variables](https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/blob/main/docs/quickstart.md#environment-variables)
 
 {{#/tab }}
 {{#tab K0smotron}}
@@ -1322,7 +1346,7 @@ For more information about prerequisites, credentials management, or permissions
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Other providers..."}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Docker, vcluster, KubeVirt, Azure, Other providers..."}}
 {{#tab Docker}}
 
 <aside class="note warning">
@@ -1371,6 +1395,22 @@ clusterctl generate cluster capi-quickstart \
   --control-plane-machine-count=1 \
   --worker-machine-count=1 \
   > capi-quickstart.yaml
+```
+
+{{#/tab }}
+{{#tab Azure}}
+
+```bash
+clusterctl generate cluster capi-quickstart \
+  --infrastructure azure \
+  --kubernetes-version v1.30.0 \
+  --control-plane-machine-count=3 \
+  --worker-machine-count=3 \
+  > capi-quickstart.yaml
+
+# Cluster templates authenticate with Workload Identity by default. Modify the AzureClusterIdentity for ServicePrincipal authentication.
+# See https://capz.sigs.k8s.io/topics/identities for more details.
+yq -i "with(. | select(.kind == \"AzureClusterIdentity\"); .spec.type |= \"ServicePrincipal\" | .spec.clientSecret.name |= \"${AZURE_CLUSTER_IDENTITY_SECRET_NAME}\" | .spec.clientSecret.namespace |= \"${AZURE_CLUSTER_IDENTITY_SECRET_NAMESPACE}\")" capi-quickstart.yaml
 ```
 
 {{#/tab }}
@@ -1522,15 +1562,15 @@ Next, create a Kubernetes secret using this configuration to securely store your
 You can create this secret for example with:
 
 ```bash
-kubectl -n kube-system create secret generic cloud-config --from-file=cloud.conf
+kubectl --kubeconfig=./capi-quickstart.kubeconfig -n kube-system create secret generic cloud-config --from-file=cloud.conf
 ```
 
 Now, you are ready to deploy the external cloud provider!
 
 ```bash
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-roles.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-role-bindings.yaml
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/openstack-cloud-controller-manager-ds.yaml
+kubectl apply --kubeconfig=./capi-quickstart.kubeconfig -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-roles.yaml
+kubectl apply --kubeconfig=./capi-quickstart.kubeconfig -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/cloud-controller-manager-role-bindings.yaml
+kubectl apply --kubeconfig=./capi-quickstart.kubeconfig -f https://raw.githubusercontent.com/kubernetes/cloud-provider-openstack/master/manifests/controller-manager/openstack-cloud-controller-manager-ds.yaml
 ```
 
 Alternatively, refer to the [helm chart](https://github.com/kubernetes/cloud-provider-openstack/tree/master/charts/openstack-cloud-controller-manager).
@@ -1753,6 +1793,7 @@ kind delete cluster
 [Hivelocity provider]: https://github.com/hivelocity/cluster-api-provider-hivelocity
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
+[ionoscloud provider]: https://github.com/ionos-cloud/cluster-api-provider-ionoscloud
 [kind]: https://kind.sigs.k8s.io/
 [KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/

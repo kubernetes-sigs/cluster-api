@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: kubeadmcontrolplanetemplates.controlplane.cluster.x-k8s.io
 spec:
   group: controlplane.cluster.x-k8s.io
@@ -27,7 +27,6 @@ spec:
       openAPIV3Schema:
         description: |-
           KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates API.
-
 
           Deprecated: This type will be removed in one of the next releases.
         properties:
@@ -82,10 +81,8 @@ spec:
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: |-
-                                      ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
-                                      use ComponentConfig + ConfigMaps.
+                                    description: ExtraArgs is an extra set of flags
+                                      to pass to the control plane component.
                                     type: object
                                   extraVolumes:
                                     description: ExtraVolumes is an extra set of host
@@ -164,10 +161,8 @@ spec:
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: |-
-                                      ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
-                                      use ComponentConfig + ConfigMaps.
+                                    description: ExtraArgs is an extra set of flags
+                                      to pass to the control plane component.
                                     type: object
                                   extraVolumes:
                                     description: ExtraVolumes is an extra set of host
@@ -354,10 +349,8 @@ spec:
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: |-
-                                      ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
-                                      use ComponentConfig + ConfigMaps.
+                                    description: ExtraArgs is an extra set of flags
+                                      to pass to the control plane component.
                                     type: object
                                   extraVolumes:
                                     description: ExtraVolumes is an extra set of host
@@ -716,7 +709,6 @@ spec:
                                   CACertPath is the path to the SSL certificate authority used to
                                   secure comunications between node and control-plane.
                                   Defaults to "/etc/kubernetes/pki/ca.crt".
-                                  TODO: revisit when there is defaulting from k/k
                                 type: string
                               controlPlane:
                                 description: |-
@@ -741,9 +733,8 @@ spec:
                                     type: object
                                 type: object
                               discovery:
-                                description: |-
-                                  Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-                                  TODO: revisit when there is defaulting from k/k
+                                description: Discovery specifies the options for the
+                                  kubelet to use during the TLS Bootstrap process
                                 properties:
                                   bootstrapToken:
                                     description: |-
@@ -923,14 +914,11 @@ spec:
                               UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
                               script with retries for joins.
 
-
                               This is meant to be an experimental temporary workaround on some environments
                               where joins fail due to timing (and other issues). The long term goal is to add retries to
                               kubeadm proper and use that functionality.
 
-
                               This will add about 40KB to userdata
-
 
                               For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
                             type: boolean
@@ -1017,7 +1005,6 @@ spec:
                                   the event) or if no container name is specified "spec.containers[2]" (container with
                                   index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                   referencing a part of an object.
-                                  TODO: this design is not final and this field is subject to change in the future.
                                 type: string
                               kind:
                                 description: |-
@@ -1235,11 +1222,138 @@ spec:
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: |-
-                                      ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
-                                      use ComponentConfig + ConfigMaps.
+                                    description: ExtraArgs is an extra set of flags
+                                      to pass to the control plane component.
                                     type: object
+                                  extraEnvs:
+                                    description: |-
+                                      ExtraEnvs is an extra set of environment variables to pass to the control plane component.
+                                      Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+                                      This option takes effect only on Kubernetes >=1.31.0.
+                                    items:
+                                      description: EnvVar represents an environment
+                                        variable present in a Container.
+                                      properties:
+                                        name:
+                                          description: Name of the environment variable.
+                                            Must be a C_IDENTIFIER.
+                                          type: string
+                                        value:
+                                          description: |-
+                                            Variable references $(VAR_NAME) are expanded
+                                            using the previously defined environment variables in the container and
+                                            any service environment variables. If a variable cannot be resolved,
+                                            the reference in the input string will be unchanged. Double $$ are reduced
+                                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                                            Escaped references will never be expanded, regardless of whether the variable
+                                            exists or not.
+                                            Defaults to "".
+                                          type: string
+                                        valueFrom:
+                                          description: Source for the environment
+                                            variable's value. Cannot be used if value
+                                            is not empty.
+                                          properties:
+                                            configMapKeyRef:
+                                              description: Selects a key of a ConfigMap.
+                                              properties:
+                                                key:
+                                                  description: The key to select.
+                                                  type: string
+                                                name:
+                                                  default: ""
+                                                  description: |-
+                                                    Name of the referent.
+                                                    This field is effectively required, but due to backwards compatibility is
+                                                    allowed to be empty. Instances of this type with an empty value here are
+                                                    almost certainly wrong.
+                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                  type: string
+                                                optional:
+                                                  description: Specify whether the
+                                                    ConfigMap or its key must be defined
+                                                  type: boolean
+                                              required:
+                                              - key
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            fieldRef:
+                                              description: |-
+                                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                                              properties:
+                                                apiVersion:
+                                                  description: Version of the schema
+                                                    the FieldPath is written in terms
+                                                    of, defaults to "v1".
+                                                  type: string
+                                                fieldPath:
+                                                  description: Path of the field to
+                                                    select in the specified API version.
+                                                  type: string
+                                              required:
+                                              - fieldPath
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            resourceFieldRef:
+                                              description: |-
+                                                Selects a resource of the container: only resources limits and requests
+                                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                                              properties:
+                                                containerName:
+                                                  description: 'Container name: required
+                                                    for volumes, optional for env
+                                                    vars'
+                                                  type: string
+                                                divisor:
+                                                  anyOf:
+                                                  - type: integer
+                                                  - type: string
+                                                  description: Specifies the output
+                                                    format of the exposed resources,
+                                                    defaults to "1"
+                                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                  x-kubernetes-int-or-string: true
+                                                resource:
+                                                  description: 'Required: resource
+                                                    to select'
+                                                  type: string
+                                              required:
+                                              - resource
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            secretKeyRef:
+                                              description: Selects a key of a secret
+                                                in the pod's namespace
+                                              properties:
+                                                key:
+                                                  description: The key of the secret
+                                                    to select from.  Must be a valid
+                                                    secret key.
+                                                  type: string
+                                                name:
+                                                  default: ""
+                                                  description: |-
+                                                    Name of the referent.
+                                                    This field is effectively required, but due to backwards compatibility is
+                                                    allowed to be empty. Instances of this type with an empty value here are
+                                                    almost certainly wrong.
+                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                  type: string
+                                                optional:
+                                                  description: Specify whether the
+                                                    Secret or its key must be defined
+                                                  type: boolean
+                                              required:
+                                              - key
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                          type: object
+                                      required:
+                                      - name
+                                      type: object
+                                    type: array
                                   extraVolumes:
                                     description: ExtraVolumes is an extra set of host
                                       volumes, mounted to the control plane component.
@@ -1317,11 +1431,138 @@ spec:
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: |-
-                                      ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
-                                      use ComponentConfig + ConfigMaps.
+                                    description: ExtraArgs is an extra set of flags
+                                      to pass to the control plane component.
                                     type: object
+                                  extraEnvs:
+                                    description: |-
+                                      ExtraEnvs is an extra set of environment variables to pass to the control plane component.
+                                      Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+                                      This option takes effect only on Kubernetes >=1.31.0.
+                                    items:
+                                      description: EnvVar represents an environment
+                                        variable present in a Container.
+                                      properties:
+                                        name:
+                                          description: Name of the environment variable.
+                                            Must be a C_IDENTIFIER.
+                                          type: string
+                                        value:
+                                          description: |-
+                                            Variable references $(VAR_NAME) are expanded
+                                            using the previously defined environment variables in the container and
+                                            any service environment variables. If a variable cannot be resolved,
+                                            the reference in the input string will be unchanged. Double $$ are reduced
+                                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                                            Escaped references will never be expanded, regardless of whether the variable
+                                            exists or not.
+                                            Defaults to "".
+                                          type: string
+                                        valueFrom:
+                                          description: Source for the environment
+                                            variable's value. Cannot be used if value
+                                            is not empty.
+                                          properties:
+                                            configMapKeyRef:
+                                              description: Selects a key of a ConfigMap.
+                                              properties:
+                                                key:
+                                                  description: The key to select.
+                                                  type: string
+                                                name:
+                                                  default: ""
+                                                  description: |-
+                                                    Name of the referent.
+                                                    This field is effectively required, but due to backwards compatibility is
+                                                    allowed to be empty. Instances of this type with an empty value here are
+                                                    almost certainly wrong.
+                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                  type: string
+                                                optional:
+                                                  description: Specify whether the
+                                                    ConfigMap or its key must be defined
+                                                  type: boolean
+                                              required:
+                                              - key
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            fieldRef:
+                                              description: |-
+                                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                                              properties:
+                                                apiVersion:
+                                                  description: Version of the schema
+                                                    the FieldPath is written in terms
+                                                    of, defaults to "v1".
+                                                  type: string
+                                                fieldPath:
+                                                  description: Path of the field to
+                                                    select in the specified API version.
+                                                  type: string
+                                              required:
+                                              - fieldPath
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            resourceFieldRef:
+                                              description: |-
+                                                Selects a resource of the container: only resources limits and requests
+                                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                                              properties:
+                                                containerName:
+                                                  description: 'Container name: required
+                                                    for volumes, optional for env
+                                                    vars'
+                                                  type: string
+                                                divisor:
+                                                  anyOf:
+                                                  - type: integer
+                                                  - type: string
+                                                  description: Specifies the output
+                                                    format of the exposed resources,
+                                                    defaults to "1"
+                                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                  x-kubernetes-int-or-string: true
+                                                resource:
+                                                  description: 'Required: resource
+                                                    to select'
+                                                  type: string
+                                              required:
+                                              - resource
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            secretKeyRef:
+                                              description: Selects a key of a secret
+                                                in the pod's namespace
+                                              properties:
+                                                key:
+                                                  description: The key of the secret
+                                                    to select from.  Must be a valid
+                                                    secret key.
+                                                  type: string
+                                                name:
+                                                  default: ""
+                                                  description: |-
+                                                    Name of the referent.
+                                                    This field is effectively required, but due to backwards compatibility is
+                                                    allowed to be empty. Instances of this type with an empty value here are
+                                                    almost certainly wrong.
+                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                  type: string
+                                                optional:
+                                                  description: Specify whether the
+                                                    Secret or its key must be defined
+                                                  type: boolean
+                                              required:
+                                              - key
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                          type: object
+                                      required:
+                                      - name
+                                      type: object
+                                    type: array
                                   extraVolumes:
                                     description: ExtraVolumes is an extra set of host
                                       volumes, mounted to the control plane component.
@@ -1427,6 +1668,139 @@ spec:
                                           ExtraArgs are extra arguments provided to the etcd binary
                                           when run inside a static pod.
                                         type: object
+                                      extraEnvs:
+                                        description: |-
+                                          ExtraEnvs is an extra set of environment variables to pass to the control plane component.
+                                          Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+                                          This option takes effect only on Kubernetes >=1.31.0.
+                                        items:
+                                          description: EnvVar represents an environment
+                                            variable present in a Container.
+                                          properties:
+                                            name:
+                                              description: Name of the environment
+                                                variable. Must be a C_IDENTIFIER.
+                                              type: string
+                                            value:
+                                              description: |-
+                                                Variable references $(VAR_NAME) are expanded
+                                                using the previously defined environment variables in the container and
+                                                any service environment variables. If a variable cannot be resolved,
+                                                the reference in the input string will be unchanged. Double $$ are reduced
+                                                to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                                                "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                                                Escaped references will never be expanded, regardless of whether the variable
+                                                exists or not.
+                                                Defaults to "".
+                                              type: string
+                                            valueFrom:
+                                              description: Source for the environment
+                                                variable's value. Cannot be used if
+                                                value is not empty.
+                                              properties:
+                                                configMapKeyRef:
+                                                  description: Selects a key of a
+                                                    ConfigMap.
+                                                  properties:
+                                                    key:
+                                                      description: The key to select.
+                                                      type: string
+                                                    name:
+                                                      default: ""
+                                                      description: |-
+                                                        Name of the referent.
+                                                        This field is effectively required, but due to backwards compatibility is
+                                                        allowed to be empty. Instances of this type with an empty value here are
+                                                        almost certainly wrong.
+                                                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                      type: string
+                                                    optional:
+                                                      description: Specify whether
+                                                        the ConfigMap or its key must
+                                                        be defined
+                                                      type: boolean
+                                                  required:
+                                                  - key
+                                                  type: object
+                                                  x-kubernetes-map-type: atomic
+                                                fieldRef:
+                                                  description: |-
+                                                    Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                                    spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                                                  properties:
+                                                    apiVersion:
+                                                      description: Version of the
+                                                        schema the FieldPath is written
+                                                        in terms of, defaults to "v1".
+                                                      type: string
+                                                    fieldPath:
+                                                      description: Path of the field
+                                                        to select in the specified
+                                                        API version.
+                                                      type: string
+                                                  required:
+                                                  - fieldPath
+                                                  type: object
+                                                  x-kubernetes-map-type: atomic
+                                                resourceFieldRef:
+                                                  description: |-
+                                                    Selects a resource of the container: only resources limits and requests
+                                                    (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                                                  properties:
+                                                    containerName:
+                                                      description: 'Container name:
+                                                        required for volumes, optional
+                                                        for env vars'
+                                                      type: string
+                                                    divisor:
+                                                      anyOf:
+                                                      - type: integer
+                                                      - type: string
+                                                      description: Specifies the output
+                                                        format of the exposed resources,
+                                                        defaults to "1"
+                                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                      x-kubernetes-int-or-string: true
+                                                    resource:
+                                                      description: 'Required: resource
+                                                        to select'
+                                                      type: string
+                                                  required:
+                                                  - resource
+                                                  type: object
+                                                  x-kubernetes-map-type: atomic
+                                                secretKeyRef:
+                                                  description: Selects a key of a
+                                                    secret in the pod's namespace
+                                                  properties:
+                                                    key:
+                                                      description: The key of the
+                                                        secret to select from.  Must
+                                                        be a valid secret key.
+                                                      type: string
+                                                    name:
+                                                      default: ""
+                                                      description: |-
+                                                        Name of the referent.
+                                                        This field is effectively required, but due to backwards compatibility is
+                                                        allowed to be empty. Instances of this type with an empty value here are
+                                                        almost certainly wrong.
+                                                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                      type: string
+                                                    optional:
+                                                      description: Specify whether
+                                                        the Secret or its key must
+                                                        be defined
+                                                      type: boolean
+                                                  required:
+                                                  - key
+                                                  type: object
+                                                  x-kubernetes-map-type: atomic
+                                              type: object
+                                          required:
+                                          - name
+                                          type: object
+                                        type: array
                                       imageRepository:
                                         description: |-
                                           ImageRepository sets the container registry to pull images from.
@@ -1514,11 +1888,138 @@ spec:
                                   extraArgs:
                                     additionalProperties:
                                       type: string
-                                    description: |-
-                                      ExtraArgs is an extra set of flags to pass to the control plane component.
-                                      TODO: This is temporary and ideally we would like to switch all components to
-                                      use ComponentConfig + ConfigMaps.
+                                    description: ExtraArgs is an extra set of flags
+                                      to pass to the control plane component.
                                     type: object
+                                  extraEnvs:
+                                    description: |-
+                                      ExtraEnvs is an extra set of environment variables to pass to the control plane component.
+                                      Environment variables passed using ExtraEnvs will override any existing environment variables, or *_proxy environment variables that kubeadm adds by default.
+                                      This option takes effect only on Kubernetes >=1.31.0.
+                                    items:
+                                      description: EnvVar represents an environment
+                                        variable present in a Container.
+                                      properties:
+                                        name:
+                                          description: Name of the environment variable.
+                                            Must be a C_IDENTIFIER.
+                                          type: string
+                                        value:
+                                          description: |-
+                                            Variable references $(VAR_NAME) are expanded
+                                            using the previously defined environment variables in the container and
+                                            any service environment variables. If a variable cannot be resolved,
+                                            the reference in the input string will be unchanged. Double $$ are reduced
+                                            to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                                            Escaped references will never be expanded, regardless of whether the variable
+                                            exists or not.
+                                            Defaults to "".
+                                          type: string
+                                        valueFrom:
+                                          description: Source for the environment
+                                            variable's value. Cannot be used if value
+                                            is not empty.
+                                          properties:
+                                            configMapKeyRef:
+                                              description: Selects a key of a ConfigMap.
+                                              properties:
+                                                key:
+                                                  description: The key to select.
+                                                  type: string
+                                                name:
+                                                  default: ""
+                                                  description: |-
+                                                    Name of the referent.
+                                                    This field is effectively required, but due to backwards compatibility is
+                                                    allowed to be empty. Instances of this type with an empty value here are
+                                                    almost certainly wrong.
+                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                  type: string
+                                                optional:
+                                                  description: Specify whether the
+                                                    ConfigMap or its key must be defined
+                                                  type: boolean
+                                              required:
+                                              - key
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            fieldRef:
+                                              description: |-
+                                                Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                                spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                                              properties:
+                                                apiVersion:
+                                                  description: Version of the schema
+                                                    the FieldPath is written in terms
+                                                    of, defaults to "v1".
+                                                  type: string
+                                                fieldPath:
+                                                  description: Path of the field to
+                                                    select in the specified API version.
+                                                  type: string
+                                              required:
+                                              - fieldPath
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            resourceFieldRef:
+                                              description: |-
+                                                Selects a resource of the container: only resources limits and requests
+                                                (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                                              properties:
+                                                containerName:
+                                                  description: 'Container name: required
+                                                    for volumes, optional for env
+                                                    vars'
+                                                  type: string
+                                                divisor:
+                                                  anyOf:
+                                                  - type: integer
+                                                  - type: string
+                                                  description: Specifies the output
+                                                    format of the exposed resources,
+                                                    defaults to "1"
+                                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                                  x-kubernetes-int-or-string: true
+                                                resource:
+                                                  description: 'Required: resource
+                                                    to select'
+                                                  type: string
+                                              required:
+                                              - resource
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                            secretKeyRef:
+                                              description: Selects a key of a secret
+                                                in the pod's namespace
+                                              properties:
+                                                key:
+                                                  description: The key of the secret
+                                                    to select from.  Must be a valid
+                                                    secret key.
+                                                  type: string
+                                                name:
+                                                  default: ""
+                                                  description: |-
+                                                    Name of the referent.
+                                                    This field is effectively required, but due to backwards compatibility is
+                                                    allowed to be empty. Instances of this type with an empty value here are
+                                                    almost certainly wrong.
+                                                    More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                                  type: string
+                                                optional:
+                                                  description: Specify whether the
+                                                    Secret or its key must be defined
+                                                  type: boolean
+                                              required:
+                                              - key
+                                              type: object
+                                              x-kubernetes-map-type: atomic
+                                          type: object
+                                      required:
+                                      - name
+                                      type: object
+                                    type: array
                                   extraVolumes:
                                     description: ExtraVolumes is an extra set of host
                                       volumes, mounted to the control plane component.
@@ -1722,7 +2223,6 @@ spec:
                                       AdditionalConfig contains additional configuration to be merged with the Ignition
                                       configuration generated by the bootstrapper controller. More info: https://coreos.github.io/ignition/operator-notes/#config-merging
 
-
                                       The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/
                                     type: string
                                   strict:
@@ -1848,6 +2348,12 @@ spec:
                                     - IfNotPresent
                                     - Never
                                     type: string
+                                  imagePullSerial:
+                                    description: |-
+                                      ImagePullSerial specifies if image pulling performed by kubeadm must be done serially or in parallel.
+                                      This option takes effect only on Kubernetes >=1.31.0.
+                                      Default: true (defaulted in kubeadm)
+                                    type: boolean
                                   kubeletExtraArgs:
                                     additionalProperties:
                                       type: string
@@ -1942,7 +2448,6 @@ spec:
                                   CACertPath is the path to the SSL certificate authority used to
                                   secure comunications between node and control-plane.
                                   Defaults to "/etc/kubernetes/pki/ca.crt".
-                                  TODO: revisit when there is defaulting from k/k
                                 type: string
                               controlPlane:
                                 description: |-
@@ -1967,9 +2472,8 @@ spec:
                                     type: object
                                 type: object
                               discovery:
-                                description: |-
-                                  Discovery specifies the options for the kubelet to use during the TLS Bootstrap process
-                                  TODO: revisit when there is defaulting from k/k
+                                description: Discovery specifies the options for the
+                                  kubelet to use during the TLS Bootstrap process
                                 properties:
                                   bootstrapToken:
                                     description: |-
@@ -2013,6 +2517,139 @@ spec:
                                       File is used to specify a file or URL to a kubeconfig file from which to load cluster information
                                       BootstrapToken and File are mutually exclusive
                                     properties:
+                                      kubeConfig:
+                                        description: |-
+                                          KubeConfig is used (optionally) to generate a KubeConfig based on the KubeadmConfig's information.
+                                          The file is generated at the path specified in KubeConfigPath.
+
+                                          Host address (server field) information is automatically populated based on the Cluster's ControlPlaneEndpoint.
+                                          Certificate Authority (certificate-authority-data field) is gathered from the cluster's CA secret.
+                                        properties:
+                                          cluster:
+                                            description: |-
+                                              Cluster contains information about how to communicate with the kubernetes cluster.
+
+                                              By default the following fields are automatically populated:
+                                              - Server with the Cluster's ControlPlaneEndpoint.
+                                              - CertificateAuthorityData with the Cluster's CA certificate.
+                                            properties:
+                                              certificateAuthorityData:
+                                                description: |-
+                                                  CertificateAuthorityData contains PEM-encoded certificate authority certificates.
+
+                                                  Defaults to the Cluster's CA certificate if empty.
+                                                format: byte
+                                                type: string
+                                              insecureSkipTLSVerify:
+                                                description: InsecureSkipTLSVerify
+                                                  skips the validity check for the
+                                                  server's certificate. This will
+                                                  make your HTTPS connections insecure.
+                                                type: boolean
+                                              proxyURL:
+                                                description: |-
+                                                  ProxyURL is the URL to the proxy to be used for all requests made by this
+                                                  client. URLs with "http", "https", and "socks5" schemes are supported.  If
+                                                  this configuration is not provided or the empty string, the client
+                                                  attempts to construct a proxy configuration from http_proxy and
+                                                  https_proxy environment variables. If these environment variables are not
+                                                  set, the client does not attempt to proxy requests.
+
+                                                  socks5 proxying does not currently support spdy streaming endpoints (exec,
+                                                  attach, port forward).
+                                                type: string
+                                              server:
+                                                description: |-
+                                                  Server is the address of the kubernetes cluster (https://hostname:port).
+
+                                                  Defaults to https:// + Cluster.Spec.ControlPlaneEndpoint.
+                                                type: string
+                                              tlsServerName:
+                                                description: TLSServerName is used
+                                                  to check server certificate. If
+                                                  TLSServerName is empty, the hostname
+                                                  used to contact the server is used.
+                                                type: string
+                                            type: object
+                                          user:
+                                            description: |-
+                                              User contains information that describes identity information.
+                                              This is used to tell the kubernetes cluster who you are.
+                                            properties:
+                                              authProvider:
+                                                description: AuthProvider specifies
+                                                  a custom authentication plugin for
+                                                  the kubernetes cluster.
+                                                properties:
+                                                  config:
+                                                    additionalProperties:
+                                                      type: string
+                                                    description: Config holds the
+                                                      parameters for the authentication
+                                                      plugin.
+                                                    type: object
+                                                  name:
+                                                    description: Name is the name
+                                                      of the authentication plugin.
+                                                    type: string
+                                                required:
+                                                - name
+                                                type: object
+                                              exec:
+                                                description: Exec specifies a custom
+                                                  exec-based authentication plugin
+                                                  for the kubernetes cluster.
+                                                properties:
+                                                  apiVersion:
+                                                    description: |-
+                                                      Preferred input version of the ExecInfo. The returned ExecCredentials MUST use
+                                                      the same encoding version as the input.
+                                                      Defaults to client.authentication.k8s.io/v1 if not set.
+                                                    type: string
+                                                  args:
+                                                    description: Arguments to pass
+                                                      to the command when executing
+                                                      it.
+                                                    items:
+                                                      type: string
+                                                    type: array
+                                                  command:
+                                                    description: Command to execute.
+                                                    type: string
+                                                  env:
+                                                    description: |-
+                                                      Env defines additional environment variables to expose to the process. These
+                                                      are unioned with the host's environment, as well as variables client-go uses
+                                                      to pass argument to the plugin.
+                                                    items:
+                                                      description: |-
+                                                        KubeConfigAuthExecEnv is used for setting environment variables when executing an exec-based
+                                                        credential plugin.
+                                                      properties:
+                                                        name:
+                                                          type: string
+                                                        value:
+                                                          type: string
+                                                      required:
+                                                      - name
+                                                      - value
+                                                      type: object
+                                                    type: array
+                                                  provideClusterInfo:
+                                                    description: |-
+                                                      ProvideClusterInfo determines whether or not to provide cluster information,
+                                                      which could potentially contain very large CA data, to this exec plugin as a
+                                                      part of the KUBERNETES_EXEC_INFO environment variable. By default, it is set
+                                                      to false. Package k8s.io/client-go/tools/auth/exec provides helper methods for
+                                                      reading this environment variable.
+                                                    type: boolean
+                                                required:
+                                                - command
+                                                type: object
+                                            type: object
+                                        required:
+                                        - user
+                                        type: object
                                       kubeConfigPath:
                                         description: KubeConfigPath is used to specify
                                           the actual file path or URL to the kubeconfig
@@ -2069,6 +2706,12 @@ spec:
                                     - IfNotPresent
                                     - Never
                                     type: string
+                                  imagePullSerial:
+                                    description: |-
+                                      ImagePullSerial specifies if image pulling performed by kubeadm must be done serially or in parallel.
+                                      This option takes effect only on Kubernetes >=1.31.0.
+                                      Default: true (defaulted in kubeadm)
+                                    type: boolean
                                   kubeletExtraArgs:
                                     additionalProperties:
                                       type: string
@@ -2188,17 +2831,13 @@ spec:
                               UseExperimentalRetryJoin replaces a basic kubeadm command with a shell
                               script with retries for joins.
 
-
                               This is meant to be an experimental temporary workaround on some environments
                               where joins fail due to timing (and other issues). The long term goal is to add retries to
                               kubeadm proper and use that functionality.
 
-
                               This will add about 40KB to userdata
 
-
                               For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
-
 
                               Deprecated: This experimental fix is no longer needed and this field will be removed in a future release.
                               When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml
@@ -2343,20 +2982,19 @@ spec:
                               attempting to remediate an unhealthy machine.\nA retry
                               happens when a machine that was created as a replacement
                               for an unhealthy machine also fails.\nFor example, given
-                              a control plane with three machines M1, M2, M3:\n\n\n\tM1
+                              a control plane with three machines M1, M2, M3:\n\n\tM1
                               become unhealthy; remediation happens, and M1-1 is created
                               as a replacement.\n\tIf M1-1 (replacement of M1) has
                               problems while bootstrapping it will become unhealthy,
                               and then be\n\tremediated; such operation is considered
                               a retry, remediation-retry #1.\n\tIf M1-2 (replacement
                               of M1-1) becomes unhealthy, remediation-retry #2 will
-                              happen, etc.\n\n\nA retry could happen only after RetryPeriod
+                              happen, etc.\n\nA retry could happen only after RetryPeriod
                               from the previous retry.\nIf a machine is marked as
                               unhealthy after MinHealthyPeriod from the previous remediation
                               expired,\nthis is not considered a retry anymore because
                               the new issue is assumed unrelated from the previous
-                              one.\n\n\nIf not set, the remedation will be retried
-                              infinitely."
+                              one.\n\nIf not set, the remedation will be retried infinitely."
                             format: int32
                             type: integer
                           minHealthyPeriod:
@@ -2365,23 +3003,22 @@ spec:
                               the previous one. In this case the remediation is not
                               considered a retry anymore, and thus the retry\ncounter
                               restarts from 0. For example, assuming MinHealthyPeriod
-                              is set to 1h (default)\n\n\n\tM1 become unhealthy; remediation
+                              is set to 1h (default)\n\n\tM1 become unhealthy; remediation
                               happens, and M1-1 is created as a replacement.\n\tIf
                               M1-1 (replacement of M1) has problems within the 1hr
                               after the creation, also\n\tthis machine will be remediated
                               and this operation is considered a retry - a problem
-                              related\n\tto the original issue happened to M1 -.\n\n\n\tIf
+                              related\n\tto the original issue happened to M1 -.\n\n\tIf
                               instead the problem on M1-1 is happening after MinHealthyPeriod
                               expired, e.g. four days after\n\tm1-1 has been created
                               as a remediation of M1, the problem on M1-1 is considered
-                              unrelated to\n\tthe original issue happened to M1.\n\n\nIf
+                              unrelated to\n\tthe original issue happened to M1.\n\nIf
                               not set, this value is defaulted to 1h."
                             type: string
                           retryPeriod:
                             description: |-
                               RetryPeriod is the duration that KCP should wait before remediating a machine being created as a replacement
                               for an unhealthy machine (a retry).
-
 
                               If not set, a retry will happen immediately.
                             type: string

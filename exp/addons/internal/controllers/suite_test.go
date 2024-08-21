@@ -21,9 +21,13 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
@@ -34,8 +38,9 @@ import (
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env     *envtest.Environment
+	tracker *remote.ClusterCacheTracker
+	ctx     = ctrl.SetupSignalHandler()
 )
 
 func TestMain(m *testing.M) {
@@ -46,7 +51,33 @@ func TestMain(m *testing.M) {
 	}
 
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
+		// Create partial cache analog to main.go.
+		partialSecretCache, err := cache.New(mgr.GetConfig(), cache.Options{
+			Scheme:     mgr.GetScheme(),
+			Mapper:     mgr.GetRESTMapper(),
+			HTTPClient: mgr.GetHTTPClient(),
+			SyncPeriod: ptr.To(time.Minute * 10),
+			DefaultTransform: func(in interface{}) (interface{}, error) {
+				// Use DefaultTransform to drop objects we don't expect to get into this cache.
+				obj, ok := in.(*metav1.PartialObjectMetadata)
+				if !ok {
+					panic(fmt.Sprintf("cache expected to only get PartialObjectMetadata, got %T", in))
+				}
+				if obj.GetObjectKind().GroupVersionKind() != corev1.SchemeGroupVersion.WithKind("Secret") {
+					panic(fmt.Sprintf("cache expected to only get Secrets, got %s", obj.GetObjectKind()))
+				}
+				// Additionally strip managed fields.
+				return cache.TransformStripManagedFields()(obj)
+			},
+		})
+		if err != nil {
+			panic(fmt.Sprintf("Failed to create cache for metadata only Secret watches: %v", err))
+		}
+		if err := mgr.Add(partialSecretCache); err != nil {
+			panic(fmt.Sprintf("Failed to start cache for metadata only Secret watches: %v", err))
+		}
+
+		tracker, err = remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to create new cluster cache tracker: %v", err))
 		}
@@ -55,13 +86,13 @@ func TestMain(m *testing.M) {
 			Client:  mgr.GetClient(),
 			Tracker: tracker,
 		}
-		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 10}, partialSecretCache); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
 		}
 		bindingReconciler := ClusterResourceSetBindingReconciler{
 			Client: mgr.GetClient(),
 		}
-		if err = bindingReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		if err = bindingReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 10}); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set binding reconciler: %v", err))
 		}
 	}

@@ -56,23 +56,7 @@ func TestClusterResourceSetReconciler(t *testing.T) {
 		resourceConfigMapsNamespace = "default"
 	)
 
-	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
-		t.Helper()
-
-		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
-		labels = map[string]string{clusterResourceSetName: "bar"}
-
-		ns, err := env.CreateNamespace(ctx, namespacePrefix)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
-		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: ns.Name}}
-
-		t.Log("Creating the Cluster")
-		g.Expect(env.Create(ctx, testCluster)).To(Succeed())
-		t.Log("Creating the remote Cluster kubeconfig")
-		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-
+	createConfigMapAndSecret := func(g Gomega, namespaceName, configmapName, secretName string) {
 		resourceConfigMap1Content := fmt.Sprintf(`metadata:
  name: %s
  namespace: %s
@@ -82,7 +66,7 @@ apiVersion: v1`, resourceConfigMap1Name, resourceConfigMapsNamespace)
 		testConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configmapName,
-				Namespace: ns.Name,
+				Namespace: namespaceName,
 			},
 			Data: map[string]string{
 				"cm": resourceConfigMap1Content,
@@ -98,7 +82,7 @@ metadata:
 		testSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
-				Namespace: ns.Name,
+				Namespace: namespaceName,
 			},
 			Type: "addons.cluster.x-k8s.io/resource-set",
 			StringData: map[string]string{
@@ -108,14 +92,35 @@ metadata:
 		t.Log("Creating a Secret and a ConfigMap with ConfigMap in their data field")
 		g.Expect(env.Create(ctx, testConfigmap)).To(Succeed())
 		g.Expect(env.Create(ctx, testSecret)).To(Succeed())
+	}
 
+	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
+		t.Helper()
+
+		clusterResourceSetName = fmt.Sprintf("clusterresourceset-%s", util.RandomString(6))
+		labels = map[string]string{clusterResourceSetName: "bar"}
+
+		ns, err := env.CreateNamespace(ctx, namespacePrefix)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		clusterName = fmt.Sprintf("cluster-%s", util.RandomString(6))
+		testCluster = &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: clusterName, Namespace: ns.Name}}
+
+		t.Log("Creating the Cluster")
+		g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
+		t.Log("Creating the remote Cluster kubeconfig")
+		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+		_, err = tracker.GetClient(ctx, client.ObjectKeyFromObject(testCluster))
+		g.Expect(err).ToNot(HaveOccurred())
+
+		createConfigMapAndSecret(g, ns.Name, configmapName, secretName)
 		return ns
 	}
 
 	teardown := func(t *testing.T, g *WithT, ns *corev1.Namespace) {
 		t.Helper()
 
-		t.Log("Deleting the Kubeconfigsecret")
+		t.Log("Deleting the Kubeconfig Secret")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterName + "-kubeconfig",
@@ -124,26 +129,16 @@ metadata:
 		}
 		g.Expect(env.Delete(ctx, secret)).To(Succeed())
 
+		t.Log("Deleting the ClusterResourceSet")
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      clusterResourceSetName,
 				Namespace: ns.Name,
 			},
 		}
-
-		err := env.Get(ctx, client.ObjectKey{Namespace: clusterResourceSetInstance.Namespace, Name: clusterResourceSetInstance.Name}, clusterResourceSetInstance)
-		if err == nil {
-			g.Expect(env.Delete(ctx, clusterResourceSetInstance)).To(Succeed())
-		}
-
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, clusterResourceSetInstance))).To(Succeed())
 		g.Eventually(func() bool {
-			crsKey := client.ObjectKey{
-				Namespace: clusterResourceSetInstance.Namespace,
-				Name:      clusterResourceSetInstance.Name,
-			}
-			crs := &addonsv1.ClusterResourceSet{}
-			err := env.Get(ctx, crsKey, crs)
-			return err != nil
+			return apierrors.IsNotFound(env.Get(ctx, client.ObjectKeyFromObject(clusterResourceSetInstance), &addonsv1.ClusterResourceSet{}))
 		}, timeout).Should(BeTrue())
 
 		g.Expect(env.Delete(ctx, &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
@@ -161,25 +156,19 @@ metadata:
 				Namespace: resourceConfigMapsNamespace,
 			},
 		}
-		if err = env.Get(ctx, client.ObjectKeyFromObject(cm1), cm1); err == nil {
-			g.Expect(env.Delete(ctx, cm1)).To(Succeed())
-		}
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, cm1))).To(Succeed())
+
 		cm2 := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      resourceConfigMap2Name,
 				Namespace: resourceConfigMapsNamespace,
 			},
 		}
-		if err = env.Get(ctx, client.ObjectKeyFromObject(cm2), cm2); err == nil {
-			g.Expect(env.Delete(ctx, cm2)).To(Succeed())
-		}
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, cm2))).To(Succeed())
 
 		g.Expect(env.Delete(ctx, ns)).To(Succeed())
 
-		clusterKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
-		if err = env.Get(ctx, clusterKey, testCluster); err == nil {
-			g.Expect(env.Delete(ctx, testCluster)).To(Succeed())
-		}
+		g.Expect(client.IgnoreNotFound(env.Delete(ctx, testCluster))).To(Succeed())
 	}
 
 	t.Run("Should reconcile a ClusterResourceSet with multiple resources when a cluster with matching label exists", func(t *testing.T) {
@@ -345,8 +334,13 @@ metadata:
 		}
 		g.Eventually(func() bool {
 			m := &corev1.ConfigMap{}
-			err := env.Get(ctx, cmKey, m)
-			return err == nil
+			if err := env.Get(ctx, cmKey, m); err != nil {
+				return false
+			}
+			if len(m.OwnerReferences) != 1 || m.OwnerReferences[0].Name != crsInstance.Name {
+				return false
+			}
+			return true
 		}, timeout).Should(BeTrue())
 
 		// When the ConfigMap resource is created, CRS should get reconciled immediately.
@@ -445,8 +439,13 @@ metadata:
 		}
 		g.Eventually(func() bool {
 			m := &corev1.Secret{}
-			err := env.Get(ctx, cmKey, m)
-			return err == nil
+			if err := env.Get(ctx, cmKey, m); err != nil {
+				return false
+			}
+			if len(m.OwnerReferences) != 1 || m.OwnerReferences[0].Name != crsInstance.Name {
+				return false
+			}
+			return true
 		}, timeout).Should(BeTrue())
 
 		// When the Secret resource is created, CRS should get reconciled immediately.
@@ -911,7 +910,7 @@ metadata:
 		g.Expect(env.Delete(ctx, missingNs)).To(Succeed())
 	})
 
-	t.Run("Should only create ClusterResourceSetBinding after the remote cluster's Kubernetes API Server Service has been created", func(t *testing.T) {
+	t.Run("Should only apply resources after the remote cluster's Kubernetes API Server Service has been created", func(t *testing.T) {
 		g := NewWithT(t)
 		ns := setup(t, g)
 		defer teardown(t, g, ns)
@@ -962,6 +961,7 @@ metadata:
 				ClusterSelector: metav1.LabelSelector{
 					MatchLabels: labels,
 				},
+				Resources: []addonsv1.ResourceRef{{Name: secretName, Kind: "Secret"}},
 			},
 		}
 		// Create the ClusterResourceSet.
@@ -970,13 +970,22 @@ metadata:
 		testCluster.SetLabels(labels)
 		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
 
-		// ClusterResourceSetBinding for the Cluster is not created because the Kubernetes API Server Service doesn't exist.
+		// Resources are not applied because the Kubernetes API Server Service doesn't exist.
 		clusterResourceSetBindingKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
 		g.Consistently(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 
-			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
-			return apierrors.IsNotFound(err)
+			if err := env.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
+				// either the binding is not there
+				return true
+			}
+			// or the binding is there but resources are not applied
+			for _, b := range binding.Spec.Bindings {
+				if len(b.Resources) > 0 {
+					return false
+				}
+			}
+			return true
 		}, timeout).Should(BeTrue())
 
 		t.Log("Create Kubernetes API Server Service")
@@ -991,10 +1000,68 @@ metadata:
 
 		// Wait until ClusterResourceSetBinding is created for the Cluster
 		g.Eventually(func() bool {
+			// the binding must exists and track resource being applied
 			binding := &addonsv1.ClusterResourceSetBinding{}
-			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
-			return err == nil
+			if err := env.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
+				return false
+			}
+			for _, b := range binding.Spec.Bindings {
+				if len(b.Resources) == 0 {
+					return false
+				}
+			}
+			return len(binding.Spec.Bindings) != 0
 		}, timeout).Should(BeTrue())
+	})
+
+	t.Run("Should handle applying multiple ClusterResourceSets concurrently to the same cluster", func(t *testing.T) {
+		g := NewWithT(t)
+		ns := setup(t, g)
+		defer teardown(t, g, ns)
+
+		t.Log("Creating ClusterResourceSet instances that have same labels as selector")
+		for i := range 10 {
+			configmapName := fmt.Sprintf("%s-%d", configmapName, i)
+			secretName := fmt.Sprintf("%s-%d", secretName, i)
+			createConfigMapAndSecret(g, ns.Name, configmapName, secretName)
+
+			clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("clusterresourceset-%d", i),
+					Namespace: ns.Name,
+				},
+				Spec: addonsv1.ClusterResourceSetSpec{
+					ClusterSelector: metav1.LabelSelector{
+						MatchLabels: labels,
+					},
+					Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: secretName, Kind: "Secret"}},
+				},
+			}
+			// Create the ClusterResourceSet.
+			g.Expect(env.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+		}
+
+		t.Log("Updating the cluster with labels to trigger cluster resource sets to be applied")
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		t.Log("Verifying ClusterResourceSetBinding shows that all CRS have been applied")
+		g.Eventually(func(g Gomega) {
+			clusterResourceSetBindingKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			g.Expect(env.Get(ctx, clusterResourceSetBindingKey, binding)).Should(Succeed())
+			g.Expect(binding.Spec.Bindings).To(HaveLen(10))
+			for _, b := range binding.Spec.Bindings {
+				g.Expect(b.Resources).To(HaveLen(2))
+				for _, r := range b.Resources {
+					g.Expect(r.Applied).To(BeTrue())
+				}
+			}
+			g.Expect(binding.OwnerReferences).To(HaveLen(10))
+		}, 4*timeout).Should(Succeed())
+		t.Log("Deleting the created ClusterResourceSet instances")
+		g.Expect(env.DeleteAllOf(ctx, &addonsv1.ClusterResourceSet{}, client.InNamespace(ns.Name))).To(Succeed())
+		g.Expect(env.DeleteAllOf(ctx, &addonsv1.ClusterResourceSetBinding{}, client.InNamespace(ns.Name))).To(Succeed())
 	})
 }
 

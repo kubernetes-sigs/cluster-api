@@ -48,8 +48,8 @@ import (
 )
 
 func TestExtensionReconciler_Reconcile(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	g := NewWithT(t)
 	ns, err := env.CreateNamespace(ctx, "test-extension-config")
@@ -197,8 +197,8 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 }
 
 func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 	g := NewWithT(t)
 	ns, err := env.CreateNamespace(ctx, "test-runtime-extension")
 	g.Expect(err).ToNot(HaveOccurred())

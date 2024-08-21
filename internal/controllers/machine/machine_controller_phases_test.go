@@ -907,8 +907,7 @@ func TestReconcileBootstrap(t *testing.T) {
 					bootstrapConfig,
 				).Build()
 			r := &Reconciler{
-				Client:                    c,
-				UnstructuredCachingClient: c,
+				Client: c,
 			}
 
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
@@ -1120,8 +1119,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 					infraConfig,
 				).Build()
 			r := &Reconciler{
-				Client:                    c,
-				UnstructuredCachingClient: c,
+				Client: c,
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileInfrastructure(ctx, s)

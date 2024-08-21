@@ -47,7 +47,7 @@ type dryRunSSAPatchInput struct {
 }
 
 // dryRunSSAPatch uses server side apply dry run to determine if the operation is going to change the actual object.
-func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, bool, error) {
+func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, bool, []byte, error) {
 	// Compute a request identifier.
 	// The identifier is unique for a specific request to ensure we don't have to re-run the request
 	// once we found out that it would not produce a diff.
@@ -56,13 +56,13 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// This ensures that we re-run the request as soon as either original or modified changes.
 	requestIdentifier, err := ssa.ComputeRequestIdentifier(dryRunCtx.client.Scheme(), dryRunCtx.originalUnstructured, dryRunCtx.modifiedUnstructured)
 	if err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 
 	// Check if we already ran this request before by checking if the cache already contains this identifier.
 	// Note: We only add an identifier to the cache if the result of the dry run was no diff.
 	if exists := dryRunCtx.ssaCache.Has(requestIdentifier); exists {
-		return false, false, nil
+		return false, false, nil, nil
 	}
 
 	// For dry run we use the same options as for the intent but with adding metadata.managedFields
@@ -74,17 +74,17 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 
 	// Add TopologyDryRunAnnotation to notify validation webhooks to skip immutability checks.
 	if err := unstructured.SetNestedField(dryRunCtx.originalUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
-		return false, false, errors.Wrap(err, "failed to add topology dry-run annotation to original object")
+		return false, false, nil, errors.Wrap(err, "failed to add topology dry-run annotation to original object")
 	}
 	if err := unstructured.SetNestedField(dryRunCtx.modifiedUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
-		return false, false, errors.Wrap(err, "failed to add topology dry-run annotation to modified object")
+		return false, false, nil, errors.Wrap(err, "failed to add topology dry-run annotation to modified object")
 	}
 
 	// Do a server-side apply dry-run with modifiedUnstructured to get the updated object.
 	err = dryRunCtx.client.Patch(ctx, dryRunCtx.modifiedUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
 		// This catches errors like metadata.uid changes.
-		return false, false, errors.Wrap(err, "server side apply dry-run failed for modified object")
+		return false, false, nil, errors.Wrap(err, "server side apply dry-run failed for modified object")
 	}
 
 	// Do a server-side apply dry-run with originalUnstructured to ensure the latest defaulting is applied.
@@ -109,7 +109,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	dryRunCtx.originalUnstructured.SetManagedFields(nil)
 	err = dryRunCtx.client.Patch(ctx, dryRunCtx.originalUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
-		return false, false, errors.Wrap(err, "server side apply dry-run failed for original object")
+		return false, false, nil, errors.Wrap(err, "server side apply dry-run failed for original object")
 	}
 	// Restore managed fields.
 	dryRunCtx.originalUnstructured.SetManagedFields(originalUnstructuredManagedFieldsBeforeSSA)
@@ -124,7 +124,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
 	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
 	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.modifiedUnstructured); err != nil {
-		return false, false, errors.Wrap(err, "failed to filter topology dry-run annotation on modified object")
+		return false, false, nil, errors.Wrap(err, "failed to filter topology dry-run annotation on modified object")
 	}
 
 	// Also run the function for the originalUnstructured to remove the managedField
@@ -135,7 +135,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
 	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
 	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.originalUnstructured); err != nil {
-		return false, false, errors.Wrap(err, "failed to filter topology dry-run annotation on original object")
+		return false, false, nil, errors.Wrap(err, "failed to filter topology dry-run annotation on original object")
 	}
 
 	// Drop the other fields which are not part of our intent.
@@ -145,33 +145,51 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Compare the output of dry run to the original object.
 	originalJSON, err := json.Marshal(dryRunCtx.originalUnstructured)
 	if err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 	modifiedJSON, err := json.Marshal(dryRunCtx.modifiedUnstructured)
 	if err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 
 	rawDiff, err := jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
 	if err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 
 	// Determine if there are changes to the spec and object.
 	diff := &unstructured.Unstructured{}
 	if err := json.Unmarshal(rawDiff, &diff.Object); err != nil {
-		return false, false, err
+		return false, false, nil, err
 	}
 
 	hasChanges := len(diff.Object) > 0
 	_, hasSpecChanges := diff.Object["spec"]
+
+	var changes []byte
+	if hasChanges {
+		// Cleanup diff by dropping .metadata.managedFields.
+		ssa.FilterIntent(&ssa.FilterIntentInput{
+			Path:         contract.Path{},
+			Value:        diff.Object,
+			ShouldFilter: ssa.IsPathIgnored([]contract.Path{[]string{"metadata", "managedFields"}}),
+		})
+
+		// changes should be empty (not "{}") if diff.Object is empty
+		if len(diff.Object) != 0 {
+			changes, err = json.Marshal(diff.Object)
+			if err != nil {
+				return false, false, nil, errors.Wrapf(err, "failed to marshal diff")
+			}
+		}
+	}
 
 	// If there is no diff add the request identifier to the cache.
 	if !hasChanges {
 		dryRunCtx.ssaCache.Add(requestIdentifier)
 	}
 
-	return hasChanges, hasSpecChanges, nil
+	return hasChanges, hasSpecChanges, changes, nil
 }
 
 // cleanupManagedFieldsAndAnnotation adjusts the obj to remove the topology.cluster.x-k8s.io/dry-run

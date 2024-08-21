@@ -29,6 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
@@ -142,10 +143,11 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 	}
 	restConfig, err := clientcmd.NewDefaultClientConfig(*config, configOverrides).ClientConfig()
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "invalid configuration:") {
-			return nil, errors.New(strings.Replace(err.Error(), "invalid configuration:", "invalid kubeconfig file; clusterctl requires a valid kubeconfig file to connect to the management cluster:", 1))
+		var inClusterErr error
+		restConfig, inClusterErr = rest.InClusterConfig()
+		if inClusterErr != nil {
+			return nil, errors.Wrapf(kerrors.NewAggregate([]error{err, inClusterErr}), "clusterctl requires either a valid kubeconfig or in cluster config to connect to the management cluster")
 		}
-		return nil, err
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: clusters.cluster.x-k8s.io
 spec:
   group: cluster.x-k8s.io
@@ -114,7 +114,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -160,7 +159,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -315,7 +313,6 @@ spec:
         description: |-
           Cluster is the Schema for the clusters API.
 
-
           Deprecated: This type will be removed in one of the next releases.
         properties:
           apiVersion:
@@ -403,7 +400,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -449,7 +445,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -500,7 +495,6 @@ spec:
                         description: |-
                           Metadata is the metadata applied to the machines of the ControlPlane.
                           At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
-
 
                           This field is supported if and only if the control plane provider template
                           referenced in the ClusterClass is Machine based.
@@ -820,7 +814,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -866,7 +859,6 @@ spec:
                       the event) or if no container name is specified "spec.containers[2]" (container with
                       index 2 in this pod). This syntax is chosen only to have some well-defined way of
                       referencing a part of an object.
-                      TODO: this design is not final and this field is subject to change in the future.
                     type: string
                   kind:
                     description: |-
@@ -922,13 +914,10 @@ spec:
                             description: |-
                               Enable controls if a MachineHealthCheck should be created for the target machines.
 
-
                               If false: No MachineHealthCheck will be created.
-
 
                               If not set(default): A MachineHealthCheck will be created if it is defined here or
                                in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.
-
 
                               If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will
                               block if `enable` is true and no MachineHealthCheck definition is available.
@@ -943,15 +932,23 @@ spec:
                             x-kubernetes-int-or-string: true
                           nodeStartupTimeout:
                             description: |-
-                              Machines older than this duration without a node will be considered to have
-                              failed and will be remediated.
+                              NodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                              to consider a Machine unhealthy if a corresponding Node isn't associated
+                              through a `Spec.ProviderID` field.
+
+                              The duration set in this field is compared to the greatest of:
+                              - Cluster's infrastructure ready condition timestamp (if and when available)
+                              - Control Plane's initialized condition timestamp (if and when available)
+                              - Machine's infrastructure ready condition timestamp (if and when available)
+                              - Machine's metadata creation timestamp
+
+                              Defaults to 10 minutes.
                               If you wish to disable this feature, set the value explicitly to 0.
                             type: string
                           remediationTemplate:
                             description: |-
                               RemediationTemplate is a reference to a remediation template
                               provided by an infrastructure provider.
-
 
                               This field is completely optional, when filled, the MachineHealthCheck controller
                               creates a new object from the template referenced and hands off remediation of the machine to
@@ -969,7 +966,6 @@ spec:
                                   the event) or if no container name is specified "spec.containers[2]" (container with
                                   index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                   referencing a part of an object.
-                                  TODO: this design is not final and this field is subject to change in the future.
                                 type: string
                               kind:
                                 description: |-
@@ -1084,12 +1080,51 @@ spec:
                           When specified against a control plane provider that lacks support for this field, this value will be ignored.
                         format: int32
                         type: integer
+                      variables:
+                        description: Variables can be used to customize the ControlPlane
+                          through patches.
+                        properties:
+                          overrides:
+                            description: Overrides can be used to override Cluster
+                              level variables.
+                            items:
+                              description: |-
+                                ClusterVariable can be used to customize the Cluster through patches. Each ClusterVariable is associated with a
+                                Variable definition in the ClusterClass `status` variables.
+                              properties:
+                                definitionFrom:
+                                  description: |-
+                                    DefinitionFrom specifies where the definition of this Variable is from.
+
+                                    Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
+                                  type: string
+                                name:
+                                  description: Name of the variable.
+                                  type: string
+                                value:
+                                  description: |-
+                                    Value of the variable.
+                                    Note: the value will be validated against the schema of the corresponding ClusterClassVariable
+                                    from the ClusterClass.
+                                    Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a
+                                    hard-coded schema for apiextensionsv1.JSON which cannot be produced by another type via controller-tools,
+                                    i.e. it is not possible to have no type field.
+                                    Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
+                                  x-kubernetes-preserve-unknown-fields: true
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                        type: object
                     type: object
                   rolloutAfter:
                     description: |-
                       RolloutAfter performs a rollout of the entire cluster one component at a time,
                       control plane first and then machine deployments.
-
 
                       Deprecated: This field has no function and is going to be removed in the next apiVersion.
                     format: date-time
@@ -1106,10 +1141,9 @@ spec:
                       properties:
                         definitionFrom:
                           description: |-
-                            DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-                            definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-                            `.spec.patches` where the patch is external and provides external variables.
-                            This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+                            DefinitionFrom specifies where the definition of this Variable is from.
+
+                            Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                           type: string
                         name:
                           description: Name of the variable.
@@ -1129,6 +1163,9 @@ spec:
                       - value
                       type: object
                     type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
                   version:
                     description: The Kubernetes version of the cluster.
                     type: string
@@ -1165,13 +1202,10 @@ spec:
                                   description: |-
                                     Enable controls if a MachineHealthCheck should be created for the target machines.
 
-
                                     If false: No MachineHealthCheck will be created.
-
 
                                     If not set(default): A MachineHealthCheck will be created if it is defined here or
                                      in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.
-
 
                                     If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will
                                     block if `enable` is true and no MachineHealthCheck definition is available.
@@ -1186,15 +1220,23 @@ spec:
                                   x-kubernetes-int-or-string: true
                                 nodeStartupTimeout:
                                   description: |-
-                                    Machines older than this duration without a node will be considered to have
-                                    failed and will be remediated.
+                                    NodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                                    to consider a Machine unhealthy if a corresponding Node isn't associated
+                                    through a `Spec.ProviderID` field.
+
+                                    The duration set in this field is compared to the greatest of:
+                                    - Cluster's infrastructure ready condition timestamp (if and when available)
+                                    - Control Plane's initialized condition timestamp (if and when available)
+                                    - Machine's infrastructure ready condition timestamp (if and when available)
+                                    - Machine's metadata creation timestamp
+
+                                    Defaults to 10 minutes.
                                     If you wish to disable this feature, set the value explicitly to 0.
                                   type: string
                                 remediationTemplate:
                                   description: |-
                                     RemediationTemplate is a reference to a remediation template
                                     provided by an infrastructure provider.
-
 
                                     This field is completely optional, when filled, the MachineHealthCheck controller
                                     creates a new object from the template referenced and hands off remediation of the machine to
@@ -1212,7 +1254,6 @@ spec:
                                         the event) or if no container name is specified "spec.containers[2]" (container with
                                         index 2 in this pod). This syntax is chosen only to have some well-defined way of
                                         referencing a part of an object.
-                                        TODO: this design is not final and this field is subject to change in the future.
                                       type: string
                                     kind:
                                       description: |-
@@ -1345,6 +1386,32 @@ spec:
                                 The deployment strategy to use to replace existing machines with
                                 new ones.
                               properties:
+                                remediation:
+                                  description: |-
+                                    Remediation controls the strategy of remediating unhealthy machines
+                                    and how remediating operations should occur during the lifecycle of the dependant MachineSets.
+                                  properties:
+                                    maxInFlight:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      description: |-
+                                        MaxInFlight determines how many in flight remediations should happen at the same time.
+
+                                        Remediation only happens on the MachineSet with the most current revision, while
+                                        older MachineSets (usually present during rollout operations) aren't allowed to remediate.
+
+                                        Note: In general (independent of remediations), unhealthy machines are always
+                                        prioritized during scale down operations over healthy ones.
+
+                                        MaxInFlight can be set to a fixed number or a percentage.
+                                        Example: when this is set to 20%, the MachineSet controller deletes at most 20% of
+                                        the desired replicas.
+
+                                        If not set, remediation is limited to all machines (bounded by replicas)
+                                        under the active MachineSet's management.
+                                      x-kubernetes-int-or-string: true
+                                  type: object
                                 rollingUpdate:
                                   description: |-
                                     Rolling update config params. Present only if
@@ -1421,10 +1488,9 @@ spec:
                                     properties:
                                       definitionFrom:
                                         description: |-
-                                          DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-                                          definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-                                          `.spec.patches` where the patch is external and provides external variables.
-                                          This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+                                          DefinitionFrom specifies where the definition of this Variable is from.
+
+                                          Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string
                                       name:
                                         description: Name of the variable.
@@ -1444,12 +1510,18 @@ spec:
                                     - value
                                     type: object
                                   type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
                               type: object
                           required:
                           - class
                           - name
                           type: object
                         type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                       machinePools:
                         description: MachinePools is a list of machine pools in the
                           cluster.
@@ -1549,10 +1621,9 @@ spec:
                                     properties:
                                       definitionFrom:
                                         description: |-
-                                          DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the
-                                          definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass
-                                          `.spec.patches` where the patch is external and provides external variables.
-                                          This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`
+                                          DefinitionFrom specifies where the definition of this Variable is from.
+
+                                          Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string
                                       name:
                                         description: Name of the variable.
@@ -1572,12 +1643,18 @@ spec:
                                     - value
                                     type: object
                                   type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
                               type: object
                           required:
                           - class
                           - name
                           type: object
                         type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                     type: object
                 required:
                 - class

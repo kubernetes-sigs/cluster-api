@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -152,6 +153,54 @@ func TestMatchClusterConfiguration(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(match).To(BeTrue())
 		g.Expect(diff).To(BeEmpty())
+	})
+	t.Run("Check we are not introducing unexpected rollouts when changing the API", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+						APIServer: bootstrapv1.APIServer{
+							ControlPlaneComponent: bootstrapv1.ControlPlaneComponent{
+								ExtraArgs: map[string]string{"foo": "bar"},
+							},
+						},
+						ControllerManager: bootstrapv1.ControlPlaneComponent{
+							ExtraArgs: map[string]string{"foo": "bar"},
+						},
+						Scheduler: bootstrapv1.ControlPlaneComponent{
+							ExtraArgs: map[string]string{"foo": "bar"},
+						},
+						DNS: bootstrapv1.DNS{
+							ImageMeta: bootstrapv1.ImageMeta{
+								ImageTag:        "v1.10.1",
+								ImageRepository: "gcr.io/capi-test",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// This is a point in time snapshot of how a serialized ClusterConfiguration looks like;
+		// we are hardcoding this in the test so we can detect if a change in the API impacts serialization.
+		// NOTE: changes in the json representation do not always trigger a rollout in KCP, but they are an heads up that should be investigated.
+		clusterConfigCheckPoint := []byte("{\"etcd\":{},\"networking\":{},\"apiServer\":{\"extraArgs\":{\"foo\":\"bar\"}},\"controllerManager\":{\"extraArgs\":{\"foo\":\"bar\"}},\"scheduler\":{\"extraArgs\":{\"foo\":\"bar\"}},\"dns\":{\"imageRepository\":\"gcr.io/capi-test\",\"imageTag\":\"v1.10.1\"}}")
+
+		// compute how a serialized ClusterConfiguration looks like now
+		clusterConfig, err := json.Marshal(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(clusterConfig).To(Equal(clusterConfigCheckPoint))
+
+		// check the match function detects if a Machine with the annotation string above matches the object it originates from (round trip).
+		m := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					controlplanev1.KubeadmClusterConfigurationAnnotation: string(clusterConfig),
+				},
+			},
+		}
+		g.Expect(matchClusterConfiguration(kcp, m)).To(BeTrue())
 	})
 }
 
@@ -491,7 +540,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 +       Name:      "A new name",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       LocalAPIEndpoint: {},
       SkipPhases:       nil,
@@ -616,7 +665,7 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 +       Name:      "A new name",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       CACertPath: "",
       Discovery:  {},
@@ -863,7 +912,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 +       Name:      "foo",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       LocalAPIEndpoint: {},
       SkipPhases:       nil,
@@ -988,7 +1037,7 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 +       Name:      "foo",
         CRISocket: "",
         Taints:    nil,
-        ... // 3 identical fields
+        ... // 4 identical fields
       },
       CACertPath: "",
       Discovery:  {},

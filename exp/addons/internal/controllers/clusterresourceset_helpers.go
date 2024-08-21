@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
@@ -108,27 +109,27 @@ func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.
 
 // getOrCreateClusterResourceSetBinding retrieves ClusterResourceSetBinding resource owned by the cluster or create a new one if not found.
 func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (*addonsv1.ClusterResourceSetBinding, error) {
-	clusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{}
-	clusterResourceSetBindingKey := client.ObjectKey{
-		Namespace: cluster.Namespace,
-		Name:      cluster.Name,
+	clusterResourceSetBinding := &addonsv1.ClusterResourceSetBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.Name,
+			Namespace: cluster.Namespace,
+		},
 	}
+	clusterResourceSetBindingKey := client.ObjectKeyFromObject(clusterResourceSetBinding)
 
 	if err := r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return nil, err
 		}
-		clusterResourceSetBinding.Name = cluster.Name
-		clusterResourceSetBinding.Namespace = cluster.Namespace
-		clusterResourceSetBinding.OwnerReferences = []metav1.OwnerReference{
-			{
-				APIVersion: addonsv1.GroupVersion.String(),
-				Kind:       "ClusterResourceSet",
-				Name:       clusterResourceSet.Name,
-				UID:        clusterResourceSet.UID,
-			},
+		err = controllerutil.SetOwnerReference(
+			clusterResourceSet,
+			clusterResourceSetBinding,
+			r.Client.Scheme(),
+		)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to set owner reference for clusterResourceSetBinding %s for cluster %s/%s", clusterResourceSetBindingKey, cluster.Namespace, cluster.Name)
 		}
-		clusterResourceSetBinding.Spec.Bindings = []*addonsv1.ResourceSetBinding{}
+
 		clusterResourceSetBinding.Spec.ClusterName = cluster.Name
 		if err := r.Client.Create(ctx, clusterResourceSetBinding); err != nil {
 			if apierrors.IsAlreadyExists(err) {

@@ -66,16 +66,15 @@ func TestHandler(t *testing.T) {
 	g := NewWithT(t)
 
 	// Enable RuntimeSDK for this test so we can use RuntimeExtensions.
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 	// Get a scope based on the Cluster and ClusterClass.
 	cluster := getCluster()
 	clusterVariableImageRepository := "kindest"
 	cluster.Spec.Topology.Variables = []clusterv1.ClusterVariable{
 		{
-			DefinitionFrom: "test-patch",
-			Name:           "imageRepository",
-			Value:          apiextensionsv1.JSON{Raw: []byte("\"" + clusterVariableImageRepository + "\"")},
+			Name:  "imageRepository",
+			Value: apiextensionsv1.JSON{Raw: []byte("\"" + clusterVariableImageRepository + "\"")},
 		},
 	}
 	clusterClassFile := "./testdata/clusterclass-quick-start-runtimesdk.yaml"
@@ -91,9 +90,8 @@ func TestHandler(t *testing.T) {
 	fakeClient, mgr, err := createClusterClassFakeClientAndManager(s.Blueprint)
 	g.Expect(err).ToNot(HaveOccurred())
 	clusterClassReconciler := controllers.ClusterClassReconciler{
-		Client:                    fakeClient,
-		UnstructuredCachingClient: fakeClient,
-		RuntimeClient:             runtimeClient,
+		Client:        fakeClient,
+		RuntimeClient: runtimeClient,
 	}
 	err = clusterClassReconciler.SetupWithManager(ctx, mgr, controller.Options{})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -118,7 +116,7 @@ func TestHandler(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	// Run variable defaulting and validation on the Cluster object.
-	errs := clusterWebhook.DefaultAndValidateVariables(s.Current.Cluster, s.Blueprint.ClusterClass)
+	errs := clusterWebhook.DefaultAndValidateVariables(ctx, s.Current.Cluster, nil, s.Blueprint.ClusterClass)
 	g.Expect(errs.ToAggregate()).ToNot(HaveOccurred())
 
 	// Return the desired state.

@@ -172,6 +172,50 @@ func TestClusterReconciler(t *testing.T) {
 		}, timeout).Should(BeTrue())
 	})
 
+	t.Run("Should successfully patch a cluster object if the spec diff is empty but the status conditions diff is not", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Setup
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "test3-",
+				Namespace:    ns.Name,
+			},
+		}
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
+		defer func() {
+			err := env.Delete(ctx, cluster)
+			g.Expect(err).ToNot(HaveOccurred())
+		}()
+
+		// Wait for reconciliation to happen.
+		g.Eventually(func() bool {
+			if err := env.Get(ctx, key, cluster); err != nil {
+				return false
+			}
+			return len(cluster.Finalizers) > 0
+		}, timeout).Should(BeTrue())
+
+		// Patch
+		g.Eventually(func() bool {
+			ph, err := patch.NewHelper(cluster, env)
+			g.Expect(err).ToNot(HaveOccurred())
+			conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
+			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
+			return true
+		}, timeout).Should(BeTrue())
+
+		// Assertions
+		g.Eventually(func() bool {
+			instance := &clusterv1.Cluster{}
+			if err := env.Get(ctx, key, instance); err != nil {
+				return false
+			}
+			return conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)
+		}, timeout).Should(BeTrue())
+	})
+
 	t.Run("Should successfully patch a cluster object if both the spec diff and status diff are non empty", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -355,8 +399,8 @@ func TestClusterReconciler(t *testing.T) {
 }
 
 func TestClusterReconciler_reconcileDelete(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
 
 	fakeInfraCluster := builder.InfrastructureCluster("test-ns", "test-cluster").Build()
 
@@ -389,9 +433,8 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(fakeInfraCluster, tt.cluster).Build()
 			r := &Reconciler{
-				Client:                    fakeClient,
-				UnstructuredCachingClient: fakeClient,
-				APIReader:                 fakeClient,
+				Client:    fakeClient,
+				APIReader: fakeClient,
 			}
 
 			_, _ = r.reconcileDelete(ctx, tt.cluster)
@@ -527,8 +570,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 
 				c := fake.NewClientBuilder().WithObjects(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef).Build()
 				r := &Reconciler{
-					Client:                    c,
-					UnstructuredCachingClient: c,
+					Client: c,
 				}
 				requests := r.controlPlaneMachineToCluster(ctx, tt.o)
 				g.Expect(requests).To(BeComparableTo(tt.want))

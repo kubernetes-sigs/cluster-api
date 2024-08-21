@@ -876,13 +876,11 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	})
 
 	t.Run("when a Machine has no Node ref for longer than the NodeStartupTimeout", func(t *testing.T) {
-		// FIXME: Resolve flaky/failing test
-		t.Skip("skipping until made stable")
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
-		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: time.Second}
+		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 10 * time.Second}
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -976,12 +974,11 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	})
 
 	t.Run("when a Machine's Node has gone away", func(t *testing.T) {
-		// FIXME: Resolve flaky/failing test
-		t.Skip("skipping until made stable")
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
+		mhc.Spec.NodeStartupTimeout = &metav1.Duration{Duration: 10 * time.Second}
 
 		g.Expect(env.Create(ctx, mhc)).To(Succeed())
 		defer func(do ...client.Object) {
@@ -2492,13 +2489,11 @@ func createMachinesWithNodes(
 		op(o)
 	}
 
-	var (
-		nodes         []*corev1.Node
-		machines      []*clusterv1.Machine
-		infraMachines []*unstructured.Unstructured
-	)
+	nodes := make([]*corev1.Node, 0, o.count)
+	machines := make([]*clusterv1.Machine, 0, o.count)
+	infraMachines := make([]*unstructured.Unstructured, 0, o.count)
 
-	for i := 0; i < o.count; i++ {
+	for i := range o.count {
 		machine := newRunningMachine(c, o.labels)
 		if i == 0 && o.firstMachineAsControlPlane {
 			if machine.Labels == nil {

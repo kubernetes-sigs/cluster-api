@@ -38,6 +38,8 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	props := &apiextensions.JSONSchemaProps{
 		Type:             schema.Type,
 		Required:         schema.Required,
+		MaxProperties:    schema.MaxProperties,
+		MinProperties:    schema.MinProperties,
 		MaxItems:         schema.MaxItems,
 		MinItems:         schema.MinItems,
 		UniqueItems:      schema.UniqueItems,
@@ -123,10 +125,9 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	}
 
 	if schema.AdditionalProperties != nil {
-		apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.AdditionalProperties, fldPath.Child("additionalProperties"))
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("additionalProperties"), "",
-				fmt.Sprintf("failed to convert schema: %v", err)))
+		apiExtensionsSchema, errs := convertToAPIExtensionsJSONSchemaProps(schema.AdditionalProperties, fldPath.Child("additionalProperties"))
+		if len(errs) > 0 {
+			allErrs = append(allErrs, errs...)
 		} else {
 			props.AdditionalProperties = &apiextensions.JSONSchemaPropsOrBool{
 				// Allows must be true to allow "additional properties".
@@ -141,10 +142,9 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 		props.Properties = map[string]apiextensions.JSONSchemaProps{}
 		for propertyName, propertySchema := range schema.Properties {
 			p := propertySchema
-			apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&p, fldPath.Child("properties").Key(propertyName))
-			if err != nil {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("properties").Key(propertyName), "",
-					fmt.Sprintf("failed to convert schema: %v", err)))
+			apiExtensionsSchema, errs := convertToAPIExtensionsJSONSchemaProps(&p, fldPath.Child("properties").Key(propertyName))
+			if len(errs) > 0 {
+				allErrs = append(allErrs, errs...)
 			} else {
 				props.Properties[propertyName] = *apiExtensionsSchema
 			}
@@ -152,10 +152,9 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 	}
 
 	if schema.Items != nil {
-		apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.Items, fldPath.Child("items"))
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("items"), "",
-				fmt.Sprintf("failed to convert schema: %v", err)))
+		apiExtensionsSchema, errs := convertToAPIExtensionsJSONSchemaProps(schema.Items, fldPath.Child("items"))
+		if len(errs) > 0 {
+			allErrs = append(allErrs, errs...)
 		} else {
 			props.Items = &apiextensions.JSONSchemaPropsOrArray{
 				Schema: apiExtensionsSchema,
@@ -163,5 +162,33 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 		}
 	}
 
+	if schema.XValidations != nil {
+		props.XValidations = convertToAPIExtensionsXValidations(schema.XValidations)
+	}
+
 	return props, allErrs
+}
+
+func convertToAPIExtensionsXValidations(validationRules []clusterv1.ValidationRule) apiextensions.ValidationRules {
+	apiExtValidationRules := make(apiextensions.ValidationRules, 0, len(validationRules))
+
+	for _, validationRule := range validationRules {
+		var reason *apiextensions.FieldValueErrorReason
+		if validationRule.Reason != "" {
+			reason = ptr.To(apiextensions.FieldValueErrorReason(validationRule.Reason))
+		}
+
+		apiExtValidationRules = append(
+			apiExtValidationRules,
+			apiextensions.ValidationRule{
+				Rule:              validationRule.Rule,
+				Message:           validationRule.Message,
+				MessageExpression: validationRule.MessageExpression,
+				Reason:            reason,
+				FieldPath:         validationRule.FieldPath,
+			},
+		)
+	}
+
+	return apiExtValidationRules
 }

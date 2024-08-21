@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -77,13 +76,8 @@ func TestCertManagerGet(t *testing.T) {
 			g := NewWithT(t)
 
 			for k, v := range tt.envVars {
-				g.Expect(os.Setenv(k, v)).To(Succeed())
+				t.Setenv(k, v)
 			}
-			defer func() {
-				for k := range tt.envVars {
-					g.Expect(os.Unsetenv(k)).To(Succeed())
-				}
-			}()
 			p := &certManagerClient{
 				reader: tt.fields.reader,
 			}

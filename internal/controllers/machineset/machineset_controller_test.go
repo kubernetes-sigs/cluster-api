@@ -17,6 +17,7 @@ limitations under the License.
 package machineset
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,11 +26,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -81,12 +84,71 @@ func TestMachineSetReconciler(t *testing.T) {
 		duration5m := &metav1.Duration{Duration: 5 * time.Minute}
 		replicas := int32(2)
 		version := "v1.14.2"
+		machineTemplateSpec := clusterv1.MachineTemplateSpec{
+			ObjectMeta: clusterv1.ObjectMeta{
+				Labels: map[string]string{
+					"label-1": "true",
+				},
+				Annotations: map[string]string{
+					"annotation-1": "true",
+					"precedence":   "MachineSet",
+				},
+			},
+			Spec: clusterv1.MachineSpec{
+				ClusterName: testCluster.Name,
+				Version:     &version,
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &corev1.ObjectReference{
+						APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericBootstrapConfigTemplate",
+						Name:       "ms-template",
+					},
+				},
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericInfrastructureMachineTemplate",
+					Name:       "ms-template",
+				},
+				NodeDrainTimeout:        duration10m,
+				NodeDeletionTimeout:     duration10m,
+				NodeVolumeDetachTimeout: duration10m,
+			},
+		}
+
+		machineDeployment := &clusterv1.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "md-",
+				Namespace:    namespace.Name,
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "10",
+				},
+			},
+			Spec: clusterv1.MachineDeploymentSpec{
+				ClusterName: testCluster.Name,
+				Replicas:    &replicas,
+				Template:    machineTemplateSpec,
+			},
+		}
+		g.Expect(env.Create(ctx, machineDeployment)).To(Succeed())
+
 		instance := &clusterv1.MachineSet{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: "ms-",
 				Namespace:    namespace.Name,
 				Labels: map[string]string{
-					"label-1": "true",
+					"label-1":                            "true",
+					clusterv1.MachineDeploymentNameLabel: machineDeployment.Name,
+				},
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "10",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "MachineDeployment",
+						Name:       machineDeployment.Name,
+						UID:        machineDeployment.UID,
+					},
 				},
 			},
 			Spec: clusterv1.MachineSetSpec{
@@ -97,36 +159,7 @@ func TestMachineSetReconciler(t *testing.T) {
 						"label-1": "true",
 					},
 				},
-				Template: clusterv1.MachineTemplateSpec{
-					ObjectMeta: clusterv1.ObjectMeta{
-						Labels: map[string]string{
-							"label-1": "true",
-						},
-						Annotations: map[string]string{
-							"annotation-1": "true",
-							"precedence":   "MachineSet",
-						},
-					},
-					Spec: clusterv1.MachineSpec{
-						ClusterName: testCluster.Name,
-						Version:     &version,
-						Bootstrap: clusterv1.Bootstrap{
-							ConfigRef: &corev1.ObjectReference{
-								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-								Kind:       "GenericBootstrapConfigTemplate",
-								Name:       "ms-template",
-							},
-						},
-						InfrastructureRef: corev1.ObjectReference{
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-							Kind:       "GenericInfrastructureMachineTemplate",
-							Name:       "ms-template",
-						},
-						NodeDrainTimeout:        duration10m,
-						NodeDeletionTimeout:     duration10m,
-						NodeVolumeDetachTimeout: duration10m,
-					},
-				},
+				Template: machineTemplateSpec,
 			},
 		}
 
@@ -350,7 +383,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Verify that each machine has the desired kubelet version,
 		// create a fake node in Ready state, update NodeRef, and wait for a reconciliation request.
-		for i := 0; i < len(machines.Items); i++ {
+		for i := range len(machines.Items) {
 			m := machines.Items[i]
 			if !m.DeletionTimestamp.IsZero() {
 				// Skip deleted Machines
@@ -402,6 +435,33 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		// Validate that the controller set the cluster name label in selector.
 		g.Expect(instance.Status.Selector).To(ContainSubstring(testCluster.Name))
+
+		t.Log("Verifying MachineSet can be scaled down when templates don't exist, and MachineSet is not current")
+		g.Expect(env.CleanupAndWait(ctx, bootstrapTmpl)).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, infraTmpl)).To(Succeed())
+
+		t.Log("Updating Replicas on MachineSet")
+		patchHelper, err = patch.NewHelper(instance, env)
+		g.Expect(err).ToNot(HaveOccurred())
+		instance.SetAnnotations(map[string]string{
+			clusterv1.RevisionAnnotation: "9",
+		})
+		instance.Spec.Replicas = ptr.To(int32(1))
+		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
+
+		// Verify that we have 1 replicas.
+		g.Eventually(func() (ready int) {
+			if err := env.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
+				return -1
+			}
+			for _, m := range machines.Items {
+				if !m.DeletionTimestamp.IsZero() {
+					continue
+				}
+				ready++
+			}
+			return
+		}, timeout*3).Should(BeEquivalentTo(1))
 	})
 }
 
@@ -409,6 +469,19 @@ func TestMachineSetOwnerReference(t *testing.T) {
 	testCluster := &clusterv1.Cluster{
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: testClusterName},
+	}
+
+	validMD := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "valid-machinedeployment",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: testCluster.Name,
+			},
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ClusterName: testCluster.Name,
+		},
 	}
 
 	ms1 := newMachineSet("machineset1", "valid-cluster", int32(0))
@@ -469,11 +542,11 @@ func TestMachineSetOwnerReference(t *testing.T) {
 				ms1,
 				ms2,
 				ms3,
+				validMD,
 			).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 			msr := &Reconciler{
-				Client:                    c,
-				UnstructuredCachingClient: c,
-				recorder:                  record.NewFakeRecorder(32),
+				Client:   c,
+				recorder: record.NewFakeRecorder(32),
 			}
 
 			_, err := msr.Reconcile(ctx, tc.request)
@@ -521,9 +594,8 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		msr := &Reconciler{
-			Client:                    c,
-			UnstructuredCachingClient: c,
-			recorder:                  record.NewFakeRecorder(32),
+			Client:   c,
+			recorder: record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -545,9 +617,8 @@ func TestMachineSetReconcile(t *testing.T) {
 		rec := record.NewFakeRecorder(32)
 		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		msr := &Reconciler{
-			Client:                    c,
-			UnstructuredCachingClient: c,
-			recorder:                  rec,
+			Client:   c,
+			recorder: rec,
 		}
 		_, _ = msr.Reconcile(ctx, request)
 		g.Eventually(rec.Events).Should(Receive())
@@ -568,9 +639,8 @@ func TestMachineSetReconcile(t *testing.T) {
 		rec := record.NewFakeRecorder(32)
 		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		msr := &Reconciler{
-			Client:                    c,
-			UnstructuredCachingClient: c,
-			recorder:                  rec,
+			Client:   c,
+			recorder: rec,
 		}
 		_, err := msr.Reconcile(ctx, request)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -656,8 +726,7 @@ func TestMachineSetToMachines(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithObjects(append(machineSetList, &m, &m2, &m3)...).Build()
 	r := &Reconciler{
-		Client:                    c,
-		UnstructuredCachingClient: c,
+		Client: c,
 	}
 
 	for _, tc := range testsCases {
@@ -802,8 +871,7 @@ func TestAdoptOrphan(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithObjects(&m).Build()
 	r := &Reconciler{
-		Client:                    c,
-		UnstructuredCachingClient: c,
+		Client: c,
 	}
 	for i := range testCases {
 		tc := testCases[i]
@@ -899,9 +967,8 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 
 	msr := &Reconciler{
-		Client:                    fakeClient,
-		UnstructuredCachingClient: fakeClient,
-		recorder:                  record.NewFakeRecorder(32),
+		Client:   fakeClient,
+		recorder: record.NewFakeRecorder(32),
 	}
 	_, err := msr.Reconcile(ctx, request)
 	g.Expect(err).To(HaveOccurred())
@@ -958,9 +1025,8 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 
 			c := fake.NewClientBuilder().WithObjects().Build()
 			msr := &Reconciler{
-				Client:                    c,
-				UnstructuredCachingClient: c,
-				recorder:                  record.NewFakeRecorder(32),
+				Client:   c,
+				recorder: record.NewFakeRecorder(32),
 			}
 			err := msr.updateStatus(ctx, cluster, tc.machineSet, tc.machines)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -1008,6 +1074,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	replicas := int32(2)
 	version := "v1.25.3"
 	duration10s := &metav1.Duration{Duration: 10 * time.Second}
+	duration11s := &metav1.Duration{Duration: 11 * time.Second}
 	ms := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			UID:       "abc-123-ms-uid",
@@ -1196,9 +1263,8 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Run syncMachines to clean up managed fields and have proper field ownership
 	// for Machines, InfrastructureMachines and BootstrapConfigs.
 	reconciler := &Reconciler{
-		Client:                    env,
-		UnstructuredCachingClient: env,
-		ssaCache:                  ssa.NewCache(),
+		Client:   env,
+		ssaCache: ssa.NewCache(),
 	}
 	g.Expect(reconciler.syncMachines(ctx, ms, machines)).To(Succeed())
 
@@ -1347,11 +1413,33 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeout).Should(Equal(deletingMachine.Spec.NodeDeletionTimeout))
 		g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeout).Should(Equal(deletingMachine.Spec.NodeVolumeDetachTimeout))
 	}, 5*time.Second).Should(Succeed())
+
+	// Verify in-place mutable fields are updated on the deleting machine
+	ms.Spec.Template.Spec.NodeDrainTimeout = duration11s
+	ms.Spec.Template.Spec.NodeDeletionTimeout = duration11s
+	ms.Spec.Template.Spec.NodeVolumeDetachTimeout = duration11s
+	g.Expect(reconciler.syncMachines(ctx, ms, []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine})).To(Succeed())
+	updatedDeletingMachine := deletingMachine.DeepCopy()
+
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
+	// Verify Node timeout values
+	g.Expect(updatedDeletingMachine.Spec.NodeDrainTimeout).Should(And(
+		Not(BeNil()),
+		HaveValue(Equal(*ms.Spec.Template.Spec.NodeDrainTimeout)),
+	))
+	g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeout).Should(And(
+		Not(BeNil()),
+		HaveValue(Equal(*ms.Spec.Template.Spec.NodeDeletionTimeout)),
+	))
+	g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeout).Should(And(
+		Not(BeNil()),
+		HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeout)),
+	))
 }
 
 func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 	t.Run("should delete unhealthy machines if preflight checks pass", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
 
 		g := NewWithT(t)
 
@@ -1397,8 +1485,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneStable, unhealthyMachine, healthyMachine).Build()
 		r := &Reconciler{
-			Client:                    fakeClient,
-			UnstructuredCachingClient: fakeClient,
+			Client: fakeClient,
 		}
 		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1412,7 +1499,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 	})
 
 	t.Run("should update the unhealthy machine MachineOwnerRemediated condition if preflight checks did not pass", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
 
 		g := NewWithT(t)
 
@@ -1458,8 +1545,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
 		r := &Reconciler{
-			Client:                    fakeClient,
-			UnstructuredCachingClient: fakeClient,
+			Client: fakeClient,
 		}
 		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1482,11 +1568,353 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(conditions.Has(m, condition)).
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
 	})
+
+	t.Run("should only try to remediate MachineOwnerRemediated if MachineSet is current", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+			Spec: clusterv1.ClusterSpec{},
+		}
+
+		machineDeployment := &clusterv1.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machinedeployment",
+				Namespace: "default",
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "10",
+				},
+			},
+			Spec: clusterv1.MachineDeploymentSpec{
+				ClusterName: "test-cluster",
+			},
+		}
+
+		machineSetOld := &clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machinedeployment-old",
+				Namespace: "default",
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: "test-machinedeployment",
+				},
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "7",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "MachineDeployment",
+						Name:       "test-machinedeployment",
+					},
+				},
+			},
+			Spec: clusterv1.MachineSetSpec{
+				ClusterName: "test-cluster",
+			},
+		}
+
+		machineSetCurrent := machineSetOld.DeepCopy()
+		machineSetCurrent.Name = "test-machinedeployment-current"
+		machineSetCurrent.Annotations[clusterv1.RevisionAnnotation] = "10"
+
+		unhealthyMachine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "unhealthy-machine",
+				Namespace: "default",
+			},
+			Status: clusterv1.MachineStatus{
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineOwnerRemediatedCondition,
+						Status: corev1.ConditionFalse,
+					},
+				},
+			},
+		}
+		healthyMachine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "healthy-machine",
+				Namespace: "default",
+			},
+		}
+
+		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
+		fakeClient := fake.NewClientBuilder().WithObjects(
+			machineDeployment,
+			machineSetOld,
+			machineSetCurrent,
+			unhealthyMachine,
+			healthyMachine,
+		).WithStatusSubresource(&clusterv1.Machine{}, &clusterv1.MachineSet{}, &clusterv1.MachineDeployment{}).Build()
+		r := &Reconciler{
+			Client: fakeClient,
+		}
+
+		// Test first with the old MachineSet.
+		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSetOld, machines)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		condition := clusterv1.MachineOwnerRemediatedCondition
+		m := &clusterv1.Machine{}
+
+		// Verify that no action was taken on the Machine: MachineOwnerRemediated should be false
+		// and the Machine wasn't deleted.
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)).To(Succeed())
+		g.Expect(conditions.Has(m, condition)).
+			To(BeTrue(), "Machine should have the %s condition set", condition)
+		machineOwnerRemediatedCondition := conditions.Get(m, condition)
+		g.Expect(machineOwnerRemediatedCondition.Status).
+			To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
+		g.Expect(unhealthyMachine.DeletionTimestamp).Should(BeZero())
+
+		// Verify the healthy machine continues to not have the MachineOwnerRemediated condition.
+		m = &clusterv1.Machine{}
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
+		g.Expect(conditions.Has(m, condition)).
+			To(BeFalse(), "Machine should not have the %s condition set", condition)
+
+		// Test with the current MachineSet.
+		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSetCurrent, machines)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Verify the unhealthy machine has been deleted.
+		err = r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+		// Verify (again) the healthy machine continues to not have the MachineOwnerRemediated condition.
+		m = &clusterv1.Machine{}
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
+		g.Expect(conditions.Has(m, condition)).
+			To(BeFalse(), "Machine should not have the %s condition set", condition)
+	})
+
+	t.Run("should only try to remediate up to MaxInFlight unhealthy", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cluster",
+				Namespace: "default",
+			},
+			Spec: clusterv1.ClusterSpec{},
+		}
+
+		maxInFlight := 3
+		machineDeployment := &clusterv1.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machinedeployment",
+				Namespace: "default",
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "10",
+				},
+			},
+			Spec: clusterv1.MachineDeploymentSpec{
+				ClusterName: "test-cluster",
+				Strategy: &clusterv1.MachineDeploymentStrategy{
+					Remediation: &clusterv1.RemediationStrategy{
+						MaxInFlight: ptr.To(intstr.FromInt32(int32(maxInFlight))),
+					},
+				},
+			},
+		}
+
+		machineSet := &clusterv1.MachineSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-machinedeployment-old",
+				Namespace: "default",
+				Labels: map[string]string{
+					clusterv1.MachineDeploymentNameLabel: "test-machinedeployment",
+				},
+				Annotations: map[string]string{
+					clusterv1.RevisionAnnotation: "10",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "MachineDeployment",
+						Name:       "test-machinedeployment",
+					},
+				},
+			},
+			Spec: clusterv1.MachineSetSpec{
+				ClusterName: "test-cluster",
+			},
+		}
+
+		unhealthyMachines := []*clusterv1.Machine{}
+		total := 8
+		for i := range total {
+			unhealthyMachines = append(unhealthyMachines, &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              fmt.Sprintf("unhealthy-machine-%d", i),
+					Namespace:         "default",
+					CreationTimestamp: metav1.Time{Time: metav1.Now().Add(time.Duration(i) * time.Second)},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: []clusterv1.Condition{
+						{
+							Type:   clusterv1.MachineOwnerRemediatedCondition,
+							Status: corev1.ConditionFalse,
+						},
+					},
+				},
+			})
+		}
+
+		healthyMachine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "healthy-machine",
+				Namespace: "default",
+			},
+		}
+
+		fakeClient := fake.NewClientBuilder().WithObjects(cluster, machineDeployment, healthyMachine).
+			WithStatusSubresource(&clusterv1.Machine{}, &clusterv1.MachineSet{}, &clusterv1.MachineDeployment{})
+		// Create the unhealthy machines.
+		for _, machine := range unhealthyMachines {
+			fakeClient.WithObjects(machine)
+		}
+		r := &Reconciler{
+			Client: fakeClient.Build(),
+		}
+
+		//
+		// First pass.
+		//
+		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, append(unhealthyMachines, healthyMachine))
+		g.Expect(err).ToNot(HaveOccurred())
+
+		condition := clusterv1.MachineOwnerRemediatedCondition
+
+		// Iterate over the unhealthy machines and verify that the last maxInFlight were deleted.
+		for i := range unhealthyMachines {
+			m := unhealthyMachines[i]
+
+			err = r.Client.Get(ctx, client.ObjectKeyFromObject(m), m)
+			if i < total-maxInFlight {
+				// Machines before the maxInFlight should not be deleted.
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(conditions.Has(m, condition)).
+					To(BeTrue(), "Machine should have the %s condition set", condition)
+				machineOwnerRemediatedCondition := conditions.Get(m, condition)
+				g.Expect(machineOwnerRemediatedCondition.Status).
+					To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
+			} else {
+				// Machines after maxInFlight, should be deleted.
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "expected machine %d to be deleted", i)
+			}
+		}
+
+		// Verify the healthy machine continues to not have the MachineOwnerRemediated condition.
+		m := &clusterv1.Machine{}
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
+		g.Expect(conditions.Has(m, condition)).
+			To(BeFalse(), "Machine should not have the %s condition set", condition)
+
+		//
+		// Second pass.
+		//
+		// Set a finalizer on the next set of machines that should be remediated.
+		for i := maxInFlight - 1; i < total-maxInFlight; i++ {
+			m := unhealthyMachines[i]
+			m.Finalizers = append(m.Finalizers, "test")
+			g.Expect(r.Client.Update(ctx, m)).To(Succeed())
+		}
+
+		// Perform the second pass.
+		var allMachines = func() (res []*clusterv1.Machine) {
+			var machineList clusterv1.MachineList
+			g.Expect(r.Client.List(ctx, &machineList)).To(Succeed())
+			for i := range machineList.Items {
+				m := &machineList.Items[i]
+				res = append(res, m)
+			}
+			return
+		}
+
+		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSet, allMachines())
+		g.Expect(err).ToNot(HaveOccurred())
+
+		var validateSecondPass = func(cleanFinalizer bool) {
+			t.Helper()
+			for i := range unhealthyMachines {
+				m := unhealthyMachines[i]
+
+				err = r.Client.Get(ctx, client.ObjectKeyFromObject(m), m)
+				if i < total-(maxInFlight*2) {
+					// Machines before the maxInFlight*2 should not be deleted, and should have the remediated condition to false.
+					g.Expect(err).ToNot(HaveOccurred())
+					g.Expect(conditions.Has(m, condition)).
+						To(BeTrue(), "Machine should have the %s condition set", condition)
+					machineOwnerRemediatedCondition := conditions.Get(m, condition)
+					g.Expect(machineOwnerRemediatedCondition.Status).
+						To(Equal(corev1.ConditionFalse), "%s condition status should be false", condition)
+				} else if i < total-maxInFlight {
+					// Machines before the maxInFlight should have a deletion timestamp
+					g.Expect(err).ToNot(HaveOccurred())
+					g.Expect(conditions.Has(m, condition)).
+						To(BeTrue(), "Machine should have the %s condition set", condition)
+					machineOwnerRemediatedCondition := conditions.Get(m, condition)
+					g.Expect(machineOwnerRemediatedCondition.Status).
+						To(Equal(corev1.ConditionTrue), "%s condition status should be true", condition)
+					g.Expect(m.DeletionTimestamp).ToNot(BeZero())
+
+					if cleanFinalizer {
+						g.Expect(controllerutil.RemoveFinalizer(m, "test")).To(BeTrue())
+						g.Expect(r.Client.Update(ctx, m)).To(Succeed())
+					}
+				} else {
+					// Machines after maxInFlight, should be deleted.
+					g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "expected machine %d to be deleted", i)
+				}
+			}
+		}
+		validateSecondPass(false)
+
+		// Verify (again) the healthy machine continues to not have the MachineOwnerRemediated condition.
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
+		g.Expect(conditions.Has(m, condition)).
+			To(BeFalse(), "Machine should not have the %s condition set", condition)
+
+		// Perform another pass with the same exact configuration.
+		// This is testing that, given that we have Machines that are being deleted and are in flight,
+		// we have reached the maximum amount of tokens we have and we should wait to remediate the rest.
+		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSet, allMachines())
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Validate and remove finalizers for in flight machines.
+		validateSecondPass(true)
+
+		// Verify (again) the healthy machine continues to not have the MachineOwnerRemediated condition.
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
+		g.Expect(conditions.Has(m, condition)).
+			To(BeFalse(), "Machine should not have the %s condition set", condition)
+
+		// Call again to verify that the remaining unhealthy machines are deleted,
+		// at this point all unhealthy machines should be deleted given the max in flight
+		// is greater than the number of unhealthy machines.
+		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSet, allMachines())
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// Iterate over the unhealthy machines and verify that all were deleted.
+		for i, m := range unhealthyMachines {
+			err = r.Client.Get(ctx, client.ObjectKeyFromObject(m), m)
+			g.Expect(apierrors.IsNotFound(err)).To(BeTrue(), "expected machine %d to be deleted: %v", i)
+		}
+
+		// Verify (again) the healthy machine continues to not have the MachineOwnerRemediated condition.
+		g.Expect(r.Client.Get(ctx, client.ObjectKeyFromObject(healthyMachine), m)).To(Succeed())
+		g.Expect(conditions.Has(m, condition)).
+			To(BeFalse(), "Machine should not have the %s condition set", condition)
+	})
 }
 
 func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 	t.Run("should hold off on creating new machines when preflight checks do not pass", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
 
 		g := NewWithT(t)
 
@@ -1518,8 +1946,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		r := &Reconciler{
-			Client:                    fakeClient,
-			UnstructuredCachingClient: fakeClient,
+			Client: fakeClient,
 		}
 		result, err := r.syncReplicas(ctx, cluster, machineSet, nil)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1620,6 +2047,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 	existingMachine.UID = "abc-123-existing-machine-1"
 	existingMachine.Labels = nil
 	existingMachine.Annotations = nil
+	// Pre-existing finalizer should be preserved.
+	existingMachine.Finalizers = []string{"pre-existing-finalizer"}
 	existingMachine.Spec.InfrastructureRef = corev1.ObjectReference{
 		Kind:       "GenericInfrastructureMachine",
 		Name:       "infra-machine-1",
@@ -1637,6 +2066,8 @@ func TestComputeDesiredMachine(t *testing.T) {
 	expectedUpdatedMachine := skeletonMachine.DeepCopy()
 	expectedUpdatedMachine.Name = existingMachine.Name
 	expectedUpdatedMachine.UID = existingMachine.UID
+	// Pre-existing finalizer should be preserved.
+	expectedUpdatedMachine.Finalizers = []string{"pre-existing-finalizer", clusterv1.MachineFinalizer}
 	expectedUpdatedMachine.Spec.InfrastructureRef = *existingMachine.Spec.InfrastructureRef.DeepCopy()
 	expectedUpdatedMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef.DeepCopy()
 

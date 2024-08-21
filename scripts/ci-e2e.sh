@@ -26,8 +26,6 @@ source "${REPO_ROOT}/scripts/ci-e2e-lib.sh"
 
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
-# shellcheck source=./hack/ensure-kubectl.sh
-source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=./hack/ensure-kind.sh
 source "${REPO_ROOT}/hack/ensure-kind.sh"
 
@@ -38,7 +36,7 @@ export PATH="${REPO_ROOT}/hack/tools/bin:${PATH}"
 capi:buildDockerImages
 
 # Configure e2e tests
-export GINKGO_NODES=3
+export GINKGO_NODES=8
 export GINKGO_NOCOLOR=true
 export GINKGO_ARGS="${GINKGO_ARGS:-""}"
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
@@ -95,9 +93,9 @@ cleanup() {
 
   for PID in $(ps -eo pid=); do
     echo "> PID=$PID"
-    echo ">> /proc/${PID}/status" 
+    echo ">> /proc/${PID}/status"
     cat "/proc/${PID}/status" || true
-    echo ">> /proc/${PID}/stack" 
+    echo ">> /proc/${PID}/stack"
     cat "/proc/${PID}/stack" || true
   done >> "${ARTIFACTS_LOCAL}/processes-proc-information.txt"
 

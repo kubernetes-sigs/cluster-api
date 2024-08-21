@@ -471,6 +471,7 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin.cluster",
 	"builtin.cluster.name",
 	"builtin.cluster.namespace",
+	"builtin.cluster.uid",
 
 	// ClusterTopology builtins.
 	"builtin.cluster.topology",
@@ -489,6 +490,8 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin.controlPlane.name",
 	"builtin.controlPlane.replicas",
 	"builtin.controlPlane.version",
+	"builtin.controlPlane.metadata.labels",
+	"builtin.controlPlane.metadata.annotations",
 	// ControlPlane ref builtins.
 	"builtin.controlPlane.machineTemplate.infrastructureRef.name",
 
@@ -499,6 +502,8 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin.machineDeployment.replicas",
 	"builtin.machineDeployment.topologyName",
 	"builtin.machineDeployment.version",
+	"builtin.machineDeployment.metadata.labels",
+	"builtin.machineDeployment.metadata.annotations",
 	// MachineDeployment ref builtins.
 	"builtin.machineDeployment.bootstrap.configRef.name",
 	"builtin.machineDeployment.infrastructureRef.name",
@@ -510,6 +515,8 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin.machinePool.replicas",
 	"builtin.machinePool.topologyName",
 	"builtin.machinePool.version",
+	"builtin.machinePool.metadata.labels",
+	"builtin.machinePool.metadata.annotations",
 	// MachinePool ref builtins.
 	"builtin.machinePool.bootstrap.configRef.name",
 	"builtin.machinePool.infrastructureRef.name",

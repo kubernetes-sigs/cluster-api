@@ -24,6 +24,8 @@ spec:
         - class: "default-worker"
           name: "md-0"
           nodeDeletionTimeout: "30s"
+          nodeVolumeDetachTimeout: "5m"
+          minReadySeconds: 5
           replicas: ${WORKER_MACHINE_COUNT}
           failureDomain: fd4
       machinePools:
@@ -38,9 +40,5 @@ spec:
     variables:
       - name: kubeadmControlPlaneMaxSurge
         value: "1"
-      # imageRepository has definitions for both an inline patch and the test-patch. This value is required in the
-      # test-patch and requires definitionFrom to reflect that.
       - name: imageRepository
-        definitionFrom: test-patch
         value: "kindest"
-

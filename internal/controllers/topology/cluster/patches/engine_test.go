@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
@@ -42,7 +43,7 @@ import (
 )
 
 func TestApply(t *testing.T) {
-	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 	type expectedFields struct {
 		infrastructureCluster                          map[string]interface{}
 		controlPlane                                   map[string]interface{}
@@ -698,10 +699,10 @@ func TestApply(t *testing.T) {
 			},
 		},
 		{
-			name: "Should correctly apply variables for a given patch definitionFrom",
+			name: "Should correctly apply variables with variables without conflicts",
 			varDefinitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name: "default-worker-infra",
+					Name: "controlPlaneVariable",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -709,7 +710,7 @@ func TestApply(t *testing.T) {
 					},
 				},
 				{
-					Name: "default-mp-worker-infra",
+					Name: "defaultMDWorkerVariable",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -717,8 +718,17 @@ func TestApply(t *testing.T) {
 					},
 				},
 				{
-					Name:                "infraCluster",
-					DefinitionsConflict: true,
+					Name: "defaultMPWorkerVariable",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "inline",
+						},
+					},
+				},
+				{
+					Name: "infraCluster",
+					// Note: This variable is defined by multiple patches, but without conflicts.
+					DefinitionsConflict: false,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							From: "inline",
@@ -753,6 +763,42 @@ func TestApply(t *testing.T) {
 						},
 						{
 							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.ControlPlaneGroupVersion.String(),
+								Kind:       builder.GenericControlPlaneTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									ControlPlane: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/controlPlaneField",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("controlPlaneVariable"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachineTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									ControlPlane: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/controlPlaneInfraMachineTemplateField",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: ptr.To("controlPlaneVariable"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
 								APIVersion: builder.BootstrapGroupVersion.String(),
 								Kind:       builder.GenericBootstrapConfigTemplateKind,
 								MatchResources: clusterv1.PatchSelectorMatch{
@@ -766,7 +812,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-worker-infra"),
+										Variable: ptr.To("defaultMDWorkerVariable"),
 									},
 								},
 							},
@@ -786,7 +832,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-worker-infra"),
+										Variable: ptr.To("defaultMDWorkerVariable"),
 									},
 								},
 							},
@@ -806,7 +852,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-mp-worker-infra"),
+										Variable: ptr.To("defaultMPWorkerVariable"),
 									},
 								},
 							},
@@ -826,7 +872,7 @@ func TestApply(t *testing.T) {
 									Op:   "add",
 									Path: "/spec/template/spec/resource",
 									ValueFrom: &clusterv1.JSONPatchValue{
-										Variable: ptr.To("default-mp-worker-infra"),
+										Variable: ptr.To("defaultMPWorkerVariable"),
 									},
 								},
 							},
@@ -838,21 +884,27 @@ func TestApply(t *testing.T) {
 				infrastructureCluster: map[string]interface{}{
 					"spec.resource": "value99",
 				},
+				controlPlane: map[string]interface{}{
+					"spec.controlPlaneField": "control-plane-override-value",
+				},
+				controlPlaneInfrastructureMachineTemplate: map[string]interface{}{
+					"spec.template.spec.controlPlaneInfraMachineTemplateField": "control-plane-override-value",
+				},
 				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
-					"default-worker-topo1": {"spec.template.spec.resource": "value1"},
-					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
+					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-topo1-override-value"},
+					"default-worker-topo2": {"spec.template.spec.resource": "default-md-cluster-wide-value"},
 				},
 				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
-					"default-worker-topo1": {"spec.template.spec.resource": "value1"},
-					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
+					"default-worker-topo1": {"spec.template.spec.resource": "default-worker-topo1-override-value"},
+					"default-worker-topo2": {"spec.template.spec.resource": "default-md-cluster-wide-value"},
 				},
 				machinePoolInfrastructureMachinePool: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "value2"},
-					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-topo1-override-value"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-cluster-wide-value"},
 				},
 				machinePoolBootstrapConfig: map[string]map[string]interface{}{
-					"default-mp-worker-topo1": {"spec.resource": "value2"},
-					"default-mp-worker-topo2": {"spec.resource": "default-mp-worker-topo2"},
+					"default-mp-worker-topo1": {"spec.resource": "default-mp-worker-topo1-override-value"},
+					"default-mp-worker-topo2": {"spec.resource": "default-mp-cluster-wide-value"},
 				},
 			},
 		},
@@ -1023,6 +1075,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
 			Namespace: metav1.NamespaceDefault,
+			UID:       uuid.NewUUID(),
 		},
 		Spec: clusterv1.ClusterSpec{
 			Paused: false,
@@ -1043,44 +1096,47 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				Class:   clusterClass.Name,
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: ptr.To[int32](3),
+					Variables: &clusterv1.ControlPlaneVariables{
+						Overrides: []clusterv1.ClusterVariable{
+							{
+								Name:  "controlPlaneVariable",
+								Value: apiextensionsv1.JSON{Raw: []byte(`"control-plane-override-value"`)},
+							},
+						},
+					},
 				},
 				Variables: []clusterv1.ClusterVariable{
 					{
-						Name:           "infraCluster",
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"value99"`)},
-						DefinitionFrom: "inline",
+						Name:  "infraCluster",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"value99"`)},
 					},
 					{
-						Name: "infraCluster",
-						// This variable should not be used as it is from "non-used-patch" which is not applied in any test.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"should-never-be-used"`)},
-						DefinitionFrom: "not-used-patch",
+						Name: "controlPlaneVariable",
+						// This value should be overwritten for the control plane.
+						Value: apiextensionsv1.JSON{Raw: []byte(`"control-plane-cluster-wide-value"`)},
 					},
 					{
-						Name: "default-worker-infra",
+						Name: "defaultMDWorkerVariable",
 						// This value should be overwritten for the default-worker-topo1 MachineDeployment.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo2"`)},
-						DefinitionFrom: "inline",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"default-md-cluster-wide-value"`)},
 					},
 					{
-						Name: "default-mp-worker-infra",
+						Name: "defaultMPWorkerVariable",
 						// This value should be overwritten for the default-mp-worker-topo1 MachinePool.
-						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo2"`)},
-						DefinitionFrom: "inline",
+						Value: apiextensionsv1.JSON{Raw: []byte(`"default-mp-cluster-wide-value"`)},
 					},
 				},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
-							Metadata: clusterv1.ObjectMeta{},
+							Metadata: clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}, Annotations: map[string]string{"fizz": "buzz"}},
 							Class:    "default-worker",
 							Name:     "default-worker-topo1",
 							Variables: &clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
-										Name:           "default-worker-infra",
-										DefinitionFrom: "inline",
-										Value:          apiextensionsv1.JSON{Raw: []byte(`"value1"`)},
+										Name:  "defaultMDWorkerVariable",
+										Value: apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo1-override-value"`)},
 									},
 								},
 							},
@@ -1094,15 +1150,14 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 					},
 					MachinePools: []clusterv1.MachinePoolTopology{
 						{
-							Metadata: clusterv1.ObjectMeta{},
+							Metadata: clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}, Annotations: map[string]string{"fizz": "buzz"}},
 							Class:    "default-mp-worker",
 							Name:     "default-mp-worker-topo1",
 							Variables: &clusterv1.MachinePoolVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
-										Name:           "default-mp-worker-infra",
-										DefinitionFrom: "inline",
-										Value:          apiextensionsv1.JSON{Raw: []byte(`"value2"`)},
+										Name:  "defaultMPWorkerVariable",
+										Value: apiextensionsv1.JSON{Raw: []byte(`"default-mp-worker-topo1-override-value"`)},
 									},
 								},
 							},

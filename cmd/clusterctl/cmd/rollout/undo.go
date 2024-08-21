@@ -67,6 +67,8 @@ func NewCmdRolloutUndo(cfgFile string) *cobra.Command {
 	cmd.Flags().StringVarP(&undoOpt.namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
 	cmd.Flags().Int64Var(&undoOpt.toRevision, "to-revision", undoOpt.toRevision, "The revision to rollback to. Default to 0 (last revision).")
 
+	cmd.Deprecated = "it will be removed in one of the upcoming releases.\n"
+
 	return cmd
 }
 

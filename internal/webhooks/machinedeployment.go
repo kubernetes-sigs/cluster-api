@@ -268,6 +268,23 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 		}
 	}
 
+	if newMD.Spec.Strategy != nil && newMD.Spec.Strategy.Remediation != nil {
+		total := 1
+		if newMD.Spec.Replicas != nil {
+			total = int(*newMD.Spec.Replicas)
+		}
+
+		if newMD.Spec.Strategy.Remediation.MaxInFlight != nil {
+			if _, err := intstr.GetScaledValueFromIntOrPercent(newMD.Spec.Strategy.Remediation.MaxInFlight, total, true); err != nil {
+				allErrs = append(
+					allErrs,
+					field.Invalid(specPath.Child("strategy", "remediation", "maxInFlight"),
+						newMD.Spec.Strategy.Remediation.MaxInFlight.String(), fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				)
+			}
+		}
+	}
+
 	if newMD.Spec.Template.Spec.Version != nil {
 		if !version.KubeSemver.MatchString(*newMD.Spec.Template.Spec.Version) {
 			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *newMD.Spec.Template.Spec.Version, "must be a valid semantic version"))
@@ -300,19 +317,14 @@ func (webhook *MachineDeployment) validate(oldMD, newMD *clusterv1.MachineDeploy
 //
 // We are supporting the following use cases:
 // * A new MD is created and replicas should be managed by the autoscaler
-//   - Either via the default annotation or via the min size and max size annotations the replicas field
-//     is defaulted to a value which is within the (min size, max size) range so the autoscaler can take control.
+//   - If the min size and max size annotations are set, the replicas field is defaulted to the value of the min size
+//     annotation so the autoscaler can take control.
 //
 // * An existing MD which initially wasn't controlled by the autoscaler should be later controlled by the autoscaler
-//   - To adopt an existing MD users can use the default, min size and max size annotations to enable the autoscaler
-//     and to ensure the replicas field is within the (min size, max size) range. Without the annotations handing over
-//     control to the autoscaler by unsetting the replicas field would lead to the field being set to 1. This is very
-//     disruptive for existing Machines and if 1 is outside the (min size, max size) range the autoscaler won't take
-//     control.
-//
-// Notes:
-//   - While the min size and max size annotations of the autoscaler provide the best UX, other autoscalers can use the
-//     DefaultReplicasAnnotation if they have similar use cases.
+//   - To adopt an existing MD users can use the min size and max size annotations to enable the autoscaler
+//     and to ensure the replicas field is within the (min size, max size) range. Without defaulting based on the annotations, handing over
+//     control to the autoscaler by unsetting the replicas field would lead to the field being set to 1. This could be
+//     very disruptive if the previous value of the replica field is greater than 1.
 func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *clusterv1.MachineDeployment, newMD *clusterv1.MachineDeployment, dryRun bool) (int32, error) {
 	// If replicas is already set => Keep the current value.
 	if newMD.Spec.Replicas != nil {

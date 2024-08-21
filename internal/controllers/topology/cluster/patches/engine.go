@@ -158,14 +158,14 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 
 	patchVariableDefinitions := definitionsForPatch(blueprint, definitionFrom)
 	// Calculate global variables.
-	globalVariables, err := variables.Global(blueprint.Topology, desired.Cluster, definitionFrom, patchVariableDefinitions)
+	globalVariables, err := variables.Global(blueprint.Topology, desired.Cluster, patchVariableDefinitions)
 	if err != nil {
 		return errors.Wrapf(err, "failed to calculate global variables")
 	}
 	req.Variables = globalVariables
 
 	// Calculate the Control Plane variables.
-	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object, desired.ControlPlane.InfrastructureMachineTemplate)
+	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object, desired.ControlPlane.InfrastructureMachineTemplate, patchVariableDefinitions)
 	if err != nil {
 		return errors.Wrapf(err, "failed to calculate ControlPlane variables")
 	}
@@ -201,7 +201,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 			}
 
 			// Calculate MachineDeployment variables.
-			mdVariables, err := variables.MachineDeployment(mdTopology, md.Object, md.BootstrapTemplate, md.InfrastructureMachineTemplate, definitionFrom, patchVariableDefinitions)
+			mdVariables, err := variables.MachineDeployment(mdTopology, md.Object, md.BootstrapTemplate, md.InfrastructureMachineTemplate, patchVariableDefinitions)
 			if err != nil {
 				return errors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(md.Object))
 			}
@@ -217,7 +217,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 			}
 
 			// Calculate MachinePool variables.
-			mpVariables, err := variables.MachinePool(mpTopology, mp.Object, mp.BootstrapObject, mp.InfrastructureMachinePoolObject, definitionFrom, patchVariableDefinitions)
+			mpVariables, err := variables.MachinePool(mpTopology, mp.Object, mp.BootstrapObject, mp.InfrastructureMachinePoolObject, patchVariableDefinitions)
 			if err != nil {
 				return errors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(mp.Object))
 			}

@@ -642,7 +642,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 func TestComputeControlPlaneVersion(t *testing.T) {
 	t.Run("Compute control plane version under various circumstances", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 		nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
 			CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
@@ -888,7 +888,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	})
 
 	t.Run("Calling AfterControlPlaneUpgrade hook", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 		catalog := runtimecatalog.New()
 		_ = runtimehooksv1.AddToCatalog(catalog)
@@ -1189,7 +1189,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	})
 
 	t.Run("register intent to call AfterClusterUpgrade and AfterControlPlaneUpgrade hooks", func(t *testing.T) {
-		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)
 
 		catalog := runtimecatalog.New()
 		_ = runtimehooksv1.AddToCatalog(catalog)
@@ -1329,6 +1329,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 	var clusterClassMinReadySeconds int32 = 20
 	clusterClassStrategy := clusterv1.MachineDeploymentStrategy{
 		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+		Remediation: &clusterv1.RemediationStrategy{
+			MaxInFlight: ptr.To(intstr.FromInt32(5)),
+		},
 	}
 	md1 := builder.MachineDeploymentClass("linux-worker").
 		WithLabels(labels).
@@ -1390,6 +1393,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 	var topologyMinReadySeconds int32 = 10
 	topologyStrategy := clusterv1.MachineDeploymentStrategy{
 		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+		Remediation: &clusterv1.RemediationStrategy{
+			MaxInFlight: ptr.To(intstr.FromInt32(5)),
+		},
 	}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{

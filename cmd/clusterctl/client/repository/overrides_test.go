@@ -17,7 +17,6 @@ limitations under the License.
 package repository
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -74,13 +73,8 @@ func TestOverrides(t *testing.T) {
 			g := NewWithT(t)
 
 			for k, v := range tt.envVars {
-				g.Expect(os.Setenv(k, v)).To(Succeed())
+				t.Setenv(k, v)
 			}
-			defer func() {
-				for k := range tt.envVars {
-					g.Expect(os.Unsetenv(k)).To(Succeed())
-				}
-			}()
 			provider := config.NewProvider("myinfra", "", clusterctlv1.InfrastructureProviderType)
 			override := newOverride(&newOverrideInput{
 				configVariablesClient: tt.configVarClient,
@@ -100,8 +94,7 @@ func TestGetLocalOverrides(t *testing.T) {
 	t.Run("returns contents of file successfully", func(t *testing.T) {
 		g := NewWithT(t)
 
-		tmpDir := createTempDir(t)
-		defer os.RemoveAll(tmpDir)
+		tmpDir := t.TempDir()
 
 		createLocalTestProviderFile(t, tmpDir, "infrastructure-myinfra/v1.0.1/infra-comp.yaml", "foo: bar")
 

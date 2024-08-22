@@ -52,6 +52,7 @@ type ApplyAutoscalerToWorkloadClusterInput struct {
 	InfrastructureMachineTemplateKind     string
 	InfrastructureMachinePoolTemplateKind string
 	InfrastructureMachinePoolKind         string
+	InfrastructureAPIGroup                string
 	// WorkloadYamlPath should point the yaml that will be applied on the workload cluster.
 	// The YAML file should:
 	//  - Be creating the autoscaler deployment in the workload cluster
@@ -90,11 +91,15 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 	workloadYamlTemplate, err := os.ReadFile(input.WorkloadYamlPath)
 	Expect(err).ToNot(HaveOccurred(), "failed to load %s", workloadYamlTemplate)
 
+	if input.InfrastructureAPIGroup == "" {
+		input.InfrastructureAPIGroup = "infrastructure.cluster.x-k8s.io"
+	}
+
 	// Get a server address for the Management Cluster.
 	// This address should be accessible from the workload cluster.
 	serverAddr, mgtClusterCA := getServerAddrAndCA(ctx, input.ManagementClusterProxy)
 	// Generate a token with the required permission that can be used by the autoscaler.
-	token := getAuthenticationTokenForAutoscaler(ctx, input.ManagementClusterProxy, input.Cluster.Namespace, input.Cluster.Name, input.InfrastructureMachineTemplateKind, input.InfrastructureMachinePoolTemplateKind, input.InfrastructureMachinePoolKind)
+	token := getAuthenticationTokenForAutoscaler(ctx, input.ManagementClusterProxy, input.Cluster.Namespace, input.Cluster.Name, input.InfrastructureAPIGroup, input.InfrastructureMachineTemplateKind, input.InfrastructureMachinePoolTemplateKind, input.InfrastructureMachinePoolKind)
 
 	workloadYaml, err := ProcessYAML(&ProcessYAMLInput{
 		Template:             workloadYamlTemplate,
@@ -530,7 +535,7 @@ func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input En
 
 // getAuthenticationTokenForAutoscaler returns a bearer authenticationToken with minimal RBAC permissions that will be used
 // by the autoscaler running on the workload cluster to access the management cluster.
-func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterProxy ClusterProxy, namespace string, cluster string, infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind string) string {
+func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterProxy ClusterProxy, namespace string, cluster string, infraAPIGroup, infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind string) string {
 	name := fmt.Sprintf("cluster-%s", cluster)
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -553,7 +558,7 @@ func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterP
 			},
 			{
 				Verbs:     []string{"get", "list"},
-				APIGroups: []string{"infrastructure.cluster.x-k8s.io"},
+				APIGroups: []string{infraAPIGroup},
 				Resources: []string{infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind},
 			},
 		},

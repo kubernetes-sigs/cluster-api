@@ -74,7 +74,7 @@ type Condition struct {
 
 	// The reason for the condition's last transition in CamelCase.
 	// The specific API may choose whether or not this field is considered a guaranteed API.
-	// This field may not be empty.
+	// This field may be empty.
 	// +optional
 	Reason string `json:"reason,omitempty"`
 

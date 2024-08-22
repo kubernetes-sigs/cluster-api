@@ -133,6 +133,8 @@ We should take a look at the following dependencies:
 There is currently no formalized process to assemble the release team.
 As of now we ask for volunteers in Slack and office hours.
 
+Overweighing the CI team with members is preferred as maintaining a clean CI signal is crucial to the health of the project.
+
 ### Update milestone applier and GitHub Actions
 
 Once release branch is created by GitHub Automation, the goal of this task would be to ensure we have the milestone
@@ -265,3 +267,4 @@ Additional information:
      The following steps can be taken:
       - Edit improvement tasks board name for current cycle (e.g. `CAPI vX.Y release improvement tasks`)
       - Add/move all individual missing issues to the board
+   * Tasks that improve release automation, tooling & related developer docs are ideal candidates and should be prioritized.

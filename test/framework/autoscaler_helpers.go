@@ -256,6 +256,34 @@ func DeleteScaleUpDeploymentAndWait(ctx context.Context, input DeleteScaleUpDepl
 	}, input.WaitForDelete...).Should(Succeed())
 }
 
+// ScaleScaleUpDeploymentAndWaitInput is the input for ScaleScaleUpDeploymentAndWait.
+type ScaleScaleUpDeploymentAndWaitInput struct {
+	ClusterProxy ClusterProxy
+	Name         string
+	Replicas     int32
+}
+
+// ScaleScaleUpDeploymentAndWait deletes the scale up deployment and waits for it to be deleted.
+func ScaleScaleUpDeploymentAndWait(ctx context.Context, input ScaleScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
+	By("Retrieving the scale up deployment")
+	deployment := &appsv1.Deployment{}
+	deploymentName := "scale-up"
+	if input.Name != "" {
+		deploymentName = input.Name
+	}
+	Expect(input.ClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: metav1.NamespaceDefault}, deployment)).To(Succeed(), "failed to get the scale up deployment")
+
+	By("Scaling the scale up deployment")
+	deployment.Spec.Replicas = &input.Replicas
+	Expect(input.ClusterProxy.GetClient().Update(ctx, deployment)).To(Succeed(), "failed to update the scale up deployment")
+
+	By("Wait for the scale up deployment to become ready (this implies machines to be created)")
+	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
+		Getter:     input.ClusterProxy.GetClient(),
+		Deployment: deployment,
+	}, intervals...)
+}
+
 type ProcessYAMLInput struct {
 	Template             []byte
 	ClusterctlConfigPath string

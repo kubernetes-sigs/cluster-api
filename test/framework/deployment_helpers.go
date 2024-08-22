@@ -18,6 +18,7 @@ package framework
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -31,12 +32,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	"github.com/prometheus/common/expfmt"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -348,8 +352,8 @@ type WatchPodMetricsInput struct {
 
 // WatchPodMetrics captures metrics from all pods every 5s. It expects to find port 8080 open on the controller.
 func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
-	// Dump machine metrics every 5 seconds
-	ticker := time.NewTicker(time.Second * 5)
+	// Dump metrics periodically.
+	ticker := time.NewTicker(time.Second * 10)
 	Expect(ctx).NotTo(BeNil(), "ctx is required for dumpContainerMetrics")
 	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for dumpContainerMetrics")
 	Expect(input.Deployment).NotTo(BeNil(), "input.Deployment is required for dumpContainerMetrics")
@@ -397,8 +401,10 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 			Do(ctx)
 		data, err := res.Raw()
 
+		var errorRetrievingMetrics bool
 		if err != nil {
 			// Failing to dump metrics should not cause the test to fail
+			errorRetrievingMetrics = true
 			data = []byte(fmt.Sprintf("Error retrieving metrics for pod %s: %v\n%s", klog.KRef(pod.Namespace, pod.Name), err, string(data)))
 			metricsFile = path.Join(metricsDir, "metrics-error.txt")
 		}
@@ -407,7 +413,50 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 			// Failing to dump metrics should not cause the test to fail
 			log.Logf("Error writing metrics for pod %s: %v", klog.KRef(pod.Namespace, pod.Name), err)
 		}
+
+		if !errorRetrievingMetrics {
+			Expect(verifyMetrics(data)).To(Succeed())
+		}
 	}
+}
+
+func verifyMetrics(data []byte) error {
+	var parser expfmt.TextParser
+	mf, err := parser.TextToMetricFamilies(bytes.NewReader(data))
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse data to metrics families")
+	}
+
+	var errs []error
+	for metric, metricFamily := range mf {
+		if metric == "controller_runtime_reconcile_panics_total" {
+			for _, controllerPanicMetric := range metricFamily.Metric {
+				if controllerPanicMetric.Counter != nil && controllerPanicMetric.Counter.Value != nil && *controllerPanicMetric.Counter.Value > 0 {
+					controllerName := "unknown"
+					for _, label := range controllerPanicMetric.Label {
+						if *label.Name == "controller" {
+							controllerName = *label.Value
+						}
+					}
+					errs = append(errs, fmt.Errorf("panic occurred in %q controller", controllerName))
+				}
+			}
+		}
+
+		if metric == "controller_runtime_webhook_panics_total" {
+			for _, webhookPanicMetric := range metricFamily.Metric {
+				if webhookPanicMetric.Counter != nil && webhookPanicMetric.Counter.Value != nil && *webhookPanicMetric.Counter.Value > 0 {
+					errs = append(errs, fmt.Errorf("panic occurred in webhook"))
+				}
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return kerrors.NewAggregate(errs)
+	}
+
+	return nil
 }
 
 // WaitForDNSUpgradeInput is the input for WaitForDNSUpgrade.

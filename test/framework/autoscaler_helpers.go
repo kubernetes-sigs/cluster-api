@@ -74,6 +74,8 @@ type ApplyAutoscalerToWorkloadClusterInput struct {
 	ManagementClusterProxy ClusterProxy
 	Cluster                *clusterv1.Cluster
 	WorkloadClusterProxy   ClusterProxy
+
+	AutoscalerOnManagementCluster bool
 }
 
 // ApplyAutoscalerToWorkloadCluster installs autoscaler on the workload cluster.
@@ -107,9 +109,8 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 		},
 	})
 	Expect(err).ToNot(HaveOccurred(), "failed to parse %s", workloadYamlTemplate)
-	Expect(input.WorkloadClusterProxy.CreateOrUpdate(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
 
-	By("Wait for the autoscaler deployment and collect logs")
+	autoscalerProxy := input.WorkloadClusterProxy
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster-autoscaler",
@@ -117,19 +118,27 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 		},
 	}
 
-	Expect(input.WorkloadClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(deployment), deployment)).To(Succeed(), fmt.Sprintf("failed to get Deployment %s", klog.KObj(deployment)))
+	if input.AutoscalerOnManagementCluster {
+		autoscalerProxy = input.ManagementClusterProxy
+		deployment.Namespace = input.Cluster.Namespace
+	}
+
+	Expect(autoscalerProxy.CreateOrUpdate(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
+
+	By("Wait for the autoscaler deployment and collect logs")
+	Expect(autoscalerProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(deployment), deployment)).To(Succeed(), fmt.Sprintf("failed to get Deployment %s", klog.KObj(deployment)))
 	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
-		Getter:     input.WorkloadClusterProxy.GetClient(),
+		Getter:     autoscalerProxy.GetClient(),
 		Deployment: deployment,
 	}, intervals...)
 
 	// Start streaming logs from the autoscaler deployment.
 	WatchDeploymentLogsByName(ctx, WatchDeploymentLogsByNameInput{
-		GetLister:  input.WorkloadClusterProxy.GetClient(),
-		Cache:      input.WorkloadClusterProxy.GetCache(ctx),
-		ClientSet:  input.WorkloadClusterProxy.GetClientSet(),
+		GetLister:  autoscalerProxy.GetClient(),
+		Cache:      autoscalerProxy.GetCache(ctx),
+		ClientSet:  autoscalerProxy.GetClientSet(),
 		Deployment: deployment,
-		LogPath:    filepath.Join(input.ArtifactFolder, "clusters", input.WorkloadClusterProxy.GetName(), "logs", deployment.GetNamespace()),
+		LogPath:    filepath.Join(input.ArtifactFolder, "clusters", autoscalerProxy.GetName(), "logs", deployment.GetNamespace()),
 	})
 }
 
@@ -143,7 +152,7 @@ type AddScaleUpDeploymentAndWaitInput struct {
 func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
 	By("Create a scale up deployment with resource requests to force scale up")
 	if input.ContainerImage == "" {
-		input.ContainerImage = "registry.k8s.io/pause"
+		input.ContainerImage = "registry.k8s.io/pause:3.10"
 	}
 
 	// gets the node size

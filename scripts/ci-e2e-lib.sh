@@ -192,8 +192,13 @@ kind::buildNodeImage() {
 
   # build the node image
   version="${version//+/_}"
-  echo "+ Building kindest/node:$version"
-  kind build node-image --image "kindest/node:$version"
+  if [[ "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || [[ "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(beta|rc).[0-9]+$ ]]; then
+    echo "+ Building kindest/node:$version using pre-built binaries"
+    kind build node-image --image "kindest/node:$version" "$version"
+  else
+    echo "+ Building kindest/node:$version from source"
+    kind build node-image --image "kindest/node:$version"
+  fi
 
   # move back to Cluster API
   cd "$REPO_ROOT" || exit

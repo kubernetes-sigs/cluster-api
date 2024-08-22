@@ -64,9 +64,17 @@ type AutoscalerSpecInput struct {
 	InfrastructureMachinePoolKind         string
 	AutoscalerVersion                     string
 
+	// InstallOnManagementCluster steers if the autoscaler should get installed to the management or workload cluster.
+	// Depending on the CI environments, there may be no connectivity from the workload to the management cluster.
+	InstallOnManagementCluster bool
+
 	// Allows to inject a function to be run after test namespace is created.
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+
+	// Allows to inject a function to be run after autoscaling test finished.
+	// If not specified this is a no-op.
+	PostAutoscalingTest func(managementClusterProxy framework.ClusterProxy, namespace, clusterName string)
 }
 
 // AutoscalerSpec implements a test for the autoscaler, and more specifically for the autoscaler
@@ -173,6 +181,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 			WorkloadClusterProxy:                  workloadClusterProxy,
 			Cluster:                               clusterResources.Cluster,
 			AutoscalerVersion:                     input.AutoscalerVersion,
+			AutoscalerOnManagementCluster:         input.InstallOnManagementCluster,
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
 		By("Creating workload that forces the system to scale up")

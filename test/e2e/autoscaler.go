@@ -62,6 +62,7 @@ type AutoscalerSpecInput struct {
 	InfrastructureMachineTemplateKind     string
 	InfrastructureMachinePoolTemplateKind string
 	InfrastructureMachinePoolKind         string
+	InfrastructureAPIGroup                string
 	AutoscalerVersion                     string
 
 	// InstallOnManagementCluster steers if the autoscaler should get installed to the management or workload cluster.
@@ -184,6 +185,7 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 			InfrastructureMachineTemplateKind:     input.InfrastructureMachineTemplateKind,
 			InfrastructureMachinePoolTemplateKind: input.InfrastructureMachinePoolTemplateKind,
 			InfrastructureMachinePoolKind:         input.InfrastructureMachinePoolKind,
+			InfrastructureAPIGroup:                input.InfrastructureAPIGroup,
 			WorkloadYamlPath:                      autoscalerWorkloadYAMLPath,
 			ManagementClusterProxy:                input.BootstrapClusterProxy,
 			WorkloadClusterProxy:                  workloadClusterProxy,

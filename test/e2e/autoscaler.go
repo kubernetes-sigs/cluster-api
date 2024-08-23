@@ -70,10 +70,7 @@ type AutoscalerSpecInput struct {
 	InstallOnManagementCluster bool
 
 	// ScaleToAndFromZero enables tests to scale to and from zero.
-	// To enable `ScaleToAndFromZero` the following needs to be implemented:
-	// * either provide the relevant annotations on the MachineDeployment or MachinePool
-	// * for MachineDeployments: implement .status.capacity on the InfraMachineTemplate
-	// * for MachinePools: implement .status.capacity on the InfraMachinePool
+	// Note: This is only implemented for MachineDeployments.
 	ScaleToAndFromZero bool
 
 	// Allows to inject a function to be run after test namespace is created.
@@ -364,51 +361,6 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 				Replicas:           mpScaledUpReplicas,
 				WaitForMachinePool: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
 			})
-
-			if input.ScaleToAndFromZero {
-				By("Enabling autoscaler for the MachinePool to zero")
-				// Enable autoscaler on the MachinePool.
-				framework.EnableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.EnableAutoscalerForMachinePoolTopologyAndWaitInput{
-					ClusterProxy:                input.BootstrapClusterProxy,
-					Cluster:                     clusterResources.Cluster,
-					NodeGroupMinSize:            "0",
-					NodeGroupMaxSize:            mpNodeGroupMaxSize,
-					WaitForAnnotationsToBeAdded: input.E2EConfig.GetIntervals(specName, "wait-autoscaler"),
-				})
-
-				// We can savely assume that mdReplicas is 1.
-				var mdReplicas int32 = 1
-
-				By("Scaling the MachinePool scale up deployment to 1")
-				framework.ScaleScaleUpDeploymentAndWait(ctx, framework.ScaleScaleUpDeploymentAndWaitInput{
-					ClusterProxy: workloadClusterProxy,
-					// Set replicas to 1, because we still have 1 Machine from MachineDeployments.
-					Replicas: 1,
-				}, input.E2EConfig.GetIntervals(specName, "wait-autoscaler")...)
-
-				By("Checking the MachinePool finished scaling down to zero")
-				framework.AssertMachinePoolReplicas(ctx, framework.AssertMachinePoolReplicasInput{
-					Getter:             input.BootstrapClusterProxy.GetClient(),
-					MachinePool:        clusterResources.MachinePools[0],
-					Replicas:           mdReplicas,
-					WaitForMachinePool: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
-				})
-
-				By("Scaling the MachinePool scale up deployment to 2")
-				framework.ScaleScaleUpDeploymentAndWait(ctx, framework.ScaleScaleUpDeploymentAndWaitInput{
-					ClusterProxy: workloadClusterProxy,
-					// Set replicas to 2, because we still have 1 Machine from MachineDeployments.
-					Replicas: mdReplicas + 1,
-				}, input.E2EConfig.GetIntervals(specName, "wait-autoscaler")...)
-
-				By("Checking the MachineDeployment finished scaling up")
-				framework.AssertMachinePoolReplicas(ctx, framework.AssertMachinePoolReplicasInput{
-					Getter:             input.BootstrapClusterProxy.GetClient(),
-					MachinePool:        clusterResources.MachinePools[0],
-					Replicas:           1,
-					WaitForMachinePool: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
-				})
-			}
 		}
 
 		By("PASSED!")

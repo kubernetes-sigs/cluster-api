@@ -268,7 +268,7 @@ type ScaleScaleUpDeploymentAndWaitInput struct {
 	Replicas     int32
 }
 
-// ScaleScaleUpDeploymentAndWait deletes the scale up deployment and waits for it to be deleted.
+// ScaleScaleUpDeploymentAndWait scales the scale up deployment to a given value and waits for it to be deleted.
 func ScaleScaleUpDeploymentAndWait(ctx context.Context, input ScaleScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
 	By("Retrieving the scale up deployment")
 	deployment := &appsv1.Deployment{}

@@ -70,6 +70,10 @@ type AutoscalerSpecInput struct {
 	InstallOnManagementCluster bool
 
 	// ScaleToAndFromZero enables tests to scale to and from zero.
+	// To enable `ScaleToAndFromZero` the following needs to be implemented:
+	// * either provide the relevant annotations on the MachineDeployment or MachinePool
+	// * for MachineDeployments: implement .status.capacity on the InfraMachineTemplate
+	// * for MachinePools: implement .status.capacity on the InfraMachinePool
 	ScaleToAndFromZero bool
 
 	// Allows to inject a function to be run after test namespace is created.

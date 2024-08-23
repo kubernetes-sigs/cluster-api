@@ -405,19 +405,6 @@ func AutoscalerSpec(ctx context.Context, inputGetter func() AutoscalerSpecInput)
 					WaitForMachinePool: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
 				})
 			}
-
-			By("Disabling the autoscaler for MachineDeployments to test MachinePools")
-			framework.DisableAutoscalerForMachinePoolTopologyAndWait(ctx, framework.DisableAutoscalerForMachinePoolTopologyAndWaitInput{
-				ClusterProxy:                  input.BootstrapClusterProxy,
-				Cluster:                       clusterResources.Cluster,
-				WaitForAnnotationsToBeDropped: input.E2EConfig.GetIntervals(specName, "wait-controllers"),
-			})
-
-			By("Deleting the MachineDeployment scale up deployment")
-			framework.DeleteScaleUpDeploymentAndWait(ctx, framework.DeleteScaleUpDeploymentAndWaitInput{
-				ClusterProxy:  workloadClusterProxy,
-				WaitForDelete: input.E2EConfig.GetIntervals(specName, "wait-autoscaler"),
-			})
 		}
 
 		By("PASSED!")

@@ -968,7 +968,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Condition(ref common.ReferenceCall
 					},
 					"reason": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The reason for the condition's last transition in CamelCase. The specific API may choose whether or not this field is considered a guaranteed API. This field may not be empty.",
+							Description: "The reason for the condition's last transition in CamelCase. The specific API may choose whether or not this field is considered a guaranteed API. This field may be empty.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

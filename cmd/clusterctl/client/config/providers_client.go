@@ -69,6 +69,7 @@ const (
 	ProxmoxProviderName        = "proxmox"
 	K0smotronProviderName      = "k0sproject-k0smotron"
 	IonosCloudProviderName     = "ionoscloud-ionoscloud"
+	VultrProviderName	       = "vultr"
 )
 
 // Bootstrap providers.
@@ -313,6 +314,12 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/ionos-cloud/cluster-api-provider-ionoscloud/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
+		&provider{
+			name:         VultrProviderName,
+			url:          "https://github.com/vultr/cluster-api-provider-vultr/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+
 
 		// Bootstrap providers
 		&provider{

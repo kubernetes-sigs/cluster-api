@@ -56,6 +56,7 @@ updated info about which API version they are supporting.
 - [Virtink](https://github.com/smartxworks/cluster-api-provider-virtink)
 - [VMware Cloud Director](https://github.com/vmware/cluster-api-provider-cloud-director)  
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
+- [Vultr](https://github.com/vultr/cluster-api-provider-vultr)
 - [k0smotron RemoteMachine (SSH)](https://github.com/k0sproject/k0smotron)
 
 ## IP Address Management (IPAM)

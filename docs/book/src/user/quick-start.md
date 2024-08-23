@@ -281,7 +281,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Hivelocity,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,Proxmox,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -794,6 +794,15 @@ For more information about prerequisites, credentials management, or permissions
 project][vSphere getting started guide].
 
 {{#/tab }}
+{{#tab Vultr}}
+
+```bash
+export VULTR_API_KEY=<your_api_key>
+
+# initialize the management cluster
+clusterctl init --infrastructure vultr
+```
+{{#/tab }}
 {{#/tabs }}
 
 The output of `clusterctl init` is similar to this:
@@ -862,7 +871,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"Akamai (Linode),AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,IONOS Cloud,K0smotron,KubeKey,KubeVirt,Metal3,Nutanix,OpenStack,Outscale,Proxmox,Tinkerbell,VCD,vcluster,Virtink,vSphere,Vultr"}}
 {{#tab Akamai (Linode)}}
 
 ```bash
@@ -1338,6 +1347,25 @@ export CONTROL_PLANE_ENDPOINT_IP="1.2.3.4"
 ```
 
 For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started guide].
+
+{{#/tab }}
+{{#tab Vultr}}
+
+A Cluster API compatible image must be available in your Vultr account. For instructions on how to build a compatible image see image-builder for [Vultr](https://github.com/vultr/cluster-api-provider-vultr/blob/main/docs/getting-started.md)
+
+```bash
+export CLUSTER_NAME=<clustername>
+export KUBERNETES_VERSION=v1.28.9
+export CONTROL_PLANE_MACHINE_COUNT=1
+export CONTROL_PLANE_PLANID=<plan_id>
+export WORKER_MACHINE_COUNT=1
+export WORKER_PLANID=<plan_id>
+export MACHINE_IMAGE=<snapshot_id>  
+export REGION=<region>
+export PLANID=<plan_id>
+export VPCID=<vpc_id> 
+export SSHKEY_ID=<sshKey_id>
+```
 
 {{#/tab }}
 {{#/tabs }}

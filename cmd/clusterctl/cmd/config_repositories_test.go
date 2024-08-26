@@ -363,7 +363,7 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: vsphere
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/
- - File: infrastructure-components.yaml
+- File: infrastructure-components.yaml
   Name: vultr-vultr
   ProviderType: InfrastructureProvider
   URL: https://github.com/vultr/cluster-api-provider-vultr/releases/latest/

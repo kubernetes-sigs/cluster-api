@@ -479,7 +479,7 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 					Containers: []corev1.Container{
 						{
 							Name:  "web",
-							Image: "registry.k8s.io/pause:latest",
+							Image: "registry.k8s.io/pause:3.10",
 						},
 					},
 				},

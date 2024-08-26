@@ -52,6 +52,7 @@ type ApplyAutoscalerToWorkloadClusterInput struct {
 	InfrastructureMachineTemplateKind     string
 	InfrastructureMachinePoolTemplateKind string
 	InfrastructureMachinePoolKind         string
+	InfrastructureAPIGroup                string
 	// WorkloadYamlPath should point the yaml that will be applied on the workload cluster.
 	// The YAML file should:
 	//  - Be creating the autoscaler deployment in the workload cluster
@@ -74,6 +75,8 @@ type ApplyAutoscalerToWorkloadClusterInput struct {
 	ManagementClusterProxy ClusterProxy
 	Cluster                *clusterv1.Cluster
 	WorkloadClusterProxy   ClusterProxy
+
+	AutoscalerOnManagementCluster bool
 }
 
 // ApplyAutoscalerToWorkloadCluster installs autoscaler on the workload cluster.
@@ -88,11 +91,15 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 	workloadYamlTemplate, err := os.ReadFile(input.WorkloadYamlPath)
 	Expect(err).ToNot(HaveOccurred(), "failed to load %s", workloadYamlTemplate)
 
+	if input.InfrastructureAPIGroup == "" {
+		input.InfrastructureAPIGroup = "infrastructure.cluster.x-k8s.io"
+	}
+
 	// Get a server address for the Management Cluster.
 	// This address should be accessible from the workload cluster.
 	serverAddr, mgtClusterCA := getServerAddrAndCA(ctx, input.ManagementClusterProxy)
 	// Generate a token with the required permission that can be used by the autoscaler.
-	token := getAuthenticationTokenForAutoscaler(ctx, input.ManagementClusterProxy, input.Cluster.Namespace, input.Cluster.Name, input.InfrastructureMachineTemplateKind, input.InfrastructureMachinePoolTemplateKind, input.InfrastructureMachinePoolKind)
+	token := getAuthenticationTokenForAutoscaler(ctx, input.ManagementClusterProxy, input.Cluster.Namespace, input.Cluster.Name, input.InfrastructureAPIGroup, input.InfrastructureMachineTemplateKind, input.InfrastructureMachinePoolTemplateKind, input.InfrastructureMachinePoolKind)
 
 	workloadYaml, err := ProcessYAML(&ProcessYAMLInput{
 		Template:             workloadYamlTemplate,
@@ -107,9 +114,8 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 		},
 	})
 	Expect(err).ToNot(HaveOccurred(), "failed to parse %s", workloadYamlTemplate)
-	Expect(input.WorkloadClusterProxy.CreateOrUpdate(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
 
-	By("Wait for the autoscaler deployment and collect logs")
+	autoscalerProxy := input.WorkloadClusterProxy
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster-autoscaler",
@@ -117,19 +123,27 @@ func ApplyAutoscalerToWorkloadCluster(ctx context.Context, input ApplyAutoscaler
 		},
 	}
 
-	Expect(input.WorkloadClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(deployment), deployment)).To(Succeed(), fmt.Sprintf("failed to get Deployment %s", klog.KObj(deployment)))
+	if input.AutoscalerOnManagementCluster {
+		autoscalerProxy = input.ManagementClusterProxy
+		deployment.Namespace = input.Cluster.Namespace
+	}
+
+	Expect(autoscalerProxy.CreateOrUpdate(ctx, workloadYaml)).To(Succeed(), "failed to apply %s", workloadYamlTemplate)
+
+	By("Wait for the autoscaler deployment and collect logs")
+	Expect(autoscalerProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(deployment), deployment)).To(Succeed(), fmt.Sprintf("failed to get Deployment %s", klog.KObj(deployment)))
 	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
-		Getter:     input.WorkloadClusterProxy.GetClient(),
+		Getter:     autoscalerProxy.GetClient(),
 		Deployment: deployment,
 	}, intervals...)
 
 	// Start streaming logs from the autoscaler deployment.
 	WatchDeploymentLogsByName(ctx, WatchDeploymentLogsByNameInput{
-		GetLister:  input.WorkloadClusterProxy.GetClient(),
-		Cache:      input.WorkloadClusterProxy.GetCache(ctx),
-		ClientSet:  input.WorkloadClusterProxy.GetClientSet(),
+		GetLister:  autoscalerProxy.GetClient(),
+		Cache:      autoscalerProxy.GetCache(ctx),
+		ClientSet:  autoscalerProxy.GetClientSet(),
 		Deployment: deployment,
-		LogPath:    filepath.Join(input.ArtifactFolder, "clusters", input.WorkloadClusterProxy.GetName(), "logs", deployment.GetNamespace()),
+		LogPath:    filepath.Join(input.ArtifactFolder, "clusters", autoscalerProxy.GetName(), "logs", deployment.GetNamespace()),
 	})
 }
 
@@ -143,7 +157,7 @@ type AddScaleUpDeploymentAndWaitInput struct {
 func AddScaleUpDeploymentAndWait(ctx context.Context, input AddScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
 	By("Create a scale up deployment with resource requests to force scale up")
 	if input.ContainerImage == "" {
-		input.ContainerImage = "registry.k8s.io/pause"
+		input.ContainerImage = "registry.k8s.io/pause:3.10"
 	}
 
 	// gets the node size
@@ -245,6 +259,34 @@ func DeleteScaleUpDeploymentAndWait(ctx context.Context, input DeleteScaleUpDepl
 		err := input.ClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: metav1.NamespaceDefault}, deployment)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	}, input.WaitForDelete...).Should(Succeed())
+}
+
+// ScaleScaleUpDeploymentAndWaitInput is the input for ScaleScaleUpDeploymentAndWait.
+type ScaleScaleUpDeploymentAndWaitInput struct {
+	ClusterProxy ClusterProxy
+	Name         string
+	Replicas     int32
+}
+
+// ScaleScaleUpDeploymentAndWait scales the scale up deployment to a given value and waits for it to become ready.
+func ScaleScaleUpDeploymentAndWait(ctx context.Context, input ScaleScaleUpDeploymentAndWaitInput, intervals ...interface{}) {
+	By("Retrieving the scale up deployment")
+	deployment := &appsv1.Deployment{}
+	deploymentName := "scale-up"
+	if input.Name != "" {
+		deploymentName = input.Name
+	}
+	Expect(input.ClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: deploymentName, Namespace: metav1.NamespaceDefault}, deployment)).To(Succeed(), "failed to get the scale up deployment")
+
+	By("Scaling the scale up deployment")
+	deployment.Spec.Replicas = &input.Replicas
+	Expect(input.ClusterProxy.GetClient().Update(ctx, deployment)).To(Succeed(), "failed to update the scale up deployment")
+
+	By("Wait for the scale up deployment to become ready (this implies machines to be created)")
+	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
+		Getter:     input.ClusterProxy.GetClient(),
+		Deployment: deployment,
+	}, intervals...)
 }
 
 type ProcessYAMLInput struct {
@@ -493,7 +535,7 @@ func EnableAutoscalerForMachinePoolTopologyAndWait(ctx context.Context, input En
 
 // getAuthenticationTokenForAutoscaler returns a bearer authenticationToken with minimal RBAC permissions that will be used
 // by the autoscaler running on the workload cluster to access the management cluster.
-func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterProxy ClusterProxy, namespace string, cluster string, infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind string) string {
+func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterProxy ClusterProxy, namespace string, cluster string, infraAPIGroup, infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind string) string {
 	name := fmt.Sprintf("cluster-%s", cluster)
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
@@ -516,7 +558,7 @@ func getAuthenticationTokenForAutoscaler(ctx context.Context, managementClusterP
 			},
 			{
 				Verbs:     []string{"get", "list"},
-				APIGroups: []string{"infrastructure.cluster.x-k8s.io"},
+				APIGroups: []string{infraAPIGroup},
 				Resources: []string{infraMachineTemplateKind, infraMachinePoolTemplateKind, infraMachinePoolKind},
 			},
 		},

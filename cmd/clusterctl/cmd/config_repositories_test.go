@@ -154,7 +154,7 @@ vcd                     InfrastructureProvider   https://github.com/vmware/clust
 vcluster                InfrastructureProvider   https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/                   infrastructure-components.yaml
 virtink                 InfrastructureProvider   https://github.com/smartxworks/cluster-api-provider-virtink/releases/latest/                infrastructure-components.yaml
 vsphere                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/            infrastructure-components.yaml
-vultr                   InfrastructureProvider   https://github.com/vultr/cluster-api-provider-vultr/releases/latest/                        infrastructure-components.yaml
+vultr-vultr             InfrastructureProvider   https://github.com/vultr/cluster-api-provider-vultr/releases/latest/                        infrastructure-components.yaml
 in-cluster              IPAMProvider             https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/    ipam-components.yaml
 helm                    AddonProvider            https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/         addon-components.yaml
 `

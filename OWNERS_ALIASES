@@ -111,29 +111,26 @@ aliases:
   - elmiko
 
   # -----------------------------------------------------------
-  # OWNER_ALIASES for v1.6 release-team
+  # OWNER_ALIASES for v1.9 release-team
   # -----------------------------------------------------------
 
   cluster-api-release-lead:
-  - adilGhaffarDev
+  - Sunnatillo
 
   cluster-api-release-team:
   # members added in commented lines have a pending membership
   # and will be added back once it is acquired.
-  - adilGhaffarDev # release lead
+  - adilGhaffarDev
+  - cahillsf # release ci lead
   # - chandankumar4 # release comms lead
-  - chiukapoor
-  # - dhij
-  - hackeramitkumar
   - jayesh-srivastava
-  # - kperath
-  # - meatballhat
-  # - Nivedita-coder
   - pravarag
   # - rajankumary2k
-  # - shipra101
-  # - smoshiur1237
-  # - Sunnatillo # release ci lead
-  - troy0820
+  - SD-13
+  # - serngawy
+  - sivchari
+  - Sunnatillo  # release lead
+  # - tasdikrahman
+  - tormath1
+  # - varshasuryawanshi
   - vishalanarase
-  - willie-yao

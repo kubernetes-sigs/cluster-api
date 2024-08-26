@@ -168,6 +168,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.VclusterProviderName,
 				config.VirtinkProviderName,
 				config.VSphereProviderName,
+				config.VultrProviderName,
 				config.InClusterIPAMProviderName,
 				config.HelmAddonProviderName,
 			},

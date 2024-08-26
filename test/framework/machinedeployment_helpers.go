@@ -648,5 +648,6 @@ func AssertMachineDeploymentReplicas(ctx context.Context, input AssertMachineDep
 		g.Expect(input.Getter.Get(ctx, key, md)).To(Succeed(), fmt.Sprintf("failed to get MachineDeployment %s", klog.KObj(input.MachineDeployment)))
 		g.Expect(md.Spec.Replicas).Should(Not(BeNil()), fmt.Sprintf("MachineDeployment %s replicas should not be nil", klog.KObj(md)))
 		g.Expect(*md.Spec.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s replicas should match expected replicas", klog.KObj(md)))
+		g.Expect(md.Status.Replicas).Should(Equal(input.Replicas), fmt.Sprintf("MachineDeployment %s status.replicas should match expected replicas", klog.KObj(md)))
 	}, input.WaitForMachineDeployment...).Should(Succeed())
 }

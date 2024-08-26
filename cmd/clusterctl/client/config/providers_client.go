@@ -69,7 +69,7 @@ const (
 	ProxmoxProviderName        = "proxmox"
 	K0smotronProviderName      = "k0sproject-k0smotron"
 	IonosCloudProviderName     = "ionoscloud-ionoscloud"
-	VultrProviderName          = "vultr"
+	VultrProviderName          = "vultr-vultr"
 )
 
 // Bootstrap providers.

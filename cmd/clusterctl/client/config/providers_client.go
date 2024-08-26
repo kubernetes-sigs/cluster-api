@@ -320,7 +320,6 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 
-
 		// Bootstrap providers
 		&provider{
 			name:         KubeadmBootstrapProviderName,

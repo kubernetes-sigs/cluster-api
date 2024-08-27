@@ -157,11 +157,11 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Look up the owner of this kubeadm config if there is one
 	configOwner, err := bsutil.GetTypedConfigOwner(ctx, r.Client, config)
-	if apierrors.IsNotFound(err) {
-		// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
-		return ctrl.Result{}, nil
-	}
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
+			return ctrl.Result{}, nil
+		}
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get owner")
 	}
 	if configOwner == nil {

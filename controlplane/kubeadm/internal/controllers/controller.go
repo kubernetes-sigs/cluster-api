@@ -145,19 +145,21 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, err
 	}
 
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
 	if err != nil {
-		log.Error(err, "Failed to retrieve owner Cluster from the API Server")
-		return ctrl.Result{}, err
+		// It should be an issue to be investigated if the controller get the NotFound status.
+		// So, it should return the error.
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve owner Cluster")
 	}
 	if cluster == nil {
 		log.Info("Cluster Controller has not yet set OwnerRef")
 		return ctrl.Result{}, nil
 	}
+
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 

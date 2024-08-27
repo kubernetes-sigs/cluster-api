@@ -68,7 +68,7 @@ type InMemoryMachineReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemorymachines,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemorymachines/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=inmemorymachines/status;inmemorymachines/finalizers,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machinesets;machines,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 

@@ -375,7 +375,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 		if !m.DeletionTimestamp.IsZero() {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
-				return errors.Wrapf(err, "failed to generate patch for Machine %q", klog.KObj(m))
+				return err
 			}
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
@@ -383,10 +383,8 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 			m.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
 			m.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout
 
-			err = patchHelper.Patch(ctx, m)
-			if err != nil {
-				log.Error(err, "Failed to update Machine", "Machine", klog.KObj(m))
-				return errors.Wrapf(err, "failed to update Machine %q", klog.KObj(m))
+			if err := patchHelper.Patch(ctx, m); err != nil {
+				return err
 			}
 			continue
 		}

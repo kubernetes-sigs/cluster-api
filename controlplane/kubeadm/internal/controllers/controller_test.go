@@ -1554,6 +1554,9 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			Bootstrap: clusterv1.Bootstrap{
 				DataSecretName: ptr.To("machine-bootstrap-secret"),
 			},
+			NodeDrainTimeout:        duration5s,
+			NodeVolumeDetachTimeout: duration5s,
+			NodeDeletionTimeout:     duration5s,
 		},
 	}
 	g.Expect(env.Create(ctx, deletingMachine, client.FieldOwner(classicManager))).To(Succeed())
@@ -1636,16 +1639,16 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		KCP:     kcp,
 		Cluster: testCluster,
 		Machines: collections.Machines{
-			inPlaceMutatingMachine.Name: inPlaceMutatingMachine,
-			deletingMachine.Name:        deletingMachine,
-			nilInfraMachineMachine.Name: nilInfraMachineMachine,
+			inPlaceMutatingMachine.Name: inPlaceMutatingMachine.DeepCopy(),
+			deletingMachine.Name:        deletingMachine.DeepCopy(),
+			nilInfraMachineMachine.Name: nilInfraMachineMachine.DeepCopy(),
 		},
 		KubeadmConfigs: map[string]*bootstrapv1.KubeadmConfig{
-			inPlaceMutatingMachine.Name: existingKubeadmConfig,
+			inPlaceMutatingMachine.Name: existingKubeadmConfig.DeepCopy(),
 			deletingMachine.Name:        nil,
 		},
 		InfraResources: map[string]*unstructured.Unstructured{
-			inPlaceMutatingMachine.Name: existingInfraMachine,
+			inPlaceMutatingMachine.Name: existingInfraMachine.DeepCopy(),
 			deletingMachine.Name:        nil,
 		},
 	}
@@ -1806,7 +1809,14 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify the machine labels and annotations are unchanged.
 	g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))
 	g.Expect(updatedDeletingMachine.Annotations).Should(Equal(deletingMachine.Annotations))
-	// Verify the machine spec is unchanged.
+	// Verify Node timeout values
+	g.Expect(updatedDeletingMachine.Spec.NodeDrainTimeout).Should(Equal(kcp.Spec.MachineTemplate.NodeDrainTimeout))
+	g.Expect(updatedDeletingMachine.Spec.NodeDeletionTimeout).Should(Equal(kcp.Spec.MachineTemplate.NodeDeletionTimeout))
+	g.Expect(updatedDeletingMachine.Spec.NodeVolumeDetachTimeout).Should(Equal(kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout))
+	// Verify the machine spec is otherwise unchanged.
+	deletingMachine.Spec.NodeDrainTimeout = kcp.Spec.MachineTemplate.NodeDrainTimeout
+	deletingMachine.Spec.NodeDeletionTimeout = kcp.Spec.MachineTemplate.NodeDeletionTimeout
+	deletingMachine.Spec.NodeVolumeDetachTimeout = kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout
 	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
 }
 

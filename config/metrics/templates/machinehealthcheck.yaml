@@ -34,6 +34,7 @@
           path:
           - status
           - currentHealthy
+          nilIsZero: true
         type: Gauge
     - name: status_expected_machines
       help: Total number of pods counted by this machinehealthcheck.
@@ -42,6 +43,7 @@
           path:
           - status
           - expectedMachines
+          nilIsZero: true
         type: Gauge
     - name: status_remediations_allowed
       help: Number of machine remediations that are currently allowed.
@@ -50,4 +52,5 @@
           path:
           - status
           - remediationsAllowed
+          nilIsZero: true
         type: Gauge

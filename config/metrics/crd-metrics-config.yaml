@@ -64,7 +64,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a clusterclass.
@@ -80,7 +79,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.
@@ -177,7 +175,6 @@ spec:
           path:
           - status
           - phase
-          nilIsZero: true
         type: StateSet
     - name: created
       help: Unix creation timestamp.
@@ -215,7 +212,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a cluster.
@@ -231,7 +227,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
   - groupVersionKind:
       group: controlplane.cluster.x-k8s.io
@@ -353,7 +348,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a kubeadmcontrolplane.
@@ -369,7 +363,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.
@@ -454,7 +447,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a kubeadmconfig.
@@ -470,7 +462,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.
@@ -618,7 +609,6 @@ spec:
           path:
           - status
           - phase
-          nilIsZero: true
         type: StateSet
     - name: created
       help: Unix creation timestamp.
@@ -656,7 +646,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a machine.
@@ -672,7 +661,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.
@@ -880,7 +868,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a machinedeployment.
@@ -896,7 +883,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.
@@ -951,7 +937,6 @@ spec:
           path:
           - status
           - currentHealthy
-          nilIsZero: true
         type: Gauge
     - name: status_expected_machines
       help: Total number of pods counted by this machinehealthcheck.
@@ -960,7 +945,6 @@ spec:
           path:
           - status
           - expectedMachines
-          nilIsZero: true
         type: Gauge
     - name: status_remediations_allowed
       help: Number of machine remediations that are currently allowed.
@@ -969,7 +953,6 @@ spec:
           path:
           - status
           - remediationsAllowed
-          nilIsZero: true
         type: Gauge
     - name: created
       help: Unix creation timestamp.
@@ -1007,7 +990,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a machinehealthcheck.
@@ -1023,7 +1005,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.
@@ -1123,7 +1104,6 @@ spec:
           path:
           - status
           - fullyLabeledReplicas
-          nilIsZero: true
         type: Gauge
     - name: status_replicas_ready
       help: The number of ready replicas per machineset.
@@ -1179,7 +1159,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a machineset.
@@ -1195,7 +1174,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.
@@ -1332,7 +1310,6 @@ spec:
           path:
           - status
           - phase
-          nilIsZero: true
         type: StateSet
     - name: created
       help: Unix creation timestamp.
@@ -1370,7 +1347,6 @@ spec:
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a machinepool.
@@ -1386,7 +1362,6 @@ spec:
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge
     - name: owner
       help: Owner references.

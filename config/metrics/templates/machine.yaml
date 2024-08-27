@@ -127,5 +127,4 @@
           path:
           - status
           - phase
-          nilIsZero: true
         type: StateSet

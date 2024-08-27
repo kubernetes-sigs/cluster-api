@@ -15,6 +15,7 @@ rules:
 - apiGroups:
   - addons.cluster.x-k8s.io
   resources:
+  - clusterresourcesets/finalizers
   - clusterresourcesets/status
   verbs:
   - get
@@ -61,7 +62,9 @@ rules:
   - clusterclasses
   - clusterclasses/status
   - clusters
+  - clusters/finalizers
   - clusters/status
+  - machinehealthchecks/finalizers
   - machinehealthchecks/status
   verbs:
   - get
@@ -73,13 +76,17 @@ rules:
   - cluster.x-k8s.io
   resources:
   - machinedeployments
+  - machinedeployments/finalizers
   - machinedeployments/status
   - machinehealthchecks
   - machinepools
+  - machinepools/finalizers
   - machinepools/status
   - machines
+  - machines/finalizers
   - machines/status
   - machinesets
+  - machinesets/finalizers
   - machinesets/status
   verbs:
   - create

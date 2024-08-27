@@ -32,6 +32,7 @@ var _ = Describe("When testing node drain timeout", func() {
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,
 			SkipCleanup:            skipCleanup,
+			Flavor:                 ptr.To("topology"),
 			InfrastructureProvider: ptr.To("docker"),
 		}
 	})

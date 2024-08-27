@@ -34,7 +34,6 @@
           - conditions
           valueFrom:
           - status
-          nilIsZero: true
         type: StateSet
     - name: status_condition_last_transition_time
       help: The condition last transition time of a ${RESOURCE}.
@@ -50,5 +49,4 @@
           - conditions
           valueFrom:
           - lastTransitionTime
-          nilIsZero: true
         type: Gauge

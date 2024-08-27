@@ -79,7 +79,6 @@
           path:
           - status
           - fullyLabeledReplicas
-          nilIsZero: true
         type: Gauge
     - name: status_replicas_ready
       help: The number of ready replicas per machineset.

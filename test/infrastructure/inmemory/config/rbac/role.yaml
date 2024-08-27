@@ -50,7 +50,9 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - inmemoryclusters/finalizers
   - inmemoryclusters/status
+  - inmemorymachines/finalizers
   - inmemorymachines/status
   verbs:
   - get

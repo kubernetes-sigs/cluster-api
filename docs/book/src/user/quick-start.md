@@ -1538,7 +1538,7 @@ Install the official cloud-provider-azure Helm chart on the workload cluster:
 helm install --kubeconfig=./capi-quickstart.kubeconfig --repo https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo cloud-provider-azure --generate-name --set infra.clusterName=capi-quickstart --set cloudControllerManager.clusterCIDR="192.168.0.0/16"
 ```
 
-For more information, see the [CAPZ book](https://capz.sigs.k8s.io/self-managed/addons).
+For more information, see the [CAPZ book](https://capz.sigs.k8s.io/self-managed/addons.html).
 
 {{#/tab }}
 {{#tab OpenStack}}

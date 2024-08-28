@@ -32,7 +32,8 @@ see-also:
     - [Non-Goals](#non-goals)
   - [Proposal](#proposal)
     - [Readiness and Availability](#readiness-and-availability)
-    - [Transition to K8s API conventions aligned conditions](#transition-to-k8s-api-conventions-aligned-conditions)
+    - [Transition to Kubernetes API conventions aligned conditions](#transition-to-kubernetes-api-conventions-aligned-conditions)
+    - [Phases field/print column](#phases-fieldprint-column)
     - [Changes to Machine resource](#changes-to-machine-resource)
       - [Machine Status](#machine-status)
         - [Machine (New)Conditions](#machine-newconditions)
@@ -64,8 +65,8 @@ see-also:
         - [InfrastructureCluster](#infrastructurecluster)
         - [InfrastructureMachine](#infrastructuremachine)
       - [Contract for bootstrap providers](#contract-for-bootstrap-providers)
-      - [Contract for control plane Providers](#contract-for-control-plane-providers)
-    - [\[WIP\] Example use cases](#wip-example-use-cases)
+      - [Contract for control plane providers](#contract-for-control-plane-providers)
+    - [Example use cases](#example-use-cases)
     - [Security Model](#security-model)
     - [Risks and Mitigations](#risks-and-mitigations)
   - [Alternatives](#alternatives)
@@ -127,8 +128,6 @@ At high level, proposed changes to status fields can be grouped in three sets of
 
 Some of those changes could be considered straight forward, e.g.
 
-- K8s API conventions suggest to deprecate and remove `phase` fields from status, Cluster API is going to align to this recommendation
-  (and improve Conditions to provide similar or even better info as a replacement).
 - K8s resources do not have a concept similar to "terminal failure" in Cluster API resources, and users approaching
   the project are struggling with this idea. In some cases also provider's implementers are struggling with it.
   Accordingly, Cluster API resources are dropping `FailureReason` and `FailureMessage` fields.
@@ -255,6 +254,13 @@ In case someone wants a more sophisticated control over the process of merging c
 condition utils in Cluster API will allow developers to plug in custom functions to compute merge priority
 for a condition, e.g. by looking at status, reason, time since the condition transitioned, etc.
 
+### Phases field/print column
+
+K8s API conventions suggest to deprecate and remove `phase` fields from status.
+
+However, Cluster API maintainers decided to not align to this recommendation because there is consensus that
+existing `phase` fields provide valuable information to users.
+
 ### Changes to Machine resource
 
 #### Machine Status
@@ -262,7 +268,6 @@ for a condition, e.g. by looking at status, reason, time since the condition tra
 Following changes are implemented to Machine's status:
 
 - Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
-- Align to K8s API conventions by deprecating `Phase` and corresponding `LastUpdated`
 - Remove `FailureReason` and `FailureMessage` to get rid of the confusing concept of terminal failures
 - Transition to new, improved, K8s API conventions aligned conditions
 
@@ -286,7 +291,7 @@ type MachineStatus struct {
     Conditions []metav1.Condition `json:"conditions,omitempty"`
     
     // Other fields...
-    // NOTE: `Phase`, `LastUpdated`, `FailureReason`, `FailureMessage`, `BootstrapReady`, `InfrastructureReady` fields won't be there anymore
+    // NOTE: `FailureReason`, `FailureMessage`, `BootstrapReady`, `InfrastructureReady` fields won't be there anymore
 }
 
 // MachineInitializationStatus provides observations of the Machine initialization process.
@@ -314,7 +319,6 @@ type MachineInitializationStatus struct {
 | `BootstrapReady`               | `Initialization.BootstrapDataSecretCreated` (renamed)    | `Initialization.BootstrapDataSecretCreated`        |
 | `InfrastructureReady`          | `Initialization.InfrastructureProvisioned` (renamed)     | `Initialization.InfrastructureProvisioned`         |
 |                                | `BackCompatibilty` (new)                                 | (removed)                                          |
-| `Phase` (deprecated)           | `BackCompatibilty.Phase` (renamed) (deprecated)          | (removed)                                          |
 | `LastUpdated` (deprecated)     | `BackCompatibilty.LastUpdated` (renamed) (deprecated)    | (removed)                                          |
 | `FailureReason` (deprecated)   | `BackCompatibilty.FailureReason` (renamed) (deprecated)  | (removed)                                          |
 | `FailureMessage` (deprecated)  | `BackCompatibilty.FailureMessage` (renamed) (deprecated) | (removed)                                          |
@@ -422,21 +426,22 @@ Notes:
 
 #### Machine Print columns
 
-| Current           | To be                         |
-|-------------------|-------------------------------|
-| `NAME`            | `NAME`                        |
-| `CLUSTER`         | `CLUSTER`                     |
-| `NODE NAME`       | `PAUSED` (new) (*)            |
-| `PROVIDER ID`     | `NODE NAME`                   |
-| `PHASE` (deleted) | `PROVIDER ID`                 |
-| `AGE`             | `READY` (new)                 |
-| `VERSION`         | `AVAILABLE` (new)             |
-|                   | `UP-TO-DATE` (new)            |
-|                   | `AGE`                         |
-|                   | `VERSION`                     |
-|                   | `OS-IMAGE` (new) (*)          |
-|                   | `KERNEL-VERSION` (new) (*)    |
-|                   | `CONTAINER-RUNTIME` (new) (*) |
+| Current       | To be                         |
+|---------------|-------------------------------|
+| `NAME`        | `NAME`                        |
+| `CLUSTER`     | `CLUSTER`                     |
+| `NODE NAME`   | `PAUSED` (new) (*)            |
+| `PROVIDER ID` | `NODE NAME`                   |
+| `PHASE`       | `PROVIDER ID`                 |
+| `AGE`         | `READY` (new)                 |
+| `VERSION`     | `AVAILABLE` (new)             |
+|               | `UP-TO-DATE` (new)            |
+|               | `PHASE`                       |
+|               | `AGE`                         |
+|               | `VERSION`                     |
+|               | `OS-IMAGE` (new) (*)          |
+|               | `KERNEL-VERSION` (new) (*)    |
+|               | `CONTAINER-RUNTIME` (new) (*) |
 
 (*) visible only when using `kubectl get -o wide`
 
@@ -565,7 +570,6 @@ Notes:
 Following changes are implemented to MachineDeployment's status:
 
 - Align `UpdatedReplicas` to use Machine's `UpToDate` condition (and rename it accordingly to `UpToDateReplicas`)
-- Align to K8s API conventions by deprecating `Phase`
 - Remove `FailureReason` and `FailureMessage` to get rid of the confusing concept of terminal failures
 - Transition to new, improved, K8s API conventions aligned conditions
 
@@ -594,7 +598,7 @@ type MachineDeploymentStatus struct {
     Conditions []metav1.Condition `json:"conditions,omitempty"`
 
     // Other fields...
-    // NOTE: `Phase`, `FailureReason`, `FailureMessage` fields won't be there anymore
+    // NOTE: `FailureReason`, `FailureMessage` fields won't be there anymore
 }
 ```
 
@@ -606,7 +610,6 @@ type MachineDeploymentStatus struct {
 |                                       | `BackCompatibilty` (new)                                    | (removed)                                          |
 | `ReadyReplicas` (deprecated)          | `BackCompatibilty.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
 | `AvailableReplicas` (deprecated)      | `BackCompatibilty.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `Phase` (deprecated)                  | `BackCompatibilty.Phase` (renamed) (deprecated)             | (removed)                                          |
 | `FailureReason` (deprecated)          | `BackCompatibilty.FailureReason` (renamed) (deprecated)     | (removed)                                          |
 | `FailureMessage` (deprecated)         | `BackCompatibilty.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
 | `Conditions`                          | `BackCompatibilty.Conditions` (renamed) (deprecated)        | (removed)                                          |
@@ -649,9 +652,10 @@ Notes:
 | `READY`                 | `CURRENT` (*)          |
 | `UPDATED` (renamed)     | `READY`                |
 | `UNAVAILABLE` (deleted) | `AVAILABLE` (new)      |
-| `PHASE` (deleted)       | `UP-TO-DATE` (renamed) |
-| `AGE`                   | `AGE`                  |
-| `VERSION`               | `VERSION`              |
+| `PHASE`                 | `UP-TO-DATE` (renamed) |
+| `AGE`                   | `PHASE`                |
+| `VERSION`               | `AGE`                  |
+|                         | `VERSION`              |
 
 (*) visible only when using `kubectl get -o wide`
 
@@ -666,7 +670,6 @@ Notes:
 Following changes are implemented to Cluster's status:
 
 - Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
-- Align to K8s API conventions by deprecating `Phase` and corresponding `LastUpdated`
 - Remove `FailureReason` and `FailureMessage` to get rid of the confusing concept of terminal failures
 - Transition to new, improved, K8s API conventions aligned conditions
 - Add replica counters to surface status of Machines belonging to this Cluster
@@ -766,6 +769,8 @@ type WorkersStatus struct {
     // +optional
     AvailableReplicas int32 `json:"availableReplicas"`
 }
+
+// NOTE: `FailureReason`, `FailureMessage` fields won't be there anymore
 ```
 
 | v1beta1 (tentative Dec 2024)           | v1beta2 (tentative Apr 2025)                             | v1beta2 after v1beta1 removal (tentative Apr 2026) |
@@ -774,7 +779,6 @@ type WorkersStatus struct {
 | `InfrastructureReady`                  | `Initialization.InfrastructureProvisioned` (renamed)     | `Initialization.InfrastructureProvisioned`         |
 | `ControlPlaneReady`                    | `Initialization.ControlPlaneInitialized` (renamed)       | `Initialization.ControlPlaneInitialized`           |
 |                                        | `BackCompatibilty` (new)                                 | (removed)                                          |
-| `Phase` (deprecated)                   | `BackCompatibilty.Phase` (renamed) (deprecated)          | (removed)                                          |
 | `FailureReason` (deprecated)           | `BackCompatibilty.FailureReason` (renamed) (deprecated)  | (removed)                                          |
 | `FailureMessage` (deprecated)          | `BackCompatibilty.FailureMessage` (renamed) (deprecated) | (removed)                                          |
 | `Conditions`                           | `BackCompatibilty.Conditions` (renamed) (deprecated)     | (removed)                                          |
@@ -872,24 +876,25 @@ Notes:
 
 #### Cluster Print columns
 
-| Current           | To be                 |
-|-------------------|-----------------------|
-| `NAME`            | `NAME`                |
-| `CLUSTER CLASS`   | `CLUSTER CLASS`       |
-| `PHASE` (deleted) | `PAUSED` (new) (*)    |
-| `AGE`             | `AVAILABLE` (new)     |
-| `VERSION`         | `CP_DESIRED` (new)    |
-|                   | `CP_CURRENT`(new) (*) |
-|                   | `CP_READY` (new) (*)  |
-|                   | `CP_AVAILABLE` (new)  |
-|                   | `CP_UP-TO-DATE` (new) |
-|                   | `W_DESIRED` (new)     |
-|                   | `W_CURRENT`(new) (*)  |
-|                   | `W_READY` (new) (*)   |
-|                   | `W_AVAILABLE` (new)   |
-|                   | `W_UP-TO-DATE` (new)  |
-|                   | `AGE`                 |
-|                   | `VERSION`             |
+| Current         | To be                 |
+|-----------------|-----------------------|
+| `NAME`          | `NAME`                |
+| `CLUSTER CLASS` | `CLUSTER CLASS`       |
+| `PHASE`         | `PAUSED` (new) (*)    |
+| `AGE`           | `AVAILABLE` (new)     |
+| `VERSION`       | `CP_DESIRED` (new)    |
+|                 | `CP_CURRENT`(new) (*) |
+|                 | `CP_READY` (new) (*)  |
+|                 | `CP_AVAILABLE` (new)  |
+|                 | `CP_UP-TO-DATE` (new) |
+|                 | `W_DESIRED` (new)     |
+|                 | `W_CURRENT`(new) (*)  |
+|                 | `W_READY` (new) (*)   |
+|                 | `W_AVAILABLE` (new)   |
+|                 | `W_UP-TO-DATE` (new)  |
+|                 | `PHASE`               |
+|                 | `AGE`                 |
+|                 | `VERSION`             |
 
 (*) visible only when using `kubectl get -o wide`
 
@@ -986,19 +991,19 @@ Notes:
 
 #### KubeadmControlPlane Print columns
 
-| Current                  | To be                  |
-|--------------------------|------------------------|
-| `NAME`                   | `NAME`                 |
-| `CLUSTER`                | `CLUSTER`              |
-| `DESIRED` (*)            | `PAUSED` (new) (*)     |
-| `REPLICAS`               | `INITIALIZED` (new)    |
-| `READY`                  | `DESIRED`              |
-| `UPDATED` (renamed)      | `CURRENT` (*)          |
-| ``UNAVAILABLE` (deleted) | `READY`                |
-| `PHASE` (deleted)        | `AVAILABLE` (new)      |
-| `AGE`                    | `UP-TO-DATE` (renamed) |
-| `VERSION`                | `AGE`                  |
-|                          | `VERSION`              |
+| Current                 | To be                  |
+|-------------------------|------------------------|
+| `NAME`                  | `NAME`                 |
+| `CLUSTER`               | `CLUSTER`              |
+| `DESIRED` (*)           | `PAUSED` (new) (*)     |
+| `REPLICAS`              | `INITIALIZED` (new)    |
+| `READY`                 | `DESIRED`              |
+| `UPDATED` (renamed)     | `CURRENT` (*)          |
+| `UNAVAILABLE` (deleted) | `READY`                |
+| `AGE`                   | `AVAILABLE` (new)      |
+| `VERSION`               | `UP-TO-DATE` (renamed) |
+|                         | `AGE`                  |
+|                         | `VERSION`              |
 
 (*) visible only when using `kubectl get -o wide`
 
@@ -1015,7 +1020,6 @@ Following changes are implemented to MachinePool's status:
 - Disambiguate the usage of the ready term by renaming fields used for the initial provisioning workflow
 - Update `ReadyReplicas` counter to use the same semantic Machine's `Ready` condition and add missing `UpToDateReplicas`.
 - Align MachinePools replica counters to other CAPI resources
-- Align to K8s API conventions by deprecating `Phase`
 - Remove `FailureReason` and `FailureMessage` to get rid of the confusing concept of terminal failures
 - Transition to new, improved, K8s API conventions aligned conditions
 
@@ -1051,7 +1055,7 @@ type MachinePoolStatus struct {
     Conditions []metav1.Condition `json:"conditions,omitempty"`
     
     // Other fields...
-    // NOTE: `Phase`, `FailureReason`, `FailureMessage`, `BootstrapReady`, `InfrastructureReady` fields won't be there anymore
+    // NOTE:`FailureReason`, `FailureMessage`, `BootstrapReady`, `InfrastructureReady` fields won't be there anymore
 }
 
 // MachinePoolInitializationStatus provides observations of the MachinePool initialization process.
@@ -1084,7 +1088,6 @@ type MachinePoolInitializationStatus struct {
 |                                      | `BackCompatibilty` (new)                                    | (removed)                                          |
 | `ReadyReplicas` (deprecated)         | `BackCompatibilty.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
 | `AvailableReplicas` (deprecated)     | `BackCompatibilty.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `Phase` (deprecated)                 | `BackCompatibilty.Phase` (renamed) (deprecated)             | (removed)                                          |
 | `FailureReason` (deprecated)         | `BackCompatibilty.FailureReason` (renamed) (deprecated)     | (removed)                                          |
 | `FailureMessage` (deprecated)        | `BackCompatibilty.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
 | `Conditions`                         | `BackCompatibilty.Conditions` (renamed) (deprecated)        | (removed)                                          |
@@ -1121,18 +1124,19 @@ Notes:
 
 #### MachinePool Print columns
 
-| Current           | To be                  |
-|-------------------|------------------------|
-| `NAME`            | `NAME`                 |
-| `CLUSTER`         | `CLUSTER`              |
-| `DESIRED` (*)     | `PAUSED` (new) (*)     |
-| `REPLICAS`        | `DESIRED`              |
-| `PHASE` (deleted) | `CURRENT` (*)          |
-| `AGE`             | `READY`                |
-| `VERSION`         | `AVAILABLE` (new)      |
-|                   | `UP-TO-DATE` (renamed) |
-|                   | `AGE`                  |
-|                   | `VERSION`              |
+| Current       | To be                  |
+|---------------|------------------------|
+| `NAME`        | `NAME`                 |
+| `CLUSTER`     | `CLUSTER`              |
+| `DESIRED` (*) | `PAUSED` (new) (*)     |
+| `REPLICAS`    | `DESIRED`              |
+| `PHASE`       | `CURRENT` (*)          |
+| `AGE`         | `READY`                |
+| `VERSION`     | `AVAILABLE` (new)      |
+|               | `UP-TO-DATE` (renamed) |
+|               | `PHASE`                |
+|               | `AGE`                  |
+|               | `VERSION`              |
 
 (*) visible only when using `kubectl get -o wide`
 

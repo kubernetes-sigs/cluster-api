@@ -61,6 +61,7 @@ type MachineSetSpec struct {
 	// * An existing MachineSet which initially wasn't controlled by the autoscaler
 	//   should be later controlled by the autoscaler
 	// +optional
+	// +Metrics:gauge:name="spec_replicas",help="The number of desired machines for a machineset.",nilIsZero=true
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
@@ -283,6 +284,7 @@ type MachineSetStatus struct {
 
 	// replicas is the most recently observed number of replicas.
 	// +optional
+	// +Metrics:gauge:name="status_replicas",help="The number of replicas per machineset.",nilIsZero=true
 	Replicas int32 `json:"replicas"`
 
 	// fullyLabeledReplicas is the number of replicas that have labels matching the labels of the machine template of the MachineSet.
@@ -290,14 +292,17 @@ type MachineSetStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +Metrics:gauge:name="status_replicas_fully_labeled",help="The number of fully labeled replicas per machineset.",nilIsZero=true
 	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
 
 	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per machineset.",nilIsZero=true
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// availableReplicas is the number of available replicas (ready for at least minReadySeconds) for this MachineSet.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_available",help="The number of available replicas per machineset.",nilIsZero=true
 	AvailableReplicas int32 `json:"availableReplicas"`
 
 	// observedGeneration reflects the generation of the most recently observed MachineSet.
@@ -361,6 +366,8 @@ type MachineSetV1Beta2Status struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a machineset.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a machineset.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when Machine's Ready condition is true.
@@ -413,11 +420,20 @@ func (m *MachineSet) Validate() field.ErrorList {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachineSet"
 
 // MachineSet is the Schema for the machinesets API.
+// +Metrics:gvk:namePrefix="capi_machineset"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machineset.",labelsFromPath={bootstrap_reference_kind:.spec.template.spec.bootstrap.configRef.kind,bootstrap_reference_name:.spec.template.spec.bootstrap.configRef.name,infrastructure_reference_kind:.spec.template.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.template.spec.infrastructureRef.name,version:.spec.template.spec.version}
 type MachineSet struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machineset is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of MachineSet.

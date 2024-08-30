@@ -502,6 +502,8 @@ type KubeadmConfigV1Beta2Status struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a kubeadmconfig.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a kubeadmconfig.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -513,11 +515,20 @@ type KubeadmConfigV1Beta2Status struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfig"
 
 // KubeadmConfig is the Schema for the kubeadmconfigs API.
+// +Metrics:gvk:namePrefix="capi_kubeadmconfig"
+// +Metrics:labelFromPath:name="name",JSONPath=.metadata.name
+// +Metrics:labelFromPath:name="namespace",JSONPath=.metadata.namespace
+// +Metrics:labelFromPath:name="uid",JSONPath=.metadata.uid
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.labels.cluster\.x-k8s\.io/cluster-name
+// +Metrics:info:name="info",help="Information about a kubeadmconfig.",labelsFromPath={name:.metadata.name}
 type KubeadmConfig struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the kubeadmconfig is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmConfig.

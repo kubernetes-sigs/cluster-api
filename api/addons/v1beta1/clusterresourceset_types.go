@@ -135,6 +135,8 @@ type ClusterResourceSetV1Beta2Status struct {
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
+	// +Metrics:stateset:name="status_condition",help="The condition of a clusterresourceset.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition's last transition time of a clusterresourceset.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
@@ -172,6 +174,10 @@ func (m *ClusterResourceSet) SetV1Beta2Conditions(conditions []metav1.Condition)
 
 // ClusterResourceSet is the Schema for the clusterresourcesets API.
 // For advanced use cases an add-on provider should be used instead.
+// +Metrics:gvk:namePrefix="capi_clusterresourceset"
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
 type ClusterResourceSet struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.

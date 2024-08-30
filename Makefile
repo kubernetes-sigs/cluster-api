@@ -637,9 +637,10 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only.yaml
 
 .PHONY: generate-metrics-config
-generate-metrics-config: ## Generate ./config/metrics/crd-metrics-config.yaml
-	@echo "Use PR state from 'https://github.com/kubernetes-sigs/cluster-api/pull/9347'"; \
-	exit 1
+generate-metrics-config: $(CONTROLLER_GEN) ## Generate ./config/metrics/crd-metrics-config.yaml
+	$(CONTROLLER_GEN) metrics output:metrics:dir=./config/metrics \
+		paths=./api/... \
+		paths=./test/infrastructure/docker/api/...
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files

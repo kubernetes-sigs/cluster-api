@@ -2,20 +2,28 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kube-state-metrics-custom-resource-capi
   labels:
     kube-state-metrics/aggregate-to-manager: "true"
+  name: manager-metrics-role
 rules:
+- apiGroups:
+  - bootstrap.cluster.x-k8s.io
+  resources:
+  - kubeadmconfigs
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - cluster.x-k8s.io
   resources:
   - clusterclasses
   - clusters
   - machinedeployments
-  - machinepools
-  - machinesets
-  - machines
   - machinehealthchecks
+  - machinepools
+  - machines
+  - machinesets
   verbs:
   - get
   - list
@@ -24,14 +32,6 @@ rules:
   - controlplane.cluster.x-k8s.io
   resources:
   - kubeadmcontrolplanes
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - bootstrap.cluster.x-k8s.io
-  resources:
-  - kubeadmconfigs
   verbs:
   - get
   - list

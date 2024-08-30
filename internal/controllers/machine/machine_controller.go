@@ -702,7 +702,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	podsToBeDrained := podDeleteList.Pods()
 
 	if len(podsToBeDrained) == 0 {
-		log.Info("Drain completed, no Pods to drain on the Node")
+		log.Info("Drain completed")
 		return ctrl.Result{}, nil
 	}
 

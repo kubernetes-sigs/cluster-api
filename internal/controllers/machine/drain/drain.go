@@ -59,6 +59,9 @@ func (d *Helper) CordonNode(ctx context.Context, node *corev1.Node) error {
 		return nil
 	}
 
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Cordoning Node")
+
 	patch := client.MergeFrom(node.DeepCopy())
 	node.Spec.Unschedulable = true
 	if err := d.Client.Patch(ctx, node, patch); err != nil {

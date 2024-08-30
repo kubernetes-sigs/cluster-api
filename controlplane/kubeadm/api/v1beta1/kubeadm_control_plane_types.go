@@ -83,6 +83,7 @@ type KubeadmControlPlaneSpec struct {
 	// odd numbers are permitted, as per [etcd best practice](https://etcd.io/docs/v3.3.12/faq/#why-an-odd-number-of-cluster-members).
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
+	// +Metrics:gauge:name="spec_replicas",help="The number of desired machines for a kubeadmcontrolplane."
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// version defines the desired Kubernetes version.
@@ -214,6 +215,7 @@ type RollingUpdate struct {
 	// Example: when this is set to 1, the control plane can be scaled
 	// up immediately when the rolling update starts.
 	// +optional
+	// +Metrics:gauge:name="spec_strategy_rollingupdate_max_surge",help="Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a kubeadmcontrolplane."
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
@@ -295,6 +297,7 @@ type KubeadmControlPlaneStatus struct {
 	// replicas is the total number of non-terminated machines targeted by this control plane
 	// (their labels match the selector).
 	// +optional
+	// +Metrics:gauge:name="status_replicas",help="The number of replicas per kubeadmcontrolplane.",nilIsZero=true
 	Replicas int32 `json:"replicas"`
 
 	// version represents the minimum Kubernetes version for the control plane machines
@@ -307,10 +310,12 @@ type KubeadmControlPlaneStatus struct {
 	// updatedReplicas is the total number of non-terminated machines targeted by this control plane
 	// that have the desired template spec.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_updated",help="The number of updated replicas per kubeadmcontrolplane.",nilIsZero=true
 	UpdatedReplicas int32 `json:"updatedReplicas"`
 
 	// readyReplicas is the total number of fully running and ready control plane machines.
 	// +optional
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per kubeadmcontrolplane.",nilIsZero=true
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// unavailableReplicas is the total number of unavailable machines targeted by this control plane.
@@ -322,6 +327,7 @@ type KubeadmControlPlaneStatus struct {
 	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
+	// +Metrics:gauge:name="status_replicas_unavailable",help="The number of unavailable replicas per kubeadmcontrolplane.",nilIsZero=true
 	UnavailableReplicas int32 `json:"unavailableReplicas"`
 
 	// initialized denotes that the KubeadmControlPlane API Server is initialized and thus
@@ -365,6 +371,8 @@ type KubeadmControlPlaneStatus struct {
 
 	// conditions defines current service state of the KubeadmControlPlane.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a kubeadmcontrolplane.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a kubeadmcontrolplane.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// lastRemediation stores info about last remediation performed.
@@ -438,11 +446,20 @@ type LastRemediationStatus struct {
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=".spec.version",description="Kubernetes version associated with this control plane"
 
 // KubeadmControlPlane is the Schema for the KubeadmControlPlane API.
+// +Metrics:gvk:namePrefix="capi_kubeadmcontrolplane"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.ownerReferences.\[kind=Cluster\].name
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:info:name="info",help="Information about a kubeadmcontrolplane.",labelsFromPath={version:".spec.version"}
 type KubeadmControlPlane struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the kubeadmcontrolplane is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec is the desired state of KubeadmControlPlane.

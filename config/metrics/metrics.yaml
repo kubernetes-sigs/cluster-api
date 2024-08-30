@@ -1,12 +1,15 @@
-# This file was auto-generated via: make generate-metrics-config
-kind: CustomResourceStateMetrics
 spec:
   resources:
-  - groupVersionKind:
-      group: cluster.x-k8s.io
-      kind: ClusterClass
+  - errorLogV: 0
+    groupVersionKind:
+      group: bootstrap.cluster.x-k8s.io
+      kind: KubeadmConfig
       version: v1beta1
     labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
       name:
       - metadata
       - name
@@ -16,73 +19,41 @@ spec:
       uid:
       - metadata
       - uid
-    metricNamePrefix: capi_clusterclass
+    metricNamePrefix: capi_kubeadmconfig
     metrics:
-    - name: info
-      help: Information about a clusterclass.
-      each:
+    - each:
         info:
-          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
           labelsFromPath:
-            name:
-            - metadata
-            - name
-        type: Info
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the clusterclass is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
+            paused_value: []
           path:
           - metadata
           - annotations
           - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
         type: Info
-    - name: status_condition
-      help: The condition of a clusterclass.
-      each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a clusterclass.
-      each:
+      help: Whether the kubeadmconfig is paused and any of its resources will not
+        be processed by the controllers.
+      name: annotation_paused
+    - each:
         gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
+          nilIsZero: false
           path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
+          - metadata
+          - creationTimestamp
+          valueFrom: null
         type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+          path: null
+        type: Info
+      help: Information about a kubeadmconfig.
+      name: info
+    - each:
         info:
           labelsFromPath:
             owner_is_controller:
@@ -97,7 +68,45 @@ spec:
           - metadata
           - ownerReferences
         type: Info
-  - groupVersionKind:
+      help: Owner references.
+      name: owner
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a kubeadmconfig.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a kubeadmconfig.
+      name: status_condition_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
       group: cluster.x-k8s.io
       kind: Cluster
       version: v1beta1
@@ -113,19 +122,31 @@ spec:
       - uid
     metricNamePrefix: capi_cluster
     metrics:
-    - name: info
-      help: Information about a cluster.
-      each:
+    - each:
         info:
           labelsFromPath:
-            topology_version:
-            - spec
-            - topology
-            - version
-            topology_class:
-            - spec
-            - topology
-            - class
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the cluster is paused and any of its resources will not be processed
+        by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
             control_plane_endpoint_host:
             - spec
             - controlPlaneEndpoint
@@ -150,19 +171,64 @@ spec:
             - spec
             - infrastructureRef
             - name
+            topology_class:
+            - spec
+            - topology
+            - class
+            topology_version:
+            - spec
+            - topology
+            - version
+          path: null
         type: Info
-    - name: spec_paused
-      help: Whether the cluster is paused and any of its resources will not be processed by the controllers.
-      each:
+      help: Information about a cluster.
+      name: info
+    - each:
         gauge:
           nilIsZero: true
           path:
           - spec
           - paused
+          valueFrom: null
         type: Gauge
-    - name: status_phase
-      help: The clusters current phase.
-      each:
+      help: Whether the cluster is paused and any of its resources will not be processed
+        by the controllers.
+      name: spec_paused
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a cluster.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a cluster.
+      name: status_condition_last_transition_time
+    - each:
         stateSet:
           labelName: phase
           list:
@@ -175,37 +241,86 @@ spec:
           path:
           - status
           - phase
+          valueFrom: null
         type: StateSet
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the cluster is paused and any of its resources will not be processed by the controllers.
-      each:
+      help: The clusters current phase.
+      name: status_phase
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: ClusterClass
+      version: v1beta1
+    labelsFromPath:
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_clusterclass
+    metrics:
+    - each:
         info:
+          labelsFromPath:
+            paused_value: []
           path:
           - metadata
           - annotations
           - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
         type: Info
-    - name: status_condition
-      help: The condition of a cluster.
-      each:
+      help: Whether the clusterclass is paused and any of its resources will not be
+        processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+          path: null
+        type: Info
+      help: Information about a clusterclass.
+      name: info
+    - each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
         stateSet:
           labelName: status
           labelsFromPath:
             type:
             - type
           list:
-          - 'True'
-          - 'False'
+          - "True"
+          - "False"
           - Unknown
           path:
           - status
@@ -213,22 +328,999 @@ spec:
           valueFrom:
           - status
         type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a cluster.
-      each:
+      help: The condition of a clusterclass.
+      name: status_condition
+    - each:
         gauge:
           labelsFromPath:
-            type:
-            - type
             status:
             - status
+            type:
+            - type
+          nilIsZero: false
           path:
           - status
           - conditions
           valueFrom:
           - lastTransitionTime
         type: Gauge
-  - groupVersionKind:
+      help: The condition last transition time of a clusterclass.
+      name: status_condition_last_transition_time
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: Machine
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machine
+    metrics:
+    - each:
+        info:
+          labelsFromPath:
+            address:
+            - address
+            type:
+            - type
+          path:
+          - status
+          - addresses
+        type: Info
+      help: Address information about a machine.
+      name: addresses
+    - each:
+        info:
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the machine is paused and any of its resources will not be processed
+        by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
+            bootstrap_reference_kind:
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            container_runtime_version:
+            - status
+            - nodeInfo
+            - containerRuntimeVersion
+            control_plane_name:
+            - metadata
+            - labels
+            - cluster.x-k8s.io/control-plane-name
+            failure_domain:
+            - spec
+            - failureDomain
+            infrastructure_reference_kind:
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - infrastructureRef
+            - name
+            kernel_version:
+            - status
+            - nodeInfo
+            - kernelVersion
+            kube_proxy_version:
+            - status
+            - nodeInfo
+            - kubeProxyVersion
+            kubelet_version:
+            - status
+            - nodeInfo
+            - kubeletVersion
+            os_image:
+            - status
+            - nodeInfo
+            - osImage
+            provider_id:
+            - spec
+            - providerID
+            version:
+            - spec
+            - version
+          path: null
+        type: Info
+      help: Information about a machine.
+      name: info
+    - each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - certificatesExpiryDate
+          valueFrom: null
+        type: Gauge
+      help: Information about certificate expiration date of a control plane node.
+      name: status_certificatesexpirydate
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a machine.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a machine.
+      name: status_condition_last_transition_time
+    - each:
+        info:
+          labelsFromPath:
+            node_name:
+            - status
+            - nodeRef
+            - name
+            node_uid:
+            - status
+            - nodeRef
+            - uid
+          path: null
+        type: Info
+      help: Information about the node reference of a machine.
+      name: status_noderef
+    - each:
+        stateSet:
+          labelName: phase
+          list:
+          - Pending
+          - Provisioning
+          - Provisioned
+          - Running
+          - Deleting
+          - Deleted
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+          valueFrom: null
+        type: StateSet
+      help: The machines current phase.
+      name: status_phase
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachineDeployment
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machinedeployment
+    metrics:
+    - each:
+        info:
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the machinedeployment is paused and any of its resources will
+        not be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
+            bootstrap_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+            version:
+            - spec
+            - template
+            - spec
+            - version
+          path: null
+        type: Info
+      help: Information about a machinedeployment.
+      name: info
+    - each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - spec
+          - paused
+          valueFrom: null
+        type: Gauge
+      help: Whether the machinedeployment is paused and any of its resources will
+        not be processed by the controllers.
+      name: spec_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - spec
+          - replicas
+          valueFrom: null
+        type: Gauge
+      help: The number of desired machines for a machinedeployment.
+      name: spec_replicas
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - spec
+          - strategy
+          - rollingUpdate
+          - maxSurge
+          valueFrom: null
+        type: Gauge
+      help: Maximum number of replicas that can be scheduled above the desired number
+        of replicas during a rolling update of a machinedeployment.
+      name: spec_strategy_rollingupdate_max_surge
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - spec
+          - strategy
+          - rollingUpdate
+          - maxUnavailable
+          valueFrom: null
+        type: Gauge
+      help: Maximum number of unavailable replicas during a rolling update of a machinedeployment.
+      name: spec_strategy_rollingupdate_max_unavailable
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a machinedeployment.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a machinedeployment.
+      name: status_condition_last_transition_time
+    - each:
+        stateSet:
+          labelName: phase
+          list:
+          - ScalingUp
+          - ScalingDown
+          - Running
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+          valueFrom: null
+        type: StateSet
+      help: The machinedeployments current phase.
+      name: status_phase
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - replicas
+          valueFrom: null
+        type: Gauge
+      help: The number of replicas per machinedeployment.
+      name: status_replicas
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - availableReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of available replicas per machinedeployment.
+      name: status_replicas_available
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - readyReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of ready replicas per machinedeployment.
+      name: status_replicas_ready
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - unavailableReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of unavailable replicas per machinedeployment.
+      name: status_replicas_unavailable
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - updatedReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of updated replicas per machinedeployment.
+      name: status_replicas_updated
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachineHealthCheck
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machinehealthcheck
+    metrics:
+    - each:
+        info:
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the machinehealthcheck is paused and any of its resources will
+        not be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+          path: null
+        type: Info
+      help: Information about a machinehealthcheck.
+      name: info
+    - each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a machinehealthcheck.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a machinehealthcheck.
+      name: status_condition_last_transition_time
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - status
+          - currentHealthy
+          valueFrom: null
+        type: Gauge
+      help: Current number of healthy machines.
+      name: status_current_healthy
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - status
+          - expectedMachines
+          valueFrom: null
+        type: Gauge
+      help: Total number of pods counted by this machinehealthcheck.
+      name: status_expected_machines
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - status
+          - remediationsAllowed
+          valueFrom: null
+        type: Gauge
+      help: Number of machine remediations that are currently allowed.
+      name: status_remediations_allowed
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachinePool
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machinepool
+    metrics:
+    - each:
+        info:
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the machinepool is paused and any of its resources will not be
+        processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
+            bootstrap_configuration_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_configuration_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            failure_domain:
+            - spec
+            - template
+            - spec
+            - failureDomain
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+            version:
+            - spec
+            - template
+            - spec
+            - version
+          path: null
+        type: Info
+      help: ""
+      name: info
+    - each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - spec
+          - replicas
+          valueFrom: null
+        type: Gauge
+      help: The number of desired machines for a machinepool.
+      name: spec_replicas
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a machinepool.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a machinepool.
+      name: status_condition_last_transition_time
+    - each:
+        stateSet:
+          labelName: phase
+          list:
+          - ScalingUp
+          - ScalingDown
+          - Running
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+          valueFrom: null
+        type: StateSet
+      help: The machinepools current phase.
+      name: status_phase
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - replicas
+          valueFrom: null
+        type: Gauge
+      help: The number of replicas per machinepool.
+      name: status_replicas
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - availableReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of available replicas per machinepool.
+      name: status_replicas_available
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - readyReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of ready replicas per machinepool.
+      name: status_replicas_ready
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - unavailableReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of unavailable replicas per machinepool.
+      name: status_replicas_unavailable
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachineSet
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machineset
+    metrics:
+    - each:
+        info:
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the machineset is paused and any of its resources will not be
+        processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
+        info:
+          labelsFromPath:
+            bootstrap_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+            version:
+            - spec
+            - template
+            - spec
+            - version
+          path: null
+        type: Info
+      help: Information about a machineset.
+      name: info
+    - each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - spec
+          - replicas
+          valueFrom: null
+        type: Gauge
+      help: The number of desired machines for a machineset.
+      name: spec_replicas
+    - each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+      help: The condition of a machineset.
+      name: status_condition
+    - each:
+        gauge:
+          labelsFromPath:
+            status:
+            - status
+            type:
+            - type
+          nilIsZero: false
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+      help: The condition last transition time of a machineset.
+      name: status_condition_last_transition_time
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - replicas
+          valueFrom: null
+        type: Gauge
+      help: The number of replicas per machineset.
+      name: status_replicas
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - availableReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of available replicas per machineset.
+      name: status_replicas_available
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - status
+          - fullyLabeledReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of fully labeled replicas per machineset.
+      name: status_replicas_fully_labeled
+    - each:
+        gauge:
+          nilIsZero: true
+          path:
+          - status
+          - readyReplicas
+          valueFrom: null
+        type: Gauge
+      help: The number of ready replicas per machineset.
+      name: status_replicas_ready
+    resourcePlural: ""
+  - errorLogV: 0
+    groupVersionKind:
       group: controlplane.cluster.x-k8s.io
       kind: KubeadmControlPlane
       version: v1beta1
@@ -249,1134 +1341,151 @@ spec:
       - uid
     metricNamePrefix: capi_kubeadmcontrolplane
     metrics:
-    - name: info
-      help: Information about a kubeadmcontrolplane.
-      each:
+    - each:
+        info:
+          labelsFromPath:
+            paused_value: []
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+        type: Info
+      help: Whether the kubeadmcontrolplane is paused and any of its resources will
+        not be processed by the controllers.
+      name: annotation_paused
+    - each:
+        gauge:
+          nilIsZero: false
+          path:
+          - metadata
+          - creationTimestamp
+          valueFrom: null
+        type: Gauge
+      help: Unix creation timestamp.
+      name: created
+    - each:
         info:
           labelsFromPath:
             version:
             - spec
             - version
+          path: null
         type: Info
-    - name: status_replicas
-      help: The number of replicas per kubeadmcontrolplane.
-      each:
-        gauge:
+      help: Information about a kubeadmcontrolplane.
+      name: info
+    - each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
           path:
-          - status
-          - replicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_ready
-      help: The number of ready replicas per kubeadmcontrolplane.
-      each:
+          - metadata
+          - ownerReferences
+        type: Info
+      help: Owner references.
+      name: owner
+    - each:
         gauge:
-          path:
-          - status
-          - readyReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_unavailable
-      help: The number of unavailable replicas per kubeadmcontrolplane.
-      each:
-        gauge:
-          path:
-          - status
-          - unavailableReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_updated
-      help: The number of updated replicas per kubeadmcontrolplane.
-      each:
-        gauge:
-          path:
-          - status
-          - updatedReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: spec_replicas
-      help: The number of desired machines for a kubeadmcontrolplane.
-      each:
-        gauge:
+          nilIsZero: false
           path:
           - spec
           - replicas
+          valueFrom: null
         type: Gauge
-    - name: spec_strategy_rollingupdate_max_surge
-      help: Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a kubeadmcontrolplane.
-      each:
+      help: The number of desired machines for a kubeadmcontrolplane.
+      name: spec_replicas
+    - each:
         gauge:
+          nilIsZero: false
           path:
           - spec
           - rolloutStrategy
           - rollingUpdate
           - maxSurge
+          valueFrom: null
         type: Gauge
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the kubeadmcontrolplane is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
-          path:
-          - metadata
-          - annotations
-          - cluster.x-k8s.io/paused
+      help: Maximum number of replicas that can be scheduled above the desired number
+        of replicas during a rolling update of a kubeadmcontrolplane.
+      name: spec_strategy_rollingupdate_max_surge
+    - each:
+        stateSet:
+          labelName: status
           labelsFromPath:
-            paused_value: []
-        type: Info
-    - name: status_condition
+            type:
+            - type
+          list:
+          - "True"
+          - "False"
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
       help: The condition of a kubeadmcontrolplane.
-      each:
-        stateSet:
-          labelName: status
+      name: status_condition
+    - each:
+        gauge:
           labelsFromPath:
+            status:
+            - status
             type:
             - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
+          nilIsZero: false
           path:
           - status
           - conditions
           valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
+          - lastTransitionTime
+        type: Gauge
       help: The condition last transition time of a kubeadmcontrolplane.
-      each:
-        gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-  - groupVersionKind:
-      group: bootstrap.cluster.x-k8s.io
-      kind: KubeadmConfig
-      version: v1beta1
-    labelsFromPath:
-      cluster_name:
-      - metadata
-      - labels
-      - cluster.x-k8s.io/cluster-name
-      name:
-      - metadata
-      - name
-      namespace:
-      - metadata
-      - namespace
-      uid:
-      - metadata
-      - uid
-    metricNamePrefix: capi_kubeadmconfig
-    metrics:
-    - name: info
-      help: Information about a kubeadmconfig.
-      each:
-        info:
-          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
-          labelsFromPath:
-            name:
-            - metadata
-            - name
-        type: Info
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the kubeadmconfig is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
-          path:
-          - metadata
-          - annotations
-          - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
-        type: Info
-    - name: status_condition
-      help: The condition of a kubeadmconfig.
-      each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a kubeadmconfig.
-      each:
-        gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-  - groupVersionKind:
-      group: cluster.x-k8s.io
-      kind: Machine
-      version: v1beta1
-    labelsFromPath:
-      cluster_name:
-      - spec
-      - clusterName
-      name:
-      - metadata
-      - name
-      namespace:
-      - metadata
-      - namespace
-      uid:
-      - metadata
-      - uid
-    metricNamePrefix: capi_machine
-    metrics:
-    - name: info
-      help: Information about a machine.
-      each:
-        info:
-          labelsFromPath:
-            container_runtime_version:
-            - status
-            - nodeInfo
-            - containerRuntimeVersion
-            failure_domain:
-            - spec
-            - failureDomain
-            kernel_version:
-            - status
-            - nodeInfo
-            - kernelVersion
-            kubelet_version:
-            - status
-            - nodeInfo
-            - kubeletVersion
-            kube_proxy_version:
-            - status
-            - nodeInfo
-            - kubeProxyVersion
-            os_image:
-            - status
-            - nodeInfo
-            - osImage
-            provider_id:
-            - spec
-            - providerID
-            version:
-            - spec
-            - version
-            bootstrap_reference_kind:
-            - spec
-            - bootstrap
-            - configRef
-            - kind
-            bootstrap_reference_name:
-            - spec
-            - bootstrap
-            - configRef
-            - name
-            infrastructure_reference_kind:
-            - spec
-            - infrastructureRef
-            - kind
-            infrastructure_reference_name:
-            - spec
-            - infrastructureRef
-            - name
-            control_plane_name:
-            - metadata
-            - labels
-            - cluster.x-k8s.io/control-plane-name
-        type: Info
-    - name: addresses
-      help: Address information about a machine.
-      each:
-        info:
-          path:
-          - status
-          - addresses
-          labelsFromPath:
-            type:
-            - type
-            address:
-            - address
-        type: Info
-    - name: status_certificatesexpirydate
-      help: Information about certificate expiration date of a control plane node.
-      each:
+      name: status_condition_last_transition_time
+    - each:
         gauge:
           nilIsZero: true
-          path:
-            - status
-            - certificatesExpiryDate
-        type: Gauge
-    - name: status_noderef
-      help: Information about the node reference of a machine.
-      each:
-        info:
-          labelsFromPath:
-            node_name:
-            - status
-            - nodeRef
-            - name
-            node_uid:
-            - status
-            - nodeRef
-            - uid
-        type: Info
-    - name: status_phase
-      help: The machines current phase.
-      each:
-        stateSet:
-          labelName: phase
-          list:
-          - Pending
-          - Provisioning
-          - Provisioned
-          - Running
-          - Deleting
-          - Deleted
-          - Failed
-          - Unknown
-          path:
-          - status
-          - phase
-        type: StateSet
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the machine is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
-          path:
-          - metadata
-          - annotations
-          - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
-        type: Info
-    - name: status_condition
-      help: The condition of a machine.
-      each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a machine.
-      each:
-        gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-  - groupVersionKind:
-      group: cluster.x-k8s.io
-      kind: MachineDeployment
-      version: v1beta1
-    labelsFromPath:
-      cluster_name:
-      - spec
-      - clusterName
-      name:
-      - metadata
-      - name
-      namespace:
-      - metadata
-      - namespace
-      uid:
-      - metadata
-      - uid
-    metricNamePrefix: capi_machinedeployment
-    metrics:
-    - name: info
-      help: Information about a machinedeployment.
-      each:
-        info:
-          labelsFromPath:
-            version:
-            - spec
-            - template
-            - spec
-            - version
-            bootstrap_reference_kind:
-            - spec
-            - template
-            - spec
-            - bootstrap
-            - configRef
-            - kind
-            bootstrap_reference_name:
-            - spec
-            - template
-            - spec
-            - bootstrap
-            - configRef
-            - name
-            infrastructure_reference_kind:
-            - spec
-            - template
-            - spec
-            - infrastructureRef
-            - kind
-            infrastructure_reference_name:
-            - spec
-            - template
-            - spec
-            - infrastructureRef
-            - name
-        type: Info
-    - name: spec_paused
-      help: Whether the machinedeployment is paused and any of its resources will not be processed by the controllers.
-      each:
-        gauge:
-          nilIsZero: true
-          path:
-          - spec
-          - paused
-        type: Gauge
-    - name: spec_replicas
-      help: The number of desired machines for a machinedeployment.
-      each:
-        gauge:
-          path:
-          - spec
-          - replicas
-        type: Gauge
-    - name: spec_strategy_rollingupdate_max_surge
-      help: Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a machinedeployment.
-      each:
-        gauge:
-          path:
-          - spec
-          - strategy
-          - rollingUpdate
-          - maxSurge
-        type: Gauge
-    - name: spec_strategy_rollingupdate_max_unavailable
-      help: Maximum number of unavailable replicas during a rolling update of a machinedeployment.
-      each:
-        gauge:
-          path:
-          - spec
-          - strategy
-          - rollingUpdate
-          - maxUnavailable
-        type: Gauge
-    - name: status_phase
-      help: The machinedeployments current phase.
-      each:
-        stateSet:
-          labelName: phase
-          list:
-          - ScalingUp
-          - ScalingDown
-          - Running
-          - Failed
-          - Unknown
-          path:
-          - status
-          - phase
-        type: StateSet
-    - name: status_replicas
-      help: The number of replicas per machinedeployment.
-      each:
-        gauge:
           path:
           - status
           - replicas
-          nilIsZero: true
+          valueFrom: null
         type: Gauge
-    - name: status_replicas_available
-      help: The number of available replicas per machinedeployment.
-      each:
+      help: The number of replicas per kubeadmcontrolplane.
+      name: status_replicas
+    - each:
         gauge:
-          path:
-          - status
-          - availableReplicas
           nilIsZero: true
-        type: Gauge
-    - name: status_replicas_ready
-      help: The number of ready replicas per machinedeployment.
-      each:
-        gauge:
           path:
           - status
           - readyReplicas
-          nilIsZero: true
+          valueFrom: null
         type: Gauge
-    - name: status_replicas_unavailable
-      help: The number of unavailable replicas per machinedeployment.
-      each:
+      help: The number of ready replicas per kubeadmcontrolplane.
+      name: status_replicas_ready
+    - each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - unavailableReplicas
-          nilIsZero: true
+          valueFrom: null
         type: Gauge
-    - name: status_replicas_updated
-      help: The number of updated replicas per machinedeployment.
-      each:
+      help: The number of unavailable replicas per kubeadmcontrolplane.
+      name: status_replicas_unavailable
+    - each:
         gauge:
+          nilIsZero: true
           path:
           - status
           - updatedReplicas
-          nilIsZero: true
+          valueFrom: null
         type: Gauge
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the machinedeployment is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
-          path:
-          - metadata
-          - annotations
-          - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
-        type: Info
-    - name: status_condition
-      help: The condition of a machinedeployment.
-      each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a machinedeployment.
-      each:
-        gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-  - groupVersionKind:
-      group: cluster.x-k8s.io
-      kind: MachineHealthCheck
-      version: v1beta1
-    labelsFromPath:
-      cluster_name:
-      - spec
-      - clusterName
-      name:
-      - metadata
-      - name
-      namespace:
-      - metadata
-      - namespace
-      uid:
-      - metadata
-      - uid
-    metricNamePrefix: capi_machinehealthcheck
-    metrics:
-    - name: info
-      help: Information about a machinehealthcheck.
-      each:
-        info:
-          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
-          labelsFromPath:
-            name:
-            - metadata
-            - name
-        type: Info
-    - name: status_current_healthy
-      help: Current number of healthy machines.
-      each:
-        gauge:
-          path:
-          - status
-          - currentHealthy
-        type: Gauge
-    - name: status_expected_machines
-      help: Total number of pods counted by this machinehealthcheck.
-      each:
-        gauge:
-          path:
-          - status
-          - expectedMachines
-        type: Gauge
-    - name: status_remediations_allowed
-      help: Number of machine remediations that are currently allowed.
-      each:
-        gauge:
-          path:
-          - status
-          - remediationsAllowed
-        type: Gauge
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the machinehealthcheck is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
-          path:
-          - metadata
-          - annotations
-          - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
-        type: Info
-    - name: status_condition
-      help: The condition of a machinehealthcheck.
-      each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a machinehealthcheck.
-      each:
-        gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-  - groupVersionKind:
-      group: cluster.x-k8s.io
-      kind: MachineSet
-      version: v1beta1
-    labelsFromPath:
-      cluster_name:
-      - spec
-      - clusterName
-      name:
-      - metadata
-      - name
-      namespace:
-      - metadata
-      - namespace
-      uid:
-      - metadata
-      - uid
-    metricNamePrefix: capi_machineset
-    metrics:
-    - name: info
-      help: Information about a machineset.
-      each:
-        info:
-          labelsFromPath:
-            version:
-            - spec
-            - template
-            - spec
-            - version
-            bootstrap_reference_kind:
-            - spec
-            - template
-            - spec
-            - bootstrap
-            - configRef
-            - kind
-            bootstrap_reference_name:
-            - spec
-            - template
-            - spec
-            - bootstrap
-            - configRef
-            - name
-            infrastructure_reference_kind:
-            - spec
-            - template
-            - spec
-            - infrastructureRef
-            - kind
-            infrastructure_reference_name:
-            - spec
-            - template
-            - spec
-            - infrastructureRef
-            - name
-        type: Info
-    - name: spec_replicas
-      help: The number of desired machines for a machineset.
-      each:
-        gauge:
-          path:
-          - spec
-          - replicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_available
-      help: The number of available replicas per machineset.
-      each:
-        gauge:
-          path:
-          - status
-          - availableReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_fully_labeled
-      help: The number of fully labeled replicas per machineset.
-      each:
-        gauge:
-          path:
-          - status
-          - fullyLabeledReplicas
-        type: Gauge
-    - name: status_replicas_ready
-      help: The number of ready replicas per machineset.
-      each:
-        gauge:
-          path:
-          - status
-          - readyReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas
-      help: The number of replicas per machineset.
-      each:
-        gauge:
-          path:
-          - status
-          - replicas
-          nilIsZero: true
-        type: Gauge
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the machineset is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
-          path:
-          - metadata
-          - annotations
-          - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
-        type: Info
-    - name: status_condition
-      help: The condition of a machineset.
-      each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a machineset.
-      each:
-        gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
-  - groupVersionKind:
-      group: cluster.x-k8s.io
-      kind: MachinePool
-      version: v1beta1
-    labelsFromPath:
-      cluster_name:
-      - spec
-      - clusterName
-      name:
-      - metadata
-      - name
-      namespace:
-      - metadata
-      - namespace
-      uid:
-      - metadata
-      - uid
-    metricNamePrefix: capi_machinepool
-    metrics:
-    - name: spec_replicas
-      help: The number of desired machines for a machinepool.
-      each:
-        gauge:
-          path:
-          - spec
-          - replicas
-        type: Gauge
-    - name: status_replicas
-      help: The number of replicas per machinepool.
-      each:
-        gauge:
-          path:
-          - status
-          - replicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_ready
-      help: The number of ready replicas per machinepool.
-      each:
-        gauge:
-          path:
-          - status
-          - readyReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_available
-      help: The number of available replicas per machinepool.
-      each:
-        gauge:
-          path:
-          - status
-          - availableReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: status_replicas_unavailable
-      help: The number of unavailable replicas per machinepool.
-      each:
-        gauge:
-          path:
-          - status
-          - unavailableReplicas
-          nilIsZero: true
-        type: Gauge
-    - name: info
-      each:
-        type: Info
-        info:
-          labelsFromPath:
-            infrastructure_reference_name:
-            - spec
-            - template
-            - spec
-            - infrastructureRef
-            - name
-            infrastructure_reference_kind:
-            - spec
-            - template
-            - spec
-            - infrastructureRef
-            - kind
-            bootstrap_configuration_reference_name:
-            - spec
-            - template
-            - spec
-            - bootstrap
-            - configRef
-            - name
-            bootstrap_configuration_reference_kind:
-            - spec
-            - template
-            - spec
-            - bootstrap
-            - configRef
-            - kind
-            failure_domain:
-            - spec
-            - template
-            - spec
-            - failureDomain
-            version:
-            - spec
-            - template
-            - spec
-            - version
-    - name: status_phase
-      help: The machinepools current phase.
-      each:
-        stateSet:
-          labelName: phase
-          list:
-          - ScalingUp
-          - ScalingDown
-          - Running
-          - Failed
-          - Unknown
-          path:
-          - status
-          - phase
-        type: StateSet
-    - name: created
-      help: Unix creation timestamp.
-      each:
-        gauge:
-          path:
-          - metadata
-          - creationTimestamp
-        type: Gauge
-    - name: annotation_paused
-      help: Whether the machinepool is paused and any of its resources will not be processed by the controllers.
-      each:
-        info:
-          path:
-          - metadata
-          - annotations
-          - cluster.x-k8s.io/paused
-          labelsFromPath:
-            paused_value: []
-        type: Info
-    - name: status_condition
-      help: The condition of a machinepool.
-      each:
-        stateSet:
-          labelName: status
-          labelsFromPath:
-            type:
-            - type
-          list:
-          - 'True'
-          - 'False'
-          - Unknown
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - status
-        type: StateSet
-    - name: status_condition_last_transition_time
-      help: The condition last transition time of a machinepool.
-      each:
-        gauge:
-          labelsFromPath:
-            type:
-            - type
-            status:
-            - status
-          path:
-          - status
-          - conditions
-          valueFrom:
-          - lastTransitionTime
-        type: Gauge
-    - name: owner
-      help: Owner references.
-      each:
-        info:
-          labelsFromPath:
-            owner_is_controller:
-            - controller
-            owner_kind:
-            - kind
-            owner_name:
-            - name
-            owner_uid:
-            - uid
-          path:
-          - metadata
-          - ownerReferences
-        type: Info
+      help: The number of updated replicas per kubeadmcontrolplane.
+      name: status_replicas_updated
+    resourcePlural: ""
+

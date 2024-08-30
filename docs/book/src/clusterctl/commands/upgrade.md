@@ -131,7 +131,7 @@ In this case, all the provider's versions must be explicitly stated.
 
 Use `clusterctl` CLI options to target the [desired version](https://github.com/kubernetes-sigs/cluster-api/releases).  
 
-The following shows an example of upgrading `bootrap`, `kubeadm` and `core` components to version `v1.6.0-rc.1`:
+The following shows an example of upgrading `bootstrap`, `kubeadm` and `core` components to version `v1.6.0-rc.1`:
 
 ```bash
 TARGET_VERSION=v1.6.0-rc.1
@@ -148,7 +148,7 @@ clusterctl upgrade apply \
 
 <h1> Deploying nightly release images </h1>
 
-Cluster API publishes nightly versions of the project components' manifests from the `main` branch to a Google storage bucket for user consumption. The syntax for the URL is: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_<YYYYMMDD>/<COMPENENT_NAME>-components.yaml`.
+Cluster API publishes nightly versions of the project components' manifests from the `main` branch to a Google storage bucket for user consumption. The syntax for the URL is: `https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_<YYYYMMDD>/<COMPONENT_NAME>-components.yaml`.
 
 Please note that these files are deleted after a certain period, at the time of this writing 60 days after file creation.
 

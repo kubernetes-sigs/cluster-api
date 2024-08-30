@@ -332,19 +332,19 @@ Notes:
 
 ##### Machine (New)Conditions
 
-| Condition              | Note                                                                                                                                                                                                                                                           |
-|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`            | True if at the machine is Ready for at least MinReady seconds, as defined by the Machine's minReadySeconds field                                                                                                                                               |
-| `Ready`                | True if the Machines is not deleted, Machine's `BootstrapConfigReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are true; if other conditions are defined in `spec.readinessGates`, these conditions must be true as well. |
-| `UpToDate`             | True if the Machine spec matches the spec of the Machine's owner resource, e.g KubeadmControlPlane or MachineDeployment                                                                                                                                        |
-| `BootstrapConfigReady` | Mirrors the corresponding `Ready` condition from the Machine's BootstrapConfig resource                                                                                                                                                                        |
-| `InfrastructureReady`  | Mirrors the corresponding `Ready` condition from the Machine's Infrastructure resource                                                                                                                                                                         |
-| `NodeHealthy`          | True if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure                                                                                                                                                        |
-| `NodeReady`            | True if the Machine's Node is ready                                                                                                                                                                                                                            |
-| `HealthCheckSucceeded` | True if MHC instances targeting this machine report the Machine is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object                                                                                         |
-| `OwnerRemediated`      |                                                                                                                                                                                                                                                                |
-| `Deleted`              | True if Machine is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                                    |
-| `Paused`               | True if the Machine or the Cluster it belongs to are paused                                                                                                                                                                                                    |
+| Condition              | Note                                                                                                                                                                                                                                                          |
+|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`            | True if at the machine is Ready for at least MinReady seconds, as defined by the Machine's minReadySeconds field                                                                                                                                              |
+| `Ready`                | True if the Machines is not deleted, Machine's `BootstrapConfigReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are true; if other conditions are defined in `spec.readinessGates`, these conditions must be true as well |
+| `UpToDate`             | True if the Machine spec matches the spec of the Machine's owner resource, e.g KubeadmControlPlane or MachineDeployment                                                                                                                                       |
+| `BootstrapConfigReady` | Mirrors the corresponding `Ready` condition from the Machine's BootstrapConfig resource                                                                                                                                                                       |
+| `InfrastructureReady`  | Mirrors the corresponding `Ready` condition from the Machine's Infrastructure resource                                                                                                                                                                        |
+| `NodeHealthy`          | True if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure                                                                                                                                                       |
+| `NodeReady`            | True if the Machine's Node is ready                                                                                                                                                                                                                           |
+| `HealthCheckSucceeded` | True if MHC instances targeting this machine report the Machine is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object                                                                                        |
+| `OwnerRemediated`      | True if MHC instances targeting this machine determine that the controller owning this machine should perform remediation                                                                                                                                     |
+| `Deleting`             | If Machine is deleted, this condition surfaces details about progress in the machine deletion workflow                                                                                                                                                        |
+| `Paused`               | True if the Machine or the Cluster it belongs to are paused                                                                                                                                                                                                   |
 
 > To better evaluate proposed changes, below you can find the list of current Machine's conditions:
 > Ready, InfrastructureReady, BootstrapReady, NodeHealthy, PreDrainDeleteHookSucceeded, VolumeDetachSucceeded, DrainingSucceeded.
@@ -514,27 +514,27 @@ Notes:
 
 #### MachineSet (New)Conditions
 
-| Condition       | Note                                                                                                           |
-|-----------------|----------------------------------------------------------------------------------------------------------------|
-| `MachinesReady` | This condition surfaces detail of issues on the controlled machines, if any.                                   |
-| `ScalingUp`     | True if available replicas < desired replicas                                                                  |
-| `ScalingDown`   | True if replicas > desired replicas                                                                            |
-| `UpToDate`      | True if all the Machines controlled by this MachineSet are up to date (replicas = upToDateReplicas)            |
-| `Remediating`   | True if there is at least one Machine controlled by this MachineSet that is not passing health checks          |
-| `Deleted`       | True if MachineSet is deleted; Reason can be used to observe the cleanup progress when the resource is deleted |
-| `Paused`        | True if this MachineSet or the Cluster it belongs to are paused                                                |
+| Condition          | Note                                                                                                        |
+|--------------------|-------------------------------------------------------------------------------------------------------------|
+| `MachinesReady`    | This condition surfaces detail of issues on the controlled machines, if any                                 |
+| `MachinesUpToDate` | This condition surfaces details of controlled machines not up to date, if any                               |
+| `ScalingUp`        | True if available replicas < desired replicas                                                               |
+| `ScalingDown`      | True if replicas > desired replicas                                                                         |
+| `Remediating`      | This condition surfaces details about ongoing remediation of the controlled machines, if any                |
+| `Deleting`         | If MachineSet is deleted, this condition surfaces details about ongoing deletion of the controlled machines | 
+| `Paused`           | True if this MachineSet or the Cluster it belongs to are paused                                             |
 
 > To better evaluate proposed changes, below you can find the list of current MachineSet's conditions:
 > Ready, MachinesCreated, Resized, MachinesReady.
 
 Notes:
-- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` are intended to provide visibility on the corresponding lifecycle operation.
+- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
   e.g. If the scaling down operation is being blocked by a machine having issues while deleting, this should surface with a reason/message in
   the `ScalingDown` condition.
 - MachineSet conditions are intentionally mostly consistent with MachineDeployment conditions to help users troubleshooting.
 - MachineSet is considered as a sort of implementation detail of MachineDeployments, so it doesn't have its own concept of availability.
   Similarly, this proposal is dropping the notion of MachineSet readiness because it is preferred to let users focus on Machines readiness.
-- When implementing this proposal `UpToDate` condition will be `false` for older MachineSet, `true` for the current MachineSet; 
+- When implementing this proposal `MachinesUpToDate` condition will be `false` for older MachineSet, `true` for the current MachineSet; 
   in the future this might change in case Cluster API will start supporting in-place upgrades.
 - `Remediating` for older MachineSets will report that remediation will happen as part of the regular rollout (Cluster API
   does not remediate Machines on old MachineSets, because those Machines are already scheduled for deletion).
@@ -622,22 +622,22 @@ Notes:
 
 #### MachineDeployment (New)Conditions
 
-| Condition       | Note                                                                                                                                                                                                                                                   |
-|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`     | True if the MachineDeployment has minimum availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy, availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas |
-| `MachinesReady` | This condition surfaces detail of issues on the controlled machines, if any.                                                                                                                                                                           |
-| `ScalingUp`     | True if available replicas < desired replicas                                                                                                                                                                                                          |
-| `ScalingDown`   | True if replicas > desired replicas                                                                                                                                                                                                                    |
-| `UpToDate`      | True if all the Machines controlled by this MachineDeployment are up to date (replicas = upToDateReplicas)                                                                                                                                             |
-| `Remediating`   | True if there is at least one Machine controlled by this MachineDeployment that is not passing health checks                                                                                                                                           |
-| `Deleted`       | True if MachineDeployment is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                  |
-| `Paused`        | True if this MachineDeployment or the Cluster it belongs to are paused                                                                                                                                                                                 |
+| Condition          | Note                                                                                                                                                                                                                                                   |
+|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`        | True if the MachineDeployment has minimum availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy, availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas |
+| `MachinesReady`    | This condition surfaces detail of issues on the controlled machines, if any                                                                                                                                                                            |
+| `MachinesUpToDate` | This condition surfaces details of controlled machines not up to date, if any                                                                                                                                                                          |
+| `ScalingUp`        | True if available replicas < desired replicas                                                                                                                                                                                                          |
+| `ScalingDown`      | True if replicas > desired replicas                                                                                                                                                                                                                    |
+| `Remediating`      | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                           |
+| `Deleting`         | If MachineDeployment is deleted, this condition surfaces details about ongoing deletion of the controlled machines                                                                                                                                     |
+| `Paused`           | True if this MachineDeployment or the Cluster it belongs to are paused                                                                                                                                                                                 |
 
 > To better evaluate proposed changes, below you can find the list of current MachineDeployment's conditions:
 > Ready, Available.
 
 Notes:
-- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` are intended to provide visibility on the corresponding lifecycle operation.
+- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
   e.g. If the scaling down operation is being blocked by a machine having issues while deleting, this should surface as a reason/message in
   the `ScalingDown` condition.
 
@@ -803,27 +803,28 @@ notes:
 
 ##### Cluster (New)Conditions
 
-| Condition                 | Note                                                                                                                                                                                                                                                                                                                               |
-|---------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`               | True if Cluster `RemoteConnectionProbe` is true, if Cluster's control plane `Available` condition is true, if all MachineDeployment and MachinePool's `Available` conditions are true, if `TopologyReconciled` is true (if present); if conditions are defined in `spec.availabilityGates`, those conditions must be true as well. |
-| `ControlPlaneInitialized` | True when the Cluster's control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists.                                                            |
-| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 40s after the first connection problem is detected (or whatever period is defined in the `--remote-connection-grace-period` flag)                                               |
-| `InfrastructureReady`     | Mirror of Cluster's infrastructure `Ready` condition                                                                                                                                                                                                                                                                               |
-| `ControlPlaneAvailable`   | Mirror of Cluster's control plane `Available` condition                                                                                                                                                                                                                                                                            |
-| `WorkersAvailable`        | Summary of MachineDeployment and MachinePool's `Available` conditions                                                                                                                                                                                                                                                              |
-| `TopologyReconciled`      | True if the topoology controller is working properly                                                                                                                                                                                                                                                                               |
-| `ScalingUp`               | True if available replicas < desired replicas                                                                                                                                                                                                                                                                                      |
-| `ScalingDown`             | True if replicas > desired replicas                                                                                                                                                                                                                                                                                                |
-| `UpToDate`                | True if all the Machines controlled by this Cluster are up to date (replicas = upToDateReplicas)                                                                                                                                                                                                                                   |
-| `Remediating`             | True if there is at least one Machine controlled by this Cluster that is not passing health checks                                                                                                                                                                                                                                 |
-| `Deleted`                 | True if Cluster is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                                                                                                        |
-| `Paused`                  | True if Cluster and all the resources being part of it are paused                                                                                                                                                                                                                                                                  |
+| Condition                 | Note                                                                                                                                                                                                                                                                                                                              |
+|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`               | True if Cluster `RemoteConnectionProbe` is true, if Cluster's control plane `Available` condition is true, if all MachineDeployment and MachinePool's `Available` conditions are true, if `TopologyReconciled` is true (if present); if conditions are defined in `spec.availabilityGates`, those conditions must be true as well |
+| `TopologyReconciled`      | True if the topology controller is working properly                                                                                                                                                                                                                                                                               |
+| `InfrastructureReady`     | Mirror of Cluster's infrastructure `Ready` condition                                                                                                                                                                                                                                                                              |
+| `ControlPlaneInitialized` | True when the Cluster's control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists                                                            |
+| `ControlPlaneAvailable`   | Mirror of Cluster's control plane `Available` condition                                                                                                                                                                                                                                                                           |
+| `WorkersAvailable`        | Summary of MachineDeployment and MachinePool's `Available` conditions                                                                                                                                                                                                                                                             |
+| `MachinesReady`           | This condition surfaces detail of issues on the controlled machines, if any                                                                                                                                                                                                                                                       |
+| `MachinesUpToDate`        | This condition surfaces details of Cluster's machines not up to date, if any                                                                                                                                                                                                                                                      |
+| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 40s after the first connection problem is detected (or whatever period is defined in the `--remote-connection-grace-period` flag)                                              |
+| `ScalingUp`               | True if available replicas < desired replicas                                                                                                                                                                                                                                                                                     |
+| `ScalingDown`             | True if replicas > desired replicas                                                                                                                                                                                                                                                                                               |
+| `Remediating`             | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                                                                                                      |
+| `Deleting`                | If Cluster is deleted, this condition surfaces details about ongoing deletion of the controlled machines                                                                                                                                                                                                                          |
+| `Paused`                  | True if Cluster and all the resources being part of it are paused                                                                                                                                                                                                                                                                 |
 
 > To better evaluate proposed changes, below you can find the list of current Cluster's conditions:
 > Ready, InfrastructureReady, ControlPlaneReady, ControlPlaneInitialized, TopologyReconciled
 
 Notes:
-- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` are intended to provide visibility on the corresponding lifecycle operation.
+- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
   e.g. If the scaling down operation is being blocked by a Machine having issues while deleting, this should surface as a reason/message in
   the `ScalingDown` condition.
 - `TopologyReconciled` exists only for classy clusters; this condition is managed by the topology reconciler.
@@ -964,25 +965,25 @@ TODO: double check usages of status.ready.
 
 #### KubeadmControlPlane (New)Conditions
 
-| Condition               | Note                                                                                                                                                                                                                                                                      |
-|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`             | True if the control plane can be reached, `EtcdClusterAvailable` is true, and `CertificatesAvailable` is true                                                                                                                                                             |
-| `CertificatesAvailable` | True if all the cluster certificates exist.                                                                                                                                                                                                                               |
-| `EtcdClusterAvailable`  | This condition surfaces issues to the managed etcd cluster, if any. It is computed as aggregation of Machines's `EtcdMemberHealthy` (if not using an external etcd) conditions plus additional checks validating potential issues to etcd quorum                          |
-| `MachinesReady`         | This condition surfaces detail of issues on the controlled machines, if any. Please note this will include also `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, and if not using an external etcd also `EtcdPodHealthy`, `EtcdMemberHealthy` |
-| `ScalingUp`             | True if available replicas < desired replicas                                                                                                                                                                                                                             |
-| `ScalingDown`           | True if replicas > desired replicas                                                                                                                                                                                                                                       |
-| `UpToDate`              | True if all the Machines controlled by this ControlPlane are up to date                                                                                                                                                                                                   |
-| `Remediating`           | True if there is at least one Machine controlled by this KubeadmControlPlane that is not passing health checks                                                                                                                                                            |
-| `Deleted`               | True if KubeadmControlPlane is deleted; Reason can be used to observe the cleanup progress when the resource is deleted                                                                                                                                                   |
-| `Paused`                | True if this resource or the Cluster it belongs to are paused                                                                                                                                                                                                             |
+| Condition               | Note                                                                                                                                                                                                                                                                     |
+|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`             | True if the control plane can be reached, `EtcdClusterAvailable` is true, and `CertificatesAvailable` is true                                                                                                                                                            |
+| `CertificatesAvailable` | True if all the cluster certificates exist.                                                                                                                                                                                                                              |
+| `EtcdClusterAvailable`  | This condition surfaces issues to the managed etcd cluster, if any It is computed as aggregation of Machines's `EtcdMemberHealthy` (if not using an external etcd) conditions plus additional checks validating potential issues to etcd quorum                          |
+| `MachinesReady`         | This condition surfaces detail of issues on the controlled machines, if any Please note this will include also `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, and if not using an external etcd also `EtcdPodHealthy`, `EtcdMemberHealthy` |
+| `MachinesUpToDate`      | This condition surfaces details of controlled machines not up to date, if any                                                                                                                                                                                            |
+| `ScalingUp`             | True if available replicas < desired replicas                                                                                                                                                                                                                            |
+| `ScalingDown`           | True if replicas > desired replicas                                                                                                                                                                                                                                      |
+| `Remediating`           | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                                             |
+| `Deleting`              | If KubeadmControlPlane is deleted, this condition surfaces details about ongoing deletion of the controlled machines                                                                                                                                                     |
+| `Paused`                | True if this resource or the Cluster it belongs to are paused                                                                                                                                                                                                            |
 
 > To better evaluate proposed changes, below you can find the list of current KubeadmControlPlane's conditions:
 > Ready, CertificatesAvailable, MachinesCreated, Available, MachinesSpecUpToDate, Resized, MachinesReady,
 > ControlPlaneComponentsHealthy, EtcdClusterHealthy.
 
 Notes:
-- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` are intended to provide visibility on the corresponding lifecycle operation.
+- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
   e.g. If the scaling down operation is being blocked by a Machine having issues while deleting, this should surface as a reason/message in
   the `ScalingDown` condition.
 - The KubeadmControlPlane controller is going to add `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`,
@@ -1100,24 +1101,24 @@ Notes:
 
 ##### MachinePool (New)Conditions
 
-| Condition              | Note                                                                                                            |
-|------------------------|-----------------------------------------------------------------------------------------------------------------|
-| `Available`            | True when `InfrastructureReady` and available replicas >= desired replicas (see notes below)                    |
-| `BootstrapConfigReady` | Mirrors the corresponding condition from the MachinePool's BootstrapConfig resource                             |
-| `InfrastructureReady`  | Mirrors the corresponding condition from the MachinePool's Infrastructure resource                              |
-| `MachinesReady`        | This condition surfaces detail of issues on the controlled machines, if any.                                    |
-| `ScalingUp`            | True if available replicas < desired replicas                                                                   |
-| `ScalingDown`          | True if replicas > desired replicas                                                                             |
-| `UpToDate`             | True if all the Machines controlled by this MachinePool are up to date (replicas = upToDateReplicas)            |
-| `Remediating`          | True if there is at least one Machine controlled by this MachinePool that is not passing health checks          |
-| `Deleted`              | True if MachinePool is deleted; Reason can be used to observe the cleanup progress when the resource is deleted |
-| `Paused`               | True if this MachinePool or the Cluster it belongs to are paused                                                |
+| Condition              | Note                                                                                                         |
+|------------------------|--------------------------------------------------------------------------------------------------------------|
+| `Available`            | True when `InfrastructureReady` and available replicas >= desired replicas (see notes below)                 |
+| `BootstrapConfigReady` | Mirrors the corresponding condition from the MachinePool's BootstrapConfig resource                          |
+| `InfrastructureReady`  | Mirrors the corresponding condition from the MachinePool's Infrastructure resource                           |
+| `MachinesReady`        | This condition surfaces detail of issues on the controlled machines, if any                                  |
+| `MachinesUpToDate`     | This condition surfaces details of controlled machines not up to date, if any                                |
+| `ScalingUp`            | True if available replicas < desired replicas                                                                |
+| `ScalingDown`          | True if replicas > desired replicas                                                                          |
+| `Remediating`          | This condition surfaces details about ongoing remediation of the controlled machines, if any                 |
+| `Deleting`             | If MachinePool is deleted, this condition surfaces details about ongoing deletion of the controlled machines |
+| `Paused`               | True if this MachinePool or the Cluster it belongs to are paused                                             |
 
 > To better evaluate proposed changes, below you can find the list of current MachinePool's conditions:
 > Ready, BootstrapReady, InfrastructureReady, ReplicasReady.
 
 Notes:
-- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` are intended to provide visibility on the corresponding lifecycle operation.
+- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
   e.g. If the scaling down operation is being blocked by a Machine having issues while deleting, this should surface with a reason/message in
   the `ScalingDown` condition.
 - As of today MachinePool does not have a notion similar to MachineDeployment's MaxUnavailability.

@@ -618,18 +618,12 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/clusterclass-quick-start-kcp-only.yaml
 
 .PHONY: generate-metrics-config
-generate-metrics-config: ## Generate ./config/metrics/crd-metrics-config.yaml
-	OUTPUT_FILE="./config/metrics/crd-metrics-config.yaml"; \
-	METRIC_TEMPLATES_DIR="./config/metrics/templates"; \
-	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
-	cat "$${METRIC_TEMPLATES_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
-	for resource in clusterclass cluster kubeadmcontrolplane kubeadmconfig machine machinedeployment machinehealthcheck machineset machinepool; do \
-		cat "$${METRIC_TEMPLATES_DIR}/$${resource}.yaml"; \
-		sed 's/$${RESOURCE}/'$${resource}'/g' "$${METRIC_TEMPLATES_DIR}/common_metrics.yaml"; \
-		if [[ "$${resource}" != "cluster" ]]; then \
-			cat "$${METRIC_TEMPLATES_DIR}/owner_metric.yaml"; \
-		fi \
-	done >> "$${OUTPUT_FILE}"; \
+generate-metrics-config: $(CONTROLLER_GEN) ## Generate ./config/metrics/crd-metrics-config.yaml
+	$(CONTROLLER_GEN) metrics output:metrics:dir=./config/metrics \
+		paths=./api/... \
+		paths=./controlplane/kubeadm/api/... \
+		paths=./bootstrap/kubeadm/api/... \
+		paths=./exp/api/...
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files

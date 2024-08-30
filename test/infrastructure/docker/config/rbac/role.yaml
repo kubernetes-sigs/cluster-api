@@ -62,8 +62,11 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - dockerclusters/finalizers
   - dockerclusters/status
+  - dockermachinepools/finalizers
   - dockermachinepools/status
+  - dockermachines/finalizers
   - dockermachines/status
   verbs:
   - get

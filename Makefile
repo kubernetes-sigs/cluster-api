@@ -69,6 +69,7 @@ CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 CAPIM_DIR := $(TEST_DIR)/infrastructure/inmemory
 TEST_EXTENSION_DIR := $(TEST_DIR)/extension
 GO_INSTALL := ./scripts/go_install.sh
+GO_INSTALL_FORK := ./scripts/go_install_fork.sh
 OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -111,10 +112,11 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.18.0
+CONTROLLER_GEN_VER := fb8e57da18d1a7e2faa074a3835f8326e9b64f75
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
+CONTROLLER_GEN_PKG_REPLACE := sigs.k8s.io/controller-tools=github.com/chrischdi/controller-tools
 
 GOTESTSUM_VER := v1.12.3
 GOTESTSUM_BIN := gotestsum
@@ -1447,7 +1449,7 @@ $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 $(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+	GOTOOLCHAIN=go1.24.1 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL_FORK) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER) $(CONTROLLER_GEN_PKG_REPLACE)
 
 ## We are forcing a rebuilt of conversion-gen via PHONY so that we're always using an up-to-date version.
 ## We can't use a versioned name for the binary, because that would be reflected in generated files.

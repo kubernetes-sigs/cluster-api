@@ -141,6 +141,9 @@ func validateKubeadmControlPlaneTemplateResourceSpec(s controlplanev1.KubeadmCon
 
 	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
 	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, nil, pathPrefix.Child("rolloutStrategy"))...)
+	if s.MachineNamingStrategy != nil {
+		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)
+	}
 
 	if s.MachineTemplate != nil {
 		// Validate the metadata of the MachineTemplate

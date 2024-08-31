@@ -123,6 +123,11 @@ type KubeadmControlPlaneSpec struct {
 	// The RemediationStrategy that controls how control plane machine remediation happens.
 	// +optional
 	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
+
+	// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
+	// +optional
+	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 }
 
 // KubeadmControlPlaneMachineTemplate defines the template for Machines
@@ -232,6 +237,23 @@ type RemediationStrategy struct {
 	// If not set, this value is defaulted to 1h.
 	// +optional
 	MinHealthyPeriod *metav1.Duration `json:"minHealthyPeriod,omitempty"`
+}
+
+// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
+type MachineNamingStrategy struct {
+	// Template defines the template to use for generating the names of the Machine objects.
+	// If not defined, it will fallback to `{{ .kubeadmControlPlane.name }}-{{ .random }}`.
+	// If the generated name string exceeds 63 characters, it will be trimmed to 58 characters and will
+	// get concatenated with a random suffix of length 5.
+	// Length of the template string must not exceed 256 characters.
+	// The template allows the following variables `.cluster.name`, `.kubeadmControlPlane.name` and `.random`.
+	// The variable `.cluster.name` retrieves the name of the cluster object that owns the Machines being created.
+	// The variable `.kubeadmControlPlane.name` retrieves the name of the KubeadmControlPlane object that owns the Machines being created.
+	// The variable `.random` is substituted with random alphanumeric string, without vowels, of length 5.
+	// +optional
+	// +kubebuilder:validation:MaxLength=256
+	Template string `json:"template,omitempty"`
 }
 
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.

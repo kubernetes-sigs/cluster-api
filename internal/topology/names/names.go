@@ -86,6 +86,12 @@ func MachinePoolNameGenerator(templateString, clusterName, topologyName string) 
 		})
 }
 
+// KCPMachineNameGenerator returns a generator for creating a kcp machine name.
+func KCPMachineNameGenerator(templateString, clusterName, kubeadmControlPlaneName string) NameGenerator {
+	return newTemplateGeneratorWithKCP(templateString, clusterName, kubeadmControlPlaneName,
+		map[string]interface{}{})
+}
+
 // templateGenerator parses the template string as text/template and executes it using
 // the passed data to generate a name.
 type templateGenerator struct {
@@ -96,6 +102,21 @@ type templateGenerator struct {
 func newTemplateGenerator(template, clusterName string, data map[string]interface{}) NameGenerator {
 	data["cluster"] = map[string]interface{}{
 		"name": clusterName,
+	}
+	data["random"] = utilrand.String(randomLength)
+
+	return &templateGenerator{
+		template: template,
+		data:     data,
+	}
+}
+
+func newTemplateGeneratorWithKCP(template, clusterName string, kubeadmControlPlaneName string, data map[string]interface{}) NameGenerator {
+	data["cluster"] = map[string]interface{}{
+		"name": clusterName,
+	}
+	data["kubeadmcontrolplane"] = map[string]interface{}{
+		"name": kubeadmControlPlaneName,
 	}
 	data["random"] = utilrand.String(randomLength)
 

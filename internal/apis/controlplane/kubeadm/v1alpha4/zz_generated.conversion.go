@@ -317,6 +317,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlane
 	out.RolloutAfter = (*v1.Time)(unsafe.Pointer(in.RolloutAfter))
 	out.RolloutStrategy = (*RolloutStrategy)(unsafe.Pointer(in.RolloutStrategy))
 	// WARNING: in.RemediationStrategy requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	return nil
 }
 

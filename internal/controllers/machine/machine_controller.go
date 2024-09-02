@@ -29,11 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
-	kubedrain "k8s.io/kubectl/pkg/drain"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -55,6 +53,10 @@ import (
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+)
+
+const (
+	drainRetryInterval = time.Duration(20) * time.Second
 )
 
 var (
@@ -83,9 +85,6 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	// NodeDrainClientTimeout timeout of the client used for draining nodes.
-	NodeDrainClientTimeout time.Duration
-
 	controller      controller.Controller
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -94,6 +93,7 @@ type Reconciler struct {
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
 	ssaCache                 ssa.Cache
+	drainCache               drain.Cache
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -151,6 +151,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Cache:      mgr.GetCache(),
 	}
 	r.ssaCache = ssa.NewCache()
+	r.drainCache = drain.NewCache()
 	return nil
 }
 
@@ -377,7 +378,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				return ctrl.Result{}, err
 			}
 
-			log.Info("Draining node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 			// The DrainingSucceededCondition never exists before the node is drained for the first time,
 			// so its transition time can be used to record the first time draining.
 			// This `if` condition prevents the transition time to be changed more than once.
@@ -389,12 +389,15 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
 			}
 
-			if result, err := r.drainNode(ctx, cluster, m.Status.NodeRef.Name); !result.IsZero() || err != nil {
-				if err != nil {
-					conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
-				}
-				return result, err
+			result, err := r.drainNode(ctx, cluster, m, m.Status.NodeRef.Name)
+			if err != nil {
+				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
+				return ctrl.Result{}, err
+			}
+			if !result.IsZero() {
+				// Note: For non-error cases where the drain is not completed yet the DrainingSucceeded condition is updated in drainNode.
+				return result, nil
 			}
 
 			conditions.MarkTrue(m, clusterv1.DrainingSucceededCondition)
@@ -417,7 +420,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedWaitForVolumeDetach", "error waiting for node volumes detaching, Machine's node %q: %v", m.Status.NodeRef.Name, err)
 					return ctrl.Result{}, err
 				}
-				log.Info("Waiting for node volumes to be detached", "Node", klog.KRef("", m.Status.NodeRef.Name))
 				return ctrl.Result{}, nil
 			}
 			conditions.MarkTrue(m, clusterv1.VolumeDetachSucceededCondition)
@@ -643,10 +645,11 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 	return nil
 }
 
-func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
+func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, nodeName string) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
+	ctx = ctrl.LoggerInto(ctx, log)
 
-	restConfig, err := r.Tracker.GetRESTConfig(ctx, util.ObjectKey(cluster))
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		if errors.Is(err, remote.ErrClusterLocked) {
 			log.V(5).Info("Requeuing drain Node because another worker has the lock on the ClusterCacheTracker")
@@ -655,46 +658,20 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 		log.Error(err, "Error creating a remote client for cluster while draining Node, won't retry")
 		return ctrl.Result{}, nil
 	}
-	restConfig = rest.CopyConfig(restConfig)
-	restConfig.Timeout = r.NodeDrainClientTimeout
-	kubeClient, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
-		return ctrl.Result{}, nil
-	}
 
-	node, err := kubeClient.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
-	if err != nil {
+	node := &corev1.Node{}
+	if err := remoteClient.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
 			log.Error(err, "Could not find node from noderef, it may have already been deleted")
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, errors.Wrapf(err, "unable to get node %v", nodeName)
+		return ctrl.Result{}, errors.Wrapf(err, "unable to get Node %s", nodeName)
 	}
 
-	drainer := &kubedrain.Helper{
-		Client:              kubeClient,
-		Ctx:                 ctx,
-		Force:               true,
-		IgnoreAllDaemonSets: true,
-		DeleteEmptyDirData:  true,
-		GracePeriodSeconds:  -1,
-		// If a pod is not evicted in 20 seconds, retry the eviction next time the
-		// machine gets reconciled again (to allow other machines to be reconciled).
-		Timeout: 20 * time.Second,
-		OnPodDeletedOrEvicted: func(pod *corev1.Pod, usingEviction bool) {
-			verbStr := "Deleted"
-			if usingEviction {
-				verbStr = "Evicted"
-			}
-			log.Info(fmt.Sprintf("%s pod from Node", verbStr),
-				"Pod", klog.KObj(pod))
-		},
-		Out: writer{log.Info},
-		ErrOut: writer{func(msg string, keysAndValues ...interface{}) {
-			log.Error(nil, msg, keysAndValues...)
-		}},
+	drainer := &drain.Helper{
+		Client:             remoteClient,
+		GracePeriodSeconds: -1,
 	}
 
 	if noderefutil.IsNodeUnreachable(node) {
@@ -709,23 +686,70 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 		// Override the grace period of pods to reduce the time needed to skip them.
 		drainer.GracePeriodSeconds = 1
 
-		log.V(5).Info("Node is unreachable, draining will ignore gracePeriod. PDBs are still honored.")
+		log.V(3).Info("Node is unreachable, draining will use 1s GracePeriodSeconds and will ignore all Pods that have a deletionTimestamp > 1s old. PDBs are still honored.")
 	}
 
-	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {
+	if err := drainer.CordonNode(ctx, node); err != nil {
 		// Machine will be re-reconciled after a cordon failure.
-		log.Error(err, "Cordon failed")
-		return ctrl.Result{}, errors.Wrapf(err, "unable to cordon node %v", node.Name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to cordon Node %s", node.Name)
 	}
 
-	if err := kubedrain.RunNodeDrain(drainer, node.Name); err != nil {
-		// Machine will be re-reconciled after a drain failure.
-		log.Error(err, "Drain failed, retry in 20s")
-		return ctrl.Result{RequeueAfter: 20 * time.Second}, nil
+	podDeleteList, err := drainer.GetPodsForEviction(ctx, nodeName)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	log.Info("Drain successful")
-	return ctrl.Result{}, nil
+	podsToBeDrained := podDeleteList.Pods()
+
+	if len(podsToBeDrained) == 0 {
+		log.Info("Drain completed, no Pods to drain on the Node")
+		return ctrl.Result{}, nil
+	}
+
+	// Check drain cache to ensure we won't retry drain before drainRetryInterval.
+	// Note: This is intentionally only done if we have Pods to evict, because otherwise
+	// even the "no-op" drain would be requeued.
+	if cacheEntry, ok := r.drainCache.Has(client.ObjectKeyFromObject(machine)); ok {
+		if requeueAfter, requeue := shouldRequeueDrain(time.Now(), cacheEntry.LastDrain); requeue {
+			log.Info(fmt.Sprintf("Requeuing in %s because there already was a drain in the last %s", requeueAfter, drainRetryInterval))
+			return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		}
+	}
+
+	log.Info("Draining Node")
+
+	evictionResult := drainer.EvictPods(ctx, podDeleteList)
+
+	// Add entry to the drain cache so we won't retry drain before drainRetryInterval.
+	r.drainCache.Add(drain.CacheEntry{
+		Machine:   client.ObjectKeyFromObject(machine),
+		LastDrain: time.Now(),
+	})
+
+	if evictionResult.DrainCompleted() {
+		log.Info("Drain completed, remaining Pods on the Node have been evicted")
+		return ctrl.Result{}, nil
+	}
+
+	conditions.MarkFalse(machine, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, evictionResult.ConditionMessage())
+	podsFailedEviction := []*corev1.Pod{}
+	for _, p := range evictionResult.PodsFailedEviction {
+		podsFailedEviction = append(podsFailedEviction, p...)
+	}
+	log.Info(fmt.Sprintf("Drain not completed yet, requeuing in %s", drainRetryInterval),
+		"podsFailedEviction", drain.PodListToString(podsFailedEviction, 5),
+		"podsWithDeletionTimestamp", drain.PodListToString(evictionResult.PodsDeletionTimestampSet, 5),
+	)
+	return ctrl.Result{RequeueAfter: drainRetryInterval}, nil
+}
+
+func shouldRequeueDrain(now time.Time, lastDrain time.Time) (time.Duration, bool) {
+	timeSinceLastDrain := now.Sub(lastDrain)
+	if timeSinceLastDrain < drainRetryInterval {
+		return drainRetryInterval - timeSinceLastDrain, true
+	}
+
+	return time.Duration(0), false
 }
 
 // shouldWaitForNodeVolumes returns true if node status still have volumes attached and the node is reachable
@@ -735,6 +759,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 // so after node draining we need to check if all volumes are detached before deleting the node.
 func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
@@ -754,11 +779,16 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 		// If a node is unreachable, we can't detach the volume.
 		// We need to skip the detachment as we otherwise block deletions
 		// of unreachable nodes when a volume is attached.
-		log.Info("Skipping volume detachment as node is unreachable.")
+		log.Info("Node is unreachable, skip waiting for volume detachment.")
 		return false, nil
 	}
 
-	return len(node.Status.VolumesAttached) != 0, nil
+	if len(node.Status.VolumesAttached) != 0 {
+		log.Info("Waiting for Node volumes to be detached")
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
@@ -960,15 +990,4 @@ func (r *Reconciler) nodeToMachine(ctx context.Context, o client.Object) []recon
 	}
 
 	return nil
-}
-
-// writer implements io.Writer interface as a pass-through for klog.
-type writer struct {
-	logFunc func(msg string, keysAndValues ...interface{})
-}
-
-// Write passes string(p) into writer's logFunc and always returns len(p).
-func (w writer) Write(p []byte) (n int, err error) {
-	w.logFunc(string(p))
-	return len(p), nil
 }

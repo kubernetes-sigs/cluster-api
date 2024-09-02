@@ -19,7 +19,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -27,6 +26,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,7 +116,6 @@ var (
 	machinePoolConcurrency          int
 	clusterResourceSetConcurrency   int
 	machineHealthCheckConcurrency   int
-	nodeDrainClientTimeout          time.Duration
 	useDeprecatedInfraMachineNaming bool
 )
 
@@ -220,9 +219,6 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
 
-	fs.DurationVar(&nodeDrainClientTimeout, "node-drain-client-timeout-duration", time.Second*10,
-		"The timeout of the client used for draining nodes. Defaults to 10s")
-
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
 
@@ -274,11 +270,6 @@ func main() {
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
-
-	if nodeDrainClientTimeout <= 0 {
-		setupLog.Error(errors.New("node drain client timeout must be greater than zero"), "unable to start manager")
-		os.Exit(1)
-	}
 
 	minVer := version.MinimumKubernetesVersion
 	if feature.Gates.Enabled(feature.ClusterTopology) {
@@ -414,9 +405,17 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 			SecretCachingClient: secretCachingClient,
 			ControllerName:      controllerName,
 			Log:                 &ctrl.Log,
-			Indexes:             []remote.Index{remote.NodeProviderIDIndex},
-			ClientQPS:           clusterCacheTrackerClientQPS,
-			ClientBurst:         clusterCacheTrackerClientBurst,
+			ClientUncachedObjects: []client.Object{
+				// Don't cache ConfigMaps & Secrets.
+				&corev1.ConfigMap{},
+				&corev1.Secret{},
+				// Don't cache Pods & DaemonSets (we get/list them e.g. during drain).
+				&corev1.Pod{},
+				&appsv1.DaemonSet{},
+			},
+			Indexes:     []remote.Index{remote.NodeProviderIDIndex},
+			ClientQPS:   clusterCacheTrackerClientQPS,
+			ClientBurst: clusterCacheTrackerClientBurst,
 		},
 	)
 	if err != nil {
@@ -534,11 +533,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
-		Client:                 mgr.GetClient(),
-		APIReader:              mgr.GetAPIReader(),
-		Tracker:                tracker,
-		WatchFilterValue:       watchFilterValue,
-		NodeDrainClientTimeout: nodeDrainClientTimeout,
+		Client:           mgr.GetClient(),
+		APIReader:        mgr.GetAPIReader(),
+		Tracker:          tracker,
+		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)

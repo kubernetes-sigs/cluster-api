@@ -26,7 +26,9 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
@@ -37,6 +39,7 @@ const defaultTimeout = 10 * time.Second
 type Dialer struct {
 	proxy          Proxy
 	clientset      *kubernetes.Clientset
+	restConfig     *rest.Config
 	proxyTransport http.RoundTripper
 	upgrader       spdy.Upgrader
 	timeout        time.Duration
@@ -74,6 +77,7 @@ func NewDialer(p Proxy, options ...func(*Dialer) error) (*Dialer, error) {
 	dialer.proxyTransport = proxyTransport
 	dialer.upgrader = upgrader
 	dialer.clientset = clientset
+	dialer.restConfig = p.KubeConfig
 	return dialer, nil
 }
 
@@ -92,7 +96,17 @@ func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn
 		Name(addr).
 		SubResource("portforward")
 
-	dialer := spdy.NewDialer(d.upgrader, &http.Client{Transport: d.proxyTransport}, "POST", req.URL())
+	spdyDialer := spdy.NewDialer(d.upgrader, &http.Client{Transport: d.proxyTransport}, "POST", req.URL())
+
+	websocketDialer, err := portforward.NewSPDYOverWebsocketDialer(req.URL(), d.restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// First attempt tunneling (websocket) dialer, then fallback to spdy dialer.
+	dialer := portforward.NewFallbackDialer(websocketDialer, spdyDialer, func(err error) bool {
+		return httpstream.IsUpgradeFailure(err) || httpstream.IsHTTPSProxyError(err)
+	})
 
 	// Create a new connection from the dialer.
 	//

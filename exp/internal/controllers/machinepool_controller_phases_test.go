@@ -1322,20 +1322,20 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		cluster := builder.Cluster(ns.Name, clusterName).Build()
-		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
 
 		t.Run("Should do nothing if machines already exist", func(*testing.T) {
 			machinePool := getMachinePool(2, "machinepool-test-1", clusterName, ns.Name)
-			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, &machinePool)).To(Succeed())
 
 			infraMachines := getInfraMachines(2, machinePool.Name, clusterName, ns.Name)
 			for i := range infraMachines {
-				g.Expect(env.Create(ctx, &infraMachines[i])).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, &infraMachines[i])).To(Succeed())
 			}
 
 			machines := getMachines(2, machinePool.Name, clusterName, ns.Name)
 			for i := range machines {
-				g.Expect(env.Create(ctx, &machines[i])).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, &machines[i])).To(Succeed())
 			}
 
 			infraConfig := map[string]interface{}{
@@ -1365,7 +1365,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					"infrastructureMachineKind": builder.GenericInfrastructureMachineKind,
 				},
 			}
-			g.Expect(env.Create(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
 
 			r := &MachinePoolReconciler{
 				Client:   env,
@@ -1394,11 +1394,11 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 
 		t.Run("Should create two machines if two infra machines exist", func(*testing.T) {
 			machinePool := getMachinePool(2, "machinepool-test-2", clusterName, ns.Name)
-			g.Expect(env.Create(ctx, &machinePool)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, &machinePool)).To(Succeed())
 
 			infraMachines := getInfraMachines(2, machinePool.Name, clusterName, ns.Name)
 			for i := range infraMachines {
-				g.Expect(env.Create(ctx, &infraMachines[i])).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, &infraMachines[i])).To(Succeed())
 			}
 
 			infraConfig := map[string]interface{}{
@@ -1428,7 +1428,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					"infrastructureMachineKind": builder.GenericInfrastructureMachineKind,
 				},
 			}
-			g.Expect(env.Create(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
 
 			r := &MachinePoolReconciler{
 				Client:   env,
@@ -1487,7 +1487,7 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 					},
 				},
 			}
-			g.Expect(env.Create(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, &unstructured.Unstructured{Object: infraConfig})).To(Succeed())
 
 			r := &MachinePoolReconciler{
 				Client:   env,

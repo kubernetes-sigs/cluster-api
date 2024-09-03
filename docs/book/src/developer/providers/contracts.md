@@ -6,7 +6,7 @@ Cluster API defines the following contracts:
 
 - [Infrastructure provider contract](./cluster-infrastructure.md)
 - [Bootstrap provider contract](./bootstrap.md)
-- [Control Plane provider contract](../../developer/architecture/controllers/control-plane.md#crd-contracts)
+- [Control Plane provider contract](./control-plane.md)
 - [Machine provider contract](./machine-infrastructure.md)
 - [clusterctl provider contract](../../clusterctl/provider-contract.md#clusterctl-provider-contract)
 - [Multi tenancy contract](../../developer/architecture/controllers/multi-tenancy.md#contract)

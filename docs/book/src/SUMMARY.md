@@ -27,6 +27,7 @@
       - [Scaling](./tasks/automated-machine-management/scaling.md)
       - [Autoscaling](./tasks/automated-machine-management/autoscaling.md)
       - [Healthchecking](./tasks/automated-machine-management/healthchecking.md)
+      - [Machine deletion process](./tasks/automated-machine-management/machine_deletions.md)
     - [Experimental Features](./tasks/experimental-features/experimental-features.md)
         - [MachinePools](./tasks/experimental-features/machine-pools.md)
         - [MachineSetPreflightChecks](./tasks/experimental-features/machineset-preflight-checks.md)

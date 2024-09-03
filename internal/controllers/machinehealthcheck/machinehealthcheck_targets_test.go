@@ -406,7 +406,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	machineFailureMsgCondition := newFailedHealthCheckCondition(clusterv1.MachineHasFailureReason, "FailureMessage: %s", failureMsg)
 
 	// Target for when the machine has the remediate machine annotation
-	annotationRemediationMsg := "Marked for remediation via remediate-machine annotation"
+	const annotationRemediationMsg = "Marked for remediation via remediate-machine annotation"
 	testMachineAnnotationRemediation := testMachine.DeepCopy()
 	testMachineAnnotationRemediation.Annotations = map[string]string{clusterv1.RemediateMachineAnnotation: ""}
 	machineAnnotationRemediation := healthCheckTarget{

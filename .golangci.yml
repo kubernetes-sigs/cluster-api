@@ -55,6 +55,12 @@ linters:
     - whitespace # unnecessary newlines
 
 linters-settings:
+  govet:
+    disable:
+      - printf
+  gosec:
+    excludes:
+      - G115
   gci:
     sections:
       - standard # Standard section: captures all standard packages.

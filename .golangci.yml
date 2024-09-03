@@ -354,3 +354,8 @@ issues:
     - gocritic
     text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
     path: _test\.go
+  exclude-files:
+    - "zz_generated.*\\.go$"
+    - "vendored_openapi\\.go$"
+    # We don't want to invest time to fix new linter findings in old API types.
+    - "internal/apis/.*"

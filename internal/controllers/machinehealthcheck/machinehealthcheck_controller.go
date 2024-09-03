@@ -580,13 +580,13 @@ func isAllowedRemediation(mhc *clusterv1.MachineHealthCheck) (bool, int32, error
 	var remediationAllowed bool
 	var remediationCount int32
 	if mhc.Spec.UnhealthyRange != nil {
-		min, max, err := getUnhealthyRange(mhc)
+		minVal, maxVal, err := getUnhealthyRange(mhc)
 		if err != nil {
 			return false, 0, err
 		}
 		unhealthyMachineCount := unhealthyMachineCount(mhc)
-		remediationAllowed = unhealthyMachineCount >= min && unhealthyMachineCount <= max
-		remediationCount = int32(max - unhealthyMachineCount)
+		remediationAllowed = unhealthyMachineCount >= minVal && unhealthyMachineCount <= maxVal
+		remediationCount = int32(maxVal - unhealthyMachineCount)
 		return remediationAllowed, remediationCount, nil
 	}
 
@@ -610,21 +610,21 @@ func getUnhealthyRange(mhc *clusterv1.MachineHealthCheck) (int, int, error) {
 
 	parts := strings.Split(unhealthyRange, "-")
 
-	min, err := strconv.ParseUint(parts[0], 10, 32)
+	minVal, err := strconv.ParseUint(parts[0], 10, 32)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	max, err := strconv.ParseUint(parts[1], 10, 32)
+	maxVal, err := strconv.ParseUint(parts[1], 10, 32)
 	if err != nil {
 		return 0, 0, err
 	}
 
-	if max < min {
-		return 0, 0, errors.Errorf("max value %d cannot be less than min value %d for unhealthyRange", max, min)
+	if maxVal < minVal {
+		return 0, 0, errors.Errorf("max value %d cannot be less than min value %d for unhealthyRange", maxVal, minVal)
 	}
 
-	return int(min), int(max), nil
+	return int(minVal), int(maxVal), nil
 }
 
 func getMaxUnhealthy(mhc *clusterv1.MachineHealthCheck) (int, error) {

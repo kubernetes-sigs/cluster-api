@@ -23,11 +23,12 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -115,9 +116,14 @@ func IsOkToDelete(obj client.Object) bool {
 
 // MarkAsOkToDelete adds the OkToDeleteAnnotation annotation to the object and patches it.
 func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object) error {
+	gvk, err := apiutil.GVKForObject(obj, c.Scheme())
+	if err != nil {
+		return errors.Wrapf(err, "failed to mark %s as ok to delete: failed to get GVK for object", klog.KObj(obj))
+	}
+
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
-		return errors.Wrapf(err, "failed to mark %s as ok to delete", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to mark %s %s as ok to delete", gvk.Kind, klog.KObj(obj))
 	}
 
 	annotations := obj.GetAnnotations()
@@ -128,7 +134,7 @@ func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object) e
 	obj.SetAnnotations(annotations)
 
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to mark %s as ok to delete", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to mark %s %s as ok to delete", gvk.Kind, klog.KObj(obj))
 	}
 
 	return nil

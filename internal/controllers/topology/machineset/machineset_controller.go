@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/labels"
@@ -210,11 +209,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 	// Delete unused templates.
 	ref := ms.Spec.Template.Spec.Bootstrap.ConfigRef
 	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete bootstrap template for %s", tlog.KObj{Obj: ms})
+		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(ms))
 	}
 	ref = &ms.Spec.Template.Spec.InfrastructureRef
 	if err := DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return errors.Wrapf(err, "failed to delete infrastructure template for %s", tlog.KObj{Obj: ms})
+		return errors.Wrapf(err, "failed to delete %s %s for MachineSet %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name), klog.KObj(ms))
 	}
 
 	// Remove the finalizer so the MachineSet can be garbage collected by Kubernetes.
@@ -231,8 +230,8 @@ func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, 
 		}
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, errors.Errorf("could not calculate MachineDeployment name for %s: invalid apiVersion %q: %v",
-				tlog.KObj{Obj: ms}, ref.APIVersion, err)
+			return nil, errors.Errorf("could not calculate MachineDeployment name for MachineSet %s: invalid apiVersion %q: %v",
+				klog.KObj(ms), ref.APIVersion, err)
 		}
 		if gv.Group == clusterv1.GroupVersion.Group {
 			return &client.ObjectKey{Namespace: ms.Namespace, Name: ref.Name}, nil
@@ -242,5 +241,5 @@ func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, 
 	// Note: Once we set an owner reference to a MachineDeployment in a MachineSet it stays there
 	// and is not deleted when the MachineDeployment is deleted. So we assume there's something wrong,
 	// if we couldn't find a MachineDeployment owner reference.
-	return nil, errors.Errorf("could not calculate MachineDeployment name for %s", tlog.KObj{Obj: ms})
+	return nil, errors.Errorf("could not calculate MachineDeployment name for MachineSet %s", klog.KObj(ms))
 }

@@ -32,6 +32,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -44,7 +45,6 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -391,7 +391,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 
 	// Set external object ControllerReference to the ClusterClass.
 	if err := controllerutil.SetOwnerReference(clusterClass, obj, r.Client.Scheme()); err != nil {
-		return errors.Wrapf(err, "failed to set ClusterClass owner reference for %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to set ClusterClass owner reference for %s %s", obj.GetKind(), klog.KObj(obj))
 	}
 
 	// Patch the external object.

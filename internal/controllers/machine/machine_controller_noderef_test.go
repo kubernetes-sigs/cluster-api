@@ -31,11 +31,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
@@ -204,9 +206,9 @@ func TestReconcileNode(t *testing.T) {
 			}
 
 			r := &Reconciler{
-				Tracker:  remote.NewTestClusterCacheTracker(ctrl.Log, c, c, fakeScheme, client.ObjectKeyFromObject(defaultCluster)),
-				Client:   c,
-				recorder: record.NewFakeRecorder(10),
+				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(defaultCluster)),
+				Client:       c,
+				recorder:     record.NewFakeRecorder(10),
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileNode(ctx, s)
@@ -239,6 +241,11 @@ func TestGetNode(t *testing.T) {
 	}
 
 	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
+	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+	patch := client.MergeFrom(testCluster.DeepCopy())
+	testCluster.Status.InfrastructureReady = true
+	g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
+
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -310,35 +317,50 @@ func TestGetNode(t *testing.T) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(nodesToCleanup...)
 
-	tracker, err := remote.NewClusterCacheTracker(
-		env.Manager, remote.ClusterCacheTrackerOptions{
-			Indexes: []remote.Index{remote.NodeProviderIDIndex},
+	clusterCache, err := clustercache.SetupWithManager(ctx, env.Manager, clustercache.Options{
+		SecretClient: env.Manager.GetClient(),
+		Cache: clustercache.CacheOptions{
+			Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
 		},
-	)
-	g.Expect(err).ToNot(HaveOccurred())
+		Client: clustercache.ClientOptions{
+			UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+			Cache: clustercache.ClientCacheOptions{
+				DisableFor: []client.Object{
+					// Don't cache ConfigMaps & Secrets.
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
+	}, controller.Options{MaxConcurrentReconciles: 10, SkipNameValidation: ptr.To(true)})
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
+	}
 
 	r := &Reconciler{
-		Tracker: tracker,
-		Client:  env,
+		ClusterCache: clusterCache,
+		Client:       env,
 	}
 
 	w, err := ctrl.NewControllerManagedBy(env.Manager).For(&corev1.Node{}).Build(r)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	g.Expect(tracker.Watch(ctx, remote.WatchInput{
-		Name:    "TestGetNode",
-		Cluster: util.ObjectKey(testCluster),
-		Watcher: w,
-		Kind:    &corev1.Node{},
-		EventHandler: handler.EnqueueRequestsFromMapFunc(func(context.Context, client.Object) []reconcile.Request {
-			return nil
-		}),
-	})).To(Succeed())
+	// Retry because the ClusterCache might not have immediately created the clusterAccessor.
+	g.Eventually(func(g Gomega) {
+		g.Expect(clusterCache.Watch(ctx, util.ObjectKey(testCluster), clustercache.WatchInput{
+			Name:    "TestGetNode",
+			Watcher: w,
+			Kind:    &corev1.Node{},
+			EventHandler: handler.EnqueueRequestsFromMapFunc(func(context.Context, client.Object) []reconcile.Request {
+				return nil
+			}),
+		})).To(Succeed())
+	}, 1*time.Minute, 5*time.Second).Should(Succeed())
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(testCluster))
+			remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(testCluster))
 			g.Expect(err).ToNot(HaveOccurred())
 
 			node, err := r.getNode(ctx, remoteClient, tc.providerIDInput)
@@ -514,7 +536,11 @@ func TestNodeLabelSync(t *testing.T) {
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret := kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
-		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+		g.Expect(env.CreateAndWait(ctx, defaultKubeconfigSecret)).To(Succeed())
+		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+		patch := client.MergeFrom(cluster.DeepCopy())
+		cluster.Status.InfrastructureReady = true
+		g.Expect(env.Status().Patch(ctx, cluster, patch)).To(Succeed())
 
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
 		// Set InfrastructureMachine .status.interruptible and .status.ready to true.

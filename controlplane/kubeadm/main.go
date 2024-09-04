@@ -47,6 +47,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
@@ -67,29 +68,29 @@ var (
 	controllerName = "cluster-api-kubeadm-control-plane-manager"
 
 	// flags.
-	enableLeaderElection           bool
-	leaderElectionLeaseDuration    time.Duration
-	leaderElectionRenewDeadline    time.Duration
-	leaderElectionRetryPeriod      time.Duration
-	watchFilterValue               string
-	watchNamespace                 string
-	profilerAddress                string
-	enableContentionProfiling      bool
-	syncPeriod                     time.Duration
-	restConfigQPS                  float32
-	restConfigBurst                int
-	clusterCacheTrackerClientQPS   float32
-	clusterCacheTrackerClientBurst int
-	webhookPort                    int
-	webhookCertDir                 string
-	webhookCertName                string
-	webhookKeyName                 string
-	healthAddr                     string
-	managerOptions                 = flags.ManagerOptions{}
-	logOptions                     = logs.NewOptions()
+	enableLeaderElection        bool
+	leaderElectionLeaseDuration time.Duration
+	leaderElectionRenewDeadline time.Duration
+	leaderElectionRetryPeriod   time.Duration
+	watchFilterValue            string
+	watchNamespace              string
+	profilerAddress             string
+	enableContentionProfiling   bool
+	syncPeriod                  time.Duration
+	restConfigQPS               float32
+	restConfigBurst             int
+	clusterCacheClientQPS       float32
+	clusterCacheClientBurst     int
+	webhookPort                 int
+	webhookCertDir              string
+	webhookCertName             string
+	webhookKeyName              string
+	healthAddr                  string
+	managerOptions              = flags.ManagerOptions{}
+	logOptions                  = logs.NewOptions()
 	// KCP specific flags.
 	kubeadmControlPlaneConcurrency  int
-	clusterCacheTrackerConcurrency  int
+	clusterCacheConcurrency         int
 	etcdDialTimeout                 time.Duration
 	etcdCallTimeout                 time.Duration
 	useDeprecatedInfraMachineNaming bool
@@ -137,7 +138,7 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 10,
 		"Number of kubeadm control planes to process simultaneously")
 
-	fs.IntVar(&clusterCacheTrackerConcurrency, "clustercachetracker-concurrency", 10,
+	fs.IntVar(&clusterCacheConcurrency, "clustercache-concurrency", 100,
 		"Number of clusters to process simultaneously")
 
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
@@ -149,11 +150,11 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server.")
 
-	fs.Float32Var(&clusterCacheTrackerClientQPS, "clustercachetracker-client-qps", 20,
-		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+	fs.Float32Var(&clusterCacheClientQPS, "clustercache-client-qps", 20,
+		"Maximum queries per second from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
-	fs.IntVar(&clusterCacheTrackerClientBurst, "clustercachetracker-client-burst", 30,
-		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.")
+	fs.IntVar(&clusterCacheClientBurst, "clustercache-client-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.")
 
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
@@ -325,39 +326,34 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	// Set up a ClusterCacheTracker to provide to controllers
-	// requiring a connection to a remote cluster
-	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{
-		SecretCachingClient: secretCachingClient,
-		ControllerName:      controllerName,
-		Log:                 &ctrl.Log,
-		ClientUncachedObjects: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
-			&corev1.Pod{},
-			&appsv1.Deployment{},
-			&appsv1.DaemonSet{},
+	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+		SecretClient: secretCachingClient,
+		Cache:        clustercache.CacheOptions{},
+		Client: clustercache.ClientOptions{
+			QPS:       clusterCacheClientQPS,
+			Burst:     clusterCacheClientBurst,
+			UserAgent: remote.DefaultClusterAPIUserAgent(controllerName),
+			Cache: clustercache.ClientCacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+					&corev1.Pod{},
+					&appsv1.Deployment{},
+					&appsv1.DaemonSet{},
+				},
+			},
 		},
-		ClientQPS:   clusterCacheTrackerClientQPS,
-		ClientBurst: clusterCacheTrackerClientBurst,
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to create cluster cache tracker")
-		os.Exit(1)
-	}
-	if err := (&remote.ClusterCacheReconciler{
-		Client:           mgr.GetClient(),
-		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(clusterCacheTrackerConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
+	}, concurrency(clusterCacheConcurrency))
+	if err != nil {
+		setupLog.Error(err, "Unable to create ClusterCache")
 		os.Exit(1)
 	}
 
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:                       mgr.GetClient(),
 		SecretCachingClient:          secretCachingClient,
-		Tracker:                      tracker,
+		ClusterCache:                 clusterCache,
 		WatchFilterValue:             watchFilterValue,
 		EtcdDialTimeout:              etcdDialTimeout,
 		EtcdCallTimeout:              etcdCallTimeout,

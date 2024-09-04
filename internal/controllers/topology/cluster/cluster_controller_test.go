@@ -894,6 +894,18 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 			return cleanup, err
 		}
 	}
+	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessors.
+	patch := client.MergeFrom(cluster1.DeepCopy())
+	cluster1.Status.InfrastructureReady = true
+	if err := env.Status().Patch(ctx, cluster1, patch); err != nil {
+		return nil, err
+	}
+	patch = client.MergeFrom(cluster2.DeepCopy())
+	cluster2.Status.InfrastructureReady = true
+	if err := env.Status().Patch(ctx, cluster2, patch); err != nil {
+		return nil, err
+	}
+
 	return cleanup, nil
 }
 
@@ -1041,7 +1053,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 
 			// Check replicas and version for the MachineDeployment.
 			if *md.Spec.Replicas != *topologyMD.Replicas {
-				return fmt.Errorf("replicas %v does not match expected %v", md.Spec.Replicas, topologyMD.Replicas)
+				return fmt.Errorf("replicas %v does not match expected %v", *md.Spec.Replicas, *topologyMD.Replicas)
 			}
 			if *md.Spec.Template.Spec.Version != cluster.Spec.Topology.Version {
 				return fmt.Errorf("version %v does not match expected %v", *md.Spec.Template.Spec.Version, cluster.Spec.Topology.Version)

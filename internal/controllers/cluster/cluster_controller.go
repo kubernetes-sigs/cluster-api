@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -48,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	conditionsv1beta2 "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -70,11 +73,14 @@ const (
 
 // Reconciler reconciles a Cluster object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client       client.Client
+	APIReader    client.Reader
+	ClusterCache clustercache.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+
+	RemoteConnectionGracePeriod time.Duration
 
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -84,6 +90,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
+		WatchesRawSource(r.ClusterCache.GetClusterSource("cluster", func(_ context.Context, o client.Object) []ctrl.Request {
+			return []ctrl.Request{{NamespacedName: client.ObjectKeyFromObject(o)}}
+		}, clustercache.WatchForProbeFailure(r.RemoteConnectionGracePeriod))).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
@@ -152,6 +161,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
+
+	lastProbeSuccessTime := r.ClusterCache.GetLastProbeSuccessTimestamp(ctx, client.ObjectKeyFromObject(cluster))
+	if time.Since(lastProbeSuccessTime) > r.RemoteConnectionGracePeriod {
+		var msg string
+		if lastProbeSuccessTime.IsZero() {
+			msg = "Remote connection probe failed"
+		} else {
+			msg = fmt.Sprintf("Remote connection probe failed, probe last succeeded at %s", lastProbeSuccessTime.Format(time.RFC3339))
+		}
+		conditionsv1beta2.Set(cluster, metav1.Condition{
+			Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason,
+			Message: msg,
+		})
+	} else {
+		conditionsv1beta2.Set(cluster, metav1.Condition{
+			Type:    clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition,
+			Status:  metav1.ConditionTrue,
+			Reason:  clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason,
+			Message: "Remote connection probe succeeded",
+		})
+	}
 
 	// Handle deletion reconciliation loop.
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {

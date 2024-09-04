@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -54,7 +54,7 @@ type ManagementCluster interface {
 type Management struct {
 	Client              client.Reader
 	SecretCachingClient client.Reader
-	Tracker             *remote.ClusterCacheTracker
+	ClusterCache        clustercache.ClusterCache
 	EtcdDialTimeout     time.Duration
 	EtcdCallTimeout     time.Duration
 }
@@ -105,14 +105,14 @@ func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clu
 func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error) {
 	// TODO(chuckha): Inject this dependency.
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
-	restConfig, err := m.Tracker.GetRESTConfig(ctx, clusterKey)
+	restConfig, err := m.ClusterCache.GetRESTConfig(ctx, clusterKey)
 	if err != nil {
 		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
 	restConfig = rest.CopyConfig(restConfig)
 	restConfig.Timeout = 30 * time.Second
 
-	c, err := m.Tracker.GetClient(ctx, clusterKey)
+	c, err := m.ClusterCache.GetClient(ctx, clusterKey)
 	if err != nil {
 		return nil, &RemoteClusterConnectionError{Name: clusterKey.String(), Err: err}
 	}
@@ -130,7 +130,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	// TODO: consider if we can detect if we are using external etcd in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
 	var clientCert tls.Certificate
 	if keyData != nil {
-		clientKey, err := m.Tracker.GetEtcdClientCertificateKey(ctx, clusterKey)
+		clientKey, err := m.ClusterCache.GetClientCertificatePrivateKey(ctx, clusterKey)
 		if err != nil {
 			return nil, err
 		}

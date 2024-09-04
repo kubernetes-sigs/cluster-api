@@ -22,14 +22,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,12 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -111,6 +108,11 @@ func TestWatches(t *testing.T) {
 
 	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
+	testCluster.Status.InfrastructureReady = true
+	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
+
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
 	g.Expect(env.Create(ctx, node)).To(Succeed())
 	g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
@@ -913,10 +915,10 @@ func TestReconcileRequest(t *testing.T) {
 			).WithStatusSubresource(&clusterv1.Machine{}).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			r := &Reconciler{
-				Client:   clientFake,
-				Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache: ssa.NewCache(),
-				recorder: record.NewFakeRecorder(10),
+				Client:       clientFake,
+				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				ssaCache:     ssa.NewCache(),
+				recorder:     record.NewFakeRecorder(10),
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
@@ -1193,10 +1195,10 @@ func TestMachineConditions(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				Client:   clientFake,
-				recorder: record.NewFakeRecorder(10),
-				Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache: ssa.NewCache(),
+				Client:       clientFake,
+				recorder:     record.NewFakeRecorder(10),
+				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				ssaCache:     ssa.NewCache(),
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
@@ -1562,11 +1564,10 @@ func TestDrainNode(t *testing.T) {
 				WithObjects(remoteObjs...).
 				Build()
 
-			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, c, remoteClient, fakeScheme, client.ObjectKeyFromObject(testCluster))
 			r := &Reconciler{
-				Client:     c,
-				Tracker:    tracker,
-				drainCache: drain.NewCache(),
+				Client:       c,
+				ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
+				drainCache:   drain.NewCache(),
 			}
 
 			res, err := r.drainNode(ctx, testCluster, testMachine, tt.nodeName)
@@ -1661,12 +1662,11 @@ func TestDrainNode_withCaching(t *testing.T) {
 		WithObjects(remoteObjs...).
 		Build()
 
-	tracker := remote.NewTestClusterCacheTracker(ctrl.Log, c, remoteClient, fakeScheme, client.ObjectKeyFromObject(testCluster))
 	drainCache := drain.NewCache()
 	r := &Reconciler{
-		Client:     c,
-		Tracker:    tracker,
-		drainCache: drainCache,
+		Client:       c,
+		ClusterCache: clustercache.NewFakeClusterCache(remoteClient, client.ObjectKeyFromObject(testCluster)),
+		drainCache:   drainCache,
 	}
 
 	// The first reconcile will cordon the Node, evict the one Pod running on the Node and then requeue.
@@ -1962,10 +1962,9 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			objs = append(objs, testCluster, tt.node)
 
 			c := fake.NewClientBuilder().WithObjects(objs...).Build()
-			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, c, c, fakeScheme, client.ObjectKeyFromObject(testCluster))
 			r := &Reconciler{
-				Client:  c,
-				Tracker: tracker,
+				Client:       c,
+				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
 			}
 
 			got, err := r.shouldWaitForNodeVolumes(ctx, testCluster, tt.node.Name)
@@ -2432,6 +2431,11 @@ func TestNodeToMachine(t *testing.T) {
 
 	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+	testClusterOriginal := client.MergeFrom(testCluster.DeepCopy())
+	testCluster.Status.InfrastructureReady = true
+	g.Expect(env.Status().Patch(ctx, testCluster, testClusterOriginal)).To(Succeed())
+
 	g.Expect(env.Create(ctx, defaultBootstrap)).To(Succeed())
 	g.Expect(env.Create(ctx, targetNode)).To(Succeed())
 	g.Expect(env.Create(ctx, randomNode)).To(Succeed())
@@ -2767,11 +2771,10 @@ func TestNodeDeletion(t *testing.T) {
 			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
-			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
 
 			r := &Reconciler{
 				Client:                   fakeClient,
-				Tracker:                  tracker,
+				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
 			}
@@ -2897,11 +2900,10 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
 
 			fakeClient := tc.createFakeClient(node, m, cpmachine1)
-			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
 
 			r := &Reconciler{
 				Client:                   fakeClient,
-				Tracker:                  tracker,
+				ClusterCache:             clustercache.NewFakeClusterCache(fakeClient, client.ObjectKeyFromObject(&testCluster)),
 				recorder:                 record.NewFakeRecorder(10),
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
 			}

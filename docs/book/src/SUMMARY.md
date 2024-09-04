@@ -100,6 +100,7 @@
           - [v1.7 to v1.8](./developer/providers/migrations/v1.7-to-v1.8.md)
         - [Provider contracts](./developer/providers/contracts.md)
           - [Cluster Infrastructure](./developer/providers/cluster-infrastructure.md)
+          - [Control Plane](./developer/providers/control-plane.md)
           - [Machine Infrastructure](./developer/providers/machine-infrastructure.md)
           - [Bootstrap](./developer/providers/bootstrap.md)
         - [Implementer's Guide](./developer/providers/implementers-guide/overview.md)

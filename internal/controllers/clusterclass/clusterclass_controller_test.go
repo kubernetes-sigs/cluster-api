@@ -384,7 +384,9 @@ func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) 
 		}
 	}
 	if !found {
-		return fmt.Errorf("%s does not have OwnerReference %s", klog.KObj(obj), &ownerRef)
+		// Note: Kind might be empty here as it's usually only set on Unstructured objects.
+		// But as this is just test code we don't care too much about it.
+		return fmt.Errorf("%s %s does not have OwnerReference %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), &ownerRef)
 	}
 	return nil
 }

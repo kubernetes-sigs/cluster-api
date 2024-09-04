@@ -65,6 +65,10 @@ const (
 	// failures in updating remediation retry (the counter restarts from zero).
 	RemediationForAnnotation = "controlplane.cluster.x-k8s.io/remediation-for"
 
+	// PreTerminateDeleteHookAnnotation is the annotation KCP sets on Machines to ensure it can later remove the
+	// etcd member right before Machine termination (i.e. before InfraMachine deletion).
+	PreTerminateDeleteHookAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kubeadmcontrolplane"
+
 	// DefaultMinHealthyPeriod defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.
 	DefaultMinHealthyPeriod = 1 * time.Hour

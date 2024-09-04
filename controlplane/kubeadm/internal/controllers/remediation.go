@@ -224,11 +224,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 				return ctrl.Result{}, err
 			}
-			if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToBeRemediated); err != nil {
-				log.Error(err, "Failed to remove etcd member for machine")
-				conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
-				return ctrl.Result{}, err
-			}
 		}
 
 		parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)

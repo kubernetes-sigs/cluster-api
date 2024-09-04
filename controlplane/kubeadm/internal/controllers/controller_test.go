@@ -1751,7 +1751,13 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	// Verify Labels
 	g.Expect(updatedInplaceMutatingMachine.Labels).Should(Equal(expectedLabels))
 	// Verify Annotations
-	g.Expect(updatedInplaceMutatingMachine.Annotations).Should(Equal(kcp.Spec.MachineTemplate.ObjectMeta.Annotations))
+	expectedAnnotations := map[string]string{}
+	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
+		expectedAnnotations[k] = v
+	}
+	// The pre-terminate annotation should always be added
+	expectedAnnotations[controlplanev1.PreTerminateDeleteHookAnnotation] = ""
+	g.Expect(updatedInplaceMutatingMachine.Annotations).Should(Equal(expectedAnnotations))
 	// Verify Node timeout values
 	g.Expect(updatedInplaceMutatingMachine.Spec.NodeDrainTimeout).Should(And(
 		Not(BeNil()),

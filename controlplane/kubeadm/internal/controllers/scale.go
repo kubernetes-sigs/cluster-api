@@ -135,10 +135,6 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 			logger.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)
 			return ctrl.Result{}, err
 		}
-		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToDelete); err != nil {
-			logger.Error(err, "Failed to remove etcd member for machine")
-			return ctrl.Result{}, err
-		}
 	}
 
 	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)

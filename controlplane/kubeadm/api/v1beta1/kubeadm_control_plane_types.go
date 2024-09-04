@@ -65,6 +65,12 @@ const (
 	// failures in updating remediation retry (the counter restarts from zero).
 	RemediationForAnnotation = "controlplane.cluster.x-k8s.io/remediation-for"
 
+	// PreTerminateHookCleanupAnnotation is the annotation KCP sets on Machines to ensure it can later remove the
+	// etcd member right before Machine termination (i.e. before InfraMachine deletion).
+	// Note: Starting with Kubernetes v1.31 this hook will wait for all other pre-terminate hooks to finish to
+	// ensure it runs last (thus ensuring that kubelet is still working while other pre-terminate hooks run).
+	PreTerminateHookCleanupAnnotation = clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/kcp-cleanup"
+
 	// DefaultMinHealthyPeriod defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.
 	DefaultMinHealthyPeriod = 1 * time.Hour

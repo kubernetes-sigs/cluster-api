@@ -254,7 +254,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -305,7 +305,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -363,7 +363,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -419,7 +419,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -593,7 +593,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -637,7 +637,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -681,7 +681,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -731,7 +731,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -768,7 +768,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 			// Reconcile unhealthy replacements for m1.
 			r.managementCluster = &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(collections.FromMachines(mi)),
 				},
 			}
@@ -820,7 +820,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -872,7 +872,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -924,7 +924,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -977,7 +977,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1030,7 +1030,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1083,7 +1083,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1127,7 +1127,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1163,7 +1163,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 			// Reconcile unhealthy replacements for m1.
 			r.managementCluster = &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(collections.FromMachines(mi, m2, m3)),
 				},
 			}
@@ -1232,7 +1232,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1268,7 +1268,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane.Machines = collections.FromMachines(m2)
 		r.managementCluster = &fakeManagementCluster{
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				EtcdMembersResult: nodes(controlPlane.Machines),
 			},
 		}
@@ -1341,7 +1341,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1378,7 +1378,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane.Machines = collections.FromMachines(m1, m3)
 		r.managementCluster = &fakeManagementCluster{
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				EtcdMembersResult: nodes(controlPlane.Machines),
 			},
 		}
@@ -1453,7 +1453,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1485,7 +1485,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		controlPlane.Machines = collections.FromMachines(m1, m3)
 		r.managementCluster = &fakeManagementCluster{
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				EtcdMembersResult: nodes(controlPlane.Machines),
 			},
 		}
@@ -1525,7 +1525,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1557,7 +1557,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1595,7 +1595,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: members,
 				},
 			},
@@ -1626,7 +1626,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1658,7 +1658,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1697,7 +1697,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: members,
 				},
 			},
@@ -1729,7 +1729,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1763,7 +1763,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1797,7 +1797,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1833,7 +1833,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},
@@ -1869,7 +1869,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 			Client:   env.GetClient(),
 			recorder: record.NewFakeRecorder(32),
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{
+				Workload: &fakeWorkloadCluster{
 					EtcdMembersResult: nodes(controlPlane.Machines),
 				},
 			},

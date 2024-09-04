@@ -395,6 +395,10 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		return ctrl.Result{}, err
 	}
 
+	if result, err := r.reconcilePreTerminateHook(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
+
 	// Reconcile unhealthy machines by triggering deletion and requeue if it is considered safe to remediate,
 	// otherwise continue with the other KCP operations.
 	if result, err := r.reconcileUnhealthyMachines(ctx, controlPlane); err != nil || !result.IsZero() {
@@ -563,12 +567,27 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	// Delete control plane machines in parallel
 	machinesToDelete := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
 	var errs []error
-	for i := range machinesToDelete {
-		m := machinesToDelete[i]
-		logger := log.WithValues("Machine", klog.KObj(m))
-		if err := r.Client.Delete(ctx, machinesToDelete[i]); err != nil && !apierrors.IsNotFound(err) {
-			logger.Error(err, "Failed to cleanup owned machine")
-			errs = append(errs, err)
+	for _, machineToDelete := range machinesToDelete {
+		log := log.WithValues("Machine", klog.KObj(machineToDelete))
+		ctx := ctrl.LoggerInto(ctx, log)
+
+		// During KCP deletion we don't care about forwarding etcd leadership or removing etcd members.
+		// So we are removing the pre-terminate hook.
+		// This is important because when deleting KCP we will delete all members of etcd and it's not possible
+		// to forward etcd leadership without any member left after we went through the Machine deletion.
+		// Also in this case the reconcileDelete code of the Machine controller won't execute Node drain
+		// and wait for volume detach.
+		log.Info("Removing pre-terminate hook from control plane machine")
+		deletingMachineOriginal := machineToDelete.DeepCopy()
+		delete(machineToDelete.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
+		if err := r.Client.Patch(ctx, machineToDelete, client.MergeFrom(deletingMachineOriginal)); err != nil {
+			errs = append(errs, errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(machineToDelete)))
+			continue
+		}
+
+		log.Info("Deleting control plane Machine")
+		if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, errors.Wrapf(err, "failed to delete control plane Machine %s", klog.KObj(machineToDelete)))
 		}
 	}
 	if len(errs) > 0 {
@@ -766,6 +785,98 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	}
 
 	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	if !controlPlane.HasDeletingMachine() {
+		return ctrl.Result{}, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+
+	// Return early, if there is already a deleting Machine without the pre-terminate hook.
+	// We are going to wait until this Machine goes away before running the pre-terminate hook on other Machines.
+	for _, deletingMachine := range controlPlane.DeletingMachines() {
+		if _, exists := deletingMachine.Annotations[controlplanev1.PreTerminateHookCleanupAnnotation]; !exists {
+			return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		}
+	}
+
+	// Pick the Machine with the oldest deletionTimestamp to keep this function deterministic / reentrant
+	// so we only remove the pre-terminate hook from one Machine at a time.
+	deletingMachine := controlPlane.DeletingMachines().OldestDeletionTimestamp()
+	log = log.WithValues("Machine", klog.KObj(deletingMachine))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse Kubernetes version %q", controlPlane.KCP.Spec.Version)
+	}
+
+	// Return early if there are other pre-terminate hooks for the Machine.
+	// The KCP pre-terminate hook should be the one executed last, so that kubelet
+	// is still working while other pre-terminate hooks are run.
+	// Note: This is done only for Kubernetes >= v1.31 to reduce the blast radius of this check.
+	if version.Compare(parsedVersion, semver.MustParse("1.31.0"), version.WithoutPreReleases()) >= 0 {
+		if machineHasOtherPreTerminateHooks(deletingMachine) {
+			return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		}
+	}
+
+	// Return early because the Machine controller is not yet waiting for the pre-terminate hook.
+	c := conditions.Get(deletingMachine, clusterv1.PreTerminateDeleteHookSucceededCondition)
+	if c == nil || c.Status != corev1.ConditionFalse || c.Reason != clusterv1.WaitingExternalHookReason {
+		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	}
+
+	// The following will execute and remove the pre-terminate hook from the Machine.
+
+	// If we have more than 1 Machine and etcd is managed we forward etcd leadership and remove the member
+	// to keep the etcd cluster healthy.
+	if controlPlane.Machines.Len() > 1 && controlPlane.IsEtcdManaged() {
+		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s: failed to create client to workload cluster", klog.KObj(deletingMachine))
+		}
+
+		// Note: In regular deletion cases (remediation, scale down) the leader should have been already moved.
+		// We're doing this again here in case the Machine became leader again or the Machine deletion was
+		// triggered in another way (e.g. a user running kubectl delete machine)
+		etcdLeaderCandidate := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp)).Newest()
+		if etcdLeaderCandidate != nil {
+			if err := workloadCluster.ForwardEtcdLeadership(ctx, deletingMachine, etcdLeaderCandidate); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to move leadership to candidate Machine %s", etcdLeaderCandidate.Name)
+			}
+		} else {
+			log.Info("Skip forwarding etcd leadership, because there is no other control plane Machine without a deletionTimestamp")
+		}
+
+		// Note: Removing the etcd member will lead to the etcd and the kube-apiserver Pod on the Machine shutting down.
+		// If ControlPlaneKubeletLocalMode is used, the kubelet is communicating with the local apiserver and thus now
+		// won't be able to see any updates to e.g. Pods anymore.
+		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, deletingMachine); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to remove etcd member for deleting Machine %s", klog.KObj(deletingMachine))
+		}
+	}
+
+	log.Info("Removing pre-terminate hook from control plane Machine")
+	deletingMachineOriginal := deletingMachine.DeepCopy()
+	delete(deletingMachine.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
+	if err := r.Client.Patch(ctx, deletingMachine, client.MergeFrom(deletingMachineOriginal)); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(deletingMachine))
+	}
+
+	log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
+	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+}
+
+func machineHasOtherPreTerminateHooks(machine *clusterv1.Machine) bool {
+	for k := range machine.Annotations {
+		if strings.HasPrefix(k, clusterv1.PreTerminateDeleteHookAnnotationPrefix) && k != controlplanev1.PreTerminateHookCleanupAnnotation {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context.Context, controlPlane *internal.ControlPlane) error {

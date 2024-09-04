@@ -313,21 +313,23 @@ type MachineInitializationStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)   | v1beta2 (tentative Apr 2025)                             | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|--------------------------------|----------------------------------------------------------|----------------------------------------------------|
-|                                | `Initialization` (new)                                   | `Initialization`                                   |
-| `BootstrapReady`               | `Initialization.BootstrapDataSecretCreated` (renamed)    | `Initialization.BootstrapDataSecretCreated`        |
-| `InfrastructureReady`          | `Initialization.InfrastructureProvisioned` (renamed)     | `Initialization.InfrastructureProvisioned`         |
-|                                | `BackCompatibilty` (new)                                 | (removed)                                          |
-| `LastUpdated` (deprecated)     | `BackCompatibilty.LastUpdated` (renamed) (deprecated)    | (removed)                                          |
-| `FailureReason` (deprecated)   | `BackCompatibilty.FailureReason` (renamed) (deprecated)  | (removed)                                          |
-| `FailureMessage` (deprecated)  | `BackCompatibilty.FailureMessage` (renamed) (deprecated) | (removed)                                          |
-| `Conditions`                   | `BackCompatibilty.Conditions` (renamed) (deprecated)     | (removed)                                          |
-| `ExperimentalConditions` (new) | `Conditions` (renamed)                                   | `Conditions`                                       |
-| other fields...                | other fields...                                          | other fields...                                    |
+| v1beta1 (tentative Dec 2024)  | v1beta2 (tentative Apr 2025)                               | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|-------------------------------|------------------------------------------------------------|----------------------------------------------------|
+|                               | `Initialization` (new)                                     | `Initialization`                                   |
+| `BootstrapReady`              | `Initialization.BootstrapDataSecretCreated` (renamed)      | `Initialization.BootstrapDataSecretCreated`        |
+| `InfrastructureReady`         | `Initialization.InfrastructureProvisioned` (renamed)       | `Initialization.InfrastructureProvisioned`         |
+| `V1Beta2` (new)               | (removed)                                                  | (removed)                                          |
+| `V1Beta2.Conditions` (new)    | `Conditions` (renamed)                                     | `Conditions`                                       |
+|                               | `Deprecated.V1Beta1` (new)                                 | (removed)                                          |
+| `FailureReason` (deprecated)  | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)  | (removed)                                          |
+| `FailureMessage` (deprecated) | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated) | (removed)                                          |
+| `Conditions` (deprecated)     | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)     | (removed)                                          |
+| other fields...               | other fields...                                            | other fields...                                    |
 
 Notes:
-- The `BackCompatibilty` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
+- The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields. 
+  Fields in the `V1Beta2` will be promoted to status top level fields in the v1beta2 types.
+- The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
   Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 
 ##### Machine (New)Conditions
@@ -490,22 +492,25 @@ type MachineSetStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)          | v1beta2 (tentative Apr 2025)                                | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|---------------------------------------|-------------------------------------------------------------|----------------------------------------------------|
-| `ExperimentalReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                   | `ReadyReplicas`                                    |
-| `ExperimentalAvailableReplicas` (new) | `AvailableReplicas` (renamed)                               | `AvailableReplicas`                                |
-|                                       | `BackCompatibilty` (new)                                    | (removed)                                          |
-| `ReadyReplicas` (deprecated)          | `BackCompatibilty.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas` (deprecated)      | `BackCompatibilty.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason` (deprecated)          | `BackCompatibilty.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage` (deprecated)         | `BackCompatibilty.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions`                          | `BackCompatibilty.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| `ExperimentalConditions` (new)        | `Conditions` (renamed)                                      | `Conditions`                                       |
-| `UpToDateReplicas` (new)              | `UpToDateReplicas`                                          | `UpToDateReplicas`                                 |
-| other fields...                       | other fields...                                             | other fields...                                    |
+| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|-----------------------------------|---------------------------------------------------------------|----------------------------------------------------|
+| `V1Beta2` (new)                   | (removed)                                                     | (removed)                                          |
+| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                        | `Conditions`                                       |
+| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
+| `V1Beta2.UpToDateReplicas` (new)  | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
+|                                   | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
+| `ReadyReplicas`                   | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
+| `AvailableReplicas`               | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason`                   | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
+| `FailureMessage`                  | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
+| `Conditions`                      | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
+| other fields...                   | other fields...                                               | other fields...                                    |
 
 Notes:
-- The `BackCompatibilty` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
+- The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
+  Fields in the `V1Beta2` will be promoted to status top level fields in the v1beta2 types.
+- The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
   Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 - This proposal is using `UpToDateReplicas` instead of `UpdatedReplicas`; This is a deliberated choice to avoid
   confusion between update (any change) and upgrade (change of the Kubernetes versions).
@@ -602,22 +607,25 @@ type MachineDeploymentStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)          | v1beta2 (tentative Apr 2025)                                | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|---------------------------------------|-------------------------------------------------------------|----------------------------------------------------|
-| `UpdatedReplicas`                     | `UpToDateReplicas` (renamed)                                | `UpToDateReplicas`                                 |
-| `ExperimentalReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                   | `ReadyReplicas`                                    |
-| `ExperimentalAvailableReplicas` (new) | `AvailableReplicas` (renamed)                               | `AvailableReplicas`                                |
-|                                       | `BackCompatibilty` (new)                                    | (removed)                                          |
-| `ReadyReplicas` (deprecated)          | `BackCompatibilty.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas` (deprecated)      | `BackCompatibilty.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason` (deprecated)          | `BackCompatibilty.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage` (deprecated)         | `BackCompatibilty.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions`                          | `BackCompatibilty.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| `ExperimentalConditions` (new)        | `Conditions` (renamed)                                      | `Conditions`                                       |
-| other fields...                       | other fields...                                             | other fields...                                    |
+| v1beta1 (tentative Dec 2024)     | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|----------------------------------|---------------------------------------------------------------|----------------------------------------------------|
+| `V1Beta2` (new)                  | (removed)                                                     | (removed)                                          |
+| `V1Beta2.Conditions` (new)       | `Conditions` (renamed)                                        | `Conditions`                                       |
+| `V1Beta2.ReadyReplicas` (new)    | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
+| `V1Beta2.vailableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
+|                                  | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
+| `ReadyReplicas` (deprecated)     | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
+| `AvailableReplicas` (deprecated) | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason` (deprecated)     | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
+| `FailureMessage` (deprecated)    | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
+| `Conditions` (deprecated)        | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
+| `UpdatedReplicas`                | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
+| other fields...                  | other fields...                                               | other fields...                                    |
 
 Notes:
-- The `BackCompatibilty` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
+- The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
+  Fields in the `V1Beta2` will be promoted to status top level fields in the v1beta2 types.
+- The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
   Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 
 #### MachineDeployment (New)Conditions
@@ -773,32 +781,35 @@ type WorkersStatus struct {
 // NOTE: `FailureReason`, `FailureMessage` fields won't be there anymore
 ```
 
-| v1beta1 (tentative Dec 2024)           | v1beta2 (tentative Apr 2025)                             | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|----------------------------------------|----------------------------------------------------------|----------------------------------------------------|
-|                                        | `Initialization` (new)                                   | `Initialization`                                   |
-| `InfrastructureReady`                  | `Initialization.InfrastructureProvisioned` (renamed)     | `Initialization.InfrastructureProvisioned`         |
-| `ControlPlaneReady`                    | `Initialization.ControlPlaneInitialized` (renamed)       | `Initialization.ControlPlaneInitialized`           |
-|                                        | `BackCompatibilty` (new)                                 | (removed)                                          |
-| `FailureReason` (deprecated)           | `BackCompatibilty.FailureReason` (renamed) (deprecated)  | (removed)                                          |
-| `FailureMessage` (deprecated)          | `BackCompatibilty.FailureMessage` (renamed) (deprecated) | (removed)                                          |
-| `Conditions`                           | `BackCompatibilty.Conditions` (renamed) (deprecated)     | (removed)                                          |
-| `ExperimentalConditions` (new)         | `Conditions` (renamed)                                   | `Conditions`                                       |
-| `ControlPlane` (new)                   | `ControlPlane`                                           | `ControlPlane`                                     |
-| `ControlPlane.DesiredReplicas` (new)   | `ControlPlane.DesiredReplicas`                           | `ControlPlane.DesiredReplicas`                     |
-| `ControlPlane.Replicas` (new)          | `ControlPlane.Replicas`                                  | `ControlPlane.Replicas`                            |
-| `ControlPlane.ReadyReplicas` (new)     | `ControlPlane.ReadyReplicas`                             | `ControlPlane.ReadyReplicas`                       |
-| `ControlPlane.UpToDateReplicas` (new)  | `ControlPlane.UpToDateReplicas`                          | `ControlPlane.UpToDateReplicas`                    |
-| `ControlPlane.AvailableReplicas` (new) | `ControlPlane.AvailableReplicas`                         | `ControlPlane.AvailableReplicas`                   |
-| `Workers` (new)                        | `Workers`                                                | `Workers`                                          |
-| `Workers.DesiredReplicas` (new)        | `Workers.DesiredReplicas`                                | `Workers.DesiredReplicas`                          |
-| `Workers.Replicas` (new)               | `Workers.Replicas`                                       | `Workers.Replicas`                                 |
-| `Workers.ReadyReplicas` (new)          | `Workers.ReadyReplicas`                                  | `Workers.ReadyReplicas`                            |
-| `Workers.UpToDateReplicas` (new)       | `Workers.UpToDateReplicas`                               | `Workers.UpToDateReplicas`                         |
-| `Workers.AvailableReplicas` (new)      | `Workers.AvailableReplicas`                              | `Workers.AvailableReplicas`                        |
-| other fields...                        | other fields...                                          | other fields...                                    |
+| v1beta1 (tentative Dec 2024)                   | v1beta2 (tentative Apr 2025)                               | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------------------------|------------------------------------------------------------|----------------------------------------------------|
+|                                                | `Initialization` (new)                                     | `Initialization`                                   |
+| `InfrastructureReady`                          | `Initialization.InfrastructureProvisioned` (renamed)       | `Initialization.InfrastructureProvisioned`         |
+| `ControlPlaneReady`                            | `Initialization.ControlPlaneInitialized` (renamed)         | `Initialization.ControlPlaneInitialized`           |
+| `V1Beta2` (new)                                | (removed)                                                  | (removed)                                          |
+| `V1Beta2.Conditions` (new)                     | `Conditions` (renamed)                                     | `Conditions`                                       |
+| `V1Beta2.ControlPlane` (new)                   | `ControlPlane` (renamed)                                   | `ControlPlane`                                     |
+| `V1Beta2.ControlPlane.DesiredReplicas` (new)   | `ControlPlane.DesiredReplicas` (renamed)                   | `ControlPlane.DesiredReplicas`                     |
+| `V1Beta2.ControlPlane.Replicas` (new)          | `ControlPlane.Replicas` (renamed)                          | `ControlPlane.Replicas`                            |
+| `V1Beta2.ControlPlane.ReadyReplicas` (new)     | `ControlPlane.ReadyReplicas` (renamed)                     | `ControlPlane.ReadyReplicas`                       |
+| `V1Beta2.ControlPlane.UpToDateReplicas` (new)  | `ControlPlane.UpToDateReplicas` (renamed)                  | `ControlPlane.UpToDateReplicas`                    |
+| `V1Beta2.ControlPlane.AvailableReplicas` (new) | `ControlPlane.AvailableReplicas` (renamed)                 | `ControlPlane.AvailableReplicas`                   |
+| `V1Beta2.Workers` (new)                        | `Workers` (renamed)                                        | `Workers`                                          |
+| `V1Beta2.Workers.DesiredReplicas` (new)        | `Workers.DesiredReplicas` (renamed)                        | `Workers.DesiredReplicas`                          |
+| `V1Beta2.Workers.Replicas` (new)               | `Workers.Replicas` (renamed)                               | `Workers.Replicas`                                 |
+| `V1Beta2.Workers.ReadyReplicas` (new)          | `Workers.ReadyReplicas` (renamed)                          | `Workers.ReadyReplicas`                            |
+| `V1Beta2.Workers.UpToDateReplicas` (new)       | `Workers.UpToDateReplicas` (renamed)                       | `Workers.UpToDateReplicas`                         |
+| `V1Beta2.Workers.AvailableReplicas` (new)      | `Workers.AvailableReplicas` (renamed)                      | `Workers.AvailableReplicas`                        |
+|                                                | `Deprecated.V1Beta1` (new)                                 | (removed)                                          |
+| `FailureReason` (deprecated)                   | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)  | (removed)                                          |
+| `FailureMessage` (deprecated)                  | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated) | (removed)                                          |
+| `Conditions` (deprecated)                      | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)     | (removed)                                          |
+| other fields...                                | other fields...                                            | other fields...                                    |
 
-notes:
-- The `BackCompatibilty` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
+Notes:
+- The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
+  Fields in the `V1Beta2` will be promoted to status top level fields in the v1beta2 types.
+- The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
   Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 
 ##### Cluster (New)Conditions
@@ -813,7 +824,7 @@ notes:
 | `WorkersAvailable`        | Summary of MachineDeployment and MachinePool's `Available` conditions                                                                                                                                                                                                                                                             |
 | `MachinesReady`           | This condition surfaces detail of issues on the controlled machines, if any                                                                                                                                                                                                                                                       |
 | `MachinesUpToDate`        | This condition surfaces details of Cluster's machines not up to date, if any                                                                                                                                                                                                                                                      |
-| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 40s after the first connection problem is detected (or whatever period is defined in the `--remote-connection-grace-period` flag)                                              |
+| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 50s after the first connection problem is detected (or whatever period is defined in the `--remote-connection-grace-period` flag)                                              |
 | `ScalingUp`               | True if available replicas < desired replicas                                                                                                                                                                                                                                                                                     |
 | `ScalingDown`             | True if replicas > desired replicas                                                                                                                                                                                                                                                                                               |
 | `Remediating`             | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                                                                                                      |
@@ -947,21 +958,26 @@ type KubeadmControlPlaneStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                             | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|-----------------------------------|----------------------------------------------------------|----------------------------------------------------|
-| `Ready` (deprecated)              | `Ready` (deprecated)                                     | (removed)                                          |
-| `UpdatedReplicas`                 | `UpToDateReplicas` (renamed)                             | `UpToDateReplicas`                                 |
-| `ExperimentalReadyReplicas` (new) | `ReadyReplicas` (renamed)                                | `ReadyReplicas`                                    |
-| `AvailableReplicas` (new)         | `AvailableReplicas`                                      | `AvailableReplicas`                                |
-|                                   | `BackCompatibilty` (new)                                 | (removed)                                          |
-| `ReadyReplicas` (deprecated)      | `BackCompatibilty.ReadyReplicas` (renamed) (deprecated)  | (removed)                                          |
-| `FailureReason` (deprecated)      | `BackCompatibilty.FailureReason` (renamed) (deprecated)  | (removed)                                          |
-| `FailureMessage` (deprecated)     | `BackCompatibilty.FailureMessage` (renamed) (deprecated) | (removed)                                          |
-| `Conditions`                      | `BackCompatibilty.Conditions` (renamed) (deprecated)     | (removed)                                          |
-| `ExperimentalConditions` (new)    | `Conditions` (renamed)                                   | `Conditions`                                       |
-| other fields...                   | other fields...                                          | other fields...                                    |
+| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                               | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|-----------------------------------|------------------------------------------------------------|----------------------------------------------------|
+| `Ready` (deprecated)              | `Ready` (deprecated)                                       | (removed)                                          |
+| `V1Beta2` (new)                   | (removed)                                                  | (removed)                                          |
+| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                     | `Conditions`                                       |
+| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                  | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                              | `AvailableReplicas`                                |
+|                                   | `Deprecated.V1Beta1` (new)                                 | (removed)                                          |
+| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)  | (removed)                                          |
+| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)  | (removed)                                          |
+| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated) | (removed)                                          |
+| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)     | (removed)                                          |
+| `UpdatedReplicas`                 | `UpToDateReplicas` (renamed)                               | `UpToDateReplicas`                                 |
+| other fields...                   | other fields...                                            | other fields...                                    |
 
-TODO: double check usages of status.ready.
+Notes:
+- The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
+  Fields in the `V1Beta2` will be promoted to status top level fields in the v1beta2 types.
+- The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
+  Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 
 #### KubeadmControlPlane (New)Conditions
 
@@ -1078,25 +1094,28 @@ type MachinePoolInitializationStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)         | v1beta2 (tentative Apr 2025)                                | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|--------------------------------------|-------------------------------------------------------------|----------------------------------------------------|
-|                                      | `Initialization` (new)                                      | `Initialization`                                   |
-| `BootstrapReady`                     | `Initialization.BootstrapDataSecretCreated` (renamed)       | `Initialization.BootstrapDataSecretCreated`        |
-| `InfrastructureReady`                | `Initialization.InfrastructureProvisioned` (renamed)        | `Initialization.InfrastructureProvisioned`         |
-| `UpdatedReplicas` (new)              | `UpToDateReplicas`                                          | `UpToDateReplicas`                                 |
-| `ExprimentalReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                   | `ReadyReplicas`                                    |
-| `ExprimentalAvailableReplicas` (new) | `AvailableReplicas` (renamed)                               | `AvailableReplicas`                                |
-|                                      | `BackCompatibilty` (new)                                    | (removed)                                          |
-| `ReadyReplicas` (deprecated)         | `BackCompatibilty.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas` (deprecated)     | `BackCompatibilty.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason` (deprecated)         | `BackCompatibilty.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage` (deprecated)        | `BackCompatibilty.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions`                         | `BackCompatibilty.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| `ExperimentalConditions` (new)       | `Conditions` (renamed)                                      | `Conditions`                                       |
-| other fields...                      | other fields...                                             | other fields...                                    |
+| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|-----------------------------------|---------------------------------------------------------------|----------------------------------------------------|
+|                                   | `Initialization` (new)                                        | `Initialization`                                   |
+| `BootstrapReady`                  | `Initialization.BootstrapDataSecretCreated` (renamed)         | `Initialization.BootstrapDataSecretCreated`        |
+| `InfrastructureReady`             | `Initialization.InfrastructureProvisioned` (renamed)          | `Initialization.InfrastructureProvisioned`         |
+| `V1Beta2` (new)                   | (removed)                                                     | (removed)                                          |
+| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                        | `Conditions`                                       |
+| `V1Beta2.UpdatedReplicas` (new)   | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
+| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
+|                                   | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
+| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
+| `AvailableReplicas` (deprecated)  | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
+| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
+| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
+| other fields...                   | other fields...                                               | other fields...                                    |
 
 Notes:
-- The `BackCompatibilty` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
+- The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
+  Fields in the `V1Beta2` will be promoted to status top level fields in the v1beta2 types.
+- The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
   Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 
 ##### MachinePool (New)Conditions
@@ -1274,15 +1293,15 @@ Following changes are planned for the contract for the ControlPlane resource:
   - Rename `status.initialized` into `status.initialization.controlPlaneInitialized`.
 - Remove `failureReason` and `failureMessage`.
 
-| v1beta1 (tentative Dec 2024)                                          | v1beta2 (tentative Apr 2025)                                                                                                                                        | v1beta2 after v1beta1 removal (tentative Apr 2026)                                                          |
-|-----------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
-| `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                                                      | (removed)                                                                                                   |
-| `status.initialized`, required                                        | `status.initialization.controlPlaneInitialized` (renamed), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                        | `status.initialization.controlPlaneInitialized`, required                                                   |
-| `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.backCompatibilty.conditions[Ready]` (renamed, deprecated), optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set | (removed)                                                                                                   |
-|                                                                       | `status.conditions[Available]` (new), optional with fall back optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set      | `status.conditions[Available]`, optional with fall back on `status.initializiation.controlPlaneInitialized` |
-| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                       | (removed)                                                                                                   |
-| `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                                                                      | (removed)                                                                                                   |
-| other fields/rules...                                                 | other fields/rules...                                                                                                                                               |                                                                                                             |
+| v1beta1 (tentative Dec 2024)                                          | v1beta2 (tentative Apr 2025)                                                                                                                                          | v1beta2 after v1beta1 removal (tentative Apr 2026)                                                          |
+|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
+| `status.ready`, required                                              | `status.ready` (deprecated), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                                                        | (removed)                                                                                                   |
+| `status.initialized`, required                                        | `status.initialization.controlPlaneInitialized` (renamed), one of `status.ready` or `status.initialization.controlPlaneInitialized` required                          | `status.initialization.controlPlaneInitialized`, required                                                   |
+| `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.deprecated.v1beta1.conditions[Ready]` (renamed, deprecated), optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set | (removed)                                                                                                   |
+|                                                                       | `status.conditions[Available]` (new), optional with fall back optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set        | `status.conditions[Available]`, optional with fall back on `status.initializiation.controlPlaneInitialized` |
+| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |
+| `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                                                                        | (removed)                                                                                                   |
+| other fields/rules...                                                 | other fields/rules...                                                                                                                                                 |                                                                                                             |
 
 Notes:
 - ControlPlane's `status.initialization.controlPlaneInitialized` will surface into Cluster's `staus.initialization.controlPlaneInitialized` field; also,
@@ -1337,7 +1356,7 @@ can be supported (until v1beta1 removal, tentative Apr 2026).
 
 On top of that, a few design decisions have been made with the specific intent to further minimize impact on
 users and providers e.g.
-- The decision to keep `BackCompatibility` fields in v1beta2 API (until v1beta1 removal, tentative Apr 2026).
+- The decision to keep `Deprecated` fields in v1beta2 API (until v1beta1 removal, tentative Apr 2026).
 - The decision to allow providers to adopt the Cluster API v1beta2 contract at their own pace (transition _must be completed_
   before v1beta1 removal, tentative Apr 2026).
 
@@ -1358,7 +1377,7 @@ _Keep Cluster API custom condition types, eventually improve them incrementally_
 This idea was considered, but ultimately discarded because the end state we are aiming for is to align to Kubernetes.
 Therefore, the sooner, the better, and the opportunity materialized when discussing the scope for v1beta2 API version.
 
-_Implement down conversion instead of maintaining `BackCompatibility` fields_
+_Implement down conversion instead of maintaining `Deprecated` fields_
 
 This idea was considered, but discarded because the constraint of ensuring down conversion for every new field/condition
 would have prevented this proposal from designing the ideal target state we are aiming to.
@@ -1366,10 +1385,10 @@ would have prevented this proposal from designing the ideal target state we are 
 Additionally, the idea of dropping all the existing status fields/conditions in the new v1beta2 API (by supporting down conversion),
 was considered negatively because it implies a sudden, big change both for users and providers.
 
-Instead, we would like to minimize impact on users and providers by preserving old fields in `BackCompatibility` until v1beta1 removal,
+Instead, we would like to minimize impact on users and providers by preserving old fields in `Deprecated` until v1beta1 removal,
 which is ultimately the same process suggested for removal of API fields from graduated APIs.
 
-Note: There will still be some impacts because `BackCompatibility` fields will be in a different location from where the
+Note: There will still be some impacts because `Deprecated` fields will be in a different location from where the
 original fields was, but this should be easier to handle than being forced to immediately adapt the new status fields/conditions.
 
 ## Upgrade Strategy

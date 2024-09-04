@@ -48,7 +48,7 @@ by allowing provider's maintainers to add their own project to the pre-defined l
 
 Provider's maintainer are the ultimately responsible for their own project.
 
-Adding a provider to the `clusterctl` provider list does not imply any form of quality assessment, market screening, 
+Adding a provider to the `clusterctl` provider list does not imply any form of quality assessment, market screening,
 entitlement, recognition or support by the Cluster API maintainers.
 
 </aside>
@@ -62,7 +62,7 @@ This is the process to add a new provider to the pre-defined list of providers s
   - For providers not in the kubernetes-sigs org, in order to prevent conflicts the `clusterctl` name must be prefixed with
     the provider's GitHub org name followed by `-` (see note below).
 - Create a PR making the necessary changes to clusterctl and the Cluster API book, e.g. [#9798](https://github.com/kubernetes-sigs/cluster-api/pull/9798),
-  [9720](https://github.com/kubernetes-sigs/cluster-api/pull/9720/files). 
+  [9720](https://github.com/kubernetes-sigs/cluster-api/pull/9720/files).
 
 The Cluster API maintainers will review issues/PRs for adding new providers. If the PR merges before code freeze deadline
 for the next Cluster API minor release, changes will be included in the release, otherwise in the next minor
@@ -73,7 +73,7 @@ branch to include it in the next patch release.
 
 <h1>What about closed source providers?</h1>
 
-Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however, 
+Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however,
 those providers could be used with `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 
 </aside>
@@ -340,6 +340,7 @@ providers.
 | CAPK0S        | cluster.x-k8s.io/provider=infrastructure-k0smotron    |
 | CAIPAMIC      | cluster.x-k8s.io/provider=ipam-in-cluster             |
 | CAIPAMX       | cluster.x-k8s.io/provider=ipam-nutanix                |
+| CAREX         | cluster.x-k8s.io/provider=runtime-extensions-nutanix  |
 
 ### Workload cluster templates
 
@@ -538,11 +539,11 @@ management cluster by annotating any resource to be moved with `clusterctl.clust
 
 <h1> Warning: Status subresource is never restored </h1>
 
-Every object's `Status` subresource, including every nested field (e.g. `Status.Conditions`), is never 
-restored during a `move` operation. A `Status` subresource should never contain fields that cannot 
+Every object's `Status` subresource, including every nested field (e.g. `Status.Conditions`), is never
+restored during a `move` operation. A `Status` subresource should never contain fields that cannot
 be recreated or derived from information in spec, metadata, or external systems.
 
-Provider implementers should not store non-ephemeral data in the `Status`. 
+Provider implementers should not store non-ephemeral data in the `Status`.
 `Status` should be able to be fully rebuilt by controllers by observing the current state of resources.
 
 </aside>

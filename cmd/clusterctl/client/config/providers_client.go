@@ -109,6 +109,11 @@ const (
 	HelmAddonProviderName = "helm"
 )
 
+// Runtime extensions providers.
+const (
+	NutanixRuntimeExtensionsProviderName = "nutanix"
+)
+
 // Other.
 const (
 	// ProvidersConfigKey is a constant for finding provider configurations with the ProvidersClient.
@@ -434,6 +439,13 @@ func (p *providersClient) defaults() []Provider {
 			name:         HelmAddonProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",
 			providerType: clusterctlv1.AddonProviderType,
+		},
+
+		// Runtime extensions providers
+		&provider{
+			name:         NutanixRuntimeExtensionsProviderName,
+			url:          "https://github.com/nutanix-cloud-native/cluster-api-runtime-extensions-nutanix/releases/latest/runtime-extensions-components.yaml",
+			providerType: clusterctlv1.RuntimeExtensionProviderType,
 		},
 	}
 

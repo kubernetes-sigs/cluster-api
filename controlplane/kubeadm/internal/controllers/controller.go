@@ -610,8 +610,29 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 	patchHelpers := map[string]*patch.Helper{}
 	for machineName := range controlPlane.Machines {
 		m := controlPlane.Machines[machineName]
-		// If the machine is already being deleted, we don't need to update it.
+		// If the Machine is already being deleted, we only need to sync
+		// the subset of fields that impact tearing down the Machine.
 		if !m.DeletionTimestamp.IsZero() {
+			patchHelper, err := patch.NewHelper(m, r.Client)
+			if err != nil {
+				return err
+			}
+
+			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
+			m.Spec.NodeDrainTimeout = controlPlane.KCP.Spec.MachineTemplate.NodeDrainTimeout
+			m.Spec.NodeDeletionTimeout = controlPlane.KCP.Spec.MachineTemplate.NodeDeletionTimeout
+			m.Spec.NodeVolumeDetachTimeout = controlPlane.KCP.Spec.MachineTemplate.NodeVolumeDetachTimeout
+
+			if err := patchHelper.Patch(ctx, m); err != nil {
+				return err
+			}
+
+			controlPlane.Machines[machineName] = m
+			patchHelper, err = patch.NewHelper(m, r.Client)
+			if err != nil {
+				return err
+			}
+			patchHelpers[machineName] = patchHelper
 			continue
 		}
 

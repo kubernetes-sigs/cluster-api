@@ -123,6 +123,9 @@ Cluster API IPAM Provider In Cluster
 ### CAIPAMX
 Cluster API IPAM Provider Nutanix
 
+### CAREN
+Cluster API Runtime Extensions Provider Nutanix
+
 ### Cloud provider
 
 Or __Cloud service provider__

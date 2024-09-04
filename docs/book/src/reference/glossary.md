@@ -123,6 +123,9 @@ Cluster API Provider Azure
 ### CAIPAMIC
 Cluster API IPAM Provider In Cluster
 
+### CAIPAMX
+Cluster API IPAM Provider Nutanix
+
 ### Cloud provider
 
 Or __Cloud service provider__

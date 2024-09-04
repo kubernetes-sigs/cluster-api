@@ -101,6 +101,7 @@ const (
 // IPAM providers.
 const (
 	InClusterIPAMProviderName = "in-cluster"
+	NutanixIPAMProviderName   = "nutanix"
 )
 
 // Add-on providers.
@@ -420,6 +421,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         InClusterIPAMProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/ipam-components.yaml",
+			providerType: clusterctlv1.IPAMProviderType,
+		},
+		&provider{
+			name:         NutanixIPAMProviderName,
+			url:          "https://github.com/nutanix-cloud-native/cluster-api-ipam-provider-nutanix/releases/latest/ipam-components.yaml",
 			providerType: clusterctlv1.IPAMProviderType,
 		},
 

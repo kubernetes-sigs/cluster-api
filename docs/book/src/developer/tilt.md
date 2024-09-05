@@ -7,7 +7,7 @@ workflow that offers easy deployments and rapid iterative builds.
 
 ## Prerequisites
 
-1. [Docker](https://docs.docker.com/install/): v19.03 or newer
+1. [Docker](https://docs.docker.com/install/): v19.03 or newer (on MacOS e.g. via [Lima](https://github.com/lima-vm/lima))
 2. [kind](https://kind.sigs.k8s.io): v0.24.0 or newer
 3. [Tilt](https://docs.tilt.dev/install.html): v0.30.8 or newer
 4. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
@@ -506,6 +506,28 @@ syntax highlighting and auto-formatting. To enable it for Tiltfile a file associ
 1. Run `tilt up`
 
 NB: The socket defined by `DOCKER_HOST` is used only for the `hack/tools/internal/tilt-prepare` command, the image build is running the `podman build`/`podman push` commands.
+
+## Using Lima
+
+[Lima] can be used instead of Docker Desktop. Please note that especially with CAPD the rootless template of Lima does not work.
+
+The following command creates a working Lima machine for developing Cluster API with CAPD:
+
+```bash
+limactl start template://docker-rootful --name "docker" --tty=false \
+  --set '.provision += {"mode":"system","script":"#!/bin/bash\nset -eux -o pipefail\ncat << EOF > \"/etc/sysctl.d/99-capi.conf\"\nfs.inotify.max_user_watches = 1048576\nfs.inotify.max_user_instances = 8192\nEOF\nsysctl -p \"/etc/sysctl.d/99-capi.conf\""}' \
+  --set '.mounts[0] = {"location": "~", "writable": true}' \
+  --memory 12 --cpus 10 --disk 64 \
+  --vm-type vz --rosetta=true
+```
+
+After creating the Lima machine we need to set `DOCKER_HOST` to the correct path:
+
+```bash
+export DOCKER_HOST=$(limactl list "docker" --format 'unix://{{.Dir}}/sock/docker.sock')
+```
+
+[Lima]: https://github.com/lima-vm/lima
 
 ## Troubleshooting Tilt
 

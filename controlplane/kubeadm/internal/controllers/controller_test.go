@@ -1917,13 +1917,15 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					},
 				},
 				Machines: collections.Machines{
-					deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook,
+					deletingMachineWithKCPPreTerminateHook.Name:             deletingMachineWithKCPPreTerminateHook,
+					deletingMachineWithKCPAndOtherPreTerminateHooksOld.Name: deletingMachineWithKCPAndOtherPreTerminateHooksOld,
 				},
 			},
 			wantResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
 			// Annotation are unchanged.
 			wantMachineAnnotations: map[string]map[string]string{
-				deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook.Annotations,
+				deletingMachineWithKCPPreTerminateHook.Name:             deletingMachineWithKCPPreTerminateHook.Annotations,
+				deletingMachineWithKCPAndOtherPreTerminateHooksOld.Name: deletingMachineWithKCPAndOtherPreTerminateHooksOld.Annotations,
 			},
 		},
 		{
@@ -2081,7 +2083,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 								Etcd: bootstrapv1.Etcd{
 									External: &bootstrapv1.ExternalEtcd{
-										Endpoints: []string{"1.2.3.4"},
+										Endpoints: []string{"1.2.3.4"}, // Etcd is not managed by KCP
 									},
 								},
 							},
@@ -2089,7 +2091,7 @@ func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
 					},
 				},
 				Machines: collections.Machines{
-					machine.Name: machine, // Leadership will be forwarded to this Machine.
+					machine.Name: machine,
 					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
 						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
 						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")

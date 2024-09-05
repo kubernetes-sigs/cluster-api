@@ -577,11 +577,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 		// to forward etcd leadership without any member left after we went through the Machine deletion.
 		// Also in this case the reconcileDelete code of the Machine controller won't execute Node drain
 		// and wait for volume detach.
-		log.Info("Removing pre-terminate hook from control plane machine")
-		deletingMachineOriginal := machineToDelete.DeepCopy()
-		delete(machineToDelete.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
-		if err := r.Client.Patch(ctx, machineToDelete, client.MergeFrom(deletingMachineOriginal)); err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(machineToDelete)))
+		if err := r.removePreTerminateHookAnnotationFromMachine(ctx, machineToDelete); err != nil {
+			errs = append(errs, err)
 			continue
 		}
 
@@ -598,6 +595,18 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	}
 	conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+}
+
+func (r *KubeadmControlPlaneReconciler) removePreTerminateHookAnnotationFromMachine(ctx context.Context, machine *clusterv1.Machine) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Removing pre-terminate hook from control plane Machine")
+
+	machineOriginal := machine.DeepCopy()
+	delete(machine.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
+	if err := r.Client.Patch(ctx, machine, client.MergeFrom(machineOriginal)); err != nil {
+		return errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(machine))
+	}
+	return nil
 }
 
 // ClusterToKubeadmControlPlane is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
@@ -859,11 +868,8 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 		}
 	}
 
-	log.Info("Removing pre-terminate hook from control plane Machine")
-	deletingMachineOriginal := deletingMachine.DeepCopy()
-	delete(deletingMachine.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
-	if err := r.Client.Patch(ctx, deletingMachine, client.MergeFrom(deletingMachineOriginal)); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(deletingMachine))
+	if err := r.removePreTerminateHookAnnotationFromMachine(ctx, deletingMachine); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	log.Info("Waiting for Machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))

@@ -450,7 +450,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
-			Workload:   fakeWorkloadCluster{},
+			Workload:   &fakeWorkloadCluster{},
 		},
 	}
 
@@ -493,7 +493,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: collections.Machines{},
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := range 3 {
@@ -561,7 +561,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: collections.Machines{},
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := range 3 {
@@ -676,7 +676,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: collections.Machines{},
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 		objs := []client.Object{builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
 		for i := range 3 {
@@ -756,7 +756,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 					},
 				},
 			},
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 
 		fakeClient := newFakeClient(builder.GenericInfrastructureMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy(), fmc.Machines["test0"].DeepCopy())
@@ -1133,7 +1133,7 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 	)
 
 	managementCluster := &fakeManagementCluster{
-		Workload: fakeWorkloadCluster{
+		Workload: &fakeWorkloadCluster{
 			APIServerCertificateExpiry: &detectedExpiry,
 		},
 	}
@@ -1321,7 +1321,7 @@ kubernetesVersion: metav1.16.1
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Workload: &internal.Workload{
 					Client: env,
 				},
@@ -1330,7 +1330,7 @@ kubernetesVersion: metav1.16.1
 		},
 		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Workload: &internal.Workload{
 					Client: env,
 				},
@@ -1826,6 +1826,368 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 	g.Expect(updatedDeletingMachine.Spec).Should(BeComparableTo(deletingMachine.Spec))
 }
 
+func TestKubeadmControlPlaneReconciler_reconcilePreTerminateHook(t *testing.T) {
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+	}
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machine",
+			Annotations: map[string]string{
+				controlplanev1.PreTerminateHookCleanupAnnotation: "",
+			},
+		},
+	}
+	deletingMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "deleting-machine",
+			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+		},
+	}
+	deletingMachineWithKCPPreTerminateHook := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "deleting-machine-with-kcp-pre-terminate-hook",
+			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			Annotations: map[string]string{
+				controlplanev1.PreTerminateHookCleanupAnnotation: "",
+			},
+		},
+	}
+	deletingMachineWithKCPAndOtherPreTerminateHooksOld := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "deleting-machine-with-kcp-and-other-pre-terminate-hooks",
+			DeletionTimestamp: &metav1.Time{Time: time.Now().Add(-1 * time.Duration(1) * time.Minute)},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			Annotations: map[string]string{
+				controlplanev1.PreTerminateHookCleanupAnnotation:           "",
+				clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/test": "",
+			},
+		},
+	}
+
+	tests := []struct {
+		name                                 string
+		controlPlane                         *internal.ControlPlane
+		wantResult                           ctrl.Result
+		wantErr                              string
+		wantForwardEtcdLeadershipCalled      int
+		wantRemoveEtcdMemberForMachineCalled int
+		wantMachineAnnotations               map[string]map[string]string
+	}{
+		{
+			name: "Do nothing if there are no deleting Machines",
+			controlPlane: &internal.ControlPlane{
+				Machines: collections.Machines{
+					machine.Name: machine,
+				},
+			},
+			wantResult: ctrl.Result{},
+			// Annotation are unchanged.
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations,
+			},
+		},
+		{
+			name: "Requeue, if there is a deleting Machine without the KCP pre-terminate hook",
+			controlPlane: &internal.ControlPlane{
+				Machines: collections.Machines{
+					deletingMachine.Name:                                    deletingMachine, // Does not have the pre-terminate hook anymore.
+					deletingMachineWithKCPPreTerminateHook.Name:             deletingMachineWithKCPPreTerminateHook,
+					deletingMachineWithKCPAndOtherPreTerminateHooksOld.Name: deletingMachineWithKCPAndOtherPreTerminateHooksOld,
+				},
+			},
+			wantResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			// Annotation are unchanged.
+			wantMachineAnnotations: map[string]map[string]string{
+				deletingMachine.Name:                                    deletingMachine.Annotations,
+				deletingMachineWithKCPPreTerminateHook.Name:             deletingMachineWithKCPPreTerminateHook.Annotations,
+				deletingMachineWithKCPAndOtherPreTerminateHooksOld.Name: deletingMachineWithKCPAndOtherPreTerminateHooksOld.Annotations,
+			},
+		},
+		{
+			name: "Requeue, if the oldest deleting Machine has other pre-terminate hooks with Kubernetes 1.31",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook,
+				},
+			},
+			wantResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			// Annotation are unchanged.
+			wantMachineAnnotations: map[string]map[string]string{
+				deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook.Annotations,
+			},
+		},
+		{
+			name: "Requeue, if the deleting Machine has no PreTerminateDeleteHookSucceeded condition",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook,
+				},
+			},
+			wantResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			// Annotation are unchanged.
+			wantMachineAnnotations: map[string]map[string]string{
+				deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook.Annotations,
+			},
+		},
+		{
+			name: "Requeue, if the deleting Machine has PreTerminateDeleteHookSucceeded condition true",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededCondition)
+						return m
+					}(),
+				},
+			},
+			wantResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			// Annotation are unchanged.
+			wantMachineAnnotations: map[string]map[string]string{
+				deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook.Annotations,
+			},
+		},
+		{
+			name: "Requeue, if the deleting Machine has PreTerminateDeleteHookSucceeded condition false but not waiting for hook",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, "some-other-reason", clusterv1.ConditionSeverityInfo, "some message")
+						return m
+					}(),
+				},
+			},
+			wantResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			// Annotation are unchanged.
+			wantMachineAnnotations: map[string]map[string]string{
+				deletingMachineWithKCPPreTerminateHook.Name: deletingMachineWithKCPPreTerminateHook.Annotations,
+			},
+		},
+		{
+			name: "Forward etcd leadership, remove member and remove pre-terminate hook if > 1 CP Machines && Etcd is managed",
+			controlPlane: &internal.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					machine.Name: machine, // Leadership will be forwarded to this Machine.
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						return m
+					}(),
+				},
+			},
+			wantForwardEtcdLeadershipCalled:      1,
+			wantRemoveEtcdMemberForMachineCalled: 1,
+			wantResult:                           ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations, // unchanged
+				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
+			},
+		},
+		{
+			name: "Skip forward etcd leadership (no other non-deleting Machine), remove member and remove pre-terminate hook if > 1 CP Machines && Etcd is managed",
+			controlPlane: &internal.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						m.DeletionTimestamp.Time = m.DeletionTimestamp.Add(-1 * time.Duration(1) * time.Second) // Make sure this (the oldest) Machine is selected to run the pre-terminate hook.
+						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						return m
+					}(),
+					deletingMachineWithKCPPreTerminateHook.Name + "-2": func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						m.Name += "-2"
+						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						return m
+					}(),
+				},
+			},
+			wantForwardEtcdLeadershipCalled:      0, // skipped as there is no non-deleting Machine to forward to.
+			wantRemoveEtcdMemberForMachineCalled: 1,
+			wantResult:                           ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				deletingMachineWithKCPPreTerminateHook.Name:        nil,                                                // pre-terminate hook has been removed
+				deletingMachineWithKCPPreTerminateHook.Name + "-2": deletingMachineWithKCPPreTerminateHook.Annotations, // unchanged
+			},
+		},
+		{
+			name: "Skip forward etcd leadership, skip remove member and remove pre-terminate hook if 1 CP Machine && Etcd is managed",
+			controlPlane: &internal.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+					},
+				},
+				Machines: collections.Machines{
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						return m
+					}(),
+				},
+			},
+			wantForwardEtcdLeadershipCalled:      0, // skipped
+			wantRemoveEtcdMemberForMachineCalled: 0, // skipped
+			wantResult:                           ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
+			},
+		},
+		{
+			name: "Skip forward etcd leadership, skip remove member and remove pre-terminate hook if > 1 CP Machines && Etcd is *not* managed",
+			controlPlane: &internal.ControlPlane{
+				Cluster: cluster,
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec: controlplanev1.KubeadmControlPlaneSpec{
+						Version: "v1.31.0",
+						KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+							ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+								Etcd: bootstrapv1.Etcd{
+									External: &bootstrapv1.ExternalEtcd{
+										Endpoints: []string{"1.2.3.4"},
+									},
+								},
+							},
+						},
+					},
+				},
+				Machines: collections.Machines{
+					machine.Name: machine, // Leadership will be forwarded to this Machine.
+					deletingMachineWithKCPPreTerminateHook.Name: func() *clusterv1.Machine {
+						m := deletingMachineWithKCPPreTerminateHook.DeepCopy()
+						conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "some message")
+						return m
+					}(),
+				},
+			},
+			wantForwardEtcdLeadershipCalled:      0, // skipped
+			wantRemoveEtcdMemberForMachineCalled: 0, // skipped
+			wantResult:                           ctrl.Result{RequeueAfter: deleteRequeueAfter},
+			wantMachineAnnotations: map[string]map[string]string{
+				machine.Name: machine.Annotations, // unchanged
+				deletingMachineWithKCPPreTerminateHook.Name: nil, // pre-terminate hook has been removed
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			objs := []client.Object{}
+			for _, m := range tt.controlPlane.Machines {
+				objs = append(objs, m)
+			}
+			fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
+
+			r := &KubeadmControlPlaneReconciler{
+				Client: fakeClient,
+			}
+
+			workloadCluster := fakeWorkloadCluster{}
+			tt.controlPlane.InjectTestManagementCluster(&fakeManagementCluster{
+				Workload: &workloadCluster,
+			})
+
+			res, err := r.reconcilePreTerminateHook(ctx, tt.controlPlane)
+			if tt.wantErr != "" {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(Equal(err.Error()))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			g.Expect(res).To(Equal(tt.wantResult))
+
+			g.Expect(workloadCluster.forwardEtcdLeadershipCalled).To(Equal(tt.wantForwardEtcdLeadershipCalled))
+			g.Expect(workloadCluster.removeEtcdMemberForMachineCalled).To(Equal(tt.wantRemoveEtcdMemberForMachineCalled))
+
+			machineList := &clusterv1.MachineList{}
+			g.Expect(fakeClient.List(ctx, machineList)).To(Succeed())
+			g.Expect(machineList.Items).To(HaveLen(len(tt.wantMachineAnnotations)))
+			for _, machine := range machineList.Items {
+				g.Expect(machine.Annotations).To(BeComparableTo(tt.wantMachineAnnotations[machine.Name]), "Unexpected annotations for Machine %s", machine.Name)
+			}
+		})
+	}
+}
+
+func TestKubeadmControlPlaneReconciler_machineHasOtherPreTerminateHooks(t *testing.T) {
+	tests := []struct {
+		name        string
+		annotations map[string]string
+		want        bool
+	}{
+		{
+			name: "only KCP pre-terminate hook",
+			annotations: map[string]string{
+				controlplanev1.PreTerminateHookCleanupAnnotation: "",
+				"some-other-annotation":                          "",
+			},
+			want: false,
+		},
+		{
+			name: "KCP & additional pre-terminate hooks",
+			annotations: map[string]string{
+				controlplanev1.PreTerminateHookCleanupAnnotation:           "",
+				"some-other-annotation":                                    "",
+				clusterv1.PreTerminateDeleteHookAnnotationPrefix + "test":  "",
+				clusterv1.PreTerminateDeleteHookAnnotationPrefix + "/test": "",
+			},
+			want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: tt.annotations,
+				},
+			}
+			g.Expect(machineHasOtherPreTerminateHooks(m)).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 	// TODO: (wfernandes) This test could use some refactor love.
 
@@ -2122,7 +2484,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
-				Workload:   fakeWorkloadCluster{},
+				Workload:   &fakeWorkloadCluster{},
 			},
 
 			recorder: record.NewFakeRecorder(32),
@@ -2198,7 +2560,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
-				Workload:   fakeWorkloadCluster{},
+				Workload:   &fakeWorkloadCluster{},
 			},
 			recorder: record.NewFakeRecorder(32),
 		}
@@ -2256,7 +2618,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
-				Workload:   fakeWorkloadCluster{},
+				Workload:   &fakeWorkloadCluster{},
 			},
 			recorder: record.NewFakeRecorder(32),
 		}
@@ -2294,7 +2656,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
-				Workload:   fakeWorkloadCluster{},
+				Workload:   &fakeWorkloadCluster{},
 			},
 			recorder: record.NewFakeRecorder(32),
 		}

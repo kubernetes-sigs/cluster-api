@@ -70,7 +70,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload:   fakeWorkloadCluster{},
+			Workload:   &fakeWorkloadCluster{},
 		},
 	}
 	controlPlane := &internal.ControlPlane{
@@ -139,7 +139,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: collections.New(),
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 
 		for i := range 2 {
@@ -214,7 +214,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		fmc := &fakeManagementCluster{
 			Machines: beforeMachines.DeepCopy(),
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		}
 
 		r := &KubeadmControlPlaneReconciler{
@@ -265,7 +265,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Client:              fakeClient,
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{},
+				Workload: &fakeWorkloadCluster{},
 			},
 		}
 
@@ -308,7 +308,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Client:              fakeClient,
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{},
+				Workload: &fakeWorkloadCluster{},
 			},
 		}
 
@@ -350,7 +350,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Client:              fakeClient,
 			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
-				Workload: fakeWorkloadCluster{},
+				Workload: &fakeWorkloadCluster{},
 			},
 		}
 

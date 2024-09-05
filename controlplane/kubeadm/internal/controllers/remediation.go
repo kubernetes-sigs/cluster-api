@@ -224,6 +224,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 				return ctrl.Result{}, err
 			}
+
+			// NOTE: etcd member removal will be performed by the kcp-cleanup hook after machine completes drain & all volumes are detached.
 		}
 
 		parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)

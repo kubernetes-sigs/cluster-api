@@ -68,7 +68,8 @@ func (o machinesByCreationTimestamp) Less(i, j int) bool {
 	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
 }
 
-// machinesByDeletionTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.
+// machinesByDeletionTimestamp sorts a list of Machines by deletion timestamp, using their names as a tie breaker.
+// Machines without DeletionTimestamp go after machines with this field set.
 type machinesByDeletionTimestamp []*clusterv1.Machine
 
 func (o machinesByDeletionTimestamp) Len() int      { return len(o) }

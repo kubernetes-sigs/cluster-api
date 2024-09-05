@@ -135,6 +135,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 			logger.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)
 			return ctrl.Result{}, err
 		}
+
+		// NOTE: etcd member removal will be performed by the kcp-cleanup hook after machine completes drain & all volumes are detached.
 	}
 
 	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)

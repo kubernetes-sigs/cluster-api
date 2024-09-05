@@ -1756,7 +1756,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 		expectedAnnotations[k] = v
 	}
 	// The pre-terminate annotation should always be added
-	expectedAnnotations[controlplanev1.PreTerminateDeleteHookAnnotation] = ""
+	expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 	g.Expect(updatedInplaceMutatingMachine.Annotations).Should(Equal(expectedAnnotations))
 	// Verify Node timeout values
 	g.Expect(updatedInplaceMutatingMachine.Spec.NodeDrainTimeout).Should(And(
@@ -2108,6 +2108,9 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		machines := collections.New()
 		for i := range 3 {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
+			m.Annotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
+			// Note: Block deletion so we can later verify the pre-terminate hook was removed
+			m.Finalizers = []string{"cluster.x-k8s.io/block-deletion"}
 			initObjs = append(initObjs, m)
 			machines.Insert(m)
 		}
@@ -2137,6 +2140,18 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 		controlPlaneMachines := clusterv1.MachineList{}
+		g.Expect(fakeClient.List(ctx, &controlPlaneMachines)).To(Succeed())
+		for _, machine := range controlPlaneMachines.Items {
+			// Verify pre-terminate hook was removed
+			g.Expect(machine.Annotations).ToNot(HaveKey(controlplanev1.PreTerminateHookCleanupAnnotation))
+
+			// Remove finalizer
+			originalMachine := machine.DeepCopy()
+			machine.Finalizers = []string{}
+			g.Expect(fakeClient.Patch(ctx, &machine, client.MergeFrom(originalMachine))).To(Succeed())
+		}
+
+		// Verify all Machines are gone.
 		g.Expect(fakeClient.List(ctx, &controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
 
@@ -2411,9 +2426,10 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: cluster.Namespace,
-			Name:      name,
-			Labels:    internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+			Namespace:   cluster.Namespace,
+			Name:        name,
+			Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
+			Annotations: map[string]string{},
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},

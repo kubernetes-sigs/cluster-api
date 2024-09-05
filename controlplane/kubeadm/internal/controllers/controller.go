@@ -569,19 +569,19 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	// Delete control plane machines in parallel
 	machinesToDelete := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
 	var errs []error
-	for i := range machinesToDelete {
-		machineToDelete := machinesToDelete[i]
+	for _, machineToDelete := range machinesToDelete {
 		log := log.WithValues("Machine", klog.KObj(machineToDelete))
+		ctx := ctrl.LoggerInto(ctx, log)
 
 		// During KCP deletion we don't care about forwarding etcd leadership or removing etcd members.
 		// So we are removing the pre-terminate hook.
-		// This is important because after we went through the Machine deletion
-		// the etcd quorum will be broken and we can't forward etcd leadership or remove etcd members anymore.
+		// This is important because when deleting KCP we will delete all members of etcd and it's not possible
+		// to forward etcd leadership without any member left after we went through the Machine deletion.
 		// Also in this case the reconcileDelete code of the Machine controller won't execute Node drain
 		// and wait for volume detach.
 		log.Info("Removing pre-terminate hook from control plane machine")
 		deletingMachineOriginal := machineToDelete.DeepCopy()
-		delete(machineToDelete.Annotations, controlplanev1.PreTerminateDeleteHookAnnotation)
+		delete(machineToDelete.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
 		if err := r.Client.Patch(ctx, machineToDelete, client.MergeFrom(deletingMachineOriginal)); err != nil {
 			errs = append(errs, errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(machineToDelete)))
 			continue
@@ -817,22 +817,38 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 
 	log := ctrl.LoggerFrom(ctx)
 
+	// Return early, if there is already a deleting Machine without the pre-terminate hook.
+	// We are going to wait until this Machine goes away before running the pre-terminate hook on other Machines.
+	for _, deletingMachine := range controlPlane.DeletingMachines() {
+		if _, exists := deletingMachine.Annotations[controlplanev1.PreTerminateHookCleanupAnnotation]; !exists {
+			return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		}
+	}
+
 	// Pick the Machine with the oldest deletionTimestamp to keep this function deterministic / reentrant
 	// so we only remove the pre-terminate hook from one Machine at a time.
 	deletingMachine := controlPlane.DeletingMachines().OldestDeletionTimestamp()
 	log = log.WithValues("Machine", klog.KObj(deletingMachine))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to parse Kubernetes version %q", controlPlane.KCP.Spec.Version)
+	}
+
 	// Return early if there are other pre-terminate hooks for the Machine.
 	// The KCP pre-terminate hook should be the one executed last, so that kubelet
 	// is still working while other pre-terminate hooks are run.
-	if machineHasOtherPreTerminateHooks(deletingMachine) {
-		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	// Note: This is done only for Kubernetes >= v1.31 to reduce the blast radius of this check.
+	if version.Compare(parsedVersion, semver.MustParse("1.31.0"), version.WithoutPreReleases()) >= 0 {
+		if machineHasOtherPreTerminateHooks(deletingMachine) {
+			return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+		}
 	}
 
 	// Return early if we don't have to run the pre-terminate hook (usually because it was already completed).
 	// We are now waiting for the Machine to go away.
-	if _, exists := deletingMachine.Annotations[controlplanev1.PreTerminateDeleteHookAnnotation]; !exists {
+	if _, exists := deletingMachine.Annotations[controlplanev1.PreTerminateHookCleanupAnnotation]; !exists {
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
@@ -874,7 +890,7 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 
 	log.Info("Removing pre-terminate hook from control plane Machine")
 	deletingMachineOriginal := deletingMachine.DeepCopy()
-	delete(deletingMachine.Annotations, controlplanev1.PreTerminateDeleteHookAnnotation)
+	delete(deletingMachine.Annotations, controlplanev1.PreTerminateHookCleanupAnnotation)
 	if err := r.Client.Patch(ctx, deletingMachine, client.MergeFrom(deletingMachineOriginal)); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to remove pre-terminate hook from control plane Machine %s", klog.KObj(deletingMachine))
 	}
@@ -885,7 +901,7 @@ func (r *KubeadmControlPlaneReconciler) reconcilePreTerminateHook(ctx context.Co
 
 func machineHasOtherPreTerminateHooks(machine *clusterv1.Machine) bool {
 	for k := range machine.Annotations {
-		if strings.HasPrefix(k, clusterv1.PreTerminateDeleteHookAnnotationPrefix) && k != controlplanev1.PreTerminateDeleteHookAnnotation {
+		if strings.HasPrefix(k, clusterv1.PreTerminateDeleteHookAnnotationPrefix) && k != controlplanev1.PreTerminateHookCleanupAnnotation {
 			return true
 		}
 	}

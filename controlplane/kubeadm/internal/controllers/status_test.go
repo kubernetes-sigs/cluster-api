@@ -75,7 +75,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		Client: fakeClient,
 		managementCluster: &fakeManagementCluster{
 			Machines: map[string]*clusterv1.Machine{},
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		},
 		recorder: record.NewFakeRecorder(32),
 	}
@@ -147,7 +147,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		Client: fakeClient,
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
-			Workload: fakeWorkloadCluster{},
+			Workload: &fakeWorkloadCluster{},
 		},
 		recorder: record.NewFakeRecorder(32),
 	}
@@ -220,7 +220,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		Client: fakeClient,
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Status: internal.ClusterStatus{
 					Nodes:            3,
 					ReadyNodes:       3,
@@ -302,7 +302,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		Client: fakeClient,
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Status: internal.ClusterStatus{
 					Nodes:            5,
 					ReadyNodes:       1,
@@ -383,7 +383,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 		Client: fakeClient,
 		managementCluster: &fakeManagementCluster{
 			Machines: machines,
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Status: internal.ClusterStatus{
 					Nodes:            0,
 					ReadyNodes:       0,

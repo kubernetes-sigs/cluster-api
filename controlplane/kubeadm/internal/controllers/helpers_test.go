@@ -562,6 +562,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			expectedAnnotations[k] = v
 		}
 		expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = clusterConfigurationString
+		// The pre-terminate annotation should always be added
+		expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 		g.Expect(createdMachine.Annotations).To(Equal(expectedAnnotations))
 
 		// Verify that machineTemplate.ObjectMeta in KCP has not been modified.
@@ -646,6 +648,8 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 		}
 		expectedAnnotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = existingClusterConfigurationString
 		expectedAnnotations[controlplanev1.RemediationForAnnotation] = remediationData
+		// The pre-terminate annotation should always be added
+		expectedAnnotations[controlplanev1.PreTerminateHookCleanupAnnotation] = ""
 		g.Expect(updatedMachine.Annotations).To(Equal(expectedAnnotations))
 
 		// Verify that machineTemplate.ObjectMeta in KCP has not been modified.

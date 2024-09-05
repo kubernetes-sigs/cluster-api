@@ -84,13 +84,13 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Status: internal.ClusterStatus{Nodes: 1},
 			},
 		},
 		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Status: internal.ClusterStatus{Nodes: 1},
 			},
 		},
@@ -192,7 +192,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 
 	fmc := &fakeManagementCluster{
 		Machines: collections.Machines{},
-		Workload: fakeWorkloadCluster{
+		Workload: &fakeWorkloadCluster{
 			Status: internal.ClusterStatus{Nodes: 3},
 		},
 	}

@@ -68,6 +68,31 @@ func (o machinesByCreationTimestamp) Less(i, j int) bool {
 	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
 }
 
+// machinesByDeletionTimestamp sorts a list of Machines by deletion timestamp, using their names as a tie breaker.
+// Machines without DeletionTimestamp go after machines with this field set.
+type machinesByDeletionTimestamp []*clusterv1.Machine
+
+func (o machinesByDeletionTimestamp) Len() int      { return len(o) }
+func (o machinesByDeletionTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+func (o machinesByDeletionTimestamp) Less(i, j int) bool {
+	if o[i].DeletionTimestamp == nil && o[j].DeletionTimestamp == nil {
+		return o[i].Name < o[j].Name
+	}
+
+	if o[i].DeletionTimestamp == nil {
+		return false
+	}
+
+	if o[j].DeletionTimestamp == nil {
+		return true
+	}
+
+	if o[i].DeletionTimestamp.Equal(o[j].DeletionTimestamp) {
+		return o[i].Name < o[j].Name
+	}
+	return o[i].DeletionTimestamp.Before(o[j].DeletionTimestamp)
+}
+
 // New creates an empty Machines.
 func New() Machines {
 	return make(Machines)
@@ -126,6 +151,16 @@ func (s Machines) SortedByCreationTimestamp() []*clusterv1.Machine {
 	return res
 }
 
+// SortedByDeletionTimestamp returns the machines sorted by deletion timestamp.
+func (s Machines) SortedByDeletionTimestamp() []*clusterv1.Machine {
+	res := make(machinesByDeletionTimestamp, 0, len(s))
+	for _, value := range s {
+		res = append(res, value)
+	}
+	sort.Sort(res)
+	return res
+}
+
 // UnsortedList returns the slice with contents in random order.
 func (s Machines) UnsortedList() []*clusterv1.Machine {
 	res := make([]*clusterv1.Machine, 0, len(s))
@@ -176,6 +211,14 @@ func (s Machines) Newest() *clusterv1.Machine {
 		return nil
 	}
 	return s.SortedByCreationTimestamp()[len(s)-1]
+}
+
+// OldestDeletionTimestamp returns the Machine with the oldest DeletionTimestamp.
+func (s Machines) OldestDeletionTimestamp() *clusterv1.Machine {
+	if len(s) == 0 {
+		return nil
+	}
+	return s.SortedByDeletionTimestamp()[0]
 }
 
 // DeepCopy returns a deep copy.

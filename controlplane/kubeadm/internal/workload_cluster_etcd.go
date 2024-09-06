@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 
-	"github.com/blang/semver/v4"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -36,11 +35,11 @@ type etcdClientFor interface {
 
 // ReconcileEtcdMembers iterates over all etcd members and finds members that do not have corresponding nodes.
 // If there are any such members, it deletes them from etcd and removes their nodes from the kubeadm configmap so that kubeadm does not run etcd health checks on them.
-func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string, version semver.Version) ([]string, error) {
+func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string) ([]string, error) {
 	allRemovedMembers := []string{}
 	allErrs := []error{}
 	for _, nodeName := range nodeNames {
-		removedMembers, errs := w.reconcileEtcdMember(ctx, nodeNames, nodeName, version)
+		removedMembers, errs := w.reconcileEtcdMember(ctx, nodeNames, nodeName)
 		allRemovedMembers = append(allRemovedMembers, removedMembers...)
 		allErrs = append(allErrs, errs...)
 	}
@@ -48,7 +47,7 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string,
 	return allRemovedMembers, kerrors.NewAggregate(allErrs)
 }
 
-func (w *Workload) reconcileEtcdMember(ctx context.Context, nodeNames []string, nodeName string, version semver.Version) ([]string, []error) {
+func (w *Workload) reconcileEtcdMember(ctx context.Context, nodeNames []string, nodeName string) ([]string, []error) {
 	// Create the etcd Client for the etcd Pod scheduled on the Node
 	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{nodeName})
 	if err != nil {
@@ -82,10 +81,6 @@ loopmembers:
 		// If we're here, the node cannot be found.
 		removedMembers = append(removedMembers, member.Name)
 		if err := w.removeMemberForNode(ctx, member.Name); err != nil {
-			errs = append(errs, err)
-		}
-
-		if err := w.RemoveNodeFromKubeadmConfigMap(ctx, member.Name, version); err != nil {
 			errs = append(errs, err)
 		}
 	}

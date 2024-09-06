@@ -802,12 +802,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 		return errors.Wrap(err, "cannot get remote client to workload cluster")
 	}
 
-	parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
-	}
-
-	removedMembers, err := workloadCluster.ReconcileEtcdMembers(ctx, nodeNames, parsedVersion)
+	removedMembers, err := workloadCluster.ReconcileEtcdMembers(ctx, nodeNames)
 	if err != nil {
 		return errors.Wrap(err, "failed attempt to reconcile etcd members")
 	}

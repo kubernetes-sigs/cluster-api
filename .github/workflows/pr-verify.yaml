@@ -1,55 +1,19 @@
-name: PR verify
+name: PR title verifier
 
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
 
-permissions:
-  contents: read
-
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  checks:
+  verify:
     runs-on: ubuntu-latest
-    name: PR verify
+
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
 
-      - name: Check if PR title has acceptable prefix
-        run:  |
-          targets=(":sparkles:" ":bug:" ":book:" ":seedling:" ":warning:" ":rocket:" ":running:" "✨" "🐛" "📚" "🌱" "⚠️" "🚀" "🏃")
-          for target in "${targets[@]}"; do
-            if echo '${{ github.event.pull_request.title }}' | grep -o ^$target; then
-              exit 0
-            fi
-          done
-
-          echo "
-          I saw a title of ${{ github.event.pull_request.title }}, which doesn't seem to have any of the acceptable prefixes.
-
-          You need to have one of these as the prefix of your PR title:
-                
-          - Breaking change: ⚠ ("warning")
-          - Non-breaking feature: ✨ ("sparkles")
-          - Patch fix: 🐛 ("bug")
-          - Docs: 📖 ("book")
-          - Release: 🚀 ("rocket")
-          - Infra/Tests/Other: 🌱 ("seedling")
-          "
-          exit 1
-
-      - name: Check if there is no Issue or PR number
-        run: |
-          if echo '${{ github.event.pull_request.title }}' | grep -o -E -v '#[0-9]+'; then
-            exit 0
-          fi
-
-          echo "
-          The title should just be descriptive.
-
-          Issue numbers belong in the PR body as either "Fixes #XYZ" (if it closes the issue or PR), or something like "Related to #XYZ" (if it's just related).
-          "
-          exit 1
+      - name: Check if PR title is valid
+        run: sh hack/verify-pr-title.sh ${{ github.event.pull_request.title }}
 

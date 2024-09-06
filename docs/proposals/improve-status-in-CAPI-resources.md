@@ -336,7 +336,7 @@ Notes:
 
 | Condition              | Note                                                                                                                                                                                                                                                          |
 |------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`            | True if at the machine is Ready for at least MinReady seconds, as defined by the Machine's minReadySeconds field                                                                                                                                              |
+| `Available`            | True if at the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field                                                                                                                                               |
 | `Ready`                | True if the Machines is not deleted, Machine's `BootstrapConfigReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are true; if other conditions are defined in `spec.readinessGates`, these conditions must be true as well |
 | `UpToDate`             | True if the Machine spec matches the spec of the Machine's owner resource, e.g KubeadmControlPlane or MachineDeployment                                                                                                                                       |
 | `BootstrapConfigReady` | Mirrors the corresponding `Ready` condition from the Machine's BootstrapConfig resource                                                                                                                                                                       |
@@ -517,7 +517,7 @@ Notes:
 - Also `AvailableReplicas` will determine Machine's availability via Machine's `Available` condition instead of
   computing availability as of today (based on the Node `Ready` condition)
 
-#### MachineSet (New)Conditions
+##### MachineSet (New)Conditions
 
 | Condition          | Note                                                                                                        |
 |--------------------|-------------------------------------------------------------------------------------------------------------|
@@ -567,6 +567,46 @@ Notes:
 - During the implementation we should consider if to add columns for bootstrapRef and infraRef resource (same could apply to other resources)
 - In k8s Deployment and ReplicaSet have different print columns for replica counters; this proposal enforces replicas
   counter columns consistent across all resources.
+
+#### MachineSet Spec
+
+Following changes are implemented to MachineSet's spec:
+
+- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachineSet as `Spec.Template.Spec.MinReadySeconds`).
+
+Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------|------------------------------------------------|----------------------------------------------------|
+| `MinReadySeconds`            | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds` (removed)     |
+| other fields...              | other fields...                                | other fields...                                    |
+
+##### MachineSet (New)Conditions
+
+| Condition          | Note                                                                                                        |
+|--------------------|-------------------------------------------------------------------------------------------------------------|
+| `MachinesReady`    | This condition surfaces detail of issues on the controlled machines, if any                                 |
+| `MachinesUpToDate` | This condition surfaces details of controlled machines not up to date, if any                               |
+| `ScalingUp`        | True if available replicas < desired replicas                                                               |
+| `ScalingDown`      | True if replicas > desired replicas                                                                         |
+| `Remediating`      | This condition surfaces details about ongoing remediation of the controlled machines, if any                |
+| `Deleting`         | If MachineSet is deleted, this condition surfaces details about ongoing deletion of the controlled machines | 
+| `Paused`           | True if this MachineSet or the Cluster it belongs to are paused                                             |
+
+> To better evaluate proposed changes, below you can find the list of current MachineSet's conditions:
+> Ready, MachinesCreated, Resized, MachinesReady.
+
+Notes:
+- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
+  e.g. If the scaling down operation is being blocked by a machine having issues while deleting, this should surface with a reason/message in
+  the `ScalingDown` condition.
+- MachineSet conditions are intentionally mostly consistent with MachineDeployment conditions to help users troubleshooting.
+- MachineSet is considered as a sort of implementation detail of MachineDeployments, so it doesn't have its own concept of availability.
+  Similarly, this proposal is dropping the notion of MachineSet readiness because it is preferred to let users focus on Machines readiness.
+- When implementing this proposal `MachinesUpToDate` condition will be `false` for older MachineSet, `true` for the current MachineSet;
+  in the future this might change in case Cluster API will start supporting in-place upgrades.
+- `Remediating` for older MachineSets will report that remediation will happen as part of the regular rollout (Cluster API
+  does not remediate Machines on old MachineSets, because those Machines are already scheduled for deletion).
 
 ### Changes to MachineDeployment resource
 
@@ -629,7 +669,7 @@ Notes:
 - The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
   Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 
-#### MachineDeployment (New)Conditions
+##### MachineDeployment (New)Conditions
 
 | Condition          | Note                                                                                                                                                                                                                                                   |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -671,6 +711,19 @@ Notes:
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
 - During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
+
+#### MachineDeployment Spec
+
+Following changes are implemented to MachineDeployment's spec:
+
+- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachineDeployment as `Spec.Template.Spec.MinReadySeconds`).
+
+Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------|------------------------------------------------|----------------------------------------------------|
+| `MinReadySeconds`            | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds` (removed)     |
+| other fields...              | other fields...                                | other fields...                                    |
 
 ### Changes to Cluster resource
 
@@ -981,7 +1034,7 @@ Notes:
 - The `Deprecated` struct is going to exist in v1beta2 types only until v1beta1 removal (9 months or 3 minor releases after v1beta2 is released/v1beta1 is deprecated, whichever is longer).
   Fields in this struct are used for supporting down conversions, thus providing users relying on v1beta1 APIs additional buffer time to pick up the new changes.
 
-#### KubeadmControlPlane (New)Conditions
+##### KubeadmControlPlane (New)Conditions
 
 | Condition               | Note                                                                                                                                                                                                                                                                      |
 |-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -1165,6 +1218,19 @@ Notes:
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
 - During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
+
+#### MachinePool Spec
+
+Following changes are implemented to MachinePool's spec:
+
+- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachinePool as `Spec.Template.Spec.MinReadySeconds`).
+
+Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------|------------------------------------------------|----------------------------------------------------|
+| `MinReadySeconds`            | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds` (removed)     |
+| other fields...              | other fields...                                | other fields...                                    |
 
 ### Changes to Cluster API contract
 

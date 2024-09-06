@@ -113,7 +113,7 @@ Kubernetes, and ideally with the entire ecosystem.
 
 - Resolving all the idiosyncrasies that exists in Cluster API, core Kubernetes, the rest of the ecosystem.
   (Let’s stay focused on Cluster API and keep improving incrementally).
-- To change how the Cluster API contract with infrastructure, bootstrap and control providers currently works
+- To change fundamental way how the Cluster API contract with infrastructure, bootstrap and control providers currently works
   (by using status fields).
 
 ## Proposal
@@ -198,8 +198,8 @@ will now clearly represent the "machine can host workloads" (prior art Kubernete
 To improve the benefit of this change:
 
 - This proposal is ensuring that whenever Machine ready is used, it always means the same thing (e.g. ready replica counters)
-- This proposal is also changing contract fields where ready was used improperly to represent
-  initial provisioning (k8s API conventions suggest to use ready only for long-running process).
+- This proposal is also changing contract fields where ready was used to represent initial provisioning of infrastructure
+  or bootstrap secrets (so ready had different meanings).
 
 All in all, Machine's Ready concept should be much more clear, consistent, intuitive after proposed changes.
 But there is more.
@@ -344,7 +344,7 @@ Notes:
 | `NodeHealthy`          | True if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure                                                                                                                                                       |
 | `NodeReady`            | True if the Machine's Node is ready                                                                                                                                                                                                                           |
 | `HealthCheckSucceeded` | True if MHC instances targeting this machine report the Machine is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object                                                                                        |
-| `OwnerRemediated`      | True if MHC instances targeting this machine determine that the controller owning this machine should perform remediation                                                                                                                                     |
+| `OwnerRemediated`      | Only present if MHC instances targeting this machine determine that the controller owning this machine should perform remediation                                                                                                                             |
 | `Deleting`             | If Machine is deleted, this condition surfaces details about progress in the machine deletion workflow                                                                                                                                                        |
 | `Paused`               | True if the Machine or the Cluster it belongs to are paused                                                                                                                                                                                                   |
 
@@ -500,11 +500,11 @@ type MachineSetStatus struct {
 | `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
 | `V1Beta2.UpToDateReplicas` (new)  | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
 |                                   | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
-| `ReadyReplicas`                   | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas`               | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason`                   | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage`                  | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions`                      | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
+| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
+| `AvailableReplicas` (deprecated)  | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
+| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
+| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
 | other fields...                   | other fields...                                               | other fields...                                    |
 
 Notes:
@@ -592,7 +592,7 @@ type MachineDeploymentStatus struct {
     // +optional
     AvailableReplicas int32 `json:"availableReplicas"`
 
-    // The number of up-to-date replicas targeted by this deployment.
+    // The number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.
     // +optional
     UpToDateReplicas int32 `json:"upToDateReplicas"`
 
@@ -612,14 +612,15 @@ type MachineDeploymentStatus struct {
 | `V1Beta2` (new)                  | (removed)                                                     | (removed)                                          |
 | `V1Beta2.Conditions` (new)       | `Conditions` (renamed)                                        | `Conditions`                                       |
 | `V1Beta2.ReadyReplicas` (new)    | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
-| `V1Beta2.vailableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
+| `V1Beta2.AvilableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
+| `V1Beta2.UpToDateReplicas` (new) | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
 |                                  | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
 | `ReadyReplicas` (deprecated)     | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
 | `AvailableReplicas` (deprecated) | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
 | `FailureReason` (deprecated)     | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
 | `FailureMessage` (deprecated)    | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
 | `Conditions` (deprecated)        | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| `UpdatedReplicas`                | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
+| `UpdatedReplicas` (deprecated)   | `Deprecated.V1Beta1.UpToDateReplicas` (UpdatedReplicas)       | (removed)                                          |
 | other fields...                  | other fields...                                               | other fields...                                    |
 
 Notes:
@@ -738,19 +739,19 @@ type ClusterControlPlaneStatus struct {
     // +optional
     DesiredReplicas int32 `json:"desiredReplicas"`
 
-    // Total number of non-terminated control plane machines in this cluster.
+    // Total number of control plane machines in this cluster.
     // +optional
     Replicas int32 `json:"replicas"`
     
-    // The number of up-to-date control plane machines in this cluster.
+    // The number of up-to-date control plane machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.
     // +optional
     UpToDateReplicas int32 `json:"upToDateReplicas"`
     
-    // Total number of ready control plane machines in this cluster.
+    // Total number of ready control plane machines in this cluster. A machine is considered ready when Machine's Ready condition is true.
     // +optional
     ReadyReplicas int32 `json:"readyReplicas"`
     
-    // Total number of available control plane machines in this cluster.
+    // Total number of available control plane machines in this cluster. A machine is considered ready when Machine's Available condition is true.
     // +optional
     AvailableReplicas int32 `json:"availableReplicas"`
 }
@@ -761,19 +762,19 @@ type WorkersStatus struct {
     // +optional
     DesiredReplicas int32 `json:"desiredReplicas"`
 
-    // Total number of non-terminated worker machines in this cluster.
+    // Total number of worker machines in this cluster.
     // +optional
     Replicas int32 `json:"replicas"`
     
-    // The number of up-to-date worker machines in this cluster.
+    // The number of up-to-date worker machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.
     // +optional
     UpToDateReplicas int32 `json:"upToDateReplicas"`
     
-    // Total number of ready worker machines in this cluster.
+    // Total number of ready worker machines in this cluster. A machine is considered ready when Machine's Ready condition is true.
     // +optional
     ReadyReplicas int32 `json:"readyReplicas"`
     
-    // Total number of available worker machines in this cluster.
+    // Total number of available worker machines in this cluster. A machine is considered ready when Machine's Available condition is true.
     // +optional
     AvailableReplicas int32 `json:"availableReplicas"`
 }
@@ -814,22 +815,22 @@ Notes:
 
 ##### Cluster (New)Conditions
 
-| Condition                 | Note                                                                                                                                                                                                                                                                                                                              |
-|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`               | True if Cluster `RemoteConnectionProbe` is true, if Cluster's control plane `Available` condition is true, if all MachineDeployment and MachinePool's `Available` conditions are true, if `TopologyReconciled` is true (if present); if conditions are defined in `spec.availabilityGates`, those conditions must be true as well |
-| `TopologyReconciled`      | True if the topology controller is working properly                                                                                                                                                                                                                                                                               |
-| `InfrastructureReady`     | Mirror of Cluster's infrastructure `Ready` condition                                                                                                                                                                                                                                                                              |
-| `ControlPlaneInitialized` | True when the Cluster's control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists                                                            |
-| `ControlPlaneAvailable`   | Mirror of Cluster's control plane `Available` condition                                                                                                                                                                                                                                                                           |
-| `WorkersAvailable`        | Summary of MachineDeployment and MachinePool's `Available` conditions                                                                                                                                                                                                                                                             |
-| `MachinesReady`           | This condition surfaces detail of issues on the controlled machines, if any                                                                                                                                                                                                                                                       |
-| `MachinesUpToDate`        | This condition surfaces details of Cluster's machines not up to date, if any                                                                                                                                                                                                                                                      |
-| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 50s after the first connection problem is detected (or whatever period is defined in the `--remote-connection-grace-period` flag)                                              |
-| `ScalingUp`               | True if available replicas < desired replicas                                                                                                                                                                                                                                                                                     |
-| `ScalingDown`             | True if replicas > desired replicas                                                                                                                                                                                                                                                                                               |
-| `Remediating`             | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                                                                                                      |
-| `Deleting`                | If Cluster is deleted, this condition surfaces details about ongoing deletion of the controlled machines                                                                                                                                                                                                                          |
-| `Paused`                  | True if Cluster and all the resources being part of it are paused                                                                                                                                                                                                                                                                 |
+| Condition                 | Note                                                                                                                                                                                                                                                                                 |
+|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`               | True if the Cluster's `RemoteConnectionProbe`, `InfrastructureReady`, `ControlPlaneAvailable`, `WorkersAvailable`, `TopologyReconciled` (if present) conditions are true. if conditions are defined in `spec.availabilityGates`, those conditions must be true as well               |
+| `TopologyReconciled`      | True if the topology controller is working properly                                                                                                                                                                                                                                  |
+| `InfrastructureReady`     | Mirror of Cluster's infrastructure `Ready` condition                                                                                                                                                                                                                                 |
+| `ControlPlaneInitialized` | True when the Cluster's control plane is functional enough to accept requests. This information is usually used as a signal for starting all the provisioning operations that depends on a functional API server, but do not require a full HA control plane to exists               |
+| `ControlPlaneAvailable`   | Mirror of Cluster's control plane `Available` condition                                                                                                                                                                                                                              |
+| `WorkersAvailable`        | Summary of MachineDeployment and MachinePool's `Available` conditions                                                                                                                                                                                                                |
+| `MachinesReady`           | This condition surfaces detail of issues on the controlled machines, if any                                                                                                                                                                                                          |
+| `MachinesUpToDate`        | This condition surfaces details of Cluster's machines not up to date, if any                                                                                                                                                                                                         |
+| `RemoteConnectionProbe`   | True when control plane can be reached; in case of connection problems, the condition turns to false only if the the cluster cannot be reached for 50s after the first connection problem is detected (or whatever period is defined in the `--remote-connection-grace-period` flag) |
+| `ScalingUp`               | True if available replicas < desired replicas                                                                                                                                                                                                                                        |
+| `ScalingDown`             | True if replicas > desired replicas                                                                                                                                                                                                                                                  |
+| `Remediating`             | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                                                         |
+| `Deleting`                | If Cluster is deleted, this condition surfaces details about ongoing deletion of the cluster                                                                                                                                                                                         |
+| `Paused`                  | True if Cluster and all the resources being part of it are paused                                                                                                                                                                                                                    |
 
 > To better evaluate proposed changes, below you can find the list of current Cluster's conditions:
 > Ready, InfrastructureReady, ControlPlaneReady, ControlPlaneInitialized, TopologyReconciled
@@ -939,15 +940,15 @@ type KubeadmControlPlaneStatus struct {
     // +optional
     ReadyReplicas int32 `json:"readyReplicas"`
 
-    // The number of available replicas targeted by this ControlPlane.
+    // The number of available replicas targeted by this ControlPlane. A machine is considered ready when Machine's Available condition is true.
     // +optional
     AvailableReplicas int32 `json:"availableReplicas"`
 	
-    // The number of up-to-date replicas targeted by this ControlPlane.
+    // The number of up-to-date replicas targeted by this ControlPlane. A machine is considered ready when Machine's UpToDate condition is true.
     // +optional
     UpToDateReplicas int32 `json:"upToDateReplicas"`
 
-    // Represents the observations of a ControlPlane's current state.
+    // Represents the observations of a ControlPlane's current state. 
     // +optional
     // +listType=map
     // +listMapKey=type
@@ -965,12 +966,13 @@ type KubeadmControlPlaneStatus struct {
 | `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                     | `Conditions`                                       |
 | `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                  | `ReadyReplicas`                                    |
 | `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                              | `AvailableReplicas`                                |
+| `V1Beta2.UpToDateReplicas` (new)  | `UpToDateReplicas` (renamed)                               | `UpToDateReplicas`                                 |
 |                                   | `Deprecated.V1Beta1` (new)                                 | (removed)                                          |
 | `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)  | (removed)                                          |
 | `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)  | (removed)                                          |
 | `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated) | (removed)                                          |
 | `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)     | (removed)                                          |
-| `UpdatedReplicas`                 | `UpToDateReplicas` (renamed)                               | `UpToDateReplicas`                                 |
+| `UpdatedReplicas` (deprecated)    | `Deprecated.V1Beta1.UpToDateReplicas` (UpdatedReplicas)    | (removed)                                          |
 | other fields...                   | other fields...                                            | other fields...                                    |
 
 Notes:
@@ -981,18 +983,18 @@ Notes:
 
 #### KubeadmControlPlane (New)Conditions
 
-| Condition               | Note                                                                                                                                                                                                                                                                     |
-|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `Available`             | True if the control plane can be reached, `EtcdClusterAvailable` is true, and `CertificatesAvailable` is true                                                                                                                                                            |
-| `CertificatesAvailable` | True if all the cluster certificates exist.                                                                                                                                                                                                                              |
-| `EtcdClusterAvailable`  | This condition surfaces issues to the managed etcd cluster, if any It is computed as aggregation of Machines's `EtcdMemberHealthy` (if not using an external etcd) conditions plus additional checks validating potential issues to etcd quorum                          |
-| `MachinesReady`         | This condition surfaces detail of issues on the controlled machines, if any Please note this will include also `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, and if not using an external etcd also `EtcdPodHealthy`, `EtcdMemberHealthy` |
-| `MachinesUpToDate`      | This condition surfaces details of controlled machines not up to date, if any                                                                                                                                                                                            |
-| `ScalingUp`             | True if available replicas < desired replicas                                                                                                                                                                                                                            |
-| `ScalingDown`           | True if replicas > desired replicas                                                                                                                                                                                                                                      |
-| `Remediating`           | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                                             |
-| `Deleting`              | If KubeadmControlPlane is deleted, this condition surfaces details about ongoing deletion of the controlled machines                                                                                                                                                     |
-| `Paused`                | True if this resource or the Cluster it belongs to are paused                                                                                                                                                                                                            |
+| Condition               | Note                                                                                                                                                                                                                                                                      |
+|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Available`             | True if the control plane can be reached, `EtcdClusterAvailable` is true, and `CertificatesAvailable` is true                                                                                                                                                             |
+| `CertificatesAvailable` | True if all the cluster certificates exist.                                                                                                                                                                                                                               |
+| `EtcdClusterAvailable`  | This condition surfaces issues to the managed etcd cluster, if any It is computed as aggregation of Machines's `EtcdMemberHealthy` (if not using an external etcd) conditions plus additional checks validating potential issues to etcd quorum                           |
+| `MachinesReady`         | This condition surfaces detail of issues on the controlled machines, if any. Please note this will include also `APIServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, and if not using an external etcd also `EtcdPodHealthy`, `EtcdMemberHealthy` |
+| `MachinesUpToDate`      | This condition surfaces details of controlled machines not up to date, if any                                                                                                                                                                                             |
+| `ScalingUp`             | True if available replicas < desired replicas                                                                                                                                                                                                                             |
+| `ScalingDown`           | True if replicas > desired replicas                                                                                                                                                                                                                                       |
+| `Remediating`           | This condition surfaces details about ongoing remediation of the controlled machines, if any                                                                                                                                                                              |
+| `Deleting`              | If KubeadmControlPlane is deleted, this condition surfaces details about ongoing deletion of the controlled machines                                                                                                                                                      |
+| `Paused`                | True if this resource or the Cluster it belongs to are paused                                                                                                                                                                                                             |
 
 > To better evaluate proposed changes, below you can find the list of current KubeadmControlPlane's conditions:
 > Ready, CertificatesAvailable, MachinesCreated, Available, MachinesSpecUpToDate, Resized, MachinesReady,
@@ -1002,7 +1004,7 @@ Notes:
 - Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
   e.g. If the scaling down operation is being blocked by a Machine having issues while deleting, this should surface as a reason/message in
   the `ScalingDown` condition.
-- The KubeadmControlPlane controller is going to add `ApiServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`,
+- The KubeadmControlPlane controller is going to add `APIServerPodHealthy`, `ControllerManagerPodHealthy`, `SchedulerPodHealthy`,
   `EtcdPodHealthy`, `EtcdMemberHealthy`conditions to the controller machines. These conditions will also be defined as `readinessGates`
   for computing Machine's `Ready` condition.
 
@@ -1054,7 +1056,7 @@ type MachinePoolStatus struct {
     // +optional
     AvailableReplicas int32 `json:"availableReplicas"`
 
-    // The number of up-to-date replicas targeted by this MachinePool.
+    // The number of up-to-date replicas targeted by this MachinePool. A machine is considered available when Machine's  UpToDate condition is true.
     // +optional
     UpToDateReplicas int32 `json:"upToDateReplicas"`
 
@@ -1094,23 +1096,23 @@ type MachinePoolInitializationStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|-----------------------------------|---------------------------------------------------------------|----------------------------------------------------|
-|                                   | `Initialization` (new)                                        | `Initialization`                                   |
-| `BootstrapReady`                  | `Initialization.BootstrapDataSecretCreated` (renamed)         | `Initialization.BootstrapDataSecretCreated`        |
-| `InfrastructureReady`             | `Initialization.InfrastructureProvisioned` (renamed)          | `Initialization.InfrastructureProvisioned`         |
-| `V1Beta2` (new)                   | (removed)                                                     | (removed)                                          |
-| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                        | `Conditions`                                       |
-| `V1Beta2.UpdatedReplicas` (new)   | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
-| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
-| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
-|                                   | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
-| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
-| `AvailableReplicas` (deprecated)  | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
-| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
-| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
-| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| other fields...                   | other fields...                                               | other fields...                                    |
+| v1beta1 (tentative Dec 2024)       | v1beta2 (tentative Apr 2025)                                  | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------------|---------------------------------------------------------------|----------------------------------------------------|
+|                                    | `Initialization` (new)                                        | `Initialization`                                   |
+| `BootstrapReady`                   | `Initialization.BootstrapDataSecretCreated` (renamed)         | `Initialization.BootstrapDataSecretCreated`        |
+| `InfrastructureReady`              | `Initialization.InfrastructureProvisioned` (renamed)          | `Initialization.InfrastructureProvisioned`         |
+| `V1Beta2` (new)                    | (removed)                                                     | (removed)                                          |
+| `V1Beta2.Conditions` (new)         | `Conditions` (renamed)                                        | `Conditions`                                       |
+| `V1Beta2.UpToDateReplicas` (new)   | `UpToDateReplicas` (renamed)                                  | `UpToDateReplicas`                                 |
+| `V1Beta2.ReadyReplicas` (new)      | `ReadyReplicas` (renamed)                                     | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new)  | `AvailableReplicas` (renamed)                                 | `AvailableReplicas`                                |
+|                                    | `Deprecated.V1Beta1` (new)                                    | (removed)                                          |
+| `ReadyReplicas` (deprecated)       | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)     | (removed)                                          |
+| `AvailableReplicas` (deprecated)   | `Deprecated.V1Beta1.AvailableReplicas` (renamed) (deprecated) | (removed)                                          |
+| `FailureReason` (deprecated)       | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
+| `FailureMessage` (deprecated)      | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
+| `Conditions` (deprecated)          | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
+| other fields...                    | other fields...                                               | other fields...                                    |
 
 Notes:
 - The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
@@ -1170,8 +1172,9 @@ The Cluster API contract defines a set of rules a provider is expected to comply
 
 When the v1beta2 API will be released (tentative Apr 2025), also the Cluster API contract will be bumped to v1beta2.
 
-As written at the beginning of this document, this proposal is not going to change how the Cluster API contract
-with infrastructure, bootstrap and control providers currently works (by using status fields).
+As written at the beginning of this document, this proposal is not going to change the fundamental way the Cluster API contract
+with infrastructure, bootstrap and control providers currently works (by using status fields; however, we are renaming a few fields
+as detailed below).
 
 Similarly, this proposal is not going to change the fact that the Cluster API contract does not require providers to implement
 conditions, even if this is recommended because conditions greatly improve user's experience.
@@ -1300,6 +1303,7 @@ Following changes are planned for the contract for the ControlPlane resource:
 | `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.deprecated.v1beta1.conditions[Ready]` (renamed, deprecated), optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set | (removed)                                                                                                   |
 |                                                                       | `status.conditions[Available]` (new), optional with fall back optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set        | `status.conditions[Available]`, optional with fall back on `status.initializiation.controlPlaneInitialized` |
 | `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |
+| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |
 | `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                                                                        | (removed)                                                                                                   |
 | other fields/rules...                                                 | other fields/rules...                                                                                                                                                 |                                                                                                             |
 
@@ -1322,11 +1326,11 @@ proposal address those use cases.
 
 As a cluster admin with MachineDeployment ownership I'd like to understand if my MD is performing a rolling upgrade and why by looking at the MD status/conditions
 
-> The main signal for MD is performing a rolling upgrade will be `MD.Status.Conditions[UpToDate]`.
+> The main signal for MD is performing a rolling upgrade will be `MD.Status.Conditions[MachinesUpToDate]`.
 
 > At least in the first iteration there won't be a signal at MD level about why rollout is happening, because controlled machines might
 > have different reasons why they are not UpToDate (and the admin can check those conditions by looking at single machines).
-> In future iterations of this proposal we might find ways to aggregate those reasons into the message for the `MD.Status.Conditions[UpToDate]` condition.
+> In future iterations of this proposal we might find ways to aggregate those reasons into the message for the `MD.Status.Conditions[MachinesUpToDate]` condition.
 
 As a cluster admin with MachineDeployment ownership I'd like to understand why my MD rollout is blocked by looking at the MD status/conditions
 

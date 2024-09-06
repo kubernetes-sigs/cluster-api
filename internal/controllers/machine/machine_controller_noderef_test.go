@@ -27,15 +27,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func TestGetNode(t *testing.T) {
@@ -992,5 +994,96 @@ func newFakeMachineDeployment(namespace, clusterName string) *clusterv1.MachineD
 				Spec: newFakeMachineSpec(namespace, clusterName),
 			},
 		},
+	}
+}
+
+func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
+	namespaceName := "test"
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}
+
+	testMachineDeployment := builder.MachineDeployment(namespaceName, "my-md").
+		WithAnnotations(map[string]string{clusterv1.RevisionAnnotation: "1"}).
+		Build()
+	testMachineDeploymentNew := testMachineDeployment.DeepCopy()
+	testMachineDeploymentNew.Annotations = map[string]string{clusterv1.RevisionAnnotation: "2"}
+
+	testMachineSet := builder.MachineSet(namespaceName, "my-ms").
+		WithOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineDeployment, testMachineDeployment.GroupVersionKind())}).
+		Build()
+	testMachineSet.Annotations = map[string]string{clusterv1.RevisionAnnotation: "1"}
+
+	labels := map[string]string{
+		clusterv1.MachineDeploymentNameLabel: "my-md",
+	}
+	testMachine := builder.Machine(namespaceName, "my-machine").WithLabels(labels).Build()
+	testMachine.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineSet, testMachineSet.GroupVersionKind())})
+
+	tests := []struct {
+		name    string
+		machine *clusterv1.Machine
+		objects []client.Object
+		want    bool
+		wantErr bool
+	}{
+		{
+			name:    "Machine without MachineDeployment label",
+			machine: builder.Machine(namespaceName, "no-deploy").Build(),
+			objects: nil,
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Machine without OwnerReference",
+			machine: builder.Machine(namespaceName, "no-ownerref").WithLabels(labels).Build(),
+			objects: nil,
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name:    "Machine without existing MachineSet",
+			machine: testMachine,
+			objects: []client.Object{testMachineSet},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name:    "Machine without existing MachineDeployment",
+			machine: testMachine,
+			objects: []client.Object{testMachineSet},
+			want:    false,
+			wantErr: true,
+		},
+		{
+			name:    "Machineset not outdated",
+			machine: testMachine,
+			objects: []client.Object{testMachineSet, testMachineDeployment},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name:    "Machineset outdated",
+			machine: testMachine,
+			objects: []client.Object{testMachineSet, testMachineDeploymentNew},
+			want:    true,
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			objects := []client.Object{namespace}
+			objects = append(objects, tt.machine)
+			objects = append(objects, tt.objects...)
+			c := fake.NewClientBuilder().
+				WithObjects(objects...).Build()
+
+			got, err := shouldNodeHaveOutdatedTaint(ctx, c, tt.machine)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("shouldNodeHaveOutdatedTaint() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }

@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -296,9 +297,16 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)
 
 	// Set Taint to a node in an old MachineSet and unset Taint from a node in a new MachineSet
-	isOutdated, err := shouldNodeHaveOutdatedTaint(ctx, r.Client, m)
+	isOutdated, notFound, err := shouldNodeHaveOutdatedTaint(ctx, r.Client, m)
 	if err != nil {
 		return errors.Wrapf(err, "failed to check if Node %s is outdated", klog.KRef("", node.Name))
+	}
+
+	// It is not possible to identify if we have to set the NodeOutdatedRevisionTaint if there is
+	// no OwnerReference or the owning MachineSet or MachineDeployment was not found.
+	// Note: This could happen e.g. during background deletion of objects.
+	if notFound {
+		return nil
 	}
 	if isOutdated {
 		hasTaintChanges = taints.EnsureNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
@@ -313,20 +321,26 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node))
 }
 
-func shouldNodeHaveOutdatedTaint(ctx context.Context, c client.Client, m *clusterv1.Machine) (bool, error) {
+// shouldNodeHaveOutdatedTaint tries to compare the revision of the owning MachineSet to the MachineDeployment.
+// It returns notFound = true if the OwnerReference is not set or the APIServer returns NotFound for the MachineSet or MachineDeployment.
+// Note: This three cases could happen during background deletion of objects.
+func shouldNodeHaveOutdatedTaint(ctx context.Context, c client.Client, m *clusterv1.Machine) (outdated bool, notFound bool, err error) {
 	if _, hasLabel := m.Labels[clusterv1.MachineDeploymentNameLabel]; !hasLabel {
-		return false, nil
+		return false, false, nil
 	}
 
 	// Resolve the MachineSet name via owner references because the label value
 	// could also be a hash.
-	objKey, err := getOwnerMachineSetObjectKey(m.ObjectMeta)
-	if err != nil {
-		return false, err
+	objKey, notFound, err := getOwnerMachineSetObjectKey(m.ObjectMeta)
+	if err != nil || notFound {
+		return false, notFound, err
 	}
 	ms := &clusterv1.MachineSet{}
 	if err := c.Get(ctx, *objKey, ms); err != nil {
-		return false, err
+		if apierrors.IsNotFound(err) {
+			return false, true, nil
+		}
+		return false, false, err
 	}
 	md := &clusterv1.MachineDeployment{}
 	objKey = &client.ObjectKey{
@@ -334,31 +348,34 @@ func shouldNodeHaveOutdatedTaint(ctx context.Context, c client.Client, m *cluste
 		Name:      m.Labels[clusterv1.MachineDeploymentNameLabel],
 	}
 	if err := c.Get(ctx, *objKey, md); err != nil {
-		return false, err
+		if apierrors.IsNotFound(err) {
+			return false, true, nil
+		}
+		return false, false, err
 	}
 	msRev, err := mdutil.Revision(ms)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	mdRev, err := mdutil.Revision(md)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	if msRev < mdRev {
-		return true, nil
+		return true, false, nil
 	}
-	return false, nil
+	return false, false, nil
 }
 
-func getOwnerMachineSetObjectKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
+func getOwnerMachineSetObjectKey(obj metav1.ObjectMeta) (*client.ObjectKey, bool, error) {
 	for _, ref := range obj.GetOwnerReferences() {
 		gv, err := schema.ParseGroupVersion(ref.APIVersion)
 		if err != nil {
-			return nil, err
+			return nil, false, err
 		}
 		if ref.Kind == "MachineSet" && gv.Group == clusterv1.GroupVersion.Group {
-			return &client.ObjectKey{Namespace: obj.Namespace, Name: ref.Name}, nil
+			return &client.ObjectKey{Namespace: obj.Namespace, Name: ref.Name}, false, nil
 		}
 	}
-	return nil, errors.Errorf("failed to find MachineSet owner reference for Machine %s", klog.KRef(obj.GetNamespace(), obj.GetName()))
+	return nil, true, nil
 }

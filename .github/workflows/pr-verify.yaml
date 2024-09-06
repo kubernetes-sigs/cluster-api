@@ -6,7 +6,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -27,7 +26,7 @@ jobs:
             fi
           done
 
-          cat <<EOF > /tmp/comment
+          echo "
           I saw a title of ${{ github.event.pull_request.title }}, which doesn't seem to have any of the acceptable prefixes.
 
           You need to have one of these as the prefix of your PR title:
@@ -38,10 +37,7 @@ jobs:
           - Docs: 📖 ("book")
           - Release: 🚀 ("rocket")
           - Infra/Tests/Other: 🌱 ("seedling")
-          EOF
-
-          gh pr comment ${{ github.event.number }} -F /tmp/comment
-
+          "
           exit 1
 
   verify-pr-no-issue-number:
@@ -56,13 +52,10 @@ jobs:
             exit 0
           fi
 
-          cat <<EOF > /tmp/comment
+          echo "
           The title should just be descriptive.
 
           Issue numbers belong in the PR body as either "Fixes #XYZ" (if it closes the issue or PR), or something like "Related to #XYZ" (if it's just related).
-          EOF
-
-          gh pr comment ${{ github.event.number }} -F /tmp/comment
-
+          "
           exit 1
 

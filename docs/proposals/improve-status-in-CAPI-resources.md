@@ -1295,6 +1295,7 @@ Following changes are planned for the contract for the ControlPlane resource:
   - Remove `status.ready` (`status.ready` is a redundant signal of the control plane being initialized).
   - Rename `status.initialized` into `status.initialization.controlPlaneInitialized`.
 - Remove `failureReason` and `failureMessage`.
+- Align replica counters with CAPI core objects
 
 | v1beta1 (tentative Dec 2024)                                          | v1beta2 (tentative Apr 2025)                                                                                                                                          | v1beta2 after v1beta1 removal (tentative Apr 2026)                                                          |
 |-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|
@@ -1305,7 +1306,15 @@ Following changes are planned for the contract for the ControlPlane resource:
 | `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |
 | `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |
 | `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                                                                        | (removed)                                                                                                   |
+| `status.unavailableReplicas`, optional                                | `status.unavailableReplicas` (deprecated), optional                                                                                                                   | (removed)                                                                                                   |
+|                                                                       | `status.availableReplicas` (new), optional with fallback on replicas - `status.unavailableReplicas`                                                                   | `status.availableReplicas`, optional                                                                        |
+|                                                                       | `status.readyReplicas` (new), optional                                                                                                                                | `status.readyReplicas`, optional                                                                            |
+| `status.updatedReplicas`, optional                                    | `status.uptoDateReplicas` (renamed), optional will fall back on `status.updatedReplicas`                                                                              | `status.uptoDateReplicas`, optional                                                                         |
 | other fields/rules...                                                 | other fields/rules...                                                                                                                                                 |                                                                                                             |
+
+Additionally, control plane providers will be expected to continuously set Machine's `status.conditions[UpToDate]` condition
+and `spec.minReadySeconds`. Those fields should be treated like other fields propagated /updated in place, without triggering
+machine rollouts (`nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout`, labels and annotations).
 
 Notes:
 - ControlPlane's `status.initialization.controlPlaneInitialized` will surface into Cluster's `staus.initialization.controlPlaneInitialized` field; also,

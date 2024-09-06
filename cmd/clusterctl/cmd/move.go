@@ -23,6 +23,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/util/apiwarnings"
 )
 
 type moveOptions struct {
@@ -34,6 +38,7 @@ type moveOptions struct {
 	fromDirectory         string
 	toDirectory           string
 	dryRun                bool
+	hideAPIWarnings       bool
 }
 
 var mo = &moveOptions{}
@@ -80,6 +85,8 @@ func init() {
 		"Write Cluster API objects and all dependencies from a management cluster to directory.")
 	moveCmd.Flags().StringVar(&mo.fromDirectory, "from-directory", "",
 		"Read Cluster API objects and all dependencies from a directory into a management cluster.")
+	moveCmd.Flags().BoolVar(&mo.hideAPIWarnings, "hide-api-warnings", true,
+		"Hide warnings returned by the API server.")
 
 	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-kubeconfig")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-directory")
@@ -98,7 +105,38 @@ func runMove() error {
 		return errors.New("please specify a target cluster using the --to-kubeconfig flag when not using --dry-run, --to-directory or --from-directory")
 	}
 
-	c, err := client.New(ctx, cfgFile)
+	configClient, err := config.New(ctx, cfgFile)
+	if err != nil {
+		return err
+	}
+
+	clientOptions := []client.Option{}
+	if mo.hideAPIWarnings {
+		clientOptions = append(clientOptions,
+			client.InjectClusterClientFactory(
+				func(input client.ClusterClientFactoryInput) (cluster.Client, error) {
+					return cluster.New(
+						cluster.Kubeconfig(input.Kubeconfig),
+						configClient,
+						cluster.InjectYamlProcessor(input.Processor),
+						cluster.InjectProxy(
+							cluster.NewProxy(
+								cluster.Kubeconfig(input.Kubeconfig),
+								cluster.InjectWarningHandler(
+									apiwarnings.DefaultHandler(
+										logf.Log.WithName("API Server Warning"),
+									),
+								),
+							)),
+					), nil
+				},
+			),
+			// Ensure that the same configClient used by both the client constructor, and the cluster client factory.
+			client.InjectConfig(configClient),
+		)
+	}
+
+	c, err := client.New(ctx, cfgFile, clientOptions...)
 	if err != nil {
 		return err
 	}

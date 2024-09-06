@@ -37,13 +37,10 @@ func DomainQualifiedFinalizerWarning(domain string) *regexp.Regexp {
 // decisions made by the Cluster API project, but cannot be immediately
 // addressed, and are therefore not helpful to the user.
 func DefaultHandler(l logr.Logger) *DiscardMatchingHandler {
-	return NewDiscardMatchingHandler(
-		l,
-		DiscardMatchingHandlerOptions{
-			Deduplicate: true,
-			Expressions: []regexp.Regexp{
-				*DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
-			},
+	return &DiscardMatchingHandler{
+		Logger: l,
+		Expressions: []regexp.Regexp{
+			*DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
 		},
-	)
+	}
 }

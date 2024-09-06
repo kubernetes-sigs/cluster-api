@@ -11,9 +11,9 @@ env:
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-  verify-pr-type:
+  checks:
     runs-on: ubuntu-latest
-    name: verify PR type
+    name: PR verify
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
 
@@ -39,12 +39,6 @@ jobs:
           - Infra/Tests/Other: 🌱 ("seedling")
           "
           exit 1
-
-  verify-pr-no-issue-number:
-    runs-on: ubuntu-latest
-    name: verify PR no issue number
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
 
       - name: Check if there is no Issue or PR number
         run: |

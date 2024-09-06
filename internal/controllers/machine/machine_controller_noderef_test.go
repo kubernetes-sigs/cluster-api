@@ -1019,53 +1019,60 @@ func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
 	testMachine.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineSet, testMachineSet.GroupVersionKind())})
 
 	tests := []struct {
-		name    string
-		machine *clusterv1.Machine
-		objects []client.Object
-		want    bool
-		wantErr bool
+		name         string
+		machine      *clusterv1.Machine
+		objects      []client.Object
+		wantOutdated bool
+		wantNotFound bool
+		wantErr      bool
 	}{
 		{
-			name:    "Machine without MachineDeployment label",
-			machine: builder.Machine(namespaceName, "no-deploy").Build(),
-			objects: nil,
-			want:    false,
-			wantErr: false,
+			name:         "Machineset not outdated",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet, testMachineDeployment},
+			wantOutdated: false,
+			wantNotFound: false,
+			wantErr:      false,
 		},
 		{
-			name:    "Machine without OwnerReference",
-			machine: builder.Machine(namespaceName, "no-ownerref").WithLabels(labels).Build(),
-			objects: nil,
-			want:    false,
-			wantErr: true,
+			name:         "Machineset outdated",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet, testMachineDeploymentNew},
+			wantOutdated: true,
+			wantNotFound: false,
+			wantErr:      false,
 		},
 		{
-			name:    "Machine without existing MachineSet",
-			machine: testMachine,
-			objects: []client.Object{testMachineSet},
-			want:    false,
-			wantErr: true,
+			name:         "Machine without MachineDeployment label",
+			machine:      builder.Machine(namespaceName, "no-deploy").Build(),
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: false,
+			wantErr:      false,
 		},
 		{
-			name:    "Machine without existing MachineDeployment",
-			machine: testMachine,
-			objects: []client.Object{testMachineSet},
-			want:    false,
-			wantErr: true,
+			name:         "Machine without OwnerReference",
+			machine:      builder.Machine(namespaceName, "no-ownerref").WithLabels(labels).Build(),
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
 		},
 		{
-			name:    "Machineset not outdated",
-			machine: testMachine,
-			objects: []client.Object{testMachineSet, testMachineDeployment},
-			want:    false,
-			wantErr: false,
+			name:         "Machine without existing MachineSet",
+			machine:      testMachine,
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
 		},
 		{
-			name:    "Machineset outdated",
-			machine: testMachine,
-			objects: []client.Object{testMachineSet, testMachineDeploymentNew},
-			want:    true,
-			wantErr: false,
+			name:         "Machine without existing MachineDeployment",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet},
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
 		},
 	}
 	for _, tt := range tests {
@@ -1076,13 +1083,16 @@ func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
 			c := fake.NewClientBuilder().
 				WithObjects(objects...).Build()
 
-			got, err := shouldNodeHaveOutdatedTaint(ctx, c, tt.machine)
+			gotOutdated, gotNotFound, err := shouldNodeHaveOutdatedTaint(ctx, c, tt.machine)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("shouldNodeHaveOutdatedTaint() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", got, tt.want)
+			if gotOutdated != tt.wantOutdated {
+				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", gotOutdated, tt.wantOutdated)
+			}
+			if gotNotFound != tt.wantNotFound {
+				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", gotNotFound, tt.wantNotFound)
 			}
 		})
 	}

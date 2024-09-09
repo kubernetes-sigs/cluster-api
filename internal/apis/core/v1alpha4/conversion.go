@@ -244,6 +244,10 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
+	if restored.Spec.MachineNamingStrategy != nil {
+		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+	}
+
 	return nil
 }
 
@@ -294,6 +298,11 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
 	}
+
+	if restored.Spec.MachineNamingStrategy != nil {
+		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+	}
+
 	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil

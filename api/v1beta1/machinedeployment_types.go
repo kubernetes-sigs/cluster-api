@@ -286,6 +286,11 @@ type MachineDeploymentSpec struct {
 	// +optional
 	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 
+	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
+	// +optional
+	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
+
 	// minReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
 	// Defaults to 0 (machine will be considered available as soon as the Node is ready)
 	// +optional
@@ -411,6 +416,31 @@ type RemediationStrategy struct {
 }
 
 // ANCHOR_END: RemediationStrategy
+
+// MachineNamingStrategy allows changing the naming pattern used when creating
+// Machines.
+// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
+type MachineNamingStrategy struct {
+	// template defines the template to use for generating the names of the
+	// Machine objects.
+	// If not defined, it will fallback to `{{ .machineSet.name }}-{{ .random }}`.
+	// If the generated name string exceeds 63 characters, it will be trimmed to
+	// 58 characters and will
+	// get concatenated with a random suffix of length 5.
+	// Length of the template string must not exceed 256 characters.
+	// The template allows the following variables `.cluster.name`,
+	// `.machineSet.name` and `.random`.
+	// The variable `.cluster.name` retrieves the name of the cluster object
+	// that owns the Machines being created.
+	// The variable `.machineSet.name` retrieves the name of the MachineSet
+	// object that owns the Machines being created.
+	// The variable `.random` is substituted with random alphanumeric string,
+	// without vowels, of length 5. This variable is required part of the
+	// template. If not provided, validation will fail.
+	// +optional
+	// +kubebuilder:validation:MaxLength=256
+	Template string `json:"template,omitempty"`
+}
 
 // ANCHOR: MachineDeploymentStatus
 

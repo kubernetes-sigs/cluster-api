@@ -114,6 +114,9 @@ trap "cleanup" EXIT SIGINT
 docker events > "${ARTIFACTS_LOCAL}/docker-events.txt" 2>&1 &
 ctr -n moby events > "${ARTIFACTS_LOCAL}/containerd-events.txt" 2>&1 &
 
+cat /proc/sys/fs/inotify/max_user_watches > "${ARTIFACTS_LOCAL}/fs.inotify.max_user_watches.txt"
+cat /proc/sys/fs/inotify/max_user_instances > "${ARTIFACTS_LOCAL}/fs.inotify.max_user_instances.txt"
+
 # Run e2e tests
 mkdir -p "$ARTIFACTS"
 echo "+ run tests!"

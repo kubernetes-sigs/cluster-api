@@ -1176,6 +1176,7 @@ func autoConvert_v1beta1_MachineDeploymentSpec_To_v1alpha4_MachineDeploymentSpec
 	} else {
 		out.Strategy = nil
 	}
+	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	out.MinReadySeconds = (*int32)(unsafe.Pointer(in.MinReadySeconds))
 	out.RevisionHistoryLimit = (*int32)(unsafe.Pointer(in.RevisionHistoryLimit))
 	out.Paused = in.Paused

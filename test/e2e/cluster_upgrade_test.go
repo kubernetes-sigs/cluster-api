@@ -70,7 +70,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterC
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass]", Label("Foo"), func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass]", func() {
 	controlPlaneMachineCount := int64(3)
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
@@ -99,9 +99,9 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 				}
 				Expect(managementClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())
 
-				// This replaces the WaitForControlPlaneMachinesToBeUpgraded function and additionally:
-				// * checks that kube-proxy is healthy
-				// * removes the pre-drain hook from kcp machines if all is healthy.
+				// This replaces the WaitForControlPlaneMachinesToBeUpgraded function to ensure that
+				// all static Pods and kube-proxy as well as all Nodes are healthy during the whole upgrade
+				// across all Nodes of the Cluster. For doing this it uses a pre-drain hook.
 				Eventually(func() (int64, error) {
 					machines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
 						Lister:      managementClusterProxy.GetClient(),
@@ -148,7 +148,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 						}
 					}
 
-					// Check if the expected number of kube-proxy pods exist and all of them are healthy.
+					// Check if the expected number of kube-proxy pods exist and all of them are healthy for all existing Nodes of the Cluster.
 					if len(nodes.Items) != len(kubeProxyPods.Items) {
 						errList = append(errList, errors.Errorf("exected %d kube-proxy pods to exist, got %d", len(nodes.Items), len(kubeProxyPods.Items)))
 					}
@@ -165,7 +165,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 						return 0, errors.Wrap(err, "blocking upgrade because cluster is not stable")
 					}
 
-					// Remove pre-drain webhook from machines because all current machines are considered ok.
+					// At this stage all current machines are considered ok, so remove the pre-drain webhook from a CP to unblock the next step of the upgrade.
 					if len(deletingMachinesWithPreDrainHook) > 0 {
 						if len(deletingMachinesWithPreDrainHook) > 1 {
 							return 0, errors.Errorf("expected a maximum of 1 control-plane machines to be in deleting and having the pre-drain hook but got %d", len(deletingMachinesWithPreDrainHook))

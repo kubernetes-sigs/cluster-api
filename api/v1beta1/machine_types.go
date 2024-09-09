@@ -61,6 +61,15 @@ const (
 	// search each annotation for during the pre-terminate.delete lifecycle hook
 	// to pause reconciliation of deletion. These hooks will prevent removal of
 	// an instance from an infrastructure provider until all are removed.
+	//
+	// Notes for Machines managed by KCP (starting with Cluster API v1.8.2):
+	// * KCP adds its own pre-terminate hook on all Machines it controls. This is done to ensure it can later remove
+	//   the etcd member right before Machine termination (i.e. before InfraMachine deletion).
+	// * Starting with Kubernetes v1.31 the KCP pre-terminate hook will wait for all other pre-terminate hooks to finish to
+	//   ensure it runs last (thus ensuring that kubelet is still working while other pre-terminate hooks run). This is only done
+	//   for v1.31 or above because the kubeadm ControlPlaneKubeletLocalMode was introduced with kubeadm 1.31. This feature configures
+	//   the kubelet to communicate with the local apiserver. Only because of that the kubelet immediately starts failing after the etcd
+	//   member is removed. We need the ControlPlaneKubeletLocalMode feature with 1.31 to adhere to the kubelet skew policy.
 	PreTerminateDeleteHookAnnotationPrefix = "pre-terminate.delete.hook.machine.cluster.x-k8s.io"
 
 	// MachineCertificatesExpiryDateAnnotation annotation specifies the expiry date of the machine certificates in RFC3339 format.

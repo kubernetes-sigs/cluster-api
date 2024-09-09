@@ -41,11 +41,13 @@ see-also:
       - [Machine Print columns](#machine-print-columns)
     - [Changes to MachineSet resource](#changes-to-machineset-resource)
       - [MachineSet Status](#machineset-status)
-      - [MachineSet (New)Conditions](#machineset-newconditions)
+        - [MachineSet (New)Conditions](#machineset-newconditions)
+      - [MachineSet Spec](#machineset-spec)
       - [MachineSet Print columns](#machineset-print-columns)
     - [Changes to MachineDeployment resource](#changes-to-machinedeployment-resource)
       - [MachineDeployment Status](#machinedeployment-status)
-      - [MachineDeployment (New)Conditions](#machinedeployment-newconditions)
+        - [MachineDeployment (New)Conditions](#machinedeployment-newconditions)
+      - [MachineDeployment Spec](#machinedeployment-spec)
       - [MachineDeployment Print columns](#machinedeployment-print-columns)
     - [Changes to Cluster resource](#changes-to-cluster-resource)
       - [Cluster Status](#cluster-status)
@@ -54,11 +56,12 @@ see-also:
       - [Cluster Print columns](#cluster-print-columns)
     - [Changes to KubeadmControlPlane (KCP) resource](#changes-to-kubeadmcontrolplane-kcp-resource)
       - [KubeadmControlPlane Status](#kubeadmcontrolplane-status)
-      - [KubeadmControlPlane (New)Conditions](#kubeadmcontrolplane-newconditions)
+        - [KubeadmControlPlane (New)Conditions](#kubeadmcontrolplane-newconditions)
       - [KubeadmControlPlane Print columns](#kubeadmcontrolplane-print-columns)
     - [Changes to MachinePool resource](#changes-to-machinepool-resource)
       - [MachinePool Status](#machinepool-status)
         - [MachinePool (New)Conditions](#machinepool-newconditions)
+      - [MachinePool Spec](#machinepool-spec)
       - [MachinePool Print columns](#machinepool-print-columns)
     - [Changes to Cluster API contract](#changes-to-cluster-api-contract)
       - [Contract for infrastructure providers](#contract-for-infrastructure-providers)
@@ -544,6 +547,19 @@ Notes:
 - `Remediating` for older MachineSets will report that remediation will happen as part of the regular rollout (Cluster API
   does not remediate Machines on old MachineSets, because those Machines are already scheduled for deletion).
 
+#### MachineSet Spec
+
+Following changes are implemented to MachineSet's spec:
+
+- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachineSet as `Spec.Template.Spec.MinReadySeconds`).
+
+Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------|------------------------------------------------|----------------------------------------------------|
+| `Spec.MinReadySeconds`       | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
+| other fields...              | other fields...                                | other fields...                                    |
+
 #### MachineSet Print columns
 
 | Current       | To be                   |
@@ -567,46 +583,6 @@ Notes:
 - During the implementation we should consider if to add columns for bootstrapRef and infraRef resource (same could apply to other resources)
 - In k8s Deployment and ReplicaSet have different print columns for replica counters; this proposal enforces replicas
   counter columns consistent across all resources.
-
-#### MachineSet Spec
-
-Following changes are implemented to MachineSet's spec:
-
-- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachineSet as `Spec.Template.Spec.MinReadySeconds`).
-
-Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
-
-| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------------------------|----------------------------------------------------|
-| `MinReadySeconds`            | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds` (removed)     |
-| other fields...              | other fields...                                | other fields...                                    |
-
-##### MachineSet (New)Conditions
-
-| Condition          | Note                                                                                                        |
-|--------------------|-------------------------------------------------------------------------------------------------------------|
-| `MachinesReady`    | This condition surfaces detail of issues on the controlled machines, if any                                 |
-| `MachinesUpToDate` | This condition surfaces details of controlled machines not up to date, if any                               |
-| `ScalingUp`        | True if available replicas < desired replicas                                                               |
-| `ScalingDown`      | True if replicas > desired replicas                                                                         |
-| `Remediating`      | This condition surfaces details about ongoing remediation of the controlled machines, if any                |
-| `Deleting`         | If MachineSet is deleted, this condition surfaces details about ongoing deletion of the controlled machines | 
-| `Paused`           | True if this MachineSet or the Cluster it belongs to are paused                                             |
-
-> To better evaluate proposed changes, below you can find the list of current MachineSet's conditions:
-> Ready, MachinesCreated, Resized, MachinesReady.
-
-Notes:
-- Conditions like `ScalingUp`, `ScalingDown`, `Remediating` and `Deleting` are intended to provide visibility on the corresponding lifecycle operation.
-  e.g. If the scaling down operation is being blocked by a machine having issues while deleting, this should surface with a reason/message in
-  the `ScalingDown` condition.
-- MachineSet conditions are intentionally mostly consistent with MachineDeployment conditions to help users troubleshooting.
-- MachineSet is considered as a sort of implementation detail of MachineDeployments, so it doesn't have its own concept of availability.
-  Similarly, this proposal is dropping the notion of MachineSet readiness because it is preferred to let users focus on Machines readiness.
-- When implementing this proposal `MachinesUpToDate` condition will be `false` for older MachineSet, `true` for the current MachineSet;
-  in the future this might change in case Cluster API will start supporting in-place upgrades.
-- `Remediating` for older MachineSets will report that remediation will happen as part of the regular rollout (Cluster API
-  does not remediate Machines on old MachineSets, because those Machines are already scheduled for deletion).
 
 ### Changes to MachineDeployment resource
 
@@ -660,7 +636,7 @@ type MachineDeploymentStatus struct {
 | `FailureReason` (deprecated)     | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)     | (removed)                                          |
 | `FailureMessage` (deprecated)    | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)    | (removed)                                          |
 | `Conditions` (deprecated)        | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)        | (removed)                                          |
-| `UpdatedReplicas` (deprecated)   | `Deprecated.V1Beta1.UpToDateReplicas` (UpdatedReplicas)       | (removed)                                          |
+| `UpdatedReplicas` (deprecated)   | `Deprecated.V1Beta1.UpdatedReplicas` (renamed) (deprecated)   | (removed)                                          |
 | other fields...                  | other fields...                                               | other fields...                                    |
 
 Notes:
@@ -690,6 +666,19 @@ Notes:
   e.g. If the scaling down operation is being blocked by a machine having issues while deleting, this should surface as a reason/message in
   the `ScalingDown` condition.
 
+#### MachineDeployment Spec
+
+Following changes are implemented to MachineDeployment's spec:
+
+- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachineDeployment as `Spec.Template.Spec.MinReadySeconds`).
+
+Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------|------------------------------------------------|----------------------------------------------------|
+| `Spec.MinReadySeconds`       | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
+| other fields...              | other fields...                                | other fields...                                    |
+
 #### MachineDeployment Print columns
 
 | Current                 | To be                  |
@@ -711,19 +700,6 @@ Notes:
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
 - During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
-
-#### MachineDeployment Spec
-
-Following changes are implemented to MachineDeployment's spec:
-
-- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachineDeployment as `Spec.Template.Spec.MinReadySeconds`).
-
-Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
-
-| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------------------------|----------------------------------------------------|
-| `MinReadySeconds`            | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds` (removed)     |
-| other fields...              | other fields...                                | other fields...                                    |
 
 ### Changes to Cluster resource
 
@@ -1012,21 +988,21 @@ type KubeadmControlPlaneStatus struct {
 }
 ```
 
-| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                               | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|-----------------------------------|------------------------------------------------------------|----------------------------------------------------|
-| `Ready` (deprecated)              | `Ready` (deprecated)                                       | (removed)                                          |
-| `V1Beta2` (new)                   | (removed)                                                  | (removed)                                          |
-| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                     | `Conditions`                                       |
-| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                  | `ReadyReplicas`                                    |
-| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                              | `AvailableReplicas`                                |
-| `V1Beta2.UpToDateReplicas` (new)  | `UpToDateReplicas` (renamed)                               | `UpToDateReplicas`                                 |
-|                                   | `Deprecated.V1Beta1` (new)                                 | (removed)                                          |
-| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)  | (removed)                                          |
-| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)  | (removed)                                          |
-| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated) | (removed)                                          |
-| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)     | (removed)                                          |
-| `UpdatedReplicas` (deprecated)    | `Deprecated.V1Beta1.UpToDateReplicas` (UpdatedReplicas)    | (removed)                                          |
-| other fields...                   | other fields...                                            | other fields...                                    |
+| v1beta1 (tentative Dec 2024)      | v1beta2 (tentative Apr 2025)                                | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|-----------------------------------|-------------------------------------------------------------|----------------------------------------------------|
+| `Ready` (deprecated)              | `Ready` (deprecated)                                        | (removed)                                          |
+| `V1Beta2` (new)                   | (removed)                                                   | (removed)                                          |
+| `V1Beta2.Conditions` (new)        | `Conditions` (renamed)                                      | `Conditions`                                       |
+| `V1Beta2.ReadyReplicas` (new)     | `ReadyReplicas` (renamed)                                   | `ReadyReplicas`                                    |
+| `V1Beta2.AvailableReplicas` (new) | `AvailableReplicas` (renamed)                               | `AvailableReplicas`                                |
+| `V1Beta2.UpToDateReplicas` (new)  | `UpToDateReplicas` (renamed)                                | `UpToDateReplicas`                                 |
+|                                   | `Deprecated.V1Beta1` (new)                                  | (removed)                                          |
+| `ReadyReplicas` (deprecated)      | `Deprecated.V1Beta1.ReadyReplicas` (renamed) (deprecated)   | (removed)                                          |
+| `FailureReason` (deprecated)      | `Deprecated.V1Beta1.FailureReason` (renamed) (deprecated)   | (removed)                                          |
+| `FailureMessage` (deprecated)     | `Deprecated.V1Beta1.FailureMessage` (renamed) (deprecated)  | (removed)                                          |
+| `Conditions` (deprecated)         | `Deprecated.V1Beta1.Conditions` (renamed) (deprecated)      | (removed)                                          |
+| `UpdatedReplicas` (deprecated)    | `Deprecated.V1Beta1.UpdatedReplicas` (renamed) (deprecated) | (removed)                                          |
+| other fields...                   | other fields...                                             | other fields...                                    |
 
 Notes:
 - The `V1Beta2` struct is going to be added to in v1beta1 types in order to provide a preview of changes coming with the v1beta2 types, but without impacting the semantic of existing fields.
@@ -1197,6 +1173,19 @@ Notes:
   the `ScalingDown` condition.
 - As of today MachinePool does not have a notion similar to MachineDeployment's MaxUnavailability.
 
+#### MachinePool Spec
+
+Following changes are implemented to MachinePool's spec:
+
+- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachinePool as `Spec.Template.Spec.MinReadySeconds`).
+
+Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
+
+| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
+|------------------------------|------------------------------------------------|----------------------------------------------------|
+| `Spec.MinReadySeconds`       | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds`               |
+| other fields...              | other fields...                                | other fields...                                    |
+
 #### MachinePool Print columns
 
 | Current       | To be                  |
@@ -1218,19 +1207,6 @@ Notes:
 Notes:
 - Print columns are not subject to any deprecation rule, so it is possible to iteratively improve print columns without waiting for the next API version.
 - During the implementation we are going to verify the resulting layout and eventually make final adjustments to the column list.
-
-#### MachinePool Spec
-
-Following changes are implemented to MachinePool's spec:
-
-- Remove `Spec.MinReadySeconds`, which is now part of Machine's spec (and thus exists in MachinePool as `Spec.Template.Spec.MinReadySeconds`).
-
-Below you can find a summary table that also shows how changes will be rolled out according to K8s deprecation rules.
-
-| v1beta1 (tentative Dec 2024) | v1beta2 (tentative Apr 2025)                   | v1beta2 after v1beta1 removal (tentative Apr 2026) |
-|------------------------------|------------------------------------------------|----------------------------------------------------|
-| `MinReadySeconds`            | `Spec.Template.Spec.MinReadySeconds` (renamed) | `Spec.Template.Spec.MinReadySeconds` (removed)     |
-| other fields...              | other fields...                                | other fields...                                    |
 
 ### Changes to Cluster API contract
 
@@ -1370,16 +1346,17 @@ Following changes are planned for the contract for the ControlPlane resource:
 | `status.conditions[Ready]`, optional with fall back on `status.ready` | `status.deprecated.v1beta1.conditions[Ready]` (renamed, deprecated), optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set | (removed)                                                                                                   |
 |                                                                       | `status.conditions[Available]` (new), optional with fall back optional with fall back on `status.ready` or `status.initialization.controlPlaneInitialized` set        | `status.conditions[Available]`, optional with fall back on `status.initializiation.controlPlaneInitialized` |
 | `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |
-| `status.failureReason`, optional                                      | `status.failureReason` (deprecated), optional                                                                                                                         | (removed)                                                                                                   |
 | `status.failureMessage`, optional                                     | `status.failureMessage` (deprecated), optional                                                                                                                        | (removed)                                                                                                   |
-| `status.unavailableReplicas`, optional                                | `status.unavailableReplicas` (deprecated), optional                                                                                                                   | (removed)                                                                                                   |
-|                                                                       | `status.availableReplicas` (new), optional with fallback on replicas - `status.unavailableReplicas`                                                                   | `status.availableReplicas`, optional                                                                        |
-|                                                                       | `status.readyReplicas` (new), optional                                                                                                                                | `status.readyReplicas`, optional                                                                            |
-| `status.updatedReplicas`, optional                                    | `status.uptoDateReplicas` (renamed), optional will fall back on `status.updatedReplicas`                                                                              | `status.uptoDateReplicas`, optional                                                                         |
+|                                                                       | `status.availableReplicas` (new), required (1) with fallback on `status.readyReplicas` (CP did not have a concept of availability before)                             | `status.availableReplicas`, required (1)                                                                    |
+| `status.updatedReplicas`, required (1)                                | `status.upToDateReplicas` (renamed), required (1) will fall back on `status.updatedReplicas`                                                                          | `status.upToDateReplicas`, required (1)                                                                     |
 | other fields/rules...                                                 | other fields/rules...                                                                                                                                                 |                                                                                                             |
 
+required (1): required only if using replicas.
+
 Additionally, control plane providers will be expected to continuously set Machine's `status.conditions[UpToDate]` condition
-and `spec.minReadySeconds`. Those fields should be treated like other fields propagated /updated in place, without triggering
+and `spec.minReadySeconds`; please note that a CP provider implementation can decide to enforce `spec.minReadySeconds` to be 0 and 
+introduce a difference between readiness and availability at a later stage (e.g. KCP will do this). 
+Those fields should be treated like other fields propagated /updated in place, without triggering
 machine rollouts (`nodeDrainTimeout`, `nodeVolumeDetachTimeout`, `nodeDeletionTimeout`, labels and annotations).
 
 Notes:

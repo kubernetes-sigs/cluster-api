@@ -154,6 +154,9 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Status.Conditions = restored.Status.Conditions
 	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
+	if restored.Spec.MachineNamingStrategy != nil {
+		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+	}
 	return nil
 }
 
@@ -207,6 +210,10 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Strategy.RollingUpdate.DeletePolicy = restored.Spec.Strategy.RollingUpdate.DeletePolicy
 		}
 		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
+	}
+
+	if restored.Spec.MachineNamingStrategy != nil {
+		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
 	}
 
 	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates

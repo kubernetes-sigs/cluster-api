@@ -46,7 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
-	"sigs.k8s.io/cluster-api/internal/topology/names"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/test/builder"
@@ -2689,7 +2689,7 @@ func TestTemplateToObject(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      nil,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2709,7 +2709,7 @@ func TestTemplateToObject(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      fakeRef2,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2750,7 +2750,7 @@ func TestTemplateToTemplate(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      nil,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
@@ -2769,7 +2769,7 @@ func TestTemplateToTemplate(t *testing.T) {
 			template:              template,
 			templateClonedFromRef: fakeRef1,
 			cluster:               cluster,
-			nameGenerator:         names.SimpleNameGenerator(cluster.Name),
+			nameGenerator:         topologynames.SimpleNameGenerator(cluster.Name),
 			currentObjectRef:      fakeRef2,
 		})
 		g.Expect(err).ToNot(HaveOccurred())

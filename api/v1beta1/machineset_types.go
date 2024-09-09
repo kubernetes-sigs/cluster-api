@@ -85,6 +85,11 @@ type MachineSetSpec struct {
 	// Object references to custom resources are treated as templates.
 	// +optional
 	Template MachineTemplateSpec `json:"template,omitempty"`
+
+	// machineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// Note: InfraMachines & BootstrapConfigs will use the same name as the corresponding Machines.
+	// +optional
+	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 }
 
 // MachineSet's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.

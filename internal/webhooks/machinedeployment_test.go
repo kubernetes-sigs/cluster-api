@@ -301,13 +301,14 @@ func TestMachineDeploymentValidation(t *testing.T) {
 	goodMaxUnavailableInt := intstr.FromInt(0)
 	goodMaxInFlightInt := intstr.FromInt(5)
 	tests := []struct {
-		name      string
-		md        *clusterv1.MachineDeployment
-		mdName    string
-		selectors map[string]string
-		labels    map[string]string
-		strategy  clusterv1.MachineDeploymentStrategy
-		expectErr bool
+		name                  string
+		md                    *clusterv1.MachineDeployment
+		mdName                string
+		selectors             map[string]string
+		labels                map[string]string
+		strategy              clusterv1.MachineDeploymentStrategy
+		expectErr             bool
+		machineNamingStrategy clusterv1.MachineNamingStrategy
 	}{
 		{
 			name:      "pass with name of under 63 characters",
@@ -454,6 +455,27 @@ func TestMachineDeploymentValidation(t *testing.T) {
 			},
 			expectErr: false,
 		},
+		{
+			name: "should not return error when MachineNamingStrategy have {{ .random }}",
+			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}-{{ .random }}",
+			},
+			expectErr: false,
+		},
+		{
+			name: "should return error when MachineNamingStrategy does not have {{ .random }}",
+			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}",
+			},
+			expectErr: true,
+		},
+		{
+			name: "should return error when MachineNamingStrategy does not follow DNS1123Subdomain rules",
+			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}-{{ .random }}-",
+			},
+			expectErr: true,
+		},
 	}
 
 	for i := range tests {
@@ -474,6 +496,7 @@ func TestMachineDeploymentValidation(t *testing.T) {
 							Labels: tt.labels,
 						},
 					},
+					MachineNamingStrategy: &tt.machineNamingStrategy,
 				},
 			}
 

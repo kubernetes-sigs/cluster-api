@@ -373,12 +373,12 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 		if kcp.Spec.MachineNamingStrategy != nil && kcp.Spec.MachineNamingStrategy.Template != "" {
 			nameTemplate = kcp.Spec.MachineNamingStrategy.Template
 			if !strings.Contains(nameTemplate, "{{ .random }}") {
-				return nil, errors.New("cannot generate KCP machine name: {{ .random }} is missing in machineNamingStrategy.template")
+				return nil, errors.New("cannot generate Machine name: {{ .random }} is missing in machineNamingStrategy.template")
 			}
 		}
 		generatedMachineName, err := topologynames.KCPMachineNameGenerator(nameTemplate, cluster.Name, kcp.Name).GenerateName()
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to generate name for KCP Machine")
+			return nil, errors.Wrap(err, "failed to generate Machine name")
 		}
 		machineName = generatedMachineName
 		version = &kcp.Spec.Version

@@ -254,7 +254,7 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(&useDeprecatedInfraMachineNaming, "use-deprecated-infra-machine-naming", false,
 		"Use deprecated infrastructure machine naming")
-	_ = fs.MarkDeprecated("use-deprecated-infra-machine-naming", "This flag will be removed in v1.9.")
+	_ = fs.MarkDeprecated("use-deprecated-infra-machine-naming", "This flag will be removed in v1.10.")
 
 	flags.AddManagerOptions(fs, &managerOptions)
 

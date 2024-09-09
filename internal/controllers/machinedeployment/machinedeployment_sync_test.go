@@ -538,6 +538,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 func TestComputeDesiredMachineSet(t *testing.T) {
 	duration5s := &metav1.Duration{Duration: 5 * time.Second}
 	duration10s := &metav1.Duration{Duration: 10 * time.Second}
+	namingTemplateKey := "test"
 
 	infraRef := corev1.ObjectReference{
 		Kind:       "GenericInfrastructureMachineTemplate",
@@ -567,6 +568,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 					DeletePolicy:   ptr.To("Random"),
 					MaxUnavailable: intOrStrPtr(0),
 				},
+			},
+			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
 			},
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"k1": "v1"},
@@ -604,6 +608,9 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 			DeletePolicy:    string(clusterv1.RandomMachineSetDeletePolicy),
 			Selector:        metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
 			Template:        *deployment.Spec.Template.DeepCopy(),
+			MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
+			},
 		},
 	}
 
@@ -816,6 +823,9 @@ func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clus
 
 	// Check MachineTemplateSpec
 	g.Expect(actualMS.Spec.Template.Spec).Should(BeComparableTo(expectedMS.Spec.Template.Spec))
+
+	// Check MachineNamingStrategy
+	g.Expect(actualMS.Spec.MachineNamingStrategy.Template).Should(BeComparableTo(expectedMS.Spec.MachineNamingStrategy.Template))
 }
 
 // asserts the conditions set on the Getter object.

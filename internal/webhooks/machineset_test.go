@@ -541,3 +541,62 @@ func TestMachineSetTemplateMetadataValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestMachineSetMachineNamingStrategyValidation(t *testing.T) {
+	tests := []struct {
+		name                  string
+		machineNamingStrategy clusterv1.MachineNamingStrategy
+		expectErr             bool
+	}{
+		{
+			name: "should not return error when MachineNamingStrategy have {{ .random }}",
+			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}-{{ .random }}",
+			},
+			expectErr: false,
+		},
+		{
+			name: "should return error when MachineNamingStrategy does not have {{ .random }}",
+			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}",
+			},
+			expectErr: true,
+		},
+		{
+			name: "should return error when MachineNamingStrategy does not follow DNS1123Subdomain rules",
+			machineNamingStrategy: clusterv1.MachineNamingStrategy{
+				Template: "{{ .machineSet.name }}-{{ .random }}-",
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ms := &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					MachineNamingStrategy: &tt.machineNamingStrategy,
+				},
+			}
+
+			webhook := &MachineSet{}
+
+			if tt.expectErr {
+				warnings, err := webhook.ValidateCreate(ctx, ms)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, ms, ms)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			} else {
+				warnings, err := webhook.ValidateCreate(ctx, ms)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = webhook.ValidateUpdate(ctx, ms, ms)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
+}

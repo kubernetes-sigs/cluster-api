@@ -24,6 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	gomegatypes "github.com/onsi/gomega/types"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -2501,9 +2502,27 @@ func TestMachineSetReconciler_syncReplicas_WithErrors(t *testing.T) {
 	})
 }
 
+type computeDesiredMachineTestCase struct {
+	name            string
+	ms              *clusterv1.MachineSet
+	existingMachine *clusterv1.Machine
+	wantMachine     *clusterv1.Machine
+	wantName        []gomegatypes.GomegaMatcher
+}
+
 func TestComputeDesiredMachine(t *testing.T) {
 	duration5s := &metav1.Duration{Duration: 5 * time.Second}
 	duration10s := &metav1.Duration{Duration: 10 * time.Second}
+
+	namingTemplateKey := "-md"
+	mdName := "testmd"
+	msName := "ms1"
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "foo",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
 
 	infraRef := corev1.ObjectReference{
 		Kind:       "GenericInfrastructureMachineTemplate",
@@ -2516,53 +2535,37 @@ func TestComputeDesiredMachine(t *testing.T) {
 		APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 	}
 
-	ms := &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "ms1",
-			Labels: map[string]string{
-				clusterv1.MachineDeploymentNameLabel: "md1",
-			},
+	machineTemplateSpec := clusterv1.MachineTemplateSpec{
+		ObjectMeta: clusterv1.ObjectMeta{
+			Labels:      map[string]string{"machine-label1": "machine-value1"},
+			Annotations: map[string]string{"machine-annotation1": "machine-value1"},
 		},
-		Spec: clusterv1.MachineSetSpec{
-			ClusterName:     "test-cluster",
-			Replicas:        ptr.To[int32](3),
-			MinReadySeconds: 10,
-			Selector: metav1.LabelSelector{
-				MatchLabels: map[string]string{"k1": "v1"},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       testClusterName,
+			Version:           ptr.To("v1.25.3"),
+			InfrastructureRef: infraRef,
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &bootstrapRef,
 			},
-			Template: clusterv1.MachineTemplateSpec{
-				ObjectMeta: clusterv1.ObjectMeta{
-					Labels:      map[string]string{"machine-label1": "machine-value1"},
-					Annotations: map[string]string{"machine-annotation1": "machine-value1"},
-				},
-				Spec: clusterv1.MachineSpec{
-					Version:           ptr.To("v1.25.3"),
-					InfrastructureRef: infraRef,
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &bootstrapRef,
-					},
-					NodeDrainTimeout:        duration10s,
-					NodeVolumeDetachTimeout: duration10s,
-					NodeDeletionTimeout:     duration10s,
-				},
-			},
+			NodeDrainTimeout:        duration10s,
+			NodeVolumeDetachTimeout: duration10s,
+			NodeDeletionTimeout:     duration10s,
 		},
 	}
 
 	skeletonMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
+			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				"machine-label1":                     "machine-value1",
-				clusterv1.MachineSetNameLabel:        "ms1",
-				clusterv1.MachineDeploymentNameLabel: "md1",
+				clusterv1.MachineSetNameLabel:        msName,
+				clusterv1.MachineDeploymentNameLabel: mdName,
 			},
 			Annotations: map[string]string{"machine-annotation1": "machine-value1"},
 			Finalizers:  []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
-			ClusterName:             "test-cluster",
+			ClusterName:             testClusterName,
 			Version:                 ptr.To("v1.25.3"),
 			NodeDrainTimeout:        duration10s,
 			NodeVolumeDetachTimeout: duration10s,
@@ -2603,34 +2606,200 @@ func TestComputeDesiredMachine(t *testing.T) {
 	expectedUpdatedMachine.Spec.InfrastructureRef = *existingMachine.Spec.InfrastructureRef.DeepCopy()
 	expectedUpdatedMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef.DeepCopy()
 
-	tests := []struct {
-		name            string
-		existingMachine *clusterv1.Machine
-		want            *clusterv1.Machine
-	}{
+	tests := []computeDesiredMachineTestCase{
 		{
-			name:            "creating a new Machine",
+			name: "should return the correct Machine object when creating a new Machine",
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      msName,
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: mdName,
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName:     testClusterName,
+					Replicas:        ptr.To[int32](3),
+					MinReadySeconds: 10,
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"k1": "v1"},
+					},
+					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+						Template: "{{ .machineSet.name }}" + namingTemplateKey + "-{{ .random }}",
+					},
+					Template: machineTemplateSpec,
+				},
+			},
 			existingMachine: nil,
-			want:            expectedNewMachine,
+			wantMachine:     expectedNewMachine,
+			wantName: []gomegatypes.GomegaMatcher{
+				HavePrefix(msName + namingTemplateKey + "-"),
+				Not(HaveSuffix("-")),
+			},
 		},
 		{
-			name:            "updating an existing Machine",
+			name: "should return error when creating a new Machine when '.random' is not added in template",
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      msName,
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: mdName,
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName:     testClusterName,
+					Replicas:        ptr.To[int32](3),
+					MinReadySeconds: 10,
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"k1": "v1"},
+					},
+					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+						Template: "{{ .machineSet.name }}" + namingTemplateKey,
+					},
+					Template: machineTemplateSpec,
+				},
+			},
+			existingMachine: nil,
+			wantMachine:     nil,
+		},
+		{
+			name: "should not return error when creating a new Machine when the generated name exceeds 63",
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      msName,
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: mdName,
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName:     testClusterName,
+					Replicas:        ptr.To[int32](3),
+					MinReadySeconds: 10,
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"k1": "v1"},
+					},
+					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+						Template: "{{ .random }}" + fmt.Sprintf("%059d", 0),
+					},
+					Template: machineTemplateSpec,
+				},
+			},
+			existingMachine: nil,
+			wantMachine:     expectedNewMachine,
+			wantName: []gomegatypes.GomegaMatcher{
+				ContainSubstring(fmt.Sprintf("%053d", 0)),
+				Not(HaveSuffix("00000")),
+			},
+		},
+		{
+			name: "should return error when creating a new Machine with invalid template",
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      msName,
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: mdName,
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName:     testClusterName,
+					Replicas:        ptr.To[int32](3),
+					MinReadySeconds: 10,
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"k1": "v1"},
+					},
+					MachineNamingStrategy: &clusterv1.MachineNamingStrategy{
+						Template: "some-hardcoded-name-{{ .doesnotexistindata }}-{{ .random }}", // invalid template
+					},
+					Template: machineTemplateSpec,
+				},
+			},
+			existingMachine: nil,
+			wantMachine:     nil,
+		},
+		{
+			name: "should return the correct Machine object when creating a new Machine with default templated name",
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      msName,
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: mdName,
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName:     testClusterName,
+					Replicas:        ptr.To[int32](3),
+					MinReadySeconds: 10,
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"k1": "v1"},
+					},
+					Template: machineTemplateSpec,
+				},
+			},
+			existingMachine: nil,
+			wantMachine:     expectedNewMachine,
+			wantName: []gomegatypes.GomegaMatcher{
+				HavePrefix(msName),
+			},
+		},
+		{
+			name: "updating an existing Machine",
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      msName,
+					Labels: map[string]string{
+						clusterv1.MachineDeploymentNameLabel: mdName,
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName:     testClusterName,
+					Replicas:        ptr.To[int32](3),
+					MinReadySeconds: 10,
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{"k1": "v1"},
+					},
+					Template: machineTemplateSpec,
+				},
+			},
 			existingMachine: existingMachine,
-			want:            expectedUpdatedMachine,
+			wantMachine:     expectedUpdatedMachine,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got := (&Reconciler{}).computeDesiredMachine(ms, tt.existingMachine)
-			assertMachine(g, got, tt.want)
+			var got *clusterv1.Machine
+			var err error
+			msr := &Reconciler{
+				Client: fake.NewClientBuilder().WithObjects(
+					testCluster,
+					tt.ms,
+				).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
+				recorder: record.NewFakeRecorder(32),
+			}
+			got, err = msr.computeDesiredMachine(tt.ms, tt.existingMachine)
+
+			if tt.wantMachine == nil {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			assertMachine(g, got, tt.wantMachine, tt.existingMachine, tt.wantName)
 		})
 	}
 }
 
-func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *clusterv1.Machine) {
+func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *clusterv1.Machine, existingMachine *clusterv1.Machine, nameMatches []gomegatypes.GomegaMatcher) {
 	// Check Name
+	if existingMachine == nil {
+		for _, matcher := range nameMatches {
+			g.Expect(actualMachine.Name).To(matcher)
+		}
+	}
 	if expectedMachine.Name != "" {
 		g.Expect(actualMachine.Name).Should(Equal(expectedMachine.Name))
 	}

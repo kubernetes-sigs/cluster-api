@@ -277,8 +277,11 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
+		if machineSet.Spec.MachineNamingStrategy == nil && md.Spec.MachineNamingStrategy != nil {
+			machineSet.Spec.MachineNamingStrategy.Template = md.Spec.MachineNamingStrategy.Template
+		}
 		if err := helper.Patch(ctx, machineSet); err != nil {
-			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return errors.Wrapf(err, "failed to apply %s label and %s machineNamingStrategy template to MachineSet %q", clusterv1.MachineDeploymentNameLabel, md.Spec.MachineNamingStrategy.Template, machineSet.Name)
 		}
 	}
 

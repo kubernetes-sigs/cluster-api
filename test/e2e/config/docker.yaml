@@ -347,7 +347,6 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-adoption.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-machine-pool.yaml"
-    - sourcePath: "../data/infrastructure-docker/main/cluster-template-node-drain.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades-runtimesdk.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-scale-in.yaml"
@@ -408,7 +407,6 @@ variables:
   CNI: "./data/cni/kindnet/kindnet.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-workload-workload.yaml"
-  NODE_DRAIN_TIMEOUT: "60s"
   # Enabling the feature flags by setting the env variables.
   # Note: EXP_CLUSTER_RESOURCE_SET & EXP_MACHINE_POOL are enabled per default with CAPI v1.7.0.
   # We still have to enable them here for clusterctl upgrade tests that use older versions.

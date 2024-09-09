@@ -317,8 +317,8 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 				t.Machine,
 				corev1.EventTypeNormal,
 				EventDetectedUnhealthy,
-				"Machine %v has unhealthy node %v",
-				t.string(),
+				"Machine %s has unhealthy Node %s",
+				klog.KObj(t.Machine),
 				t.nodeName(),
 			)
 			nextCheckTimes = append(nextCheckTimes, nextCheck)

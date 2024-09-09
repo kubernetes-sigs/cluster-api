@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
+	topologynames "sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -399,8 +400,11 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 		}
 
 		// Update Machine to propagate in-place mutable fields from the MachineSet.
-		updatedMachine := r.computeDesiredMachine(machineSet, m)
-		err := ssa.Patch(ctx, r.Client, machineSetManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: m})
+		updatedMachine, err := r.computeDesiredMachine(ctx, machineSet, m)
+		if err != nil {
+			return errors.Wrap(err, "failed to update Machine: failed to compute desired Machine")
+		}
+		err = ssa.Patch(ctx, r.Client, machineSetManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: m})
 		if err != nil {
 			log.Error(err, "Failed to update Machine", "Machine", klog.KObj(updatedMachine))
 			return errors.Wrapf(err, "failed to update Machine %q", klog.KObj(updatedMachine))
@@ -486,7 +490,10 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 		for i := range diff {
 			// Create a new logger so the global logger is not modified.
 			log := log
-			machine := r.computeDesiredMachine(ms, nil)
+			machine, computeMachineErr := r.computeDesiredMachine(ctx, ms, nil)
+			if computeMachineErr != nil {
+				return ctrl.Result{}, errors.Wrap(computeMachineErr, "failed to create Machine: failed to compute desired Machine")
+			}
 			// Clone and set the infrastructure and bootstrap references.
 			var (
 				infraRef, bootstrapRef *corev1.ObjectReference
@@ -621,14 +628,33 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 // There are small differences in how we calculate the Machine depending on if it
 // is a create or update. Example: for a new Machine we have to calculate a new name,
 // while for an existing Machine we have to use the name of the existing Machine.
-func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, existingMachine *clusterv1.Machine) *clusterv1.Machine {
+func (r *Reconciler) computeDesiredMachine(ctx context.Context, machineSet *clusterv1.MachineSet, existingMachine *clusterv1.Machine) (*clusterv1.Machine, error) {
+	machineName := names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", machineSet.Name))
+	// If the MachineSet is part of a MachineDeployment, check MachineNamingStrategy
+	// and name Machine accordingly.
+	if r.isDeploymentChild(machineSet) {
+		owner, err := r.getOwnerMachineDeployment(ctx, machineSet)
+		if err != nil {
+			return nil, err
+		}
+		nameTemplate := "{{ .machinedeployment.name }}-{{ .random }}"
+		if owner.Spec.Strategy.MachineNamingStrategy != nil && owner.Spec.Strategy.MachineNamingStrategy.Template != "" {
+			nameTemplate = owner.Spec.Strategy.MachineNamingStrategy.Template
+		}
+		generatedMachineName, err := topologynames.MachineDeploymentMachineNameGenerator(nameTemplate, owner.Name).GenerateName()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to generate name for MachineDeployment machine")
+		}
+		machineName = generatedMachineName
+	}
+
 	desiredMachine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", machineSet.Name)),
+			Name:      machineName,
 			Namespace: machineSet.Namespace,
 			// Note: By setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)},
@@ -685,7 +711,7 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	desiredMachine.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
 	desiredMachine.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout
 
-	return desiredMachine
+	return desiredMachine, nil
 }
 
 // updateExternalObject updates the external object passed in with the

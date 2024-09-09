@@ -1497,6 +1497,22 @@ spec:
                             new ones.
                             NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
                           properties:
+                            machineNamingStrategy:
+                              description: |-
+                                MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+                                Note: InfraMachines will use the same name as the corresponding Machines.
+                              properties:
+                                template:
+                                  description: |-
+                                    Template defines the template to use for generating the names of the Machine objects.
+                                    If not defined, it will fallback to `{{ .machinedeployment.name }}-{{ .random }}`.
+                                    If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
+                                    get concatenated with a random suffix of length 5.
+                                    The templating mechanism provides the following arguments:
+                                    * `.machinedeployment.name`: The name of the MachineDeployment object.
+                                    * `.random`: A random alphanumeric string, without vowels, of length 5.
+                                  type: string
+                              type: object
                             remediation:
                               description: |-
                                 Remediation controls the strategy of remediating unhealthy machines

@@ -1234,6 +1234,7 @@ func autoConvert_v1beta1_MachineDeploymentStrategy_To_v1alpha4_MachineDeployment
 	out.Type = MachineDeploymentStrategyType(in.Type)
 	out.RollingUpdate = (*MachineRollingUpdateDeployment)(unsafe.Pointer(in.RollingUpdate))
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	return nil
 }
 

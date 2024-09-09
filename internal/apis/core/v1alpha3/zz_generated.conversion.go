@@ -854,6 +854,7 @@ func autoConvert_v1beta1_MachineDeploymentStrategy_To_v1alpha3_MachineDeployment
 		out.RollingUpdate = nil
 	}
 	// WARNING: in.Remediation requires manual conversion: does not exist in peer-type
+	// WARNING: in.MachineNamingStrategy requires manual conversion: does not exist in peer-type
 	return nil
 }
 

@@ -31,7 +31,7 @@ trimmed_title=$(echo "$trimmed_title" | sed -E "s/:rocket:/🚀/g")
 trimmed_title=$(echo "$trimmed_title" | sed -E "s/:seedling:/🌱/g")
 
 # Check PR type prefix
-if [[ "$trimmed_title" =~ ^⚠ ]] || [[ "$trimmed_title" =~ ^✨ ]] || [[ "$trimmed_title" =~ ^🐛 ]] || [[ "$trimmed_title" =~ ^📖 ]] || [[ "$trimmed_title" =~ ^🚀 ]] || [[ "$trimmed_title" =~ ^🌱 ]]; then
+if [[ "$trimmed_title" =~ ^(⚠|✨|🐛|📖|🚀|🌱) ]]; then
     echo "PR title is valid: $trimmed_title"
 else
     echo "Error: No matching PR type indicator found in title."

@@ -27,20 +27,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (c *cache) beforeCreate(_ string, obj client.Object) error {
+func (c *cache) beforeCreate(_ string, obj client.Object) {
 	now := time.Now().UTC()
 	obj.SetCreationTimestamp(metav1.Time{Time: now})
 	// TODO: UID
 	obj.SetAnnotations(appendAnnotations(obj, lastSyncTimeAnnotation, now.Format(time.RFC3339)))
 	obj.SetResourceVersion(fmt.Sprintf("v%d", 1))
-	return nil
 }
 
 func (c *cache) afterCreate(resourceGroup string, obj client.Object) {
 	c.informCreate(resourceGroup, obj)
 }
 
-func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object) error {
+func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object) {
 	newObj.SetCreationTimestamp(oldObj.GetCreationTimestamp())
 	newObj.SetResourceVersion(oldObj.GetResourceVersion())
 	// TODO: UID
@@ -55,7 +54,6 @@ func (c *cache) beforeUpdate(_ string, oldObj, newObj client.Object) error {
 		oldResourceVersion, _ := strconv.Atoi(strings.TrimPrefix(oldObj.GetResourceVersion(), "v"))
 		newObj.SetResourceVersion(fmt.Sprintf("v%d", oldResourceVersion+1))
 	}
-	return nil
 }
 
 func (c *cache) afterUpdate(resourceGroup string, oldObj, newObj client.Object) {

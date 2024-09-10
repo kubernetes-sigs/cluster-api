@@ -567,7 +567,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 	}
 
 	// Delete control plane machines in parallel
-	machinesToDelete := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
+	machinesToDelete := controlPlane.Machines
 	var errs []error
 	for _, machineToDelete := range machinesToDelete {
 		log := log.WithValues("Machine", klog.KObj(machineToDelete))
@@ -584,6 +584,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 			continue
 		}
 
+		if !machineToDelete.DeletionTimestamp.IsZero() {
+			// Nothing to do, Machine already has deletionTimestamp set.
+			continue
+		}
+
 		log.Info("Deleting control plane Machine")
 		if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 			errs = append(errs, errors.Wrapf(err, "failed to delete control plane Machine %s", klog.KObj(machineToDelete)))
@@ -595,11 +600,19 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, con
 			"Failed to delete control plane Machines for cluster %s control plane: %v", klog.KObj(controlPlane.Cluster), err)
 		return ctrl.Result{}, err
 	}
+
+	log.Info("Waiting for control plane Machines to not exist anymore")
+
 	conditions.MarkFalse(controlPlane.KCP, controlplanev1.ResizedCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 }
 
 func (r *KubeadmControlPlaneReconciler) removePreTerminateHookAnnotationFromMachine(ctx context.Context, machine *clusterv1.Machine) error {
+	if _, exists := machine.Annotations[controlplanev1.PreTerminateHookCleanupAnnotation]; !exists {
+		// Nothing to do, the annotation is not set (anymore) on the Machine
+		return nil
+	}
+
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Removing pre-terminate hook from control plane Machine")
 

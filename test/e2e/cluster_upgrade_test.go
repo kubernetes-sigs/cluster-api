@@ -128,12 +128,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					wlClient := managementClusterProxy.GetWorkloadCluster(ctx, workloadClusterNamespace, workloadClusterName).GetClient()
 					nodes := corev1.NodeList{}
 					if err := wlClient.List(ctx, &nodes); err != nil {
-						return 0, errors.New("failed to list nodes in workload cluster")
+						return 0, errors.Wrapf(err, "failed to list nodes in workload cluster")
 					}
 
 					kubeProxyPods := corev1.PodList{}
 					if err := wlClient.List(ctx, &kubeProxyPods, client.InNamespace(metav1.NamespaceSystem), client.MatchingLabels{"k8s-app": "kube-proxy"}); err != nil {
-						return 0, errors.New("failed to list kube-proxy pods in workload cluster")
+						return 0, errors.Wrapf(err, "failed to list kube-proxy pods in workload cluster")
 					}
 
 					errList := []error{}
@@ -141,10 +141,9 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					// Check all nodes to be Ready.
 					for _, node := range nodes.Items {
 						for _, condition := range node.Status.Conditions {
-							if condition.Type != corev1.NodeReady || condition.Status == corev1.ConditionTrue {
-								continue
+							if condition.Type == corev1.NodeReady && condition.Status != corev1.ConditionTrue {
+								errList = append(errList, errors.Errorf("Expected the Ready condition for Node %s to be true but got %s instead: %s", node.GetName(), condition.Status, condition.Message))
 							}
-							errList = append(errList, errors.Errorf("Node's %s Ready condition is false", node.GetName()))
 						}
 					}
 
@@ -154,10 +153,9 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					}
 					for _, pod := range kubeProxyPods.Items {
 						for _, condition := range pod.Status.Conditions {
-							if condition.Type != corev1.PodReady || condition.Status == corev1.ConditionTrue {
-								continue
+							if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
+								errList = append(errList, errors.Errorf("Expected the Ready condition for Pod %s to be true but got %s instead: %s", pod.GetName(), condition.Status, condition.Message))
 							}
-							errList = append(errList, errors.Errorf("Pod's %s Ready condition is false", pod.GetName()))
 						}
 					}
 
@@ -175,12 +173,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 						m := &deletingMachinesWithPreDrainHook[0]
 						patchHelper, err := patch.NewHelper(m, managementClusterProxy.GetClient())
 						if err != nil {
-							return 0, errors.Wrapf(err, "creating patchHelper for Machine %s", klog.KObj(m))
+							return 0, err
 						}
 						delete(m.Annotations, preDrainHook)
 
 						if err := patchHelper.Patch(ctx, m); err != nil {
-							return 0, errors.Wrapf(err, "failed to remove pre-drain annotation from Machine %s", klog.KObj(m))
+							return 0, err
 						}
 
 						// Return to enter the function again.

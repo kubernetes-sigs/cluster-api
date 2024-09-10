@@ -2468,6 +2468,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			initObjs = append(initObjs, m)
 			machines.Insert(m)
 		}
+		// One Machine was already deleted before KCP, validate the pre-terminate hook is still removed.
+		machines.UnsortedList()[2].DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
 		fakeClient := newFakeClient(initObjs...)
 

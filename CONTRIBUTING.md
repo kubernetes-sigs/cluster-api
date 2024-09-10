@@ -140,6 +140,7 @@ Cluster API maintains the most recent release/releases for all supported API and
 
 | Minor Release | API Version  | Supported Until                                |
 |---------------|--------------|------------------------------------------------|
+| v1.9.x        | **v1beta1**  | when v1.11.0 will be released                  |
 | v1.8.x        | **v1beta1**  | when v1.10.0 will be released                  |
 | v1.7.x        | **v1beta1**  | when v1.9.0 will be released                   |
 | v1.6.x        | **v1beta1**  | EOL since 2024-08-12 - v1.8.0 release date     |

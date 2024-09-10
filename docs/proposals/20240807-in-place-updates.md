@@ -152,7 +152,7 @@ The responsibility to determine which machine should be rolled out as well as th
 
 ## Proposal
 
-We propose a pluggable update strategy architecture that allows External Update Extension to handle the update process. The design decouples core CAPI controllers from the specific extension implementation responsible for updating a machine. The External Update Strategy will be configured reusing the existing field in KCP and MD resources, by introducing new type of strategy called `ExternalUpdate` (reusing the existing field in KCP and MD). This allows us to provide a consistent user experience: the interaction witht he CAPI resources is the same as in rolling updates.
+We propose a pluggable update strategy architecture that allows External Update Extension to handle the update process. The design decouples core CAPI controllers from the specific extension implementation responsible for updating a machine. The External Update Strategy will be configured reusing the existing field in KCP and MD resources, by introducing new type of strategy called `ExternalUpdate` (reusing the existing field in KCP and MD). This allows us to provide a consistent user experience: the interaction with the CAPI resources is the same as in rolling updates.
 
 This proposal introduces a Lifecycle Hook named `ExternalUpdate` for communication between CAPI and external update implementers. Multiple external updaters can be registered, each of them only covering a subset of machine changes. The CAPI controllers will ask the external updaters what kind of changes they can handle and, based on the reponse, compose and orchestrate them to achieve the desired state.
 

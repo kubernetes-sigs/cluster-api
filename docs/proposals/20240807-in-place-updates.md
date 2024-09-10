@@ -173,7 +173,6 @@ As an cluster operator for resource constrained environments, I want to utilize 
 As an cluster operator for highly specialized/customized environments, I want to utilize CAPI pluggable external update mechanism to implement in-place updates without losing the existing VM/OS customizations.
 
 #### Story 5
-
 As a cluster operator, I want to update machine attributes supported by my infrastructure provider without the need to recreate the machine.
 
 #### Story 6

@@ -774,6 +774,53 @@ func TestPatchNode(t *testing.T) {
 			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
+			name: "Ensure Labels and Annotations still get patched if MachineSet cannot be found",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				},
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel:        "test-ms-missing",
+						clusterv1.MachineDeploymentNameLabel: "test-md",
+					},
+					OwnerReferences: []metav1.OwnerReference{{
+						Kind:       "MachineSet",
+						Name:       "test-ms-missing",
+						APIVersion: clusterv1.GroupVersion.String(),
+						UID:        "uid",
+					}},
+				},
+				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+			},
+			ms: nil,
+			md: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-md",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.RevisionAnnotation: "1",
+					},
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					ClusterName: clusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+					},
+				},
+			},
+		},
+		{
 			name: "Ensure NodeOutdatedRevisionTaint to be set if a node is associated to an outdated machineset",
 			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -916,7 +963,9 @@ func TestPatchNode(t *testing.T) {
 
 			g.Expect(env.CreateAndWait(ctx, oldNode)).To(Succeed())
 			g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
-			g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
+			if ms != nil {
+				g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
+			}
 			g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
 			t.Cleanup(func() {
 				_ = env.CleanupAndWait(ctx, oldNode, machine, ms, md)

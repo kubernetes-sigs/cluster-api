@@ -102,19 +102,19 @@ Even if the project continues to improve immutable rollouts, most probably there
 * Single node cluster without extra hardware available.
 * `TODO: looking for more real life usecases here`
 
-With this proposal, Cluster API provides a new extensibility point for users willing to implement their own specific solution for these problems, allowing them to implement a custom rollout strategy to be triggered via a new rollout extension point implemented using the existing runtime extension framework.
+With this proposal, Cluster API provides a new extensibility point for users willing to implement their own specific solution for these problems, allowing them to implement a custom rollout strategy to be triggered via a new external update extension point implemented using the existing runtime extension framework.
 
 With the implementation of custom rollout strategy, users can take ownership of the rollout process and embrace in-place rollout strategies, intentionally trading off some of the benefits that you get from immutable infrastructure.
 
 ### Divide and conquer
 
-As this proposal is an output of the In-place updates Feature Group, ensuring that the rollout extension allows the implementation of in-place rollout strategies is considered a non-negotiable goal of this effort.
+As this proposal is an output of the In-place updates Feature Group, ensuring that the external update extension allows the implementation of in-place rollout strategies is considered a non-negotiable goal of this effort.
 
 Please note that the practical consequence of focusing on in-place rollout strategies, is that the possibility to implement different types of custom rollout strategies, even if technically possible, won’t be validated in this first iteration (future goal).
 
-Another important point to surface, before digging into implementation details of the proposal, is the fact that this proposal is not tackling the problem of improving CAPI to embrace all the possibilities that rollout extensions are introducing.
+Another important point to surface, before digging into implementation details of the proposal, is the fact that this proposal is not tackling the problem of improving CAPI to embrace all the possibilities that external update extensions are introducing.
 
-E.g. If a rollout extension introduces support for in-place updates, using “BootstrapConfig” (emphasis on bootstrap) as the place where most of the machine configurations are defined seems not ideal.
+E.g. If a external update extension introduces support for in-place updates, using “BootstrapConfig” (emphasis on bootstrap) as the place where most of the machine configurations are defined seems not ideal.
 
 However, at the same time we would like to make it possible for Cluster API users to start exploring this field, gain experience, and report back so we can have concrete use cases and real-world feedback to evolve our API.
 
@@ -122,11 +122,11 @@ However, at the same time we would like to make it possible for Cluster API user
 
 #### Same UX
 
-Cluster API user experience MUST be the same when using default, immutable updates or when using rollout extensions: e.g. in order to trigger a MachineDeployment rollout, you have to rotate a template, etc.
+Cluster API user experience MUST be the same when using default, immutable updates or when using external update extensions: e.g. in order to trigger a MachineDeployment rollout, you have to rotate a template, etc.
 
 #### Fallback to Immutable rollouts
 
-If rollout extensions can not cover the totality of the desired changes, users SHOULD be able to defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
+If external update extensions can not cover the totality of the desired changes, users SHOULD be able to defer to Cluster API’s default, immutable rollouts. This is important for a couple of reasons:
 
 * It allows to implement custom rollout strategies incrementally, without the need to cover all use cases up-front.
 * There are case when replacing the machine will always be necessary:
@@ -136,7 +136,7 @@ If rollout extensions can not cover the totality of the desired changes, users S
 
 #### Clean separation of concern
 
-The rollout extension will be responsible to perform the updates on a single machine.
+The external update extension will be responsible to perform the updates on a single machine.
 
 The responsibility to determine which machine should be rolled out as well as the responsibility to handle rollout options like MaxSurge/MaxUnavailable will remain on the controllers owning the machine (e.g. KCP, MD controller).
 

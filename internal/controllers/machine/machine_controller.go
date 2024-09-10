@@ -19,6 +19,7 @@ package machine
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -365,6 +366,13 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		// pre-drain.delete lifecycle hook
 		// Return early without error, will requeue if/when the hook owner removes the annotation.
 		if annotations.HasWithPrefix(clusterv1.PreDrainDeleteHookAnnotationPrefix, m.ObjectMeta.Annotations) {
+			var hooks []string
+			for key := range m.ObjectMeta.Annotations {
+				if strings.HasPrefix(key, clusterv1.PreDrainDeleteHookAnnotationPrefix) {
+					hooks = append(hooks, key)
+				}
+			}
+			log.Info("Waiting for pre-drain hooks to succeed", "hooks", strings.Join(hooks, ","))
 			conditions.MarkFalse(m, clusterv1.PreDrainDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "")
 			return ctrl.Result{}, nil
 		}
@@ -428,6 +436,13 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	// pre-term.delete lifecycle hook
 	// Return early without error, will requeue if/when the hook owner removes the annotation.
 	if annotations.HasWithPrefix(clusterv1.PreTerminateDeleteHookAnnotationPrefix, m.ObjectMeta.Annotations) {
+		var hooks []string
+		for key := range m.ObjectMeta.Annotations {
+			if strings.HasPrefix(key, clusterv1.PreTerminateDeleteHookAnnotationPrefix) {
+				hooks = append(hooks, key)
+			}
+		}
+		log.Info("Waiting for pre-terminate hooks to succeed", "hooks", strings.Join(hooks, ","))
 		conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}

@@ -302,20 +302,19 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 		return errors.Wrapf(err, "failed to check if Node %s is outdated", klog.KRef("", node.Name))
 	}
 
-	// It is not possible to identify if we have to set the NodeOutdatedRevisionTaint if there is
-	// no OwnerReference or the owning MachineSet or MachineDeployment was not found.
-	// Note: This could happen e.g. during background deletion of objects.
-	if notFound {
-		return nil
-	}
-	if isOutdated {
-		hasTaintChanges = taints.EnsureNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
-	} else {
-		hasTaintChanges = taints.RemoveNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
-	}
+	// It is only possible to identify if we have to set or remove the NodeOutdatedRevisionTaint if shouldNodeHaveOutdatedTaint
+	// found all relevant objects.
+	// Example: when the MachineDeployment or Machineset can't be found due to a background deletion of objects.
+	if !notFound {
+		if isOutdated {
+			hasTaintChanges = taints.EnsureNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
+		} else {
+			hasTaintChanges = taints.RemoveNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
+		}
 
-	if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
-		return nil
+		if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
+			return nil
+		}
 	}
 
 	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node))

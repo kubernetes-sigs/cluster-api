@@ -55,6 +55,10 @@ linters:
     - whitespace # unnecessary newlines
 
 linters-settings:
+  gosec:
+    excludes:
+    # integer overflow conversion int -> int32
+      - G115
   gci:
     sections:
       - standard # Standard section: captures all standard packages.
@@ -348,3 +352,7 @@ issues:
     - gocritic
     text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
     path: _test\.go
+    # Ignore non-constant format string in call to condition utils
+  - linters:
+      - govet
+    text: "non-constant format string in call to sigs\\.k8s\\.io\\/cluster-api\\/util\\/conditions\\."

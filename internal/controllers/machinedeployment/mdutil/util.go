@@ -120,16 +120,16 @@ func SetDeploymentRevision(deployment *clusterv1.MachineDeployment, revision str
 func MaxRevision(ctx context.Context, allMSs []*clusterv1.MachineSet) int64 {
 	log := ctrl.LoggerFrom(ctx)
 
-	max := int64(0)
+	maxVal := int64(0)
 	for _, ms := range allMSs {
 		if v, err := Revision(ms); err != nil {
 			// Skip the machine sets when it failed to parse their revision information
 			log.Error(err, fmt.Sprintf("Couldn't parse revision for MachineSet %s, deployment controller will skip it when reconciling revisions", ms.Name))
-		} else if v > max {
-			max = v
+		} else if v > maxVal {
+			maxVal = v
 		}
 	}
-	return max
+	return maxVal
 }
 
 // Revision returns the revision number of the input object.

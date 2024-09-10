@@ -147,7 +147,7 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 				"tar", "--hard-dereference", "--dereference", "--directory", containerDir, "--create", "--file", "-", ".",
 			)
 			if err != nil {
-				return errors.Wrapf(err, execErr)
+				return errors.Wrap(err, execErr)
 			}
 
 			err = os.MkdirAll(outputDir, 0750)

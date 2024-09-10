@@ -84,7 +84,7 @@ func (f *fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluste
 	return nil
 }
 
-func (f *fakeWorkloadCluster) ReconcileEtcdMembers(_ context.Context, _ []string, _ semver.Version) ([]string, error) {
+func (f *fakeWorkloadCluster) ReconcileEtcdMembers(_ context.Context, _ []string) ([]string, error) {
 	return nil, nil
 }
 
@@ -126,10 +126,6 @@ func (f *fakeWorkloadCluster) UpdateKubeletConfigMap(_ context.Context, _ semver
 
 func (f *fakeWorkloadCluster) RemoveEtcdMemberForMachine(_ context.Context, _ *clusterv1.Machine) error {
 	f.removeEtcdMemberForMachineCalled++
-	return nil
-}
-
-func (f *fakeWorkloadCluster) RemoveMachineFromKubeadmConfigMap(_ context.Context, _ *clusterv1.Machine, _ semver.Version) error {
 	return nil
 }
 

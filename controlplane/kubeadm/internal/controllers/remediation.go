@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blang/semver/v4"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -226,16 +225,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			}
 
 			// NOTE: etcd member removal will be performed by the kcp-cleanup hook after machine completes drain & all volumes are detached.
-		}
-
-		parsedVersion, err := semver.ParseTolerant(controlPlane.KCP.Spec.Version)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", controlPlane.KCP.Spec.Version)
-		}
-
-		if err := workloadCluster.RemoveMachineFromKubeadmConfigMap(ctx, machineToBeRemediated, parsedVersion); err != nil {
-			log.Error(err, "Failed to remove machine from kubeadm ConfigMap")
-			return ctrl.Result{}, err
 		}
 	}
 

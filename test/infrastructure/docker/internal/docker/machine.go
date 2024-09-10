@@ -92,7 +92,10 @@ func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine string,
 		return nil, err
 	}
 
-	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck // We tolerate this until removal; after removal IPFamily will become an internal CAPD concept. See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
+	// We tolerate this until removal;
+	// after removal IPFamily will become an internal CAPD concept.
+	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
+	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck
 	if err != nil {
 		return nil, fmt.Errorf("create docker machine: %s", err)
 	}
@@ -126,7 +129,10 @@ func ListMachinesByCluster(ctx context.Context, cluster *clusterv1.Cluster, labe
 		return nil, err
 	}
 
-	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck // We tolerate this until removal; after removal IPFamily will become an internal CAPD concept. See https://github.com/kubernetes-sigs/cluster-api/issues/7521.
+	// We tolerate this until removal;
+	// after removal IPFamily will become an internal CAPD concept.
+	// See https://github.com/kubernetes-sigs/cluster-api/issues/7521 .
+	ipFamily, err := cluster.GetIPFamily() //nolint:staticcheck
 	if err != nil {
 		return nil, fmt.Errorf("list docker machines by cluster: %s", err)
 	}

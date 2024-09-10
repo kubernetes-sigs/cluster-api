@@ -230,9 +230,21 @@ type MachineStatus struct {
 	// Conditions defines current service state of the Machine.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// Deletion is the deletion state of the Machine.
+	// +optional
+	Deletion MachineStatusDeletion `json:"deletion,omitempty"`
 }
 
 // ANCHOR_END: MachineStatus
+
+// MachineStatusDeletion is the deletion state of the Machine.
+type MachineStatusDeletion struct {
+	// NodeDrainStartTime is the time when the drain of the node started.
+	NodeDrainStartTime *metav1.Time `json:"nodeDrainStartTime,omitempty"`
+	// WaitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started.
+	WaitForNodeVolumeDetachStartTime *metav1.Time `json:"nodeVolumeDetachStartTime,omitempty"`
+}
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.
 func (m *MachineStatus) SetTypedPhase(p MachinePhase) {

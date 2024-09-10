@@ -464,7 +464,7 @@ However, each external updater should define their own security model. Depending
 
 ### Test Plan
 
-To test the external update strategy, we will implement a "CAPD Kubeadm Updater." This will serve as a reference implementation and will be integrated into CAPI CI. In-place updates will be performed by executing a set of commands in the container, similar to how it is currently implemented for cloud config when machine is bootstrapped.
+To test the external update strategy, we will implement a "CAPD Kubeadm Updater". This will serve as a reference implementation and will be integrated into CAPI CI. In-place updates will be performed by executing a set of commands in the container, similar to how it is currently implemented for cloud config when machine is bootstrapped.
 
 ### Graduation Criteria
 

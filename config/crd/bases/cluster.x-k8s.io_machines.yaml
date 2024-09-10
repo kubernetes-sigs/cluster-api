@@ -1113,6 +1113,20 @@ spec:
                   - type
                   type: object
                 type: array
+              deletion:
+                description: Deletion is the deletion state of the Machine.
+                properties:
+                  nodeDrainStartTime:
+                    description: NodeDrainStartTime is the time when the drain of
+                      the node started.
+                    format: date-time
+                    type: string
+                  nodeVolumeDetachStartTime:
+                    description: WaitForNodeVolumeDetachStartTime is the time when
+                      waiting for volume detachment started.
+                    format: date-time
+                    type: string
+                type: object
               failureMessage:
                 description: |-
                   FailureMessage will be set in the event that there is a terminal problem

@@ -87,6 +87,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSetStatus":                         schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec":                              schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineStatus":                            schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineStatusDeletion":                    schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatusDeletion(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec":                      schema_sigsk8sio_cluster_api_api_v1beta1_MachineTemplateSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.NetworkRanges":                            schema_sigsk8sio_cluster_api_api_v1beta1_NetworkRanges(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta":                               schema_sigsk8sio_cluster_api_api_v1beta1_ObjectMeta(ref),
@@ -3353,11 +3354,45 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 							},
 						},
 					},
+					"deletion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Deletion is the deletion state of the Machine.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineStatusDeletion"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta1.Condition", "sigs.k8s.io/cluster-api/api/v1beta1.MachineAddress"},
+			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta1.Condition", "sigs.k8s.io/cluster-api/api/v1beta1.MachineAddress", "sigs.k8s.io/cluster-api/api/v1beta1.MachineStatusDeletion"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatusDeletion(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineStatusDeletion is the deletion state of the Machine.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeDrainStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NodeDrainStartTime is the time when the drain of the node started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"nodeVolumeDetachStartTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "WaitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 

@@ -42,8 +42,10 @@ import (
 
 // CoreFinalizersAssertionWithLegacyClusters maps Cluster API core types to their expected finalizers for legacy Clusters.
 var CoreFinalizersAssertionWithLegacyClusters = map[string]func(types.NamespacedName) []string{
-	clusterKind: func(_ types.NamespacedName) []string { return []string{clusterv1.ClusterFinalizer} },
-	machineKind: func(_ types.NamespacedName) []string { return []string{clusterv1.MachineFinalizer} },
+	clusterKind:           func(_ types.NamespacedName) []string { return []string{clusterv1.ClusterFinalizer} },
+	machineKind:           func(_ types.NamespacedName) []string { return []string{clusterv1.MachineFinalizer} },
+	machineSetKind:        func(_ types.NamespacedName) []string { return []string{clusterv1.MachineSetFinalizer} },
+	machineDeploymentKind: func(_ types.NamespacedName) []string { return []string{clusterv1.MachineDeploymentFinalizer} },
 }
 
 // CoreFinalizersAssertionWithClassyClusters maps Cluster API core types to their expected finalizers for classy Clusters.
@@ -52,8 +54,12 @@ var CoreFinalizersAssertionWithClassyClusters = func() map[string]func(types.Nam
 	for k, v := range CoreFinalizersAssertionWithLegacyClusters {
 		r[k] = v
 	}
-	r[machineSetKind] = func(_ types.NamespacedName) []string { return []string{clusterv1.MachineSetTopologyFinalizer} }
-	r[machineDeploymentKind] = func(_ types.NamespacedName) []string { return []string{clusterv1.MachineDeploymentTopologyFinalizer} }
+	r[machineSetKind] = func(_ types.NamespacedName) []string {
+		return []string{clusterv1.MachineSetTopologyFinalizer, clusterv1.MachineSetFinalizer}
+	}
+	r[machineDeploymentKind] = func(_ types.NamespacedName) []string {
+		return []string{clusterv1.MachineDeploymentTopologyFinalizer, clusterv1.MachineDeploymentFinalizer}
+	}
 	return r
 }()
 

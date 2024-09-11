@@ -1138,6 +1138,7 @@ func (r *InMemoryMachineReconciler) reconcileDeleteControllerManager(ctx context
 
 // SetupWithManager will add watches for this controller.
 func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "inmemorymachine")
 	clusterToInMemoryMachines, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &infrav1.InMemoryMachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -1146,7 +1147,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.InMemoryMachine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
@@ -1159,7 +1160,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToInMemoryMachines),
 			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
+				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

@@ -41,11 +41,12 @@ type ClusterCacheReconciler struct {
 }
 
 func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "remote/clustercache")
 	err := ctrl.NewControllerManagedBy(mgr).
 		Named("remote/clustercache").
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(predicateLog, r.WatchFilterValue)).
 		Complete(r)
 
 	if err != nil {

@@ -110,13 +110,14 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		r.TokenTTL = DefaultTokenTTL
 	}
 
+	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "kubeadmconfig")
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
 		WithOptions(options).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
-		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
+		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
@@ -129,9 +130,9 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		&clusterv1.Cluster{},
 		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmConfigs),
 		builder.WithPredicates(
-			predicates.All(ctrl.LoggerFrom(ctx),
-				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
-				predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+			predicates.All(predicateLog,
+				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
+				predicates.ResourceHasFilterLabel(predicateLog, r.WatchFilterValue),
 			),
 		),
 	)

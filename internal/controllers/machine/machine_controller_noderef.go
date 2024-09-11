@@ -311,10 +311,10 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 		} else {
 			hasTaintChanges = taints.RemoveNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
 		}
+	}
 
-		if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
-			return nil
-		}
+	if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
+		return nil
 	}
 
 	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node))

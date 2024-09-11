@@ -83,6 +83,7 @@ type proxy struct {
 	kubeconfig         Kubeconfig
 	timeout            time.Duration
 	configLoadingRules *clientcmd.ClientConfigLoadingRules
+	warningHandler     rest.WarningHandler
 }
 
 var _ Proxy = &proxy{}
@@ -154,6 +155,8 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go doesn't generate throttling log messages
 	restConfig.QPS = 20
 	restConfig.Burst = 100
+
+	restConfig.WarningHandler = k.warningHandler
 
 	return restConfig, nil
 }
@@ -376,7 +379,15 @@ func InjectKubeconfigPaths(paths []string) ProxyOption {
 	}
 }
 
-func newProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
+// InjectWarningHandler sets the handler for warnings returned by the Kubernetes API server.
+func InjectWarningHandler(handler rest.WarningHandler) ProxyOption {
+	return func(p *proxy) {
+		p.warningHandler = handler
+	}
+}
+
+// NewProxy returns a proxy used for operating objects in a cluster.
+func NewProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
 	// If a kubeconfig file isn't provided, find one in the standard locations.
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	if kubeconfig.Path != "" {

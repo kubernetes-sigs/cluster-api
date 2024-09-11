@@ -12,5 +12,6 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # tag=v4.1.7
 
       - name: Check if PR title is valid
-        run: sh hack/verify-pr-title.sh "${{ github.event.pull_request.title }}"
+        run: |
+          ./hack/verify-pr-title.sh "${{ github.event.pull_request.title }}"
 

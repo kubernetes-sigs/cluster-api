@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -74,10 +73,6 @@ var (
 	// The polling is against a local memory cache.
 	stateConfirmationInterval = 100 * time.Millisecond
 )
-
-// deleteRequeueAfter is how long to wait before checking again to see if the MachineDeployment
-// still has owned MachineSets.
-const deleteRequeueAfter = 5 * time.Second
 
 const machineSetManagerName = "capi-machineset"
 
@@ -190,7 +185,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Handle deletion reconciliation loop.
 	if !machineSet.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, machineSet)
+		return ctrl.Result{}, r.reconcileDelete(ctx, machineSet)
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
@@ -276,7 +271,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = machineSet.Spec.ClusterName
 	machineSet.Spec.Template.Labels[clusterv1.ClusterNameLabel] = machineSet.Spec.ClusterName
 
-	machines, err := r.getMachinesForMachineSet(ctx, machineSet)
+	machines, err := r.getAndAdoptMachinesForMachineSet(ctx, machineSet)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to list Machines")
 	}
@@ -334,33 +329,35 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	return result, nil
 }
 
-func (r *Reconciler) reconcileDelete(ctx context.Context, machineSet *clusterv1.MachineSet) (reconcile.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, machineSet *clusterv1.MachineSet) error {
 	log := ctrl.LoggerFrom(ctx)
-	machineList, err := r.getMachinesForMachineSet(ctx, machineSet)
+	machineList, err := r.getAndAdoptMachinesForMachineSet(ctx, machineSet)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
-	// If all the descendant machines are deleted, then remove the machinedeployment's finalizer.
+	// If all the descendant machines are deleted, then remove the machineset's finalizer.
 	if len(machineList) == 0 {
 		controllerutil.RemoveFinalizer(machineSet, clusterv1.MachineSetFinalizer)
-		return ctrl.Result{}, nil
+		return nil
 	}
 
-	log.Info("MachineSet still has owned Machines, deleting them first")
+	log.Info("MachineSet still has descendant Machines - deleting them first", "count", len(machineList), "descendants", descendantMachines(machineList))
+
+	// else delete owned machines.
 	for _, machine := range machineList {
 		if machine.DeletionTimestamp.IsZero() {
 			log.Info("Deleting Machine", "Machine", klog.KObj(machine))
 			if err := r.Client.Delete(ctx, machine); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
+				return errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
 			}
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
+	return nil
 }
 
-func (r *Reconciler) getMachinesForMachineSet(ctx context.Context, machineSet *clusterv1.MachineSet) ([]*clusterv1.Machine, error) {
+func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, machineSet *clusterv1.MachineSet) ([]*clusterv1.Machine, error) {
 	log := ctrl.LoggerFrom(ctx)
 	selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
 	if err != nil {
@@ -1229,4 +1226,17 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 	}))
 
 	return patchHelper.Patch(ctx, obj)
+}
+
+func descendantMachines(objs []*clusterv1.Machine) string {
+	objNames := make([]string, len(objs))
+	for _, obj := range objs {
+		objNames = append(objNames, obj.GetName())
+	}
+
+	if len(objNames) > 10 {
+		objNames = append(objNames[:10], "...")
+	}
+
+	return strings.Join(objNames, ",")
 }

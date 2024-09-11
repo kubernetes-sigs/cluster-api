@@ -32,7 +32,7 @@ const (
 
 	// MachineSetFinalizer is the finalizer used by the MachineSet controller to
 	// cleanup the MachineSet descendant Machines when a Machineset is being deleted.
-	MachineSetFinalizer = "machineset.cluster.x-k8s.io"
+	MachineSetFinalizer = "cluster.x-k8s.io/machineset"
 )
 
 // ANCHOR: MachineSetSpec

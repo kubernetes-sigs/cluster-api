@@ -28,7 +28,7 @@ const (
 
 	// MachineDeploymentFinalizer is the finalizer used by the MachineDeployment controller to
 	// cleanup the MachineDeployment descendant MachineSets when a MachineDeployment is being deleted.
-	MachineDeploymentFinalizer = "machinedeployment.cluster.x-k8s.io"
+	MachineDeploymentFinalizer = "cluster.x-k8s.io/machinedeployment"
 )
 
 // MachineDeploymentStrategyType defines the type of MachineDeployment rollout strategies.

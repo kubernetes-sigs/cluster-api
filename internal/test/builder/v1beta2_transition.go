@@ -223,13 +223,16 @@ type Phase2ObjStatusDeprecatedV1Beta1 struct {
 
 // GetConditions returns the set of conditions for this object.
 func (o *Phase2Obj) GetConditions() clusterv1.Conditions {
+	if o.Status.Deprecated == nil || o.Status.Deprecated.V1Beta1 == nil {
+		return nil
+	}
 	return o.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetConditions sets the conditions on this object.
 func (o *Phase2Obj) SetConditions(conditions clusterv1.Conditions) {
 	if o.Status.Deprecated == nil && conditions != nil {
-		o.Status.Deprecated = &Phase2ObjStatusDeprecated{}
+		o.Status.Deprecated = &Phase2ObjStatusDeprecated{V1Beta1: &Phase2ObjStatusDeprecatedV1Beta1{}}
 	}
 	if o.Status.Deprecated.V1Beta1 == nil && conditions != nil {
 		o.Status.Deprecated.V1Beta1 = &Phase2ObjStatusDeprecatedV1Beta1{}

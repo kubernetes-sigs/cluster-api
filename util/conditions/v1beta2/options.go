@@ -86,3 +86,18 @@ type StepCounter bool
 func (t StepCounter) ApplyToSummary(opts *SummaryOptions) {
 	opts.stepCounter = bool(t)
 }
+
+// OwnedConditionTypes allows to define condition types owned by the controller when performing patch apply.
+// In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
+func OwnedConditionTypes(conditionTypes ...string) ApplyOption {
+	return func(c *applyOptions) {
+		c.ownedConditionTypes = conditionTypes
+	}
+}
+
+// ForceOverwrite instructs patch apply to always use the value provided by the controller (no matter of what value exists currently).
+func ForceOverwrite(v bool) ApplyOption {
+	return func(c *applyOptions) {
+		c.forceOverwrite = v
+	}
+}

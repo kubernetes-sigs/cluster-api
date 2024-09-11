@@ -780,8 +780,18 @@ func TestPatchNode(t *testing.T) {
 					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 				},
 			},
+			newLabels: map[string]string{
+				"label-from-machine": "foo",
+			},
+			newAnnotations: map[string]string{
+				"annotation-from-machine": "foo",
+			},
+			expectedLabels: map[string]string{
+				"label-from-machine": "foo",
+			},
 			expectedAnnotations: map[string]string{
-				clusterv1.LabelsFromMachineAnnotation: "",
+				"annotation-from-machine":             "foo",
+				clusterv1.LabelsFromMachineAnnotation: "label-from-machine",
 			},
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server

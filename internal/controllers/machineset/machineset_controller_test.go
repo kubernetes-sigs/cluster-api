@@ -890,6 +890,9 @@ func newMachineSet(name, cluster string, replicas int32) *clusterv1.MachineSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
+			Finalizers: []string{
+				clusterv1.MachineSetFinalizer,
+			},
 			Labels: map[string]string{
 				clusterv1.ClusterNameLabel: cluster,
 			},
@@ -930,6 +933,9 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				clusterv1.ClusterNameLabel: cluster.Name,
+			},
+			Finalizers: []string{
+				clusterv1.MachineSetFinalizer,
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{

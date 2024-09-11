@@ -99,9 +99,11 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 				}
 				Expect(managementClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), cluster)).To(Succeed())
 
-				// This replaces the WaitForControlPlaneMachinesToBeUpgraded function to ensure that
-				// all static Pods and kube-proxy as well as all Nodes are healthy during the whole upgrade
-				// across all Nodes of the Cluster. For doing this it uses a pre-drain hook.
+				// This replaces the WaitForControlPlaneMachinesToBeUpgraded function to verify via a pre-drain hook
+				// that all static Pods, kube-proxy and all Nodes are becoming healthy before we let the upgrade
+				// process precede by removing the pre-drain hook.
+				// This captures cases where static Pods, kube-proxy and all Nodes would only become healthy after
+				// all control plane Machines have been upgraded.
 				Eventually(func() (int64, error) {
 					machines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
 						Lister:      managementClusterProxy.GetClient(),
@@ -110,18 +112,18 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					})
 
 					// Collect information about:
-					// * how many control-plane machines already got upgraded
+					// * how many control-plane machines already got upgradedAndHealthy
 					// * control-plane machines which are in deletion but waiting for the pre-drain hook
 					// * workload cluster nodes
 					// * kube-proxy pods
-					var upgraded int64
-					deletingMachinesWithPreDrainHook := []clusterv1.Machine{}
+					var upgradedAndHealthy int64
+					deletingMachines := []clusterv1.Machine{}
 					for _, m := range machines {
 						if *m.Spec.Version == cluster.Spec.Topology.Version && conditions.IsTrue(&m, clusterv1.MachineNodeHealthyCondition) {
-							upgraded++
+							upgradedAndHealthy++
 						}
-						if !m.DeletionTimestamp.IsZero() && m.Annotations[preDrainHook] == "true" {
-							deletingMachinesWithPreDrainHook = append(deletingMachinesWithPreDrainHook, m)
+						if !m.DeletionTimestamp.IsZero() {
+							deletingMachines = append(deletingMachines, m)
 						}
 					}
 
@@ -142,19 +144,19 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					for _, node := range nodes.Items {
 						for _, condition := range node.Status.Conditions {
 							if condition.Type == corev1.NodeReady && condition.Status != corev1.ConditionTrue {
-								errList = append(errList, errors.Errorf("Expected the Ready condition for Node %s to be true but got %s instead: %s", node.GetName(), condition.Status, condition.Message))
+								errList = append(errList, errors.Errorf("expected the Ready condition for Node %s to be true but got %s instead: %s", node.GetName(), condition.Status, condition.Message))
 							}
 						}
 					}
 
 					// Check if the expected number of kube-proxy pods exist and all of them are healthy for all existing Nodes of the Cluster.
 					if len(nodes.Items) != len(kubeProxyPods.Items) {
-						errList = append(errList, errors.Errorf("exected %d kube-proxy pods to exist, got %d", len(nodes.Items), len(kubeProxyPods.Items)))
+						errList = append(errList, errors.Errorf("expected %d kube-proxy pods to exist, got %d", len(nodes.Items), len(kubeProxyPods.Items)))
 					}
 					for _, pod := range kubeProxyPods.Items {
 						for _, condition := range pod.Status.Conditions {
 							if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
-								errList = append(errList, errors.Errorf("Expected the Ready condition for Pod %s to be true but got %s instead: %s", pod.GetName(), condition.Status, condition.Message))
+								errList = append(errList, errors.Errorf("expected the Ready condition for Pod %s to be true but got %s instead: %s", pod.GetName(), condition.Status, condition.Message))
 							}
 						}
 					}
@@ -164,13 +166,18 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 					}
 
 					// At this stage all current machines are considered ok, so remove the pre-drain webhook from a CP to unblock the next step of the upgrade.
-					if len(deletingMachinesWithPreDrainHook) > 0 {
-						if len(deletingMachinesWithPreDrainHook) > 1 {
-							return 0, errors.Errorf("expected a maximum of 1 control-plane machines to be in deleting and having the pre-drain hook but got %d", len(deletingMachinesWithPreDrainHook))
+					if len(deletingMachines) > 0 {
+						if len(deletingMachines) > 1 {
+							return 0, errors.Errorf("expected a maximum of 1 machine to be in deleting but got %d", len(deletingMachines))
+						}
+
+						m := &deletingMachines[0]
+
+						if m.Annotations[preDrainHook] != "true" {
+							return 0, errors.Errorf("machine %s is in deletion but does not have pre-drain hook %q", klog.KObj(m), preDrainHook)
 						}
 
 						// Removing pre-drain hook from machine.
-						m := &deletingMachinesWithPreDrainHook[0]
 						patchHelper, err := patch.NewHelper(m, managementClusterProxy.GetClient())
 						if err != nil {
 							return 0, err
@@ -185,11 +192,11 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 						return 0, errors.Errorf("deletion of Machine %s was blocked by pre-drain hook", klog.KObj(m))
 					}
 
-					if int64(len(machines)) > upgraded {
+					if int64(len(machines)) > upgradedAndHealthy {
 						return 0, errors.New("old Machines remain")
 					}
 
-					return upgraded, nil
+					return upgradedAndHealthy, nil
 				}, e2eConfig.GetIntervals("k8s-upgrade-and-conformance", "wait-machine-upgrade")...).Should(Equal(controlPlaneMachineCount), "Timed out waiting for all control-plane machines in Cluster %s to be upgraded to kubernetes version %s", klog.KObj(cluster), cluster.Spec.Topology.Version)
 			},
 		}

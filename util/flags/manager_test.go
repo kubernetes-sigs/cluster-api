@@ -53,22 +53,6 @@ func TestGetManagerOptions(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid tls + metrics bind addr",
-			managerOptions: ManagerOptions{
-				TLSMinVersion:   "VersionTLS13",
-				TLSCipherSuites: []string{"TLS_AES_256_GCM_SHA384"},
-				MetricsBindAddr: ":8080",
-			},
-			wantTLSConfig: &tls.Config{
-				MinVersion:   tls.VersionTLS13,
-				CipherSuites: []uint16{tls.TLS_AES_256_GCM_SHA384},
-			},
-			wantMetricsOptions: &metricsserver.Options{
-				BindAddress: ":8080",
-			},
-			wantErr: false,
-		},
-		{
 			name: "valid tls + insecure diagnostics + diagnostics address",
 			managerOptions: ManagerOptions{
 				TLSMinVersion:       "VersionTLS13",

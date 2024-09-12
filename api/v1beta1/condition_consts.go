@@ -195,7 +195,7 @@ const (
 // Conditions and condition Reasons for the Machine's Node object.
 const (
 	// MachineNodeHealthyCondition provides info about the operational state of the Kubernetes node hosted on the machine by summarizing  node conditions.
-	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure, and NodeNetworkUnavailable) are in a healthy state, it will be set to True.
+	// If the conditions defined in a Kubernetes node (i.e., NodeReady, NodeMemoryPressure, NodeDiskPressure and NodePIDPressure) are in a healthy state, it will be set to True.
 	MachineNodeHealthyCondition ConditionType = "NodeHealthy"
 
 	// WaitingForNodeRefReason (Severity=Info) documents a machine.spec.providerId is not assigned yet.

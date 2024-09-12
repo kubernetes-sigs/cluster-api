@@ -113,7 +113,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 
 					// Collect information about:
 					// * how many control-plane machines already got upgradedAndHealthy
-					// * control-plane machines which are in deletion but waiting for the pre-drain hook
+					// * control-plane machines which are in deletion
 					// * workload cluster nodes
 					// * kube-proxy pods
 					var upgradedAndHealthy int64

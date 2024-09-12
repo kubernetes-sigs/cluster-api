@@ -74,18 +74,18 @@ These diagrams show the relationships between components in a Cluster API releas
 
 #### Core Provider (`cluster-api-controller`)
 
-|                   | v1.5 (v1beta1) (EOL) | v1.6 (v1beta1)    | v1.7 (v1beta1)    | v1.8 (v1beta1)    |
-|-------------------|----------------------|-------------------|-------------------|-------------------|
-| Kubernetes v1.22  | ✓ (only workload)    |                   |                   |                   |
-| Kubernetes v1.23* | ✓ (only workload)    | ✓ (only workload) |                   |                   |
-| Kubernetes v1.24  | ✓                    | ✓ (only workload) | ✓ (only workload) |                   |
-| Kubernetes v1.25  | ✓                    | ✓                 | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.26  | ✓                    | ✓                 | ✓                 | ✓ (only workload) |
-| Kubernetes v1.27  | ✓                    | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.28  | ✓ >= v1.5.1          | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.29  |                      | ✓ >= v1.6.1       | ✓                 | ✓                 |
-| Kubernetes v1.30  |                      |                   | ✓ >= v1.7.1       | ✓                 |
-| Kubernetes v1.31  |                      |                   |                   | ✓ >= v1.8.1       |
+|                   | v1.6 (v1beta1) (EOL) | v1.7 (v1beta1)    | v1.8 (v1beta1)    |
+|-------------------|----------------------|-------------------|-------------------|
+| Kubernetes v1.22  |                      |                   |                   |
+| Kubernetes v1.23* | ✓ (only workload)    |                   |                   |
+| Kubernetes v1.24  | ✓ (only workload)    | ✓ (only workload) |                   |
+| Kubernetes v1.25  | ✓                    | ✓ (only workload) | ✓ (only workload) |
+| Kubernetes v1.26  | ✓                    | ✓                 | ✓ (only workload) |
+| Kubernetes v1.27  | ✓                    | ✓                 | ✓                 |
+| Kubernetes v1.28  | ✓                    | ✓                 | ✓                 |
+| Kubernetes v1.29  | ✓ >= v1.6.1          | ✓                 | ✓                 |
+| Kubernetes v1.30  |                      | ✓ >= v1.7.1       | ✓                 |
+| Kubernetes v1.31  |                      |                   | ✓ >= v1.8.1       |
 
 
 \* There is an issue with CRDs in Kubernetes v1.23.{0-2}. ClusterClass with patches is affected by that (for more details please see [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/5990)). Therefore we recommend to use Kubernetes v1.23.3+ with ClusterClass.
@@ -95,35 +95,35 @@ The Core Provider also talks to API server of every Workload Cluster. Therefore,
 
 #### Kubeadm Bootstrap Provider (`kubeadm-bootstrap-controller`)
 
-|                                    | v1.5 (v1beta1) (EOL) | v1.6 (v1beta1)     | v1.7 (v1beta1)     | v1.8 (v1beta1)     |
-|------------------------------------|----------------------|--------------------|--------------------|--------------------|
-| Kubernetes v1.22 + kubeadm/v1beta3 | ✓  (only workload)   |                    |                    |                    |
-| Kubernetes v1.23 + kubeadm/v1beta3 | ✓  (only workload)   | ✓  (only workload) |                    |                    |
-| Kubernetes v1.24 + kubeadm/v1beta3 | ✓                    | ✓  (only workload) | ✓  (only workload) |                    |
-| Kubernetes v1.25 + kubeadm/v1beta3 | ✓                    | ✓                  | ✓  (only workload) | ✓  (only workload) |
-| Kubernetes v1.26 + kubeadm/v1beta3 | ✓                    | ✓                  | ✓                  | ✓  (only workload) |
-| Kubernetes v1.27 + kubeadm/v1beta3 | ✓                    | ✓                  | ✓                  | ✓                  |
-| Kubernetes v1.28 + kubeadm/v1beta3 | ✓ >= v1.5.1          | ✓                  | ✓                  | ✓                  |
-| Kubernetes v1.29 + kubeadm/v1beta3 |                      | ✓ >= v1.6.1        | ✓                  | ✓                  |
-| Kubernetes v1.30 + kubeadm/v1beta3 |                      |                    | ✓ >= v1.7.1        | ✓                  |
-| Kubernetes v1.31 + kubeadm/v1beta4 |                      |                    |                    | ✓ >= v1.8.1        |
+|                                    | v1.6 (v1beta1) (EOL) | v1.7 (v1beta1)     | v1.8 (v1beta1)     |
+|------------------------------------|----------------------|--------------------|--------------------|
+| Kubernetes v1.22 + kubeadm/v1beta3 |                      |                    |                    |
+| Kubernetes v1.23 + kubeadm/v1beta3 | ✓  (only workload)   |                    |                    |
+| Kubernetes v1.24 + kubeadm/v1beta3 | ✓  (only workload)   | ✓  (only workload) |                    |
+| Kubernetes v1.25 + kubeadm/v1beta3 | ✓                    | ✓  (only workload) | ✓  (only workload) |
+| Kubernetes v1.26 + kubeadm/v1beta3 | ✓                    | ✓                  | ✓  (only workload) |
+| Kubernetes v1.27 + kubeadm/v1beta3 | ✓                    | ✓                  | ✓                  |
+| Kubernetes v1.28 + kubeadm/v1beta3 | ✓                    | ✓                  | ✓                  |
+| Kubernetes v1.29 + kubeadm/v1beta3 | ✓ >= v1.6.1          | ✓                  | ✓                  |
+| Kubernetes v1.30 + kubeadm/v1beta3 |                      | ✓ >= v1.7.1        | ✓                  |
+| Kubernetes v1.31 + kubeadm/v1beta4 |                      |                    | ✓ >= v1.8.1        |
 
 The Kubeadm Bootstrap Provider generates kubeadm configuration using the API version recommended for the target Kubernetes version.
 
 #### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
 
-|                            | v1.5 (v1beta1) (EOL) | v1.6 (v1beta1)    | v1.7 (v1beta1)    | v1.8 (v1beta1)    |
-|----------------------------|----------------------|-------------------|-------------------|-------------------|
-| Kubernetes v1.22 + etcd/v3 | ✓ (only workload)    |                   |                   |                   |
-| Kubernetes v1.23 + etcd/v3 | ✓ (only workload)    | ✓ (only workload) |                   |                   |
-| Kubernetes v1.24 + etcd/v3 | ✓                    | ✓ (only workload) | ✓ (only workload) |                   |
-| Kubernetes v1.25 + etcd/v3 | ✓                    | ✓                 | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.26 + etcd/v3 | ✓                    | ✓                 | ✓                 | ✓ (only workload) |
-| Kubernetes v1.27 + etcd/v3 | ✓                    | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.28 + etcd/v3 | ✓ >= v1.5.1          | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.29 + etcd/v3 |                      | ✓ >= v1.6.1       | ✓                 | ✓                 |
-| Kubernetes v1.30 + etcd/v3 |                      |                   | ✓ >= v1.7.1       | ✓                 |
-| Kubernetes v1.31 + etcd/v3 |                      |                   |                   | ✓ >= v1.8.1       |
+|                            | v1.6 (v1beta1) (EOL) | v1.7 (v1beta1)    | v1.8 (v1beta1)    |
+|----------------------------|----------------------|-------------------|-------------------|
+| Kubernetes v1.22 + etcd/v3 |                      |                   |                   |
+| Kubernetes v1.23 + etcd/v3 | ✓ (only workload)    |                   |                   |
+| Kubernetes v1.24 + etcd/v3 | ✓ (only workload)    | ✓ (only workload) |                   |
+| Kubernetes v1.25 + etcd/v3 | ✓                    | ✓ (only workload) | ✓ (only workload) |
+| Kubernetes v1.26 + etcd/v3 | ✓                    | ✓                 | ✓ (only workload) |
+| Kubernetes v1.27 + etcd/v3 | ✓                    | ✓                 | ✓                 |
+| Kubernetes v1.28 + etcd/v3 | ✓                    | ✓                 | ✓                 |
+| Kubernetes v1.29 + etcd/v3 | ✓ >= v1.6.1          | ✓                 | ✓                 |
+| Kubernetes v1.30 + etcd/v3 |                      | ✓ >= v1.7.1       | ✓                 |
+| Kubernetes v1.31 + etcd/v3 |                      |                   | ✓ >= v1.8.1       |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 

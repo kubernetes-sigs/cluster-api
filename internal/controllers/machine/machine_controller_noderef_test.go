@@ -774,7 +774,7 @@ func TestPatchNode(t *testing.T) {
 			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
-			name: "Ensure Labels and Annotations still get patched if MachineSet cannot be found",
+			name: "Ensure Labels and Annotations still get patched if MachineSet and Machinedeployment cannot be found",
 			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
@@ -814,21 +814,7 @@ func TestPatchNode(t *testing.T) {
 				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
 			},
 			ms: nil,
-			md: &clusterv1.MachineDeployment{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-md",
-					Namespace: metav1.NamespaceDefault,
-					Annotations: map[string]string{
-						clusterv1.RevisionAnnotation: "1",
-					},
-				},
-				Spec: clusterv1.MachineDeploymentSpec{
-					ClusterName: clusterName,
-					Template: clusterv1.MachineTemplateSpec{
-						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
-					},
-				},
-			},
+			md: nil,
 		},
 		{
 			name: "Ensure NodeOutdatedRevisionTaint to be set if a node is associated to an outdated machineset",
@@ -976,7 +962,9 @@ func TestPatchNode(t *testing.T) {
 			if ms != nil {
 				g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
 			}
-			g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
+			if md != nil {
+				g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
+			}
 			t.Cleanup(func() {
 				_ = env.CleanupAndWait(ctx, oldNode, machine, ms, md)
 			})

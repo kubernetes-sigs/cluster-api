@@ -962,7 +962,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			got, err := r.getMachineSetsForDeployment(ctx, &tc.machineDeployment)
+			got, err := r.getAndAdoptMachineSetsForDeployment(ctx, &tc.machineDeployment)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(HaveLen(len(tc.expected)))
 

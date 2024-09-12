@@ -232,7 +232,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}
 	}
 
-	msList, err := r.getMachineSetsForDeployment(ctx, md)
+	msList, err := r.getAndAdoptMachineSetsForDeployment(ctx, md)
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineDeployment) error {
 	log := ctrl.LoggerFrom(ctx)
-	msList, err := r.getMachineSetsForDeployment(ctx, md)
+	msList, err := r.getAndAdoptMachineSetsForDeployment(ctx, md)
 	if err != nil {
 		return err
 	}
@@ -321,8 +321,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 	return nil
 }
 
-// getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
-func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
+// getAndAdoptMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
+func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// List all MachineSets to find those we own but that no longer match our selector.

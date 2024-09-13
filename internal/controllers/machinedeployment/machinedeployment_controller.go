@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -306,7 +307,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 		return nil
 	}
 
-	log.Info("MachineDeployment still has descendant MachineSets - deleting them first", "count", len(msList), "descendants", descendantMachineSets(msList))
+	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(msList))
 
 	// else delete owned machinesets.
 	for _, ms := range msList {
@@ -473,17 +474,4 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cl
 	}))
 
 	return patchHelper.Patch(ctx, obj)
-}
-
-func descendantMachineSets(objs []*clusterv1.MachineSet) string {
-	objNames := make([]string, len(objs))
-	for _, obj := range objs {
-		objNames = append(objNames, obj.GetName())
-	}
-
-	if len(objNames) > 10 {
-		objNames = append(objNames[:10], "...")
-	}
-
-	return strings.Join(objNames, ",")
 }

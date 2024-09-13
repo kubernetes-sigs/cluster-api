@@ -342,7 +342,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, machineSet *clusterv1.
 		return nil
 	}
 
-	log.Info("MachineSet still has descendant Machines - deleting them first", "count", len(machineList), "descendants", descendantMachines(machineList))
+	log.Info("Waiting for Machines to be deleted", "Machines", clog.ObjNamesString(machineList))
 
 	// else delete owned machines.
 	for _, machine := range machineList {
@@ -1226,17 +1226,4 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 	}))
 
 	return patchHelper.Patch(ctx, obj)
-}
-
-func descendantMachines(objs []*clusterv1.Machine) string {
-	objNames := make([]string, len(objs))
-	for _, obj := range objs {
-		objNames = append(objNames, obj.GetName())
-	}
-
-	if len(objNames) > 10 {
-		objNames = append(objNames[:10], "...")
-	}
-
-	return strings.Join(objNames, ",")
 }

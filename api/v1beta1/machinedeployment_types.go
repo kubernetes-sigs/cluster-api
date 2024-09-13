@@ -27,7 +27,7 @@ const (
 	MachineDeploymentTopologyFinalizer = "machinedeployment.topology.cluster.x-k8s.io"
 
 	// MachineDeploymentFinalizer is the finalizer used by the MachineDeployment controller to
-	// cleanup the MachineDeployment descendant MachineSets when a MachineDeployment is being deleted.
+	// ensure ordered cleanup of corresponding MachineSets when a MachineDeployment is being deleted.
 	MachineDeploymentFinalizer = "cluster.x-k8s.io/machinedeployment"
 )
 

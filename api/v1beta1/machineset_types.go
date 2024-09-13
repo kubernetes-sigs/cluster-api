@@ -31,7 +31,7 @@ const (
 	MachineSetTopologyFinalizer = "machineset.topology.cluster.x-k8s.io"
 
 	// MachineSetFinalizer is the finalizer used by the MachineSet controller to
-	// cleanup the MachineSet descendant Machines when a Machineset is being deleted.
+	// ensure ordered cleanup of corresponding Machines when a Machineset is being deleted.
 	MachineSetFinalizer = "cluster.x-k8s.io/machineset"
 )
 

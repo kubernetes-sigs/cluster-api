@@ -2194,7 +2194,6 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
 			}
-			// Mark machineSet to be in deletion.
 
 			err := r.reconcileDelete(ctx, tt.machineSet)
 			if tt.expectError {

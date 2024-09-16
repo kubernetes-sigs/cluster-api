@@ -139,7 +139,7 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 
 	// Check to see if the response is a failure and handle the failure accordingly.
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
-		log.Info(fmt.Sprintf("failed to discover extension %q: got failure response with message %v", extensionConfig.Name, response.GetMessage()))
+		log.Info(fmt.Sprintf("Failed to discover extension %q: got failure response with message %v", extensionConfig.Name, response.GetMessage()))
 		// Don't add the message to the error as it is may be unique causing too many reconciliations. Ref: https://github.com/kubernetes-sigs/cluster-api/issues/6921
 		return nil, errors.Errorf("failed to discover extension %q: got failure response", extensionConfig.Name)
 	}
@@ -216,7 +216,7 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 		return errors.Wrapf(err, "failed to call extension handlers for hook %q", gvh.GroupHook())
 	}
 
-	log.Info(fmt.Sprintf("Calling all extensions of hook %q", hookName))
+	log.V(4).Info(fmt.Sprintf("Calling all extensions of hook %q", hookName))
 	responses := []runtimehooksv1.ResponseObject{}
 	for _, registration := range registrations {
 		// Creates a new instance of the response parameter.
@@ -322,7 +322,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		return errors.Errorf("failed to call extension handler %q: namespaceSelector did not match object %s", name, util.ObjectKey(forObject))
 	}
 
-	log.Info(fmt.Sprintf("Calling extension handler %q", name))
+	log.V(4).Info(fmt.Sprintf("Calling extension handler %q", name))
 	timeoutDuration := runtimehooksv1.DefaultHandlersTimeoutSeconds * time.Second
 	if registration.TimeoutSeconds != nil {
 		timeoutDuration = time.Duration(*registration.TimeoutSeconds) * time.Second
@@ -365,7 +365,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	if retryResponse, ok := response.(runtimehooksv1.RetryResponseObject); ok && retryResponse.GetRetryAfterSeconds() != 0 {
 		log.Info(fmt.Sprintf("Extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
 	} else {
-		log.Info("Extension handler returned success response")
+		log.V(4).Info("Extension handler returned success response")
 	}
 
 	// Received a successful response from the extension handler. The `response` object

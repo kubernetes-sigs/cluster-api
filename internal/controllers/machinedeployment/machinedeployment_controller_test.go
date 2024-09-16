@@ -18,7 +18,6 @@ package machinedeployment
 
 import (
 	"context"
-	"sort"
 	"testing"
 	"time"
 
@@ -1001,12 +1000,15 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 		"some": "labelselector",
 	}
 	md := builder.MachineDeployment("default", "md0").WithClusterName("test").Build()
+	md.Finalizers = []string{
+		clusterv1.MachineDeploymentFinalizer,
+	}
 	md.DeletionTimestamp = ptr.To(metav1.Now())
 	md.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: labels,
 	}
 	mdWithoutFinalizer := md.DeepCopy()
-	mdWithoutFinalizer.Finalizers = nil
+	mdWithoutFinalizer.Finalizers = []string{}
 	tests := []struct {
 		name              string
 		machineDeployment *clusterv1.MachineDeployment
@@ -1057,7 +1059,6 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
 			}
-			// Mark machineDeployment to be in deletion.
 
 			err := r.reconcileDelete(ctx, tt.machineDeployment)
 			if tt.expectError {
@@ -1072,19 +1073,11 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(c.List(ctx, machineSetList, client.InNamespace("default"))).ToNot(HaveOccurred())
 
 			// Remove ResourceVersion so we can actually compare.
-			for i, m := range machineSetList.Items {
-				m.ResourceVersion = ""
-				machineSetList.Items[i] = m
+			for i := range machineSetList.Items {
+				machineSetList.Items[i].ResourceVersion = ""
 			}
 
-			sort.Slice(machineSetList.Items, func(i, j int) bool {
-				return machineSetList.Items[i].GetName() < machineSetList.Items[j].GetName()
-			})
-			sort.Slice(tt.wantMachineSets, func(i, j int) bool {
-				return tt.wantMachineSets[i].GetName() < tt.wantMachineSets[j].GetName()
-			})
-
-			g.Expect(machineSetList.Items).To(BeComparableTo(tt.wantMachineSets))
+			g.Expect(machineSetList.Items).To(ConsistOf(tt.wantMachineSets))
 		})
 	}
 }

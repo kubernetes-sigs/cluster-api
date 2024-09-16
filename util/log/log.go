@@ -111,14 +111,20 @@ func getOwners(ctx context.Context, c client.Client, obj metav1.Object) ([]owner
 // five objects. On more than five objects it outputs the first five objects and
 // adds information about how much more are in the given list.
 func ObjNamesString[T client.Object](objs []T) string {
-	objNames := make([]string, len(objs))
+	shortenedBy := 0
+	if len(objs) > 5 {
+		shortenedBy = len(objs) - 5
+		objs = objs[:5]
+	}
+
+	stringList := []string{}
 	for _, obj := range objs {
-		objNames = append(objNames, obj.GetName())
+		stringList = append(stringList, obj.GetName())
 	}
 
-	if len(objNames) <= 5 {
-		return strings.Join(objNames, ", ")
+	if shortenedBy > 0 {
+		stringList = append(stringList, fmt.Sprintf("... (%d more)", shortenedBy))
 	}
 
-	return fmt.Sprintf("%s and %d more", strings.Join(objNames[:5], ", "), len(objNames)-5)
+	return strings.Join(stringList, ", ")
 }

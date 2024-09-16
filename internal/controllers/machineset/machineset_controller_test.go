@@ -18,7 +18,6 @@ package machineset
 
 import (
 	"fmt"
-	"sort"
 	"testing"
 	"time"
 
@@ -2136,12 +2135,15 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 		"some": "labelselector",
 	}
 	ms := builder.MachineSet("default", "ms0").WithClusterName("test").Build()
+	ms.Finalizers = []string{
+		clusterv1.MachineSetFinalizer,
+	}
 	ms.DeletionTimestamp = ptr.To(metav1.Now())
 	ms.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: labels,
 	}
 	msWithoutFinalizer := ms.DeepCopy()
-	msWithoutFinalizer.Finalizers = nil
+	msWithoutFinalizer.Finalizers = []string{}
 	tests := []struct {
 		name         string
 		machineSet   *clusterv1.MachineSet
@@ -2207,19 +2209,11 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 			g.Expect(c.List(ctx, machineList, client.InNamespace("default"))).ToNot(HaveOccurred())
 
 			// Remove ResourceVersion so we can actually compare.
-			for i, m := range machineList.Items {
-				m.ResourceVersion = ""
-				machineList.Items[i] = m
+			for i := range machineList.Items {
+				machineList.Items[i].ResourceVersion = ""
 			}
 
-			sort.Slice(machineList.Items, func(i, j int) bool {
-				return machineList.Items[i].GetName() < machineList.Items[j].GetName()
-			})
-			sort.Slice(tt.wantMachines, func(i, j int) bool {
-				return tt.wantMachines[i].GetName() < tt.wantMachines[j].GetName()
-			})
-
-			g.Expect(machineList.Items).To(BeComparableTo(tt.wantMachines))
+			g.Expect(machineList.Items).To(ConsistOf(tt.wantMachines))
 		})
 	}
 }

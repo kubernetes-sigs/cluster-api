@@ -313,7 +313,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 	for _, ms := range msList {
 		if ms.DeletionTimestamp.IsZero() {
 			log.Info("Deleting MachineSet", "MachineSet", klog.KObj(ms))
-			if err := r.Client.Delete(ctx, ms); err != nil {
+			if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete MachineSet %s", klog.KObj(ms))
 			}
 		}
@@ -335,7 +335,8 @@ func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, md
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
-		log.WithValues("MachineSet", klog.KObj(ms))
+		log := log.WithValues("MachineSet", klog.KObj(ms))
+		ctx := ctrl.LoggerInto(ctx, log)
 		selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
 		if err != nil {
 			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector")

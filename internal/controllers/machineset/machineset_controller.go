@@ -348,7 +348,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, machineSet *clusterv1.
 	for _, machine := range machineList {
 		if machine.DeletionTimestamp.IsZero() {
 			log.Info("Deleting Machine", "Machine", klog.KObj(machine))
-			if err := r.Client.Delete(ctx, machine); err != nil {
+			if err := r.Client.Delete(ctx, machine); err != nil && !apierrors.IsNotFound(err) {
 				return errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine))
 			}
 		}
@@ -381,6 +381,7 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, machi
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]
 		log := log.WithValues("Machine", klog.KObj(machine))
+		ctx := ctrl.LoggerInto(ctx, log)
 		if shouldExcludeMachine(machineSet, machine) {
 			continue
 		}

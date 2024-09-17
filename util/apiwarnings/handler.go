@@ -18,45 +18,20 @@ package apiwarnings
 
 import (
 	"regexp"
-	"sync"
 
 	"github.com/go-logr/logr"
 )
 
-// DiscardMatchingHandlerOptions configures the handler created with
-// NewDiscardMatchingHandler.
-type DiscardMatchingHandlerOptions struct {
-	// Deduplicate indicates a given warning message should only be written once.
-	// Setting this to true in a long-running process handling many warnings can
-	// result in increased memory use.
-	Deduplicate bool
+// DiscardMatchingHandler is a handler that discards API server warnings
+// whose message matches any user-defined regular expressions, but otherwise
+// logs warnings to the user-defined logger.
+type DiscardMatchingHandler struct {
+	// Logger is used to log responses with the warning header.
+	Logger logr.Logger
 
 	// Expressions is a slice of regular expressions used to discard warnings.
 	// If the warning message matches any expression, it is not logged.
 	Expressions []regexp.Regexp
-}
-
-// NewDiscardMatchingHandler initializes and returns a new DiscardMatchingHandler.
-func NewDiscardMatchingHandler(l logr.Logger, opts DiscardMatchingHandlerOptions) *DiscardMatchingHandler {
-	h := &DiscardMatchingHandler{logger: l, opts: opts}
-	if opts.Deduplicate {
-		h.logged = map[string]struct{}{}
-	}
-	return h
-}
-
-// DiscardMatchingHandler is a handler that discards API server warnings
-// whose message matches any user-defined regular expressions.
-type DiscardMatchingHandler struct {
-	// logger is used to log responses with the warning header
-	logger logr.Logger
-	// opts contain options controlling warning output
-	opts DiscardMatchingHandlerOptions
-	// loggedLock guards logged
-	loggedLock sync.Mutex
-	// used to keep track of already logged messages
-	// and help in de-duplication.
-	logged map[string]struct{}
 }
 
 // HandleWarningHeader handles logging for responses from API server that are
@@ -66,20 +41,11 @@ func (h *DiscardMatchingHandler) HandleWarningHeader(code int, _, message string
 		return
 	}
 
-	for _, exp := range h.opts.Expressions {
+	for _, exp := range h.Expressions {
 		if exp.MatchString(message) {
 			return
 		}
 	}
 
-	if h.opts.Deduplicate {
-		h.loggedLock.Lock()
-		defer h.loggedLock.Unlock()
-
-		if _, alreadyLogged := h.logged[message]; alreadyLogged {
-			return
-		}
-		h.logged[message] = struct{}{}
-	}
-	h.logger.Info(message)
+	h.Logger.Info(message)
 }

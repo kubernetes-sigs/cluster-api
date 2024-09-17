@@ -26,63 +26,65 @@ import (
 
 func TestDiscardMatchingHandler(t *testing.T) {
 	tests := []struct {
-		name       string
-		opts       DiscardMatchingHandlerOptions
-		code       int
-		message    string
-		wantLogged bool
+		name        string
+		code        int
+		message     string
+		expressions []regexp.Regexp
+		wantLogged  bool
 	}{
 		{
-			name:    "log, if warning does not match any expression",
-			code:    299,
-			message: "non-matching warning",
-			opts: DiscardMatchingHandlerOptions{
-				Expressions: []regexp.Regexp{},
-			},
+			name:       "log, if no expressions are defined",
+			code:       299,
+			message:    "non-matching warning",
 			wantLogged: true,
+		},
+		{
+			name:        "log, if warning does not match any expression",
+			code:        299,
+			message:     "non-matching warning",
+			expressions: []regexp.Regexp{},
+			wantLogged:  true,
 		},
 		{
 			name:    "do not log, if warning matches at least one expression",
 			code:    299,
 			message: "matching warning",
-			opts: DiscardMatchingHandlerOptions{
-				Expressions: []regexp.Regexp{
-					*regexp.MustCompile("^matching.*"),
-				},
+			expressions: []regexp.Regexp{
+				*regexp.MustCompile("^matching.*"),
 			},
 			wantLogged: false,
 		},
 		{
-			name:    "do not log, if code is not 299",
-			code:    0,
-			message: "",
-			opts: DiscardMatchingHandlerOptions{
-				Expressions: []regexp.Regexp{},
-			},
-			wantLogged: false,
+			name:        "do not log, if code is not 299",
+			code:        0,
+			message:     "",
+			expressions: []regexp.Regexp{},
+			wantLogged:  false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			logged := false
-			h := NewDiscardMatchingHandler(
-				funcr.New(func(_, _ string) {
+			h := DiscardMatchingHandler{
+				Logger: funcr.New(func(_, _ string) {
 					logged = true
 				},
 					funcr.Options{},
 				),
-				tt.opts,
-			)
+				Expressions: tt.expressions,
+			}
 			h.HandleWarningHeader(tt.code, "", tt.message)
 			g.Expect(logged).To(Equal(tt.wantLogged))
 		})
 	}
 }
 
-func TestDiscardMatchingHandler_uninitialized(t *testing.T) {
+func TestDiscardMatchingHandler_NilLogger(t *testing.T) {
 	g := NewWithT(t)
-	h := DiscardMatchingHandler{}
+	h := DiscardMatchingHandler{
+		// Logger is nil
+	}
 	g.Expect(func() {
 		h.HandleWarningHeader(0, "", "")
 	}).ToNot(Panic())

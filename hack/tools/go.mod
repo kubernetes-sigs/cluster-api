@@ -16,18 +16,18 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/valyala/fastjson v1.6.4
 	golang.org/x/oauth2 v0.23.0
-	google.golang.org/api v0.196.0
-	k8s.io/api v0.31.0
-	k8s.io/apiextensions-apiserver v0.31.0
-	k8s.io/apimachinery v0.31.0
-	k8s.io/client-go v0.31.0
+	google.golang.org/api v0.197.0
+	k8s.io/api v0.31.1
+	k8s.io/apiextensions-apiserver v0.31.1
+	k8s.io/apimachinery v0.31.1
+	k8s.io/client-go v0.31.1
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.19.0
-	sigs.k8s.io/controller-tools v0.16.2
+	sigs.k8s.io/controller-tools v0.16.3
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d
 	sigs.k8s.io/kustomize/api v0.17.3
 	sigs.k8s.io/yaml v1.4.0
@@ -104,7 +104,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.3 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
@@ -169,16 +169,16 @@ require (
 	google.golang.org/genproto v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240827150818-7e3bb234dfed // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
-	google.golang.org/grpc v1.66.0 // indirect
+	google.golang.org/grpc v1.66.2 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.31.0 // indirect
-	k8s.io/cluster-bootstrap v0.31.0 // indirect
-	k8s.io/component-base v0.31.0 // indirect
+	k8s.io/apiserver v0.31.1 // indirect
+	k8s.io/cluster-bootstrap v0.31.1 // indirect
+	k8s.io/component-base v0.31.1 // indirect
 	k8s.io/release v0.16.9
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/kyaml v0.17.2 // indirect

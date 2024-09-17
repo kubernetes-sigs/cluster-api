@@ -117,7 +117,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
-		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue))
+		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
@@ -132,7 +132,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		builder.WithPredicates(
 			predicates.All(predicateLog,
 				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
-				predicates.ResourceHasFilterLabel(predicateLog, r.WatchFilterValue),
+				predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 			),
 		),
 	)

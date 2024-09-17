@@ -56,7 +56,7 @@ func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Conte
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSetBinding),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

@@ -123,7 +123,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{})); err != nil {
+	if err := r.externalTracker.Watch(r.Client.Scheme(), log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{})); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -379,7 +379,7 @@ func (r *MachinePoolReconciler) reconcileMachines(ctx context.Context, s *scope,
 	sampleInfraMachine.SetKind(infraMachineKind)
 
 	// Add watcher for infraMachine, if there isn't one already.
-	if err := r.externalTracker.Watch(log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
+	if err := r.externalTracker.Watch(r.Client.Scheme(), log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
 		return err
 	}
 

@@ -1147,7 +1147,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.InMemoryMachine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),

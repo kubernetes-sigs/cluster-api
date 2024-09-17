@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -66,11 +67,12 @@ func TestRetryWatch(t *testing.T) {
 	ctrl := newWatchCountController(true)
 	tracker := ObjectTracker{Controller: ctrl}
 
-	err := tracker.Watch(logger, &clusterv1.Cluster{}, nil)
+	scheme := runtime.NewScheme()
+	err := tracker.Watch(scheme, logger, &clusterv1.Cluster{}, nil)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(ctrl.count).Should(Equal(1))
 	// Calling Watch on same Object kind that failed earlier should be retryable.
-	err = tracker.Watch(logger, &clusterv1.Cluster{}, nil)
+	err = tracker.Watch(scheme, logger, &clusterv1.Cluster{}, nil)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(ctrl.count).Should(Equal(2))
 }
@@ -86,11 +88,12 @@ func TestWatchMultipleTimes(t *testing.T) {
 			APIVersion: clusterv1.GroupVersion.Version,
 		},
 	}
-	err := tracker.Watch(logger, obj, nil)
+	scheme := runtime.NewScheme()
+	err := tracker.Watch(scheme, logger, obj, nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ctrl.count).Should(Equal(1))
 	// Calling Watch on same Object kind should not register watch again.
-	err = tracker.Watch(logger, obj, nil)
+	err = tracker.Watch(scheme, logger, obj, nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ctrl.count).Should(Equal(1))
 }

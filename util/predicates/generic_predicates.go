@@ -20,7 +20,10 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -130,19 +133,19 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 
 // ResourceHasFilterLabel returns a predicate that returns true only if the provided resource contains
 // a label with the WatchLabel key and the configured label value exactly.
-func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Funcs {
+func ResourceHasFilterLabel(scheme *runtime.Scheme, logger logr.Logger, labelValue string) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "update"), e.ObjectNew, labelValue)
+			return processIfLabelMatch(scheme, logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "update"), e.ObjectNew, labelValue)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "create"), e.Object, labelValue)
+			return processIfLabelMatch(scheme, logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "create"), e.Object, labelValue)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "delete"), e.Object, labelValue)
+			return processIfLabelMatch(scheme, logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "delete"), e.Object, labelValue)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfLabelMatch(logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "generic"), e.Object, labelValue)
+			return processIfLabelMatch(scheme, logger.WithValues("predicate", "ResourceHasFilterLabel", "eventType", "generic"), e.Object, labelValue)
 		},
 	}
 }
@@ -157,57 +160,59 @@ func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Fun
 //		controller, err := ctrl.NewControllerManagedBy(mgr).
 //			For(&v1.MyType{}).
 //			WithOptions(options).
-//			WithEventFilter(util.ResourceNotPaused(r.Log)).
+//			WithEventFilter(util.ResourceNotPaused(mgr.GetScheme(), r.Log)).
 //			Build(r)
 //		return err
 //	}
-func ResourceNotPaused(logger logr.Logger) predicate.Funcs {
+func ResourceNotPaused(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "update"), e.ObjectNew)
+			return processIfNotPaused(scheme, logger.WithValues("predicate", "ResourceNotPaused", "eventType", "update"), e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "create"), e.Object)
+			return processIfNotPaused(scheme, logger.WithValues("predicate", "ResourceNotPaused", "eventType", "create"), e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "delete"), e.Object)
+			return processIfNotPaused(scheme, logger.WithValues("predicate", "ResourceNotPaused", "eventType", "delete"), e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfNotPaused(logger.WithValues("predicate", "ResourceNotPaused", "eventType", "generic"), e.Object)
+			return processIfNotPaused(scheme, logger.WithValues("predicate", "ResourceNotPaused", "eventType", "generic"), e.Object)
 		},
 	}
 }
 
 // ResourceNotPausedAndHasFilterLabel returns a predicate that returns true only if the
 // ResourceNotPaused and ResourceHasFilterLabel predicates return true.
-func ResourceNotPausedAndHasFilterLabel(logger logr.Logger, labelValue string) predicate.Funcs {
-	return All(logger, ResourceNotPaused(logger), ResourceHasFilterLabel(logger, labelValue))
+func ResourceNotPausedAndHasFilterLabel(scheme *runtime.Scheme, logger logr.Logger, labelValue string) predicate.Funcs {
+	return All(logger, ResourceNotPaused(scheme, logger), ResourceHasFilterLabel(scheme, logger, labelValue))
 }
 
-func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
-	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+func processIfNotPaused(scheme *runtime.Scheme, logger logr.Logger, obj client.Object) bool {
+	if gvk, err := apiutil.GVKForObject(obj, scheme); err == nil {
+		logger = logger.WithValues(gvk.Kind, klog.KObj(obj))
+	}
 	if annotations.HasPaused(obj) {
-		log.V(4).Info("Resource is paused, will not attempt to map resource")
+		logger.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}
-	log.V(6).Info("Resource is not paused, will attempt to map resource")
+	logger.V(6).Info("Resource is not paused, will attempt to map resource")
 	return true
 }
 
-func processIfLabelMatch(logger logr.Logger, obj client.Object, labelValue string) bool {
+func processIfLabelMatch(scheme *runtime.Scheme, logger logr.Logger, obj client.Object, labelValue string) bool {
 	// Return early if no labelValue was set.
 	if labelValue == "" {
 		return true
 	}
 
-	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+	if gvk, err := apiutil.GVKForObject(obj, scheme); err == nil {
+		logger = logger.WithValues(gvk.Kind, klog.KObj(obj))
+	}
 	if labels.HasWatchLabel(obj, labelValue) {
-		log.V(6).Info("Resource matches label, will attempt to map resource")
+		logger.V(6).Info("Resource matches label, will attempt to map resource")
 		return true
 	}
-	log.V(4).Info("Resource does not match label, will not attempt to map resource")
+	logger.V(4).Info("Resource does not match label, will not attempt to map resource")
 	return false
 }
 

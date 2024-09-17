@@ -12,7 +12,7 @@ reviewers:
 - "@peterochodo"
 - "@zjs"
 creation-date: 2024-07-17
-last-updated: 2024-07-29
+last-updated: 2024-09-16
 status: implementable
 see-also:
 - [Proposal about custom Cluster API conditions (superseded by this document)](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200506-conditions.md)
@@ -1456,7 +1456,7 @@ Transition from v1beta1 API/contract to v1beta2 contract is detailed in previous
 
 ## Implementation History
 
-- [x] 07/17/2024: Open proposal PR, still WIP
-- [x] 07/17/2024: Present proposal at a [community meeting](https://www.youtube.com/watch?v=frCg522ZfRQ)
+- [x] 2024-07-17: Open proposal PR, still WIP
+- [x] 2024-07-17: Present proposal at a [community meeting](https://www.youtube.com/watch?v=frCg522ZfRQ)
   - [10000 feet overview](https://docs.google.com/presentation/d/1hhgCufOIuqHz6YR_RUPGo0uTjfm5YafjCb6JHY1_clY/edit?usp=sharing)
-- [x] MM/DD/YYYY: Remove WIP from the proposal PR
+- [x] 2024-09-16: Proposal approved

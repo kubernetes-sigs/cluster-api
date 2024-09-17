@@ -15,10 +15,3 @@ Ensure that the version of Cluster API is compatible with the Kubernetes version
 ## Upgrading to newer versions of 1.0.x
 
 Use [clusterctl to upgrade between versions of Cluster API 1.0.x](../clusterctl/commands/upgrade.md).
-
-
-<!-- links -->
-[components]: ../reference/glossary.md#provider-components
-[management cluster]: ../reference/glossary.md#management-cluster
-[Cluster API v1alpha3 compared to v1alpha4 section]: ../developer/providers/migrations/v0.3-to-v0.4.md
-[Cluster API v1alpha4 compared to v1beta1 section]: ../developer/providers/migrations/v0.4-to-v1.0.md

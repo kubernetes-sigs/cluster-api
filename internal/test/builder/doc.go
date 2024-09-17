@@ -16,4 +16,6 @@ limitations under the License.
 
 // Package builder implements builder and CRDs for creating API objects for testing.
 // +kubebuilder:object:generate=true
+// +groupName=test.cluster.x-k8s.io
+// +versionName=v1alpha1
 package builder

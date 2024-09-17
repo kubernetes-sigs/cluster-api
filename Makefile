@@ -305,6 +305,10 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 		crd:crdVersions=v1 \
 		output:crd:dir=./cmd/clusterctl/config/crd/bases
 	$(KUSTOMIZE) build $(CLUSTERCTL_MANIFEST_DIR)/crd > $(CLUSTERCTL_MANIFEST_DIR)/manifest/clusterctl-api.yaml
+	$(CONTROLLER_GEN) \
+		paths=./internal/test/builder/... \
+		crd:crdVersions=v1 \
+		output:crd:dir=./internal/test/builder/crd
 
 .PHONY: generate-manifests-kubeadm-bootstrap
 generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm bootstrap

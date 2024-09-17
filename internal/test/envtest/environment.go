@@ -90,6 +90,7 @@ func init() {
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(runtimev1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(ipamv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(builder.AddTransitionV1Beta2ToScheme(scheme.Scheme))
 }
 
 // RunInput is the input for Run.
@@ -206,6 +207,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 			filepath.Join(root, "config", "crd", "bases"),
 			filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
+			filepath.Join(root, "internal", "test", "builder", "crd"),
 		},
 		CRDs: []*apiextensionsv1.CustomResourceDefinition{
 			builder.GenericBootstrapConfigCRD.DeepCopy(),

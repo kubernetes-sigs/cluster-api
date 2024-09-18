@@ -49,6 +49,10 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj client.Object, handler handle
 		return nil
 	}
 
+	if o.Cache == nil || o.Scheme == nil {
+		return errors.New("both scheme and cache must be set for object tracker")
+	}
+
 	gvk := obj.GetObjectKind().GroupVersionKind()
 	key := gvk.GroupKind().String()
 	if _, loaded := o.m.LoadOrStore(key, struct{}{}); loaded {

@@ -39,6 +39,7 @@ type upgradeApplyOptions struct {
 	addonProviders            []string
 	waitProviders             bool
 	waitProviderTimeout       int
+	skipLaggingProvidersCheck bool
 }
 
 var ua = &upgradeApplyOptions{}
@@ -93,6 +94,8 @@ func init() {
 		"Wait for providers to be upgraded.")
 	upgradeApplyCmd.Flags().IntVar(&ua.waitProviderTimeout, "wait-provider-timeout", 5*60,
 		"Wait timeout per provider upgrade in seconds. This value is ignored if --wait-providers is false")
+	upgradeApplyCmd.Flags().BoolVar(&ua.skipLaggingProvidersCheck, "skip-lagging-providers-check", false,
+		"Skips checking if other providers in the management cluster are lagging behind the target contract during upgrade planning")
 }
 
 func runUpgradeApply() error {
@@ -130,5 +133,6 @@ func runUpgradeApply() error {
 		AddonProviders:            ua.addonProviders,
 		WaitProviders:             ua.waitProviders,
 		WaitProviderTimeout:       time.Duration(ua.waitProviderTimeout) * time.Second,
+		SkipLaggingProvidersCheck: ua.skipLaggingProvidersCheck,
 	})
 }

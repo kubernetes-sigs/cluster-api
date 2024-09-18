@@ -130,6 +130,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
 		Cache:      mgr.GetCache(),
+		Scheme:     mgr.GetScheme(),
 	}
 	r.ssaCache = ssa.NewCache()
 

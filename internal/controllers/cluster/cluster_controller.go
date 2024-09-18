@@ -99,6 +99,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
 		Cache:      mgr.GetCache(),
+		Scheme:     mgr.GetScheme(),
 	}
 	return nil
 }

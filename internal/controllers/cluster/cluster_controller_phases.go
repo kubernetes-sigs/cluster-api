@@ -93,7 +93,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	}
 
 	// Ensure we add a watcher to the external object.
-	if err := r.externalTracker.Watch(r.Client.Scheme(), log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Cluster{})); err != nil {
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Cluster{})); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 

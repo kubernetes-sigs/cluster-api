@@ -39,10 +39,11 @@ type ObjectTracker struct {
 
 	Controller controller.Controller
 	Cache      cache.Cache
+	Scheme     *runtime.Scheme
 }
 
 // Watch uses the controller to issue a Watch only if the object hasn't been seen before.
-func (o *ObjectTracker) Watch(scheme *runtime.Scheme, log logr.Logger, obj client.Object, handler handler.EventHandler, p ...predicate.Predicate) error {
+func (o *ObjectTracker) Watch(log logr.Logger, obj client.Object, handler handler.EventHandler, p ...predicate.Predicate) error {
 	// Consider this a no-op if the controller isn't present.
 	if o.Controller == nil {
 		return nil
@@ -59,7 +60,7 @@ func (o *ObjectTracker) Watch(scheme *runtime.Scheme, log logr.Logger, obj clien
 		o.Cache,
 		obj.DeepCopyObject().(client.Object),
 		handler,
-		append(p, predicates.ResourceNotPaused(scheme, log))...,
+		append(p, predicates.ResourceNotPaused(o.Scheme, log))...,
 	))
 	if err != nil {
 		o.m.Delete(key)

@@ -151,6 +151,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
 		Cache:      mgr.GetCache(),
+		Scheme:     mgr.GetScheme(),
 	}
 	r.ssaCache = ssa.NewCache()
 	r.drainCache = drain.NewCache()

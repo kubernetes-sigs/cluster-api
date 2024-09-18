@@ -201,6 +201,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
 		Cache:      mgr.GetCache(),
+		Scheme:     mgr.GetScheme(),
 	}
 	r.ssaCache = ssa.NewCache()
 

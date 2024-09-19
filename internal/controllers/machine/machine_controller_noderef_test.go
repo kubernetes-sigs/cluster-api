@@ -29,11 +29,14 @@ import (
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
@@ -771,6 +774,49 @@ func TestPatchNode(t *testing.T) {
 			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
+			name: "Ensure Labels and Annotations still get patched if MachineSet and Machinedeployment cannot be found",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				},
+			},
+			newLabels: map[string]string{
+				"label-from-machine": "foo",
+			},
+			newAnnotations: map[string]string{
+				"annotation-from-machine": "foo",
+			},
+			expectedLabels: map[string]string{
+				"label-from-machine": "foo",
+			},
+			expectedAnnotations: map[string]string{
+				"annotation-from-machine":             "foo",
+				clusterv1.LabelsFromMachineAnnotation: "label-from-machine",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel:        "test-ms-missing",
+						clusterv1.MachineDeploymentNameLabel: "test-md",
+					},
+					OwnerReferences: []metav1.OwnerReference{{
+						Kind:       "MachineSet",
+						Name:       "test-ms-missing",
+						APIVersion: clusterv1.GroupVersion.String(),
+						UID:        "uid",
+					}},
+				},
+				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+			},
+			ms: nil,
+			md: nil,
+		},
+		{
 			name: "Ensure NodeOutdatedRevisionTaint to be set if a node is associated to an outdated machineset",
 			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
@@ -913,8 +959,12 @@ func TestPatchNode(t *testing.T) {
 
 			g.Expect(env.CreateAndWait(ctx, oldNode)).To(Succeed())
 			g.Expect(env.CreateAndWait(ctx, machine)).To(Succeed())
-			g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
-			g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
+			if ms != nil {
+				g.Expect(env.CreateAndWait(ctx, ms)).To(Succeed())
+			}
+			if md != nil {
+				g.Expect(env.CreateAndWait(ctx, md)).To(Succeed())
+			}
 			t.Cleanup(func() {
 				_ = env.CleanupAndWait(ctx, oldNode, machine, ms, md)
 			})
@@ -992,5 +1042,106 @@ func newFakeMachineDeployment(namespace, clusterName string) *clusterv1.MachineD
 				Spec: newFakeMachineSpec(namespace, clusterName),
 			},
 		},
+	}
+}
+
+func Test_shouldNodeHaveOutdatedTaint(t *testing.T) {
+	namespaceName := "test"
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespaceName}}
+
+	testMachineDeployment := builder.MachineDeployment(namespaceName, "my-md").
+		WithAnnotations(map[string]string{clusterv1.RevisionAnnotation: "1"}).
+		Build()
+	testMachineDeploymentNew := testMachineDeployment.DeepCopy()
+	testMachineDeploymentNew.Annotations = map[string]string{clusterv1.RevisionAnnotation: "2"}
+
+	testMachineSet := builder.MachineSet(namespaceName, "my-ms").
+		WithOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineDeployment, testMachineDeployment.GroupVersionKind())}).
+		Build()
+	testMachineSet.Annotations = map[string]string{clusterv1.RevisionAnnotation: "1"}
+
+	labels := map[string]string{
+		clusterv1.MachineDeploymentNameLabel: "my-md",
+	}
+	testMachine := builder.Machine(namespaceName, "my-machine").WithLabels(labels).Build()
+	testMachine.SetOwnerReferences([]metav1.OwnerReference{*ownerrefs.OwnerReferenceTo(testMachineSet, testMachineSet.GroupVersionKind())})
+
+	tests := []struct {
+		name         string
+		machine      *clusterv1.Machine
+		objects      []client.Object
+		wantOutdated bool
+		wantNotFound bool
+		wantErr      bool
+	}{
+		{
+			name:         "Machineset not outdated",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet, testMachineDeployment},
+			wantOutdated: false,
+			wantNotFound: false,
+			wantErr:      false,
+		},
+		{
+			name:         "Machineset outdated",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet, testMachineDeploymentNew},
+			wantOutdated: true,
+			wantNotFound: false,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without MachineDeployment label",
+			machine:      builder.Machine(namespaceName, "no-deploy").Build(),
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: false,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without OwnerReference",
+			machine:      builder.Machine(namespaceName, "no-ownerref").WithLabels(labels).Build(),
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without existing MachineSet",
+			machine:      testMachine,
+			objects:      nil,
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
+		},
+		{
+			name:         "Machine without existing MachineDeployment",
+			machine:      testMachine,
+			objects:      []client.Object{testMachineSet},
+			wantOutdated: false,
+			wantNotFound: true,
+			wantErr:      false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			objects := []client.Object{namespace}
+			objects = append(objects, tt.machine)
+			objects = append(objects, tt.objects...)
+			c := fake.NewClientBuilder().
+				WithObjects(objects...).Build()
+
+			gotOutdated, gotNotFound, err := shouldNodeHaveOutdatedTaint(ctx, c, tt.machine)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("shouldNodeHaveOutdatedTaint() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotOutdated != tt.wantOutdated {
+				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", gotOutdated, tt.wantOutdated)
+			}
+			if gotNotFound != tt.wantNotFound {
+				t.Errorf("shouldNodeHaveOutdatedTaint() = %v, want %v", gotNotFound, tt.wantNotFound)
+			}
+		})
 	}
 }

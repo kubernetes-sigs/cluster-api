@@ -421,6 +421,7 @@ variables:
   CAPI_INSECURE_DIAGNOSTICS: "true"
 
 intervals:
+  clusterctl-upgrade/wait-worker-nodes: ["10m", "10s"]
   default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["5m", "10s"]
   default/wait-control-plane: ["10m", "10s"]

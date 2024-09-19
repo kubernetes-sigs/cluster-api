@@ -165,6 +165,18 @@ func TestClusterDefaultAndValidateVariables(t *testing.T) {
 			},
 		},
 		{
+			name: "should pass with empty oldTopology",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				Build(),
+			topology:    &clusterv1.Topology{},
+			oldTopology: &clusterv1.Topology{},
+			expect: &clusterv1.Topology{
+				Class:     "class1",
+				Version:   "v1.22.2",
+				Variables: []clusterv1.ClusterVariable{},
+			},
+		},
+		{
 			name: "don't change a variable if it is already set",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithStatusVariables(clusterv1.ClusterClassStatusVariable{

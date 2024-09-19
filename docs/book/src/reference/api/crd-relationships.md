@@ -14,8 +14,8 @@ The direction of the arrows indicates the direction of "management" or "referenc
 
 ## Control plane machines relationships
 
-![]( ../images/kubeadm-control-plane-machines-resources.png)
+![]( ../../images/kubeadm-control-plane-machines-resources.png)
 
 ## Worker machines relationships
 
-![]( ../images/worker-machines-resources.png)
+![]( ../../images/worker-machines-resources.png)

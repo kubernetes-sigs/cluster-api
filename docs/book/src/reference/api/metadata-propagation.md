@@ -3,7 +3,7 @@ Cluster API controllers implement consistent metadata (labels & annotations) pro
 This behaviour tries to be consistent with Kubernetes apps/v1 Deployment and ReplicaSet.
 New providers should behave accordingly fitting within the following pattern:
 
-![](../../../images/metadata-propagation.jpg)
+![](../../images/metadata-propagation.jpg)
 
 ## Cluster Topology
 ControlPlaneTopology labels are labels and annotations are continuously propagated to ControlPlane top-level labels and annotations
@@ -67,5 +67,3 @@ Label should meet one of the following criterias to propagate to Node:
 - Has `node-role.kubernetes.io` as prefix.
 - Belongs to `node-restriction.kubernetes.io` domain.
 - Belongs to `node.cluster.x-k8s.io` domain.  
-
-

@@ -230,7 +230,7 @@ Following recommendation apply:
   from one machine to the other.
 - Keep machine labels and annotation stable, because changing those values requires machines rollouts;
   also, please note that machine labels and annotation are not propagated to Kubernetes nodes; see
-  [metadata propagation](../../../developer/architecture/controllers/metadata-propagation.md).
+  [metadata propagation](../../../reference/api/metadata-propagation.md).
 - While upgrading a Cluster, if possible avoid any other concurrent change to the Cluster; please note
   that you can rely on [version-aware patches](write-clusterclass.md#version-aware-patches) to ensure
   the Cluster adapts to the new Kubernetes version in sync with the upgrade workflow.

@@ -1114,16 +1114,24 @@ spec:
                   type: object
                 type: array
               deletion:
-                description: Deletion is the deletion state of the Machine.
+                description: |-
+                  Deletion contains information relating to removal of the Machine.
+                  Only present when the Machine has a deletionTimestamp and is being removed from the cluster.
                 properties:
                   nodeDrainStartTime:
-                    description: NodeDrainStartTime is the time when the drain of
-                      the node started.
+                    description: |-
+                      NodeDrainStartTime is the time when the drain of the node started.
+                      Only present when the Machine has a deletionTimestamp, is being removed from the cluster
+                      and draining the node had been started.
                     format: date-time
                     type: string
                   nodeVolumeDetachStartTime:
-                    description: WaitForNodeVolumeDetachStartTime is the time when
-                      waiting for volume detachment started.
+                    description: |-
+                      WaitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started.
+                      Detaching volumes from nodes is usually done by CSI implementations and the current state
+                      is observed from the node's `.Status.VolumesAttached` field.
+                      Only present when the Machine has a deletionTimestamp, is being removed from the cluster
+                      and waiting for volume detachments had been started.
                     format: date-time
                     type: string
                 type: object

@@ -231,7 +231,8 @@ type MachineStatus struct {
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 
-	// Deletion is the deletion state of the Machine.
+	// Deletion contains information relating to removal of the Machine.
+	// Only present when the Machine has a deletionTimestamp and is being removed from the cluster.
 	// +optional
 	Deletion MachineStatusDeletion `json:"deletion,omitempty"`
 }
@@ -241,8 +242,17 @@ type MachineStatus struct {
 // MachineStatusDeletion is the deletion state of the Machine.
 type MachineStatusDeletion struct {
 	// NodeDrainStartTime is the time when the drain of the node started.
+	// Only present when the Machine has a deletionTimestamp, is being removed from the cluster
+	// and draining the node had been started.
+	// +optional
 	NodeDrainStartTime *metav1.Time `json:"nodeDrainStartTime,omitempty"`
+
 	// WaitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started.
+	// Detaching volumes from nodes is usually done by CSI implementations and the current state
+	// is observed from the node's `.Status.VolumesAttached` field.
+	// Only present when the Machine has a deletionTimestamp, is being removed from the cluster
+	// and waiting for volume detachments had been started.
+	// +optional
 	WaitForNodeVolumeDetachStartTime *metav1.Time `json:"nodeVolumeDetachStartTime,omitempty"`
 }
 

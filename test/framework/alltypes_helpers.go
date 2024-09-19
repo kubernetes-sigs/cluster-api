@@ -69,6 +69,10 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 			if apierrors.IsNotFound(err) {
 				continue
 			}
+			if apierrors.IsForbidden(err) {
+				fmt.Printf("Warning: failed to list %s resources due to a rbac issue: %v", typeList.GroupVersionKind(), err)
+				continue
+			}
 			Fail(fmt.Sprintf("failed to list %q resources: %v", typeList.GroupVersionKind(), err))
 		}
 		for i := range typeList.Items {

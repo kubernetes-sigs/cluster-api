@@ -41,6 +41,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/component-base/logs"
+	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -71,6 +73,15 @@ import (
 )
 
 func init() {
+	// This has to be done so klog.Background() uses a proper logger.
+	// Otherwise it would fall back and log to os.Stderr.
+	// This would lead to race conditions because input.M.Run() writes os.Stderr
+	// while some go routines in controller-runtime use os.Stderr to write logs.
+	if err := logsv1.ValidateAndApply(logs.NewOptions(), nil); err != nil {
+		klog.ErrorS(err, "Unable to validate and apply log options")
+		os.Exit(1)
+	}
+
 	logger := klog.Background()
 	// Use klog as the internal logger for this envtest environment.
 	log.SetLogger(logger)

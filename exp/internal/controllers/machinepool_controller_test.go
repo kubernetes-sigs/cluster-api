@@ -24,10 +24,12 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -834,6 +836,13 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 }
 
 func TestMachinePoolConditions(t *testing.T) {
+	g := NewWithT(t)
+	scheme := runtime.NewScheme()
+	g.Expect(apiextensionsv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clientgoscheme.AddToScheme(scheme)).To(Succeed())
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(expv1.AddToScheme(scheme)).To(Succeed())
+
 	testCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
@@ -1079,9 +1088,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				tt.beforeFunc(bootstrap, infra, mp, nodes)
 			}
 
-			g.Expect(clusterv1.AddToScheme(scheme.Scheme)).To(Succeed())
-
-			clientFake := fake.NewClientBuilder().WithObjects(
+			clientFake := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 				testCluster,
 				mp,
 				infra,

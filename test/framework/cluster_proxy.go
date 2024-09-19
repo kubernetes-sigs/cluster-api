@@ -150,6 +150,13 @@ func WithRESTConfigModifier(f func(*rest.Config)) Option {
 	}
 }
 
+// WithCacheOptionsModifier allows to modify the options passed to cache.New the first time it's created.
+func WithCacheOptionsModifier(f func(*cache.Options)) Option {
+	return func(c *clusterProxy) {
+		c.cacheOptionsModifier = f
+	}
+}
+
 // clusterProxy provides a base implementation of the ClusterProxy interface.
 type clusterProxy struct {
 	name                    string
@@ -160,7 +167,8 @@ type clusterProxy struct {
 	cache                   cache.Cache
 	onceCache               sync.Once
 
-	restConfigModifier func(*rest.Config)
+	restConfigModifier   func(*rest.Config)
+	cacheOptionsModifier func(*cache.Options)
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
@@ -255,11 +263,16 @@ func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
 
 func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
 	p.onceCache.Do(func() {
-		var err error
-		p.cache, err = cache.New(p.GetRESTConfig(), cache.Options{
+		opts := &cache.Options{
 			Scheme: p.scheme,
 			Mapper: p.GetClient().RESTMapper(),
-		})
+		}
+		if p.cacheOptionsModifier != nil {
+			p.cacheOptionsModifier(opts)
+		}
+
+		var err error
+		p.cache, err = cache.New(p.GetRESTConfig(), *opts)
 		Expect(err).ToNot(HaveOccurred(), "Failed to create controller-runtime cache")
 
 		go func() {

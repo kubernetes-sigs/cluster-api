@@ -772,17 +772,19 @@ func DefaultAndValidateVariables(ctx context.Context, cluster, oldCluster *clust
 			oldCPOverrides = oldCluster.Spec.Topology.ControlPlane.Variables.Overrides
 		}
 
-		oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
-		for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
-			if md.Variables != nil {
-				oldMDVariables[md.Name] = md.Variables.Overrides
+		if oldCluster.Spec.Topology.Workers != nil {
+			oldMDVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachineDeployments))
+			for _, md := range oldCluster.Spec.Topology.Workers.MachineDeployments {
+				if md.Variables != nil {
+					oldMDVariables[md.Name] = md.Variables.Overrides
+				}
 			}
-		}
 
-		oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
-		for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
-			if mp.Variables != nil {
-				oldMPVariables[mp.Name] = mp.Variables.Overrides
+			oldMPVariables = make(map[string][]clusterv1.ClusterVariable, len(oldCluster.Spec.Topology.Workers.MachinePools))
+			for _, mp := range oldCluster.Spec.Topology.Workers.MachinePools {
+				if mp.Variables != nil {
+					oldMPVariables[mp.Name] = mp.Variables.Overrides
+				}
 			}
 		}
 	}

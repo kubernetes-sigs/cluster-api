@@ -1,6 +1,6 @@
 # Controllers
 
-Cluster API has a number of controllers, both in the core Cluster API and the reference providers, which move the state of the cluster toward some defined desired state through the process of [controller reconciliation].
+Cluster API has a number of controllers, both in the core Cluster API and the reference providers, which move the state of the cluster toward some defined desired state.
 
 Documentation for the CAPI controllers can be found at:
 - Bootstrap Provider
@@ -18,7 +18,3 @@ Documentation for the CAPI controllers can be found at:
   - [Cluster Topology](./controllers/cluster-topology.md)
 - AddOns
    - [ClusterResourceSet](./controllers/cluster-resource-set.md)
-
-
-<!-- links -->
-[controller reconciliation]: ../providers/implementers-guide/controllers_and_reconciliation.md

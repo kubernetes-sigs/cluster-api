@@ -1,11 +1,10 @@
-# Configure
+# Configure the controller manifest
 
-## YAML
+`kubebuilder` generates most of the YAML you'll need to deploy your controller into Kubernetes by using a Deployment.
+You just need to modify it to add the `MAILGUN_DOMAIN`, `MAILGUN_API_KEY` and `MAIL_RECIPIENT` environment variables
+introduced in the previous steps.
 
-`kubebuilder` generates most of the YAML you'll need to deploy a container.
-We just need to modify it to add our new secrets.
-
-First, let's add our secret as a [patch] to the manager yaml.
+First, let's add our environment variables as a [patch] to the manager yaml.
 
 `config/manager/manager_config.yaml`:
 
@@ -49,9 +48,9 @@ patches:
 [kustomizeyaml]: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization
 [patch]: https://git.k8s.io/community/contributors/devel/sig-api-machinery/strategic-merge-patch.md
 
-## Our configuration
+As you might have noticed, we are reading variable values from a `ConfigMap` and a `Secret`.
 
-There's many ways to manage configuration in production.
+You now have to add those to the manifest, but how to inject configuration in production?
 The convention many Cluster-API projects use is environment variables.
 
 `config/manager/configuration.yaml`

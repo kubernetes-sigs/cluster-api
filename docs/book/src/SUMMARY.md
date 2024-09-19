@@ -47,6 +47,7 @@
     - [Diagnostics](./tasks/diagnostics.md)
 - [Security Guidelines](./security/index.md)
     - [Pod Security Standards](./security/pod-security-standards.md)
+    - [Infrastructure Provider Security Guidance](./security/infrastructure-provider-security-guidance.md)
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)

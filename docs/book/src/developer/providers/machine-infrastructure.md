@@ -209,3 +209,7 @@ Note, the write permissions allow the `Machine` controller to set owner referenc
 "infrastructure machine" resources; they are not used for general mutations of these resources.
 
 [aggregation label]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#aggregated-clusterroles
+
+## Security Guidelines
+
+Please refer to [Infrastructure Provider Security Guidance](../../security/infrastructure-provider-security-guidance.md).

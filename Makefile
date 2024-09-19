@@ -908,7 +908,7 @@ setup-envtest: $(SETUP_ENVTEST) ## Set up envtest (download kubebuilder assets)
 
 .PHONY: test
 test: $(SETUP_ENVTEST) ## Run unit and integration tests
-	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 
 .PHONY: test-verbose
 test-verbose: ## Run unit and integration tests with verbose flag

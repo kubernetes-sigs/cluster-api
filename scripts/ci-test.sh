@@ -24,6 +24,11 @@ cd "${REPO_ROOT}" || exit 1
 # shellcheck source=./hack/ensure-go.sh
 source "${REPO_ROOT}/hack/ensure-go.sh"
 
+echo "*** Testing Cluster API with race detector ***"
+# We cannot simply enable the race detector for the "test-junit" target
+# because -json leads to race conditions.
+make test
+
 echo "*** Testing Cluster API ***"
 make test-junit
 

@@ -602,6 +602,7 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-node-drain --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-node-drain.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-upgrades --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-upgrades.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-upgrades-runtimesdk --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-upgrades-runtimesdk.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-kcp-pre-drain --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-kcp-pre-drain.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-kcp-scale-in --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-kcp-scale-in.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-ipv6 --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-ipv6.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology-dualstack-ipv6-primary --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology-dualstack-ipv6-primary.yaml

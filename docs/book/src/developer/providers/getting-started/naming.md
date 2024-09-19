@@ -11,6 +11,13 @@ more than one [_variant_][variant-naming]. So for example,
 `cluster-api-provider-aws` may include both an implementation based on EC2 as
 well as one based on their hosted EKS solution.
 
+For the purposes of this guide we will create an infrastructure provider for a
+service named **mailgun**. Therefore the name of the repository will be
+`cluster-api-provider-mailgun`.
+
+Please note that other naming conventions/best practices applies, e.g. for
+API types (continue to this guide to get more info).
+
 ## A note on Acronyms
 
 Because these names end up being so long, developers of Cluster API frequently refer to providers by acronyms.
@@ -22,33 +29,5 @@ cluster-api-provider-gcp is [CAPG], pronounced "Cap Gee," [and so on][letterc].
 [CAPA]: ../../../reference/glossary.md#capa
 [CAPG]: ../../../reference/glossary.md#capg
 [letterc]: ../../../reference/glossary.md#c
-
-## Resource Naming
-
-For the purposes of this guide we will create a provider for a
-service named **mailgun**. Therefore the name of the repository will be
-`cluster-api-provider-mailgun`.
-
-Every Kubernetes resource has a *Group*, *Version* and *Kind* that uniquely
-identifies it.
-
-* The resource *Group* is similar to package in a language.
-  It disambiguates different APIs that may happen to have identically named *Kind*s.
-  Groups often contain a domain name, such as k8s.io.
-  The domain for Cluster API resources is `cluster.x-k8s.io`, and infrastructure providers generally use `infrastructure.cluster.x-k8s.io`.
-* The resource *Version* defines the stability of the API and its backward compatibility guarantees.
-  Examples include v1alpha1, v1beta1, v1, etc. and are governed by the Kubernetes API Deprecation Policy [^1].
-  Your provider should expect to abide by the same policies.
-* The resource *Kind* is the name of the objects we'll be creating and modifying.
-  In this case it's `MailgunMachine` and `MailgunCluster`.
-
-For example, our cluster object will be:
-```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
-kind: MailgunCluster
-```
-
 [repo-naming]: https://github.com/kubernetes-sigs/cluster-api/issues/383
 [variant-naming]: https://github.com/kubernetes-sigs/cluster-api/issues/480
-
-[^1]: https://kubernetes.io/docs/reference/using-api/deprecation-policy/

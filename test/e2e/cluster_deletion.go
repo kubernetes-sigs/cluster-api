@@ -25,9 +25,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
@@ -88,15 +90,28 @@ type ClusterDeletionSpecInput struct {
 }
 
 type ClusterDeletionPhase struct {
-	// Kinds are the Kinds which are supposed to be deleted in this phase.
-	Kinds sets.Set[string]
-	// KindsWithFinalizer are the kinds which are considered to be deleted in this phase, but need to be blocking.
-	KindsWithFinalizer sets.Set[string]
+	// DeleteKinds are the DeleteKinds which are supposed to be deleted in this phase.
+	// Note: If Machines is added here, the Machine must have an owner with a kind from DeleteBlockKinds or DeleteKinds.
+	DeleteKinds sets.Set[string]
+	// DeleteBlockKinds are the kinds which are considered to be deleted in this phase, but need to be blocking.
+	// Note: If Machines is added here, the Machine must have an owner with a kind from DeleteBlockKinds or DeleteKinds.
+	DeleteBlockKinds sets.Set[string]
 	// objects will be filled later by objects which match a kind given in one of the above sets.
 	objects []client.Object
 }
 
 // ClusterDeletionSpec implements a test that verifies that MachineDeployment rolling updates are successful.
+// ClusterDeletionSpec goes through the following steps:
+// * Create a cluster.
+// * Add finalizer to objects defined in input.ClusterDeletionPhases.DeleteBlockKinds.
+// * Trigger deletion for the cluster.
+// * For each phase:
+//   - Verify objects expected to get deleted in previous phases are gone.
+//   - Verify objects expected to be in deletion have a deletionTimestamp set but still exist.
+//   - Verify objects expected to be deleted in a later phase don't have a deletionTimestamp set.
+//   - Remove finalizers for objects in deletion.
+//
+// * Verify the Cluster object is gone.
 func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletionSpecInput) {
 	var (
 		specName             = "cluster-deletion"
@@ -177,8 +192,8 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 
 		for _, phaseInput := range input.ClusterDeletionPhases {
 			relevantKinds = relevantKinds.
-				Union(phaseInput.KindsWithFinalizer).
-				Union(phaseInput.Kinds)
+				Union(phaseInput.DeleteBlockKinds).
+				Union(phaseInput.DeleteKinds)
 		}
 
 		// Get all objects relevant to the test by filtering for the kinds of the phases.
@@ -191,7 +206,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 			// Iterate over the graph and find all objects relevant for the phase.
 			// * Objects matching the kind except for Machines (see below)
 			// * Machines which are owned by one of the kinds which are part of the phase
-			allKinds := phase.KindsWithFinalizer.Union(phase.Kinds)
+			allKinds := phase.DeleteBlockKinds.Union(phase.DeleteKinds)
 			allKindsWithoutMachine := allKinds.Clone().Delete("Machine")
 
 			for _, node := range graph {
@@ -224,7 +239,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 				phase.objects = append(phase.objects, obj)
 
 				// If the object's kind is part of kindsWithFinalizer, then additionally the object to the finalizedObjs slice.
-				if phase.KindsWithFinalizer.Has(obj.GetKind()) {
+				if phase.DeleteBlockKinds.Has(obj.GetKind()) {
 					objectsWithFinalizer = append(objectsWithFinalizer, obj)
 				}
 			}
@@ -234,6 +249,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 		}
 
 		// Update all objects in objectsWithFinalizers and add the finalizer for this test to control when these objects vanish.
+		By(fmt.Sprintf("Adding finalizer %s on objects to block during cluster deletion", finalizer))
 		addFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, objectsWithFinalizer...)
 
 		// Trigger the deletion of the Cluster.
@@ -245,6 +261,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 		var objectsDeleted, objectsInDeletion []client.Object
 
 		for i, phase := range input.ClusterDeletionPhases {
+			By(fmt.Sprintf("Verify deletion phase %d/%d", i+1, len(input.ClusterDeletionPhases)))
 			// Objects which previously were in deletion because they waited for our finalizer being removed are now checked to actually had been removed.
 			objectsDeleted = objectsInDeletion
 			// All objects for this phase are expected to get into deletion (still exist and have deletionTimestamp set).
@@ -255,28 +272,51 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 				objectsNotInDeletion = append(objectsNotInDeletion, input.ClusterDeletionPhases[j].objects...)
 			}
 
-			Eventually(func(g Gomega) {
-				// Ensure expected objects are in deletion
-				for _, obj := range objectsInDeletion {
-					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj)).ToNot(HaveOccurred())
-					g.Expect(obj.GetDeletionTimestamp().IsZero()).To(BeFalse())
-				}
-
+			Eventually(func() error {
+				var errs []error
 				// Ensure deleted objects are gone
 				for _, obj := range objectsDeleted {
 					err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj)
-					g.Expect(err).To(HaveOccurred())
-					g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+					if err != nil {
+						if apierrors.IsNotFound(err) {
+							continue
+						}
+						errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+						continue
+					}
+					errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				}
+
+				// Ensure expected objects are in deletion
+				for _, obj := range objectsInDeletion {
+					if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+						errs = append(errs, errors.Wrapf(err, "checking %s %s is in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+						continue
+					}
+					if obj.GetDeletionTimestamp().IsZero() {
+						errs = append(errs, errors.Wrapf(err, "expected %s %s to be in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+						continue
+					}
 				}
 
 				// Ensure other objects are not in deletion.
 				for _, obj := range objectsNotInDeletion {
-					g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj)).ToNot(HaveOccurred())
-					g.Expect(obj.GetDeletionTimestamp().IsZero()).To(BeTrue())
+					if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+						errs = append(errs, errors.Wrapf(err, "checking %s %s is not in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+						continue
+					}
+
+					if !obj.GetDeletionTimestamp().IsZero() {
+						errs = append(errs, errors.Wrapf(err, "expected %s %s to not be in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+						continue
+					}
 				}
+
+				return kerrors.NewAggregate(errs)
 			}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 
 			// Remove the test's finalizer from all objects which had been expected to be in deletion to unblock the next phase.
+			By(fmt.Sprintf("Removing finalizers for phase %d/%d", i+1, len(input.ClusterDeletionPhases)))
 			removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, objectsInDeletion...)
 		}
 
@@ -321,24 +361,26 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 
 func addFinalizer(ctx context.Context, c client.Client, finalizer string, objs ...client.Object) {
 	for _, obj := range objs {
-		Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed())
+		log.Logf("Adding finalizer for %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj))
+		Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed(), fmt.Sprintf("Failed to get %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 
 		helper, err := patch.NewHelper(obj, c)
 		Expect(err).ToNot(HaveOccurred())
 
 		obj.SetFinalizers(append(obj.GetFinalizers(), finalizer))
 
-		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred())
+		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred(), fmt.Sprintf("Failed to add finalizer to %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 	}
 }
 
 func removeFinalizer(ctx context.Context, c client.Client, finalizer string, objs ...client.Object) {
 	for _, obj := range objs {
+		log.Logf("Removing finalizer for %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj))
 		err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj)
 		if apierrors.IsNotFound(err) {
 			continue
 		}
-		Expect(err).ToNot(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to get %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 
 		helper, err := patch.NewHelper(obj, c)
 		Expect(err).ToNot(HaveOccurred())
@@ -352,6 +394,6 @@ func removeFinalizer(ctx context.Context, c client.Client, finalizer string, obj
 		}
 
 		obj.SetFinalizers(finalizers)
-		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred())
+		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred(), fmt.Sprintf("Failed to remove finalizer from %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 	}
 }

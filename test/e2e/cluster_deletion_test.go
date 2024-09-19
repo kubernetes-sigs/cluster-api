@@ -25,7 +25,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Blocking] [ClusterClass]", func() {
+var _ = Describe("When performing cluster deletion with ClusterClass [PR-Blocking] [ClusterClass]", func() {
 	ClusterDeletionSpec(ctx, func() ClusterDeletionSpecInput {
 		return ClusterDeletionSpecInput{
 			E2EConfig:                e2eConfig,
@@ -41,19 +41,19 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 				// The first phase deletes all worker related machines.
 				// Note: only setting the finalizer on Machines results in properly testing foreground deletion.
 				{
-					Kinds:              sets.New[string]("MachineDeployment", "MachineSet"),
-					KindsWithFinalizer: sets.New[string]("Machine"),
+					DeleteKinds:      sets.New[string]("MachineDeployment", "MachineSet"),
+					DeleteBlockKinds: sets.New[string]("Machine"),
 				},
 				// The second phase deletes all control plane related machines.
 				// Note: only setting the finalizer on Machines results in properly testing foreground deletion.
 				{
-					Kinds:              sets.New[string]("KubeadmControlPlane"),
-					KindsWithFinalizer: sets.New[string]("Machine"),
+					DeleteKinds:      sets.New[string]("KubeadmControlPlane"),
+					DeleteBlockKinds: sets.New[string]("Machine"),
 				},
 				// The third phase deletes the infrastructure cluster.
 				{
-					Kinds:              sets.New[string](),
-					KindsWithFinalizer: sets.New[string]("DockerCluster"),
+					DeleteKinds:      sets.New[string](),
+					DeleteBlockKinds: sets.New[string]("DockerCluster"),
 				},
 			},
 		}

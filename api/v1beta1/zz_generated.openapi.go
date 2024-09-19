@@ -3356,7 +3356,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 					},
 					"deletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Deletion is the deletion state of the Machine.",
+							Description: "Deletion contains information relating to removal of the Machine. Only present when the Machine has a deletionTimestamp and is being removed from the cluster.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineStatusDeletion"),
 						},
@@ -3378,13 +3378,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatusDeletion(ref common.R
 				Properties: map[string]spec.Schema{
 					"nodeDrainStartTime": {
 						SchemaProps: spec.SchemaProps{
-							Description: "NodeDrainStartTime is the time when the drain of the node started.",
+							Description: "NodeDrainStartTime is the time when the drain of the node started. Only present when the Machine has a deletionTimestamp, is being removed from the cluster and draining the node had been started.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
 					"nodeVolumeDetachStartTime": {
 						SchemaProps: spec.SchemaProps{
-							Description: "WaitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started.",
+							Description: "WaitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started. Detaching volumes from nodes is usually done by CSI implementations and the current state is observed from the node's `.Status.VolumesAttached` field. Only present when the Machine has a deletionTimestamp, is being removed from the cluster and waiting for volume detachments had been started.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},

@@ -1,6 +1,6 @@
 # MachineSet
 
-A MachineSet is an abstraction over [Machines](./machine.md).
+A MachineSet is an abstraction over Machines.
 
 Its main responsibilities are:
 * Adopting unowned Machines that aren't assigned to a MachineSet

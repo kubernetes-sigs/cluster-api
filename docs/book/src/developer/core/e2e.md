@@ -50,10 +50,10 @@ Using the config file it is possible to:
 
 - Define the list of providers to be installed in the management cluster. Most notably,
   for each provider it is possible to define:
-  - One or more versions of the providers manifest (built from the sources, or pulled from a
-    remote location).
-  - A list of additional files to be added to the provider repository, to be used e.g.
-    to provide `cluster-templates.yaml` files.
+    - One or more versions of the providers manifest (built from the sources, or pulled from a
+      remote location).
+    - A list of additional files to be added to the provider repository, to be used e.g.
+      to provide `cluster-templates.yaml` files.
 - Define the list of variables to be used when doing `clusterctl init` or
   `clusterctl generate cluster`.
 - Define a list of intervals to be used in the test specs for defining timeouts for the
@@ -135,7 +135,7 @@ defined in the [Cluster API test framework] to check if the operation completed 
 
 ### Naming the test spec
 
-You can categorize the test with a custom label that can be used to filter a category of E2E tests to be run. Currently, the cluster-api codebase has [these labels](./testing.md#running-specific-tests) which are used to run a focused subset of tests.
+You can categorize the test with a custom label that can be used to filter a category of E2E tests to be run. Currently, the cluster-api codebase has [these labels](testing.md#running-specific-tests) which are used to run a focused subset of tests.
 
 ## Tear down
 
@@ -189,7 +189,7 @@ The [test E2E package] provides examples of how this can be achieved by implemen
 test specs for the most common Cluster API use cases.
 
 <!-- links -->
-[Cluster API quick start]:  ../user/quick-start.md
+[Cluster API quick start]:  ../../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
 [Apply method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Applier
 [CAPA E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/scripts/ci-e2e.sh

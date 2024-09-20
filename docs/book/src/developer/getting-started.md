@@ -103,7 +103,7 @@ Many of the Cluster API engineers use it for quick iteration. Please see our [Ti
 
 [tilt]: https://tilt.dev
 [capi-dev]: https://github.com/chuckha/capi-dev
-[Tilt instructions]: ../developer/tilt.md
+[Tilt instructions]: core/tilt.md
 
 ## Option 2: The Old-fashioned way
 
@@ -126,7 +126,7 @@ kustomize build test/infrastructure/docker/config/default | ./hack/tools/bin/env
 Cluster API has a number of test suites available for you to run. Please visit the [testing][testing] page for more
 information on each suite.
 
-[testing]: ./testing.md
+[testing]: core/testing.md
 
 ## That's it!
 

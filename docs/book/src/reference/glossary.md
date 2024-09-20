@@ -37,7 +37,7 @@ See [CABPK](#cabpk).
 Cluster API Enhancement Proposal - patterned after [KEP](https://git.k8s.io/enhancements/keps/README.md). See [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/YYYYMMDD-template.md)
 
 ### CAPI
-Core Cluster API
+[Core Cluster API](#core-cluster-api)
 
 ### CAPA
 Cluster API Provider AWS
@@ -71,6 +71,9 @@ Cluster API Provider Hivelocity
 
 ### CAPIBM
 Cluster API Provider IBM Cloud
+
+### CAPIM
+Cluster API Provider In Memory
 
 ### CAPIO
 Cluster API Operator
@@ -141,7 +144,7 @@ Or __Cluster API project__
 
 The Cluster API sub-project of the SIG-cluster-lifecycle. It is also used to refer to the software components, APIs, and community that produce them.
 
-See [core provider](#core-provider)
+See [Core Cluster API](#core-cluster-api), [CAPI](#capi)
 
 ### Cluster API Runtime
 
@@ -174,13 +177,27 @@ Control plane provider's interaction with Cluster API is based on what is define
 
 See [KCP](#kcp).
 
+### Core Cluster API
+
+With "core" Cluster API we refer to the common set of API and controllers that are required to run 
+any Cluster API provider.
+
+Please note that in the Cluster API code base, side by side of "core" Cluster API components there
+is also a limited number of in-tree providers: [CABPK](#cabpk), [KCP](#kcp), [CAPD](#capd), [CAPIM](#capim)
+
+See [Cluster API](#cluster-api), [CAPI](#capi).
+
 ### Core provider
 
-Refers to a [provider](#provider) that implements Cluster API core controllers; if you
-consider that the first project that must be deployed in a management Cluster is Cluster API itself, it should be clear why
-the Cluster API project is also referred to as the core provider.
+Refers to a [provider](#provider) that implements Cluster API [core controllers](#core-controllers)
 
-See [CAPI](#cluster-api).
+See [Cluster API](#cluster-api), [CAPI](#capi).
+
+### Core controllers
+
+The set of controllers in [Core Cluster API](#core-cluster-api).
+
+See [Cluster API](#cluster-api), [CAPI](#capi).
 
 # D
 ---
@@ -310,7 +327,7 @@ one of them corresponding to an infrastructure tenant.
 Please note that up until v1alpha3 this concept had a different meaning, referring to the capability to run multiple
 instances of the same provider, each one with its own credentials; starting from v1alpha4 we are disambiguating the two concepts.
 
-See [Multi-tenancy](../developer/architecture/controllers/multi-tenancy.md) and [Support multiple instances](../developer/architecture/controllers/support-multiple-instances.md).
+See [Multi-tenancy](../developer/core/multi-tenancy.md) and [Support multiple instances](../developer/core/support-multiple-instances.md).
 
 # N
 ---

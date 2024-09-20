@@ -9,7 +9,7 @@ Cluster API defines the following contracts:
 - [Control Plane provider contract](./control-plane.md)
 - [Machine provider contract](./machine-infrastructure.md)
 - [clusterctl provider contract](../../clusterctl/provider-contract.md#clusterctl-provider-contract)
-- [Multi tenancy contract](../../developer/architecture/controllers/multi-tenancy.md#contract)
+- [Multi tenancy contract](../core/multi-tenancy.md#contract)
 
 ## API version labels
 Providers MUST set `cluster.x-k8s.io/<version>` label on all Custom Resource Definitions related to Cluster API starting with v1alpha3.

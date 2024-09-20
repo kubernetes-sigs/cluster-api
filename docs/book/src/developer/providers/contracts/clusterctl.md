@@ -33,7 +33,7 @@ As a provider implementer, if you are interested in being added to this list, pl
 
 <h1>Customizing the list of providers</h1>
 
-It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](configuration.md).
+It is possible to customize the list of providers for `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 
 </aside>
 
@@ -74,7 +74,7 @@ branch to include it in the next patch release.
 <h1>What about closed source providers?</h1>
 
 Closed source provider can not be added to the pre-defined list of provider shipped with `clusterctl`, however, 
-those providers could be used with `clusterctl` by changing the [clusterctl configuration](configuration.md).
+those providers could be used with `clusterctl` by changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 
 </aside>
 
@@ -87,7 +87,7 @@ The need to add a prefix for providers not in the kubernetes-sigs org applies to
 to the existing pre-defined providers, but we reserve the right to reconsider this in the future.
 
 Please note that the need to add a prefix for providers not in the kubernetes-sigs org does not apply to providers added by
-changing the [clusterctl configuration](configuration.md).
+changing the [clusterctl configuration](../../../clusterctl/configuration.md).
 
 </aside>
 
@@ -148,7 +148,7 @@ for the core provider:
         - metadata.yaml
   ```
 
-- Use the following [`clusterctl` configuration](configuration.md):
+- Use the following [`clusterctl` configuration](../../../clusterctl/configuration.md):
 
   ```yaml
   providers:
@@ -254,7 +254,7 @@ While defining the Deployment Spec, the container that executes the controller/r
 
 For controllers only, the manager MUST support a `--namespace` flag for specifying the namespace where the controller
 will look for objects to reconcile; however, clusterctl will always install providers watching for all namespaces
-(`--namespace=""`); for more details see [support for multiple instances](../developer/core/support-multiple-instances.md)
+(`--namespace=""`); for more details see [support for multiple instances](../../core/support-multiple-instances.md)
 for more context.
 
 While defining Pods for Deployments, canonical names should be used for images.

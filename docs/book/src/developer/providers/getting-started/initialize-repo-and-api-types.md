@@ -115,7 +115,4 @@ git commit -m "Generate Cluster and Machine resources."
 
 ### Apply further customizations
 
-The cluster API CRDs should be further customized:
-
-- [Apply the contract version label to support conversions](../contracts.md#api-version-labels) (required to deploy _any_ custom resource of your provider)
-- [Ensure you are compliant with the clusterctl provider contract](../../../clusterctl/provider-contract.md#components-yaml)
+The cluster API CRDs should be further customized, please refer to [provider contracts](../contracts/overview.md).

@@ -1,6 +1,6 @@
 # Support running multiple instances of the same provider
 
-Up until v1alpha3, the need of supporting [multiple credentials](../../../reference/glossary.md#multi-tenancy) was addressed by running multiple
+Up until v1alpha3, the need of supporting [multiple credentials](../../reference/glossary.md#multi-tenancy) was addressed by running multiple
 instances of the same provider, each one with its own set of credentials while watching different namespaces.
 
 However, running multiple instances of the same provider proved to be complicated for several reasons:
@@ -19,24 +19,22 @@ However, running multiple instances of the same provider proved to be complicate
 Nevertheless, we want to make it possible for users to choose to deploy multiple instances of the same providers,
 in case the above limitations/extra complexity are acceptable for them.
 
-## Contract
-
-In order to make it possible for users to deploy multiple instances of the same provider:
+In order to make it possible for users to deploy multiple instances of the Cluster API controller following
+flags are provided:
 
 - Providers MUST support the `--namespace` flag in their controllers.
 - Providers MUST support the `--watch-filter` flag in their controllers.
 
-⚠️ Users selecting this deployment model, please be aware:
+<aside class="note warning">
 
-- Support should be considered best-effort.
+<h1>⚠️ Users selecting this deployment model, please be aware:</h1>
+
+- Giving the increasingly complex task that is to manage multiple instances of the same controllers,
+  the Cluster API community may only provide best effort support for users that choose this model.
 - Cluster API (incl. every provider managed under `kubernetes-sigs`) won't release a specialized components file
   supporting the scenario described above; however, users should be able to create such deployment model from
   the `/config` folder.
 - Cluster API (incl. every provider managed under `kubernetes-sigs`) testing infrastructure won't run test cases
   with multiple instances of the same provider.
 
-In conclusion, giving the increasingly complex task that is to manage multiple instances of the same controllers,
-the Cluster API community may only provide best effort support for users that choose this model.
-
-As always, if some members of the community would like to take on the responsibility of managing this model,
-please reach out through the usual communication channels, we'll make sure to guide you in the right path.
+</aside>

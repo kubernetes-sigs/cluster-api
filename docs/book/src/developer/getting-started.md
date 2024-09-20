@@ -76,7 +76,7 @@ make envsubst
 The generated binary can be found at ./hack/tools/bin/envsubst
 
 [envsubst]: https://github.com/drone/envsubst
-[provider-contract]: ./../clusterctl/provider-contract.md
+[provider-contract]: providers/contracts/clusterctl.md
 
 ### Cert-Manager
 

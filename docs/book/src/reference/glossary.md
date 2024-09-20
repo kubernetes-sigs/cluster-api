@@ -327,7 +327,7 @@ one of them corresponding to an infrastructure tenant.
 Please note that up until v1alpha3 this concept had a different meaning, referring to the capability to run multiple
 instances of the same provider, each one with its own credentials; starting from v1alpha4 we are disambiguating the two concepts.
 
-See [Multi-tenancy](../developer/core/multi-tenancy.md) and [Support multiple instances](../developer/core/support-multiple-instances.md).
+See also [Support multiple instances](../developer/core/support-multiple-instances.md).
 
 # N
 ---

@@ -9,7 +9,7 @@ It can be used to:
 
 ## Provider repositories
 
-The `clusterctl` CLI is designed to work with providers implementing the [clusterctl Provider Contract](provider-contract.md).
+The `clusterctl` CLI is designed to work with providers implementing the [clusterctl Provider Contract](../developer/providers/contracts/clusterctl.md).
 
 Each provider is expected to define a provider repository, a well-known place where release assets are published.
 
@@ -39,7 +39,7 @@ providers:
     type: "BootstrapProvider"
 ```
 
-See [provider contract](provider-contract.md) for instructions about how to set up a provider repository.
+See [provider contract](../developer/providers/contracts/clusterctl.md) for instructions about how to set up a provider repository.
 
 **Note**: It is possible to use the `${HOME}` and `${CLUSTERCTL_REPOSITORY_PATH}` environment variables in `url`.
 

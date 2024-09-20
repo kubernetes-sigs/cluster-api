@@ -27,7 +27,7 @@ Kubernetes control plane consisting of the following services:
 The Cluster controller will set an OwnerReference on the Control Plane. The Control Plane controller should normally take no action during reconciliation until it sees the ownerReference.
 
 A Control Plane controller implementation must either supply a controlPlaneEndpoint (via its own `spec.controlPlaneEndpoint` field),
-or rely on `spec.controlPlaneEndpoint` in its parent [Cluster](../architecture/controllers/cluster.md) object.
+or rely on `spec.controlPlaneEndpoint` in its parent Cluster object.
 
 If an endpoint is not provided, the implementer should exit reconciliation until it sees `cluster.spec.controlPlaneEndpoint` populated.
 

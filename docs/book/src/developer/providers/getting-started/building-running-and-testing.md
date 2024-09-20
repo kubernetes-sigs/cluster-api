@@ -90,7 +90,7 @@ Conditions:
 Cluster API development requires a lot of iteration, and the "build, tag, push, update deployment" workflow can be very tedious.
 [Tilt](https://tilt.dev) makes this process much simpler by watching for updates, then automatically building and deploying them.
 
-See [Developing Cluster API with Tilt](../../tilt.md) on all details how to develop both Cluster API and your provider at the same time. In short, you need to perform these steps for a basic Tilt-based development environment:
+See [Developing Cluster API with Tilt](../../core/tilt.md) on all details how to develop both Cluster API and your provider at the same time. In short, you need to perform these steps for a basic Tilt-based development environment:
 
 - Create file `tilt-provider.yaml` in your provider directory:
 

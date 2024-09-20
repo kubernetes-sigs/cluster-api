@@ -92,5 +92,5 @@ Only values allowed are of type Int or Strings with an integer and percentage sy
 Changes are rolled out driven by the user or any entity deleting the old `Machines`. Only when a `Machine` is fully deleted a new one will come up.
 
 For a more in-depth look at how `MachineDeployments` manage scaling events, take a look at the [`MachineDeployment`
-controller documentation](../developer/architecture/controllers/machine-deployment.md) and the [`MachineSet` controller
-documentation](../developer/architecture/controllers/machine-set.md).
+controller documentation](../developer/core/controllers/machine-deployment.md) and the [`MachineSet` controller
+documentation](../developer/core/controllers/machine-set.md).

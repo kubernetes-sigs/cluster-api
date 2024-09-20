@@ -1823,7 +1823,7 @@ kind delete cluster
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [ionoscloud provider]: https://github.com/ionos-cloud/cluster-api-provider-ionoscloud
 [kind]: https://kind.sigs.k8s.io/
-[KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md
+[KubeadmControlPlane]: ../developer/core/controllers/control-plane.md
 [kubectl]: https://kubernetes.io/docs/tasks/tools/install-kubectl/
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md

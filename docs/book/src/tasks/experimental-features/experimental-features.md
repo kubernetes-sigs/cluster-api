@@ -48,7 +48,7 @@ kustomize_substitutions:
   EXP_MACHINE_SET_PREFLIGHT_CHECKS: 'true'
 ```
 
-For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/tilt.md)
+For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/core/tilt.md)
 
 ## Enabling Experimental Features on Existing Management Clusters
 

@@ -254,7 +254,7 @@ While defining the Deployment Spec, the container that executes the controller/r
 
 For controllers only, the manager MUST support a `--namespace` flag for specifying the namespace where the controller
 will look for objects to reconcile; however, clusterctl will always install providers watching for all namespaces
-(`--namespace=""`); for more details see [support for multiple instances](../developer/architecture/controllers/support-multiple-instances.md)
+(`--namespace=""`); for more details see [support for multiple instances](../developer/core/support-multiple-instances.md)
 for more context.
 
 While defining Pods for Deployments, canonical names should be used for images.

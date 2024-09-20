@@ -16,7 +16,7 @@ In Cluster API we strive to follow three principles while implementing logging:
 
 ## Upstream Alignment
 
-Kubernetes defines a set of [logging conventions](https://git.k8s.io/community/contributors/devel/sig-instrumentation/logging.md), 
+Kubernetes defines a set of [logging conventions](https://git.k8s.io/community/contributors/devel/sig-instrumentation/logging.md),
 as well as tools and libraries for logging.
 
 ## Continuous improvement
@@ -28,8 +28,8 @@ The foundational items of Cluster API logging are:
 - Adding a minimal set of key/value pairs in the logger at the beginning of each reconcile loop, so all the subsequent
   log entries will inherit them (see [key value pairs](#keyvalue-pairs)).
 
-Starting from the above foundations, then the long tail of small improvements will consist of following activities: 
- 
+Starting from the above foundations, then the long tail of small improvements will consist of following activities:
+
 - Improve consistency of additional key/value pairs added by single log entries (see [key value pairs](#keyvalue-pairs)).
 - Improve log messages (see [log messages](#log-messages)).
 - Improve consistency of log levels (see [log levels](#log-levels)).
@@ -37,7 +37,7 @@ Starting from the above foundations, then the long tail of small improvements wi
 ## Log Format
 
 Controllers MUST provide support for [structured logging](https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/1602-structured-logging)
-and for the [JSON output format](https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/1602-structured-logging#json-output-format); 
+and for the [JSON output format](https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/1602-structured-logging#json-output-format);
 quoting the Kubernetes documentation, these are the key elements of this approach:
 
 - Separate a log message from its arguments.
@@ -61,7 +61,7 @@ beginning of the chain are then inherited by all the subsequent log entries crea
 Contextual logging is also embedded in controller runtime; In Cluster API we use contextual logging via controller runtime's
 `LoggerFrom(ctx)` and `LoggerInto(ctx, log)` primitives and this ensures that:
 
-- The logger passed to each reconcile call has a unique `reconcileID`, so all the logs being written during a single 
+- The logger passed to each reconcile call has a unique `reconcileID`, so all the logs being written during a single
   reconcile call can be easily identified (note: controller runtime also adds other useful key value pairs by default).
 - The logger has a key value pair identifying the objects being reconciled,e.g. a Machine Deployment, so all the logs
   impacting this object can be easily identified.
@@ -85,10 +85,10 @@ one of the above practices is really important for Cluster API developers
 - Developers MUST use `klog.KObj` or `klog.KRef` functions when logging key value pairs for Kubernetes objects, thus
   ensuring a key value pair representing a Kubernetes object is formatted consistently in all the logs.
 - Developers MUST use consistent log keys:
-  - kinds should be written in upper camel case, e.g. `MachineDeployment`, `MachineSet`
-    - Note: we cannot use lower camel case for kinds consistently because there is no way to 
-      automatically calculate the correct log key for provider CRDs like `AWSCluster`
-  - all other keys should use lower camel case, e.g. `resourceVersion`, `oldReplicas` to align to Kubernetes log conventions
+    - kinds should be written in upper camel case, e.g. `MachineDeployment`, `MachineSet`
+        - Note: we cannot use lower camel case for kinds consistently because there is no way to
+          automatically calculate the correct log key for provider CRDs like `AWSCluster`
+    - all other keys should use lower camel case, e.g. `resourceVersion`, `oldReplicas` to align to Kubernetes log conventions
 
 Please note that, in order to ensure logs can be easily searched it is important to ensure consistency for the following
 key value pairs (in order of importance):
@@ -96,7 +96,7 @@ key value pairs (in order of importance):
 - Key value pairs identifying the object being reconciled, e.g. a MachineDeployment.
 - Key value pairs identifying the hierarchy of objects being reconciled, e.g. the Cluster a MachineDeployment belongs
   to.
-- Key value pairs identifying side effects on other objects, e.g. while reconciling a MachineDeployment, the controller 
+- Key value pairs identifying side effects on other objects, e.g. while reconciling a MachineDeployment, the controller
   creates a MachineSet.
 - Other Key value pairs.
 
@@ -117,9 +117,9 @@ for log levels; as a small integration on the above guidelines we would like to 
 - Logs at the lower levels of verbosity (<=3) are meant to document “what happened” by describing how an object status
   is being changed by controller/reconcilers across subsequent reconciliations; as a rule of thumb, it is reasonable
   to assume that a person reading those logs has a deep knowledge of how the system works, but it should not be required
-  for those persons to have knowledge of the codebase. 
+  for those persons to have knowledge of the codebase.
 - Logs at higher levels of verbosity (>=4) are meant to document “how it happened”, providing insight on thorny parts of
-  the code; a person reading those logs usually has deep knowledge of the codebase. 
+  the code; a person reading those logs usually has deep knowledge of the codebase.
 - Don’t use verbosity higher than 5.
 
 We are using log level 2 as a default verbosity for all core Cluster API
@@ -140,7 +140,7 @@ Our [Tilt](tilt.md) setup offers a batteries-included log suite based on [Promta
 We are working to continuously improving this experience, allowing Cluster API developers to use logs and improve them as part of their development process.
 
 For the best experience exploring the logs using Tilt:
-1. Set `--logging-format=json`. 
+1. Set `--logging-format=json`.
 2. Set a high log verbosity, e.g. `v=5`.
 3. Enable Promtail, Loki, and Grafana under `deploy_observability`.
 
@@ -168,7 +168,7 @@ extra_args:
     - "--v=5"
     - "--logging-format=json"
 ```
-The above options can be combined with other settings from our [Tilt](tilt.md) setup. Once Tilt is up and running with these settings users will be able to browse logs using the Grafana Explore UI. 
+The above options can be combined with other settings from our [Tilt](tilt.md) setup. Once Tilt is up and running with these settings users will be able to browse logs using the Grafana Explore UI.
 
 This will normally be available on `localhost:3001`. To explore logs from Loki, open the Explore interface for the DataSource 'Loki'. [This link](http://localhost:3001/explore?datasource%22:%22Loki%22) should work as a shortcut with the default Tilt settings.
 
@@ -220,4 +220,3 @@ we encourage providers to adopt and contribute to the guidelines defined in this
 
 It is also worth noting that the foundational elements of the approach described in this document are easy to achieve
 by leveraging default Kubernetes tooling for logging.
-

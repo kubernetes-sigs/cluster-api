@@ -27,8 +27,8 @@ if this is not possible, a viable solution is to use mocks (e.g CAPA).
 
 ### Generic providers
 When writing tests core Cluster API contributors should ensure that the code works with any providers, and thus it is required
-to not use any specific provider implementation. Instead, the so-called generic providers e.g. "GenericInfrastructureCluster" 
-should be used because they implement the plain Cluster API contract. This prevents tests from relying on assumptions that 
+to not use any specific provider implementation. Instead, the so-called generic providers e.g. "GenericInfrastructureCluster"
+should be used because they implement the plain Cluster API contract. This prevents tests from relying on assumptions that
 may not hold true in all cases.
 
 Please note that in the long term we would like to improve the implementation of generic providers, centralizing
@@ -46,18 +46,18 @@ the test cluster.
 With this approach it is possible to interact with Cluster API almost like in a real environment, by creating/updating
 Kubernetes objects and waiting for the controllers to take action. See the [quick reference](#quick-reference) below for more details.
 
-Also in case of integration tests, considerations about [mocking external APIs](#mocking-external-apis) and usage of [generic providers](#generic-providers) apply. 
+Also in case of integration tests, considerations about [mocking external APIs](#mocking-external-apis) and usage of [generic providers](#generic-providers) apply.
 
 ## Fuzzing tests
 
-Fuzzing tests automatically inject randomly generated inputs, often invalid or with unexpected values, into functions to discover vulnerabilities. 
+Fuzzing tests automatically inject randomly generated inputs, often invalid or with unexpected values, into functions to discover vulnerabilities.
 
 Two different types of fuzzing are currently being used on the Cluster API repository:
 
 ### Fuzz testing for API conversion
 
 Cluster API uses Kubernetes' conversion-gen to automate the generation of functions to convert our API objects between versions. These conversion functions are tested using the [FuzzTestFunc util in our conversion utils package](https://github.com/kubernetes-sigs/cluster-api/blob/1ec0cd6174f1b860dc466db587241ea7edea0b9f/util/conversion/conversion.go#L194).
-For more information about these conversions see the API conversion code walkthrough in our [video walkthrough series](./guide.md#videos-explaining-capi-architecture-and-code-walkthroughs).
+For more information about these conversions see the API conversion code walkthrough in our [video walkthrough series](../getting-started.md#videos-explaining-capi-architecture-and-code-walkthroughs).
 
 ### OSS-Fuzz continuous fuzzing
 
@@ -78,7 +78,7 @@ In light of continuing improving our practice around this ambitious goal, we are
 
 Each contribution in growing this set of utilities or their adoption across the codebase is more than welcome!
 
-Another consideration that can help in improving test maintainability is the idea of testing "by layers"; this idea could 
+Another consideration that can help in improving test maintainability is the idea of testing "by layers"; this idea could
 apply whenever we are testing "higher-level" functions that internally uses one or more "lower-level" functions;
 in order to avoid writing/maintaining redundant tests, whenever possible contributors should take care of testing
 _only_ the logic that is implemented in the "higher-level" function, delegating the test function called internally
@@ -149,7 +149,7 @@ The following guidelines should be followed when developing E2E tests:
 - Use the [Cluster API test framework].
 - Define test spec reflecting real user workflow, e.g. [Cluster API quick start].
 - Unless you are testing provider specific features, ensure your test can run with
-  different infrastructure providers (see [Writing Portable Tests](./e2e.md#writing-portable-e2e-tests)).
+  different infrastructure providers (see [Writing Portable Tests](e2e.md#writing-portable-e2e-tests)).
 
 See [e2e development] for more information on developing e2e tests for CAPI and external providers.
 
@@ -243,8 +243,8 @@ Execute the run configuration with `Debug`.
 
 <h1>Tips</h1>
 
-The e2e tests create a new management cluster with kind on each run. To avoid this and speed up the test execution the tests can 
-also be run against a management cluster created by [tilt](./tilt.md):
+The e2e tests create a new management cluster with kind on each run. To avoid this and speed up the test execution the tests can
+also be run against a management cluster created by [tilt](tilt.md):
 ```bash
 # Prereqs for e2e testing with tilt
 make tilt-e2e-prerequisites
@@ -254,10 +254,10 @@ make tilt-up
 
 Now you can start the e2e test via IDE as described above but with the additional `-e2e.use-existing-cluster=true` flag.
 
-**Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](./tilt.md#wiring-up-debuggers).
+**Note**: This can also be used to debug controllers during e2e tests as described in [Developing Cluster API with Tilt](tilt.md#wiring-up-debuggers).
 
-The e2e tests also create a local clusterctl repository. After it has been created on a first test execution this step can also be 
-skipped by setting `-e2e.clusterctl-config=<ARTIFACTS>/repository/clusterctl-config.yaml`. This also works with a clusterctl repository created 
+The e2e tests also create a local clusterctl repository. After it has been created on a first test execution this step can also be
+skipped by setting `-e2e.clusterctl-config=<ARTIFACTS>/repository/clusterctl-config.yaml`. This also works with a clusterctl repository created
 via [Create the local repository](http://localhost:3000/clusterctl/developers.html#create-the-local-repository).
 
 **Feature gates**: E2E tests often use features which need to be enabled first. Make sure to enable the feature gates in the tilt settings file:
@@ -307,7 +307,7 @@ Furthermore, it's possible to overwrite all env variables specified in `variable
 Logs of e2e tests can be analyzed with our development environment by pushing logs to Loki and then
 analyzing them via Grafana.
 
-1. Start the development environment as described in [Developing Cluster API with Tilt](./tilt.md).
+1. Start the development environment as described in [Developing Cluster API with Tilt](tilt.md).
     * Make sure to deploy Loki and Grafana via `deploy_observability`.
     * If you only want to see imported logs, don't deploy promtail (via `deploy_observability`).
     * If you want to drop all logs from Loki, just delete the Loki Pod in the `observability` namespace.
@@ -351,10 +351,10 @@ As alternative to loki, JSON logs can be visualized with a human readable timest
 
    The `(. | tostring)` part could also be customized to only output parts of the JSON logline.
    E.g.:
-  
-   * `(.err)` to only output the error message part.
-   * `(.msg)` to only output the message part.
-   * `(.controller + " " + .msg)` to output the controller name and message part.
+
+    * `(.err)` to only output the error message part.
+    * `(.msg)` to only output the message part.
+    * `(.controller + " " + .msg)` to output the controller name and message part.
 
 ### Known Issues
 
@@ -404,7 +404,7 @@ func TestMain(m *testing.M) {
 ```
 
 Most notably, [envtest] provides not only a real API server to use during testing, but it offers the opportunity
-to configure one or more controllers to run against the test cluster, as well as creating informers index. 
+to configure one or more controllers to run against the test cluster, as well as creating informers index.
 
 ```golang
 func TestMain(m *testing.M) {
@@ -439,8 +439,8 @@ should take care in ensuring each test runs in isolation from the others, by:
 - Avoiding object name conflict.
 
 Developers should also be aware of the fact that the informers cache used to access the [envtest]
-depends on actual etcd watches/API calls for updates, and thus it could happen that after creating 
-or deleting objects the cache takes a few milliseconds to get updated. This can lead to test flakes, 
+depends on actual etcd watches/API calls for updates, and thus it could happen that after creating
+or deleting objects the cache takes a few milliseconds to get updated. This can lead to test flakes,
 and thus it always recommended to use patterns like create and wait or delete and wait; Cluster API env
 test provides a set of utils for this scope.
 
@@ -529,7 +529,7 @@ comes with a set of limitations that could hamper the validity of a test, most n
   of the test objects.
 - the [fakeclient] does not use a cache based on informers/API calls/etcd watches, so the test written in this way
   can't help in surfacing race conditions related to how those components behave in real cluster.
-- there is no support for cache index/operations using cache indexes. 
+- there is no support for cache index/operations using cache indexes.
 
 Accordingly, using [fakeclient] is not suitable for all the use cases, so in some cases contributors will be required
 to use [envtest] instead. In case of doubts about which one to use when writing tests, don't hesitate to ask for
@@ -551,9 +551,9 @@ which is considered unintuitive.
 
 ### `gomega`
 [Gomega] is a matcher/assertion library. It is usually paired with the Ginkgo BDD test framework, but it can be used with
- other test frameworks too.
+other test frameworks too.
 
- More specifically, in order to use Gomega with go test you should
+More specifically, in order to use Gomega with go test you should
 
  ```golang
  func TestFarmHasCow(t *testing.T) {
@@ -570,9 +570,9 @@ In Cluster API all the test MUST use [Gomega] assertions.
 
 In Cluster API Unit and integration test MUST use [go test].
 
-[Cluster API quick start]: ../user/quick-start.md
+[Cluster API quick start]: ../../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
-[e2e development]: ./e2e.md
+[e2e development]: e2e.md
 [Ginkgo]: https://onsi.github.io/ginkgo/
 [Gomega]: https://onsi.github.io/gomega/
 [go test]: https://golang.org/pkg/testing/

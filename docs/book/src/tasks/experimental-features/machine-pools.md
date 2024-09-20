@@ -13,7 +13,7 @@ Infrastructure providers can support this feature by implementing their specific
 More details on `MachinePool` can be found at:
 [MachinePool CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20190919-machinepool-api.md)
 
-For developer docs on the MachinePool controller, see [here](./../../developer/architecture/controllers/machine-pool.md).
+For developer docs on the MachinePool controller, see [here](./../../developer/core/controllers/machine-pool.md).
 
 ## MachinePools vs MachineDeployments
 

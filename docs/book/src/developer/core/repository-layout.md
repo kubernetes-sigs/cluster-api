@@ -53,13 +53,13 @@ This folder contains  Cluster API bootstrap provider Kubeadm (CABPK) which is a 
 
 [~/controlplane](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane)
 
-This folder contains a reference implementation of a Cluster API Control Plane provider - KubeadmControlPlane. This package contains the API types and controllers required to instantiate and manage a Kubernetes control plane. It is built and deployed as an independent provider alongside the Cluster API controller manager. 
+This folder contains a reference implementation of a Cluster API Control Plane provider - KubeadmControlPlane. This package contains the API types and controllers required to instantiate and manage a Kubernetes control plane. It is built and deployed as an independent provider alongside the Cluster API controller manager.
 
-### Cluster API Provider Docker 
+### Cluster API Provider Docker
 
 [~/test/infrastructure/docker](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker)
 
-This folder contains a reference implementation of an infrastructure provider for the Cluster API project using Docker. This provider is intended for development purposes only. 
+This folder contains a reference implementation of an infrastructure provider for the Cluster API project using Docker. This provider is intended for development purposes only.
 
 ### Clusterctl CLI
 
@@ -77,11 +77,11 @@ Some of the subfolders are:
 * [~/config/certmanager](https://github.com/kubernetes-sigs/cluster-api/tree/main/config/certmanager) - It contains manifests like self-signed issuer CR and certificate CR useful for cert manager.
 
 * [~/config/crd](https://github.com/kubernetes-sigs/cluster-api/tree/main/config/crd) - It contains CRDs generated from types defined in [api](#api) folder
-	
+
 * [~/config/manager](https://github.com/kubernetes-sigs/cluster-api/tree/main/config/manager) - It contains manifest for the deployment of core Cluster API manager.
-	
+
 * [~/config/rbac](https://github.com/kubernetes-sigs/cluster-api/tree/main/config/rbac) - Manifests for RBAC resources generated from kubebuilder markers defined in controllers.
-	
+
 * [~/config/webhook](https://github.com/kubernetes-sigs/cluster-api/tree/main/config/webhook) - Manifest for webhooks generated from the markers defined in the web hook implementations present in [api](#api) folder.
 
 Note: Additional `config` containing manifests can be found in the packages for [KubeadmControlPlane](#controlplane), [KubeadmBoostrap](#bootstrap) and [Cluster API Provider Docker](#cluster-api-provider-docker).
@@ -148,7 +148,7 @@ The [api](#api) folder contains webhooks consisting of validators and defaults f
 
 [~/internal/webhooks](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/webhooks)
 
-This directory contains the implementation of some of the Cluster API webhooks. The internal implementation means that the methods supplied by this package cannot be imported by external code bases. 
+This directory contains the implementation of some of the Cluster API webhooks. The internal implementation means that the methods supplied by this package cannot be imported by external code bases.
 
 [~/webhooks](https://github.com/kubernetes-sigs/cluster-api/tree/main/webhooks)
 

@@ -46,7 +46,7 @@ enable_providers:
 - kubeadm-control-plane
 ```
 
-To use tilt to launch a provider with its own repo, using Cluster API Provider AWS here, `tilt-settings.yaml` should look like: 
+To use tilt to launch a provider with its own repo, using Cluster API Provider AWS here, `tilt-settings.yaml` should look like:
 
 ```yaml
 default_registry: gcr.io/your-project-name-here
@@ -128,20 +128,20 @@ kustomize_substitutions:
 
 An Azure Service Principal is needed for populating the controller manifests. This utilizes [environment-based authentication](https://docs.microsoft.com/en-us/go/azure/azure-sdk-go-authorization#use-environment-based-authentication).
 
-  1. Save your Subscription ID
+1. Save your Subscription ID
 
   ```bash
   AZURE_SUBSCRIPTION_ID=$(az account show --query id --output tsv)
   az account set --subscription $AZURE_SUBSCRIPTION_ID
   ```
 
-  2. Set the Service Principal name
+2. Set the Service Principal name
 
   ```bash
   AZURE_SERVICE_PRINCIPAL_NAME=ServicePrincipalName
   ```
 
-  3. Save your Tenant ID, Client ID, Client Secret
+3. Save your Tenant ID, Client ID, Client Secret
 
   ```bash
   AZURE_TENANT_ID=$(az account show --query tenantId --output tsv)
@@ -200,15 +200,15 @@ Important! This feature requires the `helm` command to be available in the user'
 
 Supported values are:
 
-  * `grafana`*: To create dashboards and query `loki`, `prometheus` and `tempo`.
-  * `kube-state-metrics`: For exposing metrics for Kubernetes and CAPI resources to `prometheus`.
-  * `loki`: To receive and store logs.
-  * `metrics-server`: To enable `kubectl top node/pod`.
-  * `prometheus`*: For collecting metrics from Kubernetes.
-  * `promtail`: For providing pod logs to `loki`.
-  * `parca`*: For visualizing profiling data.
-  * `tempo`: To store traces.
-  * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
+* `grafana`*: To create dashboards and query `loki`, `prometheus` and `tempo`.
+* `kube-state-metrics`: For exposing metrics for Kubernetes and CAPI resources to `prometheus`.
+* `loki`: To receive and store logs.
+* `metrics-server`: To enable `kubectl top node/pod`.
+* `prometheus`*: For collecting metrics from Kubernetes.
+* `promtail`: For providing pod logs to `loki`.
+* `parca`*: For visualizing profiling data.
+* `tempo`: To store traces.
+* `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
 
 \*: Note: the UI will be accessible via a link in the tilt console
 
@@ -223,63 +223,63 @@ additional_kustomizations:
 
 Supported settings:
 
-  * **port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will run the provider with delve
+* **port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will run the provider with delve
   and port forward the delve server to localhost on the specified debug port. This can then be used with IDEs such as
   Visual Studio Code, Goland and IntelliJ.
 
-  * **continue** (bool, default=true): By default, Tilt will run delve with `--continue`, such that any provider with
-    debugging turned on will run normally unless specifically having a breakpoint entered. Change to false if you
-    do not want the controller to start at all by default.
+* **continue** (bool, default=true): By default, Tilt will run delve with `--continue`, such that any provider with
+  debugging turned on will run normally unless specifically having a breakpoint entered. Change to false if you
+  do not want the controller to start at all by default.
 
-  * **profiler_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will enable the profiler with
+* **profiler_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will enable the profiler with
   `--profiler-address` and set up a port forward. A "profiler" link will be visible in the Tilt Web UI for the controller.
 
-  * **metrics_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will port forward to the
-    default metrics port. A "metrics" link will be visible in the Tilt Web UI for the controller.
+* **metrics_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will port forward to the
+  default metrics port. A "metrics" link will be visible in the Tilt Web UI for the controller.
 
-  * **race_detector** (bool, default=false) (Linux amd64 only): If enabled, Tilt will compile the specified controller with
-    cgo and statically compile in the system glibc and enable the race detector. Currently, this is only supported when
-    building on Linux amd64 systems. You must install glibc-static or have libc.a available for this to work.
+* **race_detector** (bool, default=false) (Linux amd64 only): If enabled, Tilt will compile the specified controller with
+  cgo and statically compile in the system glibc and enable the race detector. Currently, this is only supported when
+  building on Linux amd64 systems. You must install glibc-static or have libc.a available for this to work.
 
-    Example: Using the configuration below:
+  Example: Using the configuration below:
 
-    ```yaml
-      debug:
-        core:
-          continue: false
-          port: 30000
-          profiler_port: 40000
-          metrics_port: 40001
-    ```
+  ```yaml
+    debug:
+      core:
+        continue: false
+        port: 30000
+        profiler_port: 40000
+        metrics_port: 40001
+  ```
 
-    ##### Wiring up debuggers
-    ###### Visual Studio
-    When using the example above, the core CAPI controller can be debugged in Visual Studio Code using the following launch configuration:
+  ##### Wiring up debuggers
+  ###### Visual Studio
+  When using the example above, the core CAPI controller can be debugged in Visual Studio Code using the following launch configuration:
 
-    ```json
-    {
-      "version": "0.2.0",
-      "configurations": [
-        {
-          "name": "Core CAPI Controller",
-          "type": "go",
-          "request": "attach",
-          "mode": "remote",
-          "remotePath": "",
-          "port": 30000,
-          "host": "127.0.0.1",
-          "showLog": true,
-          "trace": "log",
-          "logOutput": "rpc"
-        }
-      ]
-    }
-    ```
+  ```json
+  {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Core CAPI Controller",
+        "type": "go",
+        "request": "attach",
+        "mode": "remote",
+        "remotePath": "",
+        "port": 30000,
+        "host": "127.0.0.1",
+        "showLog": true,
+        "trace": "log",
+        "logOutput": "rpc"
+      }
+    ]
+  }
+  ```
 
-    ###### Goland / IntelliJ
-    With the above example, you can configure [a Go Remote run/debug
-    configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
-    pointing at port 30000.
+  ###### Goland / IntelliJ
+  With the above example, you can configure [a Go Remote run/debug
+  configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
+  pointing at port 30000.
 
 <br/>
 
@@ -365,7 +365,7 @@ some of the clusterctl commands like clusterctl config won't work.
 
 This limitation is an acceptable trade-off while executing fast dev-test iterations on controllers logic. If instead
 you are interested in testing clusterctl workflows, you should refer to the
-[clusterctl developer instructions](../clusterctl/developers.md).
+[clusterctl developer instructions](../../clusterctl/developers.md).
 
 ## Available providers
 
@@ -407,7 +407,7 @@ build it.
 **live_reload_deps**: a list of files/directories to watch. If any of them changes, Tilt rebuilds the manager binary
 for the provider and performs a live update of the running container.
 
-**version**: allows to define the version to be used for the Provider CR. If empty, a default version will 
+**version**: allows to define the version to be used for the Provider CR. If empty, a default version will
 be used.
 
 **additional_docker_helper_commands** (String, default=""): Additional commands to be run in the helper image
@@ -497,12 +497,12 @@ syntax highlighting and auto-formatting. To enable it for Tiltfile a file associ
 [Podman](https://podman.io) can be used instead of Docker by following these actions:
 
 1. Enable the podman unix socket:
-   - on Linux/systemd: `systemctl --user enable --now podman.socket`
-   - on macOS: create a podman machine with `podman machine init`
+    - on Linux/systemd: `systemctl --user enable --now podman.socket`
+    - on macOS: create a podman machine with `podman machine init`
 1. Set `build_engine` to `podman` in `tilt-settings.yaml` (optional, only if both Docker & podman are installed)
 1. Define the env variable `DOCKER_HOST` to the right socket:
-   - on Linux/systemd: `export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock`
-   - on macOS: `export DOCKER_HOST=$(podman machine inspect <machine> | jq -r '.[0].ConnectionInfo.PodmanSocket.Path')` where `<machine>` is the podman machine name
+    - on Linux/systemd: `export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock`
+    - on macOS: `export DOCKER_HOST=$(podman machine inspect <machine> | jq -r '.[0].ConnectionInfo.PodmanSocket.Path')` where `<machine>` is the podman machine name
 1. Run `tilt up`
 
 NB: The socket defined by `DOCKER_HOST` is used only for the `hack/tools/internal/tilt-prepare` command, the image build is running the `podman build`/`podman push` commands.
@@ -549,8 +549,8 @@ Ensure that docker/podman is up and running and your kubernetes cluster is reach
 
 - Ensure the docker daemon is running ;) or for podman see [Using Podman](#using-podman)
 - If a DOCKER_HOST is specified:
-  - check that the DOCKER_HOST has the correct prefix (usually `unix://`)
-  - ensure docker/podman is listening on $DOCKER_HOST using `fuser` / `lsof` / `netstat -u`
+    - check that the DOCKER_HOST has the correct prefix (usually `unix://`)
+    - ensure docker/podman is listening on $DOCKER_HOST using `fuser` / `lsof` / `netstat -u`
 
 ### Errors pulling/pushing to the registry
 

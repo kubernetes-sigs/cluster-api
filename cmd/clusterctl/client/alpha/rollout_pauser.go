@@ -27,7 +27,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
-	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // ObjectPauser will issue a pause on the specified cluster-api resource.
@@ -44,19 +43,19 @@ func (r *rollout) ObjectPauser(ctx context.Context, proxy cluster.Proxy, ref cor
 		if err := pauseMachineDeployment(ctx, proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
-	case KubeadmControlPlane:
-		kcp, err := getKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace)
-		if err != nil || kcp == nil {
+	default:
+		obj, err := getUnstructuredControlPlane(ctx, proxy, ref)
+		if err != nil || obj == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if annotations.HasPaused(kcp.GetObjectMeta()) {
-			return errors.Errorf("KubeadmControlPlane is already paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // KubeadmControlPlane is intentionally capitalized.
+
+		annotations := obj.GetAnnotations()
+		if paused, ok := annotations["cluster.x-k8s.io/paused"]; ok && paused == "true" {
+			return errors.Errorf("can't perform operations on paused resource (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", obj.GetKind(), obj.GetName())
 		}
-		if err := pauseKubeadmControlPlane(ctx, proxy, ref.Name, ref.Namespace); err != nil {
+		if err := pauseControlPlane(ctx, proxy, ref); err != nil {
 			return err
 		}
-	default:
-		return errors.Errorf("Invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
 	}
 	return nil
 }
@@ -67,8 +66,8 @@ func pauseMachineDeployment(ctx context.Context, proxy cluster.Proxy, name, name
 	return patchMachineDeployment(ctx, proxy, name, namespace, patch)
 }
 
-// pauseKubeadmControlPlane sets paused annotation to true.
-func pauseKubeadmControlPlane(ctx context.Context, proxy cluster.Proxy, name, namespace string) error {
+// pauseControlPlane sets paused annotation to true.
+func pauseControlPlane(ctx context.Context, proxy cluster.Proxy, ref corev1.ObjectReference) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q: \"%t\"}}}", clusterv1.PausedAnnotation, true)))
-	return patchKubeadmControlPlane(ctx, proxy, name, namespace, patch)
+	return patchControlPlane(ctx, proxy, ref, patch)
 }

@@ -906,19 +906,30 @@ KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILD
 setup-envtest: $(SETUP_ENVTEST) ## Set up envtest (download kubebuilder assets)
 	@echo KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
 
-.PHONY: test
-test: $(SETUP_ENVTEST) ## Run unit and integration tests
+.PHONY: test-no-race
+test-no-race: $(SETUP_ENVTEST) ## Run unit and integration tests
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
+.PHONY: test
+test: $(SETUP_ENVTEST) ## Run unit and integration tests with race detector
+	# Note: Fuzz tests are not executed with race detector because they would just time out.
+	# To achieve that, all files with fuzz tests have the "!race" build tag, to still run fuzz tests
+	# we have an additional `go test` run that focuses on "TestFuzzyConversion".
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
+	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" ./... $(TEST_ARGS)
+
 .PHONY: test-verbose
-test-verbose: ## Run unit and integration tests with verbose flag
+test-verbose: ## Run unit and integration tests with race detector and with verbose flag
 	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
 
 .PHONY: test-junit
-test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report
-	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
+test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests with race detector and generate a junit report
+	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
 	exit $$(cat $(ARTIFACTS)/junit.exitcode)
+	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -run "^TestFuzzyConversion$$" -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit-fuzz.exitcode) | tee $(ARTIFACTS)/junit-fuzz.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit-fuzz.xml --raw-command cat $(ARTIFACTS)/junit-fuzz.stdout
+	exit $$(cat $(ARTIFACTS)/junit-fuzz.exitcode)
 
 .PHONY: test-cover
 test-cover: ## Run unit and integration tests and generate a coverage report

@@ -541,6 +541,12 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 				},
 			})
 			if err != nil {
+				// delete bootstrapRef after creat infraRef failed
+				if bootstrapRef != nil {
+					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef)); !apierrors.IsNotFound(err) {
+						log.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error", bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name))
+					}
+				}
 				conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.InfrastructureTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
 				return ctrl.Result{}, errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
 					ms.Spec.Template.Spec.InfrastructureRef.Kind,

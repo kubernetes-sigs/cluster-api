@@ -766,10 +766,17 @@ func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, e
 				},
 			})
 			if err != nil {
+				var deleteErr error
+				if bootstrapRef != nil {
+					// Cleanup the bootstrap resource if we can't create the InfraMachine; or we might risk to leak it.
+					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef)); err != nil && !apierrors.IsNotFound(err) {
+						deleteErr = errors.Wrapf(err, "failed to cleanup %s %s after %s creation failed", bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name), (&ms.Spec.Template.Spec.InfrastructureRef).Kind)
+					}
+				}
 				conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.InfrastructureTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
-				return ctrl.Result{}, errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
+				return ctrl.Result{}, kerrors.NewAggregate([]error{errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
 					ms.Spec.Template.Spec.InfrastructureRef.Kind,
-					klog.KRef(ms.Spec.Template.Spec.InfrastructureRef.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name))
+					klog.KRef(ms.Spec.Template.Spec.InfrastructureRef.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name)), deleteErr})
 			}
 			log = log.WithValues(infraRef.Kind, klog.KRef(infraRef.Namespace, infraRef.Name))
 			machine.Spec.InfrastructureRef = *infraRef

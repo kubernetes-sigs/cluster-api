@@ -354,7 +354,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ipv6.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-dualstack-ipv6-primary.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-dualstack-ipv4-primary.yaml"
-    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-single-node-cluster.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-single-kcp-cluster.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-autoscaler.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ignition.yaml"

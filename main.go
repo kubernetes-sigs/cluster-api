@@ -72,6 +72,7 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
+	"sigs.k8s.io/cluster-api/util/apiwarnings"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
@@ -270,6 +271,7 @@ func main() {
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
+	restConfig.WarningHandler = apiwarnings.DefaultHandler(klog.Background().WithName("API Server Warning"))
 
 	minVer := version.MinimumKubernetesVersion
 	if feature.Gates.Enabled(feature.ClusterTopology) {

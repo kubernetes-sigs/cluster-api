@@ -342,7 +342,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         RKE2BootstrapProviderName,
-			url:          "https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/bootstrap-components.yaml",
+			url:          "https://github.com/rancher/cluster-api-provider-rke2/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
@@ -389,7 +389,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         RKE2ControlPlaneProviderName,
-			url:          "https://github.com/rancher-sandbox/cluster-api-provider-rke2/releases/latest/control-plane-components.yaml",
+			url:          "https://github.com/rancher/cluster-api-provider-rke2/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

@@ -80,12 +80,11 @@ func TestDiscardMatchingHandler(t *testing.T) {
 	}
 }
 
-func TestDiscardMatchingHandler_NilLogger(t *testing.T) {
+func TestDiscardMatchingHandler_uninitialized(t *testing.T) {
 	g := NewWithT(t)
-	h := DiscardMatchingHandler{
-		// Logger is nil
-	}
+	h := DiscardMatchingHandler{}
 	g.Expect(func() {
-		h.HandleWarningHeader(0, "", "")
+		// Together, the code and message value ensure that the handler logs the message.
+		h.HandleWarningHeader(299, "", "example")
 	}).ToNot(Panic())
 }

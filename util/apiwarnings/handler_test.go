@@ -57,6 +57,13 @@ func TestDiscardMatchingHandler(t *testing.T) {
 		{
 			name:        "do not log, if code is not 299",
 			code:        0,
+			message:     "warning",
+			expressions: []regexp.Regexp{},
+			wantLogged:  false,
+		},
+		{
+			name:        "do not log, if message is empty",
+			code:        299,
 			message:     "",
 			expressions: []regexp.Regexp{},
 			wantLogged:  false,

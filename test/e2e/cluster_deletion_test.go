@@ -21,11 +21,14 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
+
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
-var _ = Describe("When performing cluster deletion with ClusterClass [PR-Blocking] [ClusterClass]", func() {
+var _ = Describe("When performing cluster deletion with ClusterClass [ClusterClass]", func() {
 	ClusterDeletionSpec(ctx, func() ClusterDeletionSpecInput {
 		return ClusterDeletionSpecInput{
 			E2EConfig:                e2eConfig,
@@ -39,23 +42,55 @@ var _ = Describe("When performing cluster deletion with ClusterClass [PR-Blockin
 
 			ClusterDeletionPhases: []ClusterDeletionPhase{
 				// The first phase deletes all worker related machines.
-				// Note: only setting the finalizer on Machines results in properly testing foreground deletion.
 				{
-					DeleteKinds:      sets.New[string]("MachineDeployment", "MachineSet"),
-					DeleteBlockKinds: sets.New[string]("Machine"),
+					// All Machines owned by MachineDeployments or MachineSets and themselves should be deleted in this phase.
+					DeletionSelector: func(node clusterctlcluster.OwnerGraphNode) bool {
+						if node.Object.Kind == "Machine" && hasOwner(node.Owners, "MachineDeployment", "MachineSet") {
+							return true
+						}
+						return sets.New[string]("MachineDeployment", "MachineSet").Has(node.Object.Kind)
+					},
+					// Of the above, only Machines should be considered to be blocking to test foreground deletion.
+					IsBlocking: func(node clusterctlcluster.OwnerGraphNode) bool {
+						return node.Object.Kind == "Machine"
+					},
 				},
 				// The second phase deletes all control plane related machines.
-				// Note: only setting the finalizer on Machines results in properly testing foreground deletion.
 				{
-					DeleteKinds:      sets.New[string]("KubeadmControlPlane"),
-					DeleteBlockKinds: sets.New[string]("Machine"),
+					// All Machines owned by KubeadmControlPlane and themselves should be deleted in this phase.
+					DeletionSelector: func(node clusterctlcluster.OwnerGraphNode) bool {
+						if node.Object.Kind == "Machine" && hasOwner(node.Owners, "KubeadmControlPlane") {
+							return true
+						}
+						return node.Object.Kind == "KubeadmControlPlane"
+					},
+					// Of the above, only Machines should be considered to be blocking to test foreground deletion.
+					IsBlocking: func(node clusterctlcluster.OwnerGraphNode) bool {
+						return node.Object.Kind == "Machine"
+					},
 				},
 				// The third phase deletes the infrastructure cluster.
 				{
-					DeleteKinds:      sets.New[string](),
-					DeleteBlockKinds: sets.New[string]("DockerCluster"),
+					// The DockerCluster should be deleted in this phase.
+					DeletionSelector: func(node clusterctlcluster.OwnerGraphNode) bool {
+						return node.Object.Kind == "DockerCluster"
+					},
+					// Of the above, the DockerCluster should be considered to be blocking.
+					IsBlocking: func(node clusterctlcluster.OwnerGraphNode) bool {
+						return node.Object.Kind == "DockerCluster"
+					},
 				},
 			},
 		}
 	})
 })
+
+func hasOwner(ownerReferences []metav1.OwnerReference, owners ...string) bool {
+	ownersSet := sets.New[string](owners...)
+	for _, owner := range ownerReferences {
+		if ownersSet.Has(owner.Kind) {
+			return true
+		}
+	}
+	return false
+}

@@ -30,7 +30,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -90,17 +89,17 @@ type ClusterDeletionSpecInput struct {
 }
 
 type ClusterDeletionPhase struct {
-	// DeleteKinds are the DeleteKinds which are supposed to be deleted in this phase.
-	// Note: If Machines is added here, the Machine must have an owner with a kind from DeleteBlockKinds or DeleteKinds.
-	DeleteKinds sets.Set[string]
-	// DeleteBlockKinds are the kinds which are considered to be deleted in this phase, but need to be blocking.
-	// Note: If Machines is added here, the Machine must have an owner with a kind from DeleteBlockKinds or DeleteKinds.
-	DeleteBlockKinds sets.Set[string]
-	// objects will be filled later by objects which match a kind given in one of the above sets.
+	// DeletionSelector identifies if a node should be considered to get deleted during this phase.
+	DeletionSelector func(node clusterctlcluster.OwnerGraphNode) bool
+	// IsBlocking is a filter on top of the DeletionSelector to identify which nodes should block the deletion in this phase.
+	// The deletion of all objects in this phase gets blocked by adding a finalizer to this nodes to ensure the test can
+	// assert when the objects should be in deletion and actually get removed by control the removal of the finalizer.
+	IsBlocking func(node clusterctlcluster.OwnerGraphNode) bool
+
+	// objects will be filled later by objects which matched the DeletionSelector
 	objects []client.Object
 }
 
-// ClusterDeletionSpec implements a test that verifies that MachineDeployment rolling updates are successful.
 // ClusterDeletionSpec goes through the following steps:
 // * Create a cluster.
 // * Add finalizer to objects defined in input.ClusterDeletionPhases.DeleteBlockKinds.
@@ -188,46 +187,17 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 			},
 		}, clusterResources)
 
-		relevantKinds := sets.Set[string]{}
-
-		for _, phaseInput := range input.ClusterDeletionPhases {
-			relevantKinds = relevantKinds.
-				Union(phaseInput.DeleteBlockKinds).
-				Union(phaseInput.DeleteKinds)
-		}
-
 		// Get all objects relevant to the test by filtering for the kinds of the phases.
-		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace.GetName(), input.BootstrapClusterProxy.GetKubeconfigPath(), func(u unstructured.Unstructured) bool {
-			return relevantKinds.Has(u.GetKind())
-		})
+		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace.GetName(), input.BootstrapClusterProxy.GetKubeconfigPath(), clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
 		Expect(err).ToNot(HaveOccurred())
 
 		for i, phase := range input.ClusterDeletionPhases {
 			// Iterate over the graph and find all objects relevant for the phase.
 			// * Objects matching the kind except for Machines (see below)
 			// * Machines which are owned by one of the kinds which are part of the phase
-			allKinds := phase.DeleteBlockKinds.Union(phase.DeleteKinds)
-			allKindsWithoutMachine := allKinds.Clone().Delete("Machine")
-
 			for _, node := range graph {
-				// Only add objects which match a defined kind for the phase.
-				if !allKinds.Has(node.Object.Kind) {
+				if !phase.DeletionSelector(node) {
 					continue
-				}
-
-				// Special handling for machines: only add machines which are owned by one of the given kinds.
-				if node.Object.Kind == "Machine" {
-					isOwnedByKind := false
-					for _, owner := range node.Owners {
-						if allKindsWithoutMachine.Has(owner.Kind) {
-							isOwnedByKind = true
-							break
-						}
-					}
-					// Ignore Machines which are not owned by one of the given kinds.
-					if !isOwnedByKind {
-						continue
-					}
 				}
 
 				obj := new(unstructured.Unstructured)
@@ -238,8 +208,8 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 
 				phase.objects = append(phase.objects, obj)
 
-				// If the object's kind is part of kindsWithFinalizer, then additionally the object to the finalizedObjs slice.
-				if phase.DeleteBlockKinds.Has(obj.GetKind()) {
+				// Add the object to the objectsWithFinalizer array if it should be blocking.
+				if phase.IsBlocking(node) {
 					objectsWithFinalizer = append(objectsWithFinalizer, obj)
 				}
 			}
@@ -258,24 +228,24 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 			Deleter: input.BootstrapClusterProxy.GetClient(),
 		})
 
-		var objectsDeleted, objectsInDeletion []client.Object
+		var expectedObjectsDeleted, expectedObjectsInDeletion []client.Object
 
 		for i, phase := range input.ClusterDeletionPhases {
 			By(fmt.Sprintf("Verify deletion phase %d/%d", i+1, len(input.ClusterDeletionPhases)))
 			// Objects which previously were in deletion because they waited for our finalizer being removed are now checked to actually had been removed.
-			objectsDeleted = objectsInDeletion
+			expectedObjectsDeleted = expectedObjectsInDeletion
 			// All objects for this phase are expected to get into deletion (still exist and have deletionTimestamp set).
-			objectsInDeletion = phase.objects
+			expectedObjectsInDeletion = phase.objects
 			// All objects which are part of future phases are expected to not yet be in deletion.
-			objectsNotInDeletion := []client.Object{}
+			expectedObjectsNotInDeletion := []client.Object{}
 			for j := i + 1; j < len(input.ClusterDeletionPhases); j++ {
-				objectsNotInDeletion = append(objectsNotInDeletion, input.ClusterDeletionPhases[j].objects...)
+				expectedObjectsNotInDeletion = append(expectedObjectsNotInDeletion, input.ClusterDeletionPhases[j].objects...)
 			}
 
 			Eventually(func() error {
 				var errs []error
 				// Ensure deleted objects are gone
-				for _, obj := range objectsDeleted {
+				for _, obj := range expectedObjectsDeleted {
 					err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj)
 					if err != nil {
 						if apierrors.IsNotFound(err) {
@@ -284,11 +254,11 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 						errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 						continue
 					}
-					errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+					errs = append(errs, fmt.Errorf("expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				}
 
 				// Ensure expected objects are in deletion
-				for _, obj := range objectsInDeletion {
+				for _, obj := range expectedObjectsInDeletion {
 					if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 						errs = append(errs, errors.Wrapf(err, "checking %s %s is in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 						continue
@@ -300,7 +270,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 				}
 
 				// Ensure other objects are not in deletion.
-				for _, obj := range objectsNotInDeletion {
+				for _, obj := range expectedObjectsNotInDeletion {
 					if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
 						errs = append(errs, errors.Wrapf(err, "checking %s %s is not in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 						continue
@@ -317,7 +287,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 
 			// Remove the test's finalizer from all objects which had been expected to be in deletion to unblock the next phase.
 			By(fmt.Sprintf("Removing finalizers for phase %d/%d", i+1, len(input.ClusterDeletionPhases)))
-			removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, objectsInDeletion...)
+			removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, expectedObjectsInDeletion...)
 		}
 
 		// The last phase should unblock the cluster to actually have been removed.

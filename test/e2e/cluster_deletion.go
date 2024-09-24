@@ -28,12 +28,14 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -89,37 +91,43 @@ type ClusterDeletionSpecInput struct {
 }
 
 type ClusterDeletionPhase struct {
-	// DeletionSelector identifies if a node should be considered to get deleted during this phase.
-	DeletionSelector func(node clusterctlcluster.OwnerGraphNode) bool
-	// IsBlocking is a filter on top of the DeletionSelector to identify which nodes should block the deletion in this phase.
-	// The deletion of all objects in this phase gets blocked by adding a finalizer to this nodes to ensure the test can
-	// assert when the objects should be in deletion and actually get removed by control the removal of the finalizer.
-	IsBlocking func(node clusterctlcluster.OwnerGraphNode) bool
-
-	// objects will be filled later by objects which matched the DeletionSelector
-	objects []client.Object
+	// ObjectFilter identifies if an object should be considered to get deleted during this phase.
+	// During the test the identified objects are expected to only have an deletionTimestamp when this phase is tested
+	// and be gone after unblocking this phases blocking objects.
+	ObjectFilter func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool
+	// BlockingObjectFilter is a filter on top of the ObjectFilter to identify which objects should block the deletion in
+	// this phase. The identified objects will get a finalizer added before the deletion of the cluster starts.
+	// After a successful verification that all objects are in the correct state the finalizer gets removed to unblock
+	// the deletion and go to the next phase.
+	BlockingObjectFilter func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool
 }
 
 // ClusterDeletionSpec goes through the following steps:
 // * Create a cluster.
-// * Add finalizer to objects defined in input.ClusterDeletionPhases.DeleteBlockKinds.
+// * Add a finalizer to the Cluster object.
+// * Add a finalizer to objects identified by input.ClusterDeletionPhases.BlockingObjectFilter.
 // * Trigger deletion for the cluster.
 // * For each phase:
-//   - Verify objects expected to get deleted in previous phases are gone.
-//   - Verify objects expected to be in deletion have a deletionTimestamp set but still exist.
+//   - Verify objects of the previous phase are gone.
+//   - Verify objects to be deleted in this phase have a deletionTimestamp set but still exist.
 //   - Verify objects expected to be deleted in a later phase don't have a deletionTimestamp set.
-//   - Remove finalizers for objects in deletion.
+//   - Remove finalizers for this phase's BlockingObjects to unblock deletion of them.
+//
+// * Do a final verification:
+//   - Verify objects expected to get deleted in the last phase are gone.
+//   - Verify the Cluster object has a deletionTimestamp set but still exists.
+//   - Remove finalizer for the Cluster object.
 //
 // * Verify the Cluster object is gone.
 func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletionSpecInput) {
 	var (
-		specName             = "cluster-deletion"
-		input                ClusterDeletionSpecInput
-		namespace            *corev1.Namespace
-		cancelWatches        context.CancelFunc
-		clusterResources     *clusterctl.ApplyClusterTemplateAndWaitResult
-		finalizer            = "test.cluster.x-k8s.io/cluster-deletion"
-		objectsWithFinalizer []client.Object
+		specName         = "cluster-deletion"
+		input            ClusterDeletionSpecInput
+		namespace        *corev1.Namespace
+		cancelWatches    context.CancelFunc
+		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+		finalizer        = "test.cluster.x-k8s.io/cluster-deletion"
+		blockingObjects  []client.Object
 	)
 
 	BeforeEach(func() {
@@ -187,40 +195,13 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 			},
 		}, clusterResources)
 
-		// Get all objects relevant to the test by filtering for the kinds of the phases.
-		graph, err := clusterctlcluster.GetOwnerGraph(ctx, namespace.GetName(), input.BootstrapClusterProxy.GetKubeconfigPath(), clusterctlcluster.FilterClusterObjectsWithNameFilter(clusterName))
-		Expect(err).ToNot(HaveOccurred())
+		// Get all objects per deletion phase and the list of blocking objects.
+		var objectsPerPhase [][]client.Object
+		objectsPerPhase, blockingObjects = getDeletionPhaseObjects(ctx, input.BootstrapClusterProxy, clusterResources.Cluster, input.ClusterDeletionPhases)
 
-		for i, phase := range input.ClusterDeletionPhases {
-			// Iterate over the graph and find all objects relevant for the phase.
-			// * Objects matching the kind except for Machines (see below)
-			// * Machines which are owned by one of the kinds which are part of the phase
-			for _, node := range graph {
-				if !phase.DeletionSelector(node) {
-					continue
-				}
-
-				obj := new(unstructured.Unstructured)
-				obj.SetAPIVersion(node.Object.APIVersion)
-				obj.SetKind(node.Object.Kind)
-				obj.SetName(node.Object.Name)
-				obj.SetNamespace(namespace.GetName())
-
-				phase.objects = append(phase.objects, obj)
-
-				// Add the object to the objectsWithFinalizer array if it should be blocking.
-				if phase.IsBlocking(node) {
-					objectsWithFinalizer = append(objectsWithFinalizer, obj)
-				}
-			}
-
-			// Update the phase in input.ClusterDeletionPhases
-			input.ClusterDeletionPhases[i] = phase
-		}
-
-		// Update all objects in objectsWithFinalizers and add the finalizer for this test to control when these objects vanish.
+		// Add a finalizer to all objects in blockingObjects to control when these objects are gone.
 		By(fmt.Sprintf("Adding finalizer %s on objects to block during cluster deletion", finalizer))
-		addFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, objectsWithFinalizer...)
+		addFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, blockingObjects...)
 
 		// Trigger the deletion of the Cluster.
 		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
@@ -230,67 +211,43 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 
 		var expectedObjectsDeleted, expectedObjectsInDeletion []client.Object
 
-		for i, phase := range input.ClusterDeletionPhases {
-			By(fmt.Sprintf("Verify deletion phase %d/%d", i+1, len(input.ClusterDeletionPhases)))
-			// Objects which previously were in deletion because they waited for our finalizer being removed are now checked to actually had been removed.
+		// Verify deletion for each phase.
+		for i, phaseObjects := range objectsPerPhase {
+			By(fmt.Sprintf("Verify deletion phase %d/%d", i+1, len(objectsPerPhase)))
+			// Expect the objects of the previous phase to be deleted.
 			expectedObjectsDeleted = expectedObjectsInDeletion
-			// All objects for this phase are expected to get into deletion (still exist and have deletionTimestamp set).
-			expectedObjectsInDeletion = phase.objects
-			// All objects which are part of future phases are expected to not yet be in deletion.
+			// Expect the objects of this phase to have a deletionTimestamp set, but still exist due to the blocking objects having the finalizer.
+			expectedObjectsInDeletion = phaseObjects
+			// Expect the objects of upcoming phases to not yet have a deletionTimestamp set.
 			expectedObjectsNotInDeletion := []client.Object{}
-			for j := i + 1; j < len(input.ClusterDeletionPhases); j++ {
-				expectedObjectsNotInDeletion = append(expectedObjectsNotInDeletion, input.ClusterDeletionPhases[j].objects...)
+			for j := i + 1; j < len(objectsPerPhase); j++ {
+				expectedObjectsNotInDeletion = append(expectedObjectsNotInDeletion, objectsPerPhase[j]...)
 			}
 
-			Eventually(func() error {
-				var errs []error
-				// Ensure deleted objects are gone
-				for _, obj := range expectedObjectsDeleted {
-					err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj)
-					if err != nil {
-						if apierrors.IsNotFound(err) {
-							continue
-						}
-						errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
-						continue
-					}
-					errs = append(errs, fmt.Errorf("expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
-				}
-
-				// Ensure expected objects are in deletion
-				for _, obj := range expectedObjectsInDeletion {
-					if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-						errs = append(errs, errors.Wrapf(err, "checking %s %s is in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
-						continue
-					}
-					if obj.GetDeletionTimestamp().IsZero() {
-						errs = append(errs, errors.Wrapf(err, "expected %s %s to be in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
-						continue
-					}
-				}
-
-				// Ensure other objects are not in deletion.
-				for _, obj := range expectedObjectsNotInDeletion {
-					if err := input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-						errs = append(errs, errors.Wrapf(err, "checking %s %s is not in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
-						continue
-					}
-
-					if !obj.GetDeletionTimestamp().IsZero() {
-						errs = append(errs, errors.Wrapf(err, "expected %s %s to not be in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
-						continue
-					}
-				}
-
-				return kerrors.NewAggregate(errs)
-			}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
+			assertDeletionPhase(ctx, input.BootstrapClusterProxy.GetClient(),
+				expectedObjectsDeleted,
+				expectedObjectsInDeletion,
+				expectedObjectsNotInDeletion,
+			)
 
 			// Remove the test's finalizer from all objects which had been expected to be in deletion to unblock the next phase.
 			By(fmt.Sprintf("Removing finalizers for phase %d/%d", i+1, len(input.ClusterDeletionPhases)))
 			removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, expectedObjectsInDeletion...)
 		}
 
-		// The last phase should unblock the cluster to actually have been removed.
+		By("Final deletion verification")
+		// Verify that all objects of the last phase are gone and the cluster does still exist.
+		expectedObjectsDeleted = expectedObjectsInDeletion
+		assertDeletionPhase(ctx, input.BootstrapClusterProxy.GetClient(),
+			expectedObjectsDeleted,
+			[]client.Object{clusterResources.Cluster},
+			nil,
+		)
+
+		// Remove the test's finalizer from the cluster object.
+		By("Removing finalizers for Cluster")
+		removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, clusterResources.Cluster)
+
 		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(clusterResources.Cluster))
 		framework.WaitForClusterDeleted(ctx, framework.WaitForClusterDeletedInput{
 			Client:         input.BootstrapClusterProxy.GetClient(),
@@ -307,7 +264,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 
 		if !input.SkipCleanup {
 			// Remove finalizers we added to block normal deletion.
-			removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, objectsWithFinalizer...)
+			removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, blockingObjects...)
 
 			By(fmt.Sprintf("Deleting cluster %s", klog.KObj(clusterResources.Cluster)))
 			// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
@@ -327,6 +284,45 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 		}
 		cancelWatches()
 	})
+}
+
+// getDeletionPhaseObjects gets the OwnerGraph for the cluster and returns all objects per phase and an additional array
+// with all objects which should block during the cluster deletion.
+func getDeletionPhaseObjects(ctx context.Context, bootstrapClusterProxy framework.ClusterProxy, cluster *clusterv1.Cluster, phases []ClusterDeletionPhase) (objectsPerPhase [][]client.Object, blockingObjects []client.Object) {
+	// Add Cluster object to blockingObjects to control when it gets actually removed during the test
+	// and to be able to cleanup the Cluster during Teardown on failures.
+	blockingObjects = append(blockingObjects, cluster)
+
+	// Get all objects relevant to the test by filtering for the kinds of the phases.
+	graph, err := clusterctlcluster.GetOwnerGraph(ctx, cluster.GetNamespace(), bootstrapClusterProxy.GetKubeconfigPath(), clusterctlcluster.FilterClusterObjectsWithNameFilter(cluster.GetName()))
+	Expect(err).ToNot(HaveOccurred())
+
+	for _, phase := range phases {
+		objects := []client.Object{}
+		// Iterate over the graph and find all objects relevant for the phase and which of them should be blocking.
+		for _, node := range graph {
+			// Check if the node should be part of the phase.
+			if !phase.ObjectFilter(node.Object, node.Owners) {
+				continue
+			}
+
+			obj := new(unstructured.Unstructured)
+			obj.SetAPIVersion(node.Object.APIVersion)
+			obj.SetKind(node.Object.Kind)
+			obj.SetName(node.Object.Name)
+			obj.SetNamespace(cluster.GetNamespace())
+
+			objects = append(objects, obj)
+
+			// Add the object to the objectsWithFinalizer array if it should be blocking.
+			if phase.BlockingObjectFilter(node.Object, node.Owners) {
+				blockingObjects = append(blockingObjects, obj)
+			}
+		}
+
+		objectsPerPhase = append(objectsPerPhase, objects)
+	}
+	return
 }
 
 func addFinalizer(ctx context.Context, c client.Client, finalizer string, objs ...client.Object) {
@@ -366,4 +362,49 @@ func removeFinalizer(ctx context.Context, c client.Client, finalizer string, obj
 		obj.SetFinalizers(finalizers)
 		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred(), fmt.Sprintf("Failed to remove finalizer from %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 	}
+}
+
+func assertDeletionPhase(ctx context.Context, c client.Client, expectedObjectsDeleted, expectedObjectsInDeletion, expectedObjectsNotInDeletion []client.Object) {
+	Eventually(func() error {
+		var errs []error
+		// Ensure deleted objects are gone
+		for _, obj := range expectedObjectsDeleted {
+			err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					continue
+				}
+				errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				continue
+			}
+			errs = append(errs, fmt.Errorf("expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+		}
+
+		// Ensure expected objects are in deletion
+		for _, obj := range expectedObjectsInDeletion {
+			if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+				errs = append(errs, errors.Wrapf(err, "checking %s %s is in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				continue
+			}
+			if obj.GetDeletionTimestamp().IsZero() {
+				errs = append(errs, errors.Errorf("expected %s %s to be in deletion but deletionTimestamp is not set", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				continue
+			}
+		}
+
+		// Ensure other objects are not in deletion.
+		for _, obj := range expectedObjectsNotInDeletion {
+			if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+				errs = append(errs, errors.Wrapf(err, "checking %s %s is not in deletion", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				continue
+			}
+
+			if !obj.GetDeletionTimestamp().IsZero() {
+				errs = append(errs, errors.Errorf("expected %s %s to not be in deletion but deletionTimestamp is set", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+				continue
+			}
+		}
+
+		return kerrors.NewAggregate(errs)
+	}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 }

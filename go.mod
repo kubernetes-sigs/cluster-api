@@ -16,7 +16,7 @@ require (
 	github.com/flatcar/container-linux-config-transpiler v0.9.4
 	github.com/flatcar/ignition v0.36.2
 	github.com/go-logr/logr v1.4.2
-	github.com/gobuffalo/flect v1.0.2
+	github.com/gobuffalo/flect v1.0.3
 	// Note: This must be kept in sync with the version used by k8s.io.
 	github.com/google/cel-go v0.20.1
 	github.com/google/go-cmp v0.6.0

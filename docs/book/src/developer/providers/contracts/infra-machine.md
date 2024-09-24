@@ -114,7 +114,7 @@ accordingly.
 
 The following diagram shows the typical logic for a machine infrastructure provider:
 
-![Machine infrastructure provider activity diagram](../../images/machine-infra-provider.png)
+![Machine infrastructure provider activity diagram](../../../images/machine-infra-provider.png)
 
 ### Normal resource
 
@@ -212,4 +212,4 @@ Note, the write permissions allow the `Machine` controller to set owner referenc
 
 ## Security Guidelines
 
-Please refer to [Infrastructure Provider Security Guidance](../../security/infrastructure-provider-security-guidance.md).
+Please refer to [Infrastructure Provider Security Guidance](../security-guidelines.md).

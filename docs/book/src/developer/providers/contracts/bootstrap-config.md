@@ -111,7 +111,7 @@ accordingly.
 
 The following diagram shows the typical logic for a bootstrap provider:
 
-![Bootstrap provider activity diagram](../../images/bootstrap-provider.png)
+![Bootstrap provider activity diagram](../../../images/bootstrap-provider.png)
 
 1. If the resource does not have a `Machine` owner, exit the reconciliation
     1. The Cluster API `Machine` reconciler populates this based on the value in the `Machine`'s `spec.bootstrap.configRef`

@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -31,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -224,7 +226,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 				expectedObjectsNotInDeletion = append(expectedObjectsNotInDeletion, objectsPerPhase[j]...)
 			}
 
-			assertDeletionPhase(ctx, input.BootstrapClusterProxy.GetClient(),
+			assertDeletionPhase(ctx, input.BootstrapClusterProxy.GetClient(), finalizer,
 				expectedObjectsDeleted,
 				expectedObjectsInDeletion,
 				expectedObjectsNotInDeletion,
@@ -238,7 +240,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 		By("Final deletion verification")
 		// Verify that all objects of the last phase are gone and the cluster does still exist.
 		expectedObjectsDeleted = expectedObjectsInDeletion
-		assertDeletionPhase(ctx, input.BootstrapClusterProxy.GetClient(),
+		assertDeletionPhase(ctx, input.BootstrapClusterProxy.GetClient(), finalizer,
 			expectedObjectsDeleted,
 			[]client.Object{clusterResources.Cluster},
 			nil,
@@ -364,7 +366,7 @@ func removeFinalizer(ctx context.Context, c client.Client, finalizer string, obj
 	}
 }
 
-func assertDeletionPhase(ctx context.Context, c client.Client, expectedObjectsDeleted, expectedObjectsInDeletion, expectedObjectsNotInDeletion []client.Object) {
+func assertDeletionPhase(ctx context.Context, c client.Client, finalizer string, expectedObjectsDeleted, expectedObjectsInDeletion, expectedObjectsNotInDeletion []client.Object) {
 	Eventually(func() error {
 		var errs []error
 		// Ensure deleted objects are gone
@@ -390,6 +392,13 @@ func assertDeletionPhase(ctx context.Context, c client.Client, expectedObjectsDe
 				errs = append(errs, errors.Errorf("expected %s %s to be in deletion but deletionTimestamp is not set", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				continue
 			}
+
+			// Blocking objects have our finalizer set. When being excepted to be in deletion,
+			// blocking objects should only have our finalizer, otherwise they are getting blocked by something else.
+			if sets.New[string](obj.GetFinalizers()...).Has(finalizer) && len(obj.GetFinalizers()) > 1 {
+				errs = append(errs, errors.Errorf("expected blocking %s %s to only have %s as finalizer, got [%s]", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), finalizer, strings.Join(obj.GetFinalizers(), ", ")))
+				continue
+			}
 		}
 
 		// Ensure other objects are not in deletion.
@@ -407,4 +416,8 @@ func assertDeletionPhase(ctx context.Context, c client.Client, expectedObjectsDe
 
 		return kerrors.NewAggregate(errs)
 	}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
+}
+
+func hasFinalizer(wantFinalizer string, finalizers []string) bool {
+	return sets.New[string](finalizers...).Has(wantFinalizer)
 }

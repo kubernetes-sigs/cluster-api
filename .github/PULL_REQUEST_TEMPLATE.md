@@ -1,5 +1,5 @@
 <!-- Thanks for sending a pull request! Here are some tips for you:
-    1. If this is your first time, please read our contributor guidelines: https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#contributing-a-patch and developer guide https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/book/src/developer/guide.md
+    1. If this is your first time, please read our contributor guidelines: https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#contributing-a-patch and developer guide https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/book/src/developer/getting-started.md
 
     2. Please add an icon to the title of this PR (see https://sigs.k8s.io/cluster-api/CONTRIBUTING.md#contributing-a-patch), and delete this line and similar ones
     the icon will be either ⚠️ (:warning:, major or breaking changes), ✨ (:sparkles:, feature additions), 🐛 (:bug:, patch and bugfixes), 📖 (:book:, documentation or proposals), or 🌱 (:seedling:, minor or other) 

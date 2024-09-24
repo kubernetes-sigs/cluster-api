@@ -379,11 +379,17 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				return ctrl.Result{}, err
 			}
 
-			// The DrainingSucceededCondition never exists before the node is drained for the first time,
-			// so its transition time can be used to record the first time draining.
+			// The DrainingSucceededCondition never exists before the node is drained for the first time.
 			// This `if` condition prevents the transition time to be changed more than once.
 			if conditions.Get(m, clusterv1.DrainingSucceededCondition) == nil {
 				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
+			}
+
+			if m.Status.Deletion == nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+			}
+			if m.Status.Deletion.NodeDrainStartTime == nil {
+				m.Status.Deletion.NodeDrainStartTime = ptr.To(metav1.Now())
 			}
 
 			if err := patchMachine(ctx, patchHelper, m); err != nil {
@@ -409,13 +415,15 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		// volumes are detached before proceeding to delete the Node.
 		// In case the node is unreachable, the detachment is skipped.
 		if r.isNodeVolumeDetachingAllowed(m) {
-			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time,
-			// so its transition time can be used to record the first time we wait for volume detachment.
+			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
 			// This `if` condition prevents the transition time to be changed more than once.
 			if conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
 				conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
 			}
 
+			if m.Status.Deletion == nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+			}
 			if m.Status.Deletion.WaitForNodeVolumeDetachStartTime == nil {
 				m.Status.Deletion.WaitForNodeVolumeDetachStartTime = ptr.To(metav1.Now())
 			}
@@ -528,7 +536,7 @@ func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine) bool {
 
 func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 	// if the NodeDrainTimeout type is not set by user
-	if machine.Spec.NodeDrainTimeout == nil || machine.Spec.NodeDrainTimeout.Seconds() <= 0 {
+	if machine.Status.Deletion == nil || machine.Spec.NodeDrainTimeout == nil || machine.Spec.NodeDrainTimeout.Seconds() <= 0 {
 		return false
 	}
 
@@ -547,11 +555,11 @@ func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 // since the WaitForNodeVolumeDetachStartTime.
 func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine) bool {
 	// if the NodeVolumeDetachTimeout type is not set by user
-	if machine.Spec.NodeVolumeDetachTimeout == nil || machine.Spec.NodeVolumeDetachTimeout.Seconds() <= 0 {
+	if machine.Status.Deletion == nil || machine.Spec.NodeVolumeDetachTimeout == nil || machine.Spec.NodeVolumeDetachTimeout.Seconds() <= 0 {
 		return false
 	}
 
-	// if the NodeVolumeDetachStartTime does not exist
+	// if the WaitForNodeVolumeDetachStartTime does not exist
 	if machine.Status.Deletion.WaitForNodeVolumeDetachStartTime == nil {
 		return false
 	}
@@ -698,10 +706,6 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 		//     "NoExecute": "Pods that do not tolerate the taint are evicted immediately""
 		// * our drain code will now ignore the Pods (as they quickly have a deletionTimestamp older than 2 seconds)
 		log.V(3).Info("Node is unreachable, draining will use 1s GracePeriodSeconds and will ignore all Pods that have a deletionTimestamp > 1s old")
-	}
-
-	if machine.Status.Deletion.NodeDrainStartTime == nil {
-		machine.Status.Deletion.NodeDrainStartTime = ptr.To(metav1.Now())
 	}
 
 	if err := drainer.CordonNode(ctx, node); err != nil {

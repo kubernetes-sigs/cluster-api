@@ -67,6 +67,8 @@ var _ = Describe("When testing Cluster API working on single-node self-hosted cl
 			Flavor:                   "topology-single-kcp-cluster",
 			InfrastructureProvider:   ptr.To("docker"),
 			ControlPlaneMachineCount: ptr.To[int64](1),
+			// Note: the used temolate is not using the corresponding variable.
+			WorkerMachineCount: ptr.To[int64](0),
 		}
 	})
 })

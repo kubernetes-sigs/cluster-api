@@ -322,7 +322,7 @@ func getDeletionPhaseObjects(ctx context.Context, bootstrapClusterProxy framewor
 
 		objectsPerPhase = append(objectsPerPhase, objects)
 	}
-	return
+	return objectsPerPhase, blockingObjects
 }
 
 func addFinalizer(ctx context.Context, c client.Client, finalizer string, objs ...client.Object) {

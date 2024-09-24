@@ -49,7 +49,7 @@ var _ = Describe("When performing cluster deletion with ClusterClass [ClusterCla
 						return sets.New[string]("MachineDeployment", "MachineSet").Has(objectReference.Kind)
 					},
 					// Of the above, only Machines should be considered to be blocking to test foreground deletion.
-					BlockingObjectFilter: func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool {
+					BlockingObjectFilter: func(objectReference corev1.ObjectReference, _ []metav1.OwnerReference) bool {
 						return objectReference.Kind == "Machine"
 					},
 				},
@@ -62,17 +62,17 @@ var _ = Describe("When performing cluster deletion with ClusterClass [ClusterCla
 						return objectReference.Kind == "KubeadmControlPlane"
 					},
 					// Of the above, only Machines should be considered to be blocking to test foreground deletion.
-					BlockingObjectFilter: func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool {
+					BlockingObjectFilter: func(objectReference corev1.ObjectReference, _ []metav1.OwnerReference) bool {
 						return objectReference.Kind == "Machine"
 					},
 				},
 				{
 					// The DockerCluster should be deleted in this phase.
-					ObjectFilter: func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool {
+					ObjectFilter: func(objectReference corev1.ObjectReference, _ []metav1.OwnerReference) bool {
 						return objectReference.Kind == "DockerCluster"
 					},
 					// Of the above, the DockerCluster should be considered to be blocking.
-					BlockingObjectFilter: func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool {
+					BlockingObjectFilter: func(objectReference corev1.ObjectReference, _ []metav1.OwnerReference) bool {
 						return objectReference.Kind == "DockerCluster"
 					},
 				},

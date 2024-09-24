@@ -417,7 +417,3 @@ func assertDeletionPhase(ctx context.Context, c client.Client, finalizer string,
 		return kerrors.NewAggregate(errs)
 	}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
 }
-
-func hasFinalizer(wantFinalizer string, finalizers []string) bool {
-	return sets.New[string](finalizers...).Has(wantFinalizer)
-}

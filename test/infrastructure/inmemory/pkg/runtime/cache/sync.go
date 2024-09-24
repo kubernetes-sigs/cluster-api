@@ -50,8 +50,10 @@ func (c *cache) startSyncer(ctx context.Context) error {
 		c.syncQueue.ShutDown()
 	}()
 
+	syncLoopStarted := make(chan struct{})
 	go func() {
 		log.Info("Starting sync loop")
+		syncLoopStarted <- struct{}{}
 		for {
 			select {
 			case <-time.After(c.syncPeriod / 4):
@@ -78,6 +80,8 @@ func (c *cache) startSyncer(ctx context.Context) error {
 		<-ctx.Done()
 		wg.Wait()
 	}()
+
+	<-syncLoopStarted
 
 	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (done bool, err error) {
 		if atomic.LoadInt64(&workers) < int64(c.syncConcurrency) {

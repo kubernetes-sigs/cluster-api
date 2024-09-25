@@ -18,9 +18,11 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -38,7 +40,7 @@ type moveOptions struct {
 	fromDirectory         string
 	toDirectory           string
 	dryRun                bool
-	hideAPIWarnings       bool
+	hideAPIWarnings       string
 }
 
 var mo = &moveOptions{}
@@ -85,8 +87,8 @@ func init() {
 		"Write Cluster API objects and all dependencies from a management cluster to directory.")
 	moveCmd.Flags().StringVar(&mo.fromDirectory, "from-directory", "",
 		"Read Cluster API objects and all dependencies from a directory into a management cluster.")
-	moveCmd.Flags().BoolVar(&mo.hideAPIWarnings, "hide-api-warnings", true,
-		"Hide warnings returned by the API server.")
+	moveCmd.Flags().StringVar(&mo.hideAPIWarnings, "hide-api-warnings", "default",
+		"Set of API server warnings to hide. Valid sets are \"default\" (includes metadata.finalizer warnings), \"all\" , and \"none\".")
 
 	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-kubeconfig")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-directory")
@@ -111,7 +113,23 @@ func runMove() error {
 	}
 
 	clientOptions := []client.Option{}
-	if mo.hideAPIWarnings {
+
+	var warningHandler rest.WarningHandler
+	switch mo.hideAPIWarnings {
+	case "all":
+		warningHandler = rest.NoWarnings{}
+	case "default":
+		warningHandler = apiwarnings.DefaultHandler(logf.Log.WithName("API Server Warning"))
+	case "none":
+		warningHandler = nil
+	default:
+		return fmt.Errorf(
+			"set of API warnings %q is unknown; choose \"default\", \"all\", or \"none\"",
+			mo.hideAPIWarnings,
+		)
+	}
+
+	if warningHandler != nil {
 		clientOptions = append(clientOptions,
 			client.InjectClusterClientFactory(
 				func(input client.ClusterClientFactoryInput) (cluster.Client, error) {
@@ -123,9 +141,7 @@ func runMove() error {
 							cluster.NewProxy(
 								cluster.Kubeconfig(input.Kubeconfig),
 								cluster.InjectWarningHandler(
-									apiwarnings.DefaultHandler(
-										logf.Log.WithName("API Server Warning"),
-									),
+									warningHandler,
 								),
 							)),
 					), nil

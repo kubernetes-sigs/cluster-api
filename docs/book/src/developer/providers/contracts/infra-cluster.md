@@ -119,7 +119,7 @@ rules:
     - watch
 ```
 
-Note: The write permissions allow the Cluster controller to set owner references and labels on the InfraCluster” resources;
+Note: The write permissions allow the Cluster controller to set owner references and labels on the InfraCluster resources;
 write permissions are not used for general mutations of InfraCluster resources, unless specifically required (e.g. when
 using ClusterClass and managed topologies).
 
@@ -271,7 +271,7 @@ Each InfraCluster MUST report when Cluster's infrastructure is fully provisioned
 
 ```go
 type FooClusterStatus struct {
-    // Ready denotes that the foo cluster infrastructure fully provisioned.
+    // Ready denotes that the foo cluster infrastructure is fully provisioned.
     // +optional
     Ready bool `json:"ready"`
     
@@ -282,7 +282,7 @@ type FooClusterStatus struct {
 
 Once `status.ready` the Cluster "core" controller will bubbles up this info in Cluster's `status.infrastructureReady`;
 If defined, also InfraCluster's `spec.controlPlaneEndpoint` and `status.failureDomains` will be surfaced on Cluster's
-corresponding field at the same time.
+corresponding fields at the same time.
 
 <aside class="note warning">
 

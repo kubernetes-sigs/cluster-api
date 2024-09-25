@@ -217,7 +217,8 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass w
 			SkipCleanup:            skipCleanup,
 			Flavor:                 ptr.To("topology-kcp-only"),
 			InfrastructureProvider: ptr.To("docker"),
-			WorkerMachineCount:     ptr.To[int64](0),
+			// Note: the used template is not using the corresponding variable
+			WorkerMachineCount: ptr.To[int64](0),
 		}
 	})
 })

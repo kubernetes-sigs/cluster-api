@@ -1,0 +1,9 @@
+resources:
+  - ../cluster-template-topology-no-workers
+
+patches:
+- path: cluster-topology-class.yaml
+  target:
+    group: cluster.x-k8s.io
+    version: v1beta1
+    kind: Cluster

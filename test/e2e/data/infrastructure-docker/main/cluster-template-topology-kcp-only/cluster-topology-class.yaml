@@ -1,0 +1,3 @@
+- op: add
+  path: /spec/topology/class
+  value: "quick-start-kcp-only"

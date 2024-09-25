@@ -64,7 +64,7 @@ var _ = Describe("When testing Cluster API working on single-node self-hosted cl
 			BootstrapClusterProxy:    bootstrapClusterProxy,
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
-			Flavor:                   "topology-single-kcp-cluster",
+			Flavor:                   "topology-no-workers",
 			InfrastructureProvider:   ptr.To("docker"),
 			ControlPlaneMachineCount: ptr.To[int64](1),
 			// Note: the used temolate is not using the corresponding variable.

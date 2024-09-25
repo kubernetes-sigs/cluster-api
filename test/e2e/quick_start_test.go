@@ -207,7 +207,7 @@ var _ = Describe("When following the Cluster API quick-start with dualstack and 
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass with a zero worker count [ClusterClass]", func() {
+var _ = Describe("When following the Cluster API quick-start with ClusterClass without any worker definitions [ClusterClass]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:              e2eConfig,
@@ -215,7 +215,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass w
 			BootstrapClusterProxy:  bootstrapClusterProxy,
 			ArtifactFolder:         artifactFolder,
 			SkipCleanup:            skipCleanup,
-			Flavor:                 ptr.To("topology"),
+			Flavor:                 ptr.To("topology-kcp-only"),
 			InfrastructureProvider: ptr.To("docker"),
 			WorkerMachineCount:     ptr.To[int64](0),
 		}

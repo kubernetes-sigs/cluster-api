@@ -41,12 +41,12 @@ var _ = Describe("When performing cluster deletion with ClusterClass [ClusterCla
 
 			ClusterDeletionPhases: []ClusterDeletionPhase{
 				{
-					// All Machines owned by MachineDeployments or MachineSets and themselves should be deleted in this phase.
+					// All Machines owned by MachineDeployments or MachineSets, MachineDeployments and MachineSets should be deleted in this phase.
 					ObjectFilter: func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool {
 						if objectReference.Kind == "Machine" && hasOwner(objectOwnerReferences, "MachineDeployment", "MachineSet") {
 							return true
 						}
-						return sets.New[string]("MachineDeployment", "MachineSet").Has(objectReference.Kind)
+						return objectReference.Kind == "MachineDeployment" || objectReference.Kind == "MachineSet"
 					},
 					// Of the above, only Machines should be considered to be blocking to test foreground deletion.
 					BlockingObjectFilter: func(objectReference corev1.ObjectReference, _ []metav1.OwnerReference) bool {
@@ -54,7 +54,7 @@ var _ = Describe("When performing cluster deletion with ClusterClass [ClusterCla
 					},
 				},
 				{
-					// All Machines owned by KubeadmControlPlane and itself should be deleted in this phase.
+					// All Machines owned by KubeadmControlPlane and KubeadmControlPlane should be deleted in this phase.
 					ObjectFilter: func(objectReference corev1.ObjectReference, objectOwnerReferences []metav1.OwnerReference) bool {
 						if objectReference.Kind == "Machine" && hasOwner(objectOwnerReferences, "KubeadmControlPlane") {
 							return true

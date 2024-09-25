@@ -36,6 +36,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -233,6 +234,7 @@ func ClusterDeletionSpec(ctx context.Context, inputGetter func() ClusterDeletion
 			)
 
 			// Remove the test's finalizer from all objects which had been expected to be in deletion to unblock the next phase.
+			// Note: this only removes the finalizer from objects which have it set.
 			By(fmt.Sprintf("Removing finalizers for phase %d/%d", i+1, len(input.ClusterDeletionPhases)))
 			removeFinalizer(ctx, input.BootstrapClusterProxy.GetClient(), finalizer, expectedObjectsInDeletion...)
 		}
@@ -335,7 +337,9 @@ func addFinalizer(ctx context.Context, c client.Client, finalizer string, objs .
 		helper, err := patch.NewHelper(obj, c)
 		Expect(err).ToNot(HaveOccurred())
 
-		obj.SetFinalizers(append(obj.GetFinalizers(), finalizer))
+		if updated := controllerutil.AddFinalizer(obj, finalizer); !updated {
+			continue
+		}
 
 		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred(), fmt.Sprintf("Failed to add finalizer to %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 	}
@@ -353,15 +357,10 @@ func removeFinalizer(ctx context.Context, c client.Client, finalizer string, obj
 		helper, err := patch.NewHelper(obj, c)
 		Expect(err).ToNot(HaveOccurred())
 
-		var finalizers []string
-		for _, f := range obj.GetFinalizers() {
-			if f == finalizer {
-				continue
-			}
-			finalizers = append(finalizers, f)
+		if updated := controllerutil.RemoveFinalizer(obj, finalizer); !updated {
+			continue
 		}
 
-		obj.SetFinalizers(finalizers)
 		Expect(helper.Patch(ctx, obj)).ToNot(HaveOccurred(), fmt.Sprintf("Failed to remove finalizer from %s %s", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 	}
 }
@@ -379,7 +378,7 @@ func assertDeletionPhase(ctx context.Context, c client.Client, finalizer string,
 				errs = append(errs, errors.Wrapf(err, "expected %s %s to be deleted", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 				continue
 			}
-			errs = append(errs, fmt.Errorf("expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
+			errs = append(errs, errors.Errorf("expected %s %s to be deleted but it still exists", obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj)))
 		}
 
 		// Ensure expected objects are in deletion

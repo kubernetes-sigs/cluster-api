@@ -380,7 +380,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			}
 
 			// The DrainingSucceededCondition never exists before the node is drained for the first time.
-			// This `if` condition prevents the transition time to be changed more than once.
 			if conditions.Get(m, clusterv1.DrainingSucceededCondition) == nil {
 				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
 			}
@@ -416,7 +415,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		// In case the node is unreachable, the detachment is skipped.
 		if r.isNodeVolumeDetachingAllowed(m) {
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
-			// This `if` condition prevents the transition time to be changed more than once.
 			if conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
 				conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
 			}

@@ -95,3 +95,40 @@ func TestDiscardMatchingHandler_uninitialized(t *testing.T) {
 		h.HandleWarningHeader(299, "", "example")
 	}).ToNot(Panic())
 }
+
+func TestDefaultHandler(t *testing.T) {
+	tests := []struct {
+		name       string
+		code       int
+		message    string
+		wantLogged bool
+	}{
+		{
+			name:       "log, if warning does not match any expression",
+			code:       299,
+			message:    `metadata.finalizers: "foo.example.com": prefer a domain-qualified finalizer name to avoid accidental conflicts with other finalizer writers`,
+			wantLogged: true,
+		},
+		{
+			name:       "do not log, if warning matches at least one expression",
+			code:       299,
+			message:    `metadata.finalizers: "dockermachine.infrastructure.cluster.x-k8s.io": prefer a domain-qualified finalizer name to avoid accidental conflicts with other finalizer writers`,
+			wantLogged: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			logged := false
+			h := DefaultHandler(
+				funcr.New(func(_, _ string) {
+					logged = true
+				},
+					funcr.Options{},
+				),
+			)
+			h.HandleWarningHeader(tt.code, "", tt.message)
+			g.Expect(logged).To(Equal(tt.wantLogged))
+		})
+	}
+}

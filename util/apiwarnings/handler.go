@@ -20,6 +20,8 @@ import (
 	"regexp"
 
 	"github.com/go-logr/logr"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // DiscardMatchingHandler is a handler that discards API server warnings
@@ -48,4 +50,16 @@ func (h *DiscardMatchingHandler) HandleWarningHeader(code int, _, message string
 	}
 
 	h.Logger.Info(message)
+}
+
+// DefaultHandler is a handler that discards warnings that are the result of
+// decisions made by the Cluster API project, but cannot be immediately
+// addressed, and are therefore not helpful to the user.
+func DefaultHandler(l logr.Logger) *DiscardMatchingHandler {
+	return &DiscardMatchingHandler{
+		Logger: l,
+		Expressions: []regexp.Regexp{
+			*DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
+		},
+	}
 }

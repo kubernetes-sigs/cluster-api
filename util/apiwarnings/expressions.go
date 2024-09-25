@@ -19,10 +19,6 @@ package apiwarnings
 import (
 	"fmt"
 	"regexp"
-
-	"github.com/go-logr/logr"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // DomainQualifiedFinalizerWarning is a regular expression that matches a
@@ -31,16 +27,4 @@ func DomainQualifiedFinalizerWarning(domain string) *regexp.Regexp {
 	return regexp.MustCompile(
 		fmt.Sprintf("^metadata.finalizers:.*%s.*prefer a domain-qualified finalizer name to avoid accidental conflicts with other finalizer writers$", domain),
 	)
-}
-
-// DefaultHandler is a handler that discards warnings that are the result of
-// decisions made by the Cluster API project, but cannot be immediately
-// addressed, and are therefore not helpful to the user.
-func DefaultHandler(l logr.Logger) *DiscardMatchingHandler {
-	return &DiscardMatchingHandler{
-		Logger: l,
-		Expressions: []regexp.Regexp{
-			*DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
-		},
-	}
 }

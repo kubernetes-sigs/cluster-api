@@ -59,7 +59,7 @@ func DefaultHandler(l logr.Logger) *DiscardMatchingHandler {
 	return &DiscardMatchingHandler{
 		Logger: l,
 		Expressions: []regexp.Regexp{
-			*DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
+			DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
 		},
 	}
 }

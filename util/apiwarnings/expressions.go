@@ -23,8 +23,8 @@ import (
 
 // DomainQualifiedFinalizerWarning is a regular expression that matches a
 // warning that the API server returns when a finalizer is not domain-qualified.
-func DomainQualifiedFinalizerWarning(domain string) *regexp.Regexp {
-	return regexp.MustCompile(
+func DomainQualifiedFinalizerWarning(domain string) regexp.Regexp {
+	return *regexp.MustCompile(
 		fmt.Sprintf("^metadata.finalizers:.*%s.*prefer a domain-qualified finalizer name to avoid accidental conflicts with other finalizer writers$", domain),
 	)
 }

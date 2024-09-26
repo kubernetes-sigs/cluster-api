@@ -890,6 +890,9 @@ func newMachineSet(name, cluster string, replicas int32) *clusterv1.MachineSet {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
+			Finalizers: []string{
+				clusterv1.MachineSetFinalizer,
+			},
 			Labels: map[string]string{
 				clusterv1.ClusterNameLabel: cluster,
 			},
@@ -930,6 +933,9 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				clusterv1.ClusterNameLabel: cluster.Name,
+			},
+			Finalizers: []string{
+				clusterv1.MachineSetFinalizer,
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{
@@ -2121,5 +2127,92 @@ func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *
 	// Check Finalizer
 	if expectedMachine.Finalizers != nil {
 		g.Expect(actualMachine.Finalizers).Should(Equal(expectedMachine.Finalizers))
+	}
+}
+
+func TestReconciler_reconcileDelete(t *testing.T) {
+	labels := map[string]string{
+		"some": "labelselector",
+	}
+	ms := builder.MachineSet("default", "ms0").WithClusterName("test").Build()
+	ms.Finalizers = []string{
+		clusterv1.MachineSetFinalizer,
+	}
+	ms.DeletionTimestamp = ptr.To(metav1.Now())
+	ms.Spec.Selector = metav1.LabelSelector{
+		MatchLabels: labels,
+	}
+	msWithoutFinalizer := ms.DeepCopy()
+	msWithoutFinalizer.Finalizers = []string{}
+	tests := []struct {
+		name         string
+		machineSet   *clusterv1.MachineSet
+		want         *clusterv1.MachineSet
+		objs         []client.Object
+		wantMachines []clusterv1.Machine
+		expectError  bool
+	}{
+		{
+			name:         "Should do nothing when no descendant Machines exist and finalizer is already gone",
+			machineSet:   msWithoutFinalizer.DeepCopy(),
+			want:         msWithoutFinalizer.DeepCopy(),
+			objs:         nil,
+			wantMachines: nil,
+			expectError:  false,
+		},
+		{
+			name:         "Should remove finalizer when no descendant Machines exist",
+			machineSet:   ms.DeepCopy(),
+			want:         msWithoutFinalizer.DeepCopy(),
+			objs:         nil,
+			wantMachines: nil,
+			expectError:  false,
+		},
+		{
+			name:       "Should keep finalizer when descendant Machines exist and trigger deletion only for descendant Machines",
+			machineSet: ms.DeepCopy(),
+			want:       ms.DeepCopy(),
+			objs: []client.Object{
+				builder.Machine("default", "m0").WithClusterName("test").WithLabels(labels).Build(),
+				builder.Machine("default", "m1").WithClusterName("test").WithLabels(labels).Build(),
+				builder.Machine("default", "m2-not-part-of-ms").WithClusterName("test").Build(),
+				builder.Machine("default", "m3-not-part-of-ms").WithClusterName("test").Build(),
+			},
+			wantMachines: []clusterv1.Machine{
+				*builder.Machine("default", "m2-not-part-of-ms").WithClusterName("test").Build(),
+				*builder.Machine("default", "m3-not-part-of-ms").WithClusterName("test").Build(),
+			},
+			expectError: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := fake.NewClientBuilder().WithObjects(tt.objs...).Build()
+			r := &Reconciler{
+				Client:   c,
+				recorder: record.NewFakeRecorder(32),
+			}
+
+			err := r.reconcileDelete(ctx, tt.machineSet)
+			if tt.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			g.Expect(tt.machineSet).To(BeComparableTo(tt.want))
+
+			machineList := &clusterv1.MachineList{}
+			g.Expect(c.List(ctx, machineList, client.InNamespace("default"))).ToNot(HaveOccurred())
+
+			// Remove ResourceVersion so we can actually compare.
+			for i := range machineList.Items {
+				machineList.Items[i].ResourceVersion = ""
+			}
+
+			g.Expect(machineList.Items).To(ConsistOf(tt.wantMachines))
+		})
 	}
 }

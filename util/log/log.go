@@ -19,6 +19,8 @@ package log
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -103,4 +105,26 @@ func getOwners(ctx context.Context, c client.Client, obj metav1.Object) ([]owner
 	}
 
 	return owners, nil
+}
+
+// ObjNamesString returns a comma separated list of the object names, limited to
+// five objects. On more than five objects it outputs the first five objects and
+// adds information about how much more are in the given list.
+func ObjNamesString[T client.Object](objs []T) string {
+	shortenedBy := 0
+	if len(objs) > 5 {
+		shortenedBy = len(objs) - 5
+		objs = objs[:5]
+	}
+
+	stringList := []string{}
+	for _, obj := range objs {
+		stringList = append(stringList, obj.GetName())
+	}
+
+	if shortenedBy > 0 {
+		stringList = append(stringList, fmt.Sprintf("... (%d more)", shortenedBy))
+	}
+
+	return strings.Join(stringList, ", ")
 }

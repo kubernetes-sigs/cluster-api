@@ -29,6 +29,10 @@ const (
 	// MachineSetTopologyFinalizer is the finalizer used by the topology MachineDeployment controller to
 	// clean up referenced template resources if necessary when a MachineSet is being deleted.
 	MachineSetTopologyFinalizer = "machineset.topology.cluster.x-k8s.io"
+
+	// MachineSetFinalizer is the finalizer used by the MachineSet controller to
+	// ensure ordered cleanup of corresponding Machines when a Machineset is being deleted.
+	MachineSetFinalizer = "cluster.x-k8s.io/machineset"
 )
 
 // ANCHOR: MachineSetSpec

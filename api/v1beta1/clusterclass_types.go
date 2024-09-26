@@ -35,8 +35,16 @@ const ClusterClassKind = "ClusterClass"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterClass"
 
 // ClusterClass is a template which can be used to create managed topologies.
+// +Metrics:gvk:namePrefix="capi_clusterclass"
+// +Metrics:labelFromPath:name="name",JSONPath=.metadata.name
+// +Metrics:labelFromPath:name="namespace",JSONPath=.metadata.namespace
+// +Metrics:labelFromPath:name="uid",JSONPath=.metadata.uid
+// +Metrics:info:name="info",help="Information about a clusterclass.",labelsFromPath={name:.metadata.name}
 type ClusterClass struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the clusterclass is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   ClusterClassSpec   `json:"spec,omitempty"`
@@ -890,6 +898,8 @@ type ClusterClassStatus struct {
 
 	// Conditions defines current observed state of the ClusterClass.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a clusterclass.",labelName="status",JSONPath=.status,list={"True","False","Unknown"},labelsFromPath={"type":".type"}
+	// +Metrics:gauge:name="status_condition_last_transition_time",help="The condition last transition time of a clusterclass.",valueFrom=.lastTransitionTime,labelsFromPath={"type":".type","status":".status"}
 	Conditions Conditions `json:"conditions,omitempty"`
 
 	// ObservedGeneration is the latest generation observed by the controller.

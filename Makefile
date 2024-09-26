@@ -66,6 +66,7 @@ CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 CAPIM_DIR := $(TEST_DIR)/infrastructure/inmemory
 TEST_EXTENSION_DIR := $(TEST_DIR)/extension
 GO_INSTALL := ./scripts/go_install.sh
+GO_INSTALL_FORK := ./scripts/go_install_fork.sh
 OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -106,10 +107,11 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.16.1
+CONTROLLER_GEN_VER := 28f149a996f13a897b7b60ad18f4080b9a183ff9
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
+CONTROLLER_GEN_PKG_REPLACE := sigs.k8s.io/controller-tools=github.com/chrischdi/controller-tools
 
 GOTESTSUM_VER := v1.11.0
 GOTESTSUM_BIN := gotestsum
@@ -621,18 +623,12 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(INMEMORY_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(INMEMORY_TEMPLATES)/main/cluster-template.yaml
 
 .PHONY: generate-metrics-config
-generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./config/metrics/crd-metrics-config.yaml
-	OUTPUT_FILE="./config/metrics/crd-metrics-config.yaml"; \
-	METRIC_TEMPLATES_DIR="./config/metrics/templates"; \
-	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
-	cat "$${METRIC_TEMPLATES_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
-	for resource in clusterclass cluster kubeadmcontrolplane kubeadmconfig machine machinedeployment machinehealthcheck machineset machinepool; do \
-		cat "$${METRIC_TEMPLATES_DIR}/$${resource}.yaml"; \
-		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRIC_TEMPLATES_DIR}/common_metrics.yaml"; \
-		if [[ "$${resource}" != "cluster" ]]; then \
-			cat "$${METRIC_TEMPLATES_DIR}/owner_metric.yaml"; \
-		fi \
-	done >> "$${OUTPUT_FILE}"; \
+generate-metrics-config: $(CONTROLLER_GEN) ## Generate ./config/metrics/crd-metrics-config.yaml
+	$(CONTROLLER_GEN) metrics output:metrics:dir=./config/metrics \
+		paths=./api/... \
+		paths=./controlplane/kubeadm/api/... \
+		paths=./bootstrap/kubeadm/api/... \
+		paths=./exp/api/...
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files
@@ -1449,7 +1445,7 @@ $(GOVULNCHECK_BIN): $(GOVULNCHECK) ## Build a local copy of govulncheck.
 $(IMPORT_BOSS_BIN): $(IMPORT_BOSS)
 
 $(CONTROLLER_GEN): # Build controller-gen from tools folder.
-	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL_FORK) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER) $(CONTROLLER_GEN_PKG_REPLACE)
 
 ## We are forcing a rebuilt of conversion-gen via PHONY so that we're always using an up-to-date version.
 ## We can't use a versioned name for the binary, because that would be reflected in generated files.

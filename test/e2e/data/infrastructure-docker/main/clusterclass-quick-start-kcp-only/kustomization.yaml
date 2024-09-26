@@ -1,0 +1,19 @@
+resources:
+  - ../clusterclass-quick-start.yaml
+
+patches:
+- path: remove-workers.yaml
+  target:
+    group: cluster.x-k8s.io
+    version: v1beta1
+    kind: ClusterClass
+- path: clusterclass-name.yaml
+  target:
+    group: cluster.x-k8s.io
+    version: v1beta1
+    kind: ClusterClass
+- path: remove-worker-patches.yaml
+  target:
+    group: cluster.x-k8s.io
+    version: v1beta1
+    kind: ClusterClass

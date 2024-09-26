@@ -12,6 +12,9 @@ hack/tools/bin
 
 # E2E test templates
 test/e2e/data/infrastructure-docker/**/cluster-template*.yaml
+!test/e2e/data/infrastructure-docker/**/clusterclass-quick-start.yaml
+!test/e2e/data/infrastructure-docker/**/clusterclass-quick-start-runtimesdk.yaml
+test/e2e/data/infrastructure-docker/**/clusterclass-*.yaml
 test/e2e/data/infrastructure-inmemory/**/cluster-template*.yaml
 
 # Output of Makefile targets using sed on MacOS systems

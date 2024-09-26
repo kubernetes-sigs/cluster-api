@@ -58,6 +58,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [Externally managed infrastructure]                                  | No        |                                                                     |
 | [Multi tenancy]                                                      | No        | Mandatory for clusterctl CLI support                                |
 | [Clusterctl support]                                                 | No        | Mandatory for clusterctl CLI support                                |
+| [InfraCluster: pausing]                                              | No        |                                                                     |
 
 Note:
 - `All resources` refers to all the provider's resources "core" Cluster API interacts with;
@@ -335,6 +336,12 @@ the implication of this choice which are described both in the document above an
 
 </aside>
 
+### InfraCluster: pausing
+
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraCluster object.
+
+If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
+
 ### InfraCluster: terminal failures
 
 Each InfraCluster SHOULD report when Cluster's enter in a state that cannot be recovered (terminal failure) by
@@ -525,3 +532,4 @@ is implemented in InfraCluster controllers:
 [clusterctl provider contract]: clusterctl.md
 [implementation best practices]: ../best-practices.md
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
+[InfraCluster: pausing]: #infracluster-pausing

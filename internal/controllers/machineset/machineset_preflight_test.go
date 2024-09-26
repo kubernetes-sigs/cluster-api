@@ -68,8 +68,6 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 		Build()
 
 	t.Run("should run preflight checks if the feature gate is enabled", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
-
 		tests := []struct {
 			name         string
 			cluster      *clusterv1.Cluster

@@ -1,4 +1,4 @@
-# Experimental Feature: MachineSetPreflightChecks (alpha)
+# Experimental Feature: MachineSetPreflightChecks (beta)
 
 The `MachineSetPreflightChecks` feature can provide additional safety while creating new Machines and remediating existing unhealthy Machines of a MachineSet.
 

@@ -58,7 +58,11 @@ type KubeadmConfigSpec struct {
 	// +optional
 	Mounts []MountPoints `json:"mounts,omitempty"`
 
-	// preKubeadmCommands specifies extra commands to run before kubeadm runs
+	// BootCommands specifies extra commands to run before kubeadm runs
+	// +optional
+	BootCommands []BootCommand `json:"bootCommands,omitempty"`
+
+	// PreKubeadmCommands specifies extra commands to run before kubeadm runs
 	// +optional
 	PreKubeadmCommands []string `json:"preKubeadmCommands,omitempty"`
 
@@ -335,3 +339,5 @@ type Filesystem struct {
 
 // MountPoints defines input for generated mounts in cloud-init.
 type MountPoints []string
+
+type BootCommand []string

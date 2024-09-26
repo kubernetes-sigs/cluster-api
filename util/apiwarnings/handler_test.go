@@ -132,3 +132,46 @@ func TestDefaultHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestLogAllHandler(t *testing.T) {
+	tests := []struct {
+		name       string
+		code       int
+		message    string
+		wantLogged bool
+	}{
+		{
+			name:       "log, if code is 299, and message is not empty",
+			code:       299,
+			message:    "warning",
+			wantLogged: true,
+		},
+		{
+			name:       "do not log, if code is not 299",
+			code:       0,
+			message:    "warning",
+			wantLogged: false,
+		},
+		{
+			name:       "do not log, if message is empty",
+			code:       299,
+			message:    "",
+			wantLogged: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			logged := false
+			h := LogAllHandler(
+				funcr.New(func(_, _ string) {
+					logged = true
+				},
+					funcr.Options{},
+				),
+			)
+			h.HandleWarningHeader(tt.code, "", tt.message)
+			g.Expect(logged).To(Equal(tt.wantLogged))
+		})
+	}
+}

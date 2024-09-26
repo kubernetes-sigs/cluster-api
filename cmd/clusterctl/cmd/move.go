@@ -117,11 +117,14 @@ func runMove() error {
 	var warningHandler rest.WarningHandler
 	switch mo.hideAPIWarnings {
 	case "all":
-		warningHandler = rest.NoWarnings{}
+		// Hide all warnings.
+		warningHandler = apiwarnings.DiscardAllHandler
 	case "default":
+		// Hide only the default set of warnings.
 		warningHandler = apiwarnings.DefaultHandler(logf.Log.WithName("API Server Warning"))
 	case "none":
-		warningHandler = nil
+		// Hide no warnings.
+		warningHandler = apiwarnings.LogAllHandler(logf.Log.WithName("API Server Warning"))
 	default:
 		return fmt.Errorf(
 			"set of API warnings %q is unknown; choose \"default\", \"all\", or \"none\"",

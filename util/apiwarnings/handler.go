@@ -20,6 +20,7 @@ import (
 	"regexp"
 
 	"github.com/go-logr/logr"
+	"k8s.io/client-go/rest"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -62,4 +63,12 @@ func DefaultHandler(l logr.Logger) *DiscardMatchingHandler {
 			DomainQualifiedFinalizerWarning(clusterv1.GroupVersion.Group),
 		},
 	}
+}
+
+// DiscardAllHandler is a handler that discards all warnings.
+var DiscardAllHandler = rest.NoWarnings{}
+
+// LogAllHandler is a handler that logs all warnings.
+func LogAllHandler(l logr.Logger) rest.WarningHandler {
+	return &DiscardMatchingHandler{Logger: l}
 }

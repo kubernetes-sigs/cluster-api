@@ -71,12 +71,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(
 				predicates.All(predicateLog,
 					predicates.ResourceIsTopologyOwned(predicateLog),
-					predicates.ResourceNotPaused(predicateLog)),
+					predicates.ResourceNotPaused(mgr.GetScheme(), predicateLog)),
 			),
 		).
 		Named("topology/machineset").
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceHasFilterLabel(predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),

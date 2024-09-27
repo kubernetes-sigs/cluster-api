@@ -215,7 +215,7 @@ evictionLoop:
 		case <-ctx.Done():
 			// Skip eviction if the eviction timeout is reached.
 			err := fmt.Errorf("eviction timeout of %s reached, eviction will be retried", evictionTimeout)
-			log.V(4).Error(err, "Error when evicting Pod")
+			log.V(4).Info("Error when evicting Pod", "err", err)
 			res.PodsFailedEviction[err.Error()] = append(res.PodsFailedEviction[err.Error()], pd.Pod)
 			continue evictionLoop
 		default:
@@ -250,17 +250,17 @@ evictionLoop:
 				err = errors.New(errorMessage)
 			}
 
-			log.V(4).Error(err, "Error when evicting Pod")
+			log.V(4).Info("Error when evicting Pod", "err", err)
 			res.PodsFailedEviction[err.Error()] = append(res.PodsFailedEviction[err.Error()], pd.Pod)
 		case apierrors.IsForbidden(err) && apierrors.HasStatusCause(err, corev1.NamespaceTerminatingCause):
 			// Creating an eviction resource in a terminating namespace will throw a forbidden error, e.g.:
 			// "pods "pod-6-to-trigger-eviction-namespace-terminating" is forbidden: unable to create new content in namespace test-namespace because it is being terminated"
 			// The kube-controller-manager is supposed to set the deletionTimestamp on the Pod and then this error will go away.
 			msg := "Cannot evict pod from terminating namespace: unable to create eviction (kube-controller-manager should set deletionTimestamp)"
-			log.V(4).Error(err, msg)
+			log.V(4).Info(msg, "err", err)
 			res.PodsFailedEviction[msg] = append(res.PodsFailedEviction[msg], pd.Pod)
 		default:
-			log.V(4).Error(err, "Error when evicting Pod")
+			log.V(4).Info("Error when evicting Pod", "err", err)
 			res.PodsFailedEviction[err.Error()] = append(res.PodsFailedEviction[err.Error()], pd.Pod)
 		}
 	}

@@ -219,7 +219,7 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 		key := types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.InfrastructureRef.Name}
 
 		if err := c.Get(ctx, key, providerCluster); err != nil {
-			log.V(4).Error(err, fmt.Sprintf("Failed to get %T", providerCluster))
+			log.V(4).Info(fmt.Sprintf("Failed to get %T", providerCluster), "err", err)
 			return nil
 		}
 

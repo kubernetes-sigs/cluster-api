@@ -135,7 +135,7 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 	for _, nodeRef := range nodeRefs {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			log.V(2).Error(err, "Failed to get Node, skipping", "Node", klog.KRef("", nodeRef.Name))
+			log.Error(err, "Failed to get Node, skipping", "Node", klog.KRef("", nodeRef.Name))
 			continue
 		}
 
@@ -200,7 +200,7 @@ func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client,
 	for _, nodeRef := range references {
 		node := &corev1.Node{}
 		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			log.V(2).Error(err, "Failed to get Node, skipping setting annotations", "Node", klog.KRef("", nodeRef.Name))
+			log.Error(err, "Failed to get Node, skipping setting annotations", "Node", klog.KRef("", nodeRef.Name))
 			continue
 		}
 		patchHelper, err := patch.NewHelper(node, c)
@@ -219,7 +219,7 @@ func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client,
 		// Patch the node if needed.
 		if hasAnnotationChanges || hasTaintChanges {
 			if err := patchHelper.Patch(ctx, node); err != nil {
-				log.V(2).Error(err, "Failed patch Node to set annotations and drop taints", "Node", klog.KObj(node))
+				log.Error(err, "Failed patch Node to set annotations and drop taints", "Node", klog.KObj(node))
 				return err
 			}
 		}

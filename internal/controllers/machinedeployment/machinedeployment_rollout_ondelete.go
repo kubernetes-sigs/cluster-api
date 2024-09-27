@@ -106,7 +106,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 		}
 		selectorMap, err := metav1.LabelSelectorAsMap(&oldMS.Spec.Selector)
 		if err != nil {
-			log.V(4).Error(err, "failed to convert MachineSet label selector to a map")
+			log.V(4).Info("Failed to convert MachineSet label selector to a map", "err", err)
 			continue
 		}
 		log.V(4).Info("Fetching Machines associated with MachineSet")
@@ -127,7 +127,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 		}
 		machineSetScaleDownAmountDueToMachineDeletion := *oldMS.Spec.Replicas - updatedReplicaCount
 		if machineSetScaleDownAmountDueToMachineDeletion < 0 {
-			log.V(4).Error(errors.Errorf("Unexpected negative scale down amount: %d", machineSetScaleDownAmountDueToMachineDeletion), fmt.Sprintf("Error reconciling MachineSet %s", oldMS.Name))
+			log.V(4).Info(fmt.Sprintf("Error reconciling MachineSet %s", oldMS.Name), "err", errors.Errorf("Unexpected negative scale down amount: %d", machineSetScaleDownAmountDueToMachineDeletion))
 		}
 		scaleDownAmount -= machineSetScaleDownAmountDueToMachineDeletion
 		log.V(4).Info("Adjusting replica count for deleted machines", "oldReplicas", oldMS.Spec.Replicas, "newReplicas", updatedReplicaCount)

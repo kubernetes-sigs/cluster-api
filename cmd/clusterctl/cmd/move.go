@@ -18,11 +18,17 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/rest"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/util/apiwarnings"
 )
 
 type moveOptions struct {
@@ -34,6 +40,7 @@ type moveOptions struct {
 	fromDirectory         string
 	toDirectory           string
 	dryRun                bool
+	hideAPIWarnings       string
 }
 
 var mo = &moveOptions{}
@@ -80,6 +87,8 @@ func init() {
 		"Write Cluster API objects and all dependencies from a management cluster to directory.")
 	moveCmd.Flags().StringVar(&mo.fromDirectory, "from-directory", "",
 		"Read Cluster API objects and all dependencies from a directory into a management cluster.")
+	moveCmd.Flags().StringVar(&mo.hideAPIWarnings, "hide-api-warnings", "default",
+		"Set of API server warnings to hide. Valid sets are \"default\" (includes metadata.finalizer warnings), \"all\" , and \"none\".")
 
 	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-kubeconfig")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-directory")
@@ -98,7 +107,55 @@ func runMove() error {
 		return errors.New("please specify a target cluster using the --to-kubeconfig flag when not using --dry-run, --to-directory or --from-directory")
 	}
 
-	c, err := client.New(ctx, cfgFile)
+	configClient, err := config.New(ctx, cfgFile)
+	if err != nil {
+		return err
+	}
+
+	clientOptions := []client.Option{}
+
+	var warningHandler rest.WarningHandler
+	switch mo.hideAPIWarnings {
+	case "all":
+		// Hide all warnings.
+		warningHandler = apiwarnings.DiscardAllHandler
+	case "default":
+		// Hide only the default set of warnings.
+		warningHandler = apiwarnings.DefaultHandler(logf.Log.WithName("API Server Warning"))
+	case "none":
+		// Hide no warnings.
+		warningHandler = apiwarnings.LogAllHandler(logf.Log.WithName("API Server Warning"))
+	default:
+		return fmt.Errorf(
+			"set of API warnings %q is unknown; choose \"default\", \"all\", or \"none\"",
+			mo.hideAPIWarnings,
+		)
+	}
+
+	if warningHandler != nil {
+		clientOptions = append(clientOptions,
+			client.InjectClusterClientFactory(
+				func(input client.ClusterClientFactoryInput) (cluster.Client, error) {
+					return cluster.New(
+						cluster.Kubeconfig(input.Kubeconfig),
+						configClient,
+						cluster.InjectYamlProcessor(input.Processor),
+						cluster.InjectProxy(
+							cluster.NewProxy(
+								cluster.Kubeconfig(input.Kubeconfig),
+								cluster.InjectWarningHandler(
+									warningHandler,
+								),
+							)),
+					), nil
+				},
+			),
+			// Ensure that the same configClient used by both the client constructor, and the cluster client factory.
+			client.InjectConfig(configClient),
+		)
+	}
+
+	c, err := client.New(ctx, cfgFile, clientOptions...)
 	if err != nil {
 		return err
 	}

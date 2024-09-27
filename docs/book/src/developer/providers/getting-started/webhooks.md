@@ -17,28 +17,6 @@ A validating webhook allows developers to test whether values supplied by users 
 the Infrastructure reference supplied at the Cluster's `.spec.infrastructureRef` is in the same namespace as the Cluster itself
 and rejects the object creation or update if not.
 
-<aside class="note">
-
-<h1> ClusterClass and managed topology support in validating webhooks </h1>
-
-Validating webhooks implemented for a `InfrastructureMachineTemplate` or `BootstrapConfigTemplate` resource
-are required to not block due to immutability checks when the controller for managed
-topology and ClusterClass does [Server Side Apply] dry-run requests.
-[Server Side Apply] implementation in ClusterClass and managed topologies requires to dry-run changes on templates.
-If infrastructure or bootstrap providers have implemented immutability checks in their InfrastructureMachineTemplate
-or BootstrapConfigTemplate webhooks, it is required to implement the following changes in order to prevent dry-run
-to return errors. The implementation requires sigs.k8s.io/controller-runtime in version >= v0.12.3.
-In order to do so it is required to use a controller runtime CustomValidator.
-This will allow to skip the immutability check only when the topology controller is dry running while preserving the
-validation behavior for all other cases.
-
-See [the DockerMachineTemplate webhook] as a reference for a compatible implementation.
-
-[Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
-[the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate_webhook.go
-
-</aside>
-
 ## Defaulting webhooks
 Defaulting webhooks are an implementation of a [Kubernetes mutating webhook](https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#mutatingadmissionwebhook). 
 
@@ -52,7 +30,7 @@ Conversion webhooks are what allow Cluster API to work with multiple API version
 It does this by converting the incoming version to a `Hub` version which is used internally by the controllers. 
 To read more about conversion see the [Kubebuilder documentation](https://book.kubebuilder.io/multiversion-tutorial/conversion.html)
 
-For a walkthrough on implementing conversion webhooks see the video in the [Developer Guide](../../guide.md#videos-explaining-capi-architecture-and-code-walkthroughs)
+For a walkthrough on implementing conversion webhooks see the video in the [Developer Guide](../../getting-started.md#videos-explaining-capi-architecture-and-code-walkthroughs)
 
 ## Implementing webhooks with Controller Runtime, Controller Tools and Kubebuilder
 

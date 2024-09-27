@@ -5,7 +5,7 @@ The Cluster controller is responsible for reconciling the Cluster resource.
 In order to allow Cluster provisioning on different type of infrastructure, The Cluster resource references
 an InfraCluster object, e.g. AWSCluster, GCPCluster etc.
 
-The [InfraCluster resource contract](../../providers/contracts/infra-cluster.md) defines a set of rules a provider is expected to comply in order to allow
+The [InfraCluster resource contract](../../providers/contracts/infra-cluster.md) defines a set of rules a provider is expected to comply with in order to allow
 the expected interactions with the Cluster controller. 
 
 Among those rules:
@@ -18,7 +18,7 @@ Among those rules:
 Similarly, in order to support different solutions for control plane management, The Cluster resource references
 an ControlPlane object, e.g. KubeadmControlPlane, EKSControlPlane etc.
 
-The [ControlPlane resource contract](../../providers/contracts/control-plane.md) defines a set of rules a provider is expected to comply in order to allow
+The [ControlPlane resource contract](../../providers/contracts/control-plane.md) defines a set of rules a provider is expected to comply with in order to allow
 the expected interactions with the Cluster controller.
 
 Considering all the info above, the Cluster controller's main responsibilities are:

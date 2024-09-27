@@ -541,7 +541,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 				},
 			})
 			if err != nil {
-				// delete bootstrapRef after creat infraRef failed
+				// Cleanup the bootstrap resource if we can't create the InfraMachine; or we might risk to leak it.
 				if bootstrapRef != nil {
 					if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*bootstrapRef)); !apierrors.IsNotFound(err) {
 						log.Error(err, "Failed to cleanup bootstrap configuration object after Machine creation error", bootstrapRef.Kind, klog.KRef(bootstrapRef.Namespace, bootstrapRef.Name))

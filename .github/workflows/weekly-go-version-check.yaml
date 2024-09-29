@@ -1,12 +1,13 @@
 name: Weekly go version check
 
-
 on:
   schedule:
-    # Cron for every week at 12:00 UTC.
-    - cron: ""
+    # Cron for every Mon at 12:00 UTC.
+    - cron: "0 12 * * 1"
 
-permissions: {}
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   weekly-go-patch-version-check:

@@ -1,0 +1,39 @@
+name: Weekly go version check
+
+
+on:
+  schedule:
+    # Cron for every week at 12:00 UTC.
+    - cron: ""
+
+permissions: {}
+
+jobs:
+  weekly-go-patch-version-check:
+    name: Check go patch version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@48d8f15b2aaa3d255ca5af3eba4870f807ce6b3c
+        with:
+          files: |
+            ./*file | egrep -v "Dockerfile"
+      - name: Get latest go patch version
+        id: patch-version
+        run: |
+          export GO_PATCH_VERSION=$(curl --silent https://go.dev/VERSION?m=text)
+          sed -i 's/GO_VERSION=[0-9\.]*/GO_VERSION=$GO_PATCH_VERSION/' Makefile
+          sed -i 's/golang:[0-9\.]*/golang:$GO_PATCH_VERSION/' Tiltfile
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # tag=v7.0.5
+        with:
+          commit-message: Bump to Go ${GO_PATCH_VERSION}
+          title: "Bump to Go patch version ${GO_PATCH_VERSION}"
+          body: |
+            This PR promotes current GO version to the latest patch version of ${GO_PATCH_VERSION}
+          branch: promote-go-patch-version-${{ GO_PATCH_VERSION }}
+
+      

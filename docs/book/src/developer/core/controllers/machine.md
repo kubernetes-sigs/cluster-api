@@ -22,6 +22,14 @@ a BootstrapConfig object, e.g. KubeadmBoostrapConfig etc.
 The [BootstrapConfig resource contract](../../providers/contracts/bootstrap-config.md) defines a set of rules a provider is expected to comply with in order to allow
 the expected interactions with the Machine controller.
 
+Among those rules:
+- BootstrapConfig MUST create a [bootstrap data secret](../../providers/contracts/bootstrap-config.md#bootstrapconfig-data-secret) where machines should be placed in
+- BootstrapConfig MUST report when Machine's bootstrap data secret is [fully provisioned](../../providers/contracts/bootstrap-config.md#bootstrapconfig-initialization-completed)
+- BootstrapConfig SHOULD report [conditions](../../providers/contracts/bootstrap-config.md#bootstrapconfig-conditions)
+- BootstrapConfig SHOULD report [terminal failures](../../providers/contracts/bootstrap-config.md#bootstrapconfig-terminal-failures)
+- BootstrapConfig SHOULD report [taint Nodes at creation](../../providers/contracts/bootstrap-config.md#taint-nodes-at-creation)
+- BootstrapConfig SHOULD create a [sentinel file](../../providers/contracts/bootstrap-config.md#sentinel-file) on machines
+
 Considering all the info above, the Machine controller's main responsibilities are:
 
 * Setting an OwnerReference on the infrastructure object referenced in `Machine.spec.infrastructureRef`.
@@ -44,3 +52,8 @@ The machine controller uses the kubeconfig for the new workload cluster to watch
 When a node appears with `Node.Spec.ProviderID` matching `Machine.Spec.ProviderID`, the machine controller
 transitions the associated machine into the `Provisioned` state. When the infrastructure ref is also
 `Ready`, the machine controller marks the machine as `Running`.
+
+The following schema goes trough machine phases and interactions with InfraMachine and BootstrapConfig
+happening at each step.
+
+![](../../../images/machine-phases.png)

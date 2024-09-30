@@ -12,7 +12,7 @@ and the interaction between the Cluster's controller and the InfraCluster resour
 rules defined in this page.
 
 Once contract rules are satisfied by an InfraCluster implementation, other implementation details 
-could be addressed according to the specific needs (Cluster API in not prescriptive).
+could be addressed according to the specific needs (Cluster API is not prescriptive).
 
 Nevertheless, it is always recommended to take a look at Cluster API controllers,
 in-tree providers, other providers and use them as a reference implementation (unless custom solutions are required 
@@ -236,7 +236,7 @@ type APIEndpoint struct {
 ```
 
 Once `spec.controlPlaneEndpoint` is set on the InfraCluster resource and the [InfraCluster initialization completed],
-the Cluster controller will bubble up this info in Cluster's `spec.controlPlaneEndpoint`.
+the Cluster controller will surface this info in Cluster's `spec.controlPlaneEndpoint`.
 
 If instead you are developing an infrastructure provider which is NOT responsible to provide a control plane endpoint,
 the implementer should exit reconciliation until it sees Cluster's `spec.controlPlaneEndpoint` populated.
@@ -262,7 +262,7 @@ type FooClusterStatus struct {
 - `attributes map[string]string`: arbitrary attributes for users to apply to a failure domain.
 
 Once `status.failureDomains` is set on the InfraCluster resource and the [InfraCluster initialization completed],
-the Cluster controller will bubble up this info in Cluster's `status.failureDomains`.
+the Cluster controller will surface this info in Cluster's `status.failureDomains`.
 
 ### InfraCluster: initialization completed
 
@@ -364,7 +364,7 @@ type FooClusterStatus struct {
 ```
 
 Once `status.failureReason` and `status.failureMessage` are set on the InfraCluster resource, the Cluster "core" controller
-will bubble up those info in the corresponding fields in Cluster's `status`.
+will surface those info in the corresponding fields in Cluster's `status`.
 
 Please note that once failureReason/failureMessage is set in Cluster's `status`, the only way to recover is to delete and
 recreate the Cluster (it is a terminal failure).

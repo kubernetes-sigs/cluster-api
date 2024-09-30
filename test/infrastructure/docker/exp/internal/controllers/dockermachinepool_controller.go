@@ -190,7 +190,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
 			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
+				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).Build(r)
 	if err != nil {

@@ -17,8 +17,6 @@ limitations under the License.
 package predicates
 
 import (
-	"strings"
-
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
@@ -220,62 +218,64 @@ func processIfLabelMatch(scheme *runtime.Scheme, logger logr.Logger, obj client.
 // the externally managed annotation.
 // This implements a requirement for InfraCluster providers to be able to ignore externally managed
 // cluster infrastructure.
-func ResourceIsNotExternallyManaged(logger logr.Logger) predicate.Funcs {
+func ResourceIsNotExternallyManaged(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "update"), e.ObjectNew)
+			return processIfNotExternallyManaged(scheme, logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "update"), e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "create"), e.Object)
+			return processIfNotExternallyManaged(scheme, logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "create"), e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "delete"), e.Object)
+			return processIfNotExternallyManaged(scheme, logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "delete"), e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfNotExternallyManaged(logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "generic"), e.Object)
+			return processIfNotExternallyManaged(scheme, logger.WithValues("predicate", "ResourceIsNotExternallyManaged", "eventType", "generic"), e.Object)
 		},
 	}
 }
 
-func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
-	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+func processIfNotExternallyManaged(scheme *runtime.Scheme, logger logr.Logger, obj client.Object) bool {
+	if gvk, err := apiutil.GVKForObject(obj, scheme); err == nil {
+		logger = logger.WithValues(gvk.Kind, klog.KObj(obj))
+	}
 	if annotations.IsExternallyManaged(obj) {
-		log.V(4).Info("Resource is externally managed, will not attempt to map resource")
+		logger.V(4).Info("Resource is externally managed, will not attempt to map resource")
 		return false
 	}
-	log.V(6).Info("Resource is managed, will attempt to map resource")
+	logger.V(6).Info("Resource is managed, will attempt to map resource")
 	return true
 }
 
 // ResourceIsTopologyOwned returns a predicate that returns true only if the resource has
 // the `topology.cluster.x-k8s.io/owned` label.
-func ResourceIsTopologyOwned(logger logr.Logger) predicate.Funcs {
+func ResourceIsTopologyOwned(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "update"), e.ObjectNew)
+			return processIfTopologyOwned(scheme, logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "update"), e.ObjectNew)
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "create"), e.Object)
+			return processIfTopologyOwned(scheme, logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "create"), e.Object)
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "delete"), e.Object)
+			return processIfTopologyOwned(scheme, logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "delete"), e.Object)
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return processIfTopologyOwned(logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "generic"), e.Object)
+			return processIfTopologyOwned(scheme, logger.WithValues("predicate", "ResourceIsTopologyOwned", "eventType", "generic"), e.Object)
 		},
 	}
 }
 
-func processIfTopologyOwned(logger logr.Logger, obj client.Object) bool {
-	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
-	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
+func processIfTopologyOwned(scheme *runtime.Scheme, logger logr.Logger, obj client.Object) bool {
+	if gvk, err := apiutil.GVKForObject(obj, scheme); err == nil {
+		logger = logger.WithValues(gvk.Kind, klog.KObj(obj))
+	}
 	if labels.IsTopologyOwned(obj) {
-		log.V(6).Info("Resource is topology owned, will attempt to map resource")
+		logger.V(6).Info("Resource is topology owned, will attempt to map resource")
 		return true
 	}
 	// We intentionally log this line only on level 6, because it will be very frequently
 	// logged for MachineDeployments and MachineSets not owned by a topology.
-	log.V(6).Info("Resource is not topology owned, will not attempt to map resource")
+	logger.V(6).Info("Resource is not topology owned, will not attempt to map resource")
 	return false
 }

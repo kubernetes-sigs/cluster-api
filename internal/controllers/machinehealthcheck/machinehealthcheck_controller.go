@@ -100,7 +100,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(predicateLog,
-					predicates.ClusterUnpaused(predicateLog),
+					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
 			),

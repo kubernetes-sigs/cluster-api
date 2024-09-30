@@ -127,8 +127,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(predicateLog,
 					predicates.Any(predicateLog,
-						predicates.ClusterUnpaused(predicateLog),
-						predicates.ClusterControlPlaneInitialized(predicateLog),
+						predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+						predicates.ClusterControlPlaneInitialized(mgr.GetScheme(), predicateLog),
 					),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),

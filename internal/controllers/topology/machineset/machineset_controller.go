@@ -70,7 +70,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		For(&clusterv1.MachineSet{},
 			builder.WithPredicates(
 				predicates.All(predicateLog,
-					predicates.ResourceIsTopologyOwned(predicateLog),
+					predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
 					predicates.ResourceNotPaused(mgr.GetScheme(), predicateLog)),
 			),
 		).
@@ -82,8 +82,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
 				predicates.All(predicateLog,
-					predicates.ClusterUnpaused(predicateLog),
-					predicates.ClusterHasTopology(predicateLog),
+					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+					predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
 				),
 			),
 		).

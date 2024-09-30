@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -388,11 +389,16 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				return ctrl.Result{}, err
 			}
 
-			// The DrainingSucceededCondition never exists before the node is drained for the first time,
-			// so its transition time can be used to record the first time draining.
-			// This `if` condition prevents the transition time to be changed more than once.
+			// The DrainingSucceededCondition never exists before the node is drained for the first time.
 			if conditions.Get(m, clusterv1.DrainingSucceededCondition) == nil {
 				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
+			}
+
+			if m.Status.Deletion == nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+			}
+			if m.Status.Deletion.NodeDrainStartTime == nil {
+				m.Status.Deletion.NodeDrainStartTime = ptr.To(metav1.Now())
 			}
 
 			if err := patchMachine(ctx, patchHelper, m); err != nil {
@@ -418,11 +424,16 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		// volumes are detached before proceeding to delete the Node.
 		// In case the node is unreachable, the detachment is skipped.
 		if r.isNodeVolumeDetachingAllowed(m) {
-			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time,
-			// so its transition time can be used to record the first time we wait for volume detachment.
-			// This `if` condition prevents the transition time to be changed more than once.
+			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
 			if conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
 				conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
+			}
+
+			if m.Status.Deletion == nil {
+				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
+			}
+			if m.Status.Deletion.WaitForNodeVolumeDetachStartTime == nil {
+				m.Status.Deletion.WaitForNodeVolumeDetachStartTime = ptr.To(metav1.Now())
 			}
 
 			if ok, err := r.shouldWaitForNodeVolumes(ctx, cluster, m.Status.NodeRef.Name); ok || err != nil {
@@ -540,38 +551,36 @@ func (r *Reconciler) isNodeVolumeDetachingAllowed(m *clusterv1.Machine) bool {
 
 func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 	// if the NodeDrainTimeout type is not set by user
-	if machine.Spec.NodeDrainTimeout == nil || machine.Spec.NodeDrainTimeout.Seconds() <= 0 {
+	if machine.Status.Deletion == nil || machine.Spec.NodeDrainTimeout == nil || machine.Spec.NodeDrainTimeout.Seconds() <= 0 {
 		return false
 	}
 
-	// if the draining succeeded condition does not exist
-	if conditions.Get(machine, clusterv1.DrainingSucceededCondition) == nil {
+	// if the NodeDrainStartTime does not exist
+	if machine.Status.Deletion.NodeDrainStartTime == nil {
 		return false
 	}
 
 	now := time.Now()
-	firstTimeDrain := conditions.GetLastTransitionTime(machine, clusterv1.DrainingSucceededCondition)
-	diff := now.Sub(firstTimeDrain.Time)
+	diff := now.Sub(machine.Status.Deletion.NodeDrainStartTime.Time)
 	return diff.Seconds() >= machine.Spec.NodeDrainTimeout.Seconds()
 }
 
 // nodeVolumeDetachTimeoutExceeded returns False if either NodeVolumeDetachTimeout is set to nil or <=0 OR
-// VolumeDetachSucceededCondition is not set on the Machine. Otherwise returns true if the timeout is expired
-// since the last transition time of VolumeDetachSucceededCondition.
+// WaitForNodeVolumeDetachStartTime is not set on the Machine. Otherwise returns true if the timeout is expired
+// since the WaitForNodeVolumeDetachStartTime.
 func (r *Reconciler) nodeVolumeDetachTimeoutExceeded(machine *clusterv1.Machine) bool {
 	// if the NodeVolumeDetachTimeout type is not set by user
-	if machine.Spec.NodeVolumeDetachTimeout == nil || machine.Spec.NodeVolumeDetachTimeout.Seconds() <= 0 {
+	if machine.Status.Deletion == nil || machine.Spec.NodeVolumeDetachTimeout == nil || machine.Spec.NodeVolumeDetachTimeout.Seconds() <= 0 {
 		return false
 	}
 
-	// if the volume detaching succeeded condition does not exist
-	if conditions.Get(machine, clusterv1.VolumeDetachSucceededCondition) == nil {
+	// if the WaitForNodeVolumeDetachStartTime does not exist
+	if machine.Status.Deletion.WaitForNodeVolumeDetachStartTime == nil {
 		return false
 	}
 
 	now := time.Now()
-	firstTimeDetach := conditions.GetLastTransitionTime(machine, clusterv1.VolumeDetachSucceededCondition)
-	diff := now.Sub(firstTimeDetach.Time)
+	diff := now.Sub(machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Time)
 	return diff.Seconds() >= machine.Spec.NodeVolumeDetachTimeout.Seconds()
 }
 

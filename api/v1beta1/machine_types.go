@@ -230,9 +230,31 @@ type MachineStatus struct {
 	// Conditions defines current service state of the Machine.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// deletion contains information relating to removal of the Machine.
+	// Only present when the Machine has a deletionTimestamp and drain or wait for volume detach started.
+	// +optional
+	Deletion *MachineDeletionStatus `json:"deletion,omitempty"`
 }
 
 // ANCHOR_END: MachineStatus
+
+// MachineDeletionStatus is the deletion state of the Machine.
+type MachineDeletionStatus struct {
+	// nodeDrainStartTime is the time when the drain of the node started and is used to determine
+	// if the NodeDrainTimeout is exceeded.
+	// Only present when the Machine has a deletionTimestamp and draining the node had been started.
+	// +optional
+	NodeDrainStartTime *metav1.Time `json:"nodeDrainStartTime,omitempty"`
+
+	// waitForNodeVolumeDetachStartTime is the time when waiting for volume detachment started
+	// and is used to determine if the NodeVolumeDetachTimeout is exceeded.
+	// Detaching volumes from nodes is usually done by CSI implementations and the current state
+	// is observed from the node's `.Status.VolumesAttached` field.
+	// Only present when the Machine has a deletionTimestamp and waiting for volume detachments had been started.
+	// +optional
+	WaitForNodeVolumeDetachStartTime *metav1.Time `json:"waitForNodeVolumeDetachStartTime,omitempty"`
+}
 
 // SetTypedPhase sets the Phase field to the string representation of MachinePhase.
 func (m *MachineStatus) SetTypedPhase(p MachinePhase) {

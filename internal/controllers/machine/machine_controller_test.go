@@ -1386,12 +1386,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 				},
 
 				Status: clusterv1.MachineStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:               clusterv1.DrainingSucceededCondition,
-							Status:             corev1.ConditionFalse,
-							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 70)).UTC()},
-						},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 70)).UTC()},
 					},
 				},
 			},
@@ -1412,12 +1408,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					NodeDrainTimeout:  &metav1.Duration{Duration: time.Second * 60},
 				},
 				Status: clusterv1.MachineStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:               clusterv1.DrainingSucceededCondition,
-							Status:             corev1.ConditionFalse,
-							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
-						},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
 					},
 				},
 			},
@@ -1437,12 +1429,8 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:               clusterv1.DrainingSucceededCondition,
-							Status:             corev1.ConditionFalse,
-							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
-						},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
 					},
 				},
 			},
@@ -1896,12 +1884,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 				},
 
 				Status: clusterv1.MachineStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:               clusterv1.VolumeDetachSucceededCondition,
-							Status:             corev1.ConditionFalse,
-							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 60)).UTC()},
-						},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 60)).UTC()},
 					},
 				},
 			},
@@ -1922,12 +1906,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second * 60},
 				},
 				Status: clusterv1.MachineStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:               clusterv1.VolumeDetachSucceededCondition,
-							Status:             corev1.ConditionFalse,
-							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
-						},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
 					},
 				},
 			},
@@ -1947,12 +1927,8 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 					Bootstrap:         clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
 				Status: clusterv1.MachineStatus{
-					Conditions: clusterv1.Conditions{
-						{
-							Type:               clusterv1.VolumeDetachSucceededCondition,
-							Status:             corev1.ConditionFalse,
-							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
-						},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
 					},
 				},
 			},

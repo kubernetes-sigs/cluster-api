@@ -101,6 +101,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.NodeVolumeDetachTimeout = restored.Spec.NodeVolumeDetachTimeout
 	dst.Status.NodeInfo = restored.Status.NodeInfo
 	dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
+	dst.Status.Deletion = restored.Status.Deletion
 	return nil
 }
 

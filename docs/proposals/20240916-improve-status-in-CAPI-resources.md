@@ -24,8 +24,9 @@ see-also:
 
 ## Table of Contents
 
-- [Improving status in CAPI resources](#improving-status-in-capi-resources)
-  - [Table of Contents](#table-of-contents)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 - [Summary](#summary)
 - [Motivation](#motivation)
     - [Goals](#goals)
@@ -75,6 +76,8 @@ see-also:
   - [Alternatives](#alternatives)
   - [Upgrade Strategy](#upgrade-strategy)
   - [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Summary
 

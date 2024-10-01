@@ -62,6 +62,17 @@ func (l *PodDeleteList) Pods() []*corev1.Pod {
 	return pods
 }
 
+// IgnoredPods returns a list of Pods that have to be ignored before the Node can be considered completely drained.
+func (l *PodDeleteList) IgnoredPods() []*corev1.Pod {
+	pods := []*corev1.Pod{}
+	for _, i := range l.items {
+		if !i.Status.Delete {
+			pods = append(pods, i.Pod)
+		}
+	}
+	return pods
+}
+
 func (l *PodDeleteList) errors() []error {
 	failedPods := make(map[string][]string)
 	for _, i := range l.items {

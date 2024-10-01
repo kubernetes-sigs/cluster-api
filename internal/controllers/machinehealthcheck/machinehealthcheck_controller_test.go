@@ -1420,7 +1420,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	})
 
 	t.Run("when a machine is paused", func(t *testing.T) {
-		// FIXME: Resolve flaky/failing test
+		// TODO: Resolve flaky/failing test
 		t.Skip("skipping until made stable")
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)

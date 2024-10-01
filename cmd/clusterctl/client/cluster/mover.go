@@ -963,7 +963,7 @@ func (o *objectMover) createTargetObject(ctx context.Context, nodeToCreate *node
 	// Rebuild the owner reference chain
 	o.buildOwnerChain(obj, nodeToCreate)
 
-	// FIXME Workaround for https://github.com/kubernetes/kubernetes/issues/32220. Remove when the issue is fixed.
+	// TODO Workaround for https://github.com/kubernetes/kubernetes/issues/32220. Remove when the issue is fixed.
 	// If the resource already exists, the API server ordinarily returns an AlreadyExists error. Due to the above issue, if the resource has a non-empty metadata.generateName field, the API server returns a ServerTimeoutError. To ensure that the API server returns an AlreadyExists error, we set the metadata.generateName field to an empty string.
 	if obj.GetName() != "" && obj.GetGenerateName() != "" {
 		obj.SetGenerateName("")

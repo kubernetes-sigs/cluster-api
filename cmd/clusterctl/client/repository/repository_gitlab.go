@@ -118,7 +118,7 @@ func (g *gitLabRepository) DefaultVersion() string {
 
 // GetVersions returns the list of versions that are available in a provider repository.
 func (g *gitLabRepository) GetVersions(_ context.Context) ([]string, error) {
-	// FIXME Get versions from GitLab API
+	// TODO Get versions from GitLab API
 	return []string{g.defaultVersion}, nil
 }
 

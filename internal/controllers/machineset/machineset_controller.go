@@ -424,6 +424,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 			}
 
 			// Set all other in-place mutable fields that impact the ability to tear down existing machines.
+			m.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
 			m.Spec.NodeDrainTimeout = machineSet.Spec.Template.Spec.NodeDrainTimeout
 			m.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
 			m.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout

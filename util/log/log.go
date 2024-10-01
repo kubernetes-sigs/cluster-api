@@ -107,19 +107,16 @@ func getOwners(ctx context.Context, c client.Client, obj metav1.Object) ([]owner
 	return owners, nil
 }
 
-// ObjNamesString returns a comma separated list of the object names, limited to
-// five objects. On more than five objects it outputs the first five objects and
-// adds information about how much more are in the given list.
-func ObjNamesString[T client.Object](objs []T) string {
+// ListToString returns a comma-separated list of the first n entries of the list (strings are calculated via stringFunc).
+func ListToString[T any](list []T, stringFunc func(T) string, n int) string {
 	shortenedBy := 0
-	if len(objs) > 5 {
-		shortenedBy = len(objs) - 5
-		objs = objs[:5]
+	if len(list) > n {
+		shortenedBy = len(list) - n
+		list = list[:n]
 	}
-
 	stringList := []string{}
-	for _, obj := range objs {
-		stringList = append(stringList, obj.GetName())
+	for _, p := range list {
+		stringList = append(stringList, stringFunc(p))
 	}
 
 	if shortenedBy > 0 {
@@ -127,4 +124,22 @@ func ObjNamesString[T client.Object](objs []T) string {
 	}
 
 	return strings.Join(stringList, ", ")
+}
+
+// StringListToString returns a comma separated list of the strings, limited to
+// five objects. On more than five objects it outputs the first five objects and
+// adds information about how much more are in the given list.
+func StringListToString(objs []string) string {
+	return ListToString(objs, func(s string) string {
+		return s
+	}, 5)
+}
+
+// ObjNamesString returns a comma separated list of the object names, limited to
+// five objects. On more than five objects it outputs the first five objects and
+// adds information about how much more are in the given list.
+func ObjNamesString[T client.Object](objs []T) string {
+	return ListToString(objs, func(obj T) string {
+		return obj.GetName()
+	}, 5)
 }

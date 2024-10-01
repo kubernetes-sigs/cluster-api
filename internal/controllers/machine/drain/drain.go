@@ -34,6 +34,8 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
 // Helper contains the parameters to control the behaviour of the drain helper.
@@ -351,33 +353,14 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 
 // podDeleteListToString returns a comma-separated list of the first n entries of the PodDelete list.
 func podDeleteListToString(podList []PodDelete, n int) string {
-	return listToString(podList, func(pd PodDelete) string {
+	return clog.ListToString(podList, func(pd PodDelete) string {
 		return klog.KObj(pd.Pod).String()
 	}, n)
 }
 
 // PodListToString returns a comma-separated list of the first n entries of the Pod list.
 func PodListToString(podList []*corev1.Pod, n int) string {
-	return listToString(podList, func(p *corev1.Pod) string {
+	return clog.ListToString(podList, func(p *corev1.Pod) string {
 		return klog.KObj(p).String()
 	}, n)
-}
-
-// listToString returns a comma-separated list of the first n entries of the list (strings are calculated via stringFunc).
-func listToString[T any](list []T, stringFunc func(T) string, n int) string {
-	shortenedBy := 0
-	if len(list) > n {
-		shortenedBy = len(list) - n
-		list = list[:n]
-	}
-	stringList := []string{}
-	for _, p := range list {
-		stringList = append(stringList, stringFunc(p))
-	}
-
-	if shortenedBy > 0 {
-		stringList = append(stringList, fmt.Sprintf("... (%d more)", shortenedBy))
-	}
-
-	return strings.Join(stringList, ", ")
 }

@@ -1899,6 +1899,324 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Valid object with oneOf schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						OneOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":true}`),
+				},
+			},
+		},
+		{
+			name: "Fails, value does not match exactly one of the oneOf schemas",
+			wantErrs: []validationMatch{
+				invalid(
+					`Invalid value: "{\"propertyA\":true, \"propertyB\":true}": "" must validate one and only one schema (oneOf). Found 2 valid alternatives`,
+					"spec.topology.variables[test].value",
+				),
+			},
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						OneOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":true, "propertyB":true}`),
+				},
+			},
+		},
+		{
+			name: "Valid object with allOf schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AllOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":true, "propertyB":true}`),
+				},
+			},
+		},
+		{
+			name: "Fails, value does not match all of the allOf schemas",
+			wantErrs: []validationMatch{
+				required(
+					`Required value`,
+					"spec.topology.variables[test].value.propertyB",
+				),
+				invalid(
+					`Invalid value: "{\"propertyA\":true}": "" must validate all the schemas (allOf)`,
+					"spec.topology.variables[test].value",
+				),
+			},
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AllOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":true}`),
+				},
+			},
+		},
+		{
+			name: "Valid object with anyOf schema and multiple specified properties",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AnyOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}, {
+							Required: []string{"propertyC"},
+						}},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+							"propertyC": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":true, "propertyB":true}`),
+				},
+			},
+		},
+		{
+			name: "Fails, value does not match any of the anyOf schemas",
+			wantErrs: []validationMatch{
+				invalidType(
+					`Invalid value: "{\"propertyA\":\"invalid value\"}": propertyA in body must be of type boolean: "string"`,
+					"spec.topology.variables[test].value.propertyA",
+				),
+			},
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AnyOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":"invalid value"}`),
+				},
+			},
+		},
+		{
+			name: "Valid object with anyOf and not schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AnyOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}, {
+							Required: []string{"propertyC"},
+						}},
+						Not: &clusterv1.JSONSchemaProps{
+							Required: []string{"propertyA", "propertyB"},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+							"propertyC": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":true, "propertyC":true}`),
+				},
+			},
+		},
+		{
+			name: "Fails, value does match not schema",
+			wantErrs: []validationMatch{
+				invalid(
+					`Invalid value: "{\"propertyA\":true, \"propertyB\":true}": "" must not validate the schema (not)`,
+					"spec.topology.variables[test].value",
+				),
+			},
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "test",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AnyOf: []clusterv1.JSONSchemaProps{{
+							Required: []string{"propertyA"},
+						}, {
+							Required: []string{"propertyB"},
+						}},
+						Not: &clusterv1.JSONSchemaProps{
+							Required: []string{"propertyA", "propertyB"},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"propertyA": {
+								Type: "boolean",
+							},
+							"propertyB": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "test",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"propertyA":true, "propertyB":true}`),
+				},
+			},
+		}, {
+			name: "Valid object for int-or-string (resource.Quantity)",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "quantityArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							XIntOrString: true,
+							AnyOf: []clusterv1.JSONSchemaProps{{
+								Type: "integer",
+							}, {
+								Type: "string",
+							}},
+							Pattern: `^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$`,
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "quantity",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["500000G", "200M", "0.2G", 1000]`),
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

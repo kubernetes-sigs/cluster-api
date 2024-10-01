@@ -1,0 +1,52 @@
+/*
+Copyright 2024 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package v1beta1
+
+import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+
+// Conditions that will be used for the MachinePool object in v1Beta2 API version.
+const (
+	// MachinePoolAvailableV1Beta2Condition is true when InfrastructureReady and available replicas >= desired replicas.
+	MachinePoolAvailableV1Beta2Condition = clusterv1.AvailableV1beta2Condition
+
+	// MachinePoolBootstrapConfigReadyV1Beta2Condition mirrors the corresponding condition from the MachinePool's BootstrapConfig resource.
+	MachinePoolBootstrapConfigReadyV1Beta2Condition = clusterv1.BootstrapConfigReadyV1beta2Condition
+
+	// MachinePoolInfrastructureReadyV1Beta2Condition mirrors the corresponding condition from the MachinePool's Infrastructure resource.
+	MachinePoolInfrastructureReadyV1Beta2Condition = clusterv1.InfrastructureReadyV1beta2Condition
+
+	// MachinePoolMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
+	MachinePoolMachinesReadyV1Beta2Condition = clusterv1.MachinesReadyV1beta2Condition
+
+	// MachinePoolMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	MachinePoolMachinesUpToDateV1Beta2Condition = clusterv1.MachinesUpToDateV1beta2Condition
+
+	// MachinePoolScalingUpV1Beta2Condition is true if available replicas < desired replicas.
+	MachinePoolScalingUpV1Beta2Condition = clusterv1.ScalingUpV1beta2Condition
+
+	// MachinePoolScalingDownV1Beta2Condition is true if replicas > desired replicas.
+	MachinePoolScalingDownV1Beta2Condition = clusterv1.ScalingDownV1beta2Condition
+
+	// MachinePoolRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachinePoolRemediatingV1Beta2Condition = clusterv1.RemediatingV1beta2Condition
+
+	// MachinePoolDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
+	MachinePoolDeletingV1Beta2Condition = clusterv1.DeletingV1beta2Condition
+
+	// MachinePoolPausedV1Beta2Condition is true if this MachinePool or the Cluster it belongs to are paused.
+	MachinePoolPausedV1Beta2Condition = clusterv1.PausedV1beta2Condition
+)

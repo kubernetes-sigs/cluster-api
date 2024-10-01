@@ -188,6 +188,33 @@ type MachineSetStatus struct {
 	// Conditions defines current service state of the MachineSet.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in MachineSet's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *MachineSetV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// MachineSetV1Beta2Status groups all the fields that will be added or modified in MachineSetStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+type MachineSetV1Beta2Status struct {
+	// conditions represents the observations of a MachineSet's current state.
+	// Known condition types are MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas int32 `json:"readyReplicas"`
+
+	// availableReplicas is the number of available replicas for this MachineSet. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas int32 `json:"availableReplicas"`
+
+	// upToDateReplicas is the number of up-to-date replicas for this MachineSet. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas int32 `json:"upToDateReplicas"`
 }
 
 // ANCHOR_END: MachineSetStatus
@@ -245,6 +272,22 @@ func (m *MachineSet) GetConditions() Conditions {
 // SetConditions updates the set of conditions on the MachineSet.
 func (m *MachineSet) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (m *MachineSet) GetV1Beta2Conditions() []metav1.Condition {
+	if m.Status.V1Beta2 == nil {
+		return nil
+	}
+	return m.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (m *MachineSet) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if m.Status.V1Beta2 == nil && conditions != nil {
+		m.Status.V1Beta2 = &MachineSetV1Beta2Status{}
+	}
+	m.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

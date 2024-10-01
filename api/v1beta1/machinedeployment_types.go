@@ -298,6 +298,33 @@ type MachineDeploymentStatus struct {
 	// Conditions defines current service state of the MachineDeployment.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in MachineDeployment's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *MachineDeploymentV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// MachineDeploymentV1Beta2Status groups all the fields that will be added or modified in MachineDeployment with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+type MachineDeploymentV1Beta2Status struct {
+	// conditions represents the observations of a MachineDeployment's current state.
+	// Known condition types are MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas int32 `json:"readyReplicas"`
+
+	// availableReplicas is the number of available replicas for this MachineDeployment. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas int32 `json:"availableReplicas"`
+
+	// upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas int32 `json:"upToDateReplicas"`
 }
 
 // ANCHOR_END: MachineDeploymentStatus
@@ -387,4 +414,20 @@ func (m *MachineDeployment) GetConditions() Conditions {
 // SetConditions updates the set of conditions on the machinedeployment.
 func (m *MachineDeployment) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (m *MachineDeployment) GetV1Beta2Conditions() []metav1.Condition {
+	if m.Status.V1Beta2 == nil {
+		return nil
+	}
+	return m.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (m *MachineDeployment) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if m.Status.V1Beta2 == nil && conditions != nil {
+		m.Status.V1Beta2 = &MachineDeploymentV1Beta2Status{}
+	}
+	m.Status.V1Beta2.Conditions = conditions
 }

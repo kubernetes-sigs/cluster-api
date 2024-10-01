@@ -266,7 +266,6 @@ kustomize_substitutions:
   CLUSTER_TOPOLOGY: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_RUNTIME_SDK: "true"
-  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
 ```
 
 </aside>

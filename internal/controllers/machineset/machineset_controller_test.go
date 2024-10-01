@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
-	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -37,7 +36,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -1445,8 +1443,6 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 	t.Run("should delete unhealthy machines if preflight checks pass", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
-
 		g := NewWithT(t)
 
 		controlPlaneStable := builder.ControlPlane("default", "cp1").
@@ -1505,8 +1501,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 	})
 
 	t.Run("should update the unhealthy machine MachineOwnerRemediated condition if preflight checks did not pass", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
-
 		g := NewWithT(t)
 
 		// An upgrading control plane should cause the preflight checks to not pass.
@@ -1920,8 +1914,6 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 	t.Run("should hold off on creating new machines when preflight checks do not pass", func(t *testing.T) {
-		utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachineSetPreflightChecks, true)
-
 		g := NewWithT(t)
 
 		// An upgrading control plane should cause the preflight checks to not pass.

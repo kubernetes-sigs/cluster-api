@@ -38,6 +38,7 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	MergeRestoredKubeadmConfigSpec(&dst.Spec, &restored.Spec)
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -242,4 +243,9 @@ func Convert_v1beta1_User_To_v1alpha3_User(in *bootstrapv1.User, out *User, s ap
 func Convert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in *bootstrapv1.KubeadmConfigTemplateResource, out *KubeadmConfigTemplateResource, s apiconversion.Scope) error {
 	// KubeadmConfigTemplateResource.metadata does not exist in kubeadm v1alpha3.
 	return autoConvert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in, out, s)
+}
+
+func Convert_v1beta1_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in *bootstrapv1.KubeadmConfigStatus, out *KubeadmConfigStatus, s apiconversion.Scope) error {
+	// V1Beta2 was added in v1beta1.
+	return autoConvert_v1beta1_KubeadmConfigStatus_To_v1alpha3_KubeadmConfigStatus(in, out, s)
 }

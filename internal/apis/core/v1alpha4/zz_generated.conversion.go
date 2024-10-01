@@ -115,18 +115,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.ClusterSpec)(nil), (*ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec(a.(*v1beta1.ClusterSpec), b.(*ClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*ClusterStatus)(nil), (*v1beta1.ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_ClusterStatus_To_v1beta1_ClusterStatus(a.(*ClusterStatus), b.(*v1beta1.ClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.ClusterStatus)(nil), (*ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus(a.(*v1beta1.ClusterStatus), b.(*ClusterStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -235,11 +225,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.MachineDeploymentStatus)(nil), (*MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(a.(*v1beta1.MachineDeploymentStatus), b.(*MachineDeploymentStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*MachineDeploymentStrategy)(nil), (*v1beta1.MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(a.(*MachineDeploymentStrategy), b.(*v1beta1.MachineDeploymentStrategy), scope)
 	}); err != nil {
@@ -282,11 +267,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*MachineHealthCheckStatus)(nil), (*v1beta1.MachineHealthCheckStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineHealthCheckStatus_To_v1beta1_MachineHealthCheckStatus(a.(*MachineHealthCheckStatus), b.(*v1beta1.MachineHealthCheckStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.MachineHealthCheckStatus)(nil), (*MachineHealthCheckStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(a.(*v1beta1.MachineHealthCheckStatus), b.(*MachineHealthCheckStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -337,11 +317,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*MachineSetStatus)(nil), (*v1beta1.MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_MachineSetStatus_To_v1beta1_MachineSetStatus(a.(*MachineSetStatus), b.(*v1beta1.MachineSetStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.MachineSetStatus)(nil), (*MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus(a.(*v1beta1.MachineSetStatus), b.(*MachineSetStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -420,6 +395,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta1.ClusterSpec)(nil), (*ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec(a.(*v1beta1.ClusterSpec), b.(*ClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta1.ClusterStatus)(nil), (*ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus(a.(*v1beta1.ClusterStatus), b.(*ClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta1.ControlPlaneClass)(nil), (*ControlPlaneClass)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(a.(*v1beta1.ControlPlaneClass), b.(*ControlPlaneClass), scope)
 	}); err != nil {
@@ -440,6 +425,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta1.MachineDeploymentStatus)(nil), (*MachineDeploymentStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(a.(*v1beta1.MachineDeploymentStatus), b.(*MachineDeploymentStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta1.MachineDeploymentStrategy)(nil), (*MachineDeploymentStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineDeploymentStrategy_To_v1alpha4_MachineDeploymentStrategy(a.(*v1beta1.MachineDeploymentStrategy), b.(*MachineDeploymentStrategy), scope)
 	}); err != nil {
@@ -450,8 +440,18 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*v1beta1.MachineHealthCheckStatus)(nil), (*MachineHealthCheckStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(a.(*v1beta1.MachineHealthCheckStatus), b.(*MachineHealthCheckStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*v1beta1.MachineSetSpec)(nil), (*MachineSetSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_MachineSetSpec_To_v1alpha4_MachineSetSpec(a.(*v1beta1.MachineSetSpec), b.(*MachineSetSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta1.MachineSetStatus)(nil), (*MachineSetStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus(a.(*v1beta1.MachineSetStatus), b.(*MachineSetStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -766,12 +766,8 @@ func autoConvert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec(in *v1beta1.Cluster
 	} else {
 		out.Topology = nil
 	}
+	// WARNING: in.AvailabilityGates requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec is an autogenerated conversion function.
-func Convert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec(in *v1beta1.ClusterSpec, out *ClusterSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClusterSpec_To_v1alpha4_ClusterSpec(in, out, s)
 }
 
 func autoConvert_v1alpha4_ClusterStatus_To_v1beta1_ClusterStatus(in *ClusterStatus, out *v1beta1.ClusterStatus, s conversion.Scope) error {
@@ -800,12 +796,8 @@ func autoConvert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus(in *v1beta1.Clu
 	out.ControlPlaneReady = in.ControlPlaneReady
 	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))
 	out.ObservedGeneration = in.ObservedGeneration
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus is an autogenerated conversion function.
-func Convert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus(in *v1beta1.ClusterStatus, out *ClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_ClusterStatus_To_v1alpha4_ClusterStatus(in, out, s)
 }
 
 func autoConvert_v1alpha4_Condition_To_v1beta1_Condition(in *Condition, out *v1beta1.Condition, s conversion.Scope) error {
@@ -1211,12 +1203,8 @@ func autoConvert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentSt
 	out.UnavailableReplicas = in.UnavailableReplicas
 	out.Phase = in.Phase
 	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus is an autogenerated conversion function.
-func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(in *v1beta1.MachineDeploymentStatus, out *MachineDeploymentStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineDeploymentStatus_To_v1alpha4_MachineDeploymentStatus(in, out, s)
 }
 
 func autoConvert_v1alpha4_MachineDeploymentStrategy_To_v1beta1_MachineDeploymentStrategy(in *MachineDeploymentStrategy, out *v1beta1.MachineDeploymentStrategy, s conversion.Scope) error {
@@ -1304,7 +1292,17 @@ func Convert_v1beta1_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(in *v1bet
 
 func autoConvert_v1alpha4_MachineHealthCheckList_To_v1beta1_MachineHealthCheckList(in *MachineHealthCheckList, out *v1beta1.MachineHealthCheckList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta1.MachineHealthCheck)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta1.MachineHealthCheck, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha4_MachineHealthCheck_To_v1beta1_MachineHealthCheck(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1315,7 +1313,17 @@ func Convert_v1alpha4_MachineHealthCheckList_To_v1beta1_MachineHealthCheckList(i
 
 func autoConvert_v1beta1_MachineHealthCheckList_To_v1alpha4_MachineHealthCheckList(in *v1beta1.MachineHealthCheckList, out *MachineHealthCheckList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]MachineHealthCheck)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]MachineHealthCheck, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_MachineHealthCheck_To_v1alpha4_MachineHealthCheck(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1378,12 +1386,8 @@ func autoConvert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheck
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Targets = *(*[]string)(unsafe.Pointer(&in.Targets))
 	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus is an autogenerated conversion function.
-func Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in *v1beta1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineHealthCheckStatus_To_v1alpha4_MachineHealthCheckStatus(in, out, s)
 }
 
 func autoConvert_v1alpha4_MachineList_To_v1beta1_MachineList(in *MachineList, out *v1beta1.MachineList, s conversion.Scope) error {
@@ -1583,12 +1587,8 @@ func autoConvert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus(in *v1bet
 	out.FailureReason = (*errors.MachineSetStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus is an autogenerated conversion function.
-func Convert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus(in *v1beta1.MachineSetStatus, out *MachineSetStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_MachineSetStatus_To_v1alpha4_MachineSetStatus(in, out, s)
 }
 
 func autoConvert_v1alpha4_MachineSpec_To_v1beta1_MachineSpec(in *MachineSpec, out *v1beta1.MachineSpec, s conversion.Scope) error {
@@ -1618,6 +1618,7 @@ func autoConvert_v1beta1_MachineSpec_To_v1alpha4_MachineSpec(in *v1beta1.Machine
 	out.Version = (*string)(unsafe.Pointer(in.Version))
 	out.ProviderID = (*string)(unsafe.Pointer(in.ProviderID))
 	out.FailureDomain = (*string)(unsafe.Pointer(in.FailureDomain))
+	// WARNING: in.ReadinessGates requires manual conversion: does not exist in peer-type
 	out.NodeDrainTimeout = (*metav1.Duration)(unsafe.Pointer(in.NodeDrainTimeout))
 	// WARNING: in.NodeVolumeDetachTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
@@ -1654,6 +1655,7 @@ func autoConvert_v1beta1_MachineStatus_To_v1alpha4_MachineStatus(in *v1beta1.Mac
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Conditions = *(*Conditions)(unsafe.Pointer(&in.Conditions))
 	// WARNING: in.Deletion requires manual conversion: does not exist in peer-type
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
 

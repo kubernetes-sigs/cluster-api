@@ -54,6 +54,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	bootstrapv1alpha3.MergeRestoredKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
 
 	dst.Status.Version = restored.Status.Version
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -94,6 +95,7 @@ func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec
 
 func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because status.Version does not exist in v1alpha3.
+	// .V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha3_KubeadmControlPlaneStatus(in, out, s)
 }
 

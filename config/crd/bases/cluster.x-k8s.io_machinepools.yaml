@@ -1260,6 +1260,36 @@ spec:
                           This field will be set by the actuators and consumed by higher level entities like autoscaler that will
                           be interfacing with cluster-api as generic provider.
                         type: string
+                      readinessGates:
+                        description: |-
+                          readinessGates specifies additional conditions to include when evaluating Machine readiness.
+                          A Machine is ready when `BootstrapConfigReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are "True";
+                          if other conditions are defined in this field, those conditions should be "True" as well for the Machine to be ready.
+
+                          This field can be used e.g.
+                          - By Cluster API control plane providers to extend the semantic of the Ready condition for the Machine they
+                            control, like the kubeadm control provider adding ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+                          - By external controllers, e.g. responsible to install special software/hardware on the Machines
+                            to include the status of those components into ReadinessGates (by surfacing new conditions on Machines and
+                            adding them to ReadinessGates).
+
+                          NOTE: this field will be considered only for computing v1beta2 conditions.
+                        items:
+                          description: MachineReadinessGate contains the type of a
+                            Machine condition to be used as a readiness gate.
+                          properties:
+                            conditionType:
+                              description: |-
+                                conditionType refers to a condition with matching type in the Machine's condition list.
+                                Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+                              type: string
+                          required:
+                          - conditionType
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - conditionType
+                        x-kubernetes-list-type: map
                       version:
                         description: |-
                           Version defines the desired Kubernetes version.
@@ -1422,6 +1452,93 @@ spec:
                   that still have not been created.
                 format: int32
                 type: integer
+              v1beta2:
+                description: v1beta2 groups all the fields that will be added or modified
+                  in MachinePool's status with the V1Beta2 version.
+                properties:
+                  availableReplicas:
+                    description: availableReplicas is the number of available replicas
+                      for this MachinePool. A machine is considered available when
+                      Machine's Available condition is true.
+                    format: int32
+                    type: integer
+                  conditions:
+                    description: |-
+                      conditions represents the observations of a MachinePool's current state.
+                      Known condition types are Available, BootstrapConfigReady, InfrastructureReady, MachinesReady, MachinesUpToDate,
+                      ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+                    items:
+                      description: Condition contains details for one aspect of the
+                        current state of this API Resource.
+                      properties:
+                        lastTransitionTime:
+                          description: |-
+                            lastTransitionTime is the last time the condition transitioned from one status to another.
+                            This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                          format: date-time
+                          type: string
+                        message:
+                          description: |-
+                            message is a human readable message indicating details about the transition.
+                            This may be an empty string.
+                          maxLength: 32768
+                          type: string
+                        observedGeneration:
+                          description: |-
+                            observedGeneration represents the .metadata.generation that the condition was set based upon.
+                            For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                            with respect to the current state of the instance.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                        reason:
+                          description: |-
+                            reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                            Producers of specific condition types may define expected values and meanings for this field,
+                            and whether the values are considered a guaranteed API.
+                            The value should be a CamelCase string.
+                            This field may not be empty.
+                          maxLength: 1024
+                          minLength: 1
+                          pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                          type: string
+                        status:
+                          description: status of the condition, one of True, False,
+                            Unknown.
+                          enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                          type: string
+                        type:
+                          description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                          maxLength: 316
+                          pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                          type: string
+                      required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - type
+                    x-kubernetes-list-type: map
+                  readyReplicas:
+                    description: readyReplicas is the number of ready replicas for
+                      this MachinePool. A machine is considered ready when Machine's
+                      Ready condition is true.
+                    format: int32
+                    type: integer
+                  upToDateReplicas:
+                    description: upToDateReplicas is the number of up-to-date replicas
+                      targeted by this MachinePool. A machine is considered up-to-date
+                      when Machine's UpToDate condition is true.
+                    format: int32
+                    type: integer
+                type: object
             type: object
         type: object
     served: true

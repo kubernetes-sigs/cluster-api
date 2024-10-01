@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -1921,6 +1922,42 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
 	}
+
+	nodeName := "test-node"
+
+	persistentVolume := &corev1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-pv",
+		},
+		Spec: corev1.PersistentVolumeSpec{
+			ClaimRef: &corev1.ObjectReference{
+				Kind:      "PersistentVolumeClaim",
+				Namespace: "default",
+				Name:      "test-pvc",
+			},
+			PersistentVolumeSource: corev1.PersistentVolumeSource{
+				CSI: &corev1.CSIPersistentVolumeSource{
+					VolumeHandle: "foo",
+					Driver:       "dummy",
+				},
+			},
+		},
+	}
+
+	volumeAttachment := &storagev1.VolumeAttachment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-va",
+		},
+		Spec: storagev1.VolumeAttachmentSpec{
+			NodeName: nodeName,
+			Source: storagev1.VolumeAttachmentSource{
+				PersistentVolumeName: &persistentVolume.Name,
+			},
+		},
+		Status: storagev1.VolumeAttachmentStatus{
+			Attached: true,
+		},
+	}
 	testMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
@@ -1935,7 +1972,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 
 	attachedVolumes := []corev1.AttachedVolume{
 		{
-			Name:       "test-volume",
+			Name:       corev1.UniqueVolumeName(fmt.Sprintf("kubernetes.io/csi/%s^%s", persistentVolume.Spec.PersistentVolumeSource.CSI.Driver, persistentVolume.Spec.PersistentVolumeSource.CSI.VolumeHandle)),
 			DevicePath: "test-path",
 		},
 	}
@@ -1943,15 +1980,16 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 	tests := []struct {
 		name                    string
 		node                    *corev1.Node
+		objs                    []client.Object
 		expected                bool
 		expectedDeletingReason  string
 		expectedDeletingMessage string
 	}{
 		{
-			name: "Node has volumes attached",
+			name: "Node has volumes attached according to node status",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node",
+					Name: nodeName,
 				},
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
@@ -1963,6 +2001,185 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					VolumesAttached: attachedVolumes,
 				},
 			},
+			objs: []client.Object{
+				persistentVolume,
+			},
+			expected:                true,
+			expectedDeletingReason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
+		},
+		{
+			name: "Node has volumes attached according to node status but its from a daemonset pod which gets ignored",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					VolumesAttached: attachedVolumes,
+				},
+			},
+			objs: []client.Object{
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-pod",
+						Namespace: "default",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
+								Name:       "test-ds",
+								Controller: ptr.To(true),
+							},
+						},
+					},
+					Spec: corev1.PodSpec{
+						NodeName: nodeName,
+						Volumes: []corev1.Volume{
+							{
+								Name: "test-pvc",
+								VolumeSource: corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+										ClaimName: "test-pvc",
+									},
+								},
+							},
+						},
+					},
+				},
+				&appsv1.DaemonSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-ds",
+						Namespace: "default",
+					},
+				},
+				persistentVolume,
+			},
+			expected: false,
+		},
+		{
+			name: "Node has volumes attached according to volumeattachments",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			objs: []client.Object{
+				volumeAttachment,
+				persistentVolume,
+			},
+			expected:                true,
+			expectedDeletingReason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
+		},
+		{
+			name: "Node has volumes attached according to volumeattachments but its from a daemonset pod which gets ignored",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			objs: []client.Object{
+				volumeAttachment,
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-pod",
+						Namespace: "default",
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								Kind:       appsv1.SchemeGroupVersion.WithKind("DaemonSet").Kind,
+								Name:       "test-ds",
+								Controller: ptr.To(true),
+							},
+						},
+					},
+					Spec: corev1.PodSpec{
+						NodeName: nodeName,
+						Volumes: []corev1.Volume{
+							{
+								Name: "test-pvc",
+								VolumeSource: corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+										ClaimName: "test-pvc",
+									},
+								},
+							},
+						},
+					},
+				},
+				&appsv1.DaemonSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-ds",
+						Namespace: "default",
+					},
+				},
+				persistentVolume,
+			},
+			expected: false,
+		},
+		{
+			name: "Node has volumes attached from a Pod which is in deletion",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					VolumesAttached: attachedVolumes,
+				},
+			},
+			objs: []client.Object{
+				volumeAttachment,
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "test-pod",
+						Namespace:         "default",
+						DeletionTimestamp: ptr.To(metav1.NewTime(time.Now().Add(time.Hour * 24 * -1))),
+						Finalizers: []string{
+							"prevent-removal",
+						},
+					},
+					Spec: corev1.PodSpec{
+						NodeName: nodeName,
+						Volumes: []corev1.Volume{
+							{
+								Name: "test-pvc",
+								VolumeSource: corev1.VolumeSource{
+									PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+										ClaimName: "test-pvc",
+									},
+								},
+							},
+						},
+					},
+				},
+				persistentVolume,
+			},
 			expected:                true,
 			expectedDeletingReason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
@@ -1971,7 +2188,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			name: "Node has no volumes attached",
 			node: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node",
+					Name: nodeName,
 				},
 				Status: corev1.NodeStatus{
 					Conditions: []corev1.NodeCondition{
@@ -2026,11 +2243,18 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 
 			var objs []client.Object
 			objs = append(objs, testCluster, tt.node)
+			objs = append(objs, tt.objs...)
 
-			c := fake.NewClientBuilder().WithObjects(objs...).Build()
+			c := fake.NewClientBuilder().WithIndex(&corev1.Pod{}, "spec.nodeName", nodeNameIndex).
+				WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client:       c,
-				ClusterCache: clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
+				Client:               c,
+				ClusterCache:         clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
+				reconcileDeleteCache: cache.New[cache.ReconcileEntry](),
+			}
+
+			testMachine.Status.NodeRef = &corev1.ObjectReference{
+				Name: tt.node.GetName(),
 			}
 
 			s := &scope{
@@ -2038,13 +2262,17 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				machine: testMachine,
 			}
 
-			got, err := r.shouldWaitForNodeVolumes(ctx, s, tt.node.Name)
+			got, err := r.shouldWaitForNodeVolumes(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(Equal(tt.expected))
+			g.Expect(!got.IsZero()).To(Equal(tt.expected))
 			g.Expect(s.deletingReason).To(Equal(tt.expectedDeletingReason))
 			g.Expect(s.deletingMessage).To(Equal(tt.expectedDeletingMessage))
 		})
 	}
+}
+
+func nodeNameIndex(o client.Object) []string {
+	return []string{o.(*corev1.Pod).Spec.NodeName}
 }
 
 func TestIsDeleteNodeAllowed(t *testing.T) {

@@ -69,7 +69,8 @@ var ErrClusterLocked = errors.New("cluster is locked already")
 type ClusterCacheTracker struct {
 	log logr.Logger
 
-	cacheByObject map[client.Object]cache.ByObject
+	cacheByObject   map[client.Object]cache.ByObject
+	cacheSyncPeriod *time.Duration
 
 	clientUncachedObjects []client.Object
 	clientQPS             float32
@@ -119,6 +120,9 @@ type ClusterCacheTrackerOptions struct {
 
 	// CacheByObject restricts the cache's ListWatch to the desired fields per GVK at the specified object.
 	CacheByObject map[client.Object]cache.ByObject
+
+	// CacheSyncPeriod is the syncPeriod used by the remote cluster cache.
+	CacheSyncPeriod *time.Duration
 
 	// ClientUncachedObjects instructs the Client to never cache the following objects,
 	// it'll instead query the API server directly.
@@ -197,6 +201,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		log:                   *options.Log,
 		clientUncachedObjects: options.ClientUncachedObjects,
 		cacheByObject:         options.CacheByObject,
+		cacheSyncPeriod:       options.CacheSyncPeriod,
 		clientQPS:             options.ClientQPS,
 		clientBurst:           options.ClientBurst,
 		client:                manager.GetClient(),
@@ -492,6 +497,7 @@ func (t *ClusterCacheTracker) createCachedClient(ctx context.Context, config *re
 		Scheme:     t.scheme,
 		Mapper:     mapper,
 		ByObject:   t.cacheByObject,
+		SyncPeriod: t.cacheSyncPeriod,
 	}
 	remoteCache, err := cache.New(config, cacheOptions)
 	if err != nil {

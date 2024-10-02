@@ -3772,7 +3772,7 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a KubeadmConfig's current state.
-                      Known condition types are Ready, DataSecretCreated, CertificatesAvailable.
+                      Known condition types are Ready, DataSecretAvailable, CertificatesAvailable.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

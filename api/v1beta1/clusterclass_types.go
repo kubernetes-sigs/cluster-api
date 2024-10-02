@@ -950,10 +950,10 @@ type ClusterClassStatus struct {
 }
 
 // ClusterClassV1Beta2Status groups all the fields that will be added or modified in ClusterClass with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ClusterClassV1Beta2Status struct {
 	// conditions represents the observations of a ClusterClass's current state.
-	// Known condition types are Ready, VariablesReady, ReferencedVersionsUpToDate, Paused.
+	// Known condition types are VariablesReady, RefVersionsUpToDate, Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

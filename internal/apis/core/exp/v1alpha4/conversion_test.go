@@ -21,11 +21,6 @@ package v1alpha4
 import (
 	"testing"
 
-	fuzz "github.com/google/gofuzz"
-	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
-	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -34,22 +29,7 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &expv1.MachinePool{},
-		Spoke:       &MachinePool{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
+		Hub:   &expv1.MachinePool{},
+		Spoke: &MachinePool{},
 	}))
-}
-
-func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		v1beta1MachineSpecFuzzer,
-	}
-}
-
-func v1beta1MachineSpecFuzzer(in *clusterv1.MachineSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// These fields have been added in v1beta1
-	// data is going to be lost, so we're forcing zero values to avoid round trip errors.
-	in.ReadinessGates = nil
 }

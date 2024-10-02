@@ -231,7 +231,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterAvailabilityGate(ref common
 				Properties: map[string]spec.Schema{
 					"conditionType": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditionType refers to a condition with matching type in the Cluster's condition list. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.",
+							Description: "conditionType refers to a positive polarity condition (status true means good) with matching type in the Cluster's condition list. If the conditions doesn't exist, it will be treated as unknown. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -614,7 +614,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassV1Beta2Status(ref comm
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterClassV1Beta2Status groups all the fields that will be added or modified in ClusterClass with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.",
+				Description: "ClusterClassV1Beta2Status groups all the fields that will be added or modified in ClusterClass with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -627,7 +627,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassV1Beta2Status(ref comm
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a ClusterClass's current state. Known condition types are Ready, VariablesReady, ReferencedVersionsUpToDate, Paused.",
+							Description: "conditions represents the observations of a ClusterClass's current state. Known condition types are VariablesReady, RefVersionsUpToDate, Paused.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -748,15 +748,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterControlPlaneStatus(ref comm
 					"desiredReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "desiredReplicas is the total number of desired control plane machines in this cluster.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "replicas is the total number of control plane machines in this cluster.",
-							Default:     0,
+							Description: "replicas is the total number of control plane machines in this cluster. NOTE: replicas also includes machines still being provisioned or being deleted.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -764,7 +762,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterControlPlaneStatus(ref comm
 					"upToDateReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "upToDateReplicas is the number of up-to-date control plane machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -772,7 +769,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterControlPlaneStatus(ref comm
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "readyReplicas is the total number of ready control plane machines in this cluster. A machine is considered ready when Machine's Ready condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -780,7 +776,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterControlPlaneStatus(ref comm
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -936,7 +931,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref common.ReferenceCa
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "availabilityGates specifies additional conditions to include when evaluating Cluster availability. A Cluster is available if: * Cluster's `RemoteConnectionProbe` and `TopologyReconciled` conditions are true and * the control plane `Available` condition is true and * all worker resource's `Available` conditions are true and * all conditions defined in AvailabilityGates are true as well.",
+							Description: "availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.\n\nNOTE: this field is considered only for computing v1beta2 conditions.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -1054,7 +1049,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterV1Beta2Status(ref common.Re
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterV1Beta2Status groups all the fields that will be added or modified in Cluster with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.",
+				Description: "ClusterV1Beta2Status groups all the fields that will be added or modified in Cluster with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -1067,7 +1062,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterV1Beta2Status(ref common.Re
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a Cluster's current state. Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady MachinesUpToDate, RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting, Paused. Additionally, a TopologyReconciled will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.",
+							Description: "conditions represents the observations of a Cluster's current state. Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady MachinesUpToDate, RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting, Paused. Additionally, a TopologyReconciled condition will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -2487,7 +2482,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentV1Beta2Status(ref
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDeploymentV1Beta2Status groups all the fields that will be added or modified in MachineDeployment with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.",
+				Description: "MachineDeploymentV1Beta2Status groups all the fields that will be added or modified in MachineDeployment with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -2500,7 +2495,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentV1Beta2Status(ref
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a MachineDeployment's current state. Known condition types are MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.",
+							Description: "conditions represents the observations of a MachineDeployment's current state. Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -2515,7 +2510,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentV1Beta2Status(ref
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2523,7 +2517,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentV1Beta2Status(ref
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "availableReplicas is the number of available replicas for this MachineDeployment. A machine is considered available when Machine's Available condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2531,7 +2524,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentV1Beta2Status(ref
 					"upToDateReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2949,7 +2941,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckV1Beta2Status(re
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineHealthCheckV1Beta2Status groups all the fields that will be added or modified in MachineHealthCheck with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.",
+				Description: "MachineHealthCheckV1Beta2Status groups all the fields that will be added or modified in MachineHealthCheck with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -2962,7 +2954,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckV1Beta2Status(re
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a MachineHealthCheck's current state. Known condition types are Ready, RemediationAllowed, Paused. (before RemediationAllowed, no ready, no paused) // TODO: check with Stefan & Christian",
+							Description: "conditions represents the observations of a MachineHealthCheck's current state. Known condition types are RemediationAllowed, Paused.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -3303,7 +3295,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineReadinessGate(ref common.Re
 				Properties: map[string]spec.Schema{
 					"conditionType": {
 						SchemaProps: spec.SchemaProps{
-							Description: "conditionType refers to a condition with matching type in the Machine's condition list. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.",
+							Description: "conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list. If the conditions doesn't exist, it will be treated as unknown. Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -3603,7 +3595,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetV1Beta2Status(ref common
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineSetV1Beta2Status groups all the fields that will be added or modified in MachineSetStatus with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.",
+				Description: "MachineSetV1Beta2Status groups all the fields that will be added or modified in MachineSetStatus with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -3631,7 +3623,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetV1Beta2Status(ref common
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "readyReplicas is the number of ready replicas for this MachineSet. A machine is considered ready when Machine's Ready condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -3639,7 +3630,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetV1Beta2Status(ref common
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "availableReplicas is the number of available replicas for this MachineSet. A machine is considered available when Machine's Available condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -3647,7 +3637,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetV1Beta2Status(ref common
 					"upToDateReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "upToDateReplicas is the number of up-to-date replicas for this MachineSet. A machine is considered up-to-date when Machine's UpToDate condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -3720,7 +3709,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref common.ReferenceCa
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "readinessGates specifies additional conditions to include when evaluating Machine readiness. A Machine is ready when `BootstrapConfigReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are \"True\"; if other conditions are defined in this field, those conditions should be \"True\" as well for the Machine to be ready.\n\nThis field can be used e.g. - By Cluster API control plane providers to extend the semantic of the Ready condition for the Machine they\n  control, like the kubeadm control provider adding ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.\n- By external controllers, e.g. responsible to install special software/hardware on the Machines\n  to include the status of those components into ReadinessGates (by surfacing new conditions on Machines and\n  adding them to ReadinessGates).\n\nNOTE: this field will be considered only for computing v1beta2 conditions.",
+							Description: "readinessGates specifies additional conditions to include when evaluating Machine Ready condition.\n\nThis field can be used e.g. by Cluster API control plane providers to extend the semantic of the Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.\n\nAnother example are external controllers, e.g. responsible to install special software/hardware on the Machines; they can include the status of those components with a new condition and add this condition to ReadinessGates.\n\nNOTE: this field is considered only for computing v1beta2 conditions.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -3870,7 +3859,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 					},
 					"v1beta2": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Groups all the fields that will be added or modified in Machine's status with the V1Beta2 version. v1beta2 groups all the fields that will be added or modified in Machine's status with the V1Beta2 version.",
+							Description: "v1beta2 groups all the fields that will be added or modified in Machine's status with the V1Beta2 version.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineV1Beta2Status"),
 						},
 					},
@@ -3915,7 +3904,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineV1Beta2Status(ref common.Re
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineV1Beta2Status groups all the fields that will be added or modified in MachineStatus with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.",
+				Description: "MachineV1Beta2Status groups all the fields that will be added or modified in MachineStatus with the V1Beta2 version. See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
@@ -3928,7 +3917,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineV1Beta2Status(ref common.Re
 							},
 						},
 						SchemaProps: spec.SchemaProps{
-							Description: "conditions represents the observations of a Machine's current state. Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady, NodeHealthy, Deleting, Paused. Additional conditions are also added in specific cases: - HealthCheckSucceeded, OwnerRemediated if a MachineHealthCheck is targeting this machine. - APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy if\n  the machine is part of a KubeadmControlPlane instance.",
+							Description: "conditions represents the observations of a Machine's current state. Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady, NodeHealthy, Deleting, Paused. If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added. Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions: APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -4511,15 +4500,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersStatus(ref common.Reference
 					"desiredReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "desiredReplicas is the total number of desired worker machines in this cluster.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "replicas is the total number of worker machines in this cluster.",
-							Default:     0,
+							Description: "replicas is the total number of worker machines in this cluster. NOTE: replicas also includes machines still being provisioned or being deleted.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -4527,7 +4514,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersStatus(ref common.Reference
 					"upToDateReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "upToDateReplicas is the number of up-to-date worker machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -4535,7 +4521,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersStatus(ref common.Reference
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "readyReplicas is the total number of ready worker machines in this cluster. A machine is considered ready when Machine's Ready condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -4543,7 +4528,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersStatus(ref common.Reference
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},

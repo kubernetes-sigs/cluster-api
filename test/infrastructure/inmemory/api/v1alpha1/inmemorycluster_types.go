@@ -49,13 +49,13 @@ type InMemoryClusterStatus struct {
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
-	// v1beta2 groups all the fields that will be added or modified in MachineSet's status with the InMemoryCluster version.
+	// v1beta2 groups all the fields that will be added or modified in InMemoryCluster's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *InMemoryClusterV1Beta2Status `json:"v1beta2,omitempty"`
 }
 
 // InMemoryClusterV1Beta2Status groups all the fields that will be added or modified in InMemoryCluster with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type InMemoryClusterV1Beta2Status struct {
 	// conditions represents the observations of a InMemoryCluster's current state.
 	// +optional

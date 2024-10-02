@@ -516,7 +516,7 @@ spec:
                 type: boolean
               v1beta2:
                 description: v1beta2 groups all the fields that will be added or modified
-                  in MachineSet's status with the DockerCluster version.
+                  in DockerCluster's's status with the V1Beta2 version.
                 properties:
                   conditions:
                     description: |-

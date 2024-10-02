@@ -45,6 +45,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
 	if restored.Spec.Topology != nil {
 		dst.Spec.Topology = restored.Spec.Topology
 	}
@@ -98,6 +99,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
 	dst.Spec.NodeDeletionTimeout = restored.Spec.NodeDeletionTimeout
 	dst.Spec.NodeVolumeDetachTimeout = restored.Spec.NodeVolumeDetachTimeout
 	dst.Status.NodeInfo = restored.Status.NodeInfo
@@ -146,6 +148,7 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Status.Conditions = restored.Status.Conditions
@@ -206,6 +209,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
 	}
 
+	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Spec.RolloutAfter = restored.Spec.RolloutAfter

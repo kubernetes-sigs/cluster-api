@@ -2049,7 +2049,7 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a ClusterClass's current state.
-                      Known condition types are Ready, VariablesReady, ReferencedVersionsUpToDate, Paused.
+                      Known condition types are VariablesReady, RefVersionsUpToDate, Paused.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

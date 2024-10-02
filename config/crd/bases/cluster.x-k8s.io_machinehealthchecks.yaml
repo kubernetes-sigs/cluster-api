@@ -876,7 +876,7 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a MachineHealthCheck's current state.
-                      Known condition types are Ready, RemediationAllowed, Paused. (before RemediationAllowed, no ready, no paused) // TODO: check with Stefan & Christian
+                      Known condition types are RemediationAllowed, Paused.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

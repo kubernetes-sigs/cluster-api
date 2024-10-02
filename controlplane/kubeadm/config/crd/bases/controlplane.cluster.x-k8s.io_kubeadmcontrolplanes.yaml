@@ -4544,8 +4544,8 @@ spec:
                 properties:
                   availableReplicas:
                     description: availableReplicas is the number of available replicas
-                      targeted by this ControlPlane. A machine is considered available
-                      when Machine's Available condition is true.
+                      targeted by this KubeadmControlPlane. A machine is considered
+                      available when Machine's Available condition is true.
                     format: int32
                     type: integer
                   conditions:
@@ -4614,14 +4614,14 @@ spec:
                     x-kubernetes-list-type: map
                   readyReplicas:
                     description: readyReplicas is the number of ready replicas for
-                      this ControlPlane. A machine is considered ready when Machine's
-                      Ready condition is true.
+                      this KubeadmControlPlane. A machine is considered ready when
+                      Machine's Ready condition is true.
                     format: int32
                     type: integer
                   upToDateReplicas:
                     description: upToDateReplicas is the number of up-to-date replicas
-                      targeted by this ControlPlane. A machine is considered up-to-date
-                      when Machine's UpToDate condition is true.
+                      targeted by this KubeadmControlPlane. A machine is considered
+                      up-to-date when Machine's UpToDate condition is true.
                     format: int32
                     type: integer
                 type: object

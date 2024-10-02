@@ -38,59 +38,31 @@ func TestFuzzyConversion(t *testing.T) {
 		Hub:                &clusterv1.Cluster{},
 		Spoke:              &Cluster{},
 		SpokeAfterMutation: clusterSpokeAfterMutation,
-		FuzzerFuncs:        []fuzzer.FuzzerFuncs{ClusterSpecFuzzFuncs, ClusterJSONFuzzFuncs},
+		FuzzerFuncs:        []fuzzer.FuzzerFuncs{ClusterJSONFuzzFuncs},
 	}))
 
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.Machine{},
 		Spoke:       &Machine{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineSpecFuzzFuncs, BootstrapFuzzFuncs, MachineStatusFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, MachineStatusFuzzFunc},
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.MachineSet{},
 		Spoke:       &MachineSet{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineSpecFuzzFuncs, BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:         &clusterv1.MachineDeployment{},
 		Spoke:       &MachineDeployment{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{MachineSpecFuzzFuncs, BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Hub:   &clusterv1.MachineHealthCheck{},
 		Spoke: &MachineHealthCheck{},
 	}))
-}
-
-func ClusterSpecFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		v1beta1ClusterSpecFuzzer,
-	}
-}
-
-func v1beta1ClusterSpecFuzzer(in *clusterv1.ClusterSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// These fields have been added in v1beta1
-	// data is going to be lost, so we're forcing zero values to avoid round trip errors.
-	in.AvailabilityGates = nil
-}
-
-func MachineSpecFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
-	return []interface{}{
-		v1beta1MachineSpecFuzzer,
-	}
-}
-
-func v1beta1MachineSpecFuzzer(in *clusterv1.MachineSpec, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
-
-	// These fields have been added in v1beta1
-	// data is going to be lost, so we're forcing zero values to avoid round trip errors.
-	in.ReadinessGates = nil
 }
 
 func MachineStatusFuzzFunc(_ runtimeserializer.CodecFactory) []interface{} {

@@ -108,10 +108,10 @@ type ClusterResourceSetStatus struct {
 }
 
 // ClusterResourceSetV1Beta2Status groups all the fields that will be added or modified in ClusterResourceSet with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ClusterResourceSetV1Beta2Status struct {
 	// conditions represents the observations of a ClusterResourceSet's current state.
-	// Known condition types are Ready, ResourceSetApplied, Deleting.
+	// Known condition types are ResourceSetApplied, Deleting.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

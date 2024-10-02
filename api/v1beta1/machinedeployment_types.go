@@ -305,10 +305,10 @@ type MachineDeploymentStatus struct {
 }
 
 // MachineDeploymentV1Beta2Status groups all the fields that will be added or modified in MachineDeployment with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineDeploymentV1Beta2Status struct {
 	// conditions represents the observations of a MachineDeployment's current state.
-	// Known condition types are MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// Known condition types are Available, MachinesReady, MachinesUpToDate, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
@@ -316,15 +316,15 @@ type MachineDeploymentV1Beta2Status struct {
 
 	// readyReplicas is the number of ready replicas for this MachineDeployment. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the number of available replicas for this MachineDeployment. A machine is considered available when Machine's Available condition is true.
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas"`
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
 	// upToDateReplicas is the number of up-to-date replicas targeted by this deployment. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
-	UpToDateReplicas int32 `json:"upToDateReplicas"`
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentStatus

@@ -726,6 +726,7 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	desiredMachine.Annotations = machineAnnotationsFromMachineSet(machineSet)
 
 	// Set all other in-place mutable fields.
+	desiredMachine.Spec.ReadinessGates = machineSet.Spec.Template.Spec.ReadinessGates
 	desiredMachine.Spec.NodeDrainTimeout = machineSet.Spec.Template.Spec.NodeDrainTimeout
 	desiredMachine.Spec.NodeDeletionTimeout = machineSet.Spec.Template.Spec.NodeDeletionTimeout
 	desiredMachine.Spec.NodeVolumeDetachTimeout = machineSet.Spec.Template.Spec.NodeVolumeDetachTimeout

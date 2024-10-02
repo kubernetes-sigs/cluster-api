@@ -72,6 +72,7 @@ func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Status.V1Beta2 = restored.Status.V1Beta2

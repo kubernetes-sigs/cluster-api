@@ -73,22 +73,25 @@ type ClusterSpec struct {
 	// +optional
 	Topology *Topology `json:"topology,omitempty"`
 
-	// availabilityGates specifies additional conditions to include when evaluating Cluster availability.
-	// A Cluster is available if:
-	// * Cluster's `RemoteConnectionProbe` and `TopologyReconciled` conditions are true and
-	// * the control plane `Available` condition is true and
-	// * all worker resource's `Available` conditions are true and
-	// * all conditions defined in AvailabilityGates are true as well.
+	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
+	//
+	// NOTE: this field is considered only for computing v1beta2 conditions.
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
 	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
 }
 
 // ClusterAvailabilityGate contains the type of a Cluster condition to be used as availability gate.
 type ClusterAvailabilityGate struct {
-	// conditionType refers to a condition with matching type in the Cluster's condition list.
+	// conditionType refers to a positive polarity condition (status true means good) with matching type in the Cluster's condition list.
+	// If the conditions doesn't exist, it will be treated as unknown.
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
+	// +required
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MaxLength=316
+	// +kubebuilder:validation:MinLength=1
 	ConditionType string `json:"conditionType"`
 }
 
@@ -476,12 +479,12 @@ type ClusterStatus struct {
 }
 
 // ClusterV1Beta2Status groups all the fields that will be added or modified in Cluster with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type ClusterV1Beta2Status struct {
 	// conditions represents the observations of a Cluster's current state.
 	// Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady
 	// MachinesUpToDate, RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
-	// Additionally, a TopologyReconciled will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.
+	// Additionally, a TopologyReconciled condition will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
@@ -500,46 +503,48 @@ type ClusterV1Beta2Status struct {
 type ClusterControlPlaneStatus struct {
 	// desiredReplicas is the total number of desired control plane machines in this cluster.
 	// +optional
-	DesiredReplicas int32 `json:"desiredReplicas"`
+	DesiredReplicas *int32 `json:"desiredReplicas,omitempty"`
 
 	// replicas is the total number of control plane machines in this cluster.
+	// NOTE: replicas also includes machines still being provisioned or being deleted.
 	// +optional
-	Replicas int32 `json:"replicas"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// upToDateReplicas is the number of up-to-date control plane machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
-	UpToDateReplicas int32 `json:"upToDateReplicas"`
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
 	// readyReplicas is the total number of ready control plane machines in this cluster. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true.
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas"`
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 }
 
 // WorkersStatus groups all the observations about workers current state.
 type WorkersStatus struct {
 	// desiredReplicas is the total number of desired worker machines in this cluster.
 	// +optional
-	DesiredReplicas int32 `json:"desiredReplicas"`
+	DesiredReplicas *int32 `json:"desiredReplicas,omitempty"`
 
 	// replicas is the total number of worker machines in this cluster.
+	// NOTE: replicas also includes machines still being provisioned or being deleted.
 	// +optional
-	Replicas int32 `json:"replicas"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// upToDateReplicas is the number of up-to-date worker machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
-	UpToDateReplicas int32 `json:"upToDateReplicas"`
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 
 	// readyReplicas is the total number of ready worker machines in this cluster. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
 	// availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true.
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas"`
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 }
 
 // ANCHOR_END: ClusterStatus

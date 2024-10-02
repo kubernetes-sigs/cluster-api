@@ -154,10 +154,10 @@ type MachineHealthCheckStatus struct {
 }
 
 // MachineHealthCheckV1Beta2Status groups all the fields that will be added or modified in MachineHealthCheck with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineHealthCheckV1Beta2Status struct {
 	// conditions represents the observations of a MachineHealthCheck's current state.
-	// Known condition types are Ready, RemediationAllowed, Paused. (before RemediationAllowed, no ready, no paused) // TODO: check with Stefan & Christian
+	// Known condition types are RemediationAllowed, Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

@@ -532,7 +532,7 @@ spec:
                   conditions:
                     description: |-
                       conditions represents the observations of a ClusterResourceSet's current state.
-                      Known condition types are Ready, ResourceSetApplied, Deleting.
+                      Known condition types are ResourceSetApplied, Deleting.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.

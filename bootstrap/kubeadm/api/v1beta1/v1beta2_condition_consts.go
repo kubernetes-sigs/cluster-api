@@ -20,14 +20,14 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // Conditions that will be used for the KubeadmConfig object in v1Beta2 API version.
 const (
-	// KubeadmConfigReadyV1beta2Condition is true if the KubeadmConfig is not deleted,
+	// KubeadmConfigReadyV1Beta2Condition is true if the KubeadmConfig is not deleted,
 	// and both DataSecretCreated, CertificatesAvailable conditions are true.
-	KubeadmConfigReadyV1beta2Condition = clusterv1.ReadyV1beta2Condition
+	KubeadmConfigReadyV1Beta2Condition = clusterv1.ReadyV1Beta2Condition
 
 	// CertificatesAvailableV1Beta2Condition documents that cluster certificates required
 	// for generating the bootstrap data secret are available.
 	CertificatesAvailableV1Beta2Condition = "CertificatesAvailable"
 
-	// DataSecretCreatedV1Beta2Condition is true if the bootstrap secret has been generated.
-	DataSecretCreatedV1Beta2Condition = "DataSecretCreated"
+	// DataSecretAvailableV1Beta2Condition is true if the bootstrap secret is available.
+	DataSecretAvailableV1Beta2Condition = "DataSecretAvailable"
 )

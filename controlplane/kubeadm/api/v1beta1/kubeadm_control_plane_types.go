@@ -313,7 +313,7 @@ type KubeadmControlPlaneStatus struct {
 }
 
 // KubeadmControlPlaneV1Beta2Status Groups all the fields that will be added or modified in KubeadmControlPlane with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type KubeadmControlPlaneV1Beta2Status struct {
 	// conditions represents the observations of a KubeadmControlPlane's current state.
 	// Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,
@@ -323,17 +323,17 @@ type KubeadmControlPlaneV1Beta2Status struct {
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// readyReplicas is the number of ready replicas for this ControlPlane. A machine is considered ready when Machine's Ready condition is true.
+	// readyReplicas is the number of ready replicas for this KubeadmControlPlane. A machine is considered ready when Machine's Ready condition is true.
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
 
-	// availableReplicas is the number of available replicas targeted by this ControlPlane. A machine is considered available when Machine's Available condition is true.
+	// availableReplicas is the number of available replicas targeted by this KubeadmControlPlane. A machine is considered available when Machine's Available condition is true.
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas"`
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 
-	// upToDateReplicas is the number of up-to-date replicas targeted by this ControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// upToDateReplicas is the number of up-to-date replicas targeted by this KubeadmControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
 	// +optional
-	UpToDateReplicas int32 `json:"upToDateReplicas"`
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
 
 // LastRemediationStatus  stores info about last remediation performed.

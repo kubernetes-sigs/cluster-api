@@ -751,24 +751,26 @@ spec:
             properties:
               availabilityGates:
                 description: |-
-                  availabilityGates specifies additional conditions to include when evaluating Cluster availability.
-                  A Cluster is available if:
-                  * Cluster's `RemoteConnectionProbe` and `TopologyReconciled` conditions are true and
-                  * the control plane `Available` condition is true and
-                  * all worker resource's `Available` conditions are true and
-                  * all conditions defined in AvailabilityGates are true as well.
+                  availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
+
+                  NOTE: this field is considered only for computing v1beta2 conditions.
                 items:
                   description: ClusterAvailabilityGate contains the type of a Cluster
                     condition to be used as availability gate.
                   properties:
                     conditionType:
                       description: |-
-                        conditionType refers to a condition with matching type in the Cluster's condition list.
+                        conditionType refers to a positive polarity condition (status true means good) with matching type in the Cluster's condition list.
+                        If the conditions doesn't exist, it will be treated as unknown.
                         Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
+                      maxLength: 316
+                      minLength: 1
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
                   required:
                   - conditionType
                   type: object
+                maxItems: 32
                 type: array
                 x-kubernetes-list-map-keys:
                 - conditionType
@@ -1795,7 +1797,7 @@ spec:
                       conditions represents the observations of a Cluster's current state.
                       Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady
                       MachinesUpToDate, RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
-                      Additionally, a TopologyReconciled will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.
+                      Additionally, a TopologyReconciled condition will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.
                     items:
                       description: Condition contains details for one aspect of the
                         current state of this API Resource.
@@ -1877,8 +1879,9 @@ spec:
                         format: int32
                         type: integer
                       replicas:
-                        description: replicas is the total number of control plane
-                          machines in this cluster.
+                        description: |-
+                          replicas is the total number of control plane machines in this cluster.
+                          NOTE: replicas also includes machines still being provisioned or being deleted.
                         format: int32
                         type: integer
                       upToDateReplicas:
@@ -1910,8 +1913,9 @@ spec:
                         format: int32
                         type: integer
                       replicas:
-                        description: replicas is the total number of worker machines
-                          in this cluster.
+                        description: |-
+                          replicas is the total number of worker machines in this cluster.
+                          NOTE: replicas also includes machines still being provisioned or being deleted.
                         format: int32
                         type: integer
                       upToDateReplicas:

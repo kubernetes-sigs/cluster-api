@@ -133,21 +133,20 @@ type MachineSpec struct {
 	//  MachineDeployment, MachineSet and MachinePool
 	// MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
 
-	// readinessGates specifies additional conditions to include when evaluating Machine readiness.
-	// A Machine is ready when `BootstrapConfigReady`, `InfrastructureReady`, `NodeHealthy` and `HealthCheckSucceeded` (if present) are "True";
-	// if other conditions are defined in this field, those conditions should be "True" as well for the Machine to be ready.
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
 	//
-	// This field can be used e.g.
-	// - By Cluster API control plane providers to extend the semantic of the Ready condition for the Machine they
-	//   control, like the kubeadm control provider adding ReadinessGates for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
-	// - By external controllers, e.g. responsible to install special software/hardware on the Machines
-	//   to include the status of those components into ReadinessGates (by surfacing new conditions on Machines and
-	//   adding them to ReadinessGates).
+	// This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
+	// Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates
+	// for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
 	//
-	// NOTE: this field will be considered only for computing v1beta2 conditions.
+	// Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
+	// they can include the status of those components with a new condition and add this condition to ReadinessGates.
+	//
+	// NOTE: this field is considered only for computing v1beta2 conditions.
 	// +optional
 	// +listType=map
 	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
 	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
 
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
@@ -170,8 +169,13 @@ type MachineSpec struct {
 
 // MachineReadinessGate contains the type of a Machine condition to be used as a readiness gate.
 type MachineReadinessGate struct {
-	// conditionType refers to a condition with matching type in the Machine's condition list.
+	// conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list.
+	// If the conditions doesn't exist, it will be treated as unknown.
 	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+	// +required
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MaxLength=316
+	// +kubebuilder:validation:MinLength=1
 	ConditionType string `json:"conditionType"`
 }
 
@@ -268,22 +272,20 @@ type MachineStatus struct {
 	// +optional
 	Deletion *MachineDeletionStatus `json:"deletion,omitempty"`
 
-	// Groups all the fields that will be added or modified in Machine's status with the V1Beta2 version.
 	// v1beta2 groups all the fields that will be added or modified in Machine's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *MachineV1Beta2Status `json:"v1beta2,omitempty"`
 }
 
 // MachineV1Beta2Status groups all the fields that will be added or modified in MachineStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md#machineset-newconditions for more context.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type MachineV1Beta2Status struct {
 	// conditions represents the observations of a Machine's current state.
 	// Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,
 	// NodeHealthy, Deleting, Paused.
-	// Additional conditions are also added in specific cases:
-	// - HealthCheckSucceeded, OwnerRemediated if a MachineHealthCheck is targeting this machine.
-	// - APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy if
-	//   the machine is part of a KubeadmControlPlane instance.
+	// If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added.
+	// Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions:
+	// APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.
 	// +optional
 	// +listType=map
 	// +listMapKey=type

@@ -248,10 +248,10 @@ const (
 	// this ClusterClass.
 	ClusterClassVariablesReadyV1Beta2Condition = "VariablesReady"
 
-	// ClusterClassVariablesRefVersionsUpToDateV1Beta2Condition documents if the references in the ClusterClass are
+	// ClusterClassRefVersionsUpToDateV1Beta2Condition documents if the references in the ClusterClass are
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
-	ClusterClassVariablesRefVersionsUpToDateV1Beta2Condition = "RefVersionsUpToDate"
+	ClusterClassRefVersionsUpToDateV1Beta2Condition = "RefVersionsUpToDate"
 
 	// ClusterClassPausedV1Beta2Condition is true if this ClusterClass is paused.
 	ClusterClassPausedV1Beta2Condition = PausedV1Beta2Condition

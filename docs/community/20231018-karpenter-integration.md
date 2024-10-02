@@ -45,11 +45,20 @@ The scope of this effort will be the following:
    API experience.
 2. Agree upon a path forward to guide the Cluster API community with Karpenter
    usage.
+3. Work towards a Cluster API Enhancement that describes the Karpenter integration.
+4. Provide a space and time for discussion of issues related to the Karpenter Cluster API project.
 
 Depending on the outcome of the 2nd item above, we may choose to keep this
 Feature Group active during the longer term to support Karpenter integration
 design and work efforts in Cluster API, with the blessing of the larger
 Cluster API community.
+
+_Update: 2024-10-02_
+
+After discussion within the feature group and the broader Cluster API community,
+we are continuing the feature group with a focus on experimentation and working
+towards a CAEP that describes the integration with Karpenter. Additionally, we
+will field any project related questions during the feature group.
 
 ## Communication
 

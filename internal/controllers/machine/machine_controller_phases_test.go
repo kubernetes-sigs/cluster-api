@@ -22,6 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -134,7 +135,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
-			g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
+			g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(Equal("test-cluster"))
 			return true
 		}, 10*time.Second).Should(BeTrue())
 
@@ -144,7 +145,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(infraMachine.GetOwnerReferences()).To(HaveLen(1))
-			g.Expect(infraMachine.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
+			g.Expect(infraMachine.GetLabels()[clusterv1.ClusterNameLabel]).To(Equal("test-cluster"))
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -652,15 +653,60 @@ func TestReconcileBootstrap(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name            string
-		bootstrapConfig map[string]interface{}
-		machine         *clusterv1.Machine
-		expectResult    ctrl.Result
-		expectError     bool
-		expected        func(g *WithT, m *clusterv1.Machine)
+		name                    string
+		machine                 *clusterv1.Machine
+		bootstrapConfig         map[string]interface{}
+		bootstrapConfigGetError error
+		expectResult            ctrl.Result
+		expectError             bool
+		expected                func(g *WithT, m *clusterv1.Machine)
 	}{
 		{
-			name: "new machine, bootstrap config ready with data",
+			name:                    "err reading bootstrap config (something different than not found), it should return error",
+			machine:                 defaultMachine.DeepCopy(),
+			bootstrapConfig:         nil,
+			bootstrapConfigGetError: errors.New("some error"),
+			expectResult:            ctrl.Result{},
+			expectError:             true,
+		},
+		{
+			name:                    "bootstrap config is not found, it should requeue",
+			machine:                 defaultMachine.DeepCopy(),
+			bootstrapConfig:         nil,
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{RequeueAfter: externalReadyWait},
+			expectError:             false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeFalse())
+			},
+		},
+		{
+			name:    "bootstrap config not ready, it should reconcile but no data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          false,
+					"dataSecretName": "secret-data",
+				},
+			},
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeFalse())
+				g.Expect(m.Spec.Bootstrap.DataSecretName).To(BeNil())
+			},
+		},
+		{
+			name:    "bootstrap config ready with data, it should reconcile and data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -674,16 +720,46 @@ func TestReconcileBootstrap(t *testing.T) {
 					"dataSecretName": "secret-data",
 				},
 			},
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
 				g.Expect(m.Spec.Bootstrap.DataSecretName).NotTo(BeNil())
-				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(ContainSubstring("secret-data"))
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
 			},
 		},
 		{
-			name: "new machine, bootstrap config ready with no data",
+			name:    "bootstrap config ready and paused, it should reconcile and data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+					"annotations": map[string]interface{}{
+						"cluster.x-k8s.io/paused": "true",
+					},
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          true,
+					"dataSecretName": "secret-data",
+				},
+			},
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.BootstrapReady).To(BeTrue())
+				g.Expect(m.Spec.Bootstrap.DataSecretName).NotTo(BeNil())
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+			},
+		},
+		{
+			name:    "bootstrap config ready with no bootstrap secret",
+			machine: defaultMachine.DeepCopy(),
 			bootstrapConfig: map[string]interface{}{
 				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -696,79 +772,16 @@ func TestReconcileBootstrap(t *testing.T) {
 					"ready": true,
 				},
 			},
-			expectResult: ctrl.Result{},
-			expectError:  true,
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 				g.Expect(m.Spec.Bootstrap.DataSecretName).To(BeNil())
 			},
 		},
 		{
-			name: "new machine, bootstrap config not ready",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
-				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
-			},
-			expectResult: ctrl.Result{},
-			expectError:  false,
-			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(BeFalse())
-			},
-		},
-		{
-			name: "new machine, bootstrap config is not found",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "wrong-namespace",
-				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
-			},
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
-			expectError:  false,
-			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.BootstrapReady).To(BeFalse())
-			},
-		},
-		{
-			name: "new machine, no bootstrap config or data",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": "wrong-namespace",
-				},
-				"spec":   map[string]interface{}{},
-				"status": map[string]interface{}{},
-			},
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
-			expectError:  false,
-		},
-		{
-			name: "existing machine, bootstrap data should not change",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready":          true,
-					"dataSecretName": "secret-data",
-				},
-			},
+			name: "bootstrap data secret and bootstrap ready should not change after bootstrap config is set",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bootstrap-test-existing",
@@ -788,105 +801,25 @@ func TestReconcileBootstrap(t *testing.T) {
 					BootstrapReady: true,
 				},
 			},
-			expectResult: ctrl.Result{},
-			expectError:  false,
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          false,
+					"dataSecretName": "secret-data-changed",
+				},
+			},
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
-				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(BeEquivalentTo("secret-data"))
-			},
-		},
-		{
-			name: "existing machine, bootstrap provider is not ready, and ownerref updated",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
-					"ownerReferences": []interface{}{
-						map[string]interface{}{
-							"apiVersion": clusterv1.GroupVersion.String(),
-							"kind":       "MachineSet",
-							"name":       "ms",
-							"uid":        "1",
-							"controller": true,
-						},
-					},
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready": false,
-				},
-			},
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config1",
-						},
-					},
-				},
-				Status: clusterv1.MachineStatus{
-					BootstrapReady: true,
-				},
-			},
-			expectResult: ctrl.Result{},
-			expectError:  false,
-			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.GetOwnerReferences()).NotTo(ContainRefOfGroupKind("cluster.x-k8s.io", "MachineSet"))
-			},
-		},
-		{
-			name: "existing machine, machineset owner and version v1alpha2, and ownerref updated",
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
-					"ownerReferences": []interface{}{
-						map[string]interface{}{
-							"apiVersion": "cluster.x-k8s.io/v1alpha2",
-							"kind":       "MachineSet",
-							"name":       "ms",
-							"uid":        "1",
-							"controller": true,
-						},
-					},
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready": true,
-				},
-			},
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "bootstrap-test-existing",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config1",
-						},
-					},
-				},
-				Status: clusterv1.MachineStatus{
-					BootstrapReady: true,
-				},
-			},
-			expectResult: ctrl.Result{},
-			expectError:  true,
-			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.GetOwnerReferences()).NotTo(ContainRefOfGroupKind("cluster.x-k8s.io", "MachineSet"))
+				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
 			},
 		},
 	}
@@ -899,17 +832,25 @@ func TestReconcileBootstrap(t *testing.T) {
 				tc.machine = defaultMachine.DeepCopy()
 			}
 
-			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
+			var bootstrapConfig *unstructured.Unstructured
+			if tc.bootstrapConfig != nil {
+				bootstrapConfig = &unstructured.Unstructured{Object: tc.bootstrapConfig}
+			}
+
 			c := fake.NewClientBuilder().
-				WithObjects(tc.machine,
-					builder.GenericBootstrapConfigCRD.DeepCopy(),
-					builder.GenericInfrastructureMachineCRD.DeepCopy(),
-					bootstrapConfig,
-				).Build()
+				WithObjects(tc.machine).Build()
+
+			if tc.bootstrapConfigGetError == nil {
+				g.Expect(c.Create(ctx, builder.GenericBootstrapConfigCRD.DeepCopy())).To(Succeed())
+			}
+
+			if bootstrapConfig != nil {
+				g.Expect(c.Create(ctx, bootstrapConfig)).To(Succeed())
+			}
+
 			r := &Reconciler{
 				Client: c,
 			}
-
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			res, err := r.reconcileBootstrap(ctx, s)
 			g.Expect(res).To(BeComparableTo(tc.expectResult))
@@ -936,13 +877,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 			},
 		},
 		Spec: clusterv1.MachineSpec{
-			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-					Kind:       "GenericBootstrapConfig",
-					Name:       "bootstrap-config1",
-				},
-			},
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
@@ -959,32 +893,136 @@ func TestReconcileInfrastructure(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name            string
-		bootstrapConfig map[string]interface{}
-		infraConfig     map[string]interface{}
-		machine         *clusterv1.Machine
-		expectResult    ctrl.Result
-		expectError     bool
-		expectChanged   bool
-		expected        func(g *WithT, m *clusterv1.Machine)
+		name                 string
+		machine              *clusterv1.Machine
+		infraMachine         map[string]interface{}
+		infraMachineGetError error
+		expectResult         ctrl.Result
+		expectError          bool
+		expected             func(g *WithT, m *clusterv1.Machine)
 	}{
 		{
-			name: "new machine, infrastructure config ready",
-			infraConfig: map[string]interface{}{
+			name:                 "err reading infra machine (something different than not found), it should return error",
+			machine:              defaultMachine.DeepCopy(),
+			infraMachine:         nil,
+			infraMachineGetError: errors.New("some error"),
+			expectResult:         ctrl.Result{},
+			expectError:          true,
+		},
+		{
+			name:                 "infra machine not found and infrastructure not yet ready, it should requeue",
+			machine:              defaultMachine.DeepCopy(),
+			infraMachine:         nil,
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{RequeueAfter: externalReadyWait},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
+				g.Expect(m.Status.FailureMessage).To(BeNil())
+				g.Expect(m.Status.FailureReason).To(BeNil())
+			},
+		},
+		{
+			name:    "infra machine not ready, it should reconcile but no data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
-					"ownerReferences": []interface{}{
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": false,
+					"addresses": []interface{}{
 						map[string]interface{}{
-							"apiVersion": clusterv1.GroupVersion.String(),
-							"kind":       "MachineSet",
-							"name":       "ms",
-							"uid":        "1",
-							"controller": true,
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
 						},
 					},
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
+				g.Expect(m.Spec.ProviderID).To(BeNil())
+				g.Expect(m.Spec.FailureDomain).To(BeNil())
+				g.Expect(m.Status.Addresses).To(BeNil())
+			},
+		},
+		{
+			name:    "infra machine ready and without optional fields, it should reconcile and data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID": "test://id-1",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(BeNil())
+				g.Expect(m.Status.Addresses).To(BeNil())
+			},
+		},
+		{
+			name:    "infra machine ready and with optional failure domain, it should reconcile and data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID":    "test://id-1",
+					"failureDomain": "foo",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Status.Addresses).To(BeNil())
+			},
+		},
+		{
+			name:    "infra machine ready and with optional addresses, it should reconcile and data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
 				},
 				"spec": map[string]interface{}{
 					"providerID": "test://id-1",
@@ -1003,71 +1041,58 @@ func TestReconcileInfrastructure(t *testing.T) {
 					},
 				},
 			},
-			expectResult:  ctrl.Result{},
-			expectError:   false,
-			expectChanged: true,
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.GetOwnerReferences()).NotTo(ContainRefOfGroupKind("cluster.x-k8s.io", "MachineSet"))
+				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(m.Spec.FailureDomain).To(BeNil())
+				g.Expect(m.Status.Addresses).To(HaveLen(2))
 			},
 		},
 		{
-			name: "ready bootstrap, infra, and nodeRef, machine is running, infra object is deleted, expect failed",
-			machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-test",
-					Namespace: metav1.NamespaceDefault,
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "GenericBootstrapConfig",
-							Name:       "bootstrap-config1",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-						Kind:       "GenericInfrastructureMachine",
-						Name:       "infra-config1",
-					},
-				},
-				Status: clusterv1.MachineStatus{
-					BootstrapReady:      true,
-					InfrastructureReady: true,
-					NodeRef:             &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"},
-				},
-			},
-			bootstrapConfig: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
-				},
-				"spec": map[string]interface{}{},
-				"status": map[string]interface{}{
-					"ready":          true,
-					"dataSecretName": "secret-data",
-				},
-			},
-			infraConfig: map[string]interface{}{
+			name:    "infra machine ready and with all the optional fields, it should reconcile and data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
-				"metadata":   map[string]interface{}{},
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID":    "test://id-1",
+					"failureDomain": "foo",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
 			},
-			expectResult: ctrl.Result{},
-			expectError:  true,
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
-				g.Expect(m.Status.FailureMessage).NotTo(BeNil())
-				g.Expect(m.Status.FailureReason).NotTo(BeNil())
-				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseFailed))
+				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Status.Addresses).To(HaveLen(2))
 			},
 		},
 		{
-			name: "infrastructure ref is paused",
-			infraConfig: map[string]interface{}{
+			name:    "infra machine ready and paused, it should reconcile and data should surface on the machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 				"metadata": map[string]interface{}{
@@ -1078,7 +1103,8 @@ func TestReconcileInfrastructure(t *testing.T) {
 					},
 				},
 				"spec": map[string]interface{}{
-					"providerID": "test://id-1",
+					"providerID":    "test://id-1",
+					"failureDomain": "foo",
 				},
 				"status": map[string]interface{}{
 					"ready": true,
@@ -1094,11 +1120,211 @@ func TestReconcileInfrastructure(t *testing.T) {
 					},
 				},
 			},
-			expectResult:  ctrl.Result{},
-			expectError:   false,
-			expectChanged: false,
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Status.Addresses).To(HaveLen(2))
+			},
+		},
+		{
+			name:    "infra machine ready and no provider ID, it should fail",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready": true,
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          true,
+		},
+		{
+			name: "should never revert back to infrastructure not ready",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericInfrastructureMachine",
+						Name:       "infra-config1",
+					},
+					ProviderID:    ptr.To("test://something"),
+					FailureDomain: ptr.To("something"),
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: true,
+					Addresses: []clusterv1.MachineAddress{
+						{
+							Type:    clusterv1.MachineExternalIP,
+							Address: "1.2.3.4",
+						},
+					},
+				},
+			},
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID":    "test://id-1",
+					"failureDomain": "foo",
+				},
+				"status": map[string]interface{}{
+					"ready": false,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Status.Addresses).To(HaveLen(2))
+			},
+		},
+		{
+			name: "should change data also after infrastructure ready is set",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericInfrastructureMachine",
+						Name:       "infra-config1",
+					},
+					ProviderID:    ptr.To("test://something"),
+					FailureDomain: ptr.To("something"),
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: true,
+					Addresses: []clusterv1.MachineAddress{
+						{
+							Type:    clusterv1.MachineExternalIP,
+							Address: "1.2.3.4",
+						},
+					},
+				},
+			},
+			infraMachine: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerID":    "test://id-1",
+					"failureDomain": "foo",
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(ptr.Deref(m.Spec.ProviderID, "")).To(Equal("test://id-1"))
+				g.Expect(ptr.Deref(m.Spec.FailureDomain, "")).To(Equal("foo"))
+				g.Expect(m.Status.Addresses).To(HaveLen(2))
+			},
+		},
+		{
+			name: "err reading infra machine when infrastructure have been ready (something different than not found), it should return error",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericInfrastructureMachine",
+						Name:       "infra-config1",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: true,
+				},
+			},
+			infraMachine:         nil,
+			infraMachineGetError: errors.New("some error"),
+			expectResult:         ctrl.Result{},
+			expectError:          true,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(m.Status.FailureMessage).To(BeNil())
+				g.Expect(m.Status.FailureReason).To(BeNil())
+			},
+		},
+		{
+			name: "infra machine not found when infrastructure have been ready, should be treated as terminal error",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericInfrastructureMachine",
+						Name:       "infra-config1",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: true,
+				},
+			},
+			infraMachine:         nil,
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          true,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(m.Status.FailureMessage).ToNot(BeNil())
+				g.Expect(m.Status.FailureReason).ToNot(BeNil())
 			},
 		},
 	}
@@ -1107,17 +1333,21 @@ func TestReconcileInfrastructure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			if tc.machine == nil {
-				tc.machine = defaultMachine.DeepCopy()
+			var infraMachine *unstructured.Unstructured
+			if tc.infraMachine != nil {
+				infraMachine = &unstructured.Unstructured{Object: tc.infraMachine}
+			}
+			c := fake.NewClientBuilder().
+				WithObjects(tc.machine).Build()
+
+			if tc.infraMachineGetError == nil {
+				g.Expect(c.Create(ctx, builder.GenericInfrastructureMachineCRD.DeepCopy())).To(Succeed())
 			}
 
-			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			c := fake.NewClientBuilder().
-				WithObjects(tc.machine,
-					builder.GenericBootstrapConfigCRD.DeepCopy(),
-					builder.GenericInfrastructureMachineCRD.DeepCopy(),
-					infraConfig,
-				).Build()
+			if infraMachine != nil {
+				g.Expect(c.Create(ctx, infraMachine)).To(Succeed())
+			}
+
 			r := &Reconciler{
 				Client: c,
 			}

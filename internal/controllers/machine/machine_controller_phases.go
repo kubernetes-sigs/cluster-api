@@ -32,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -95,10 +96,9 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	if err != nil {
 		return external.ReconcileOutput{}, err
 	}
-	if result.RequeueAfter > 0 || result.Paused {
+	if result.RequeueAfter > 0 {
 		return result, nil
 	}
-
 	obj := result.Result
 
 	// Set failure reason and message, if any.
@@ -139,12 +139,6 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 		return external.ReconcileOutput{}, err
 	}
 
-	// if external ref is paused, return error.
-	if annotations.IsPaused(cluster, obj) {
-		log.V(3).Info("External object referenced is paused")
-		return external.ReconcileOutput{Paused: true}, nil
-	}
-
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
@@ -176,6 +170,9 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 		return external.ReconcileOutput{}, err
 	}
 
+	if annotations.IsPaused(cluster, obj) {
+		return external.ReconcileOutput{Result: obj, Paused: true}, nil
+	}
 	return external.ReconcileOutput{Result: obj}, nil
 }
 
@@ -196,11 +193,6 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		return ctrl.Result{}, err
 	}
 	s.bootstrapConfig = externalResult.Result
-
-	// If the external object is paused return.
-	if externalResult.Paused {
-		return ctrl.Result{}, nil
-	}
 
 	if externalResult.RequeueAfter > 0 {
 		return ctrl.Result{RequeueAfter: externalResult.RequeueAfter}, nil
@@ -271,14 +263,11 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 			m.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
 			m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
-			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeuing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
+			return ctrl.Result{}, reconcile.TerminalError(errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace))
 		}
 		return ctrl.Result{RequeueAfter: infraReconcileResult.RequeueAfter}, nil
 	}
-	// if the external object is paused, return without any further processing
-	if infraReconcileResult.Paused {
-		return ctrl.Result{}, nil
-	}
+
 	infraConfig := infraReconcileResult.Result
 
 	if !infraConfig.GetDeletionTimestamp().IsZero() {
@@ -293,7 +282,6 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	if ready && !m.Status.InfrastructureReady {
 		log.Info("Infrastructure provider has completed machine infrastructure provisioning and reports status.ready", infraConfig.GetKind(), klog.KObj(infraConfig))
 	}
-	m.Status.InfrastructureReady = ready
 
 	// Report a summary of current status of the infrastructure object defined for this machine.
 	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition,
@@ -301,8 +289,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
-	// If the infrastructure provider is not ready, return early.
-	if !ready {
+	// If the infrastructure provider is not ready (and it wasn't ready before), return early.
+	if !ready && !m.Status.InfrastructureReady {
 		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", infraConfig.GetKind(), klog.KObj(infraConfig))
 		return ctrl.Result{}, nil
 	}
@@ -332,7 +320,11 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		m.Spec.FailureDomain = ptr.To(failureDomain)
 	}
 
+	// When we hit this point provider id is set, and either:
+	// - the infra machine is reporting ready for the first time
+	// - the infra machine already reported ready (and thus m.Status.InfrastructureReady is already true and it should not flip back)
 	m.Spec.ProviderID = ptr.To(providerID)
+	m.Status.InfrastructureReady = true
 	return ctrl.Result{}, nil
 }
 

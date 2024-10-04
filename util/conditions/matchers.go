@@ -42,7 +42,7 @@ func (matcher *conditionMatcher) Match(actual interface{}) (success bool, err er
 		return false, errors.New("value should be a condition")
 	}
 
-	return hasSameState(actualCondition, matcher.Expected), nil
+	return HasSameState(actualCondition, matcher.Expected), nil
 }
 
 func (matcher *conditionMatcher) FailureMessage(actual interface{}) (message string) {

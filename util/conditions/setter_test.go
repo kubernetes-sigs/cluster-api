@@ -35,33 +35,33 @@ func TestHasSameState(t *testing.T) {
 
 	// same condition
 	falseInfo2 := falseInfo1.DeepCopy()
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeTrue())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeTrue())
 
 	// different LastTransitionTime does not impact state
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.LastTransitionTime = metav1.NewTime(time.Date(1900, time.November, 10, 23, 0, 0, 0, time.UTC))
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeTrue())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeTrue())
 
 	// different Type, Status, Reason, Severity and Message determine different state
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Type = "another type"
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Status = corev1.ConditionTrue
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Severity = clusterv1.ConditionSeverityWarning
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Reason = "another severity"
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 
 	falseInfo2 = falseInfo1.DeepCopy()
 	falseInfo2.Message = "another message"
-	g.Expect(hasSameState(falseInfo1, falseInfo2)).To(BeFalse())
+	g.Expect(HasSameState(falseInfo1, falseInfo2)).To(BeFalse())
 }
 
 func TestLexicographicLess(t *testing.T) {
@@ -304,7 +304,7 @@ func (matcher *ConditionsMatcher) Match(actual interface{}) (success bool, err e
 	}
 
 	for i := range actualConditions {
-		if !hasSameState(&actualConditions[i], &matcher.Expected[i]) {
+		if !HasSameState(&actualConditions[i], &matcher.Expected[i]) {
 			return false, nil
 		}
 	}

@@ -33,7 +33,7 @@ type Getter interface {
 	GetConditions() clusterv1.Conditions
 }
 
-// Get returns the condition with the given type, if the condition does not exists,
+// Get returns the condition with the given type, if the condition does not exist,
 // it returns nil.
 func Get(from Getter, t clusterv1.ConditionType) *clusterv1.Condition {
 	conditions := from.GetConditions()
@@ -54,7 +54,7 @@ func Has(from Getter, t clusterv1.ConditionType) bool {
 	return Get(from, t) != nil
 }
 
-// IsTrue is true if the condition with the given type is True, otherwise it return false
+// IsTrue is true if the condition with the given type is True, otherwise it returns false
 // if the condition is not True or if the condition does not exist (is nil).
 func IsTrue(from Getter, t clusterv1.ConditionType) bool {
 	if c := Get(from, t); c != nil {
@@ -63,7 +63,7 @@ func IsTrue(from Getter, t clusterv1.ConditionType) bool {
 	return false
 }
 
-// IsFalse is true if the condition with the given type is False, otherwise it return false
+// IsFalse is true if the condition with the given type is False, otherwise it returns false
 // if the condition is not False or if the condition does not exist (is nil).
 func IsFalse(from Getter, t clusterv1.ConditionType) bool {
 	if c := Get(from, t); c != nil {
@@ -208,7 +208,7 @@ type mirrorOptions struct {
 // MirrorOptions defines an option for mirroring conditions.
 type MirrorOptions func(*mirrorOptions)
 
-// WithFallbackValue specify a fallback value to use in case the mirrored condition does not exists;
+// WithFallbackValue specify a fallback value to use in case the mirrored condition does not exist;
 // in case the fallbackValue is false, given values for reason, severity and message will be used.
 func WithFallbackValue(fallbackValue bool, reason string, severity clusterv1.ConditionSeverity, message string) MirrorOptions {
 	return func(c *mirrorOptions) {
@@ -220,7 +220,7 @@ func WithFallbackValue(fallbackValue bool, reason string, severity clusterv1.Con
 }
 
 // mirror mirrors the Ready condition from a dependent object into the target condition;
-// if the Ready condition does not exists in the source object, no target conditions is generated.
+// if the Ready condition does not exist in the source object, no target conditions is generated.
 // NOTE: Considering that we are mirroring Ready conditions with positive polarity, also the resulting condition will have positive polarity.
 func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...MirrorOptions) *clusterv1.Condition {
 	mirrorOpt := &mirrorOptions{}
@@ -247,7 +247,7 @@ func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...Mir
 }
 
 // Aggregates all the Ready condition from a list of dependent objects into the target object;
-// if the Ready condition does not exists in one of the source object, the object is excluded from
+// if the Ready condition does not exist in one of the source object, the object is excluded from
 // the aggregation; if none of the source object have ready condition, no target conditions is generated.
 // NOTE: Considering that we are aggregating Ready conditions with positive polarity, also the resulting condition will have positive polarity.
 func aggregate(from []Getter, targetCondition clusterv1.ConditionType, options ...MergeOption) *clusterv1.Condition {

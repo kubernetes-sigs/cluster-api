@@ -216,6 +216,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 	machineTemplateWithDifferentAnnotations.Annotations = map[string]string{"a2": "v2"}
 
 	machineTemplateWithDifferentInPlaceMutableSpecFields := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.ReadinessGates = []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 20 * time.Second}
 	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 20 * time.Second}
@@ -302,7 +303,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 +     ClusterName:       "cluster2",
       Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
       InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      ... // 6 identical fields
+      ... // 7 identical fields
     },
   }`,
 			Diff2: `&v1beta1.MachineTemplateSpec{
@@ -312,7 +313,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 +     ClusterName:       "cluster1",
       Bootstrap:         {ConfigRef: &{Kind: "BootstrapConfig", Namespace: "default", Name: "bootstrap1", APIVersion: "bootstrap.cluster.x-k8s.io", ...}},
       InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
-      ... // 6 identical fields
+      ... // 7 identical fields
     },
   }`,
 		},
@@ -331,7 +332,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 +     Version:           &"v1.26.0",
       ProviderID:        nil,
       FailureDomain:     &"failure-domain1",
-      ... // 3 identical fields
+      ... // 4 identical fields
     },
   }`,
 			Diff2: `&v1beta1.MachineTemplateSpec{
@@ -344,7 +345,7 @@ func TestEqualMachineTemplate(t *testing.T) {
 +     Version:           &"v1.25.0",
       ProviderID:        nil,
       FailureDomain:     &"failure-domain1",
-      ... // 3 identical fields
+      ... // 4 identical fields
     },
   }`,
 		},
@@ -357,26 +358,26 @@ func TestEqualMachineTemplate(t *testing.T) {
     ObjectMeta: {},
     Spec: v1beta1.MachineSpec{
       ... // 3 identical fields
-      Version:                 &"v1.25.0",
-      ProviderID:              nil,
--     FailureDomain:           &"failure-domain1",
-+     FailureDomain:           &"failure-domain2",
-      NodeDrainTimeout:        nil,
-      NodeVolumeDetachTimeout: nil,
-      NodeDeletionTimeout:     nil,
+      Version:          &"v1.25.0",
+      ProviderID:       nil,
+-     FailureDomain:    &"failure-domain1",
++     FailureDomain:    &"failure-domain2",
+      ReadinessGates:   nil,
+      NodeDrainTimeout: nil,
+      ... // 2 identical fields
     },
   }`,
 			Diff2: `&v1beta1.MachineTemplateSpec{
     ObjectMeta: {},
     Spec: v1beta1.MachineSpec{
       ... // 3 identical fields
-      Version:                 &"v1.25.0",
-      ProviderID:              nil,
--     FailureDomain:           &"failure-domain2",
-+     FailureDomain:           &"failure-domain1",
-      NodeDrainTimeout:        nil,
-      NodeVolumeDetachTimeout: nil,
-      NodeDeletionTimeout:     nil,
+      Version:          &"v1.25.0",
+      ProviderID:       nil,
+-     FailureDomain:    &"failure-domain2",
++     FailureDomain:    &"failure-domain1",
+      ReadinessGates:   nil,
+      NodeDrainTimeout: nil,
+      ... // 2 identical fields
     },
   }`,
 		},
@@ -401,7 +402,7 @@ func TestEqualMachineTemplate(t *testing.T) {
       },
       Version:    &"v1.25.0",
       ProviderID: nil,
-      ... // 4 identical fields
+      ... // 5 identical fields
     },
   }`,
 			Diff2: `&v1beta1.MachineTemplateSpec{
@@ -420,7 +421,7 @@ func TestEqualMachineTemplate(t *testing.T) {
       },
       Version:    &"v1.25.0",
       ProviderID: nil,
-      ... // 4 identical fields
+      ... // 5 identical fields
     },
   }`,
 		},
@@ -441,7 +442,7 @@ func TestEqualMachineTemplate(t *testing.T) {
       },
       InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
       Version:           &"v1.25.0",
-      ... // 5 identical fields
+      ... // 6 identical fields
     },
   }`,
 			Diff2: `&v1beta1.MachineTemplateSpec{
@@ -456,7 +457,7 @@ func TestEqualMachineTemplate(t *testing.T) {
       },
       InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
       Version:           &"v1.25.0",
-      ... // 5 identical fields
+      ... // 6 identical fields
     },
   }`,
 		},
@@ -483,7 +484,7 @@ func TestEqualMachineTemplate(t *testing.T) {
       },
       InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
       Version:           &"v1.25.0",
-      ... // 5 identical fields
+      ... // 6 identical fields
     },
   }`,
 			Diff2: `&v1beta1.MachineTemplateSpec{
@@ -504,7 +505,7 @@ func TestEqualMachineTemplate(t *testing.T) {
       },
       InfrastructureRef: {Kind: "InfrastructureMachine", Namespace: "default", Name: "infra1", APIVersion: "infrastructure.cluster.x-k8s.io", ...},
       Version:           &"v1.25.0",
-      ... // 5 identical fields
+      ... // 6 identical fields
     },
   }`,
 		},
@@ -627,7 +628,7 @@ func TestFindNewMachineSet(t *testing.T) {
       },
       Version:    nil,
       ProviderID: nil,
-      ... // 4 identical fields
+      ... // 5 identical fields
     },
   }`, oldMS.Name),
 		},

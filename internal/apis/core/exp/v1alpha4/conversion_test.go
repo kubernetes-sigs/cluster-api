@@ -21,8 +21,6 @@ package v1alpha4
 import (
 	"testing"
 
-	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
-
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -31,8 +29,7 @@ import (
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &expv1.MachinePool{},
-		Spoke:       &MachinePool{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		Hub:   &expv1.MachinePool{},
+		Spoke: &MachinePool{},
 	}))
 }

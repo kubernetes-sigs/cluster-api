@@ -40,6 +40,7 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
 		dst.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef
 	}
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -135,6 +136,7 @@ func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.BootstrapTimeout != nil {
 		dst.Spec.BootstrapTimeout = restored.Spec.BootstrapTimeout
 	}
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -227,4 +229,12 @@ func Convert_v1beta1_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(in *infra
 
 func Convert_v1beta1_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(in *infrav1.DockerMachineSpec, out *DockerMachineSpec, s apiconversion.Scope) error {
 	return autoConvert_v1beta1_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(in, out, s)
+}
+
+func Convert_v1beta1_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in *infrav1.DockerClusterStatus, out *DockerClusterStatus, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_DockerClusterStatus_To_v1alpha4_DockerClusterStatus(in, out, s)
+}
+
+func Convert_v1beta1_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in *infrav1.DockerMachineStatus, out *DockerMachineStatus, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_DockerMachineStatus_To_v1alpha4_DockerMachineStatus(in, out, s)
 }

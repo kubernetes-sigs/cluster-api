@@ -45,9 +45,11 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.AvailabilityGates = restored.Spec.AvailabilityGates
 	if restored.Spec.Topology != nil {
 		dst.Spec.Topology = restored.Spec.Topology
 	}
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -97,11 +99,14 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.ReadinessGates = restored.Spec.ReadinessGates
 	dst.Spec.NodeDeletionTimeout = restored.Spec.NodeDeletionTimeout
 	dst.Spec.NodeVolumeDetachTimeout = restored.Spec.NodeVolumeDetachTimeout
 	dst.Status.NodeInfo = restored.Status.NodeInfo
 	dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
 	dst.Status.Deletion = restored.Status.Deletion
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -143,9 +148,12 @@ func (src *MachineSet) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -201,10 +209,13 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Strategy.Remediation = restored.Spec.Strategy.Remediation
 	}
 
+	dst.Spec.Template.Spec.ReadinessGates = restored.Spec.Template.Spec.ReadinessGates
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
 	dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
 	return nil
 }
 
@@ -251,6 +262,7 @@ func (src *MachineHealthCheck) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.UnhealthyRange != nil {
 		dst.Spec.UnhealthyRange = restored.Spec.UnhealthyRange
 	}
+	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
 	return nil
 }
@@ -284,12 +296,19 @@ func (dst *MachineHealthCheckList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func Convert_v1beta1_MachineSetStatus_To_v1alpha3_MachineSetStatus(in *clusterv1.MachineSetStatus, out *MachineSetStatus, _ apiconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta1_MachineSetStatus_To_v1alpha3_MachineSetStatus(in, out, nil)
 }
 
 func Convert_v1beta1_ClusterSpec_To_v1alpha3_ClusterSpec(in *clusterv1.ClusterSpec, out *ClusterSpec, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because spec.Topology does not exist in v1alpha3
+	// AvailabilityGates was added in v1beta1.
 	return autoConvert_v1beta1_ClusterSpec_To_v1alpha3_ClusterSpec(in, out, s)
+}
+
+func Convert_v1beta1_ClusterStatus_To_v1alpha3_ClusterStatus(in *clusterv1.ClusterStatus, out *ClusterStatus, s apiconversion.Scope) error {
+	// V1Beta2 was added in v1beta1.
+	return autoConvert_v1beta1_ClusterStatus_To_v1alpha3_ClusterStatus(in, out, s)
 }
 
 func Convert_v1alpha3_Bootstrap_To_v1beta1_Bootstrap(in *Bootstrap, out *clusterv1.Bootstrap, s apiconversion.Scope) error {
@@ -304,6 +323,11 @@ func Convert_v1beta1_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(i
 	return autoConvert_v1beta1_MachineHealthCheckSpec_To_v1alpha3_MachineHealthCheckSpec(in, out, s)
 }
 
+func Convert_v1beta1_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in *clusterv1.MachineHealthCheckStatus, out *MachineHealthCheckStatus, s apiconversion.Scope) error {
+	// V1Beta2 was added in v1beta1.
+	return autoConvert_v1beta1_MachineHealthCheckStatus_To_v1alpha3_MachineHealthCheckStatus(in, out, s)
+}
+
 func Convert_v1alpha3_ClusterStatus_To_v1beta1_ClusterStatus(in *ClusterStatus, out *clusterv1.ClusterStatus, s apiconversion.Scope) error {
 	return autoConvert_v1alpha3_ClusterStatus_To_v1beta1_ClusterStatus(in, out, s)
 }
@@ -313,11 +337,13 @@ func Convert_v1alpha3_ObjectMeta_To_v1beta1_ObjectMeta(in *ObjectMeta, out *clus
 }
 
 func Convert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in, out, s)
 }
 
 func Convert_v1beta1_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
-	// spec.nodeDeletionTimeout has been added with v1beta1.
+	// spec.nodeDeletionTimeout was added in v1beta1.
+	// ReadinessGates was added in v1beta1.
 	return autoConvert_v1beta1_MachineSpec_To_v1alpha3_MachineSpec(in, out, s)
 }
 
@@ -327,6 +353,7 @@ func Convert_v1beta1_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in 
 
 func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {
 	// Status.Conditions was introduced in v1alpha4, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without loosing informations
+	// V1Beta2 was added in v1beta1.
 	return autoConvert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in, out, s)
 }
 

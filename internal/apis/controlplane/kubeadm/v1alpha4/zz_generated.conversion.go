@@ -355,6 +355,7 @@ func autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPla
 	out.ObservedGeneration = in.ObservedGeneration
 	out.Conditions = *(*corev1alpha4.Conditions)(unsafe.Pointer(&in.Conditions))
 	// WARNING: in.LastRemediation requires manual conversion: does not exist in peer-type
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
 }
 

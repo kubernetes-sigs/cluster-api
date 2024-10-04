@@ -53,13 +53,15 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1.MachineSet{},
-		Spoke: &MachineSet{},
+		Hub:         &clusterv1.MachineSet{},
+		Spoke:       &MachineSet{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1.MachineDeployment{},
-		Spoke: &MachineDeployment{},
+		Hub:         &clusterv1.MachineDeployment{},
+		Spoke:       &MachineDeployment{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
 	}))
 
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{

@@ -72,6 +72,27 @@ type ClusterSpec struct {
 	// this feature is highly experimental, and parts of it might still be not implemented.
 	// +optional
 	Topology *Topology `json:"topology,omitempty"`
+
+	// availabilityGates specifies additional conditions to include when evaluating Cluster Available condition.
+	//
+	// NOTE: this field is considered only for computing v1beta2 conditions.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	AvailabilityGates []ClusterAvailabilityGate `json:"availabilityGates,omitempty"`
+}
+
+// ClusterAvailabilityGate contains the type of a Cluster condition to be used as availability gate.
+type ClusterAvailabilityGate struct {
+	// conditionType refers to a positive polarity condition (status true means good) with matching type in the Cluster's condition list.
+	// If the conditions doesn't exist, it will be treated as unknown.
+	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as availability gates.
+	// +required
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MaxLength=316
+	// +kubebuilder:validation:MinLength=1
+	ConditionType string `json:"conditionType"`
 }
 
 // Topology encapsulates the information of the managed resources.
@@ -451,6 +472,80 @@ type ClusterStatus struct {
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in Cluster's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *ClusterV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// ClusterV1Beta2Status groups all the fields that will be added or modified in Cluster with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ClusterV1Beta2Status struct {
+	// conditions represents the observations of a Cluster's current state.
+	// Known condition types are Available, InfrastructureReady, ControlPlaneInitialized, ControlPlaneAvailable, WorkersAvailable, MachinesReady
+	// MachinesUpToDate, RemoteConnectionProbe, ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// Additionally, a TopologyReconciled condition will be added in case the Cluster is referencing a ClusterClass / defining a managed Topology.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// controlPlane groups all the observations about Cluster's ControlPlane current state.
+	// +optional
+	ControlPlane *ClusterControlPlaneStatus `json:"controlPlane,omitempty"`
+
+	// workers groups all the observations about Cluster's Workers current state.
+	// +optional
+	Workers *WorkersStatus `json:"workers,omitempty"`
+}
+
+// ClusterControlPlaneStatus groups all the observations about control plane current state.
+type ClusterControlPlaneStatus struct {
+	// desiredReplicas is the total number of desired control plane machines in this cluster.
+	// +optional
+	DesiredReplicas *int32 `json:"desiredReplicas,omitempty"`
+
+	// replicas is the total number of control plane machines in this cluster.
+	// NOTE: replicas also includes machines still being provisioned or being deleted.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// upToDateReplicas is the number of up-to-date control plane machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+
+	// readyReplicas is the total number of ready control plane machines in this cluster. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+	// availableReplicas is the total number of available control plane machines in this cluster. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+}
+
+// WorkersStatus groups all the observations about workers current state.
+type WorkersStatus struct {
+	// desiredReplicas is the total number of desired worker machines in this cluster.
+	// +optional
+	DesiredReplicas *int32 `json:"desiredReplicas,omitempty"`
+
+	// replicas is the total number of worker machines in this cluster.
+	// NOTE: replicas also includes machines still being provisioned or being deleted.
+	// +optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// upToDateReplicas is the number of up-to-date worker machines in this cluster. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
+
+	// readyReplicas is the total number of ready worker machines in this cluster. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+	// availableReplicas is the total number of available worker machines in this cluster. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
 }
 
 // ANCHOR_END: ClusterStatus
@@ -538,6 +633,22 @@ func (c *Cluster) GetConditions() Conditions {
 // SetConditions sets the conditions on this object.
 func (c *Cluster) SetConditions(conditions Conditions) {
 	c.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (c *Cluster) GetV1Beta2Conditions() []metav1.Condition {
+	if c.Status.V1Beta2 == nil {
+		return nil
+	}
+	return c.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (c *Cluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if c.Status.V1Beta2 == nil && conditions != nil {
+		c.Status.V1Beta2 = &ClusterV1Beta2Status{}
+	}
+	c.Status.V1Beta2.Conditions = conditions
 }
 
 // GetIPFamily returns a ClusterIPFamily from the configuration provided.

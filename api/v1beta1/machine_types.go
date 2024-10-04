@@ -125,6 +125,30 @@ type MachineSpec struct {
 	// +optional
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
+	// The minimum number of seconds for which a Machine should be ready before considering it available.
+	// Defaults to 0 (Machine will be considered available as soon as the Machine is ready)
+	// NOTE: this field will be considered only for computing v1beta2 conditions.
+	// +optional
+	// TODO: This field will be added in the v1beta2 API, and act as a replacement of existing MinReadySeconds in
+	//  MachineDeployment, MachineSet and MachinePool
+	// MinReadySeconds int32 `json:"minReadySeconds,omitempty"`
+
+	// readinessGates specifies additional conditions to include when evaluating Machine Ready condition.
+	//
+	// This field can be used e.g. by Cluster API control plane providers to extend the semantic of the
+	// Ready condition for the Machine they control, like the kubeadm control provider adding ReadinessGates
+	// for the APIServerPodHealthy, SchedulerPodHealthy conditions, etc.
+	//
+	// Another example are external controllers, e.g. responsible to install special software/hardware on the Machines;
+	// they can include the status of those components with a new condition and add this condition to ReadinessGates.
+	//
+	// NOTE: this field is considered only for computing v1beta2 conditions.
+	// +optional
+	// +listType=map
+	// +listMapKey=conditionType
+	// +kubebuilder:validation:MaxItems=32
+	ReadinessGates []MachineReadinessGate `json:"readinessGates,omitempty"`
+
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
@@ -141,6 +165,18 @@ type MachineSpec struct {
 	// Defaults to 10 seconds.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+}
+
+// MachineReadinessGate contains the type of a Machine condition to be used as a readiness gate.
+type MachineReadinessGate struct {
+	// conditionType refers to a positive polarity condition (status true means good) with matching type in the Machine's condition list.
+	// If the conditions doesn't exist, it will be treated as unknown.
+	// Note: Both Cluster API conditions or conditions added by 3rd party controllers can be used as readiness gates.
+	// +required
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MaxLength=316
+	// +kubebuilder:validation:MinLength=1
+	ConditionType string `json:"conditionType"`
 }
 
 // ANCHOR_END: MachineSpec
@@ -235,6 +271,26 @@ type MachineStatus struct {
 	// Only present when the Machine has a deletionTimestamp and drain or wait for volume detach started.
 	// +optional
 	Deletion *MachineDeletionStatus `json:"deletion,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in Machine's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *MachineV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// MachineV1Beta2Status groups all the fields that will be added or modified in MachineStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type MachineV1Beta2Status struct {
+	// conditions represents the observations of a Machine's current state.
+	// Known condition types are Available, Ready, UpToDate, BootstrapConfigReady, InfrastructureReady, NodeReady,
+	// NodeHealthy, Deleting, Paused.
+	// If a MachineHealthCheck is targeting this machine, also HealthCheckSucceeded, OwnerRemediated conditions are added.
+	// Additionally control plane Machines controlled by KubeadmControlPlane will have following additional conditions:
+	// APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy, EtcdPodHealthy, EtcdMemberHealthy.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineStatus
@@ -326,6 +382,22 @@ func (m *Machine) GetConditions() Conditions {
 // SetConditions sets the conditions on this object.
 func (m *Machine) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (m *Machine) GetV1Beta2Conditions() []metav1.Condition {
+	if m.Status.V1Beta2 == nil {
+		return nil
+	}
+	return m.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (m *Machine) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if m.Status.V1Beta2 == nil && conditions != nil {
+		m.Status.V1Beta2 = &MachineV1Beta2Status{}
+	}
+	m.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

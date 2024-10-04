@@ -306,6 +306,35 @@ type KubeadmControlPlaneStatus struct {
 	// LastRemediation stores info about last remediation performed.
 	// +optional
 	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in KubeadmControlPlane's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *KubeadmControlPlaneV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// KubeadmControlPlaneV1Beta2Status Groups all the fields that will be added or modified in KubeadmControlPlane with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type KubeadmControlPlaneV1Beta2Status struct {
+	// conditions represents the observations of a KubeadmControlPlane's current state.
+	// Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,
+	// ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// readyReplicas is the number of ready replicas for this KubeadmControlPlane. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+	// availableReplicas is the number of available replicas targeted by this KubeadmControlPlane. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// upToDateReplicas is the number of up-to-date replicas targeted by this KubeadmControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
 
 // LastRemediationStatus  stores info about last remediation performed.
@@ -356,6 +385,22 @@ func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
 // SetConditions sets the conditions on this object.
 func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
 	in.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (in *KubeadmControlPlane) GetV1Beta2Conditions() []metav1.Condition {
+	if in.Status.V1Beta2 == nil {
+		return nil
+	}
+	return in.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (in *KubeadmControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if in.Status.V1Beta2 == nil && conditions != nil {
+		in.Status.V1Beta2 = &KubeadmControlPlaneV1Beta2Status{}
+	}
+	in.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

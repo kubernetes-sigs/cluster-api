@@ -943,6 +943,22 @@ type ClusterClassStatus struct {
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in ClusterClass's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *ClusterClassV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// ClusterClassV1Beta2Status groups all the fields that will be added or modified in ClusterClass with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type ClusterClassV1Beta2Status struct {
+	// conditions represents the observations of a ClusterClass's current state.
+	// Known condition types are VariablesReady, RefVersionsUpToDate, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // ClusterClassStatusVariable defines a variable which appears in the status of a ClusterClass.
@@ -992,6 +1008,22 @@ func (c *ClusterClass) GetConditions() Conditions {
 // SetConditions sets the conditions on this object.
 func (c *ClusterClass) SetConditions(conditions Conditions) {
 	c.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (c *ClusterClass) GetV1Beta2Conditions() []metav1.Condition {
+	if c.Status.V1Beta2 == nil {
+		return nil
+	}
+	return c.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (c *ClusterClass) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if c.Status.V1Beta2 == nil && conditions != nil {
+		c.Status.V1Beta2 = &ClusterClassV1Beta2Status{}
+	}
+	c.Status.V1Beta2.Conditions = conditions
 }
 
 // ANCHOR_END: ClusterClassStatus

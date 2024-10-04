@@ -1341,6 +1341,8 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		"modified-annotation":  "modified-value-2", // Modify the value of the annotation
 		// Drop "dropped-annotation"
 	}
+	readinessGates := []clusterv1.MachineReadinessGate{{ConditionType: "foo"}}
+	ms.Spec.Template.Spec.ReadinessGates = readinessGates
 	ms.Spec.Template.Spec.NodeDrainTimeout = duration10s
 	ms.Spec.Template.Spec.NodeDeletionTimeout = duration10s
 	ms.Spec.Template.Spec.NodeVolumeDetachTimeout = duration10s
@@ -1367,6 +1369,8 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 			Not(BeNil()),
 			HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeout)),
 		))
+		// Verify readiness gates.
+		g.Expect(updatedInPlaceMutatingMachine.Spec.ReadinessGates).Should(Equal(readinessGates))
 	}, timeout).Should(Succeed())
 
 	// Verify in-place mutable fields are updated on InfrastructureMachine

@@ -147,6 +147,22 @@ type MachineHealthCheckStatus struct {
 	// Conditions defines current service state of the MachineHealthCheck.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in MachineHealthCheck's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *MachineHealthCheckV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// MachineHealthCheckV1Beta2Status groups all the fields that will be added or modified in MachineHealthCheck with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type MachineHealthCheckV1Beta2Status struct {
+	// conditions represents the observations of a MachineHealthCheck's current state.
+	// Known condition types are RemediationAllowed, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachineHealthCheckStatus
@@ -181,6 +197,22 @@ func (m *MachineHealthCheck) GetConditions() Conditions {
 // SetConditions sets the conditions on this object.
 func (m *MachineHealthCheck) SetConditions(conditions Conditions) {
 	m.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (m *MachineHealthCheck) GetV1Beta2Conditions() []metav1.Condition {
+	if m.Status.V1Beta2 == nil {
+		return nil
+	}
+	return m.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (m *MachineHealthCheck) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if m.Status.V1Beta2 == nil && conditions != nil {
+		m.Status.V1Beta2 = &MachineHealthCheckV1Beta2Status{}
+	}
+	m.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

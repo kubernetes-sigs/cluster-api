@@ -1,0 +1,15 @@
+{
+  "repoOwner": "spectrocloud",
+  "repoName": "cluster-api",
+  "editor": "code",
+
+  "targetBranchChoices": ["spectro-master", "spectro-release-4.5"],
+  "mainline": 1,
+  "autoMerge": false,
+  "autoMergeMethod": "squash",
+  "targetPRLabels": ["ok-to-test"],
+  "commitConflicts": true,
+  "branchLabelMapping": {
+    "^backport-(.+)$": "$1"
+  }
+}

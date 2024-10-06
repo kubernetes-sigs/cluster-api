@@ -12,7 +12,7 @@ and the interaction between the Machine's controller and the InfraMachine resour
 rules defined in this page.
 
 Once contract rules are satisfied by an InfraMachine implementation, other implementation details
-could be addressed according to the specific needs (Cluster API in not prescriptive).
+could be addressed according to the specific needs (Cluster API is not prescriptive).
 
 Nevertheless, it is always recommended to take a look at Cluster API controllers,
 in-tree providers, other providers and use them as a reference implementation (unless custom solutions are required
@@ -215,7 +215,7 @@ type FooMachineSpec struct {
 ```
 
 Once `spec.providerID` is set on the InfraMachine resource and the [InfraMachine initialization completed],
-the Cluster controller will bubble up this info in Machine's `spec.providerID`.
+the Cluster controller will surface this info in Machine's `spec.providerID`.
 
 ### InfraMachine: failure domain
 
@@ -275,7 +275,7 @@ type FooMachineStatus struct {
 Each MachineAddress must have a type; accepted types are `Hostname`, `ExternalIP`, `InternalIP`, `ExternalDNS` or `InternalDNS`.
 
 Once `status.addresses` is set on the InfraMachine resource and the [InfraMachine initialization completed],
-the Machine controller will bubble up this info in Machine's `status.addresses`.
+the Machine controller will surface this info in Machine's `status.addresses`.
 
 ### InfraMachine: initialization completed
 
@@ -377,7 +377,7 @@ type FooMachineStatus struct {
 ```
 
 Once `status.failureReason` and `status.failureMessage` are set on the InfraMachine resource, the Machine "core" controller
-will bubble up those info in the corresponding fields in Machine's `status`.
+will surface those info in the corresponding fields in Machine's `status`.
 
 Please note that once failureReason/failureMessage is set in Machine's `status`, the only way to recover is to delete and
 recreate the Machine (it is a terminal failure).

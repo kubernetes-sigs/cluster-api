@@ -24,6 +24,7 @@ fi
 
 VERSION=${1}
 GO_ARCH="$(go env GOARCH)"
+DB_MIRROR="public.ecr.aws/aquasecurity/trivy-db"
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 "${REPO_ROOT}/hack/ensure-trivy.sh" "${VERSION}"
@@ -35,13 +36,13 @@ make REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent TAG=dev do
 make clean-release-git
 
 # Scan the images
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/clusterctl-"${GO_ARCH}":dev && R1=$? || R1=$?
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/test-extension-"${GO_ARCH}":dev && R2=$? || R2=$?
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-"${GO_ARCH}":dev && R3=$? || R3=$?
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-"${GO_ARCH}":dev && R4=$? || R4=$?
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/cluster-api-controller-"${GO_ARCH}":dev && R5=$? || R5=$?
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/capd-manager-"${GO_ARCH}":dev && R6=$? || R6=$?
-"${TRIVY}" image -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/capim-manager-"${GO_ARCH}":dev && R7=$? || R7=$?
+"${TRIVY}" image --db-repository="${DB_MIRROR}" -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/clusterctl-"${GO_ARCH}":dev && R1=$? || R1=$?
+"${TRIVY}" image --db-repository="${DB_MIRROR}" -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/test-extension-"${GO_ARCH}":dev && R2=$? || R2=$?
+"${TRIVY}" image --db-repository="${DB_MIRROR}" -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-"${GO_ARCH}":dev && R3=$? || R3=$?
+"${TRIVY}" image --db-repository="${DB_MIRROR}" -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-"${GO_ARCH}":dev && R4=$? || R4=$?
+"${TRIVY}" image --db-repository="${DB_MIRROR}" -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/cluster-api-controller-"${GO_ARCH}":dev && R5=$? || R5=$?
+"${TRIVY}" image --db-repository="${DB_MIRROR}" -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/capd-manager-"${GO_ARCH}":dev && R6=$? || R6=$?
+"${TRIVY}" image --db-repository="${DB_MIRROR}" -q --exit-code 1 --ignore-unfixed --severity MEDIUM,HIGH,CRITICAL gcr.io/k8s-staging-cluster-api/capim-manager-"${GO_ARCH}":dev && R7=$? || R7=$?
 
 echo ""
 BRed='\033[1;31m'

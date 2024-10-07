@@ -785,8 +785,6 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	return ctrl.Result{RequeueAfter: drainRetryInterval}, nil
 }
 
-// func shouldRequeueDrain(now time.Time, lastDrain time.Time) (time.Duration, bool) {.
-
 func shouldRequeue(now time.Time, lastExecutionTime time.Time, interval time.Duration) (time.Duration, bool) {
 	if lastExecutionTime.IsZero() {
 		return time.Duration(0), false
@@ -861,7 +859,7 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 		LastProceed: time.Now(),
 	})
 
-	// Get all PVCs we want to ignore because they have pods running which got skipped during drain.
+	// Get all PVCs we want to ignore because they have pods running which should skip drain.
 	pvcsToIgnoreFromPods, err := getPersistentVolumeClaimsToIgnore(ctx, remoteClient, nodeName)
 	if err != nil {
 		return ctrl.Result{}, err

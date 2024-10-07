@@ -1336,8 +1336,6 @@ spec:
                                     (scope and select) variables.
                                   type: object
                               type: object
-                          required:
-                          - type
                           type: object
                       required:
                       - openAPIV3Schema
@@ -2500,8 +2498,6 @@ spec:
                                           (scope and select) variables.
                                         type: object
                                     type: object
-                                required:
-                                - type
                                 type: object
                             required:
                             - openAPIV3Schema

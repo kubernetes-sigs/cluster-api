@@ -1551,7 +1551,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 					"type": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Type is the type of the variable. Valid values are: object, array, string, integer, number or boolean.",
-							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1799,7 +1798,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 						},
 					},
 				},
-				Required: []string{"type"},
 			},
 		},
 		Dependencies: []string{

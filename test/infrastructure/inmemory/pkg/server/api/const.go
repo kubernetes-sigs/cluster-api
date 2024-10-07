@@ -25,7 +25,7 @@ var (
 		Versions: []string{"v1"},
 	}
 
-	// apiVersions is the value returned by /api/v1 discovery call.
+	// corev1APIResourceList is the value returned by /api/v1 discovery call.
 	// Note: This must contain all APIs required by CAPI.
 	corev1APIResourceList = &metav1.APIResourceList{
 		GroupVersion: "v1",
@@ -164,7 +164,7 @@ var (
 		},
 	}
 
-	// apiVersions is the value returned by /apis discovery call.
+	// apiGroupList is the value returned by /apis discovery call.
 	// Note: This must contain all APIs required by CAPI.
 	apiGroupList = &metav1.APIGroupList{
 		Groups: []metav1.APIGroup{
@@ -197,7 +197,7 @@ var (
 		},
 	}
 
-	// apiVersions is the value returned by /apis/rbac.authorization.k8s.io/v1  discovery call.
+	// rbacv1APIResourceList is the value returned by /apis/rbac.authorization.k8s.io/v1 discovery call.
 	// Note: This must contain all APIs required by CAPI.
 	rbacv1APIResourceList = &metav1.APIResourceList{
 		GroupVersion: "rbac.authorization.k8s.io/v1",
@@ -272,6 +272,9 @@ var (
 			},
 		},
 	}
+
+	// appsV1ResourceList is the value returned by /apis/apps/v1 discovery call.
+	// Note: This must contain all APIs required by CAPI.
 	appsV1ResourceList = &metav1.APIResourceList{
 		GroupVersion: "apps/v1",
 		APIResources: []metav1.APIResource{
@@ -313,6 +316,32 @@ var (
 				ShortNames: []string{
 					"deploy",
 				},
+				StorageVersionHash: "",
+			},
+		},
+	}
+
+	// storageV1ResourceList is the value returned by /apis/storage.k8s.io/v1 discovery call.
+	// Note: This must contain all APIs required by CAPI.
+	storageV1ResourceList = &metav1.APIResourceList{
+		GroupVersion: "storage.k8s.io/v1",
+		APIResources: []metav1.APIResource{
+			{
+				Name:         "volumeattachments",
+				SingularName: "volumeattachment",
+				Namespaced:   false,
+				Kind:         "VolumeAttachment",
+				Verbs: []string{
+					"create",
+					"delete",
+					"deletecollection",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames:         []string{},
 				StorageVersionHash: "",
 			},
 		},

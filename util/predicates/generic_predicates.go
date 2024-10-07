@@ -30,10 +30,13 @@ import (
 )
 
 // All returns a predicate that returns true only if all given predicates return true.
-func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
+func All(scheme *runtime.Scheme, logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			log := logger.WithValues("predicateAggregation", "All")
+			if gvk, err := apiutil.GVKForObject(e.ObjectNew, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectNew))
+			}
 			for _, p := range predicates {
 				if !p.UpdateFunc(e) {
 					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
@@ -45,6 +48,9 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			log := logger.WithValues("predicateAggregation", "All")
+			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
+			}
 			for _, p := range predicates {
 				if !p.CreateFunc(e) {
 					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
@@ -56,6 +62,9 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			log := logger.WithValues("predicateAggregation", "All")
+			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
+			}
 			for _, p := range predicates {
 				if !p.DeleteFunc(e) {
 					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
@@ -67,6 +76,9 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			log := logger.WithValues("predicateAggregation", "All")
+			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
+			}
 			for _, p := range predicates {
 				if !p.GenericFunc(e) {
 					log.V(6).Info("One of the provided predicates returned false, blocking further processing")
@@ -80,10 +92,13 @@ func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 }
 
 // Any returns a predicate that returns true only if any given predicate returns true.
-func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
+func Any(scheme *runtime.Scheme, logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 	return predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			log := logger.WithValues("predicateAggregation", "Any")
+			if gvk, err := apiutil.GVKForObject(e.ObjectNew, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectNew))
+			}
 			for _, p := range predicates {
 				if p.UpdateFunc(e) {
 					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
@@ -95,6 +110,9 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			log := logger.WithValues("predicateAggregation", "Any")
+			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
+			}
 			for _, p := range predicates {
 				if p.CreateFunc(e) {
 					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
@@ -106,6 +124,9 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			log := logger.WithValues("predicateAggregation", "Any")
+			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
+			}
 			for _, p := range predicates {
 				if p.DeleteFunc(e) {
 					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
@@ -117,6 +138,9 @@ func Any(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
 			log := logger.WithValues("predicateAggregation", "Any")
+			if gvk, err := apiutil.GVKForObject(e.Object, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.Object))
+			}
 			for _, p := range predicates {
 				if p.GenericFunc(e) {
 					log.V(6).Info("One of the provided predicates returned true, allowing further processing")
@@ -182,7 +206,7 @@ func ResourceNotPaused(scheme *runtime.Scheme, logger logr.Logger) predicate.Fun
 // ResourceNotPausedAndHasFilterLabel returns a predicate that returns true only if the
 // ResourceNotPaused and ResourceHasFilterLabel predicates return true.
 func ResourceNotPausedAndHasFilterLabel(scheme *runtime.Scheme, logger logr.Logger, labelValue string) predicate.Funcs {
-	return All(logger, ResourceNotPaused(scheme, logger), ResourceHasFilterLabel(scheme, logger, labelValue))
+	return All(scheme, logger, ResourceNotPaused(scheme, logger), ResourceHasFilterLabel(scheme, logger, labelValue))
 }
 
 func processIfNotPaused(scheme *runtime.Scheme, logger logr.Logger, obj client.Object) bool {

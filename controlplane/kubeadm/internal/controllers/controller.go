@@ -103,7 +103,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmControlPlane),
 			builder.WithPredicates(
-				predicates.All(predicateLog,
+				predicates.All(mgr.GetScheme(), predicateLog,
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 					predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 				),

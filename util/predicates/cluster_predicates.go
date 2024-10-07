@@ -175,7 +175,7 @@ func ClusterUnpaused(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs
 	log := logger.WithValues("predicate", "ClusterUnpaused")
 
 	// Use any to ensure we process either create or update events we care about
-	return Any(log, ClusterCreateNotPaused(scheme, log), ClusterUpdateUnpaused(scheme, log))
+	return Any(scheme, log, ClusterCreateNotPaused(scheme, log), ClusterUpdateUnpaused(scheme, log))
 }
 
 // ClusterControlPlaneInitialized returns a Predicate that returns true on Update events
@@ -234,13 +234,13 @@ func ClusterUnpausedAndInfrastructureReady(scheme *runtime.Scheme, logger logr.L
 	log := logger.WithValues("predicate", "ClusterUnpausedAndInfrastructureReady")
 
 	// Only continue processing create events if both not paused and infrastructure is ready
-	createPredicates := All(log, ClusterCreateNotPaused(scheme, log), ClusterCreateInfraReady(scheme, log))
+	createPredicates := All(scheme, log, ClusterCreateNotPaused(scheme, log), ClusterCreateInfraReady(scheme, log))
 
 	// Process update events if either Cluster is unpaused or infrastructure becomes ready
-	updatePredicates := Any(log, ClusterUpdateUnpaused(scheme, log), ClusterUpdateInfraReady(scheme, log))
+	updatePredicates := Any(scheme, log, ClusterUpdateUnpaused(scheme, log), ClusterUpdateInfraReady(scheme, log))
 
 	// Use any to ensure we process either create or update events we care about
-	return Any(log, createPredicates, updatePredicates)
+	return Any(scheme, log, createPredicates, updatePredicates)
 }
 
 // ClusterHasTopology returns a Predicate that returns true when cluster.Spec.Topology

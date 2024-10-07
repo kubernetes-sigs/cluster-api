@@ -125,8 +125,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-				predicates.All(predicateLog,
-					predicates.Any(predicateLog,
+				predicates.All(mgr.GetScheme(), predicateLog,
+					predicates.Any(mgr.GetScheme(), predicateLog,
 						predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
 						predicates.ClusterControlPlaneInitialized(mgr.GetScheme(), predicateLog),
 					),

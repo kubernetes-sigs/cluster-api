@@ -67,7 +67,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{},
 			builder.WithPredicates(
-				predicates.All(predicateLog,
+				predicates.All(mgr.GetScheme(), predicateLog,
 					predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
 					predicates.ResourceNotPaused(mgr.GetScheme(), predicateLog)),
 			),
@@ -79,7 +79,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 			builder.WithPredicates(
-				predicates.All(predicateLog,
+				predicates.All(mgr.GetScheme(), predicateLog,
 					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
 					predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
 				),

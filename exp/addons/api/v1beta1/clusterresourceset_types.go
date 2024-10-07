@@ -115,6 +115,7 @@ type ClusterResourceSetV1Beta2Status struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 

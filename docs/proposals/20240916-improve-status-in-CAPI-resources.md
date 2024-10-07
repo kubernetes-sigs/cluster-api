@@ -291,6 +291,7 @@ type MachineStatus struct {
     // +optional
     // +listType=map
     // +listMapKey=type
+    // +kubebuilder:validation:MaxItems=32
     Conditions []metav1.Condition `json:"conditions,omitempty"`
     
     // Other fields...
@@ -491,6 +492,7 @@ type MachineSetStatus struct {
     // +optional
     // +listType=map
     // +listMapKey=type
+    // +kubebuilder:validation:MaxItems=32
     Conditions []metav1.Condition `json:"conditions,omitempty"`
 
     // Other fields...
@@ -619,6 +621,7 @@ type MachineDeploymentStatus struct {
     // +optional
     // +listType=map
     // +listMapKey=type
+    // +kubebuilder:validation:MaxItems=32
     Conditions []metav1.Condition `json:"conditions,omitempty"`
 
     // Other fields...
@@ -733,6 +736,7 @@ type ClusterStatus struct {
     // +optional
     // +listType=map
     // +listMapKey=type
+    // +kubebuilder:validation:MaxItems=32
     Conditions []metav1.Condition `json:"conditions,omitempty"`
     
     // ControlPlane groups all the observations about Cluster's ControlPlane current state.
@@ -984,6 +988,7 @@ type KubeadmControlPlaneStatus struct {
     // +optional
     // +listType=map
     // +listMapKey=type
+    // +kubebuilder:validation:MaxItems=32
     Conditions []metav1.Condition `json:"conditions,omitempty"`
 
     // Other fields...
@@ -1103,6 +1108,7 @@ type MachinePoolStatus struct {
     // +optional
     // +listType=map
     // +listMapKey=type
+    // +kubebuilder:validation:MaxItems=32
     Conditions []metav1.Condition `json:"conditions,omitempty"`
     
     // Other fields...

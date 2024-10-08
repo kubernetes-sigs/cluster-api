@@ -53,7 +53,7 @@ When a node appears with `Node.Spec.ProviderID` matching `Machine.Spec.ProviderI
 transitions the associated machine into the `Provisioned` state. When the infrastructure ref is also
 `Ready`, the machine controller marks the machine as `Running`.
 
-The following schema goes trough machine phases and interactions with InfraMachine and BootstrapConfig
+The following schema goes through machine phases and interactions with InfraMachine and BootstrapConfig
 happening at each step.
 
 ![](../../../images/machine-phases.png)

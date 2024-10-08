@@ -38,7 +38,7 @@ const (
 
 // ClusterSpec defines the desired state of Cluster.
 type ClusterSpec struct {
-	// Paused can be used to prevent controllers from processing the Cluster and all its associated objects.
+	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
 	Paused bool `json:"paused,omitempty"`
 
@@ -46,16 +46,16 @@ type ClusterSpec struct {
 	// +optional
 	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
 
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
 
-	// ControlPlaneRef is an optional reference to a provider-specific resource that holds
+	// controlPlaneRef is an optional reference to a provider-specific resource that holds
 	// the details for provisioning the Control Plane for a Cluster.
 	// +optional
 	ControlPlaneRef *corev1.ObjectReference `json:"controlPlaneRef,omitempty"`
 
-	// InfrastructureRef is a reference to a provider-specific resource that holds the details
+	// infrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
 	// +optional
 	InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
@@ -68,7 +68,7 @@ type ClusterSpec struct {
 // ClusterNetwork specifies the different networking
 // parameters for a cluster.
 type ClusterNetwork struct {
-	// APIServerPort specifies the port the API Server should bind to.
+	// apiServerPort specifies the port the API Server should bind to.
 	// Defaults to 6443.
 	// +optional
 	APIServerPort *int32 `json:"apiServerPort,omitempty"`
@@ -108,42 +108,42 @@ func (n *NetworkRanges) String() string {
 
 // ClusterStatus defines the observed state of Cluster.
 type ClusterStatus struct {
-	// FailureDomains is a slice of failure domain objects synced from the infrastructure provider.
+	// failureDomains is a slice of failure domain objects synced from the infrastructure provider.
 	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 
-	// FailureReason indicates that there is a fatal problem reconciling the
+	// failureReason indicates that there is a fatal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
 	FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage indicates that there is a fatal problem reconciling the
+	// failureMessage indicates that there is a fatal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// Phase represents the current phase of cluster actuation.
+	// phase represents the current phase of cluster actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
-	// InfrastructureReady is the state of the infrastructure provider.
+	// infrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
 
-	// ControlPlaneInitialized defines if the control plane has been initialized.
+	// controlPlaneInitialized defines if the control plane has been initialized.
 	// +optional
 	ControlPlaneInitialized bool `json:"controlPlaneInitialized"`
 
-	// ControlPlaneReady defines if the control plane is ready.
+	// controlPlaneReady defines if the control plane is ready.
 	// +optional
 	ControlPlaneReady bool `json:"controlPlaneReady,omitempty"`
 
-	// Conditions defines current service state of the cluster.
+	// conditions defines current service state of the cluster.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
@@ -265,11 +265,11 @@ func (in FailureDomains) GetIDs() []*string {
 // FailureDomainSpec is the Schema for Cluster API failure domains.
 // It allows controllers to understand how many failure domains a cluster can optionally span across.
 type FailureDomainSpec struct {
-	// ControlPlane determines if this failure domain is suitable for use by control plane machines.
+	// controlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
 	ControlPlane bool `json:"controlPlane"`
 
-	// Attributes is a free form map of attributes an infrastructure provider might use or require.
+	// attributes is a free form map of attributes an infrastructure provider might use or require.
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 }

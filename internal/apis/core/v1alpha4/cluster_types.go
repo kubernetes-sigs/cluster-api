@@ -39,7 +39,7 @@ const (
 
 // ClusterSpec defines the desired state of Cluster.
 type ClusterSpec struct {
-	// Paused can be used to prevent controllers from processing the Cluster and all its associated objects.
+	// paused can be used to prevent controllers from processing the Cluster and all its associated objects.
 	// +optional
 	Paused bool `json:"paused,omitempty"`
 
@@ -47,16 +47,16 @@ type ClusterSpec struct {
 	// +optional
 	ClusterNetwork *ClusterNetwork `json:"clusterNetwork,omitempty"`
 
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
 
-	// ControlPlaneRef is an optional reference to a provider-specific resource that holds
+	// controlPlaneRef is an optional reference to a provider-specific resource that holds
 	// the details for provisioning the Control Plane for a Cluster.
 	// +optional
 	ControlPlaneRef *corev1.ObjectReference `json:"controlPlaneRef,omitempty"`
 
-	// InfrastructureRef is a reference to a provider-specific resource that holds the details
+	// infrastructureRef is a reference to a provider-specific resource that holds the details
 	// for provisioning infrastructure for a cluster in said provider.
 	// +optional
 	InfrastructureRef *corev1.ObjectReference `json:"infrastructureRef,omitempty"`
@@ -77,16 +77,16 @@ type Topology struct {
 	// The Kubernetes version of the cluster.
 	Version string `json:"version"`
 
-	// RolloutAfter performs a rollout of the entire cluster one component at a time,
+	// rolloutAfter performs a rollout of the entire cluster one component at a time,
 	// control plane first and then machine deployments.
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
-	// ControlPlane describes the cluster control plane.
+	// controlPlane describes the cluster control plane.
 	// +optional
 	ControlPlane ControlPlaneTopology `json:"controlPlane"`
 
-	// Workers encapsulates the different constructs that form the worker nodes
+	// workers encapsulates the different constructs that form the worker nodes
 	// for the cluster.
 	// +optional
 	Workers *WorkersTopology `json:"workers,omitempty"`
@@ -94,14 +94,14 @@ type Topology struct {
 
 // ControlPlaneTopology specifies the parameters for the control plane nodes in the cluster.
 type ControlPlaneTopology struct {
-	// Metadata is the metadata applied to the machines of the ControlPlane.
+	// metadata is the metadata applied to the machines of the ControlPlane.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	//
 	// This field is supported if and only if the control plane provider template
 	// referenced in the ClusterClass is Machine based.
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
-	// Replicas is the number of control plane nodes.
+	// replicas is the number of control plane nodes.
 	// If the value is nil, the ControlPlane object is created without the number of Replicas
 	// and it's assumed that the control plane controller does not implement support for this field.
 	// When specified against a control plane provider that lacks support for this field, this value will be ignored.
@@ -111,29 +111,29 @@ type ControlPlaneTopology struct {
 
 // WorkersTopology represents the different sets of worker nodes in the cluster.
 type WorkersTopology struct {
-	// MachineDeployments is a list of machine deployments in the cluster.
+	// machineDeployments is a list of machine deployments in the cluster.
 	MachineDeployments []MachineDeploymentTopology `json:"machineDeployments,omitempty"`
 }
 
 // MachineDeploymentTopology specifies the different parameters for a set of worker nodes in the topology.
 // This set of nodes is managed by a MachineDeployment object whose lifecycle is managed by the Cluster controller.
 type MachineDeploymentTopology struct {
-	// Metadata is the metadata applied to the machines of the MachineDeployment.
+	// metadata is the metadata applied to the machines of the MachineDeployment.
 	// At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 	Metadata ObjectMeta `json:"metadata,omitempty"`
 
-	// Class is the name of the MachineDeploymentClass used to create the set of worker nodes.
+	// class is the name of the MachineDeploymentClass used to create the set of worker nodes.
 	// This should match one of the deployment classes defined in the ClusterClass object
 	// mentioned in the `Cluster.Spec.Class` field.
 	Class string `json:"class"`
 
-	// Name is the unique identifier for this MachineDeploymentTopology.
+	// name is the unique identifier for this MachineDeploymentTopology.
 	// The value is used with other unique identifiers to create a MachineDeployment's Name
 	// (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
 	// the values are hashed together.
 	Name string `json:"name"`
 
-	// Replicas is the number of worker nodes belonging to this set.
+	// replicas is the number of worker nodes belonging to this set.
 	// If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to zero)
 	// and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
 	// of this value.
@@ -148,7 +148,7 @@ type MachineDeploymentTopology struct {
 // ClusterNetwork specifies the different networking
 // parameters for a cluster.
 type ClusterNetwork struct {
-	// APIServerPort specifies the port the API Server should bind to.
+	// apiServerPort specifies the port the API Server should bind to.
 	// Defaults to 6443.
 	// +optional
 	APIServerPort *int32 `json:"apiServerPort,omitempty"`
@@ -188,38 +188,38 @@ func (n *NetworkRanges) String() string {
 
 // ClusterStatus defines the observed state of Cluster.
 type ClusterStatus struct {
-	// FailureDomains is a slice of failure domain objects synced from the infrastructure provider.
+	// failureDomains is a slice of failure domain objects synced from the infrastructure provider.
 	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 
-	// FailureReason indicates that there is a fatal problem reconciling the
+	// failureReason indicates that there is a fatal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
 	FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage indicates that there is a fatal problem reconciling the
+	// failureMessage indicates that there is a fatal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// Phase represents the current phase of cluster actuation.
+	// phase represents the current phase of cluster actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
-	// InfrastructureReady is the state of the infrastructure provider.
+	// infrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
 
-	// ControlPlaneReady defines if the control plane is ready.
+	// controlPlaneReady defines if the control plane is ready.
 	// +optional
 	ControlPlaneReady bool `json:"controlPlaneReady,omitempty"`
 
-	// Conditions defines current service state of the cluster.
+	// conditions defines current service state of the cluster.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
@@ -430,11 +430,11 @@ func (in FailureDomains) GetIDs() []*string {
 // FailureDomainSpec is the Schema for Cluster API failure domains.
 // It allows controllers to understand how many failure domains a cluster can optionally span across.
 type FailureDomainSpec struct {
-	// ControlPlane determines if this failure domain is suitable for use by control plane machines.
+	// controlPlane determines if this failure domain is suitable for use by control plane machines.
 	// +optional
 	ControlPlane bool `json:"controlPlane"`
 
-	// Attributes is a free form map of attributes an infrastructure provider might use or require.
+	// attributes is a free form map of attributes an infrastructure provider might use or require.
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 }

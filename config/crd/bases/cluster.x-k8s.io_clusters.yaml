@@ -54,7 +54,7 @@ spec:
                 properties:
                   apiServerPort:
                     description: |-
-                      APIServerPort specifies the port the API Server should bind to.
+                      apiServerPort specifies the port the API Server should bind to.
                       Defaults to 6443.
                     format: int32
                     type: integer
@@ -83,7 +83,7 @@ spec:
                     type: object
                 type: object
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to
+                description: controlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
                 properties:
                   host:
@@ -99,7 +99,7 @@ spec:
                 type: object
               controlPlaneRef:
                 description: |-
-                  ControlPlaneRef is an optional reference to a provider-specific resource that holds
+                  controlPlaneRef is an optional reference to a provider-specific resource that holds
                   the details for provisioning the Control Plane for a Cluster.
                 properties:
                   apiVersion:
@@ -144,7 +144,7 @@ spec:
                 x-kubernetes-map-type: atomic
               infrastructureRef:
                 description: |-
-                  InfrastructureRef is a reference to a provider-specific resource that holds the details
+                  infrastructureRef is a reference to a provider-specific resource that holds the details
                   for provisioning infrastructure for a cluster in said provider.
                 properties:
                   apiVersion:
@@ -188,7 +188,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               paused:
-                description: Paused can be used to prevent controllers from processing
+                description: paused can be used to prevent controllers from processing
                   the Cluster and all its associated objects.
                 type: boolean
             type: object
@@ -196,7 +196,7 @@ spec:
             description: ClusterStatus defines the observed state of Cluster.
             properties:
               conditions:
-                description: Conditions defines current service state of the cluster.
+                description: conditions defines current service state of the cluster.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -221,16 +221,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -240,11 +240,11 @@ spec:
                   type: object
                 type: array
               controlPlaneInitialized:
-                description: ControlPlaneInitialized defines if the control plane
+                description: controlPlaneInitialized defines if the control plane
                   has been initialized.
                 type: boolean
               controlPlaneReady:
-                description: ControlPlaneReady defines if the control plane is ready.
+                description: controlPlaneReady defines if the control plane is ready.
                 type: boolean
               failureDomains:
                 additionalProperties:
@@ -255,40 +255,40 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
-                description: FailureDomains is a slice of failure domain objects synced
+                description: failureDomains is a slice of failure domain objects synced
                   from the infrastructure provider.
                 type: object
               failureMessage:
                 description: |-
-                  FailureMessage indicates that there is a fatal problem reconciling the
+                  failureMessage indicates that there is a fatal problem reconciling the
                   state, and will be set to a descriptive error message.
                 type: string
               failureReason:
                 description: |-
-                  FailureReason indicates that there is a fatal problem reconciling the
+                  failureReason indicates that there is a fatal problem reconciling the
                   state, and will be set to a token value suitable for
                   programmatic interpretation.
                 type: string
               infrastructureReady:
-                description: InfrastructureReady is the state of the infrastructure
+                description: infrastructureReady is the state of the infrastructure
                   provider.
                 type: boolean
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               phase:
                 description: |-
-                  Phase represents the current phase of cluster actuation.
+                  phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.
                 type: string
             type: object
@@ -340,7 +340,7 @@ spec:
                 properties:
                   apiServerPort:
                     description: |-
-                      APIServerPort specifies the port the API Server should bind to.
+                      apiServerPort specifies the port the API Server should bind to.
                       Defaults to 6443.
                     format: int32
                     type: integer
@@ -369,7 +369,7 @@ spec:
                     type: object
                 type: object
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to
+                description: controlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
                 properties:
                   host:
@@ -385,7 +385,7 @@ spec:
                 type: object
               controlPlaneRef:
                 description: |-
-                  ControlPlaneRef is an optional reference to a provider-specific resource that holds
+                  controlPlaneRef is an optional reference to a provider-specific resource that holds
                   the details for provisioning the Control Plane for a Cluster.
                 properties:
                   apiVersion:
@@ -430,7 +430,7 @@ spec:
                 x-kubernetes-map-type: atomic
               infrastructureRef:
                 description: |-
-                  InfrastructureRef is a reference to a provider-specific resource that holds the details
+                  infrastructureRef is a reference to a provider-specific resource that holds the details
                   for provisioning infrastructure for a cluster in said provider.
                 properties:
                   apiVersion:
@@ -474,7 +474,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               paused:
-                description: Paused can be used to prevent controllers from processing
+                description: paused can be used to prevent controllers from processing
                   the Cluster and all its associated objects.
                 type: boolean
               topology:
@@ -489,11 +489,11 @@ spec:
                       topology.
                     type: string
                   controlPlane:
-                    description: ControlPlane describes the cluster control plane.
+                    description: controlPlane describes the cluster control plane.
                     properties:
                       metadata:
                         description: |-
-                          Metadata is the metadata applied to the machines of the ControlPlane.
+                          metadata is the metadata applied to the machines of the ControlPlane.
                           At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
 
                           This field is supported if and only if the control plane provider template
@@ -503,7 +503,7 @@ spec:
                             additionalProperties:
                               type: string
                             description: |-
-                              Annotations is an unstructured key value map stored with a resource that may be
+                              annotations is an unstructured key value map stored with a resource that may be
                               set by external tools to store and retrieve arbitrary metadata. They are not
                               queryable and should be preserved when modifying objects.
                               More info: http://kubernetes.io/docs/user-guide/annotations
@@ -520,7 +520,7 @@ spec:
                         type: object
                       replicas:
                         description: |-
-                          Replicas is the number of control plane nodes.
+                          replicas is the number of control plane nodes.
                           If the value is nil, the ControlPlane object is created without the number of Replicas
                           and it's assumed that the control plane controller does not implement support for this field.
                           When specified against a control plane provider that lacks support for this field, this value will be ignored.
@@ -529,7 +529,7 @@ spec:
                     type: object
                   rolloutAfter:
                     description: |-
-                      RolloutAfter performs a rollout of the entire cluster one component at a time,
+                      rolloutAfter performs a rollout of the entire cluster one component at a time,
                       control plane first and then machine deployments.
                     format: date-time
                     type: string
@@ -538,11 +538,11 @@ spec:
                     type: string
                   workers:
                     description: |-
-                      Workers encapsulates the different constructs that form the worker nodes
+                      workers encapsulates the different constructs that form the worker nodes
                       for the cluster.
                     properties:
                       machineDeployments:
-                        description: MachineDeployments is a list of machine deployments
+                        description: machineDeployments is a list of machine deployments
                           in the cluster.
                         items:
                           description: |-
@@ -551,20 +551,20 @@ spec:
                           properties:
                             class:
                               description: |-
-                                Class is the name of the MachineDeploymentClass used to create the set of worker nodes.
+                                class is the name of the MachineDeploymentClass used to create the set of worker nodes.
                                 This should match one of the deployment classes defined in the ClusterClass object
                                 mentioned in the `Cluster.Spec.Class` field.
                               type: string
                             metadata:
                               description: |-
-                                Metadata is the metadata applied to the machines of the MachineDeployment.
+                                metadata is the metadata applied to the machines of the MachineDeployment.
                                 At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
                               properties:
                                 annotations:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Annotations is an unstructured key value map stored with a resource that may be
+                                    annotations is an unstructured key value map stored with a resource that may be
                                     set by external tools to store and retrieve arbitrary metadata. They are not
                                     queryable and should be preserved when modifying objects.
                                     More info: http://kubernetes.io/docs/user-guide/annotations
@@ -581,14 +581,14 @@ spec:
                               type: object
                             name:
                               description: |-
-                                Name is the unique identifier for this MachineDeploymentTopology.
+                                name is the unique identifier for this MachineDeploymentTopology.
                                 The value is used with other unique identifiers to create a MachineDeployment's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
                               type: string
                             replicas:
                               description: |-
-                                Replicas is the number of worker nodes belonging to this set.
+                                replicas is the number of worker nodes belonging to this set.
                                 If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to zero)
                                 and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
                                 of this value.
@@ -609,7 +609,7 @@ spec:
             description: ClusterStatus defines the observed state of Cluster.
             properties:
               conditions:
-                description: Conditions defines current service state of the cluster.
+                description: conditions defines current service state of the cluster.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -634,16 +634,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -653,7 +653,7 @@ spec:
                   type: object
                 type: array
               controlPlaneReady:
-                description: ControlPlaneReady defines if the control plane is ready.
+                description: controlPlaneReady defines if the control plane is ready.
                 type: boolean
               failureDomains:
                 additionalProperties:
@@ -664,40 +664,40 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
-                description: FailureDomains is a slice of failure domain objects synced
+                description: failureDomains is a slice of failure domain objects synced
                   from the infrastructure provider.
                 type: object
               failureMessage:
                 description: |-
-                  FailureMessage indicates that there is a fatal problem reconciling the
+                  failureMessage indicates that there is a fatal problem reconciling the
                   state, and will be set to a descriptive error message.
                 type: string
               failureReason:
                 description: |-
-                  FailureReason indicates that there is a fatal problem reconciling the
+                  failureReason indicates that there is a fatal problem reconciling the
                   state, and will be set to a token value suitable for
                   programmatic interpretation.
                 type: string
               infrastructureReady:
-                description: InfrastructureReady is the state of the infrastructure
+                description: infrastructureReady is the state of the infrastructure
                   provider.
                 type: boolean
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               phase:
                 description: |-
-                  Phase represents the current phase of cluster actuation.
+                  phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.
                 type: string
             type: object
@@ -780,7 +780,7 @@ spec:
                 properties:
                   apiServerPort:
                     description: |-
-                      APIServerPort specifies the port the API Server should bind to.
+                      apiServerPort specifies the port the API Server should bind to.
                       Defaults to 6443.
                     format: int32
                     type: integer
@@ -809,7 +809,7 @@ spec:
                     type: object
                 type: object
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to
+                description: controlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
                 properties:
                   host:
@@ -825,7 +825,7 @@ spec:
                 type: object
               controlPlaneRef:
                 description: |-
-                  ControlPlaneRef is an optional reference to a provider-specific resource that holds
+                  controlPlaneRef is an optional reference to a provider-specific resource that holds
                   the details for provisioning the Control Plane for a Cluster.
                 properties:
                   apiVersion:
@@ -870,7 +870,7 @@ spec:
                 x-kubernetes-map-type: atomic
               infrastructureRef:
                 description: |-
-                  InfrastructureRef is a reference to a provider-specific resource that holds the details
+                  infrastructureRef is a reference to a provider-specific resource that holds the details
                   for provisioning infrastructure for a cluster in said provider.
                 properties:
                   apiVersion:
@@ -914,7 +914,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               paused:
-                description: Paused can be used to prevent controllers from processing
+                description: paused can be used to prevent controllers from processing
                   the Cluster and all its associated objects.
                 type: boolean
               topology:
@@ -929,16 +929,16 @@ spec:
                       topology.
                     type: string
                   controlPlane:
-                    description: ControlPlane describes the cluster control plane.
+                    description: controlPlane describes the cluster control plane.
                     properties:
                       machineHealthCheck:
                         description: |-
-                          MachineHealthCheck allows to enable, disable and override
+                          machineHealthCheck allows to enable, disable and override
                           the MachineHealthCheck configuration in the ClusterClass for this control plane.
                         properties:
                           enable:
                             description: |-
-                              Enable controls if a MachineHealthCheck should be created for the target machines.
+                              enable controls if a MachineHealthCheck should be created for the target machines.
 
                               If false: No MachineHealthCheck will be created.
 
@@ -958,7 +958,7 @@ spec:
                             x-kubernetes-int-or-string: true
                           nodeStartupTimeout:
                             description: |-
-                              NodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                              nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
                               to consider a Machine unhealthy if a corresponding Node isn't associated
                               through a `Spec.ProviderID` field.
 
@@ -973,7 +973,7 @@ spec:
                             type: string
                           remediationTemplate:
                             description: |-
-                              RemediationTemplate is a reference to a remediation template
+                              remediationTemplate is a reference to a remediation template
                               provided by an infrastructure provider.
 
                               This field is completely optional, when filled, the MachineHealthCheck controller
@@ -1022,7 +1022,7 @@ spec:
                             x-kubernetes-map-type: atomic
                           unhealthyConditions:
                             description: |-
-                              UnhealthyConditions contains a list of the conditions that determine
+                              unhealthyConditions contains a list of the conditions that determine
                               whether a node is considered unhealthy. The conditions are combined in a
                               logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                             items:
@@ -1057,7 +1057,7 @@ spec:
                         type: object
                       metadata:
                         description: |-
-                          Metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
+                          metadata is the metadata applied to the ControlPlane and the Machines of the ControlPlane
                           if the ControlPlaneTemplate referenced by the ClusterClass is machine based. If not, it
                           is applied only to the ControlPlane.
                           At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
@@ -1066,7 +1066,7 @@ spec:
                             additionalProperties:
                               type: string
                             description: |-
-                              Annotations is an unstructured key value map stored with a resource that may be
+                              annotations is an unstructured key value map stored with a resource that may be
                               set by external tools to store and retrieve arbitrary metadata. They are not
                               queryable and should be preserved when modifying objects.
                               More info: http://kubernetes.io/docs/user-guide/annotations
@@ -1083,35 +1083,35 @@ spec:
                         type: object
                       nodeDeletionTimeout:
                         description: |-
-                          NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                          nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
                           hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
                           Defaults to 10 seconds.
                         type: string
                       nodeDrainTimeout:
                         description: |-
-                          NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                          nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
                           The default value is 0, meaning that the node can be drained without any time limitations.
                           NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
                         type: string
                       nodeVolumeDetachTimeout:
                         description: |-
-                          NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                          nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
                           to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                         type: string
                       replicas:
                         description: |-
-                          Replicas is the number of control plane nodes.
+                          replicas is the number of control plane nodes.
                           If the value is nil, the ControlPlane object is created without the number of Replicas
                           and it's assumed that the control plane controller does not implement support for this field.
                           When specified against a control plane provider that lacks support for this field, this value will be ignored.
                         format: int32
                         type: integer
                       variables:
-                        description: Variables can be used to customize the ControlPlane
+                        description: variables can be used to customize the ControlPlane
                           through patches.
                         properties:
                           overrides:
-                            description: Overrides can be used to override Cluster
+                            description: overrides can be used to override Cluster
                               level variables.
                             items:
                               description: |-
@@ -1120,16 +1120,16 @@ spec:
                               properties:
                                 definitionFrom:
                                   description: |-
-                                    DefinitionFrom specifies where the definition of this Variable is from.
+                                    definitionFrom specifies where the definition of this Variable is from.
 
                                     Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                   type: string
                                 name:
-                                  description: Name of the variable.
+                                  description: name of the variable.
                                   type: string
                                 value:
                                   description: |-
-                                    Value of the variable.
+                                    value of the variable.
                                     Note: the value will be validated against the schema of the corresponding ClusterClassVariable
                                     from the ClusterClass.
                                     Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a
@@ -1149,7 +1149,7 @@ spec:
                     type: object
                   rolloutAfter:
                     description: |-
-                      RolloutAfter performs a rollout of the entire cluster one component at a time,
+                      rolloutAfter performs a rollout of the entire cluster one component at a time,
                       control plane first and then machine deployments.
 
                       Deprecated: This field has no function and is going to be removed in the next apiVersion.
@@ -1157,7 +1157,7 @@ spec:
                     type: string
                   variables:
                     description: |-
-                      Variables can be used to customize the Cluster through
+                      variables can be used to customize the Cluster through
                       patches. They must comply to the corresponding
                       VariableClasses defined in the ClusterClass.
                     items:
@@ -1167,16 +1167,16 @@ spec:
                       properties:
                         definitionFrom:
                           description: |-
-                            DefinitionFrom specifies where the definition of this Variable is from.
+                            definitionFrom specifies where the definition of this Variable is from.
 
                             Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                           type: string
                         name:
-                          description: Name of the variable.
+                          description: name of the variable.
                           type: string
                         value:
                           description: |-
-                            Value of the variable.
+                            value of the variable.
                             Note: the value will be validated against the schema of the corresponding ClusterClassVariable
                             from the ClusterClass.
                             Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a
@@ -1197,11 +1197,11 @@ spec:
                     type: string
                   workers:
                     description: |-
-                      Workers encapsulates the different constructs that form the worker nodes
+                      workers encapsulates the different constructs that form the worker nodes
                       for the cluster.
                     properties:
                       machineDeployments:
-                        description: MachineDeployments is a list of machine deployments
+                        description: machineDeployments is a list of machine deployments
                           in the cluster.
                         items:
                           description: |-
@@ -1210,23 +1210,23 @@ spec:
                           properties:
                             class:
                               description: |-
-                                Class is the name of the MachineDeploymentClass used to create the set of worker nodes.
+                                class is the name of the MachineDeploymentClass used to create the set of worker nodes.
                                 This should match one of the deployment classes defined in the ClusterClass object
                                 mentioned in the `Cluster.Spec.Class` field.
                               type: string
                             failureDomain:
                               description: |-
-                                FailureDomain is the failure domain the machines will be created in.
+                                failureDomain is the failure domain the machines will be created in.
                                 Must match a key in the FailureDomains map stored on the cluster object.
                               type: string
                             machineHealthCheck:
                               description: |-
-                                MachineHealthCheck allows to enable, disable and override
+                                machineHealthCheck allows to enable, disable and override
                                 the MachineHealthCheck configuration in the ClusterClass for this MachineDeployment.
                               properties:
                                 enable:
                                   description: |-
-                                    Enable controls if a MachineHealthCheck should be created for the target machines.
+                                    enable controls if a MachineHealthCheck should be created for the target machines.
 
                                     If false: No MachineHealthCheck will be created.
 
@@ -1246,7 +1246,7 @@ spec:
                                   x-kubernetes-int-or-string: true
                                 nodeStartupTimeout:
                                   description: |-
-                                    NodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                                    nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
                                     to consider a Machine unhealthy if a corresponding Node isn't associated
                                     through a `Spec.ProviderID` field.
 
@@ -1261,7 +1261,7 @@ spec:
                                   type: string
                                 remediationTemplate:
                                   description: |-
-                                    RemediationTemplate is a reference to a remediation template
+                                    remediationTemplate is a reference to a remediation template
                                     provided by an infrastructure provider.
 
                                     This field is completely optional, when filled, the MachineHealthCheck controller
@@ -1310,7 +1310,7 @@ spec:
                                   x-kubernetes-map-type: atomic
                                 unhealthyConditions:
                                   description: |-
-                                    UnhealthyConditions contains a list of the conditions that determine
+                                    unhealthyConditions contains a list of the conditions that determine
                                     whether a node is considered unhealthy. The conditions are combined in a
                                     logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                                   items:
@@ -1345,14 +1345,14 @@ spec:
                               type: object
                             metadata:
                               description: |-
-                                Metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
+                                metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment.
                                 At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
                               properties:
                                 annotations:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Annotations is an unstructured key value map stored with a resource that may be
+                                    annotations is an unstructured key value map stored with a resource that may be
                                     set by external tools to store and retrieve arbitrary metadata. They are not
                                     queryable and should be preserved when modifying objects.
                                     More info: http://kubernetes.io/docs/user-guide/annotations
@@ -1377,31 +1377,31 @@ spec:
                               type: integer
                             name:
                               description: |-
-                                Name is the unique identifier for this MachineDeploymentTopology.
+                                name is the unique identifier for this MachineDeploymentTopology.
                                 The value is used with other unique identifiers to create a MachineDeployment's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
                               type: string
                             nodeDeletionTimeout:
                               description: |-
-                                NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                                nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
                                 hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
                                 Defaults to 10 seconds.
                               type: string
                             nodeDrainTimeout:
                               description: |-
-                                NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                                nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
                                 The default value is 0, meaning that the node can be drained without any time limitations.
                                 NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
                               type: string
                             nodeVolumeDetachTimeout:
                               description: |-
-                                NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                                nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
                                 to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                               type: string
                             replicas:
                               description: |-
-                                Replicas is the number of worker nodes belonging to this set.
+                                replicas is the number of worker nodes belonging to this set.
                                 If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to 1)
                                 and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
                                 of this value.
@@ -1414,7 +1414,7 @@ spec:
                               properties:
                                 remediation:
                                   description: |-
-                                    Remediation controls the strategy of remediating unhealthy machines
+                                    remediation controls the strategy of remediating unhealthy machines
                                     and how remediating operations should occur during the lifecycle of the dependant MachineSets.
                                   properties:
                                     maxInFlight:
@@ -1422,7 +1422,7 @@ spec:
                                       - type: integer
                                       - type: string
                                       description: |-
-                                        MaxInFlight determines how many in flight remediations should happen at the same time.
+                                        maxInFlight determines how many in flight remediations should happen at the same time.
 
                                         Remediation only happens on the MachineSet with the most current revision, while
                                         older MachineSets (usually present during rollout operations) aren't allowed to remediate.
@@ -1445,7 +1445,7 @@ spec:
                                   properties:
                                     deletePolicy:
                                       description: |-
-                                        DeletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
+                                        deletePolicy defines the policy used by the MachineDeployment to identify nodes to delete when downscaling.
                                         Valid values are "Random, "Newest", "Oldest"
                                         When no value is supplied, the default DeletePolicy of MachineSet is used
                                       enum:
@@ -1493,7 +1493,7 @@ spec:
                                   type: object
                                 type:
                                   description: |-
-                                    Type of deployment. Allowed values are RollingUpdate and OnDelete.
+                                    type of deployment. Allowed values are RollingUpdate and OnDelete.
                                     The default is RollingUpdate.
                                   enum:
                                   - RollingUpdate
@@ -1501,11 +1501,11 @@ spec:
                                   type: string
                               type: object
                             variables:
-                              description: Variables can be used to customize the
+                              description: variables can be used to customize the
                                 MachineDeployment through patches.
                               properties:
                                 overrides:
-                                  description: Overrides can be used to override Cluster
+                                  description: overrides can be used to override Cluster
                                     level variables.
                                   items:
                                     description: |-
@@ -1514,16 +1514,16 @@ spec:
                                     properties:
                                       definitionFrom:
                                         description: |-
-                                          DefinitionFrom specifies where the definition of this Variable is from.
+                                          definitionFrom specifies where the definition of this Variable is from.
 
                                           Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string
                                       name:
-                                        description: Name of the variable.
+                                        description: name of the variable.
                                         type: string
                                       value:
                                         description: |-
-                                          Value of the variable.
+                                          value of the variable.
                                           Note: the value will be validated against the schema of the corresponding ClusterClassVariable
                                           from the ClusterClass.
                                           Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a
@@ -1549,7 +1549,7 @@ spec:
                         - name
                         x-kubernetes-list-type: map
                       machinePools:
-                        description: MachinePools is a list of machine pools in the
+                        description: machinePools is a list of machine pools in the
                           cluster.
                         items:
                           description: |-
@@ -1558,27 +1558,27 @@ spec:
                           properties:
                             class:
                               description: |-
-                                Class is the name of the MachinePoolClass used to create the pool of worker nodes.
+                                class is the name of the MachinePoolClass used to create the pool of worker nodes.
                                 This should match one of the deployment classes defined in the ClusterClass object
                                 mentioned in the `Cluster.Spec.Class` field.
                               type: string
                             failureDomains:
                               description: |-
-                                FailureDomains is the list of failure domains the machine pool will be created in.
+                                failureDomains is the list of failure domains the machine pool will be created in.
                                 Must match a key in the FailureDomains map stored on the cluster object.
                               items:
                                 type: string
                               type: array
                             metadata:
                               description: |-
-                                Metadata is the metadata applied to the MachinePool.
+                                metadata is the metadata applied to the MachinePool.
                                 At runtime this metadata is merged with the corresponding metadata from the ClusterClass.
                               properties:
                                 annotations:
                                   additionalProperties:
                                     type: string
                                   description: |-
-                                    Annotations is an unstructured key value map stored with a resource that may be
+                                    annotations is an unstructured key value map stored with a resource that may be
                                     set by external tools to store and retrieve arbitrary metadata. They are not
                                     queryable and should be preserved when modifying objects.
                                     More info: http://kubernetes.io/docs/user-guide/annotations
@@ -1603,42 +1603,42 @@ spec:
                               type: integer
                             name:
                               description: |-
-                                Name is the unique identifier for this MachinePoolTopology.
+                                name is the unique identifier for this MachinePoolTopology.
                                 The value is used with other unique identifiers to create a MachinePool's Name
                                 (e.g. cluster's name, etc). In case the name is greater than the allowed maximum length,
                                 the values are hashed together.
                               type: string
                             nodeDeletionTimeout:
                               description: |-
-                                NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the MachinePool
+                                nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the MachinePool
                                 hosts after the MachinePool is marked for deletion. A duration of 0 will retry deletion indefinitely.
                                 Defaults to 10 seconds.
                               type: string
                             nodeDrainTimeout:
                               description: |-
-                                NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                                nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
                                 The default value is 0, meaning that the node can be drained without any time limitations.
                                 NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
                               type: string
                             nodeVolumeDetachTimeout:
                               description: |-
-                                NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                                nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
                                 to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                               type: string
                             replicas:
                               description: |-
-                                Replicas is the number of nodes belonging to this pool.
+                                replicas is the number of nodes belonging to this pool.
                                 If the value is nil, the MachinePool is created without the number of Replicas (defaulting to 1)
                                 and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
                                 of this value.
                               format: int32
                               type: integer
                             variables:
-                              description: Variables can be used to customize the
+                              description: variables can be used to customize the
                                 MachinePool through patches.
                               properties:
                                 overrides:
-                                  description: Overrides can be used to override Cluster
+                                  description: overrides can be used to override Cluster
                                     level variables.
                                   items:
                                     description: |-
@@ -1647,16 +1647,16 @@ spec:
                                     properties:
                                       definitionFrom:
                                         description: |-
-                                          DefinitionFrom specifies where the definition of this Variable is from.
+                                          definitionFrom specifies where the definition of this Variable is from.
 
                                           Deprecated: This field is deprecated, must not be set anymore and is going to be removed in the next apiVersion.
                                         type: string
                                       name:
-                                        description: Name of the variable.
+                                        description: name of the variable.
                                         type: string
                                       value:
                                         description: |-
-                                          Value of the variable.
+                                          value of the variable.
                                           Note: the value will be validated against the schema of the corresponding ClusterClassVariable
                                           from the ClusterClass.
                                           Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a
@@ -1691,7 +1691,7 @@ spec:
             description: ClusterStatus defines the observed state of Cluster.
             properties:
               conditions:
-                description: Conditions defines current service state of the cluster.
+                description: conditions defines current service state of the cluster.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -1716,16 +1716,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -1737,7 +1737,7 @@ spec:
                 type: array
               controlPlaneReady:
                 description: |-
-                  ControlPlaneReady denotes if the control plane became ready during initial provisioning
+                  controlPlaneReady denotes if the control plane became ready during initial provisioning
                   to receive requests.
                   NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
                   The value of this field is never updated after provisioning is completed. Please use conditions
@@ -1752,44 +1752,44 @@ spec:
                     attributes:
                       additionalProperties:
                         type: string
-                      description: Attributes is a free form map of attributes an
+                      description: attributes is a free form map of attributes an
                         infrastructure provider might use or require.
                       type: object
                     controlPlane:
-                      description: ControlPlane determines if this failure domain
+                      description: controlPlane determines if this failure domain
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
-                description: FailureDomains is a slice of failure domain objects synced
+                description: failureDomains is a slice of failure domain objects synced
                   from the infrastructure provider.
                 type: object
               failureMessage:
                 description: |-
-                  FailureMessage indicates that there is a fatal problem reconciling the
+                  failureMessage indicates that there is a fatal problem reconciling the
                   state, and will be set to a descriptive error message.
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 type: string
               failureReason:
                 description: |-
-                  FailureReason indicates that there is a fatal problem reconciling the
+                  failureReason indicates that there is a fatal problem reconciling the
                   state, and will be set to a token value suitable for
                   programmatic interpretation.
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 type: string
               infrastructureReady:
-                description: InfrastructureReady is the state of the infrastructure
+                description: infrastructureReady is the state of the infrastructure
                   provider.
                 type: boolean
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               phase:
                 description: |-
-                  Phase represents the current phase of cluster actuation.
+                  phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.
                 type: string
               v1beta2:

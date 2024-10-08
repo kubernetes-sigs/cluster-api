@@ -82,11 +82,11 @@ spec:
                             attributes:
                               additionalProperties:
                                 type: string
-                              description: Attributes is a free form map of attributes
+                              description: attributes is a free form map of attributes
                                 an infrastructure provider might use or require.
                               type: object
                             controlPlane:
-                              description: ControlPlane determines if this failure
+                              description: controlPlane determines if this failure
                                 domain is suitable for use by control plane machines.
                               type: boolean
                           type: object
@@ -166,7 +166,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -210,11 +210,11 @@ spec:
                             attributes:
                               additionalProperties:
                                 type: string
-                              description: Attributes is a free form map of attributes
+                              description: attributes is a free form map of attributes
                                 an infrastructure provider might use or require.
                               type: object
                             controlPlane:
-                              description: ControlPlane determines if this failure
+                              description: controlPlane determines if this failure
                                 domain is suitable for use by control plane machines.
                               type: boolean
                           type: object

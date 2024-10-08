@@ -43,15 +43,15 @@ spec:
               properties:
                 contract:
                   description: |-
-                    Contract defines the Cluster API contract supported by this series.
+                    contract defines the Cluster API contract supported by this series.
 
                     The value is an API Version, e.g. `v1alpha3`.
                   type: string
                 major:
-                  description: Major version of the release series
+                  description: major version of the release series
                   type: integer
                 minor:
-                  description: Minor version of the release series
+                  description: minor version of the release series
                   type: integer
               type: object
             type: array

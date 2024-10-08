@@ -62,7 +62,7 @@ spec:
             description: Specification of machine health check policy
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
+                description: clusterName is the name of the Cluster this object belongs
                   to.
                 minLength: 1
                 type: string
@@ -81,7 +81,7 @@ spec:
                 type: string
               remediationTemplate:
                 description: |-
-                  RemediationTemplate is a reference to a remediation template
+                  remediationTemplate is a reference to a remediation template
                   provided by an infrastructure provider.
 
                   This field is completely optional, when filled, the MachineHealthCheck controller
@@ -177,7 +177,7 @@ spec:
                 x-kubernetes-map-type: atomic
               unhealthyConditions:
                 description: |-
-                  UnhealthyConditions contains a list of the conditions that determine
+                  unhealthyConditions contains a list of the conditions that determine
                   whether a node is considered unhealthy.  The conditions are combined in a
                   logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                 items:
@@ -210,7 +210,7 @@ spec:
             description: Most recently observed status of MachineHealthCheck resource
             properties:
               conditions:
-                description: Conditions defines current service state of the MachineHealthCheck.
+                description: conditions defines current service state of the MachineHealthCheck.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -235,16 +235,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -266,19 +266,19 @@ spec:
                 minimum: 0
                 type: integer
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               remediationsAllowed:
                 description: |-
-                  RemediationsAllowed is the number of further remediations allowed by this machine health check before
+                  remediationsAllowed is the number of further remediations allowed by this machine health check before
                   maxUnhealthy short circuiting will be applied
                 format: int32
                 minimum: 0
                 type: integer
               targets:
-                description: Targets shows the current list of machines the machine
+                description: targets shows the current list of machines the machine
                   health check is watching
                 items:
                   type: string
@@ -340,7 +340,7 @@ spec:
             description: Specification of machine health check policy
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
+                description: clusterName is the name of the Cluster this object belongs
                   to.
                 minLength: 1
                 type: string
@@ -361,7 +361,7 @@ spec:
                 type: string
               remediationTemplate:
                 description: |-
-                  RemediationTemplate is a reference to a remediation template
+                  remediationTemplate is a reference to a remediation template
                   provided by an infrastructure provider.
 
                   This field is completely optional, when filled, the MachineHealthCheck controller
@@ -457,7 +457,7 @@ spec:
                 x-kubernetes-map-type: atomic
               unhealthyConditions:
                 description: |-
-                  UnhealthyConditions contains a list of the conditions that determine
+                  unhealthyConditions contains a list of the conditions that determine
                   whether a node is considered unhealthy.  The conditions are combined in a
                   logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                 items:
@@ -499,7 +499,7 @@ spec:
             description: Most recently observed status of MachineHealthCheck resource
             properties:
               conditions:
-                description: Conditions defines current service state of the MachineHealthCheck.
+                description: conditions defines current service state of the MachineHealthCheck.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -524,16 +524,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -555,19 +555,19 @@ spec:
                 minimum: 0
                 type: integer
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               remediationsAllowed:
                 description: |-
-                  RemediationsAllowed is the number of further remediations allowed by this machine health check before
+                  remediationsAllowed is the number of further remediations allowed by this machine health check before
                   maxUnhealthy short circuiting will be applied
                 format: int32
                 minimum: 0
                 type: integer
               targets:
-                description: Targets shows the current list of machines the machine
+                description: targets shows the current list of machines the machine
                   health check is watching
                 items:
                   type: string
@@ -626,7 +626,7 @@ spec:
             description: Specification of machine health check policy
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
+                description: clusterName is the name of the Cluster this object belongs
                   to.
                 minLength: 1
                 type: string
@@ -642,7 +642,7 @@ spec:
                 x-kubernetes-int-or-string: true
               nodeStartupTimeout:
                 description: |-
-                  NodeStartupTimeout allows to set the maximum time for MachineHealthCheck
+                  nodeStartupTimeout allows to set the maximum time for MachineHealthCheck
                   to consider a Machine unhealthy if a corresponding Node isn't associated
                   through a `Spec.ProviderID` field.
 
@@ -657,7 +657,7 @@ spec:
                 type: string
               remediationTemplate:
                 description: |-
-                  RemediationTemplate is a reference to a remediation template
+                  remediationTemplate is a reference to a remediation template
                   provided by an infrastructure provider.
 
                   This field is completely optional, when filled, the MachineHealthCheck controller
@@ -753,7 +753,7 @@ spec:
                 x-kubernetes-map-type: atomic
               unhealthyConditions:
                 description: |-
-                  UnhealthyConditions contains a list of the conditions that determine
+                  unhealthyConditions contains a list of the conditions that determine
                   whether a node is considered unhealthy.  The conditions are combined in a
                   logical OR, i.e. if any of the conditions is met, the node is unhealthy.
                 items:
@@ -795,7 +795,7 @@ spec:
             description: Most recently observed status of MachineHealthCheck resource
             properties:
               conditions:
-                description: Conditions defines current service state of the MachineHealthCheck.
+                description: conditions defines current service state of the MachineHealthCheck.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -820,16 +820,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -852,19 +852,19 @@ spec:
                 minimum: 0
                 type: integer
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               remediationsAllowed:
                 description: |-
-                  RemediationsAllowed is the number of further remediations allowed by this machine health check before
+                  remediationsAllowed is the number of further remediations allowed by this machine health check before
                   maxUnhealthy short circuiting will be applied
                 format: int32
                 minimum: 0
                 type: integer
               targets:
-                description: Targets shows the current list of machines the machine
+                description: targets shows the current list of machines the machine
                   health check is watching
                 items:
                   type: string

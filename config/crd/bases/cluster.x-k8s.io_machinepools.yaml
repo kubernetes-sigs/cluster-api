@@ -62,12 +62,12 @@ spec:
             description: MachinePoolSpec defines the desired state of MachinePool.
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
+                description: clusterName is the name of the Cluster this object belongs
                   to.
                 minLength: 1
                 type: string
               failureDomains:
-                description: FailureDomains is the list of failure domains this MachinePool
+                description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.
                 items:
                   type: string
@@ -82,7 +82,7 @@ spec:
                 type: integer
               providerIDList:
                 description: |-
-                  ProviderIDList are the identification IDs of machine instances provided by the provider.
+                  providerIDList are the identification IDs of machine instances provided by the provider.
                   This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
                 items:
                   type: string
@@ -143,13 +143,13 @@ spec:
                     type: object
                   type:
                     description: |-
-                      Type of deployment. Currently the only supported strategy is
+                      type of deployment. Currently the only supported strategy is
                       "RollingUpdate".
                       Default is RollingUpdate.
                     type: string
                 type: object
               template:
-                description: Template describes the machines that will be created.
+                description: template describes the machines that will be created.
                 properties:
                   metadata:
                     description: |-
@@ -160,14 +160,14 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
                         type: object
                       generateName:
                         description: |-
-                          GenerateName is an optional prefix, used by the server, to generate a unique
+                          generateName is an optional prefix, used by the server, to generate a unique
                           name ONLY IF the Name field has not been provided.
                           If this field is used, the name returned to the client will be different
                           than the name passed. This value will also be combined with a unique suffix.
@@ -196,7 +196,7 @@ spec:
                         type: object
                       name:
                         description: |-
-                          Name must be unique within a namespace. Is required when creating resources, although
+                          name must be unique within a namespace. Is required when creating resources, although
                           some resources may allow a client to request the generation of an appropriate name
                           automatically. Name is primarily intended for creation idempotence and configuration
                           definition.
@@ -207,7 +207,7 @@ spec:
                         type: string
                       namespace:
                         description: |-
-                          Namespace defines the space within each name must be unique. An empty namespace is
+                          namespace defines the space within each name must be unique. An empty namespace is
                           equivalent to the "default" namespace, but "default" is the canonical representation.
                           Not all objects are required to be scoped to a namespace - the value of this field for
                           those objects will be empty.
@@ -281,12 +281,12 @@ spec:
                     properties:
                       bootstrap:
                         description: |-
-                          Bootstrap is a reference to a local struct which encapsulates
+                          bootstrap is a reference to a local struct which encapsulates
                           fields to configure the Machine’s bootstrapping mechanism.
                         properties:
                           configRef:
                             description: |-
-                              ConfigRef is a reference to a bootstrap provider-specific resource
+                              configRef is a reference to a bootstrap provider-specific resource
                               that holds configuration details. The reference is optional to
                               allow users/operators to specify Bootstrap.Data without
                               the need of a controller.
@@ -333,30 +333,30 @@ spec:
                             x-kubernetes-map-type: atomic
                           data:
                             description: |-
-                              Data contains the bootstrap data, such as cloud-init details scripts.
+                              data contains the bootstrap data, such as cloud-init details scripts.
                               If nil, the Machine should remain in the Pending state.
 
                               Deprecated: Switch to DataSecretName.
                             type: string
                           dataSecretName:
                             description: |-
-                              DataSecretName is the name of the secret that stores the bootstrap data script.
+                              dataSecretName is the name of the secret that stores the bootstrap data script.
                               If nil, the Machine should remain in the Pending state.
                             type: string
                         type: object
                       clusterName:
-                        description: ClusterName is the name of the Cluster this object
+                        description: clusterName is the name of the Cluster this object
                           belongs to.
                         minLength: 1
                         type: string
                       failureDomain:
                         description: |-
-                          FailureDomain is the failure domain the machine will be created in.
+                          failureDomain is the failure domain the machine will be created in.
                           Must match a key in the FailureDomains map stored on the cluster object.
                         type: string
                       infrastructureRef:
                         description: |-
-                          InfrastructureRef is a required reference to a custom resource
+                          infrastructureRef is a required reference to a custom resource
                           offered by an infrastructure provider.
                         properties:
                           apiVersion:
@@ -401,13 +401,13 @@ spec:
                         x-kubernetes-map-type: atomic
                       nodeDrainTimeout:
                         description: |-
-                          NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                          nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
                           The default value is 0, meaning that the node can be drained without any time limitations.
                           NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
                         type: string
                       providerID:
                         description: |-
-                          ProviderID is the identification ID of the machine provided by the provider.
+                          providerID is the identification ID of the machine provided by the provider.
                           This field must match the provider ID as seen on the node object corresponding to this machine.
                           This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
                           with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
@@ -420,7 +420,7 @@ spec:
                         type: string
                       version:
                         description: |-
-                          Version defines the desired Kubernetes version.
+                          version defines the desired Kubernetes version.
                           This field is meant to be optionally used by bootstrap providers.
                         type: string
                     required:
@@ -442,10 +442,10 @@ spec:
                 format: int32
                 type: integer
               bootstrapReady:
-                description: BootstrapReady is the state of the bootstrap provider.
+                description: bootstrapReady is the state of the bootstrap provider.
                 type: boolean
               conditions:
-                description: Conditions define the current service state of the MachinePool.
+                description: conditions define the current service state of the MachinePool.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -470,16 +470,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -490,20 +490,20 @@ spec:
                 type: array
               failureMessage:
                 description: |-
-                  FailureMessage indicates that there is a problem reconciling the state,
+                  failureMessage indicates that there is a problem reconciling the state,
                   and will be set to a descriptive error message.
                 type: string
               failureReason:
                 description: |-
-                  FailureReason indicates that there is a problem reconciling the state, and
+                  failureReason indicates that there is a problem reconciling the state, and
                   will be set to a token value suitable for programmatic interpretation.
                 type: string
               infrastructureReady:
-                description: InfrastructureReady is the state of the infrastructure
+                description: infrastructureReady is the state of the infrastructure
                   provider.
                 type: boolean
               nodeRefs:
-                description: NodeRefs will point to the corresponding Nodes if it
+                description: nodeRefs will point to the corresponding Nodes if it
                   they exist.
                 items:
                   description: ObjectReference contains enough information to let
@@ -551,13 +551,13 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               phase:
                 description: |-
-                  Phase represents the current phase of cluster actuation.
+                  phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.
                 type: string
               readyReplicas:
@@ -567,7 +567,7 @@ spec:
                 format: int32
                 type: integer
               replicas:
-                description: Replicas is the most recently observed number of replicas.
+                description: replicas is the most recently observed number of replicas.
                 format: int32
                 type: integer
               unavailableReplicas:
@@ -636,12 +636,12 @@ spec:
             description: MachinePoolSpec defines the desired state of MachinePool.
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
+                description: clusterName is the name of the Cluster this object belongs
                   to.
                 minLength: 1
                 type: string
               failureDomains:
-                description: FailureDomains is the list of failure domains this MachinePool
+                description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.
                 items:
                   type: string
@@ -656,7 +656,7 @@ spec:
                 type: integer
               providerIDList:
                 description: |-
-                  ProviderIDList are the identification IDs of machine instances provided by the provider.
+                  providerIDList are the identification IDs of machine instances provided by the provider.
                   This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
                 items:
                   type: string
@@ -668,7 +668,7 @@ spec:
                 format: int32
                 type: integer
               template:
-                description: Template describes the machines that will be created.
+                description: template describes the machines that will be created.
                 properties:
                   metadata:
                     description: |-
@@ -679,7 +679,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -701,12 +701,12 @@ spec:
                     properties:
                       bootstrap:
                         description: |-
-                          Bootstrap is a reference to a local struct which encapsulates
+                          bootstrap is a reference to a local struct which encapsulates
                           fields to configure the Machine’s bootstrapping mechanism.
                         properties:
                           configRef:
                             description: |-
-                              ConfigRef is a reference to a bootstrap provider-specific resource
+                              configRef is a reference to a bootstrap provider-specific resource
                               that holds configuration details. The reference is optional to
                               allow users/operators to specify Bootstrap.DataSecretName without
                               the need of a controller.
@@ -753,23 +753,23 @@ spec:
                             x-kubernetes-map-type: atomic
                           dataSecretName:
                             description: |-
-                              DataSecretName is the name of the secret that stores the bootstrap data script.
+                              dataSecretName is the name of the secret that stores the bootstrap data script.
                               If nil, the Machine should remain in the Pending state.
                             type: string
                         type: object
                       clusterName:
-                        description: ClusterName is the name of the Cluster this object
+                        description: clusterName is the name of the Cluster this object
                           belongs to.
                         minLength: 1
                         type: string
                       failureDomain:
                         description: |-
-                          FailureDomain is the failure domain the machine will be created in.
+                          failureDomain is the failure domain the machine will be created in.
                           Must match a key in the FailureDomains map stored on the cluster object.
                         type: string
                       infrastructureRef:
                         description: |-
-                          InfrastructureRef is a required reference to a custom resource
+                          infrastructureRef is a required reference to a custom resource
                           offered by an infrastructure provider.
                         properties:
                           apiVersion:
@@ -814,13 +814,13 @@ spec:
                         x-kubernetes-map-type: atomic
                       nodeDrainTimeout:
                         description: |-
-                          NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                          nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
                           The default value is 0, meaning that the node can be drained without any time limitations.
                           NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
                         type: string
                       providerID:
                         description: |-
-                          ProviderID is the identification ID of the machine provided by the provider.
+                          providerID is the identification ID of the machine provided by the provider.
                           This field must match the provider ID as seen on the node object corresponding to this machine.
                           This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
                           with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
@@ -833,7 +833,7 @@ spec:
                         type: string
                       version:
                         description: |-
-                          Version defines the desired Kubernetes version.
+                          version defines the desired Kubernetes version.
                           This field is meant to be optionally used by bootstrap providers.
                         type: string
                     required:
@@ -855,10 +855,10 @@ spec:
                 format: int32
                 type: integer
               bootstrapReady:
-                description: BootstrapReady is the state of the bootstrap provider.
+                description: bootstrapReady is the state of the bootstrap provider.
                 type: boolean
               conditions:
-                description: Conditions define the current service state of the MachinePool.
+                description: conditions define the current service state of the MachinePool.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -883,16 +883,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -903,20 +903,20 @@ spec:
                 type: array
               failureMessage:
                 description: |-
-                  FailureMessage indicates that there is a problem reconciling the state,
+                  failureMessage indicates that there is a problem reconciling the state,
                   and will be set to a descriptive error message.
                 type: string
               failureReason:
                 description: |-
-                  FailureReason indicates that there is a problem reconciling the state, and
+                  failureReason indicates that there is a problem reconciling the state, and
                   will be set to a token value suitable for programmatic interpretation.
                 type: string
               infrastructureReady:
-                description: InfrastructureReady is the state of the infrastructure
+                description: infrastructureReady is the state of the infrastructure
                   provider.
                 type: boolean
               nodeRefs:
-                description: NodeRefs will point to the corresponding Nodes if it
+                description: nodeRefs will point to the corresponding Nodes if it
                   they exist.
                 items:
                   description: ObjectReference contains enough information to let
@@ -964,13 +964,13 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               phase:
                 description: |-
-                  Phase represents the current phase of cluster actuation.
+                  phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.
                 type: string
               readyReplicas:
@@ -980,7 +980,7 @@ spec:
                 format: int32
                 type: integer
               replicas:
-                description: Replicas is the most recently observed number of replicas.
+                description: replicas is the most recently observed number of replicas.
                 format: int32
                 type: integer
               unavailableReplicas:
@@ -1054,12 +1054,12 @@ spec:
             description: MachinePoolSpec defines the desired state of MachinePool.
             properties:
               clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
+                description: clusterName is the name of the Cluster this object belongs
                   to.
                 minLength: 1
                 type: string
               failureDomains:
-                description: FailureDomains is the list of failure domains this MachinePool
+                description: failureDomains is the list of failure domains this MachinePool
                   should be attached to.
                 items:
                   type: string
@@ -1074,7 +1074,7 @@ spec:
                 type: integer
               providerIDList:
                 description: |-
-                  ProviderIDList are the identification IDs of machine instances provided by the provider.
+                  providerIDList are the identification IDs of machine instances provided by the provider.
                   This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
                 items:
                   type: string
@@ -1086,7 +1086,7 @@ spec:
                 format: int32
                 type: integer
               template:
-                description: Template describes the machines that will be created.
+                description: template describes the machines that will be created.
                 properties:
                   metadata:
                     description: |-
@@ -1097,7 +1097,7 @@ spec:
                         additionalProperties:
                           type: string
                         description: |-
-                          Annotations is an unstructured key value map stored with a resource that may be
+                          annotations is an unstructured key value map stored with a resource that may be
                           set by external tools to store and retrieve arbitrary metadata. They are not
                           queryable and should be preserved when modifying objects.
                           More info: http://kubernetes.io/docs/user-guide/annotations
@@ -1119,12 +1119,12 @@ spec:
                     properties:
                       bootstrap:
                         description: |-
-                          Bootstrap is a reference to a local struct which encapsulates
+                          bootstrap is a reference to a local struct which encapsulates
                           fields to configure the Machine’s bootstrapping mechanism.
                         properties:
                           configRef:
                             description: |-
-                              ConfigRef is a reference to a bootstrap provider-specific resource
+                              configRef is a reference to a bootstrap provider-specific resource
                               that holds configuration details. The reference is optional to
                               allow users/operators to specify Bootstrap.DataSecretName without
                               the need of a controller.
@@ -1171,23 +1171,23 @@ spec:
                             x-kubernetes-map-type: atomic
                           dataSecretName:
                             description: |-
-                              DataSecretName is the name of the secret that stores the bootstrap data script.
+                              dataSecretName is the name of the secret that stores the bootstrap data script.
                               If nil, the Machine should remain in the Pending state.
                             type: string
                         type: object
                       clusterName:
-                        description: ClusterName is the name of the Cluster this object
+                        description: clusterName is the name of the Cluster this object
                           belongs to.
                         minLength: 1
                         type: string
                       failureDomain:
                         description: |-
-                          FailureDomain is the failure domain the machine will be created in.
+                          failureDomain is the failure domain the machine will be created in.
                           Must match a key in the FailureDomains map stored on the cluster object.
                         type: string
                       infrastructureRef:
                         description: |-
-                          InfrastructureRef is a required reference to a custom resource
+                          infrastructureRef is a required reference to a custom resource
                           offered by an infrastructure provider.
                         properties:
                           apiVersion:
@@ -1232,24 +1232,24 @@ spec:
                         x-kubernetes-map-type: atomic
                       nodeDeletionTimeout:
                         description: |-
-                          NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+                          nodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
                           hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
                           Defaults to 10 seconds.
                         type: string
                       nodeDrainTimeout:
                         description: |-
-                          NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+                          nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
                           The default value is 0, meaning that the node can be drained without any time limitations.
                           NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
                         type: string
                       nodeVolumeDetachTimeout:
                         description: |-
-                          NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+                          nodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
                           to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
                         type: string
                       providerID:
                         description: |-
-                          ProviderID is the identification ID of the machine provided by the provider.
+                          providerID is the identification ID of the machine provided by the provider.
                           This field must match the provider ID as seen on the node object corresponding to this machine.
                           This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
                           with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
@@ -1295,7 +1295,7 @@ spec:
                         x-kubernetes-list-type: map
                       version:
                         description: |-
-                          Version defines the desired Kubernetes version.
+                          version defines the desired Kubernetes version.
                           This field is meant to be optionally used by bootstrap providers.
                         type: string
                     required:
@@ -1317,10 +1317,10 @@ spec:
                 format: int32
                 type: integer
               bootstrapReady:
-                description: BootstrapReady is the state of the bootstrap provider.
+                description: bootstrapReady is the state of the bootstrap provider.
                 type: boolean
               conditions:
-                description: Conditions define the current service state of the MachinePool.
+                description: conditions define the current service state of the MachinePool.
                 items:
                   description: Condition defines an observation of a Cluster API resource
                     operational state.
@@ -1345,16 +1345,16 @@ spec:
                       type: string
                     severity:
                       description: |-
-                        Severity provides an explicit classification of Reason code, so the users or machines can immediately
+                        severity provides an explicit classification of Reason code, so the users or machines can immediately
                         understand the current situation and act accordingly.
                         The Severity field MUST be set only when Status=False.
                       type: string
                     status:
-                      description: Status of the condition, one of True, False, Unknown.
+                      description: status of the condition, one of True, False, Unknown.
                       type: string
                     type:
                       description: |-
-                        Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
                         Many .condition.type values are consistent across resources like Available, but because arbitrary conditions
                         can be useful (see .node.status.conditions), the ability to deconflict is important.
                       type: string
@@ -1366,24 +1366,24 @@ spec:
                 type: array
               failureMessage:
                 description: |-
-                  FailureMessage indicates that there is a problem reconciling the state,
+                  failureMessage indicates that there is a problem reconciling the state,
                   and will be set to a descriptive error message.
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 type: string
               failureReason:
                 description: |-
-                  FailureReason indicates that there is a problem reconciling the state, and
+                  failureReason indicates that there is a problem reconciling the state, and
                   will be set to a token value suitable for programmatic interpretation.
 
                   Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
                 type: string
               infrastructureReady:
-                description: InfrastructureReady is the state of the infrastructure
+                description: infrastructureReady is the state of the infrastructure
                   provider.
                 type: boolean
               nodeRefs:
-                description: NodeRefs will point to the corresponding Nodes if it
+                description: nodeRefs will point to the corresponding Nodes if it
                   they exist.
                 items:
                   description: ObjectReference contains enough information to let
@@ -1431,13 +1431,13 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               observedGeneration:
-                description: ObservedGeneration is the latest generation observed
+                description: observedGeneration is the latest generation observed
                   by the controller.
                 format: int64
                 type: integer
               phase:
                 description: |-
-                  Phase represents the current phase of cluster actuation.
+                  phase represents the current phase of cluster actuation.
                   E.g. Pending, Running, Terminating, Failed etc.
                 type: string
               readyReplicas:
@@ -1447,7 +1447,7 @@ spec:
                 format: int32
                 type: integer
               replicas:
-                description: Replicas is the most recently observed number of replicas.
+                description: replicas is the most recently observed number of replicas.
                 format: int32
                 type: integer
               unavailableReplicas:

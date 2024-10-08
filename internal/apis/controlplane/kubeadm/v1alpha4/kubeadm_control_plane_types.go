@@ -59,18 +59,18 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
-	// Version defines the desired Kubernetes version.
+	// version defines the desired Kubernetes version.
 	Version string `json:"version"`
 
-	// MachineTemplate contains information about how machines
+	// machineTemplate contains information about how machines
 	// should be shaped when creating or updating a control plane.
 	MachineTemplate KubeadmControlPlaneMachineTemplate `json:"machineTemplate"`
 
-	// KubeadmConfigSpec is a KubeadmConfigSpec
+	// kubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
 	KubeadmConfigSpec bootstrapv1alpha4.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
-	// RolloutAfter is a field to indicate a rollout should be performed
+	// rolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
 	// KubeadmControlPlane.
 	//
@@ -92,11 +92,11 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// +optional
 	ObjectMeta clusterv1alpha4.ObjectMeta `json:"metadata,omitempty"`
 
-	// InfrastructureRef is a required reference to a custom resource
+	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
-	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
+	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a controlplane node
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// +optional
@@ -106,7 +106,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 // RolloutStrategy describes how to replace existing machines
 // with new ones.
 type RolloutStrategy struct {
-	// Type of rollout. Currently the only supported strategy is
+	// type of rollout. Currently the only supported strategy is
 	// "RollingUpdate".
 	// Default is RollingUpdate.
 	// +optional
@@ -132,7 +132,7 @@ type RollingUpdate struct {
 
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
 type KubeadmControlPlaneStatus struct {
-	// Selector is the label selector in string format to avoid introspection
+	// selector is the label selector in string format to avoid introspection
 	// by clients, and is used to provide the CRD-based integration for the
 	// scale subresource and additional integrations for things like kubectl
 	// describe.. The string will be in the same format as the query-param syntax.
@@ -145,7 +145,7 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	Replicas int32 `json:"replicas,omitempty"`
 
-	// Version represents the minimum Kubernetes version for the control plane machines
+	// version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
 	// +optional
 	Version *string `json:"version,omitempty"`
@@ -167,17 +167,17 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 
-	// Initialized denotes whether or not the control plane has the
+	// initialized denotes whether or not the control plane has the
 	// uploaded kubeadm-config configmap.
 	// +optional
 	Initialized bool `json:"initialized"`
 
-	// Ready denotes that the KubeadmControlPlane API Server is ready to
+	// ready denotes that the KubeadmControlPlane API Server is ready to
 	// receive requests.
 	// +optional
 	Ready bool `json:"ready"`
 
-	// FailureReason indicates that there is a terminal problem reconciling the
+	// failureReason indicates that there is a terminal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
@@ -188,11 +188,11 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions defines current service state of the KubeadmControlPlane.
+	// conditions defines current service state of the KubeadmControlPlane.
 	// +optional
 	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }

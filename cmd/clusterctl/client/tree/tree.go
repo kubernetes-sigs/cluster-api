@@ -24,7 +24,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -57,6 +56,9 @@ type ObjectTreeOptions struct {
 	// Grouping groups sibling object in case the ready conditions
 	// have the same Status, Severity and Reason
 	Grouping bool
+
+	// V1Beta2 instructs tree to use V1Beta2 conditions.
+	V1Beta2 bool
 }
 
 // ObjectTree defines an object tree representing the status of a Cluster API cluster.
@@ -91,8 +93,16 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	addOpts := &addObjectOptions{}
 	addOpts.ApplyOptions(opts)
 
-	objReady := GetReadyCondition(obj)
-	parentReady := GetReadyCondition(parent)
+	var objReady, parentReady *clusterv1.Condition
+	var objReadyV1Beta2, parentReadyV1Beta2 *metav1.Condition
+	switch od.options.V1Beta2 {
+	case true:
+		objReadyV1Beta2 = GetReadyV1Beta2Condition(obj)
+		parentReadyV1Beta2 = GetReadyV1Beta2Condition(parent)
+	default:
+		objReady = GetReadyCondition(obj)
+		parentReady = GetReadyCondition(parent)
+	}
 
 	// If it is requested to show all the conditions for the object, add
 	// the ShowObjectConditionsAnnotation to signal this to the presentation layer.
@@ -104,8 +114,15 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	// same Status, Severity and Reason of the parent's object ready condition (it is an echo),
 	// return early.
 	if addOpts.NoEcho && !od.options.Echo {
-		if (objReady != nil && objReady.Status == corev1.ConditionTrue) || hasSameReadyStatusSeverityAndReason(parentReady, objReady) {
-			return false, false
+		switch od.options.V1Beta2 {
+		case true:
+			if (objReadyV1Beta2 != nil && objReadyV1Beta2.Status == metav1.ConditionTrue) || hasSameReadyStatusAndReason(parentReadyV1Beta2, objReadyV1Beta2) {
+				return false, false
+			}
+		default:
+			if (objReady != nil && objReady.Status == corev1.ConditionTrue) || hasSameReadyStatusSeverityAndReason(parentReady, objReady) {
+				return false, false
+			}
 		}
 	}
 
@@ -131,12 +148,26 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 
 		for i := range siblings {
 			s := siblings[i]
-			sReady := GetReadyCondition(s)
 
-			// If the object's ready condition has a different Status, Severity and Reason than the sibling object,
-			// move on (they should not be grouped).
-			if !hasSameReadyStatusSeverityAndReason(objReady, sReady) {
-				continue
+			var sReady *clusterv1.Condition
+			var sReadyV1Beta2 *metav1.Condition
+			switch od.options.V1Beta2 {
+			case true:
+				sReadyV1Beta2 = GetReadyV1Beta2Condition(s)
+
+				// If the object's ready condition has a different Status or Reason than the sibling object,
+				// move on (they should not be grouped).
+				if !hasSameReadyStatusAndReason(objReadyV1Beta2, sReadyV1Beta2) {
+					continue
+				}
+			default:
+				sReady = GetReadyCondition(s)
+
+				// If the object's ready condition has a different Status, Severity and Reason than the sibling object,
+				// move on (they should not be grouped).
+				if !hasSameReadyStatusSeverityAndReason(objReady, sReady) {
+					continue
+				}
 			}
 
 			// If the sibling node is already a group object
@@ -144,7 +175,13 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 				// Check to see if the group object kind matches the object, i.e. group is MachineGroup and object is Machine.
 				// If so, upgrade it with the current object.
 				if s.GetObjectKind().GroupVersionKind().Kind == obj.GetObjectKind().GroupVersionKind().Kind+"Group" {
-					updateGroupNode(s, sReady, obj, objReady)
+					switch od.options.V1Beta2 {
+					case true:
+						updateV1Beta2GroupNode(s, sReadyV1Beta2, obj, objReadyV1Beta2)
+					default:
+						updateGroupNode(s, sReady, obj, objReady)
+					}
+
 					return true, false
 				}
 			} else if s.GetObjectKind().GroupVersionKind().Kind != obj.GetObjectKind().GroupVersionKind().Kind {
@@ -155,7 +192,14 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 			// Otherwise the object and the current sibling should be merged in a group.
 
 			// Create virtual object for the group and add it to the object tree.
-			groupNode := createGroupNode(s, sReady, obj, objReady)
+			var groupNode *NodeObject
+			switch od.options.V1Beta2 {
+			case true:
+				groupNode = createV1Beta2GroupNode(s, sReadyV1Beta2, obj, objReadyV1Beta2)
+			default:
+				groupNode = createGroupNode(s, sReady, obj, objReady)
+			}
+
 			// By default, grouping objects should be sorted last.
 			addAnnotation(groupNode, ObjectZOrderAnnotation, strconv.Itoa(GetZOrder(obj)))
 
@@ -216,6 +260,18 @@ func (od ObjectTree) GetObjectsByParent(id types.UID) []client.Object {
 	return out
 }
 
+func hasSameReadyStatusAndReason(a, b *metav1.Condition) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if (a == nil) != (b == nil) {
+		return false
+	}
+
+	return a.Status == b.Status &&
+		a.Reason == b.Reason
+}
+
 func hasSameReadyStatusSeverityAndReason(a, b *clusterv1.Condition) bool {
 	if a == nil && b == nil {
 		return true
@@ -229,7 +285,54 @@ func hasSameReadyStatusSeverityAndReason(a, b *clusterv1.Condition) bool {
 		a.Reason == b.Reason
 }
 
-func createGroupNode(sibling client.Object, siblingReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) *unstructured.Unstructured {
+func createV1Beta2GroupNode(sibling client.Object, siblingReady *metav1.Condition, obj client.Object, objReady *metav1.Condition) *NodeObject {
+	kind := fmt.Sprintf("%sGroup", obj.GetObjectKind().GroupVersionKind().Kind)
+
+	// Create a new group node and add the GroupObjectAnnotation to signal
+	// this to the presentation layer.
+	// NB. The group nodes gets a unique ID to avoid conflicts.
+	groupNode := VirtualObject(obj.GetNamespace(), kind, readyStatusReasonUIDV1Beta2(obj))
+	addAnnotation(groupNode, GroupObjectAnnotation, "True")
+
+	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
+	items := []string{obj.GetName(), sibling.GetName()}
+	sort.Strings(items)
+	addAnnotation(groupNode, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
+
+	// Update the group's ready condition.
+	if objReady != nil {
+		objReady.LastTransitionTime = minLastTransitionTimeV1Beta2(objReady, siblingReady)
+		objReady.Message = ""
+		setReadyV1Beta2Condition(groupNode, objReady)
+	}
+	return groupNode
+}
+
+func readyStatusReasonUIDV1Beta2(obj client.Object) string {
+	ready := GetReadyV1Beta2Condition(obj)
+	if ready == nil {
+		return fmt.Sprintf("zzz_%s", util.RandomString(6))
+	}
+	return fmt.Sprintf("zz_%s_%s_%s", ready.Status, ready.Reason, util.RandomString(6))
+}
+
+func minLastTransitionTimeV1Beta2(a, b *metav1.Condition) metav1.Time {
+	if a == nil && b == nil {
+		return metav1.Time{}
+	}
+	if (a != nil) && (b == nil) {
+		return a.LastTransitionTime
+	}
+	if a == nil {
+		return b.LastTransitionTime
+	}
+	if a.LastTransitionTime.Time.After(b.LastTransitionTime.Time) {
+		return b.LastTransitionTime
+	}
+	return a.LastTransitionTime
+}
+
+func createGroupNode(sibling client.Object, siblingReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) *NodeObject {
 	kind := fmt.Sprintf("%sGroup", obj.GetObjectKind().GroupVersionKind().Kind)
 
 	// Create a new group node and add the GroupObjectAnnotation to signal
@@ -267,13 +370,28 @@ func minLastTransitionTime(a, b *clusterv1.Condition) metav1.Time {
 	if (a != nil) && (b == nil) {
 		return a.LastTransitionTime
 	}
-	if (a == nil) && (b != nil) {
+	if a == nil {
 		return b.LastTransitionTime
 	}
 	if a.LastTransitionTime.Time.After(b.LastTransitionTime.Time) {
 		return b.LastTransitionTime
 	}
 	return a.LastTransitionTime
+}
+
+func updateV1Beta2GroupNode(groupObj client.Object, groupReady *metav1.Condition, obj client.Object, objReady *metav1.Condition) {
+	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
+	items := strings.Split(GetGroupItems(groupObj), GroupItemsSeparator)
+	items = append(items, obj.GetName())
+	sort.Strings(items)
+	addAnnotation(groupObj, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
+
+	// Update the group's ready condition.
+	if groupReady != nil {
+		groupReady.LastTransitionTime = minLastTransitionTimeV1Beta2(objReady, groupReady)
+		groupReady.Message = ""
+		setReadyV1Beta2Condition(groupObj, groupReady)
+	}
 }
 
 func updateGroupNode(groupObj client.Object, groupReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) {
@@ -295,7 +413,7 @@ func isObjDebug(obj client.Object, debugFilter string) bool {
 	if debugFilter == "" {
 		return false
 	}
-	for _, filter := range strings.Split(debugFilter, ",") {
+	for _, filter := range strings.Split(strings.ToLower(debugFilter), ",") {
 		filter = strings.TrimSpace(filter)
 		if filter == "" {
 			continue
@@ -305,12 +423,12 @@ func isObjDebug(obj client.Object, debugFilter string) bool {
 		}
 		kn := strings.Split(filter, "/")
 		if len(kn) == 2 {
-			if obj.GetObjectKind().GroupVersionKind().Kind == kn[0] && obj.GetName() == kn[1] {
+			if strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind) == kn[0] && obj.GetName() == kn[1] {
 				return true
 			}
 			continue
 		}
-		if obj.GetObjectKind().GroupVersionKind().Kind == kn[0] {
+		if strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind) == kn[0] {
 			return true
 		}
 	}

@@ -64,6 +64,22 @@ func Get(sourceObj Getter, sourceConditionType string) *metav1.Condition {
 //   - Objects with metav1.Condition in status.v1beta2.conditions
 //   - Objects with metav1.Condition in status.conditions
 func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string) (*metav1.Condition, error) {
+	conditions, err := UnstructuredGetAll(sourceObj)
+	if err != nil {
+		return nil, err
+	}
+	return meta.FindStatusCondition(conditions, sourceConditionType), nil
+}
+
+// UnstructuredGetAll returns all the conditions from an Unstructured object.
+//
+// UnstructuredGetAll supports retrieving conditions from objects at different stages of the transition from
+// clusterv1.conditions to the metav1.Condition type:
+//   - Objects with clusterv1.Conditions in status.conditions; in this case a best effort conversion
+//     to metav1.Condition is performed, just enough to allow surfacing a condition from a provider object with Mirror
+//   - Objects with metav1.Condition in status.v1beta2.conditions
+//   - Objects with metav1.Condition in status.conditions
+func UnstructuredGetAll(sourceObj runtime.Unstructured) ([]metav1.Condition, error) {
 	if util.IsNil(sourceObj) {
 		return nil, errors.New("sourceObj is nil")
 	}
@@ -77,7 +93,7 @@ func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to convert %s.status.v1beta2.conditions to []metav1.Condition", ownerInfo)
 			}
-			return meta.FindStatusCondition(r, sourceConditionType), nil
+			return r, nil
 		}
 	}
 
@@ -88,7 +104,7 @@ func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to convert %s.status.conditions to []metav1.Condition", ownerInfo)
 			}
-			return meta.FindStatusCondition(r, sourceConditionType), nil
+			return r, nil
 		}
 	}
 

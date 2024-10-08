@@ -25,17 +25,17 @@ import (
 
 // IPAddressClaimSpec is the desired state of an IPAddressClaim.
 type IPAddressClaimSpec struct {
-	// PoolRef is a reference to the pool from which an IP address should be created.
+	// poolRef is a reference to the pool from which an IP address should be created.
 	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
 }
 
 // IPAddressClaimStatus is the observed status of a IPAddressClaim.
 type IPAddressClaimStatus struct {
-	// AddressRef is a reference to the address that was created for this claim.
+	// addressRef is a reference to the address that was created for this claim.
 	// +optional
 	AddressRef corev1.LocalObjectReference `json:"addressRef,omitempty"`
 
-	// Conditions summarises the current state of the IPAddressClaim
+	// conditions summarises the current state of the IPAddressClaim
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }

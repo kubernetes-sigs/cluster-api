@@ -56,24 +56,24 @@ const (
 
 // MachineSpec defines the desired state of Machine.
 type MachineSpec struct {
-	// ClusterName is the name of the Cluster this object belongs to.
+	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
-	// Bootstrap is a reference to a local struct which encapsulates
+	// bootstrap is a reference to a local struct which encapsulates
 	// fields to configure the Machine’s bootstrapping mechanism.
 	Bootstrap Bootstrap `json:"bootstrap"`
 
-	// InfrastructureRef is a required reference to a custom resource
+	// infrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
 	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
 
-	// Version defines the desired Kubernetes version.
+	// version defines the desired Kubernetes version.
 	// This field is meant to be optionally used by bootstrap providers.
 	// +optional
 	Version *string `json:"version,omitempty"`
 
-	// ProviderID is the identification ID of the machine provided by the provider.
+	// providerID is the identification ID of the machine provided by the provider.
 	// This field must match the provider ID as seen on the node object corresponding to this machine.
 	// This field is required by higher level consumers of cluster-api. Example use case is cluster autoscaler
 	// with cluster-api as provider. Clean-up logic in the autoscaler compares machines to nodes to find out
@@ -86,12 +86,12 @@ type MachineSpec struct {
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
-	// FailureDomain is the failure domain the machine will be created in.
+	// failureDomain is the failure domain the machine will be created in.
 	// Must match a key in the FailureDomains map stored on the cluster object.
 	// +optional
 	FailureDomain *string `json:"failureDomain,omitempty"`
 
-	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// nodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
 	// +optional
@@ -104,27 +104,27 @@ type MachineSpec struct {
 
 // MachineStatus defines the observed state of Machine.
 type MachineStatus struct {
-	// NodeRef will point to the corresponding Node if it exists.
+	// nodeRef will point to the corresponding Node if it exists.
 	// +optional
 	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
 
-	// NodeInfo is a set of ids/uuids to uniquely identify the node.
+	// nodeInfo is a set of ids/uuids to uniquely identify the node.
 	// More info: https://kubernetes.io/docs/concepts/nodes/node/#info
 	// +optional
 	NodeInfo *corev1.NodeSystemInfo `json:"nodeInfo,omitempty"`
 
-	// LastUpdated identifies when the phase of the Machine last transitioned.
+	// lastUpdated identifies when the phase of the Machine last transitioned.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// Version specifies the current version of Kubernetes running
+	// version specifies the current version of Kubernetes running
 	// on the corresponding Node. This is meant to be a means of bubbling
 	// up status from the Node to the Machine.
 	// It is entirely optional, but useful for end-user UX if it’s present.
 	// +optional
 	Version *string `json:"version,omitempty"`
 
-	// FailureReason will be set in the event that there is a terminal problem
+	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a succinct value suitable
 	// for machine interpretation.
 	//
@@ -143,7 +143,7 @@ type MachineStatus struct {
 	// +optional
 	FailureReason *capierrors.MachineStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage will be set in the event that there is a terminal problem
+	// failureMessage will be set in the event that there is a terminal problem
 	// reconciling the Machine and will contain a more verbose string suitable
 	// for logging and human consumption.
 	//
@@ -162,29 +162,29 @@ type MachineStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
-	// Addresses is a list of addresses assigned to the machine.
+	// addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
 	// +optional
 	Addresses MachineAddresses `json:"addresses,omitempty"`
 
-	// Phase represents the current phase of machine actuation.
+	// phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
-	// BootstrapReady is the state of the bootstrap provider.
+	// bootstrapReady is the state of the bootstrap provider.
 	// +optional
 	BootstrapReady bool `json:"bootstrapReady"`
 
-	// InfrastructureReady is the state of the infrastructure provider.
+	// infrastructureReady is the state of the infrastructure provider.
 	// +optional
 	InfrastructureReady bool `json:"infrastructureReady"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions defines current service state of the Machine.
+	// conditions defines current service state of the Machine.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 }
@@ -218,14 +218,14 @@ func (m *MachineStatus) GetTypedPhase() MachinePhase {
 
 // Bootstrap encapsulates fields to configure the Machine’s bootstrapping mechanism.
 type Bootstrap struct {
-	// ConfigRef is a reference to a bootstrap provider-specific resource
+	// configRef is a reference to a bootstrap provider-specific resource
 	// that holds configuration details. The reference is optional to
 	// allow users/operators to specify Bootstrap.DataSecretName without
 	// the need of a controller.
 	// +optional
 	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
 
-	// DataSecretName is the name of the secret that stores the bootstrap data script.
+	// dataSecretName is the name of the secret that stores the bootstrap data script.
 	// If nil, the Machine should remain in the Pending state.
 	// +optional
 	DataSecretName *string `json:"dataSecretName,omitempty"`

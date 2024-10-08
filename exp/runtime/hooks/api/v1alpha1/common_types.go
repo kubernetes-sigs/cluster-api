@@ -32,7 +32,7 @@ type RequestObject interface {
 // Note: By embedding CommonRequest in a runtime.Object the RequestObject
 // interface is satisfied.
 type CommonRequest struct {
-	// Settings defines key value pairs to be passed to the call.
+	// settings defines key value pairs to be passed to the call.
 	// +optional
 	Settings map[string]string `json:"settings,omitempty"`
 }
@@ -70,7 +70,7 @@ type RetryResponseObject interface {
 // Note: By embedding CommonResponse in a runtime.Object the ResponseObject
 // interface is satisfied.
 type CommonResponse struct {
-	// Status of the call. One of "Success" or "Failure".
+	// status of the call. One of "Success" or "Failure".
 	Status ResponseStatus `json:"status"`
 
 	// A human-readable description of the status of the call.
@@ -117,7 +117,7 @@ type CommonRetryResponse struct {
 	// CommonResponse contains Status and Message fields common to all response types.
 	CommonResponse `json:",inline"`
 
-	// RetryAfterSeconds when set to a non-zero value signifies that the hook
+	// retryAfterSeconds when set to a non-zero value signifies that the hook
 	// will be called again at a future time.
 	RetryAfterSeconds int32 `json:"retryAfterSeconds"`
 }

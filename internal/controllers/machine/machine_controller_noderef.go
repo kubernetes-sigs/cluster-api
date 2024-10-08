@@ -225,10 +225,7 @@ func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string)
 			}
 		}
 	}
-	message = strings.TrimSpace(message)
-	if strings.HasSuffix(message, ".") {
-		message = strings.TrimSuffix(message, ".")
-	}
+	message = strings.TrimSuffix(message, ". ")
 	if semanticallyFalseStatus > 0 {
 		return corev1.ConditionFalse, message
 	}

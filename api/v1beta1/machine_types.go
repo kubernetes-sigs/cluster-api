@@ -86,6 +86,142 @@ const (
 	ManagedNodeLabelDomain = "node.cluster.x-k8s.io"
 )
 
+// Machine's Available condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineAvailableV1Beta2Condition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.
+	MachineAvailableV1Beta2Condition = AvailableV1Beta2Condition
+
+	// MachineNotReadyV1Beta2Reason surfaces when a machine is not yet ready (and thus not yet available).
+	MachineNotReadyV1Beta2Reason = "NotReady"
+
+	// MachineWaitingForMinReadySecondsV1Beta2Reason surfaces when a machine is ready for less then MinReadySeconds (and thus not yet available).
+	MachineWaitingForMinReadySecondsV1Beta2Reason = "WaitingForMinReadySeconds"
+
+	// MachineReadyNotYetReportedV1Beta2Reason surfaces when a machine ready is not reported yet.
+	// Note: this should never happen and it is a signal of some internal error.
+	MachineReadyNotYetReportedV1Beta2Reason = "ReadyNotYetReported"
+
+	// MachineAvailableV1Beta2Reason surfaces when a machine ready for at least MinReadySeconds.
+	MachineAvailableV1Beta2Reason = "MachineAvailable"
+)
+
+// Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+// Note: when possible, Ready condition will use reasons from the conditions it summarizes.
+const (
+	// MachineReadyV1Beta2Condition is true if the Machine is not deleted, Machine's BootstrapConfigReady, InfrastructureReady,
+	// NodeHealthy and HealthCheckSucceeded (if present) are true; if other conditions are defined in spec.readinessGates,
+	// these conditions must be true as well.
+	MachineReadyV1Beta2Condition = ReadyV1Beta2Condition
+
+	// MachineErrorComputingReadyV1Beta2Reason surfaces when there was an error computing the ready condition.
+	// Note: this should never happen and it is a signal of some internal error.
+	MachineErrorComputingReadyV1Beta2Reason = "ErrorComputingReady"
+)
+
+// Machine's UpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// Note: UpToDate condition is set by the controller owning the machine.
+const (
+	// MachineUpToDateV1Beta2Condition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
+	// The Machine's owner (e.g MachineDeployment) is authoritative to set their owned Machine's UpToDate conditions based on its current spec.
+	MachineUpToDateV1Beta2Condition = "UpToDate"
+)
+
+// Machine's BootstrapConfigReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Note: when possible, BootstrapConfigReady condition will use reasons surfaced from the underlying bootstrap config object.
+const (
+	// MachineBootstrapConfigReadyV1Beta2Condition condition mirrors the corresponding Ready condition from the Machine's BootstrapConfig resource.
+	MachineBootstrapConfigReadyV1Beta2Condition = BootstrapConfigReadyV1Beta2Condition
+
+	// MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason surfaces when a bootstrap data secret is provided by the user (without a ConfigRef).
+	MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason = "DataSecretUserProvided"
+
+	// MachineBootstrapInvalidConfigV1Beta2Reason surfaces when MachineBootstrap doesn't have the Boostrap.ConfigRef nor a
+	// Bootstrap.DataSecretName specified by the users.
+	MachineBootstrapInvalidConfigV1Beta2Reason = "InvalidConfig"
+
+	// MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
+	// (e.g. it is status is missing).
+	MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason = InvalidConditionReported
+
+	// MachineBootstrapConfigReadyNoV1Beta2ReasonReported applies to a BootstrapConfig Ready condition (read from a bootstrap config object) that reports no reason.
+	MachineBootstrapConfigReadyNoV1Beta2ReasonReported = NoV1Beta2ReasonReported
+
+	// MachineBootstrapConfigNotFoundV1Beta2Reason surfaces when a referenced bootstrap config object cannot be found.
+	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
+	MachineBootstrapConfigNotFoundV1Beta2Reason = RefObjectNotFoundV1Beta2Reason
+
+	// MachineBootstrapConfigDeletedV1Beta2Reason surfaces when a referenced bootstrap config object has been deleted.
+	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
+	// during the deletion workflow, or by a users.
+	MachineBootstrapConfigDeletedV1Beta2Reason = RefObjectDeletedV1Beta2Reason
+)
+
+// Machine's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Note: when possible, InfrastructureReady condition will use reasons surfaced from the underlying infra machine object.
+const (
+	// MachineInfrastructureReadyV1Beta2Condition mirrors the corresponding Ready condition from the Machine's Infrastructure resource.
+	MachineInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
+
+	// MachineInfrastructureInvalidConditionReportedV1Beta2Reason surfaces a infrastructure Ready condition (read from an infra machine object) which is invalid.
+	// (e.g. it is status is missing).
+	MachineInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReported
+
+	// MachineInfrastructureReadyNoV1Beta2ReasonReported applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
+	MachineInfrastructureReadyNoV1Beta2ReasonReported = NoV1Beta2ReasonReported
+
+	// MachineInfrastructureNotFoundV1Beta2Reason surfaces when a referenced infrastructure object cannot be found.
+	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
+	MachineInfrastructureNotFoundV1Beta2Reason = RefObjectNotFoundV1Beta2Reason
+
+	// MachineInfrastructureDeletedV1Beta2Reason surfaces when a referenced infrastructure object has been deleted.
+	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
+	// during the deletion workflow, or by a users.
+	MachineInfrastructureDeletedV1Beta2Reason = RefObjectDeletedV1Beta2Reason
+)
+
+// Machine's NodeHealthy and NodeReady conditions and corresponding reasons that will be used in v1Beta2 API version.
+// Note: when possible, NodeHealthy and NodeReady conditions will use reasons surfaced from the underlying node.
+const (
+	// MachineNodeHealthyV1Beta2Condition is true if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure.
+	MachineNodeHealthyV1Beta2Condition = "NodeHealthy"
+
+	// MachineNodeReadyV1Beta2Condition is true if the Machine's Node is ready.
+	MachineNodeReadyV1Beta2Condition = "NodeReady"
+
+	// MachineNodeNotFoundV1Beta2Reason surfaces when the node hosted on the machine cannot be found.
+	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
+	MachineNodeNotFoundV1Beta2Reason = "NodeNotFound"
+
+	// MachineNodeDeletedV1Beta2Reason surfaces when  the node hosted on the machine has been deleted.
+	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
+	// during the deletion workflow, or by a users.
+	MachineNodeDeletedV1Beta2Reason = "NodeDeleted"
+)
+
+// Machine's HealthCheckSucceeded and OwnerRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
+// Note: HealthCheckSucceeded and OwnerRemediated condition are set by the MachineHealthCheck controller.
+const (
+	// MachineHealthCheckSucceededV1Beta2Condition is true if MHC instances targeting this machine report the Machine
+	// is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object.
+	MachineHealthCheckSucceededV1Beta2Condition = "HealthCheckSucceeded"
+
+	// MachineOwnerRemediatedV1Beta2Condition is only present if MHC instances targeting this machine
+	// determine that the controller owning this machine should perform remediation.
+	MachineOwnerRemediatedV1Beta2Condition = "OwnerRemediated"
+)
+
+// Machine's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeletingV1Beta2Condition surfaces details about progress in the machine deletion workflow.
+	MachineDeletingV1Beta2Condition = DeletingV1Beta2Condition
+)
+
+// Machine's Paused condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachinePausedV1Beta2Condition is true if the Machine or the Cluster it belongs to are paused.
+	MachinePausedV1Beta2Condition = PausedV1Beta2Condition
+)
+
 // ANCHOR: MachineSpec
 
 // MachineSpec defines the desired state of Machine.

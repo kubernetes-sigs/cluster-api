@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // NotYetReportedReason is set on missing conditions generated during mirror, aggregate or summary operations.
@@ -37,6 +38,9 @@ type MirrorOption interface {
 // MirrorOptions allows to set options for the mirror operation.
 type MirrorOptions struct {
 	targetConditionType string
+	fallbackStatus      metav1.ConditionStatus
+	fallbackReason      string
+	fallbackMessage     string
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -54,6 +58,12 @@ func (o *MirrorOptions) ApplyOptions(opts []MirrorOption) *MirrorOptions {
 // By default, the Mirror condition has the same type as the source condition, but this can be changed by using
 // the TargetConditionType option.
 func NewMirrorCondition(sourceObj Getter, sourceConditionType string, opts ...MirrorOption) *metav1.Condition {
+	condition := Get(sourceObj, sourceConditionType)
+
+	return newMirrorCondition(sourceObj, condition, sourceConditionType, opts)
+}
+
+func newMirrorCondition(sourceObj any, condition *metav1.Condition, sourceConditionType string, opts []MirrorOption) *metav1.Condition {
 	mirrorOpt := &MirrorOptions{
 		targetConditionType: sourceConditionType,
 	}
@@ -61,7 +71,7 @@ func NewMirrorCondition(sourceObj Getter, sourceConditionType string, opts ...Mi
 
 	conditionOwner := getConditionOwnerInfo(sourceObj)
 
-	if condition := Get(sourceObj, sourceConditionType); condition != nil {
+	if condition != nil {
 		return &metav1.Condition{
 			Type:   mirrorOpt.targetConditionType,
 			Status: condition.Status,
@@ -71,6 +81,17 @@ func NewMirrorCondition(sourceObj Getter, sourceConditionType string, opts ...Mi
 			Message:            strings.TrimSpace(fmt.Sprintf("%s (from %s)", condition.Message, conditionOwner)),
 			// NOTE: ObservedGeneration will be set when this condition is added to an object by calling Set
 			// (also preserving ObservedGeneration from the source object will be confusing when the mirror conditions shows up in the target object).
+		}
+	}
+
+	if mirrorOpt.fallbackStatus != "" {
+		return &metav1.Condition{
+			Type:    mirrorOpt.targetConditionType,
+			Status:  mirrorOpt.fallbackStatus,
+			Reason:  mirrorOpt.fallbackReason,
+			Message: mirrorOpt.fallbackMessage,
+			// NOTE: ObservedGeneration will be set when this condition is added to an object by calling Set.
+			// LastTransitionTime will be set to now.
 		}
 	}
 
@@ -88,4 +109,24 @@ func NewMirrorCondition(sourceObj Getter, sourceConditionType string, opts ...Mi
 func SetMirrorCondition(sourceObj Getter, targetObj Setter, sourceConditionType string, opts ...MirrorOption) {
 	mirrorCondition := NewMirrorCondition(sourceObj, sourceConditionType, opts...)
 	Set(targetObj, *mirrorCondition)
+}
+
+// SetMirrorConditionFromUnstructured is a convenience method that calls NewMirrorCondition to create a mirror condition from the source object,
+// and then calls Set to add the new condition to the target object.
+func SetMirrorConditionFromUnstructured(sourceObj runtime.Unstructured, targetObj Setter, sourceConditionType string, opts ...MirrorOption) error {
+	condition, err := UnstructuredGet(sourceObj, sourceConditionType)
+	if err != nil {
+		return err
+	}
+
+	Set(targetObj, *newMirrorCondition(sourceObj, condition, sourceConditionType, opts))
+	return nil
+}
+
+// BoolToStatus converts a bool to either metav1.ConditionTrue or metav1.ConditionFalse.
+func BoolToStatus(status bool) metav1.ConditionStatus {
+	if status {
+		return metav1.ConditionTrue
+	}
+	return metav1.ConditionFalse
 }

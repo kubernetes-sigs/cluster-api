@@ -75,6 +75,19 @@ func TestMirrorStatusCondition(t *testing.T) {
 			options:       []MirrorOption{TargetConditionType("SomethingReady")},
 			want:          metav1.Condition{Type: "SomethingReady", Status: metav1.ConditionUnknown, Reason: NotYetReportedReason, Message: "Condition Ready not yet reported from Phase3Obj SourceObject"},
 		},
+		{
+			name:          "Mirror a condition not yet reported with a fallback condtion",
+			conditions:    []metav1.Condition{},
+			conditionType: "Ready",
+			options: []MirrorOption{
+				FallbackCondition{
+					Status:  BoolToStatus(true),
+					Reason:  "SomeReason",
+					Message: "Foo",
+				},
+			},
+			want: metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "SomeReason", Message: "Foo"},
+		},
 	}
 
 	for _, tt := range tests {

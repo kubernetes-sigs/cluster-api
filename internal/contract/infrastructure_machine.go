@@ -49,6 +49,11 @@ func (m *InfrastructureMachineContract) Ready() *Bool {
 	}
 }
 
+// ReadyConditionType returns the type of the ready condition.
+func (m *InfrastructureMachineContract) ReadyConditionType() string {
+	return "Ready"
+}
+
 // FailureReason provides access to the status.failureReason field in an InfrastructureMachine object. Note that this field is optional.
 func (m *InfrastructureMachineContract) FailureReason() *String {
 	return &String{

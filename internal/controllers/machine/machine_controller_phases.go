@@ -45,46 +45,6 @@ import (
 
 var externalReadyWait = 30 * time.Second
 
-func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
-	originalPhase := m.Status.Phase
-
-	// Set the phase to "pending" if nil.
-	if m.Status.Phase == "" {
-		m.Status.SetTypedPhase(clusterv1.MachinePhasePending)
-	}
-
-	// Set the phase to "provisioning" if bootstrap is ready and the infrastructure isn't.
-	if m.Status.BootstrapReady && !m.Status.InfrastructureReady {
-		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioning)
-	}
-
-	// Set the phase to "provisioned" if there is a provider ID.
-	if m.Spec.ProviderID != nil {
-		m.Status.SetTypedPhase(clusterv1.MachinePhaseProvisioned)
-	}
-
-	// Set the phase to "running" if there is a NodeRef field and infrastructure is ready.
-	if m.Status.NodeRef != nil && m.Status.InfrastructureReady {
-		m.Status.SetTypedPhase(clusterv1.MachinePhaseRunning)
-	}
-
-	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.
-	if m.Status.FailureReason != nil || m.Status.FailureMessage != nil {
-		m.Status.SetTypedPhase(clusterv1.MachinePhaseFailed)
-	}
-
-	// Set the phase to "deleting" if the deletion timestamp is set.
-	if !m.DeletionTimestamp.IsZero() {
-		m.Status.SetTypedPhase(clusterv1.MachinePhaseDeleting)
-	}
-
-	// If the phase has changed, update the LastUpdated timestamp
-	if m.Status.Phase != originalPhase {
-		now := metav1.Now()
-		m.Status.LastUpdated = &now
-	}
-}
-
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {

@@ -450,7 +450,8 @@ type JSONSchemaProps struct {
 
 	// Type is the type of the variable.
 	// Valid values are: object, array, string, integer, number or boolean.
-	Type string `json:"type"`
+	// +optional
+	Type string `json:"type,omitempty"`
 
 	// Properties specifies fields of an object.
 	// NOTE: Can only be set if type is object.

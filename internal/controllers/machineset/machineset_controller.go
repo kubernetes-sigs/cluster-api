@@ -205,33 +205,33 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}()
 
 	alwaysReconcile := []machineSetReconcileFunc{
-		r.reconcileInfrastructure,
-		r.reconcileBootstrapConfig,
-		r.getAndAdoptMachinesForMachineSet,
+		wrapErrMachineSetReconcileFunc(r.reconcileInfrastructure, "failed to reconcile infrastructure"),
+		wrapErrMachineSetReconcileFunc(r.reconcileBootstrapConfig, "failed to reconcile bootstrapConfig"),
+		wrapErrMachineSetReconcileFunc(r.getAndAdoptMachinesForMachineSet, "failed to getAndAdoptMachinesForMachineSet"),
 	}
 
 	// Handle deletion reconciliation loop.
 	if !s.machineSet.DeletionTimestamp.IsZero() {
 		reconcileDelete := append(
 			alwaysReconcile,
-			r.reconcileDelete,
-			r.updateStatus,
+			wrapErrMachineSetReconcileFunc(r.reconcileDelete, "failed to reconcile delete"),
+			wrapErrMachineSetReconcileFunc(r.updateStatus, "failed to update status"),
 		)
 		return doReconcile(ctx, s, reconcileDelete)
 	}
 
 	reconcileNormal := append([]machineSetReconcileFunc{},
-		r.setClusterLabels,
-		r.ensureOwnerReference,
+		wrapErrMachineSetReconcileFunc(r.setClusterLabels, "failed to set cluster labels"),
+		wrapErrMachineSetReconcileFunc(r.ensureOwnerReference, "failed to ensure ownerReference"),
 	)
 	reconcileNormal = append(reconcileNormal,
 		alwaysReconcile...,
 	)
 	reconcileNormal = append(reconcileNormal,
-		r.reconcileUnhealthyMachines,
-		r.syncMachines,
-		r.syncReplicas,
-		r.updateStatus,
+		wrapErrMachineSetReconcileFunc(r.reconcileUnhealthyMachines, "failed to reconcile unhealthy machines"),
+		wrapErrMachineSetReconcileFunc(r.syncMachines, "failed to sync machines"),
+		wrapErrMachineSetReconcileFunc(r.syncReplicas, "failed to sync replicas"),
+		wrapErrMachineSetReconcileFunc(r.updateStatus, "failed to update status"),
 	)
 
 	result, err := doReconcile(ctx, s, reconcileNormal)
@@ -247,6 +247,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 }
 
 type machineSetReconcileFunc func(ctx context.Context, s *scope) (ctrl.Result, error)
+
+func wrapErrMachineSetReconcileFunc(f machineSetReconcileFunc, msg string) machineSetReconcileFunc {
+	return func(ctx context.Context, s *scope) (ctrl.Result, error) {
+		res, err := f(ctx, s)
+		return res, errors.Wrap(err, msg)
+	}
+}
 
 func doReconcile(ctx context.Context, s *scope, phases []machineSetReconcileFunc) (ctrl.Result, error) {
 	res := ctrl.Result{}
@@ -519,6 +526,10 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 
 // syncReplicas scales Machine resources up or down.
 func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, error) {
+	if s.machines == nil {
+		return ctrl.Result{}, errors.New("Cannot do syncReplicas when s.machines is nil")
+	}
+
 	log := ctrl.LoggerFrom(ctx)
 	if s.machineSet.Spec.Replicas == nil {
 		return ctrl.Result{}, errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", s.machineSet.Name)
@@ -966,6 +977,14 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 // updateStatus updates the Status field for the MachineSet
 // It checks for the current state of the replicas and updates the Status of the MachineSet.
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (ctrl.Result, error) {
+	if s.machines == nil {
+		return ctrl.Result{}, errors.New("Cannot update status when s.machines is nil")
+	}
+
+	if s.machineSet.Spec.Replicas == nil {
+		return ctrl.Result{}, errors.New("Cannot update status when s.machineSet.Spec.Replicas is nil")
+	}
+
 	log := ctrl.LoggerFrom(ctx)
 	newStatus := s.machineSet.Status.DeepCopy()
 
@@ -1107,7 +1126,7 @@ func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Clus
 
 func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (ctrl.Result, error) {
 	if s.machines == nil {
-		return ctrl.Result{}, errors.New("Cannot do reconcile when s.machines is nil")
+		return ctrl.Result{}, errors.New("Cannot do reconcileUnhealthyMachines when s.machines is nil")
 	}
 
 	log := ctrl.LoggerFrom(ctx)

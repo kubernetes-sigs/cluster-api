@@ -38,7 +38,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -87,24 +86,24 @@ func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
-func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
-		return external.ReconcileOutput{}, err
+		if apierrors.IsNotFound(err) {
+			// We want to surface IsNotFound only for the referenced object, so we use a generic error in case CRD is not found.
+			return nil, errors.New(err.Error())
+		}
+		return nil, err
 	}
 
-	result, err := r.ensureExternalOwnershipAndWatch(ctx, cluster, m, ref)
+	obj, err := r.ensureExternalOwnershipAndWatch(ctx, cluster, m, ref)
 	if err != nil {
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
-	if result.RequeueAfter > 0 {
-		return result, nil
-	}
-	obj := result.Result
 
 	// Set failure reason and message, if any.
 	failureReason, failureMessage, err := external.FailuresFrom(obj)
 	if err != nil {
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
 	if failureReason != "" {
 		machineStatusError := capierrors.MachineStatusError(failureReason)
@@ -117,44 +116,40 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		)
 	}
 
-	return external.ReconcileOutput{Result: obj}, nil
+	return obj, nil
 }
 
 // ensureExternalOwnershipAndWatch ensures that only the Machine owns the external object,
 // adds a watch to the external object if one does not already exist and adds the necessary labels.
-func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
-		if apierrors.IsNotFound(errors.Cause(err)) {
-			log.Info("could not find external ref, requeuing", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
-			return external.ReconcileOutput{RequeueAfter: externalReadyWait}, nil
-		}
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
 
 	// Ensure we add a watch to the external object, if there isn't one already.
 	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{})); err != nil {
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
 
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
 
 	// removeOnCreateOwnerRefs removes MachineSet and control plane owners from the objects referred to by a Machine.
 	// These owner references are added initially because Machines don't exist when those objects are created.
 	// At this point the Machine exists and can be set as the controller reference.
 	if err := removeOnCreateOwnerRefs(cluster, m, obj); err != nil {
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
 
 	// Set external object ControllerReference to the Machine.
 	if err := controllerutil.SetControllerReference(m, obj, r.Client.Scheme()); err != nil {
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
 
 	// Set the Cluster label.
@@ -167,13 +162,9 @@ func (r *Reconciler) ensureExternalOwnershipAndWatch(ctx context.Context, cluste
 
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return external.ReconcileOutput{}, err
+		return nil, err
 	}
-
-	if annotations.IsPaused(cluster, obj) {
-		return external.ReconcileOutput{Result: obj, Paused: true}, nil
-	}
-	return external.ReconcileOutput{Result: obj}, nil
+	return obj, nil
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
@@ -188,15 +179,21 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Call generic external reconciler if we have an external reference.
-	externalResult, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
+	obj, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			if !s.machine.DeletionTimestamp.IsZero() {
+				// Tolerate bootstrap object not found when the machine is being deleted.
+				// TODO: we can also relax this and tolerate the absence of the bootstrap ref way before, e.g. after node ref is set
+				return ctrl.Result{}, nil
+			}
+			log.Info("could not find bootstrap config object, requeuing", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			// TODO: we can make this smarter and requeue only if we are before node ref is set
+			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+		}
 		return ctrl.Result{}, err
 	}
-	s.bootstrapConfig = externalResult.Result
-
-	if externalResult.RequeueAfter > 0 {
-		return ctrl.Result{RequeueAfter: externalResult.RequeueAfter}, nil
-	}
+	s.bootstrapConfig = obj
 
 	// If the bootstrap data is populated, set ready and return.
 	if m.Spec.Bootstrap.DataSecretName != nil {
@@ -204,33 +201,27 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
 	}
-	bootstrapConfig := externalResult.Result
-
-	// If the bootstrap config is being deleted, return early.
-	if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
-		return ctrl.Result{}, nil
-	}
 
 	// Determine if the bootstrap provider is ready.
-	ready, err := external.IsReady(bootstrapConfig)
+	ready, err := external.IsReady(s.bootstrapConfig)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Report a summary of current status of the bootstrap object defined for this machine.
 	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
-		conditions.UnstructuredGetter(bootstrapConfig),
+		conditions.UnstructuredGetter(s.bootstrapConfig),
 		conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
-	// If the bootstrap provider is not ready, requeue.
+	// If the bootstrap provider is not ready, return.
 	if !ready {
-		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig))
+		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
 		return ctrl.Result{}, nil
 	}
 
 	// Get and set the name of the secret containing the bootstrap data.
-	secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "dataSecretName")
+	secretName, _, err := unstructured.NestedString(s.bootstrapConfig.Object, "status", "dataSecretName")
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if secretName == "" {
@@ -238,7 +229,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 	m.Spec.Bootstrap.DataSecretName = ptr.To(secretName)
 	if !m.Status.BootstrapReady {
-		log.Info("Bootstrap provider generated data secret and reports status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName))
+		log.Info("Bootstrap provider generated data secret and reports status.ready", s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName))
 	}
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil
@@ -251,67 +242,71 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	m := s.machine
 
 	// Call generic external reconciler.
-	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
+	obj, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			if !s.machine.DeletionTimestamp.IsZero() {
+				// Tolerate infra machine not found when the machine is being deleted.
+				return ctrl.Result{}, nil
+			}
+
+			if m.Status.InfrastructureReady {
+				// Infra object went missing after the machine was up and running
+				log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
+				m.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
+				m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
+					m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
+				return ctrl.Result{}, reconcile.TerminalError(errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace))
+			}
+			log.Info("could not find infrastructure machine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
+			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+		}
 		return ctrl.Result{}, err
 	}
-	s.infraMachine = infraReconcileResult.Result
-	if infraReconcileResult.RequeueAfter > 0 {
-		// Infra object went missing after the machine was up and running
-		if m.Status.InfrastructureReady {
-			log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
-			m.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
-			m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
-				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
-			return ctrl.Result{}, reconcile.TerminalError(errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace))
-		}
-		return ctrl.Result{RequeueAfter: infraReconcileResult.RequeueAfter}, nil
-	}
+	s.infraMachine = obj
 
-	infraConfig := infraReconcileResult.Result
-
-	if !infraConfig.GetDeletionTimestamp().IsZero() {
+	if !s.infraMachine.GetDeletionTimestamp().IsZero() {
 		return ctrl.Result{}, nil
 	}
 
 	// Determine if the infrastructure provider is ready.
-	ready, err := external.IsReady(infraConfig)
+	ready, err := external.IsReady(s.infraMachine)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	if ready && !m.Status.InfrastructureReady {
-		log.Info("Infrastructure provider has completed machine infrastructure provisioning and reports status.ready", infraConfig.GetKind(), klog.KObj(infraConfig))
+		log.Info("Infrastructure provider has completed machine infrastructure provisioning and reports status.ready", s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 	}
 
 	// Report a summary of current status of the infrastructure object defined for this machine.
 	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition,
-		conditions.UnstructuredGetter(infraConfig),
+		conditions.UnstructuredGetter(s.infraMachine),
 		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
 	// If the infrastructure provider is not ready (and it wasn't ready before), return early.
 	if !ready && !m.Status.InfrastructureReady {
-		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", infraConfig.GetKind(), klog.KObj(infraConfig))
+		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", s.infraMachine.GetKind(), klog.KObj(s.infraMachine))
 		return ctrl.Result{}, nil
 	}
 
 	// Get Spec.ProviderID from the infrastructure provider.
 	var providerID string
-	if err := util.UnstructuredUnmarshalField(infraConfig, &providerID, "spec", "providerID"); err != nil {
+	if err := util.UnstructuredUnmarshalField(s.infraMachine, &providerID, "spec", "providerID"); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	} else if providerID == "" {
 		return ctrl.Result{}, errors.Errorf("retrieved empty Spec.ProviderID from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	// Get and set Status.Addresses from the infrastructure provider.
-	err = util.UnstructuredUnmarshalField(infraConfig, &m.Status.Addresses, "status", "addresses")
+	err = util.UnstructuredUnmarshalField(s.infraMachine, &m.Status.Addresses, "status", "addresses")
 	if err != nil && err != util.ErrUnstructuredFieldNotFound {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve addresses from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
 
 	// Get and set the failure domain from the infrastructure provider.
 	var failureDomain string
-	err = util.UnstructuredUnmarshalField(infraConfig, &failureDomain, "spec", "failureDomain")
+	err = util.UnstructuredUnmarshalField(s.infraMachine, &failureDomain, "spec", "failureDomain")
 	switch {
 	case err == util.ErrUnstructuredFieldNotFound: // no-op
 	case err != nil:

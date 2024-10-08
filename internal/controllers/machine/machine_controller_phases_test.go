@@ -662,6 +662,14 @@ func TestReconcileBootstrap(t *testing.T) {
 		expected                func(g *WithT, m *clusterv1.Machine)
 	}{
 		{
+			name:                    "no op if bootstrap config ref is not set",
+			machine:                 &clusterv1.Machine{},
+			bootstrapConfig:         nil,
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+		},
+		{
 			name:                    "err reading bootstrap config (something different than not found), it should return error",
 			machine:                 defaultMachine.DeepCopy(),
 			bootstrapConfig:         nil,
@@ -821,6 +829,35 @@ func TestReconcileBootstrap(t *testing.T) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
 				g.Expect(*m.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
 			},
+		},
+		{
+			name: "bootstrap config not found is tolerated when machine is deleting",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "deleting-machine",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: ptr.To(metav1.Now()),
+					Finalizers:        []string{"foo"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "GenericBootstrapConfig",
+							Name:       "bootstrap-config1",
+						},
+						DataSecretName: ptr.To("secret-data"),
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					BootstrapReady: true,
+				},
+			},
+			bootstrapConfig:         nil,
+			bootstrapConfigGetError: nil,
+			expectResult:            ctrl.Result{},
+			expectError:             false,
+			expected:                func(g *WithT, m *clusterv1.Machine) {},
 		},
 	}
 
@@ -1327,6 +1364,58 @@ func TestReconcileInfrastructure(t *testing.T) {
 				g.Expect(m.Status.FailureReason).ToNot(BeNil())
 			},
 		},
+		{
+			name: "infra machine is not found is tolerated when infrastructure not yet ready and machine is deleting",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "deleting-machine",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: ptr.To(metav1.Now()),
+					Finalizers:        []string{"foo"},
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericInfrastructureMachine",
+						Name:       "infra-config1",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: false,
+				},
+			},
+			infraMachine:         nil,
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected:             func(g *WithT, m *clusterv1.Machine) {},
+		},
+		{
+			name: "infra machine is not found is tolerated when infrastructure ready and machine is deleting",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "deleting-machine",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: ptr.To(metav1.Now()),
+					Finalizers:        []string{"foo"},
+				},
+				Spec: clusterv1.MachineSpec{
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "GenericInfrastructureMachine",
+						Name:       "infra-config1",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: true,
+				},
+			},
+			infraMachine:         nil,
+			infraMachineGetError: nil,
+			expectResult:         ctrl.Result{},
+			expectError:          false,
+			expected:             func(g *WithT, m *clusterv1.Machine) {},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1353,7 +1442,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileInfrastructure(ctx, s)
-			r.reconcilePhase(ctx, tc.machine)
 			g.Expect(result).To(BeComparableTo(tc.expectResult))
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())

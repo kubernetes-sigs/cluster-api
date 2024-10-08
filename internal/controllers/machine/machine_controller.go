@@ -196,6 +196,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Initialize the patch helper
+	s := &scope{
+		cluster: cluster,
+		machine: m,
+	}
+
 	patchHelper, err := patch.NewHelper(m, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -215,15 +220,34 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}()
 
-	// Reconcile labels.
+	// Always add the cluster label labels.
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) && m.ObjectMeta.DeletionTimestamp.IsZero() {
+		controllerutil.AddFinalizer(m, clusterv1.MachineFinalizer)
+		return ctrl.Result{}, nil
+	}
+
+	alwaysReconcile := []machineReconcileFunc{
+		r.reconcileBootstrap,
+		r.reconcileInfrastructure,
+		r.reconcileNode,
+		r.reconcileCertificateExpiry,
+	}
+
 	// Handle deletion reconciliation loop.
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
-		res, err := r.reconcileDelete(ctx, cluster, m)
+		reconcileDelete := append(
+			alwaysReconcile,
+			r.reconcileDelete,
+		)
+
+		res, err := doReconcile(ctx, reconcileDelete, s)
 		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 		// the current cluster because of concurrent access.
 		if errors.Is(err, remote.ErrClusterLocked) {
@@ -233,15 +257,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return res, err
 	}
 
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) {
-		controllerutil.AddFinalizer(m, clusterv1.MachineFinalizer)
-		return ctrl.Result{}, nil
-	}
-
 	// Handle normal reconciliation loop.
-	res, err := r.reconcile(ctx, cluster, m)
+	reconcileNormal := append(
+		[]machineReconcileFunc{r.reconcileMachineOwner},
+		alwaysReconcile...,
+	)
+
+	res, err := doReconcile(ctx, reconcileNormal, s)
 	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 	// the current cluster because of concurrent access.
 	if errors.Is(err, remote.ErrClusterLocked) {
@@ -285,36 +307,26 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.MachineHealthCheckSucceededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
 		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.MachineAvailableV1Beta2Condition,
+			clusterv1.MachineReadyV1Beta2Condition,
+			clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+			clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+			clusterv1.MachineNodeReadyV1Beta2Condition,
+			clusterv1.MachineNodeHealthyV1Beta2Condition,
+			clusterv1.MachineDeletingV1Beta2Condition,
+			clusterv1.MachinePausedV1Beta2Condition,
+		}},
 	)
 
 	return patchHelper.Patch(ctx, machine, options...)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
-	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
-	// owned by the Cluster (if not already present).
-	if r.shouldAdopt(m) {
-		m.SetOwnerReferences(util.EnsureOwnerRef(m.GetOwnerReferences(), metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		}))
-	}
+type machineReconcileFunc func(context.Context, *scope) (ctrl.Result, error)
 
-	phases := []func(context.Context, *scope) (ctrl.Result, error){
-		r.reconcileBootstrap,
-		r.reconcileInfrastructure,
-		r.reconcileNode,
-		r.reconcileCertificateExpiry,
-	}
-
+func doReconcile(ctx context.Context, phases []machineReconcileFunc, s *scope) (ctrl.Result, error) {
 	res := ctrl.Result{}
 	errs := []error{}
-	s := &scope{
-		cluster: cluster,
-		machine: m,
-	}
 	for _, phase := range phases {
 		// Call the inner reconciliation methods.
 		phaseResult, err := phase(ctx, s)
@@ -346,10 +358,30 @@ type scope struct {
 	// bootstrapConfig is the BootstrapConfig object that is referenced by the
 	// Machine. It is set after reconcileBootstrap is called.
 	bootstrapConfig *unstructured.Unstructured
+
+	// node is the Kubernetes node hosted on the machine.
+	node *corev1.Node
 }
 
-func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) { //nolint:gocyclo
+func (r *Reconciler) reconcileMachineOwner(_ context.Context, s *scope) (ctrl.Result, error) {
+	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
+	// owned by the Cluster (if not already present).
+	if r.shouldAdopt(s.machine) {
+		s.machine.SetOwnerReferences(util.EnsureOwnerRef(s.machine.GetOwnerReferences(), metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       s.cluster.Name,
+			UID:        s.cluster.UID,
+		}))
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result, error) { //nolint:gocyclo
 	log := ctrl.LoggerFrom(ctx)
+	cluster := s.cluster
+	m := s.machine
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil
@@ -463,20 +495,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	}
 	conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededCondition)
 
-	// Return early and don't remove the finalizer if we got an error or
-	// the external reconciliation deletion isn't ready.
-
-	patchHelper, err := patch.NewHelper(m, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
-	if err := patchMachine(ctx, patchHelper, m); err != nil {
-		conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
-	}
-
-	infrastructureDeleted, err := r.reconcileDeleteInfrastructure(ctx, cluster, m)
+	infrastructureDeleted, err := r.reconcileDeleteInfrastructure(ctx, s)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -485,7 +504,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		return ctrl.Result{}, nil
 	}
 
-	bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, cluster, m)
+	bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -849,78 +868,34 @@ func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster,
 	return nil
 }
 
-func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (bool, error) {
-	obj, err := r.reconcileDeleteExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
-	if err != nil {
-		return false, err
-	}
-
-	if obj == nil {
-		// Marks the bootstrap as deleted
-		conditions.MarkFalse(m, clusterv1.BootstrapReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bool, error) {
+	if s.bootstrapConfig == nil {
+		conditions.MarkFalse(s.machine, clusterv1.BootstrapReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
 
-	// Report a summary of current status of the bootstrap object defined for this machine.
-	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
-		conditions.UnstructuredGetter(obj),
-		conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
-	)
+	if err := r.Client.Delete(ctx, s.bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
+		return false, errors.Wrapf(err,
+			"failed to delete %v %q for Machine %q in namespace %q",
+			s.bootstrapConfig.GroupVersionKind(), s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
+	}
+
 	return false, nil
 }
 
-func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (bool, error) {
-	obj, err := r.reconcileDeleteExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
-	if err != nil {
-		return false, err
-	}
-
-	if obj == nil {
-		// Marks the infrastructure as deleted
-		conditions.MarkFalse(m, clusterv1.InfrastructureReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
+func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, s *scope) (bool, error) {
+	if s.infraMachine == nil {
+		conditions.MarkFalse(s.machine, clusterv1.InfrastructureReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
 
-	// Report a summary of current status of the bootstrap object defined for this machine.
-	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition,
-		conditions.UnstructuredGetter(obj),
-		conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
-	)
+	if err := r.Client.Delete(ctx, s.infraMachine); err != nil && !apierrors.IsNotFound(err) {
+		return false, errors.Wrapf(err,
+			"failed to delete %v %q for Machine %q in namespace %q",
+			s.infraMachine.GroupVersionKind(), s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
+	}
+
 	return false, nil
-}
-
-// reconcileDeleteExternal tries to delete external references.
-func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
-	if ref == nil {
-		return nil, nil
-	}
-
-	// get the external object
-	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
-	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
-		return nil, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
-			ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
-	}
-
-	if obj != nil {
-		// reconcileExternal ensures that we set the object's OwnerReferences correctly and watch the object.
-		// The machine delete logic depends on reconciling the machine when the external objects are deleted.
-		// This avoids a race condition where the machine is deleted before the external objects are ever reconciled
-		// by this controller.
-		if _, err := r.ensureExternalOwnershipAndWatch(ctx, cluster, m, ref); err != nil {
-			return nil, err
-		}
-
-		// Issue a delete request.
-		if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-			return obj, errors.Wrapf(err,
-				"failed to delete %v %q for Machine %q in namespace %q",
-				obj.GroupVersionKind(), obj.GetName(), m.Name, m.Namespace)
-		}
-	}
-
-	// Return true if there are no more external objects.
-	return obj, nil
 }
 
 // shouldAdopt returns true if the Machine should be adopted as a stand-alone Machine directly owned by the Cluster.

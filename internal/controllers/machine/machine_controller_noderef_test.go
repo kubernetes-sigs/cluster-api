@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,12 +35,166 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
+
+func TestReconcileNode(t *testing.T) {
+	defaultMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine-test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: "test-cluster",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+		},
+	}
+
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	testCases := []struct {
+		name         string
+		machine      *clusterv1.Machine
+		node         *corev1.Node
+		nodeGetErr   bool
+		expectResult ctrl.Result
+		expectError  bool
+		expected     func(g *WithT, m *clusterv1.Machine)
+	}{
+		{
+			name:         "No op if provider ID is not set",
+			machine:      &clusterv1.Machine{},
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+		},
+		{
+			name:         "err reading node (something different than not found), it should return error",
+			machine:      defaultMachine.DeepCopy(),
+			node:         nil,
+			nodeGetErr:   true,
+			expectResult: ctrl.Result{},
+			expectError:  true,
+		},
+		{
+			name:         "waiting for the node to exist, no op",
+			machine:      defaultMachine.DeepCopy(),
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+		},
+		{
+			name:    "node found, should surface info",
+			machine: defaultMachine.DeepCopy(),
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node-1",
+				},
+				Spec: corev1.NodeSpec{
+					ProviderID: "aws://us-east-1/test-node-1",
+				},
+				Status: corev1.NodeStatus{
+					NodeInfo: corev1.NodeSystemInfo{
+						MachineID: "foo",
+					},
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "1.1.1.1",
+						},
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "2.2.2.2",
+						},
+					},
+				},
+			},
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.NodeRef).ToNot(BeNil())
+				g.Expect(m.Status.NodeRef.Name).To(Equal("test-node-1"))
+				g.Expect(m.Status.NodeInfo).ToNot(BeNil())
+				g.Expect(m.Status.NodeInfo.MachineID).To(Equal("foo"))
+			},
+		},
+		{
+			name: "node not found when already seen, should error",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Kind:       "Node",
+						Name:       "test-node-1",
+						APIVersion: "v1",
+					},
+				},
+			},
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := fake.NewClientBuilder().WithObjects(tc.machine).WithIndex(&corev1.Node{}, "spec.providerID", index.NodeByProviderID).Build()
+			if tc.nodeGetErr {
+				c = fake.NewClientBuilder().WithObjects(tc.machine).Build() // No Index
+			}
+
+			if tc.node != nil {
+				g.Expect(c.Create(ctx, tc.node)).To(Succeed())
+				defer func() { _ = c.Delete(ctx, tc.node) }()
+			}
+
+			r := &Reconciler{
+				Tracker:  remote.NewTestClusterCacheTracker(ctrl.Log, c, c, fakeScheme, client.ObjectKeyFromObject(defaultCluster)),
+				Client:   c,
+				recorder: record.NewFakeRecorder(10),
+			}
+			s := &scope{cluster: defaultCluster, machine: tc.machine}
+			result, err := r.reconcileNode(ctx, s)
+			g.Expect(result).To(BeComparableTo(tc.expectResult))
+			if tc.expectError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+
+			if tc.expected != nil {
+				tc.expected(g, tc.machine)
+			}
+		})
+	}
+}
 
 func TestGetNode(t *testing.T) {
 	g := NewWithT(t)

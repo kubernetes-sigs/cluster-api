@@ -589,6 +589,7 @@ func TestMachineSetReconcile(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: testClusterName,
+				Replicas:    ptr.To[int32](0),
 			},
 		}
 		request := reconcile.Request{
@@ -1037,7 +1038,12 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
 			}
-			err := msr.updateStatus(ctx, cluster, tc.machineSet, tc.machines)
+			s := &scope{
+				cluster:    cluster,
+				machineSet: tc.machineSet,
+				machines:   tc.machines,
+			}
+			_, err := msr.updateStatus(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
 			gotCond := conditions.Get(tc.machineSet, clusterv1.ResizedCondition)
 			g.Expect(gotCond).ToNot(BeNil())
@@ -1275,7 +1281,12 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		Client:   env,
 		ssaCache: ssa.NewCache(),
 	}
-	g.Expect(reconciler.syncMachines(ctx, ms, machines)).To(Succeed())
+	s := &scope{
+		machineSet: ms,
+		machines:   machines,
+	}
+	_, err := reconciler.syncMachines(ctx, s)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// The inPlaceMutatingMachine should have cleaned up managed fields.
 	updatedInPlaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
@@ -1351,7 +1362,12 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	ms.Spec.Template.Spec.NodeDrainTimeout = duration10s
 	ms.Spec.Template.Spec.NodeDeletionTimeout = duration10s
 	ms.Spec.Template.Spec.NodeVolumeDetachTimeout = duration10s
-	g.Expect(reconciler.syncMachines(ctx, ms, []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine})).To(Succeed())
+	s = &scope{
+		machineSet: ms,
+		machines:   []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine},
+	}
+	_, err = reconciler.syncMachines(ctx, s)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
@@ -1431,7 +1447,12 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	ms.Spec.Template.Spec.NodeDrainTimeout = duration11s
 	ms.Spec.Template.Spec.NodeDeletionTimeout = duration11s
 	ms.Spec.Template.Spec.NodeVolumeDetachTimeout = duration11s
-	g.Expect(reconciler.syncMachines(ctx, ms, []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine})).To(Succeed())
+	s = &scope{
+		machineSet: ms,
+		machines:   []*clusterv1.Machine{updatedInPlaceMutatingMachine, deletingMachine},
+	}
+	_, err = reconciler.syncMachines(ctx, s)
+	g.Expect(err).ToNot(HaveOccurred())
 	updatedDeletingMachine := deletingMachine.DeepCopy()
 
 	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
@@ -1498,7 +1519,14 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		r := &Reconciler{
 			Client: fakeClient,
 		}
-		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
+
+		s := &scope{
+			cluster:    cluster,
+			machineSet: machineSet,
+			machines:   machines,
+		}
+
+		_, err := r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Verify the unhealthy machine is deleted.
 		m := &clusterv1.Machine{}
@@ -1556,7 +1584,12 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		r := &Reconciler{
 			Client: fakeClient,
 		}
-		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
+		s := &scope{
+			cluster:    cluster,
+			machineSet: machineSet,
+			machines:   machines,
+		}
+		_, err := r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify the unhealthy machine has the updated condition.
@@ -1662,8 +1695,14 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			Client: fakeClient,
 		}
 
+		s := &scope{
+			cluster:    cluster,
+			machineSet: machineSetOld,
+			machines:   machines,
+		}
+
 		// Test first with the old MachineSet.
-		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSetOld, machines)
+		_, err := r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		condition := clusterv1.MachineOwnerRemediatedCondition
@@ -1686,7 +1725,12 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			To(BeFalse(), "Machine should not have the %s condition set", condition)
 
 		// Test with the current MachineSet.
-		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSetCurrent, machines)
+		s = &scope{
+			cluster:    cluster,
+			machineSet: machineSetCurrent,
+			machines:   machines,
+		}
+		_, err = r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify the unhealthy machine has been deleted.
@@ -1793,7 +1837,12 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		//
 		// First pass.
 		//
-		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, append(unhealthyMachines, healthyMachine))
+		s := &scope{
+			cluster:    cluster,
+			machineSet: machineSet,
+			machines:   append(unhealthyMachines, healthyMachine),
+		}
+		_, err := r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		condition := clusterv1.MachineOwnerRemediatedCondition
@@ -1844,7 +1893,12 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			return
 		}
 
-		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSet, allMachines())
+		s = &scope{
+			cluster:    cluster,
+			machineSet: machineSet,
+			machines:   allMachines(),
+		}
+		_, err = r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		var validateSecondPass = func(cleanFinalizer bool) {
@@ -1891,7 +1945,12 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		// Perform another pass with the same exact configuration.
 		// This is testing that, given that we have Machines that are being deleted and are in flight,
 		// we have reached the maximum amount of tokens we have and we should wait to remediate the rest.
-		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSet, allMachines())
+		s = &scope{
+			cluster:    cluster,
+			machineSet: machineSet,
+			machines:   allMachines(),
+		}
+		_, err = r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Validate and remove finalizers for in flight machines.
@@ -1905,7 +1964,12 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		// Call again to verify that the remaining unhealthy machines are deleted,
 		// at this point all unhealthy machines should be deleted given the max in flight
 		// is greater than the number of unhealthy machines.
-		_, err = r.reconcileUnhealthyMachines(ctx, cluster, machineSet, allMachines())
+		s = &scope{
+			cluster:    cluster,
+			machineSet: machineSet,
+			machines:   allMachines(),
+		}
+		_, err = r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Iterate over the unhealthy machines and verify that all were deleted.
@@ -1955,7 +2019,12 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 		r := &Reconciler{
 			Client: fakeClient,
 		}
-		result, err := r.syncReplicas(ctx, cluster, machineSet, nil)
+		s := &scope{
+			cluster:    cluster,
+			machineSet: machineSet,
+			machines:   []*clusterv1.Machine{},
+		}
+		result, err := r.syncReplicas(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result.IsZero()).To(BeFalse(), "syncReplicas should not return a 'zero' result")
 
@@ -2196,7 +2265,13 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			err := r.reconcileDelete(ctx, tt.machineSet)
+			s := &scope{
+				machineSet: tt.machineSet,
+			}
+			// populate s.machines
+			_, err := r.getAndAdoptMachinesForMachineSet(ctx, s)
+			g.Expect(err).ToNot(HaveOccurred())
+			_, err = r.reconcileDelete(ctx, s)
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

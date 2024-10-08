@@ -388,6 +388,7 @@ func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig,
 		ret[p.Name] = tiltProviderConfig{
 			Context:           &contextPath,
 			Version:           p.Config.Version,
+			LiveReloadDeps:    p.Config.LiveReloadDeps,
 			ApplyProviderYaml: p.Config.ApplyProviderYaml,
 			KustomizeFolder:   p.Config.KustomizeFolder,
 			KustomizeOptions:  p.Config.KustomizeOptions,

@@ -19,7 +19,7 @@ jobs:
           - test
           - hack/tools
     steps:
-      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # tag=v4.2.0
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # tag=v4.2.1
       - name: Calculate go version
         id: vars
         run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
@@ -28,7 +28,7 @@ jobs:
         with:
           go-version: ${{ steps.vars.outputs.go_version }}
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@aaa42aa0628b4ae2578232a66b541047968fac86 # tag=v6.1.0
+        uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # tag=v6.1.1
         with:
           version: v1.60.2
           args: --out-format=colored-line-number

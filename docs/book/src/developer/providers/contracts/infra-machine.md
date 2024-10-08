@@ -293,7 +293,7 @@ type FooMachineStatus struct {
 }
 ```
 
-Once `status.ready` the Machine "core" controller will bubbles up this info in Machine's `status.infrastructureReady`;
+Once `status.ready` the Machine "core" controller will bubble up this info in Machine's `status.infrastructureReady`;
 Also InfraMachine's `spec.providerID` and `status.addresses` will be surfaced on Machine's
 corresponding fields at the same time.
 

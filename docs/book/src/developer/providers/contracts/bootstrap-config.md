@@ -1,8 +1,8 @@
 # Contract rules for BootstrapConfig
 
-Bootstrap providers SHOULD implement an BootstrapConfig resource.
+Bootstrap providers SHOULD implement a BootstrapConfig resource.
 
-The goal of an BootstrapConfig resource is to generates bootstrap data that is used to bootstrap a Kubernetes node.
+The goal of a BootstrapConfig resource is to generates bootstrap data that is used to bootstrap a Kubernetes node.
 These may be e.g. [cloud-init] scripts.
 
 The BootstrapConfig resource will be referenced by one of the Cluster API core resources, Machine.
@@ -11,7 +11,7 @@ The [Machine's controller](../../core/controllers/machine.md) will be responsibl
 and the interaction between the Machine's controller and the BootstrapConfig resource is based on the contract
 rules defined in this page.
 
-Once contract rules are satisfied by an BootstrapConfig implementation, other implementation details
+Once contract rules are satisfied by a BootstrapConfig implementation, other implementation details
 could be addressed according to the specific needs (Cluster API is not prescriptive).
 
 Nevertheless, it is always recommended to take a look at Cluster API controllers,
@@ -29,7 +29,7 @@ When developing a provider, you MUST consider any Cluster API behaviour that is 
 as a Cluster API internal implementation detail, and internal implementation details can change at any time.
 
 Accordingly, in order to not expose users to the risk that your provider breaks when the Cluster API internal behavior
-changes, you MUST NOT rely on any Cluster API internal behaviour when implementing an BootstrapConfig resource.
+changes, you MUST NOT rely on any Cluster API internal behaviour when implementing a BootstrapConfig resource.
 
 Instead, whenever you need something more from the Cluster API contract, you MUST engage the community.
 
@@ -215,7 +215,7 @@ the Machine controller will surface this info in Machine's `spec.boostrap.dataSe
 
 ### BootstrapConfig: initialization completed
 
-Each BootstrapConfig MUST report when the the bootstrap data secret is fully provisioned (initialization) by setting
+Each BootstrapConfig MUST report when the bootstrap data secret is fully provisioned (initialization) by setting
 `status.ready` in the BootstrapConfig resource.
 
 ```go
@@ -229,7 +229,7 @@ type FooConfigStatus struct {
 }
 ```
 
-Once `status.ready` the Machine "core" controller will bubbles up this info in Machine's `status.bootstrapConfigReady`;
+Once `status.ready` the Machine "core" controller will bubble up this info in Machine's `status.bootstrapConfigReady`;
 Also BootstrapConfig's `status.dataSecretName` will be surfaced on Machine's corresponding fields at the same time.
 
 <aside class="note warning">

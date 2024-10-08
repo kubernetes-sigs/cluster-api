@@ -328,7 +328,12 @@ func doReconcile(ctx context.Context, phases []machineReconcileFunc, s *scope) (
 		}
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
-	return res, kerrors.NewAggregate(errs)
+
+	if len(errs) > 0 {
+		return ctrl.Result{}, kerrors.NewAggregate(errs)
+	}
+
+	return res, nil
 }
 
 // scope holds the different objects that are read and used during the reconcile.

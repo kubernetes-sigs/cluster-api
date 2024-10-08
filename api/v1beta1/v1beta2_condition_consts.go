@@ -90,6 +90,21 @@ const (
 	// AvailableV1Beta2Reason applies to a condition surfacing object availability.
 	AvailableV1Beta2Reason = "Available"
 
+	// ScalingUpV1Beta2Reason surfaces when an object is scaling up.
+	ScalingUpV1Beta2Reason = "ScalingUp"
+
+	// NotScalingUpV1Beta2Reason surfaces when an object is not scaling up.
+	NotScalingUpV1Beta2Reason = "NotScalingUp"
+
+	// ScalingDownV1Beta2Reason surfaces when an object is scaling down.
+	ScalingDownV1Beta2Reason = "ScalingDown"
+
+	// NotScalingDownV1Beta2Reason surfaces when an object is not scaling down.
+	NotScalingDownV1Beta2Reason = "NotScalingDown"
+
+	// WaitingForReplicasSetV1Beta2Reason surfaces when the repicla field of an object is not set.
+	WaitingForReplicasSetV1Beta2Reason = "WaitingForReplicasToBeSet"
+
 	// InvalidConditionReportedV1Beta2Reason applies to a condition, usually read from an external object, that is invalid
 	// (e.g. its status is missing).
 	InvalidConditionReportedV1Beta2Reason = "InvalidConditionReported"
@@ -142,27 +157,6 @@ const (
 
 	// InspectionFailedV1Beta2Reason applies to a condition when inspection of the underlying object failed.
 	InspectionFailedV1Beta2Reason = "InspectionFailed"
-)
-
-// Conditions that will be used for the MachineSet object in v1Beta2 API version.
-const (
-	// MachineSetMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
-	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
-
-	// MachineSetMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
-	MachineSetMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
-
-	// MachineSetScalingUpV1Beta2Condition is true if available replicas < desired replicas.
-	MachineSetScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
-
-	// MachineSetScalingDownV1Beta2Condition is true if replicas > desired replicas.
-	MachineSetScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
-
-	// MachineSetRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
-	MachineSetRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
-
-	// MachineSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
-	MachineSetDeletingV1Beta2Condition = DeletingV1Beta2Condition
 )
 
 // Conditions that will be used for the MachineDeployment object in v1Beta2 API version.

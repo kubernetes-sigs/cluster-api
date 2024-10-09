@@ -436,7 +436,7 @@ func verifyMetrics(data []byte) error {
 							controllerName = *label.Value
 						}
 					}
-					errs = append(errs, fmt.Errorf("panic occurred in %q controller", controllerName))
+					errs = append(errs, fmt.Errorf("%.0f panics occurred in %q controller (check logs for more details)", *controllerPanicMetric.Counter.Value, controllerName))
 				}
 			}
 		}
@@ -444,7 +444,7 @@ func verifyMetrics(data []byte) error {
 		if metric == "controller_runtime_webhook_panics_total" {
 			for _, webhookPanicMetric := range metricFamily.Metric {
 				if webhookPanicMetric.Counter != nil && webhookPanicMetric.Counter.Value != nil && *webhookPanicMetric.Counter.Value > 0 {
-					errs = append(errs, fmt.Errorf("panic occurred in webhook"))
+					errs = append(errs, fmt.Errorf("%.0f panics occurred in webhooks (check logs for more details)", *webhookPanicMetric.Counter.Value))
 				}
 			}
 		}

@@ -2782,8 +2782,10 @@ func TestNodeDeletion(t *testing.T) {
 			}
 
 			s := &scope{
-				cluster: cluster,
-				machine: m,
+				cluster:                   cluster,
+				machine:                   m,
+				infraMachineIsNotFound:    true,
+				bootstrapConfigIsNotFound: true,
 			}
 			_, err := r.reconcileDelete(context.Background(), s)
 
@@ -2905,8 +2907,10 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 			}
 
 			s := &scope{
-				cluster: testCluster.DeepCopy(),
-				machine: m,
+				cluster:                   testCluster.DeepCopy(),
+				machine:                   m,
+				infraMachineIsNotFound:    true,
+				bootstrapConfigIsNotFound: true,
 			}
 			_, err := r.reconcileDelete(context.Background(), s)
 

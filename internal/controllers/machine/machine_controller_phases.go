@@ -142,12 +142,14 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	obj, err := r.reconcileExternal(ctx, cluster, m, m.Spec.Bootstrap.ConfigRef)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			s.bootstrapConfigIsNotFound = true
+
 			if !s.machine.DeletionTimestamp.IsZero() {
 				// Tolerate bootstrap object not found when the machine is being deleted.
 				// TODO: we can also relax this and tolerate the absence of the bootstrap ref way before, e.g. after node ref is set
 				return ctrl.Result{}, nil
 			}
-			log.Info("could not find bootstrap config object, requeuing", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			log.Info("Could not find bootstrap config object, requeuing", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
 			// TODO: we can make this smarter and requeue only if we are before node ref is set
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 		}
@@ -169,9 +171,13 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 	}
 
 	// Report a summary of current status of the bootstrap object defined for this machine.
+	fallBack := conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	if !s.machine.DeletionTimestamp.IsZero() {
+		fallBack = conditions.WithFallbackValue(ready, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	}
 	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
 		conditions.UnstructuredGetter(s.bootstrapConfig),
-		conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+		fallBack,
 	)
 
 	// If the bootstrap provider is not ready, return.
@@ -205,6 +211,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	obj, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			s.infraMachineIsNotFound = true
+
 			if !s.machine.DeletionTimestamp.IsZero() {
 				// Tolerate infra machine not found when the machine is being deleted.
 				return ctrl.Result{}, nil
@@ -218,7 +226,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 					m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
 				return ctrl.Result{}, reconcile.TerminalError(errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace))
 			}
-			log.Info("could not find infrastructure machine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
+			log.Info("Could not find infrastructure machine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 		}
 		return ctrl.Result{}, err
@@ -239,9 +247,13 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 
 	// Report a summary of current status of the infrastructure object defined for this machine.
+	fallBack := conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, "")
+	if !s.machine.DeletionTimestamp.IsZero() {
+		fallBack = conditions.WithFallbackValue(ready, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	}
 	conditions.SetMirror(m, clusterv1.InfrastructureReadyCondition,
 		conditions.UnstructuredGetter(s.infraMachine),
-		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+		fallBack,
 	)
 
 	// If the infrastructure provider is not ready (and it wasn't ready before), return early.

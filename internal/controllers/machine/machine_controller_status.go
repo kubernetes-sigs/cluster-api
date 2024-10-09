@@ -1,5 +1,5 @@
 /*
-Copyright 2025 The Kubernetes Authors.
+Copyright 2024 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -185,7 +185,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 			Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
-			Message: fmt.Sprintf("%s %s has been deleted while the machine still exist", machine.Spec.Bootstrap.ConfigRef.Kind, machine.Name),
+			Message: fmt.Sprintf("%s %s has been deleted while the machine still exist", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Namespace, machine.Spec.InfrastructureRef.Name)),
 		})
 		return
 	}

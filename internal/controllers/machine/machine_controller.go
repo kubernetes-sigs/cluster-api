@@ -195,12 +195,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	// Initialize the patch helper
 	s := &scope{
 		cluster: cluster,
 		machine: m,
 	}
 
+	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(m, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -220,12 +220,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 	}()
 
-	// Always add the cluster label labels.
-	if m.Labels == nil {
-		m.Labels = make(map[string]string)
-	}
-	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
-
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
 	if !controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) && m.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -234,6 +228,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	alwaysReconcile := []machineReconcileFunc{
+		r.reconcileMachineOwnerAndLabels,
 		r.reconcileBootstrap,
 		r.reconcileInfrastructure,
 		r.reconcileNode,
@@ -258,12 +253,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	// Handle normal reconciliation loop.
-	reconcileNormal := append(
-		[]machineReconcileFunc{r.reconcileMachineOwner},
-		alwaysReconcile...,
-	)
-
-	res, err := doReconcile(ctx, reconcileNormal, s)
+	res, err := doReconcile(ctx, alwaysReconcile, s)
 	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 	// the current cluster because of concurrent access.
 	if errors.Is(err, remote.ErrClusterLocked) {
@@ -355,15 +345,21 @@ type scope struct {
 	// Machine. It is set after reconcileInfrastructure is called.
 	infraMachine *unstructured.Unstructured
 
+	// infraMachineNotFound is true if getting the infra machine object failed with an IsNotFound err
+	infraMachineIsNotFound bool
+
 	// bootstrapConfig is the BootstrapConfig object that is referenced by the
 	// Machine. It is set after reconcileBootstrap is called.
 	bootstrapConfig *unstructured.Unstructured
+
+	// bootstrapConfigNotFound is true if getting the BootstrapConfig object failed with an IsNotFound err
+	bootstrapConfigIsNotFound bool
 
 	// node is the Kubernetes node hosted on the machine.
 	node *corev1.Node
 }
 
-func (r *Reconciler) reconcileMachineOwner(_ context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileMachineOwnerAndLabels(_ context.Context, s *scope) (ctrl.Result, error) {
 	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
 	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(s.machine) {
@@ -374,6 +370,12 @@ func (r *Reconciler) reconcileMachineOwner(_ context.Context, s *scope) (ctrl.Re
 			UID:        s.cluster.UID,
 		}))
 	}
+
+	// Always add the cluster label.
+	if s.machine.Labels == nil {
+		s.machine.Labels = make(map[string]string)
+	}
+	s.machine.Labels[clusterv1.ClusterNameLabel] = s.machine.Spec.ClusterName
 
 	return ctrl.Result{}, nil
 }
@@ -504,13 +506,15 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		return ctrl.Result{}, nil
 	}
 
-	bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if !bootstrapDeleted {
-		log.Info("Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
-		return ctrl.Result{}, nil
+	if m.Spec.Bootstrap.ConfigRef != nil {
+		bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if !bootstrapDeleted {
+			log.Info("Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			return ctrl.Result{}, nil
+		}
 	}
 
 	// We only delete the node after the underlying infrastructure is gone.
@@ -869,30 +873,34 @@ func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster,
 }
 
 func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bool, error) {
-	if s.bootstrapConfig == nil {
+	if s.bootstrapConfig == nil && s.bootstrapConfigIsNotFound {
 		conditions.MarkFalse(s.machine, clusterv1.BootstrapReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
 
-	if err := r.Client.Delete(ctx, s.bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
-		return false, errors.Wrapf(err,
-			"failed to delete %v %q for Machine %q in namespace %q",
-			s.bootstrapConfig.GroupVersionKind(), s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
+	if s.bootstrapConfig != nil {
+		if err := r.Client.Delete(ctx, s.bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
+			return false, errors.Wrapf(err,
+				"failed to delete %v %q for Machine %q in namespace %q",
+				s.bootstrapConfig.GroupVersionKind(), s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
+		}
 	}
 
 	return false, nil
 }
 
 func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, s *scope) (bool, error) {
-	if s.infraMachine == nil {
+	if s.infraMachine == nil && s.infraMachineIsNotFound {
 		conditions.MarkFalse(s.machine, clusterv1.InfrastructureReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
 		return true, nil
 	}
 
-	if err := r.Client.Delete(ctx, s.infraMachine); err != nil && !apierrors.IsNotFound(err) {
-		return false, errors.Wrapf(err,
-			"failed to delete %v %q for Machine %q in namespace %q",
-			s.infraMachine.GroupVersionKind(), s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
+	if s.infraMachine != nil {
+		if err := r.Client.Delete(ctx, s.infraMachine); err != nil && !apierrors.IsNotFound(err) {
+			return false, errors.Wrapf(err,
+				"failed to delete %v %q for Machine %q in namespace %q",
+				s.infraMachine.GroupVersionKind(), s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
+		}
 	}
 
 	return false, nil

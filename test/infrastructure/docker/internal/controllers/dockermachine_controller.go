@@ -501,7 +501,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachines),
 			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
+				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

@@ -1160,7 +1160,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToInMemoryMachines),
 			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
+				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

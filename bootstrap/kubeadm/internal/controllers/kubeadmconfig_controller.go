@@ -130,8 +130,8 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		&clusterv1.Cluster{},
 		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmConfigs),
 		builder.WithPredicates(
-			predicates.All(predicateLog,
-				predicates.ClusterUnpausedAndInfrastructureReady(predicateLog),
+			predicates.All(mgr.GetScheme(), predicateLog,
+				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 				predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 			),
 		),

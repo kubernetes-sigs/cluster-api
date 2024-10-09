@@ -69,8 +69,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineSet{},
 			builder.WithPredicates(
-				predicates.All(predicateLog,
-					predicates.ResourceIsTopologyOwned(predicateLog),
+				predicates.All(mgr.GetScheme(), predicateLog,
+					predicates.ResourceIsTopologyOwned(mgr.GetScheme(), predicateLog),
 					predicates.ResourceNotPaused(mgr.GetScheme(), predicateLog)),
 			),
 		).
@@ -81,9 +81,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
-				predicates.All(predicateLog,
-					predicates.ClusterUnpaused(predicateLog),
-					predicates.ClusterHasTopology(predicateLog),
+				predicates.All(mgr.GetScheme(), predicateLog,
+					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+					predicates.ClusterHasTopology(mgr.GetScheme(), predicateLog),
 				),
 			),
 		).

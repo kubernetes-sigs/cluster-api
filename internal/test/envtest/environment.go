@@ -48,6 +48,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -176,10 +177,21 @@ func Run(ctx context.Context, input RunInput) int {
 		return code
 	}
 
+	var errs []error
+
+	if err := verifyPanicMetrics(); err != nil {
+		errs = append(errs, errors.Wrapf(err, "panics occurred during tests"))
+	}
+
 	// Tearing down the test environment
 	if err := env.stop(); err != nil {
-		panic(fmt.Sprintf("Failed to stop the test environment: %v", err))
+		errs = append(errs, errors.Wrapf(err, "failed to stop the test environment"))
 	}
+
+	if len(errs) > 0 {
+		panic(kerrors.NewAggregate(errs))
+	}
+
 	return code
 }
 
@@ -526,4 +538,42 @@ func (e *Environment) CreateNamespace(ctx context.Context, generateName string) 
 	}
 
 	return ns, nil
+}
+
+func verifyPanicMetrics() error {
+	metricFamilies, err := metrics.Registry.Gather()
+	if err != nil {
+		return err
+	}
+
+	var errs []error
+	for _, metricFamily := range metricFamilies {
+		if metricFamily.GetName() == "controller_runtime_reconcile_panics_total" {
+			for _, controllerPanicMetric := range metricFamily.Metric {
+				if controllerPanicMetric.Counter != nil && controllerPanicMetric.Counter.Value != nil && *controllerPanicMetric.Counter.Value > 0 {
+					controllerName := "unknown"
+					for _, label := range controllerPanicMetric.Label {
+						if *label.Name == "controller" {
+							controllerName = *label.Value
+						}
+					}
+					errs = append(errs, fmt.Errorf("%.0f panics occurred in %q controller (check logs for more details)", *controllerPanicMetric.Counter.Value, controllerName))
+				}
+			}
+		}
+
+		if metricFamily.GetName() == "controller_runtime_webhook_panics_total" {
+			for _, webhookPanicMetric := range metricFamily.Metric {
+				if webhookPanicMetric.Counter != nil && webhookPanicMetric.Counter.Value != nil && *webhookPanicMetric.Counter.Value > 0 {
+					errs = append(errs, fmt.Errorf("%.0f panics occurred in webhooks (check logs for more details)", *webhookPanicMetric.Counter.Value))
+				}
+			}
+		}
+	}
+
+	if len(errs) > 0 {
+		return kerrors.NewAggregate(errs)
+	}
+
+	return nil
 }

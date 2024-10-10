@@ -271,8 +271,9 @@ func TestAggregate(t *testing.T) {
 	}
 
 	t.Run("Fails if source objects are empty", func(t *testing.T) {
+		var objs []*builder.Phase3Obj
 		g := NewWithT(t)
-		_, err := NewAggregateCondition(nil, AvailableCondition)
+		_, err := NewAggregateCondition(objs, AvailableCondition)
 		g.Expect(err).To(HaveOccurred())
 	})
 }

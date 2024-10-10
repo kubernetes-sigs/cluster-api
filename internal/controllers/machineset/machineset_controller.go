@@ -146,7 +146,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
 	machineSet := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, machineSet); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -198,6 +198,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	defer func() {
 		r.reconcileStatus(ctx, s)
 
+		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update v1beta1 status")})
+		}
+
+		// Adjust requeue for scaleups
+		if s.machineSet.DeletionTimestamp.IsZero() && reterr == nil {
+			retres = util.LowestNonZeroResult(retres, requeueAfterWaitingForNodes(s))
+		}
+
 		// Always attempt to patch the object and status after each reconciliation.
 		if err := patchMachineSet(ctx, patchHelper, s.machineSet); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
@@ -215,14 +224,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		reconcileDelete := append(
 			alwaysReconcile,
 			wrapErrMachineSetReconcileFunc(r.reconcileDelete, "failed to reconcile delete"),
-			wrapErrMachineSetReconcileFunc(r.updateStatus, "failed to update status"),
 		)
 		return doReconcile(ctx, s, reconcileDelete)
 	}
 
 	reconcileNormal := append([]machineSetReconcileFunc{},
-		wrapErrMachineSetReconcileFunc(r.setClusterLabels, "failed to set cluster labels"),
-		wrapErrMachineSetReconcileFunc(r.ensureOwnerReference, "failed to ensure ownerReference"),
+		wrapErrMachineSetReconcileFunc(r.reconcileMachineSetOwnerAndLabels, "failed to set cluster labels"),
 	)
 	reconcileNormal = append(reconcileNormal,
 		alwaysReconcile...,
@@ -231,7 +238,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		wrapErrMachineSetReconcileFunc(r.reconcileUnhealthyMachines, "failed to reconcile unhealthy machines"),
 		wrapErrMachineSetReconcileFunc(r.syncMachines, "failed to sync machines"),
 		wrapErrMachineSetReconcileFunc(r.syncReplicas, "failed to sync replicas"),
-		wrapErrMachineSetReconcileFunc(r.updateStatus, "failed to update status"),
 	)
 
 	result, err := doReconcile(ctx, s, reconcileNormal)
@@ -297,12 +303,23 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 	return patchHelper.Patch(ctx, machineSet, options...)
 }
 
-func (r *Reconciler) setClusterLabels(_ context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileMachineSetOwnerAndLabels(_ context.Context, s *scope) (ctrl.Result, error) {
 	// Reconcile and retrieve the Cluster object.
 	if s.machineSet.Labels == nil {
 		s.machineSet.Labels = make(map[string]string)
 	}
 	s.machineSet.Labels[clusterv1.ClusterNameLabel] = s.machineSet.Spec.ClusterName
+
+	// If the machine set is a stand alone one, meaning not originated from a MachineDeployment, then set it as directly
+	// owned by the Cluster (if not already present).
+	if r.shouldAdopt(s.machineSet) {
+		s.machineSet.SetOwnerReferences(util.EnsureOwnerRef(s.machineSet.GetOwnerReferences(), metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       s.cluster.Name,
+			UID:        s.cluster.UID,
+		}))
+	}
 
 	// Make sure selector and template to be in the same cluster.
 	if s.machineSet.Spec.Selector.MatchLabels == nil {
@@ -315,21 +332,6 @@ func (r *Reconciler) setClusterLabels(_ context.Context, s *scope) (ctrl.Result,
 
 	s.machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.machineSet.Spec.ClusterName
 	s.machineSet.Spec.Template.Labels[clusterv1.ClusterNameLabel] = s.machineSet.Spec.ClusterName
-
-	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) ensureOwnerReference(_ context.Context, s *scope) (ctrl.Result, error) {
-	// If the machine set is a stand alone one, meaning not originated from a MachineDeployment, then set it as directly
-	// owned by the Cluster (if not already present).
-	if r.shouldAdopt(s.machineSet) {
-		s.machineSet.SetOwnerReferences(util.EnsureOwnerRef(s.machineSet.GetOwnerReferences(), metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       s.cluster.Name,
-			UID:        s.cluster.UID,
-		}))
-	}
 
 	return ctrl.Result{}, nil
 }
@@ -974,15 +976,15 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	return !r.isDeploymentChild(ms)
 }
 
-// updateStatus updates the Status field for the MachineSet
+// reconcileV1Beta1Status updates the Status field for the MachineSet
 // It checks for the current state of the replicas and updates the Status of the MachineSet.
-func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error {
 	if s.machines == nil {
-		return ctrl.Result{}, errors.New("Cannot update status when s.machines is nil")
+		return errors.New("Cannot update status when s.machines is nil")
 	}
 
 	if s.machineSet.Spec.Replicas == nil {
-		return ctrl.Result{}, errors.New("Cannot update status when s.machineSet.Spec.Replicas is nil")
+		return errors.New("Cannot update status when s.machineSet.Spec.Replicas is nil")
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -992,7 +994,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (ctrl.Result, e
 	// This is necessary for CRDs including scale subresources.
 	selector, err := metav1.LabelSelectorAsSelector(&s.machineSet.Spec.Selector)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to update status for MachineSet %s/%s", s.machineSet.Namespace, s.machineSet.Name)
+		return errors.Wrapf(err, "failed to update status for MachineSet %s/%s", s.machineSet.Namespace, s.machineSet.Name)
 	}
 	newStatus.Selector = selector.String()
 
@@ -1085,6 +1087,10 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (ctrl.Result, e
 	// source ref (reason@machine/name) so the problem can be easily tracked down to its source machine.
 	conditions.SetAggregate(s.machineSet, clusterv1.MachinesReadyCondition, collections.FromMachines(s.machines...).ConditionGetters(), conditions.AddSourceRef())
 
+	return nil
+}
+
+func requeueAfterWaitingForNodes(s *scope) ctrl.Result {
 	var replicas int32
 	if s.machineSet.Spec.Replicas != nil {
 		replicas = *s.machineSet.Spec.Replicas
@@ -1101,15 +1107,15 @@ func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (ctrl.Result, e
 		s.machineSet.Status.ReadyReplicas == replicas &&
 		s.machineSet.Status.AvailableReplicas != replicas {
 		minReadyResult := ctrl.Result{RequeueAfter: time.Duration(s.machineSet.Spec.MinReadySeconds) * time.Second}
-		return minReadyResult, nil
+		return minReadyResult
 	}
 
 	// Quickly reconcile until the nodes become Ready.
 	if s.machineSet.Status.ReadyReplicas != replicas {
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: 15 * time.Second}
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{}
 }
 
 func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
@@ -1268,6 +1274,10 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			if !ms.DeletionTimestamp.IsZero() {
+				// Tolerate object not found when the machineSet is being deleted.
+				return nil
+			}
 			if _, ok := ms.Labels[clusterv1.MachineDeploymentNameLabel]; !ok {
 				// If the MachineSet is not in a MachineDeployment, return the error immediately.
 				return err

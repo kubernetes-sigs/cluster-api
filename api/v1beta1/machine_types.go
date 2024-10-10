@@ -135,8 +135,8 @@ const (
 	// MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason surfaces when a bootstrap data secret is provided by the user (without a ConfigRef).
 	MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason = "DataSecretUserProvided"
 
-	// MachineBootstrapInvalidConfigV1Beta2Reason surfaces when MachineBootstrap doesn't have the Boostrap.ConfigRef nor a
-	// Bootstrap.DataSecretName specified by the users.
+	// MachineBootstrapInvalidConfigV1Beta2Reason surfaces when Machine's spec.bootstrap doesn't have configRef nor a
+	// dataSecretName set.
 	MachineBootstrapInvalidConfigV1Beta2Reason = "InvalidConfig"
 
 	// MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
@@ -146,9 +146,12 @@ const (
 	// MachineBootstrapConfigReadyNoV1Beta2ReasonReported applies to a BootstrapConfig Ready condition (read from a bootstrap config object) that reports no reason.
 	MachineBootstrapConfigReadyNoV1Beta2ReasonReported = NoV1Beta2ReasonReported
 
-	// MachineBootstrapConfigNotFoundV1Beta2Reason surfaces when a referenced bootstrap config object cannot be found.
+	// MachineBootstrapConfigInternalErrorV1Beta2Reason surfaces unexpected failures when reading a BootstrapConfig object.
+	MachineBootstrapConfigInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
+	// MachineBootstrapConfigDoesNotExistV1Beta2Reason surfaces when a referenced bootstrap config object does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
-	MachineBootstrapConfigNotFoundV1Beta2Reason = RefObjectNotFoundV1Beta2Reason
+	MachineBootstrapConfigDoesNotExistV1Beta2Reason = RefObjectDoesNotExistV1Beta2Reason
 
 	// MachineBootstrapConfigDeletedV1Beta2Reason surfaces when a referenced bootstrap config object has been deleted.
 	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
@@ -169,9 +172,12 @@ const (
 	// MachineInfrastructureReadyNoV1Beta2ReasonReported applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
 	MachineInfrastructureReadyNoV1Beta2ReasonReported = NoV1Beta2ReasonReported
 
-	// MachineInfrastructureNotFoundV1Beta2Reason surfaces when a referenced infrastructure object cannot be found.
+	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading a BootstrapConfig object.
+	MachineInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
+	// MachineInfrastructureDoesNotExistV1Beta2Reason surfaces when a referenced infrastructure object does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
-	MachineInfrastructureNotFoundV1Beta2Reason = RefObjectNotFoundV1Beta2Reason
+	MachineInfrastructureDoesNotExistV1Beta2Reason = RefObjectDoesNotExistV1Beta2Reason
 
 	// MachineInfrastructureDeletedV1Beta2Reason surfaces when a referenced infrastructure object has been deleted.
 	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
@@ -187,6 +193,9 @@ const (
 
 	// MachineNodeReadyV1Beta2Condition is true if the Machine's Node is ready.
 	MachineNodeReadyV1Beta2Condition = "NodeReady"
+
+	// MachineNodeConditionNotYetReportedV1Beta2Reason surfaces when a Machine's Node doesn't have a condition reported yet.
+	MachineNodeConditionNotYetReportedV1Beta2Reason = "NodeConditionNotYetReported"
 
 	// MachineNodeNotFoundV1Beta2Reason surfaces when the node hosted on the machine cannot be found.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
@@ -220,6 +229,12 @@ const (
 const (
 	// MachinePausedV1Beta2Condition is true if the Machine or the Cluster it belongs to are paused.
 	MachinePausedV1Beta2Condition = PausedV1Beta2Condition
+
+	// MachineNotPausedV1Beta2Reason surfaces when a Machine is not paused.
+	MachineNotPausedV1Beta2Reason = NotPausedV1Beta2Reason
+
+	// MachineObjectPausedV1Beta2Reason surfaces when a Machine is paused.
+	MachineObjectPausedV1Beta2Reason = ObjectPausedV1Beta2Reason
 )
 
 // ANCHOR: MachineSpec

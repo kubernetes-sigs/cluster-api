@@ -44,20 +44,6 @@ const (
 	MultipleInfoReportedReason = "MultipleInfoReported"
 )
 
-// MergeStrategy defines a strategy used to merge conditions during the aggregate or summary operation.
-type MergeStrategy interface {
-	// Merge passed in conditions.
-	//
-	// It is up to the caller to ensure that all the expected conditions exist (e.g. by adding new conditions with status Unknown).
-	// Conditions passed in must be of the given conditionTypes (other condition types must be discarded).
-	//
-	// The list of conditionTypes has an implicit order; it is up to the implementation of merge to use this info or not.
-	// If negativeConditionTypes are in scope, the implementation of merge should treat them accordingly.
-	//
-	// If stepCounter is true, the implementation of merge must add info about step progress to the output message.
-	Merge(conditions []ConditionWithOwnerInfo, conditionTypes []string, negativeConditionTypes sets.Set[string], stepCounter bool) (status metav1.ConditionStatus, reason, message string, err error)
-}
-
 // ConditionWithOwnerInfo is a wrapper around metav1.Condition with additional ConditionOwnerInfo.
 // These infos can be used when generating the message resulting from the merge operation.
 type ConditionWithOwnerInfo struct {
@@ -76,28 +62,87 @@ func (o ConditionOwnerInfo) String() string {
 	return fmt.Sprintf("%s %s", o.Kind, o.Name)
 }
 
-// defaultMergeStrategy defines the default merge strategy for Cluster API conditions.
-type defaultMergeStrategy struct{}
+// MergeStrategy defines a strategy used to merge conditions during the aggregate or summary operation.
+type MergeStrategy interface {
+	// Merge passed in conditions.
+	//
+	// It is up to the caller to ensure that all the expected conditions exist (e.g. by adding new conditions with status Unknown).
+	// Conditions passed in must be of the given conditionTypes (other condition types must be discarded).
+	//
+	// The list of conditionTypes has an implicit order; it is up to the implementation of merge to use this info or not.
+	Merge(conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error)
+}
 
-type mergePriority uint8
+// DefaultMergeStrategyWithCustomPriority is the default merge strategy with a customized getPriority function.
+func DefaultMergeStrategyWithCustomPriority(getPriority func(condition metav1.Condition) MergePriority) MergeStrategy {
+	return &defaultMergeStrategy{
+		getPriority: getPriority,
+	}
+}
+
+func newDefaultMergeStrategy(negativePolarityConditionTypes sets.Set[string]) MergeStrategy {
+	return &defaultMergeStrategy{
+		getPriority: GetDefaultMergePriority(negativePolarityConditionTypes),
+	}
+}
+
+// GetDefaultMergePriority returns the merge priority for each condition.
+// It assigns following priority values to conditions:
+// - issues: conditions with positive polarity (normal True) and status False or conditions with negative polarity (normal False) and status True.
+// - unknown: conditions with status unknown.
+// - info: conditions with positive polarity (normal True) and status True or conditions with negative polarity (normal False) and status False.
+func GetDefaultMergePriority(negativePolarityConditionTypes sets.Set[string]) func(condition metav1.Condition) MergePriority {
+	return func(condition metav1.Condition) MergePriority {
+		switch condition.Status {
+		case metav1.ConditionTrue:
+			if negativePolarityConditionTypes.Has(condition.Type) {
+				return IssueMergePriority
+			}
+			return InfoMergePriority
+		case metav1.ConditionFalse:
+			if negativePolarityConditionTypes.Has(condition.Type) {
+				return InfoMergePriority
+			}
+			return IssueMergePriority
+		case metav1.ConditionUnknown:
+			return UnknownMergePriority
+		}
+
+		// Note: this should never happen. In case, those conditions are considered like conditions with unknown status.
+		return UnknownMergePriority
+	}
+}
+
+// MergePriority defines the priority for a condition during a merge operation.
+type MergePriority uint8
 
 const (
-	issueMergePriority mergePriority = iota
-	unknownMergePriority
-	infoMergePriority
+	// IssueMergePriority is the merge priority used by GetDefaultMergePriority in case the condition state is considered an issue.
+	IssueMergePriority MergePriority = iota
+
+	// UnknownMergePriority is the merge priority used by GetDefaultMergePriority in case of unknown conditions.
+	UnknownMergePriority
+
+	// InfoMergePriority is the merge priority used by GetDefaultMergePriority in case the condition state is not considered an issue.
+	InfoMergePriority
 )
 
-func newDefaultMergeStrategy() MergeStrategy {
-	return &defaultMergeStrategy{}
+// defaultMergeStrategy defines the default merge strategy for Cluster API conditions.
+type defaultMergeStrategy struct {
+	getPriority func(condition metav1.Condition) MergePriority
 }
 
 // Merge all conditions in input based on a strategy that surfaces issues first, then unknown conditions, then info (if none of issues and unknown condition exists).
 // - issues: conditions with positive polarity (normal True) and status False or conditions with negative polarity (normal False) and status True.
 // - unknown: conditions with status unknown.
 // - info: conditions with positive polarity (normal True) and status True or conditions with negative polarity (normal False) and status False.
-func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, conditionTypes []string, negativeConditionTypes sets.Set[string], stepCounter bool) (status metav1.ConditionStatus, reason, message string, err error) {
+func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
 	if len(conditions) == 0 {
 		return "", "", "", errors.New("can't merge an empty list of conditions")
+	}
+
+	if d.getPriority == nil {
+		return "", "", "", errors.New("can't merge without a getPriority func")
 	}
 
 	// Infer which operation is calling this func, so it is possible to use different strategies for computing the message for the target condition.
@@ -112,7 +157,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	// sortConditions the relevance defined by the users (the order of condition types), LastTransition time (older first).
 	sortConditions(conditions, conditionTypes)
 
-	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, negativeConditionTypes)
+	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, d.getPriority)
 
 	// Compute the status for the target condition:
 	// Note: This function always returns a condition with positive polarity.
@@ -168,8 +213,8 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	if isSummaryOperation {
 		messages := []string{}
 		for _, condition := range append(issueConditions, append(unknownConditions, infoConditions...)...) {
-			priority := getPriority(condition.Condition, negativeConditionTypes)
-			if priority == infoMergePriority {
+			priority := d.getPriority(condition.Condition)
+			if priority == InfoMergePriority {
 				// Drop info messages when we are surfacing issues or unknown.
 				if status != metav1.ConditionTrue {
 					continue
@@ -187,14 +232,6 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 				m = fmt.Sprintf("%s: No additional info provided", condition.Type)
 			}
 			messages = append(messages, m)
-		}
-
-		// Prepend the step counter if required.
-		if stepCounter {
-			totalSteps := len(conditionTypes)
-			stepsCompleted := len(infoConditions)
-
-			messages = append([]string{fmt.Sprintf("%d of %d completed", stepsCompleted, totalSteps)}, messages...)
 		}
 
 		message = strings.Join(messages, "; ")
@@ -268,43 +305,18 @@ func sortConditions(conditions []ConditionWithOwnerInfo, orderedConditionTypes [
 // - conditions with status unknown.
 // - conditions representing an info.
 // NOTE: The order of conditions is preserved in each group.
-func splitConditionsByPriority(conditions []ConditionWithOwnerInfo, negativePolarityConditionTypes sets.Set[string]) (issueConditions, unknownConditions, infoConditions []ConditionWithOwnerInfo) {
+func splitConditionsByPriority(conditions []ConditionWithOwnerInfo, getPriority func(condition metav1.Condition) MergePriority) (issueConditions, unknownConditions, infoConditions []ConditionWithOwnerInfo) {
 	for _, condition := range conditions {
-		switch getPriority(condition.Condition, negativePolarityConditionTypes) {
-		case issueMergePriority:
+		switch getPriority(condition.Condition) {
+		case IssueMergePriority:
 			issueConditions = append(issueConditions, condition)
-		case unknownMergePriority:
+		case UnknownMergePriority:
 			unknownConditions = append(unknownConditions, condition)
-		case infoMergePriority:
+		case InfoMergePriority:
 			infoConditions = append(infoConditions, condition)
 		}
 	}
 	return issueConditions, unknownConditions, infoConditions
-}
-
-// getPriority returns the merge priority for each condition.
-// It assigns following priority values to conditions:
-// - issues: conditions with positive polarity (normal True) and status False or conditions with negative polarity (normal False) and status True.
-// - unknown: conditions with status unknown.
-// - info: conditions with positive polarity (normal True) and status True or conditions with negative polarity (normal False) and status False.
-func getPriority(condition metav1.Condition, negativePolarityConditionTypes sets.Set[string]) mergePriority {
-	switch condition.Status {
-	case metav1.ConditionTrue:
-		if negativePolarityConditionTypes.Has(condition.Type) {
-			return issueMergePriority
-		}
-		return infoMergePriority
-	case metav1.ConditionFalse:
-		if negativePolarityConditionTypes.Has(condition.Type) {
-			return infoMergePriority
-		}
-		return issueMergePriority
-	case metav1.ConditionUnknown:
-		return unknownMergePriority
-	}
-
-	// Note: this should never happen. In case, those conditions are considered like conditions with unknown status.
-	return unknownMergePriority
 }
 
 // aggregateMessages returns messages for the aggregate operation.

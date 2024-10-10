@@ -36,7 +36,6 @@ type SummaryOptions struct {
 	conditionTypes                 []string
 	negativePolarityConditionTypes []string
 	ignoreTypesIfMissing           []string
-	stepCounter                    bool
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -61,10 +60,11 @@ func (o *SummaryOptions) ApplyOptions(opts []SummaryOption) *SummaryOptions {
 // Additionally, it is possible to inject custom merge strategies using the CustomMergeStrategy option or
 // to add a step counter to the generated message by using the StepCounter option.
 func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...SummaryOption) (*metav1.Condition, error) {
-	summarizeOpt := &SummaryOptions{
-		mergeStrategy: newDefaultMergeStrategy(),
-	}
+	summarizeOpt := &SummaryOptions{}
 	summarizeOpt.ApplyOptions(opts)
+	if summarizeOpt.mergeStrategy == nil {
+		summarizeOpt.mergeStrategy = newDefaultMergeStrategy(sets.New[string](summarizeOpt.negativePolarityConditionTypes...))
+	}
 
 	if len(summarizeOpt.conditionTypes) == 0 {
 		return nil, errors.New("option ForConditionTypes not provided or empty")
@@ -110,12 +110,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 		return nil, errors.New("summary can't be performed when the list of conditions to be summarized is empty")
 	}
 
-	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(
-		conditionsInScope,
-		summarizeOpt.conditionTypes,
-		sets.New[string](summarizeOpt.negativePolarityConditionTypes...),
-		summarizeOpt.stepCounter,
-	)
+	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(conditionsInScope, summarizeOpt.conditionTypes)
 	if err != nil {
 		return nil, err
 	}

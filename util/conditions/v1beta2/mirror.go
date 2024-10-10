@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	"fmt"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -72,13 +71,17 @@ func newMirrorCondition(sourceObj any, condition *metav1.Condition, sourceCondit
 	conditionOwner := getConditionOwnerInfo(sourceObj)
 
 	if condition != nil {
+		message := ""
+		if condition.Message != "" {
+			message = fmt.Sprintf("%s (from %s)", condition.Message, conditionOwner.Kind)
+		}
 		return &metav1.Condition{
 			Type:   mirrorOpt.targetConditionType,
 			Status: condition.Status,
 			// NOTE: we are preserving the original transition time (when the underlying condition changed)
 			LastTransitionTime: condition.LastTransitionTime,
 			Reason:             condition.Reason,
-			Message:            strings.TrimSpace(fmt.Sprintf("%s (from %s)", condition.Message, conditionOwner)),
+			Message:            message,
 			// NOTE: ObservedGeneration will be set when this condition is added to an object by calling Set
 			// (also preserving ObservedGeneration from the source object will be confusing when the mirror conditions shows up in the target object).
 		}
@@ -99,7 +102,7 @@ func newMirrorCondition(sourceObj any, condition *metav1.Condition, sourceCondit
 		Type:    mirrorOpt.targetConditionType,
 		Status:  metav1.ConditionUnknown,
 		Reason:  NotYetReportedReason,
-		Message: fmt.Sprintf("Condition %s not yet reported from %s", sourceConditionType, conditionOwner),
+		Message: fmt.Sprintf("Condition %s not yet reported from %s", sourceConditionType, conditionOwner.Kind),
 		// NOTE: LastTransitionTime and ObservedGeneration will be set when this condition is added to an object by calling Set.
 	}
 }

@@ -94,14 +94,6 @@ func (t CustomMergeStrategy) ApplyToAggregate(opts *AggregateOptions) {
 	opts.mergeStrategy = t
 }
 
-// StepCounter adds a step counter message to new summary conditions.
-type StepCounter bool
-
-// ApplyToSummary applies this configuration to the given summary options.
-func (t StepCounter) ApplyToSummary(opts *SummaryOptions) {
-	opts.stepCounter = bool(t)
-}
-
 // OwnedConditionTypes allows to define condition types owned by the controller when performing patch apply.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
 func OwnedConditionTypes(conditionTypes ...string) ApplyOption {

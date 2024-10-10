@@ -189,15 +189,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			m.Spec.ClusterName, m.Name, m.Namespace)
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, m) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	s := &scope{
 		cluster: cluster,
 		machine: m,
+	}
+
+	// Return early if the object or Cluster is paused.
+	if annotations.IsPaused(cluster, m) {
+		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, setPausedCondition(ctx, r.Client, s)
 	}
 
 	// Initialize the patch helper

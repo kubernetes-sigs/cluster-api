@@ -95,13 +95,26 @@ const (
 	// Note: this could happen e.g. when an external object still uses Cluster API v1beta1 Conditions.
 	NoV1Beta2ReasonReported = "NoReasonReported"
 
-	// RefObjectNotFoundV1Beta2Reason surfaces when a referenced object cannot be found.
-	RefObjectNotFoundV1Beta2Reason = "RefObjectNotFound"
+	// InternalErrorV1Beta2Reason surfaces unexpected errors reporting by controllers.
+	// In most cases, it will be required to look at controllers logs to proper triage those issues.
+	InternalErrorV1Beta2Reason = "InternalError"
+
+	// RefObjectDoesNotExistV1Beta2Reason surfaces when a referenced object does not exist.
+	RefObjectDoesNotExistV1Beta2Reason = "RefObjectDoesNotExist"
 
 	// RefObjectDeletedV1Beta2Reason surfaces when a referenced object has been deleted.
 	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
 	RefObjectDeletedV1Beta2Reason = "RefObjectDeleted"
+
+	// NotPausedV1Beta2Reason surfaces when an object is not paused.
+	NotPausedV1Beta2Reason = "NotPaused"
+
+	// ClusterPausedV1Beta2Reason surfaces when an Cluster is paused.
+	ClusterPausedV1Beta2Reason = "ClusterPaused"
+
+	// ObjectPausedV1Beta2Reason surfaces when an object is paused.
+	ObjectPausedV1Beta2Reason = "ObjectPaused"
 )
 
 // Conditions that will be used for the MachineSet object in v1Beta2 API version.

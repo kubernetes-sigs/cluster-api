@@ -108,7 +108,7 @@ func TestSplitConditionsByPriority(t *testing.T) {
 		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionFalse}},   // info
 	}
 
-	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, sets.New[string]("!C"))
+	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, GetDefaultMergePriority(sets.New[string]("!C")))
 
 	// Check condition are grouped as expected and order is preserved.
 
@@ -131,60 +131,60 @@ func TestSplitConditionsByPriority(t *testing.T) {
 	}))
 }
 
-func TestGetPriority(t *testing.T) {
+func TestDefaultMergePriority(t *testing.T) {
 	tests := []struct {
 		name             string
 		condition        metav1.Condition
 		negativePolarity bool
-		wantPriority     mergePriority
+		wantPriority     MergePriority
 	}{
 		{
 			name:             "Issue (PositivePolarity)",
 			condition:        metav1.Condition{Type: "foo", Status: metav1.ConditionFalse},
 			negativePolarity: false,
-			wantPriority:     issueMergePriority,
+			wantPriority:     IssueMergePriority,
 		},
 		{
 			name:             "Unknown (PositivePolarity)",
 			condition:        metav1.Condition{Type: "foo", Status: metav1.ConditionUnknown},
 			negativePolarity: false,
-			wantPriority:     unknownMergePriority,
+			wantPriority:     UnknownMergePriority,
 		},
 		{
 			name:             "Info (PositivePolarity)",
 			condition:        metav1.Condition{Type: "foo", Status: metav1.ConditionTrue},
 			negativePolarity: false,
-			wantPriority:     infoMergePriority,
+			wantPriority:     InfoMergePriority,
 		},
 		{
 			name:             "NoStatus (PositivePolarity)",
 			condition:        metav1.Condition{Type: "foo"},
 			negativePolarity: false,
-			wantPriority:     unknownMergePriority,
+			wantPriority:     UnknownMergePriority,
 		},
 		{
 			name:             "Issue (NegativePolarity)",
 			condition:        metav1.Condition{Type: "foo", Status: metav1.ConditionTrue},
 			negativePolarity: true,
-			wantPriority:     issueMergePriority,
+			wantPriority:     IssueMergePriority,
 		},
 		{
 			name:             "Unknown (NegativePolarity)",
 			condition:        metav1.Condition{Type: "foo", Status: metav1.ConditionUnknown},
 			negativePolarity: true,
-			wantPriority:     unknownMergePriority,
+			wantPriority:     UnknownMergePriority,
 		},
 		{
 			name:             "Info (NegativePolarity)",
 			condition:        metav1.Condition{Type: "foo", Status: metav1.ConditionFalse},
 			negativePolarity: true,
-			wantPriority:     infoMergePriority,
+			wantPriority:     InfoMergePriority,
 		},
 		{
 			name:             "NoStatus (NegativePolarity)",
 			condition:        metav1.Condition{Type: "foo"},
 			negativePolarity: true,
-			wantPriority:     unknownMergePriority,
+			wantPriority:     UnknownMergePriority,
 		},
 	}
 
@@ -196,7 +196,7 @@ func TestGetPriority(t *testing.T) {
 			if tt.negativePolarity {
 				negativePolarityConditionTypes.Insert(tt.condition.Type)
 			}
-			gotPriority := getPriority(tt.condition, negativePolarityConditionTypes)
+			gotPriority := GetDefaultMergePriority(negativePolarityConditionTypes)(tt.condition)
 
 			g.Expect(gotPriority).To(Equal(tt.wantPriority))
 		})

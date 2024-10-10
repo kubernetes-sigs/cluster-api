@@ -536,6 +536,13 @@ func TestConvertFromUnstructuredConditions(t *testing.T) {
 			wantError: true,
 		},
 		{
+			name: "Fails if Status is a wrong value",
+			conditions: clusterv1.Conditions{
+				clusterv1.Condition{Type: clusterv1.ConditionType("foo"), Status: "foo"},
+			},
+			wantError: true,
+		},
+		{
 			name: "Defaults reason for positive polarity",
 			conditions: clusterv1.Conditions{
 				clusterv1.Condition{Type: clusterv1.ConditionType("foo"), Status: corev1.ConditionTrue},

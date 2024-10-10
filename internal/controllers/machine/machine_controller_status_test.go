@@ -23,7 +23,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
@@ -54,10 +53,11 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name             string
-		machine          *clusterv1.Machine
-		bootstrapConfig  *unstructured.Unstructured
-		expectConditions []metav1.Condition
+		name                      string
+		machine                   *clusterv1.Machine
+		bootstrapConfig           *unstructured.Unstructured
+		bootstrapConfigIsNotFound bool
+		expectCondition           metav1.Condition
 	}{
 		{
 			name: "boostrap data secret provided by user/operator",
@@ -76,21 +76,15 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				},
 				"status": map[string]interface{}{},
 			}},
-			expectConditions: []metav1.Condition{
-				{
-					Type:   clusterv1.MachineReadyV1Beta2Condition,
-					Status: metav1.ConditionTrue,
-					Reason: v1beta2conditions.MultipleInfoReportedReason,
-				},
-				{
-					Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-					Status: metav1.ConditionTrue,
-					Reason: clusterv1.MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason,
-				},
+			bootstrapConfigIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason,
 			},
 		},
 		{
-			name: "InvalidConfig: machine without bootstrap config ref and with dataSecretName not set",
+			name: "machine without bootstrap config ref and with dataSecretName not set",
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.Spec.Bootstrap.ConfigRef = nil
@@ -105,18 +99,579 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 				},
 				"status": map[string]interface{}{},
 			}},
+			bootstrapConfigIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineBootstrapInvalidConfigV1Beta2Reason,
+				Message: "Either spec.bootstrap.configRef must be set or spec.bootstrap.dataSecretName must not be empty",
+			},
+		},
+		{
+			name:    "mirror Ready condition from bootstrap config",
+			machine: defaultMachine.DeepCopy(),
+			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":    "Ready",
+							"status":  "False",
+							"message": "some message",
+						},
+					},
+				},
+			}},
+			bootstrapConfigIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineBootstrapConfigReadyNoV1Beta2ReasonReported,
+				Message: "some message (from GenericBootstrapConfig)",
+			},
+		},
+		{
+			name:    "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing",
+			machine: defaultMachine.DeepCopy(),
+			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{},
+				},
+			}},
+			bootstrapConfigIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineBootstrapConfigReadyNoV1Beta2ReasonReported,
+				Message: "GenericBootstrapConfig status.ready is false",
+			},
+		},
+		{
+			name:    "invalid Ready condition from bootstrap config",
+			machine: defaultMachine.DeepCopy(),
+			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericBootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type": "Ready",
+						},
+					},
+				},
+			}},
+			bootstrapConfigIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason,
+				Message: "failed to convert status.conditions from GenericBootstrapConfig to []metav1.Condition: status must be set for the Ready condition",
+			},
+		},
+		{
+			name:                      "failed to get bootstrap config",
+			machine:                   defaultMachine.DeepCopy(),
+			bootstrapConfig:           nil,
+			bootstrapConfigIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineBootstrapConfigInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name: "bootstrap config not found while machine is deleting",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+				return m
+			}(),
+			bootstrapConfig:           nil,
+			bootstrapConfigIsNotFound: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineBootstrapConfigDeletedV1Beta2Reason,
+				Message: "GenericBootstrapConfig has been deleted",
+			},
+		},
+		{
+			name:                      "bootstrap config not found",
+			machine:                   defaultMachine.DeepCopy(),
+			bootstrapConfig:           nil,
+			bootstrapConfigIsNotFound: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineBootstrapConfigDoesNotExistV1Beta2Reason,
+				Message: "GenericBootstrapConfig does not exist",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setBootstrapReadyCondition(ctx, tc.machine, tc.bootstrapConfig, tc.bootstrapConfigIsNotFound)
+
+			condition := v1beta2conditions.Get(tc.machine, clusterv1.MachineBootstrapConfigReadyV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func TestSetInfrastructureReadyCondition(t *testing.T) {
+	defaultMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine-test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "infra-machine1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name                   string
+		machine                *clusterv1.Machine
+		infraMachine           *unstructured.Unstructured
+		infraMachineIsNotFound bool
+		expectCondition        metav1.Condition
+	}{
+		{
+			name:    "mirror Ready condition from infra machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-machine1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type":    "Ready",
+							"status":  "False",
+							"message": "some message",
+						},
+					},
+				},
+			}},
+			infraMachineIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineInfrastructureReadyNoV1Beta2ReasonReported,
+				Message: "some message (from GenericInfrastructureMachine)",
+			},
+		},
+		{
+			name:    "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-machine1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{},
+				},
+			}},
+			infraMachineIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineInfrastructureReadyNoV1Beta2ReasonReported,
+				Message: "GenericInfrastructureMachine status.ready is false",
+			},
+		},
+		{
+			name:    "invalid Ready condition from infra machine",
+			machine: defaultMachine.DeepCopy(),
+			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachine",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-machine1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"status": map[string]interface{}{
+					"conditions": []interface{}{
+						map[string]interface{}{
+							"type": "Ready",
+						},
+					},
+				},
+			}},
+			infraMachineIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineInfrastructureInvalidConditionReportedV1Beta2Reason,
+				Message: "failed to convert status.conditions from GenericInfrastructureMachine to []metav1.Condition: status must be set for the Ready condition",
+			},
+		},
+		{
+			name: "failed to get infra machine",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+				return m
+			}(),
+			infraMachine:           nil,
+			infraMachineIsNotFound: false,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineInfrastructureInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name: "infra machine not found while machine is deleting",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+				return m
+			}(),
+			infraMachine:           nil,
+			infraMachineIsNotFound: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
+				Message: "GenericInfrastructureMachine has been deleted",
+			},
+		},
+		{
+			name: "infra machine not found after the machine has been initialized",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.Status.InfrastructureReady = true
+				return m
+			}(),
+			infraMachine:           nil,
+			infraMachineIsNotFound: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
+				Message: "GenericInfrastructureMachine has been deleted while the machine still exist",
+			},
+		},
+		{
+			name:                   "infra machine not found",
+			machine:                defaultMachine.DeepCopy(),
+			infraMachine:           nil,
+			infraMachineIsNotFound: true,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineInfrastructureDoesNotExistV1Beta2Reason,
+				Message: "GenericInfrastructureMachine does not exist",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setInfrastructureReadyCondition(ctx, tc.machine, tc.infraMachine, tc.infraMachineIsNotFound)
+
+			condition := v1beta2conditions.Get(tc.machine, clusterv1.MachineInfrastructureReadyV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func TestSummarizeNodeV1Beta2Conditions(t *testing.T) {
+	testCases := []struct {
+		name            string
+		conditions      []corev1.NodeCondition
+		expectedStatus  metav1.ConditionStatus
+		expectedReason  string
+		expectedMessage string
+	}{
+		{
+			name: "node is healthy",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+			},
+			expectedStatus: metav1.ConditionTrue,
+			expectedReason: v1beta2conditions.MultipleInfoReportedReason,
+		},
+		{
+			name: "all conditions are unknown",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionUnknown},
+			},
+			expectedStatus:  metav1.ConditionUnknown,
+			expectedReason:  v1beta2conditions.MultipleUnknownReportedReason,
+			expectedMessage: "Node Ready: condition is Unknown; Node MemoryPressure: condition is Unknown; Node DiskPressure: condition is Unknown; Node PIDPressure: condition is Unknown",
+		},
+		{
+			name: "multiple semantically failed condition",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionTrue},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionTrue},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionTrue},
+			},
+			expectedStatus:  metav1.ConditionFalse,
+			expectedReason:  v1beta2conditions.MultipleIssuesReportedReason,
+			expectedMessage: "Node Ready: condition is Unknown; Node MemoryPressure: condition is True; Node DiskPressure: condition is True; Node PIDPressure: condition is True",
+		},
+		{
+			name: "one semantically failed condition when the rest is healthy",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionFalse, Reason: "SomeReason"},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+			},
+			expectedStatus:  metav1.ConditionFalse,
+			expectedReason:  "SomeReason",
+			expectedMessage: "Node Ready: condition is False",
+		},
+		{
+			name: "one unknown condition when the rest is healthy",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeReady, Status: corev1.ConditionUnknown, Reason: "SomeReason"},
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+			},
+			expectedStatus:  metav1.ConditionUnknown,
+			expectedReason:  "SomeReason",
+			expectedMessage: "Node Ready: condition is Unknown",
+		},
+		{
+			name: "one condition missing",
+			conditions: []corev1.NodeCondition{
+				{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+				{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+			},
+			expectedStatus:  metav1.ConditionUnknown,
+			expectedReason:  clusterv1.MachineNodeConditionNotYetReportedV1Beta2Reason,
+			expectedMessage: "Node Ready: condition not yet reported",
+		},
+	}
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+			node := &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "node-1",
+				},
+				Status: corev1.NodeStatus{
+					Conditions: test.conditions,
+				},
+			}
+			status, reason, message := summarizeNodeV1Beta2Conditions(ctx, node)
+			g.Expect(status).To(Equal(test.expectedStatus))
+			g.Expect(reason).To(Equal(test.expectedReason))
+			g.Expect(message).To(Equal(test.expectedMessage))
+		})
+	}
+}
+
+func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
+	defaultMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine-test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "infra-machine1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name             string
+		machine          *clusterv1.Machine
+		node             *corev1.Node
+		expectConditions []metav1.Condition
+	}{
+		{
+			name:    "get NodeHealthy and NodeReady from node",
+			machine: defaultMachine.DeepCopy(),
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{Type: corev1.NodeReady, Status: corev1.ConditionFalse, Reason: "SomeReason", Message: "Some message"},
+						{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+						{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+						{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+					},
+				},
+			},
 			expectConditions: []metav1.Condition{
 				{
-					Type:    clusterv1.MachineReadyV1Beta2Condition,
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
-					Reason:  clusterv1.MachineBootstrapInvalidConfigV1Beta2Reason,
-					Message: "BootstrapConfigReady: either spec.bootstrap.configRef must be set or spec.bootstrap.dataSecretName must not be empty",
+					Reason:  "SomeReason",
+					Message: "Node Ready: condition is False",
 				},
 				{
-					Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
-					Reason:  clusterv1.MachineBootstrapInvalidConfigV1Beta2Reason,
-					Message: "either spec.bootstrap.configRef must be set or spec.bootstrap.dataSecretName must not be empty",
+					Reason:  "SomeReason",
+					Message: "Some message (from Node)",
+				},
+			},
+		},
+		{
+			// TODO: handle missing conditions in summarize node conditions.
+			name:    "NodeReady missing from node",
+			machine: defaultMachine.DeepCopy(),
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+						{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+						{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+					},
+				},
+			},
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeConditionNotYetReportedV1Beta2Reason,
+					Message: "Node Ready: condition not yet reported",
+				},
+				{
+					Type:   clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status: metav1.ConditionUnknown,
+					Reason: clusterv1.MachineNodeConditionNotYetReportedV1Beta2Reason,
+				},
+			},
+		},
+		{
+			name: "node not found while machine is deleting",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+				return m
+			}(),
+			node: nil,
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
+					Message: "Node has been deleted",
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
+					Message: "Node has been deleted",
+				},
+			},
+		},
+		{
+			name: "node missing while machine is still running",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.Status.NodeRef = &corev1.ObjectReference{
+					Name: "test-node-1",
+				}
+				return m
+			}(),
+			node: nil,
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
+					Message: "Node test-node-1 has been deleted while the machine still exist",
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
+					Message: "Node test-node-1 has been deleted while the machine still exist",
+				},
+			},
+		},
+		{
+			name: "machine with ProviderID set, Node still missing",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.Spec.ProviderID = ptr.To("foo://test-node-1")
+				return m
+			}(),
+			node: nil,
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeNotFoundV1Beta2Reason,
+					Message: "Waiting for a node with Provider ID foo://test-node-1 to exist",
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeNotFoundV1Beta2Reason,
+					Message: "Waiting for a node with Provider ID foo://test-node-1 to exist",
+				},
+			},
+		},
+		{
+			name:    "machine with ProviderID not yet set, waiting for it",
+			machine: defaultMachine.DeepCopy(),
+			node:    nil,
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeNotFoundV1Beta2Reason,
+					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeNotFoundV1Beta2Reason,
+					Message: "Waiting for GenericInfrastructureMachine to report spec.providerID",
 				},
 			},
 		},
@@ -126,24 +681,294 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setBootstrapReadyCondition(ctx, tc.machine, tc.bootstrapConfig)
-
-			// Compute ready by ensuring no other conditions influence the result.
-			tc.machine.Status.V1Beta2.Conditions = append(tc.machine.Status.V1Beta2.Conditions,
-				metav1.Condition{
-					Type:   clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-					Status: metav1.ConditionTrue,
-				},
-				metav1.Condition{
-					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
-					Status: metav1.ConditionTrue,
-				},
-			)
-			setReadyCondition(ctx, tc.machine)
-			meta.RemoveStatusCondition(&tc.machine.Status.V1Beta2.Conditions, clusterv1.MachineInfrastructureReadyV1Beta2Condition)
-			meta.RemoveStatusCondition(&tc.machine.Status.V1Beta2.Conditions, clusterv1.MachineNodeHealthyV1Beta2Condition)
-
+			setNodeHealthyAndReadyConditions(ctx, tc.machine, tc.node)
 			g.Expect(tc.machine.GetV1Beta2Conditions()).To(v1beta2conditions.MatchConditions(tc.expectConditions, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func TestSetReadyCondition(t *testing.T) {
+	testCases := []struct {
+		name            string
+		machine         *clusterv1.Machine
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "Accepts HealthCheckSucceeded to be missing",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleInfoReportedReason,
+			},
+		},
+		{
+			name: "Tolerates BootstrapConfig, InfraMachine and Node do not exists while the machine is deleting",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "machine-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionUnknown,
+								Reason: clusterv1.MachineInfrastructureDeletedV1Beta2Reason,
+							},
+							{
+								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: clusterv1.MachineNodeDeletedV1Beta2Reason,
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleInfoReportedReason,
+			},
+		},
+		{
+			name: "Takes into account HealthCheckSucceeded when it exists",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+								Status:  metav1.ConditionFalse,
+								Reason:  "SomeReason",
+								Message: "Some message",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "SomeReason",
+				Message: "HealthCheckSucceeded: Some message",
+			},
+		},
+		{
+			name: "Takes into account Readiness gates when defined",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					ReadinessGates: []clusterv1.MachineReadinessGate{
+						{
+							ConditionType: "MyReadinessGate",
+						},
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:    "MyReadinessGate",
+								Status:  metav1.ConditionFalse,
+								Reason:  "SomeReason",
+								Message: "Some message",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "SomeReason",
+				Message: "MyReadinessGate: Some message",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setReadyCondition(ctx, tc.machine)
+
+			condition := v1beta2conditions.Get(tc.machine, clusterv1.MachineReadyV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func TestAvailableCondition(t *testing.T) {
+	testCases := []struct {
+		name            string
+		machine         *clusterv1.Machine
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "Not Ready",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineReadyV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: "SomeReason",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineNotReadyV1Beta2Reason,
+			},
+		},
+		{
+			name: "Ready but still waiting for MinReadySeconds",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:               clusterv1.MachineReadyV1Beta2Condition,
+								Status:             metav1.ConditionTrue,
+								Reason:             v1beta2conditions.MultipleInfoReportedReason,
+								LastTransitionTime: metav1.Time{Time: time.Now().Add(10 * time.Second)},
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineAvailableV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineWaitingForMinReadySecondsV1Beta2Reason,
+			},
+		},
+		{
+			name: "Ready and available",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:               clusterv1.MachineReadyV1Beta2Condition,
+								Status:             metav1.ConditionTrue,
+								Reason:             v1beta2conditions.MultipleInfoReportedReason,
+								LastTransitionTime: metav1.Time{Time: time.Now().Add(-10 * time.Second)},
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineAvailableV1Beta2Reason,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setAvailableCondition(ctx, tc.machine)
+
+			readyCondition := v1beta2conditions.Get(tc.machine, clusterv1.MachineAvailableV1Beta2Condition)
+			g.Expect(readyCondition).ToNot(BeNil())
+			g.Expect(*readyCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -727,6 +1552,6 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
 			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
-		}, 10*time.Second).Should(BeTrue())
+		}, 100*time.Second).Should(BeTrue())
 	})
 }

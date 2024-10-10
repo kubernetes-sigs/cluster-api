@@ -89,27 +89,29 @@ const (
 // Machine's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// MachineAvailableV1Beta2Condition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.
+	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
 	MachineAvailableV1Beta2Condition = AvailableV1Beta2Condition
 
-	// MachineNotReadyV1Beta2Reason surfaces when a machine is not yet ready (and thus not yet available).
+	// MachineNotReadyV1Beta2Reason surfaces when a machine is not ready (and thus not available).
 	MachineNotReadyV1Beta2Reason = "NotReady"
 
-	// MachineWaitingForMinReadySecondsV1Beta2Reason surfaces when a machine is ready for less then MinReadySeconds (and thus not yet available).
+	// MachineWaitingForMinReadySecondsV1Beta2Reason surfaces when a machine is ready for less than MinReadySeconds (and thus not yet available).
 	MachineWaitingForMinReadySecondsV1Beta2Reason = "WaitingForMinReadySeconds"
 
 	// MachineReadyNotYetReportedV1Beta2Reason surfaces when a machine ready is not reported yet.
 	// Note: this should never happen and it is a signal of some internal error.
 	MachineReadyNotYetReportedV1Beta2Reason = "ReadyNotYetReported"
 
-	// MachineAvailableV1Beta2Reason surfaces when a machine ready for at least MinReadySeconds.
+	// MachineAvailableV1Beta2Reason surfaces when a machine is ready for at least MinReadySeconds.
+	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
 	MachineAvailableV1Beta2Reason = "MachineAvailable"
 )
 
 // Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 // Note: when possible, Ready condition will use reasons from the conditions it summarizes.
 const (
-	// MachineReadyV1Beta2Condition is true if the Machine is not deleted, Machine's BootstrapConfigReady, InfrastructureReady,
-	// NodeHealthy and HealthCheckSucceeded (if present) are true; if other conditions are defined in spec.readinessGates,
+	// MachineReadyV1Beta2Condition is true if the Machine's deletionTimestamp is not set, Machine's BootstrapConfigReady, InfrastructureReady,
+	// NodeHealthy and HealthCheckSucceeded (if present) conditions are true; if other conditions are defined in spec.readinessGates,
 	// these conditions must be true as well.
 	MachineReadyV1Beta2Condition = ReadyV1Beta2Condition
 
@@ -132,12 +134,9 @@ const (
 	// MachineBootstrapConfigReadyV1Beta2Condition condition mirrors the corresponding Ready condition from the Machine's BootstrapConfig resource.
 	MachineBootstrapConfigReadyV1Beta2Condition = BootstrapConfigReadyV1Beta2Condition
 
-	// MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason surfaces when a bootstrap data secret is provided by the user (without a ConfigRef).
-	MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason = "DataSecretUserProvided"
-
-	// MachineBootstrapInvalidConfigV1Beta2Reason surfaces when Machine's spec.bootstrap doesn't have configRef nor a
-	// dataSecretName set.
-	MachineBootstrapInvalidConfigV1Beta2Reason = "InvalidConfig"
+	// MachineBootstrapDataSecretProvidedV1Beta2Reason surfaces when a bootstrap data secret is provided (not originated
+	// from a BoostrapConfig object referenced from the machine).
+	MachineBootstrapDataSecretProvidedV1Beta2Reason = "DataSecretProvided"
 
 	// MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
 	// (e.g. it is status is missing).
@@ -150,13 +149,13 @@ const (
 	MachineBootstrapConfigInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 
 	// MachineBootstrapConfigDoesNotExistV1Beta2Reason surfaces when a referenced bootstrap config object does not exist.
-	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
-	MachineBootstrapConfigDoesNotExistV1Beta2Reason = RefObjectDoesNotExistV1Beta2Reason
+	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
+	MachineBootstrapConfigDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
 
 	// MachineBootstrapConfigDeletedV1Beta2Reason surfaces when a referenced bootstrap config object has been deleted.
-	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
+	// Note: controllers can't identify if the bootstrap config object was deleted the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	MachineBootstrapConfigDeletedV1Beta2Reason = RefObjectDeletedV1Beta2Reason
+	MachineBootstrapConfigDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
 )
 
 // Machine's InfrastructureReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -172,17 +171,17 @@ const (
 	// MachineInfrastructureReadyNoV1Beta2ReasonReported applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
 	MachineInfrastructureReadyNoV1Beta2ReasonReported = NoV1Beta2ReasonReported
 
-	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading a BootstrapConfig object.
+	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading a infra machine object.
 	MachineInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 
 	// MachineInfrastructureDoesNotExistV1Beta2Reason surfaces when a referenced infrastructure object does not exist.
-	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
-	MachineInfrastructureDoesNotExistV1Beta2Reason = RefObjectDoesNotExistV1Beta2Reason
+	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
+	MachineInfrastructureDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
 
 	// MachineInfrastructureDeletedV1Beta2Reason surfaces when a referenced infrastructure object has been deleted.
-	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
+	// Note: controllers can't identify if the infrastructure object was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	MachineInfrastructureDeletedV1Beta2Reason = RefObjectDeletedV1Beta2Reason
+	MachineInfrastructureDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
 )
 
 // Machine's NodeHealthy and NodeReady conditions and corresponding reasons that will be used in v1Beta2 API version.
@@ -198,11 +197,11 @@ const (
 	MachineNodeConditionNotYetReportedV1Beta2Reason = "NodeConditionNotYetReported"
 
 	// MachineNodeNotFoundV1Beta2Reason surfaces when the node hosted on the machine cannot be found.
-	// Note: this could happen when creating the machine. However, this state should be treated as an error if it last indefinitely.
+	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
 	MachineNodeNotFoundV1Beta2Reason = "NodeNotFound"
 
 	// MachineNodeDeletedV1Beta2Reason surfaces when  the node hosted on the machine has been deleted.
-	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
+	// Note: controllers can't identify if the Node was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
 	MachineNodeDeletedV1Beta2Reason = "NodeDeleted"
 )

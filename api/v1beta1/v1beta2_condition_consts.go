@@ -99,13 +99,13 @@ const (
 	// In most cases, it will be required to look at controllers logs to proper triage those issues.
 	InternalErrorV1Beta2Reason = "InternalError"
 
-	// RefObjectDoesNotExistV1Beta2Reason surfaces when a referenced object does not exist.
-	RefObjectDoesNotExistV1Beta2Reason = "RefObjectDoesNotExist"
+	// ObjectDoesNotExistV1Beta2Reason surfaces when a referenced object does not exist.
+	ObjectDoesNotExistV1Beta2Reason = "ObjectDoesNotExist"
 
-	// RefObjectDeletedV1Beta2Reason surfaces when a referenced object has been deleted.
-	// Note: controllers can't identify if the deletion process has been initiated by the controller itself, e.g.
+	// ObjectDeletedV1Beta2Reason surfaces when a referenced object has been deleted.
+	// Note: controllers can't identify if the object was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	RefObjectDeletedV1Beta2Reason = "RefObjectDeleted"
+	ObjectDeletedV1Beta2Reason = "ObjectDeleted"
 
 	// NotPausedV1Beta2Reason surfaces when an object is not paused.
 	NotPausedV1Beta2Reason = "NotPaused"

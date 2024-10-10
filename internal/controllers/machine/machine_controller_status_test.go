@@ -80,31 +80,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason,
-			},
-		},
-		{
-			name: "machine without bootstrap config ref and with dataSecretName not set",
-			machine: func() *clusterv1.Machine {
-				m := defaultMachine.DeepCopy()
-				m.Spec.Bootstrap.ConfigRef = nil
-				return m
-			}(),
-			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
-				"kind":       "GenericBootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-				"metadata": map[string]interface{}{
-					"name":      "bootstrap-config1",
-					"namespace": metav1.NamespaceDefault,
-				},
-				"status": map[string]interface{}{},
-			}},
-			bootstrapConfigIsNotFound: false,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineBootstrapInvalidConfigV1Beta2Reason,
-				Message: "Either spec.bootstrap.configRef must be set or spec.bootstrap.dataSecretName must not be empty",
+				Reason: clusterv1.MachineBootstrapDataSecretProvidedV1Beta2Reason,
 			},
 		},
 		{

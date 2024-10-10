@@ -177,16 +177,8 @@ func validateAndFixConvertedCondition(c *metav1.Condition) error {
 	default:
 		return errors.Errorf("status for the %s condition must be one of %s, %s, %s", c.Type, metav1.ConditionTrue, metav1.ConditionFalse, metav1.ConditionUnknown)
 	}
-
 	if c.Reason == "" {
-		switch c.Status {
-		case metav1.ConditionFalse: // When using old Cluster API condition utils, for conditions with Status false, Reason can be empty only when a condition has negative polarity (means "good")
-			c.Reason = NoReasonReported
-		case metav1.ConditionTrue: // When using old Cluster API condition utils, for conditions with Status true, Reason can be empty only when a condition has positive polarity (means "good").
-			c.Reason = NoReasonReported
-		case metav1.ConditionUnknown:
-			return errors.Errorf("reason must be set for the %s condition, status unknown", c.Type)
-		}
+		c.Reason = NoReasonReported
 	}
 
 	// NOTE: Empty LastTransitionTime is tolerated because it will be set when assigning the newly generated mirror condition to an object.

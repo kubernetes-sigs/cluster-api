@@ -345,14 +345,14 @@ type scope struct {
 	// Machine. It is set after reconcileInfrastructure is called.
 	infraMachine *unstructured.Unstructured
 
-	// infraMachineNotFound is true if getting the infra machine object failed with an IsNotFound err
+	// infraMachineNotFound is true if getting the infra machine object failed with an NotFound err
 	infraMachineIsNotFound bool
 
 	// bootstrapConfig is the BootstrapConfig object that is referenced by the
 	// Machine. It is set after reconcileBootstrap is called.
 	bootstrapConfig *unstructured.Unstructured
 
-	// bootstrapConfigNotFound is true if getting the BootstrapConfig object failed with an IsNotFound err
+	// bootstrapConfigNotFound is true if getting the BootstrapConfig object failed with an NotFound err
 	bootstrapConfigIsNotFound bool
 
 	// node is the Kubernetes node hosted on the machine.
@@ -360,7 +360,7 @@ type scope struct {
 }
 
 func (r *Reconciler) reconcileMachineOwnerAndLabels(_ context.Context, s *scope) (ctrl.Result, error) {
-	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
+	// If the machine is a stand-alone Machine, then set it as directly
 	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(s.machine) {
 		s.machine.SetOwnerReferences(util.EnsureOwnerRef(s.machine.GetOwnerReferences(), metav1.OwnerReference{
@@ -882,7 +882,7 @@ func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bo
 		if err := r.Client.Delete(ctx, s.bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
 			return false, errors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
-				s.bootstrapConfig.GroupVersionKind(), s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
+				s.bootstrapConfig.GroupVersionKind().Kind, s.bootstrapConfig.GetName(), s.machine.Name, s.machine.Namespace)
 		}
 	}
 
@@ -899,7 +899,7 @@ func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, s *scope
 		if err := r.Client.Delete(ctx, s.infraMachine); err != nil && !apierrors.IsNotFound(err) {
 			return false, errors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
-				s.infraMachine.GroupVersionKind(), s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
+				s.infraMachine.GroupVersionKind().Kind, s.infraMachine.GetName(), s.machine.Name, s.machine.Namespace)
 		}
 	}
 

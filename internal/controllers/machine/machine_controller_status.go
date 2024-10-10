@@ -86,21 +86,10 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) {
 
 func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, bootstrapConfig *unstructured.Unstructured, bootstrapConfigIsNotFound bool) {
 	if machine.Spec.Bootstrap.ConfigRef == nil {
-		if ptr.Deref(machine.Spec.Bootstrap.DataSecretName, "") != "" {
-			v1beta2conditions.Set(machine, metav1.Condition{
-				Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-				Status: metav1.ConditionTrue,
-				Reason: clusterv1.MachineBootstrapDataSecretDataSecretUserProvidedV1Beta2Reason,
-			})
-			return
-		}
-
-		// Note: validation web hooks should prevent invalid configuration to happen.
 		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-			Status:  metav1.ConditionFalse,
-			Reason:  clusterv1.MachineBootstrapInvalidConfigV1Beta2Reason,
-			Message: "Either spec.bootstrap.configRef must be set or spec.bootstrap.dataSecretName must not be empty",
+			Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachineBootstrapDataSecretProvidedV1Beta2Reason,
 		})
 		return
 	}

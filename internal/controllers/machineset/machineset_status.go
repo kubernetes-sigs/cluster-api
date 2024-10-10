@@ -48,17 +48,20 @@ func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
 	// Conditions
 
 	// MachinesReady
-	if err := v1beta2conditions.SetAggregateCondition(s.machines, s.machineSet,
-		clusterv1.MachineReadyV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition),
-	); err != nil {
+	readyCondition, err := v1beta2conditions.NewAggregateCondition(
+		s.machines, clusterv1.MachineReadyV1Beta2Condition,
+		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition))
+	if err != nil {
 		v1beta2conditions.Set(s.machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  "TODOFailedDuringAggregation",
 			Message: "something TODO at MachinesReady",
 		})
+	} else if readyCondition.Status == metav1.ConditionTrue {
+		readyCondition.Message = "All Machines are ready."
 	}
+	v1beta2conditions.Set(s.machineSet, *readyCondition)
 
 	// MachinesUpToDate
 	if err := v1beta2conditions.SetAggregateCondition(s.machines, s.machineSet,
@@ -126,9 +129,10 @@ func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machi
 	}
 
 	v1beta2conditions.Set(ms, metav1.Condition{
-		Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
-		Status: metav1.ConditionFalse,
-		Reason: "NotScalingUp", // TODO: create a const.
+		Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  "NotScalingUp", // TODO: create a const.
+		Message: "MachineSet is not scaling up",
 	})
 }
 
@@ -150,9 +154,10 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 
 	if int32(len(machines)) <= (desiredReplicas) {
 		v1beta2conditions.Set(ms, metav1.Condition{
-			Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
-			Status: metav1.ConditionFalse,
-			Reason: "NotScalingDown", // TODO: create a const.
+			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "NotScalingDown", // TODO: create a const.
+			Message: "MachineSet is not scaling down",
 		})
 		return
 	}

@@ -51,7 +51,7 @@ func (o *AggregateOptions) ApplyOptions(opts []AggregateOption) *AggregateOption
 // the TargetConditionType option.
 //
 // Additionally, it is possible to inject custom merge strategies using the CustomMergeStrategy option.
-func NewAggregateCondition(sourceObjs []Getter, sourceConditionType string, opts ...AggregateOption) (*metav1.Condition, error) {
+func NewAggregateCondition[T Getter](sourceObjs []T, sourceConditionType string, opts ...AggregateOption) (*metav1.Condition, error) {
 	if len(sourceObjs) == 0 {
 		return nil, errors.New("sourceObjs can't be empty")
 	}
@@ -118,7 +118,7 @@ func NewAggregateCondition(sourceObjs []Getter, sourceConditionType string, opts
 
 // SetAggregateCondition is a convenience method that calls NewAggregateCondition to create an aggregate condition from the source objects,
 // and then calls Set to add the new condition to the target object.
-func SetAggregateCondition(sourceObjs []Getter, targetObj Setter, conditionType string, opts ...AggregateOption) error {
+func SetAggregateCondition[T Getter](sourceObjs []T, targetObj Setter, conditionType string, opts ...AggregateOption) error {
 	aggregateCondition, err := NewAggregateCondition(sourceObjs, conditionType, opts...)
 	if err != nil {
 		return err

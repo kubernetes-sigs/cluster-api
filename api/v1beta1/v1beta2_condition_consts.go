@@ -91,9 +91,9 @@ const (
 	// (e.g. its status is missing).
 	InvalidConditionReportedV1Beta2Reason = "InvalidConditionReported"
 
-	// NoV1Beta2ReasonReported applies to a condition, usually read from an external object, that reports no reason.
+	// NoReasonReportedV1Beta2Reason applies to a condition, usually read from an external object, that reports no reason.
 	// Note: this could happen e.g. when an external object still uses Cluster API v1beta1 Conditions.
-	NoV1Beta2ReasonReported = "NoReasonReported"
+	NoReasonReportedV1Beta2Reason = "NoReasonReported"
 
 	// InternalErrorV1Beta2Reason surfaces unexpected errors reporting by controllers.
 	// In most cases, it will be required to look at controllers logs to properly triage those issues.

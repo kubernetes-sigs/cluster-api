@@ -82,16 +82,16 @@ func DefaultMergeStrategyWithCustomPriority(getPriorityFunc func(condition metav
 
 func newDefaultMergeStrategy(negativePolarityConditionTypes sets.Set[string]) MergeStrategy {
 	return &defaultMergeStrategy{
-		getPriorityFunc: GetDefaultMergePriority(negativePolarityConditionTypes),
+		getPriorityFunc: GetDefaultMergePriorityFunc(negativePolarityConditionTypes),
 	}
 }
 
-// GetDefaultMergePriority returns the merge priority for each condition.
+// GetDefaultMergePriorityFunc returns the merge priority for each condition.
 // It assigns following priority values to conditions:
 // - issues: conditions with positive polarity (normal True) and status False or conditions with negative polarity (normal False) and status True.
 // - unknown: conditions with status unknown.
 // - info: conditions with positive polarity (normal True) and status True or conditions with negative polarity (normal False) and status False.
-func GetDefaultMergePriority(negativePolarityConditionTypes sets.Set[string]) func(condition metav1.Condition) MergePriority {
+func GetDefaultMergePriorityFunc(negativePolarityConditionTypes sets.Set[string]) func(condition metav1.Condition) MergePriority {
 	return func(condition metav1.Condition) MergePriority {
 		switch condition.Status {
 		case metav1.ConditionTrue:

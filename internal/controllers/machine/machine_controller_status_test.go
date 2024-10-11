@@ -132,8 +132,12 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing (ready true)",
-			machine: defaultMachine.DeepCopy(),
+			name: "Use status.BoostrapReady flag as a fallback Ready condition from bootstrap config is missing (ready true)",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.Status.BootstrapReady = true
+				return m
+			}(),
 			bootstrapConfig: &unstructured.Unstructured{Object: map[string]interface{}{
 				"kind":       "GenericBootstrapConfig",
 				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -148,9 +152,9 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 			bootstrapConfigIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
+				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason,
-				Message: "GenericBootstrapConfig status.ready is false",
+				Message: "GenericBootstrapConfig status.ready is true",
 			},
 		},
 		{
@@ -322,8 +326,12 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:    "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing (ready true)",
-			machine: defaultMachine.DeepCopy(),
+			name: "Use status.InfrastructureReady flag as a fallback Ready condition from infra machine is missing (ready true)",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				m.Status.InfrastructureReady = true
+				return m
+			}(),
 			infraMachine: &unstructured.Unstructured{Object: map[string]interface{}{
 				"kind":       "GenericInfrastructureMachine",
 				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
@@ -338,9 +346,9 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 			infraMachineIsNotFound: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineInfrastructureReadyV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
+				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineInfrastructureReadyNoReasonReportedV1Beta2Reason,
-				Message: "GenericInfrastructureMachine status.ready is false",
+				Message: "GenericInfrastructureMachine status.ready is true",
 			},
 		},
 		{

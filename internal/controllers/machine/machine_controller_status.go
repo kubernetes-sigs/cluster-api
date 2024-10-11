@@ -234,7 +234,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Ma
 			}
 			reason := condition.Reason
 			if reason == "" {
-				reason = clusterv1.NoV1Beta2ReasonReported
+				reason = clusterv1.NoReasonReportedV1Beta2Reason
 			}
 			nodeReady = &metav1.Condition{
 				Type:               clusterv1.MachineNodeReadyV1Beta2Condition,
@@ -461,7 +461,7 @@ func (c machineConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 			}
 			// Note: MachineNodeReadyV1Beta2Condition is not relevant for the summary.
 		}
-		return v1beta2conditions.GetDefaultMergePriority(nil)(condition)
+		return v1beta2conditions.GetDefaultMergePriorityFunc(nil)(condition)
 	}).Merge(conditions, conditionTypes)
 }
 

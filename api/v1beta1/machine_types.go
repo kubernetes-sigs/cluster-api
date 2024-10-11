@@ -143,7 +143,7 @@ const (
 	MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
 
 	// MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason applies to a BootstrapConfig Ready condition (read from a bootstrap config object) that reports no reason.
-	MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason = NoV1Beta2ReasonReported
+	MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
 
 	// MachineBootstrapConfigInternalErrorV1Beta2Reason surfaces unexpected failures when reading a BootstrapConfig object.
 	MachineBootstrapConfigInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
@@ -169,7 +169,7 @@ const (
 	MachineInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
 
 	// MachineInfrastructureReadyNoReasonReportedV1Beta2Reason applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
-	MachineInfrastructureReadyNoReasonReportedV1Beta2Reason = NoV1Beta2ReasonReported
+	MachineInfrastructureReadyNoReasonReportedV1Beta2Reason = NoReasonReportedV1Beta2Reason
 
 	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading a infra machine object.
 	MachineInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason

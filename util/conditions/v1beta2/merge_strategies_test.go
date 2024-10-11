@@ -108,7 +108,7 @@ func TestSplitConditionsByPriority(t *testing.T) {
 		{OwnerResource: ConditionOwnerInfo{Name: "baz"}, Condition: metav1.Condition{Type: "!C", Status: metav1.ConditionFalse}},   // info
 	}
 
-	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, GetDefaultMergePriority(sets.New[string]("!C")))
+	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, GetDefaultMergePriorityFunc(sets.New[string]("!C")))
 
 	// Check condition are grouped as expected and order is preserved.
 
@@ -196,7 +196,7 @@ func TestDefaultMergePriority(t *testing.T) {
 			if tt.negativePolarity {
 				negativePolarityConditionTypes.Insert(tt.condition.Type)
 			}
-			gotPriority := GetDefaultMergePriority(negativePolarityConditionTypes)(tt.condition)
+			gotPriority := GetDefaultMergePriorityFunc(negativePolarityConditionTypes)(tt.condition)
 
 			g.Expect(gotPriority).To(Equal(tt.wantPriority))
 		})

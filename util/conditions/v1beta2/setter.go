@@ -75,7 +75,7 @@ func Set(targetObj Setter, condition metav1.Condition, opts ...SetOption) {
 	}
 
 	setOpt := &SetOptions{
-		// By default, sort conditions by the default condition order: first available, then ready, then the other conditions in alphabetical order.
+		// By default, sort conditions by the default condition order: available and ready always first, deleting and paused always last, all the other conditions in alphabetical order.
 		conditionSortFunc: defaultSortLessFunc,
 	}
 	setOpt.ApplyOptions(opts)

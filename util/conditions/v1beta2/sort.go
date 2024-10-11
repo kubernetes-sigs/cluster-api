@@ -16,22 +16,48 @@ limitations under the License.
 
 package v1beta2
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-const (
-	// AvailableCondition documents availability for an object.
-	// TODO: Move to the API package.
-	AvailableCondition = "Available"
-
-	// ReadyCondition documents readiness for an object.
-	// TODO: Move to the API package.
-	ReadyCondition = "Ready"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // defaultSortLessFunc returns true if a condition is less than another with regards to the
 // order of conditions designed for convenience of the consumer, i.e. kubectl get.
-// According to this order the Available and the Ready condition always goes first, followed by all the other
-// conditions sorted by Type.
+// According to this order the Available and the Ready condition always goes first, Deleting and Paused always goes last,
+// and all the other conditions are sorted by Type.
 func defaultSortLessFunc(i, j metav1.Condition) bool {
-	return (i.Type == AvailableCondition || (i.Type == ReadyCondition || i.Type < j.Type) && j.Type != ReadyCondition) && j.Type != AvailableCondition
+	fi, oki := first[i.Type]
+	fj, okj := first[j.Type]
+	switch {
+	case oki && !okj:
+		return true
+	case !oki && okj:
+		return false
+	case oki && okj:
+		return fi < fj
+	}
+
+	li, oki := last[i.Type]
+	lj, okj := last[j.Type]
+	switch {
+	case oki && !okj:
+		return false
+	case !oki && okj:
+		return true
+	case oki && okj:
+		return li < lj
+	}
+
+	return i.Type < j.Type
+}
+
+var first = map[string]int{
+	clusterv1.AvailableV1Beta2Condition: 0,
+	clusterv1.ReadyV1Beta2Condition:     1,
+}
+
+var last = map[string]int{
+	clusterv1.PausedV1Beta2Condition:   0,
+	clusterv1.DeletingV1Beta2Condition: 1,
 }

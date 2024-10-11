@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -40,10 +41,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},    // info
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-!C", Message: "Message-!C"}, // issue
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse, // False because there is one issue
 				Reason:  "Reason-!C",           // Picking the reason from the only existing issue
 				Message: "!C: Message-!C",      // messages from all the issues & unknown conditions (info dropped)
@@ -56,10 +57,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A"},   // info
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-!C"}, // issue
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,             // False because there is one issue
 				Reason:  "Reason-!C",                       // Picking the reason from the only existing issue
 				Message: "!C: No additional info provided", // messages from all the issues & unknown conditions (info dropped); since message is empty, a default one is added
@@ -72,10 +73,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},    // info
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-!C", Message: "Message-!C"}, // issue
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,          // False because there are many issues
 				Reason:  MultipleIssuesReportedReason,   // Using a generic reason
 				Message: "B: Message-B; !C: Message-!C", // messages from all the issues & unknown conditions (info dropped)
@@ -88,10 +89,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionUnknown, Reason: "Reason-A", Message: "Message-A"}, // unknown
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-!C", Message: "Message-!C"}, // issue
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,                        // False because there are many issues
 				Reason:  MultipleIssuesReportedReason,                 // Using a generic reason
 				Message: "B: Message-B; !C: Message-!C; A: Message-A", // messages from all the issues & unknown conditions (info dropped)
@@ -104,10 +105,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},       // info
 				{Type: "!C", Status: metav1.ConditionUnknown, Reason: "Reason-!C", Message: "Message-!C"}, // unknown
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown, // Unknown because there is one unknown
 				Reason:  "Reason-!C",             // Picking the reason from the only existing unknown
 				Message: "!C: Message-!C",        // messages from all the issues & unknown conditions (info dropped)
@@ -120,10 +121,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},       // info
 				{Type: "!C", Status: metav1.ConditionUnknown, Reason: "Reason-!C", Message: "Message-!C"}, // unknown
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,        // Unknown because there are many unknown
 				Reason:  MultipleUnknownReportedReason,  // Using a generic reason
 				Message: "B: Message-B; !C: Message-!C", // messages from all the issues & unknown conditions (info dropped)
@@ -137,10 +138,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: ""},              // info
 				{Type: "!C", Status: metav1.ConditionFalse, Reason: "Reason-!C", Message: "Message-!C"}, // info
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}, CustomMergeStrategy{newDefaultMergeStrategy()}},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionTrue,           // True because there are many info
 				Reason:  MultipleInfoReportedReason,     // Using a generic reason
 				Message: "B: Message-B; !C: Message-!C", // messages from all the info conditions (empty messages are dropped)
@@ -152,10 +153,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"}, // info
 				// B and !C missing
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}}, // B and !C are required!
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,                                              // Unknown because there more than one unknown
 				Reason:  MultipleUnknownReportedReason,                                        // Using a generic reason
 				Message: "B: Condition B not yet reported; !C: Condition !C not yet reported", // messages from all the issues & unknown conditions (info dropped)
@@ -167,10 +168,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"}, // info
 				// B and !C missing
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"B"}}, // B and !C are required!
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,             // Unknown because there more than one unknown
 				Reason:  NotYetReportedReason,                // Picking the reason from the only existing issue, which is a default missing condition added for !C
 				Message: "!C: Condition !C not yet reported", // messages from all the issues & unknown conditions (info dropped)
@@ -182,10 +183,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"}, // info
 				// B and !C missing
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"B", "!C"}}, // A is required!
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionTrue, // True because B and !C are ignored
 				Reason:  "Reason-A",           // Picking the reason from A, the only existing info
 				Message: "A: Message-A",       // messages from A, the only existing info
@@ -198,10 +199,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: ""},                // info
 				{Type: "!C", Status: metav1.ConditionUnknown, Reason: "Reason-!C", Message: "Message-!C"}, // unknown
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B"}}, // C not in scope
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionTrue,       // True because there are many info
 				Reason:  MultipleInfoReportedReason, // Using a generic reason
 				Message: "B: Message-B",             // messages from all the info conditions (empty messages are dropped)
@@ -214,10 +215,10 @@ func TestSummary(t *testing.T) {
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: ""},                // info
 				{Type: "!C", Status: metav1.ConditionUnknown, Reason: "Reason-!C", Message: "Message-!C"}, // unknown
 			},
-			conditionType: AvailableCondition,
+			conditionType: clusterv1.AvailableV1Beta2Condition,
 			options:       []SummaryOption{ForConditionTypes{"A", "B", "!C"}, NegativePolarityConditionTypes{"!C"}, StepCounter(true)},
 			want: &metav1.Condition{
-				Type:    AvailableCondition,
+				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,            // Unknown because there is one unknown
 				Reason:  "Reason-!C",                        // Picking the reason from the only existing unknown
 				Message: "2 of 3 completed; !C: Message-!C", // step counter + messages from all the issues & unknown conditions (info dropped)
@@ -249,14 +250,14 @@ func TestSummary(t *testing.T) {
 	t.Run("Fails if conditions type is not provided", func(t *testing.T) {
 		g := NewWithT(t)
 		obj := &builder.Phase3Obj{}
-		_, err := NewSummaryCondition(obj, AvailableCondition) // no ForConditionTypes --> Condition in scope will be empty
+		_, err := NewSummaryCondition(obj, clusterv1.AvailableV1Beta2Condition) // no ForConditionTypes --> Condition in scope will be empty
 		g.Expect(err).To(HaveOccurred())
 	})
 
 	t.Run("Fails if conditions in scope are empty", func(t *testing.T) {
 		g := NewWithT(t)
 		obj := &builder.Phase3Obj{}
-		_, err := NewSummaryCondition(obj, AvailableCondition, ForConditionTypes{"A"}, IgnoreTypesIfMissing{"A"}) // no condition for the object, missing condition ignored --> Condition in scope will be empty
+		_, err := NewSummaryCondition(obj, clusterv1.AvailableV1Beta2Condition, ForConditionTypes{"A"}, IgnoreTypesIfMissing{"A"}) // no condition for the object, missing condition ignored --> Condition in scope will be empty
 		g.Expect(err).To(HaveOccurred())
 	})
 }

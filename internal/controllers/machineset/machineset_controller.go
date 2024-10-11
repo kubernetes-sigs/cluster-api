@@ -55,6 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels/format"
@@ -123,14 +124,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
 			),
@@ -178,12 +177,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return ctrl.Result{}, err
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, machineSet) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
 	s := &scope{
 		cluster:    cluster,
 		machineSet: machineSet,
@@ -196,15 +189,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	}
 
 	defer func() {
-		r.reconcileStatus(ctx, s)
+		isPaused := v1beta2conditions.SetPausedCondition(s.cluster, s.machineSet)
+		if !isPaused {
+			r.reconcileStatus(ctx, s)
 
-		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
-			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update v1beta1 status")})
-		}
+			if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
+				reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update v1beta1 status")})
+			}
 
-		// Adjust requeue for scaleups
-		if s.machineSet.DeletionTimestamp.IsZero() && reterr == nil {
-			retres = util.LowestNonZeroResult(retres, requeueAfterWaitingForNodes(s))
+			// Adjust requeue for scaleups
+			if s.machineSet.DeletionTimestamp.IsZero() && reterr == nil {
+				retres = util.LowestNonZeroResult(retres, requeueAfterWaitingForNodes(s))
+			}
 		}
 
 		// Always attempt to patch the object and status after each reconciliation.
@@ -212,6 +208,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
+
+	// Return early if the object or Cluster is paused.
+	if annotations.IsPaused(cluster, machineSet) {
+		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
 
 	alwaysReconcile := []machineSetReconcileFunc{
 		wrapErrMachineSetReconcileFunc(r.reconcileInfrastructure, "failed to reconcile infrastructure"),

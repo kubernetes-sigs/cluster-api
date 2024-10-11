@@ -22,16 +22,20 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func TestDefaultSortLessFunc(t *testing.T) {
 	g := NewWithT(t)
 
 	conditions := []metav1.Condition{
+		{Type: clusterv1.DeletingV1Beta2Condition},
 		{Type: "B"},
-		{Type: AvailableCondition},
+		{Type: clusterv1.AvailableV1Beta2Condition},
 		{Type: "A"},
-		{Type: ReadyCondition},
+		{Type: clusterv1.PausedV1Beta2Condition},
+		{Type: clusterv1.ReadyV1Beta2Condition},
 		{Type: "C!"},
 	}
 
@@ -40,10 +44,12 @@ func TestDefaultSortLessFunc(t *testing.T) {
 	})
 
 	g.Expect(conditions).To(Equal([]metav1.Condition{
-		{Type: AvailableCondition},
-		{Type: ReadyCondition},
+		{Type: clusterv1.AvailableV1Beta2Condition},
+		{Type: clusterv1.ReadyV1Beta2Condition},
 		{Type: "A"},
 		{Type: "B"},
 		{Type: "C!"},
+		{Type: clusterv1.PausedV1Beta2Condition},
+		{Type: clusterv1.DeletingV1Beta2Condition},
 	}))
 }

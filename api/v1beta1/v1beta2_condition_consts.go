@@ -83,6 +83,12 @@ const (
 	// Please use object specific variants of this condition which provides more details for each context where
 	// the same condition type exists.
 	PausedV1Beta2Condition = "Paused"
+
+	// ResourceNotPausedV1Beta2Reason surfaces when a resource has been paused.
+	ResourceNotPausedV1Beta2Reason = "ResourceNotPaused"
+
+	// ResourcePausedV1Beta2Reason surfaces when a resource is not paused.
+	ResourcePausedV1Beta2Reason = "ResourcePaused"
 )
 
 // Reasons that are used across different objects.

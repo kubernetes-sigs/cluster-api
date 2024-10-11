@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/cache"
+	kcache "k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -53,8 +53,8 @@ type Cache interface {
 
 // NewCache creates a new cache.
 func NewCache() Cache {
-	r := &retryCache{
-		Store: cache.NewTTLStore(func(obj interface{}) (string, error) {
+	r := &cache{
+		Store: kcache.NewTTLStore(func(obj interface{}) (string, error) {
 			// We only add CacheEntries to the cache, so it's safe to cast to CacheEntry.
 			return obj.(CacheEntry).Machine.String(), nil
 		}, ttl),
@@ -72,13 +72,13 @@ func NewCache() Cache {
 	return r
 }
 
-type retryCache struct {
-	cache.Store
+type cache struct {
+	kcache.Store
 }
 
 // Add adds the given entry to the Cache.
 // Note: entries expire after the ttl.
-func (r *retryCache) Add(entry CacheEntry) {
+func (r *cache) Add(entry CacheEntry) {
 	// Note: We can ignore the error here because by only allowing CacheEntries
 	// and providing the corresponding keyFunc ourselves we can guarantee that
 	// the error never occurs.
@@ -87,7 +87,7 @@ func (r *retryCache) Add(entry CacheEntry) {
 
 // Has checks if the given key (still) exists in the Cache.
 // Note: entries expire after the ttl.
-func (r *retryCache) Has(machineName types.NamespacedName) (CacheEntry, bool) {
+func (r *cache) Has(machineName types.NamespacedName) (CacheEntry, bool) {
 	// Note: We can ignore the error here because GetByKey never returns an error.
 	item, exists, _ := r.Store.GetByKey(machineName.String())
 	if exists {

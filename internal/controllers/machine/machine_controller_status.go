@@ -230,11 +230,15 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Ma
 				if condition.Message != "" {
 					message = fmt.Sprintf("%s (from Node)", condition.Message)
 				}
+				reason := condition.Reason
+				if reason == "" {
+					reason = clusterv1.NoV1Beta2ReasonReported
+				}
 				nodeReady = &metav1.Condition{
 					Type:               clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:             metav1.ConditionStatus(condition.Status),
 					LastTransitionTime: condition.LastTransitionTime,
-					Reason:             condition.Reason,
+					Reason:             reason,
 					Message:            message,
 				}
 			}

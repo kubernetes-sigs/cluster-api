@@ -153,12 +153,12 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetInterruptibleNodeLabel", s.node.Name)
 	}
 
-	// Do the remaining node health checks, then set the node health to true if all checks pass.
 	if s.infraMachine == nil || !s.infraMachine.GetDeletionTimestamp().IsZero() {
 		conditions.MarkFalse(s.machine, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
+	// Do the remaining node health checks, then set the node health to true if all checks pass.
 	status, message := summarizeNodeConditions(s.node)
 	if status == corev1.ConditionFalse {
 		conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeConditionsFailedReason, clusterv1.ConditionSeverityWarning, message)

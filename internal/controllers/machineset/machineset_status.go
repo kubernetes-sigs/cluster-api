@@ -76,9 +76,6 @@ func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
 		})
 	}
 
-	// Paused
-	// TODO(chrischdi): setPausedCondition(s.machineSet)
-
 	// Deleting
 	setDeletingCondition(s.machineSet)
 }
@@ -178,14 +175,6 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 		Message: fmt.Sprintf("The MachineSet currently has %d replicas but should only have %d", len(machines), desiredReplicas),
 	})
 }
-
-// func setPausedCondition(ms *clusterv1.MachineSet) {
-// 	v1beta2conditions.Set(ms, metav1.Condition{
-// 		Type:   clusterv1.MachineSetPausedV1Beta2Condition,
-// 		Status: metav1.ConditionFalse,
-// 		Reason: "NotPaused", // TODO: create a const.
-// 	})
-// }
 
 func setDeletingCondition(ms *clusterv1.MachineSet) {
 	if !ms.DeletionTimestamp.IsZero() {

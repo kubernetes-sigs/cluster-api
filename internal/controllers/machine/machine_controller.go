@@ -17,7 +17,6 @@ limitations under the License.
 package machine
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"slices"
@@ -62,8 +61,8 @@ import (
 )
 
 const (
-	drainRetryInterval          = time.Duration(20) * time.Second
-	waitForVolumeDetachInterval = time.Duration(20) * time.Second
+	drainRetryInterval               = time.Duration(20) * time.Second
+	waitForVolumeDetachRetryInterval = time.Duration(20) * time.Second
 )
 
 var (
@@ -697,7 +696,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	if err := remoteClient.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
-			log.Error(err, "Could not find node from noderef, it may have already been deleted")
+			log.Error(err, "Could not find Node from Machine.status.nodeRef, skip waiting for volume detachment")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, errors.Wrapf(err, "unable to get Node %s", nodeName)
@@ -833,63 +832,53 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 	// Get two sets of information about volumes currently attached to the node:
 	// * VolumesAttached names from node.Status.VolumesAttached
 	// * PersistentVolume names from VolumeAttachments with status.Attached set to true
-	attachedVolumeNames, attachedPVNames, err := getAttachedVolumeInformation(ctx, remoteClient, node)
+	attachedNodeVolumeNames, attachedPVNames, err := getAttachedVolumeInformation(ctx, remoteClient, node)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// Return early if there are no volumes to wait for getting detached.
-	if len(attachedVolumeNames) == 0 && len(attachedPVNames) == 0 {
+	if len(attachedNodeVolumeNames) == 0 && len(attachedPVNames) == 0 {
 		return ctrl.Result{}, nil
 	}
 
-	// Check waitForVolumeDetach cache to ensure we won't retry before waitForVolumeDetachInterval.
+	// Check waitForVolumeDetach cache to ensure we won't retry before waitForVolumeDetachRetryInterval.
 	// Note: This is intentionally only done if we have volumes to wait for, because otherwise
 	// even the "no-op" wait would be requeued.
 	if cacheEntry, ok := r.waitForVolumeDetachCache.Has(client.ObjectKeyFromObject(machine)); ok {
-		if requeueAfter, requeue := shouldRequeue(time.Now(), cacheEntry.LastProcessed, waitForVolumeDetachInterval); requeue {
-			log.Info(fmt.Sprintf("Requeuing in %s because there already was a wiat for node volumes in the last %s", requeueAfter, waitForVolumeDetachInterval))
+		if requeueAfter, requeue := shouldRequeue(time.Now(), cacheEntry.LastProcessed, waitForVolumeDetachRetryInterval); requeue {
+			log.Info(fmt.Sprintf("Requeuing in %s because we already checked if there are still attached volumes in the last %s", requeueAfter.Truncate(time.Second/10), waitForVolumeDetachRetryInterval))
 			return ctrl.Result{RequeueAfter: requeueAfter}, nil
 		}
 	}
 
-	// Add entry to the cache so we won't retry before waitForVolumeDetachInterval.
+	// Add entry to the cache so we won't retry before waitForVolumeDetachRetryInterval.
 	r.waitForVolumeDetachCache.Add(drain.CacheEntry{
 		Machine:       client.ObjectKeyFromObject(machine),
 		LastProcessed: time.Now(),
 	})
 
-	// Get all PVCs we want to ignore because they have pods running which should skip drain.
+	// Get all PVCs we want to ignore because they belong to Pods for which we skipped drain.
 	pvcsToIgnoreFromPods, err := getPersistentVolumeClaimsToIgnore(ctx, remoteClient, nodeName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	// List all PersistentVolumes and return the ones we want to wait for.
-	pvsWaitingForDetach, attachedVolumeHandlesWithoutPV, attachedPVNamesWithoutPV, err := getPersistentVolumesWaitingForDetach(ctx, remoteClient, attachedVolumeNames, attachedPVNames, pvcsToIgnoreFromPods)
+	attachedVolumeInformation, err := getPersistentVolumesWaitingForDetach(ctx, remoteClient, attachedNodeVolumeNames, attachedPVNames, pvcsToIgnoreFromPods)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// If no pvs were found we have to wait for and there are no unmatched VolumeHandles
-	// or PVs from VolumeAttachments, then we are finished with waiting for volumes.
-	if len(pvsWaitingForDetach) == 0 && len(attachedVolumeHandlesWithoutPV) == 0 && len(attachedPVNamesWithoutPV) == 0 {
+	// If no pvcs were found we have to wait for and there is no unmatched information, then we are finished with waiting for volumes.
+	if attachedVolumeInformation.isEmpty() {
 		return ctrl.Result{}, nil
 	}
 
-	// Otherwise log the referred PersistentVolumeClaims (max 5) we are still waiting for to be detached.
-	// Sort the slice before logging to be deterministic.
-	slices.SortFunc(pvsWaitingForDetach, func(a *corev1.PersistentVolume, b *corev1.PersistentVolume) int {
-		return cmp.Compare(a.GetName(), b.GetName())
-	})
-	slices.Sort(attachedVolumeHandlesWithoutPV)
-	slices.Sort(attachedPVNamesWithoutPV)
 	log.Info("Waiting for Node volumes to be detached",
-		"PersistentVolumeClaims", clog.ObjNamesString(pvsWaitingForDetach),
-		"NodeStatusVolumeHandlesWithoutPV", clog.StringListToString(attachedVolumeHandlesWithoutPV),
-		"VolumeAttachmentPVsWithoutPV", clog.StringListToString(attachedPVNamesWithoutPV),
+		attachedVolumeInformation.logKeys()...,
 	)
-	return ctrl.Result{RequeueAfter: waitForVolumeDetachInterval}, nil
+	return ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval}, nil
 }
 
 func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
@@ -1106,13 +1095,13 @@ func getAttachedVolumeInformation(ctx context.Context, remoteClient client.Clien
 
 	volumeAttachments, err := getVolumeAttachmentForNode(ctx, remoteClient, node.GetName())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, "failed to list VolumeAttachments")
 	}
 
 	for _, va := range volumeAttachments {
 		// Return an error if a VolumeAttachments does not refer a PersistentVolume.
 		if va.Spec.Source.PersistentVolumeName == nil {
-			return nil, nil, errors.Errorf("PersistentVolumeName for VolumeAttachment %s is nil", va.GetName())
+			return nil, nil, errors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
 		}
 		attachedPVNames.Insert(*va.Spec.Source.PersistentVolumeName)
 	}
@@ -1130,7 +1119,7 @@ func getPersistentVolumeClaimsToIgnore(ctx context.Context, remoteClient client.
 
 	pods, err := drainHelper.GetPodsForEviction(ctx, nodeName)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to find PersistentVolumeClaims from Pods ignored during drain")
 	}
 
 	ignoredPods := pods.IgnoredPods()
@@ -1162,7 +1151,7 @@ func getVolumeAttachmentForNode(ctx context.Context, c client.Client, nodeName s
 			client.Limit(100),
 		}
 		if err := c.List(ctx, volumeAttachmentList, listOpts...); err != nil {
-			return nil, errors.Wrapf(err, "failed to list %T", volumeAttachmentList)
+			return nil, errors.Wrap(err, "failed to list VolumeAttachments")
 		}
 
 		for _, volumeAttachment := range volumeAttachmentList.Items {
@@ -1185,14 +1174,58 @@ func getVolumeAttachmentForNode(ctx context.Context, c client.Client, nodeName s
 	return volumeAttachments, nil
 }
 
+type attachedVolumeInformation struct {
+	// Attached PersistentVolumeClaims.
+	persistentVolumeClaims []string
+
+	// Attached PersistentVolumes without a corresponding PersistentVolumeClaim.
+	persistentVolumesWithoutPVCClaimRef []string
+
+	// Entries in Node.Status.AttachedVolumes[].Name without a corresponding PersistentVolume.
+	nodeStatusVolumeNamesWithoutPV []string
+	// Names of PersistentVolumes from VolumeAttachments which don't have a corresponding PersistentVolume.
+	persistentVolumeNamesWithoutPV []string
+}
+
+func (a *attachedVolumeInformation) isEmpty() bool {
+	return len(a.persistentVolumeClaims) == 0 &&
+		len(a.persistentVolumesWithoutPVCClaimRef) == 0 &&
+		len(a.nodeStatusVolumeNamesWithoutPV) == 0 &&
+		len(a.persistentVolumeNamesWithoutPV) == 0
+}
+
+func (a *attachedVolumeInformation) logKeys() []any {
+	logKeys := []any{}
+	if len(a.persistentVolumeClaims) > 0 {
+		slices.Sort(a.persistentVolumeClaims)
+		logKeys = append(logKeys, "PersistentVolumeClaims", clog.StringListToString(a.persistentVolumeClaims))
+	}
+
+	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
+		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
+		logKeys = append(logKeys, "PersistentVolumesWithoutPVCClaimRef", clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+	}
+
+	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
+		logKeys = append(logKeys, "NodeStatusVolumeNamesWithoutPV", clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+	}
+
+	if len(a.persistentVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.persistentVolumeNamesWithoutPV)
+		logKeys = append(logKeys, "PersistentVolumeNamesWithoutPV", clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+	}
+
+	return logKeys
+}
+
 // getPersistentVolumesWaitingForDetach returns a list of all persistentVolumes which either have
 // the calculated AttachedVolume name in attachedVolumeNames or their name in attachedPVNames.
 // PersistentVolumes which refer a PersistentVolumeClaim contained in pvcsToIgnore are filtered out.
 // If there are names in attachedVolumeNames or attachedPVNames without a corresponding PV, this returns an error.
-func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, attachedVolumeNames, attachedPVNames, pvcsToIgnore sets.Set[string]) ([]*corev1.PersistentVolume, []string, []string, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	pvsWaitingForDetach := []*corev1.PersistentVolume{}
+func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, attachedNodeVolumeNames, attachedPVNames, pvcsToIgnore sets.Set[string]) (*attachedVolumeInformation, error) {
+	pvcsWaitingForDetach := sets.Set[string]{}
+	persistentVolumesWithoutPVCClaimRef := []string{}
 	foundAttachedVolumeNames := sets.Set[string]{}
 	foundAttachedPVNames := sets.Set[string]{}
 
@@ -1208,7 +1241,7 @@ func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, 
 			client.Limit(100),
 		}
 		if err := c.List(ctx, persistentVolumeList, listOpts...); err != nil {
-			return nil, nil, nil, errors.Wrapf(err, "failed to list %T", persistentVolumeList)
+			return nil, errors.Wrap(err, "failed to list PersistentVolumes")
 		}
 
 		for _, persistentVolume := range persistentVolumeList.Items {
@@ -1216,7 +1249,7 @@ func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, 
 			// Lookup if the PersistentVolume matches an entry in attachedVolumeNames.
 			if persistentVolume.Spec.CSI != nil {
 				attachedVolumeName := fmt.Sprintf("kubernetes.io/csi/%s^%s", persistentVolume.Spec.CSI.Driver, persistentVolume.Spec.CSI.VolumeHandle)
-				if attachedVolumeNames.Has(attachedVolumeName) {
+				if attachedNodeVolumeNames.Has(attachedVolumeName) {
 					foundAttachedVolumeNames.Insert(attachedVolumeName)
 					found = true
 				}
@@ -1234,17 +1267,16 @@ func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, 
 				continue
 			}
 
-			// Ignore PersistentVolumes which refer a PersistentVolumeClaim from pvcsToIgnore.
-			if persistentVolume.Spec.ClaimRef != nil && persistentVolume.Spec.ClaimRef.Kind == "PersistentVolumeClaim" {
-				pvcKey := types.NamespacedName{Namespace: persistentVolume.Spec.ClaimRef.Namespace, Name: persistentVolume.Spec.ClaimRef.Name}.String()
-				if pvcsToIgnore.Has(pvcKey) {
-					log.Info("Ignoring still attached PersistentVolume from undrained Pod", "PersistentVolume", klog.KObj(&persistentVolume), "PersistentVolumeClaim", klog.KRef(persistentVolume.Spec.ClaimRef.Namespace, persistentVolume.Spec.ClaimRef.Name))
-					continue
-				}
+			// The ClaimRef should only be nil for unbound volumes and these should not be able to be attached.
+			// Also we're unable to map references which are not of Kind PersistentVolumeClaim so we record the PersistentVolume instead.
+			if persistentVolume.Spec.ClaimRef == nil || persistentVolume.Spec.ClaimRef.Kind != "PersistentVolumeClaim" {
+				persistentVolumesWithoutPVCClaimRef = append(persistentVolumesWithoutPVCClaimRef, persistentVolume.Name)
+				continue
 			}
 
-			// Add the PersistentVolume to the list we are waiting for being detached.
-			pvsWaitingForDetach = append(pvsWaitingForDetach, &persistentVolume)
+			key := types.NamespacedName{Namespace: persistentVolume.Spec.ClaimRef.Namespace, Name: persistentVolume.Spec.ClaimRef.Name}.String()
+			// Add the PersistentVolumeClaim namespaced name to the list we are waiting for being detached.
+			pvcsWaitingForDetach.Insert(key)
 		}
 
 		if persistentVolumeList.GetContinue() == "" {
@@ -1252,11 +1284,10 @@ func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, 
 		}
 	}
 
-	// Check if for every entry in node.Status.AttachedVolumes, a corresponding PV was found, return an error otherwise.
-	attachedVolumeHandlesWithoutPV := attachedVolumeNames.Difference(foundAttachedVolumeNames)
-
-	// Check if for VolumeAttachment for the node, a corresponding PV was found, return an error otherwise.
-	attachedPVNamesWithoutPV := attachedPVNames.Difference(foundAttachedPVNames)
-
-	return pvsWaitingForDetach, attachedVolumeHandlesWithoutPV.UnsortedList(), attachedPVNamesWithoutPV.UnsortedList(), nil
+	return &attachedVolumeInformation{
+		persistentVolumeClaims:              pvcsWaitingForDetach.Difference(pvcsToIgnore).UnsortedList(),
+		persistentVolumesWithoutPVCClaimRef: persistentVolumesWithoutPVCClaimRef,
+		nodeStatusVolumeNamesWithoutPV:      attachedNodeVolumeNames.Difference(foundAttachedVolumeNames).UnsortedList(),
+		persistentVolumeNamesWithoutPV:      attachedPVNames.Difference(foundAttachedPVNames).UnsortedList(),
+	}, nil
 }

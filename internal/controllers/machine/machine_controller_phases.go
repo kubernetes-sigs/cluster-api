@@ -49,7 +49,7 @@ var externalReadyWait = 30 * time.Second
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
 		if apierrors.IsNotFound(err) {
-			// We want to surface IsNotFound only for the referenced object, so we use a generic error in case CRD is not found.
+			// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
 			return nil, errors.New(err.Error())
 		}
 		return nil, err
@@ -180,6 +180,10 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 		fallBack,
 	)
 
+	if !s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
+		return ctrl.Result{}, nil
+	}
+
 	// If the bootstrap provider is not ready, return.
 	if !ready {
 		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", s.bootstrapConfig.GetKind(), klog.KObj(s.bootstrapConfig))
@@ -233,10 +237,6 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	}
 	s.infraMachine = obj
 
-	if !s.infraMachine.GetDeletionTimestamp().IsZero() {
-		return ctrl.Result{}, nil
-	}
-
 	// Determine if the infrastructure provider is ready.
 	ready, err := external.IsReady(s.infraMachine)
 	if err != nil {
@@ -255,6 +255,10 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 		conditions.UnstructuredGetter(s.infraMachine),
 		fallBack,
 	)
+
+	if !s.infraMachine.GetDeletionTimestamp().IsZero() {
+		return ctrl.Result{}, nil
+	}
 
 	// If the infrastructure provider is not ready (and it wasn't ready before), return early.
 	if !ready && !m.Status.InfrastructureReady {

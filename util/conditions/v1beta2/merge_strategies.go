@@ -74,15 +74,15 @@ type MergeStrategy interface {
 }
 
 // DefaultMergeStrategyWithCustomPriority is the default merge strategy with a customized getPriority function.
-func DefaultMergeStrategyWithCustomPriority(getPriority func(condition metav1.Condition) MergePriority) MergeStrategy {
+func DefaultMergeStrategyWithCustomPriority(getPriorityFunc func(condition metav1.Condition) MergePriority) MergeStrategy {
 	return &defaultMergeStrategy{
-		getPriority: getPriority,
+		getPriorityFunc: getPriorityFunc,
 	}
 }
 
 func newDefaultMergeStrategy(negativePolarityConditionTypes sets.Set[string]) MergeStrategy {
 	return &defaultMergeStrategy{
-		getPriority: GetDefaultMergePriority(negativePolarityConditionTypes),
+		getPriorityFunc: GetDefaultMergePriority(negativePolarityConditionTypes),
 	}
 }
 
@@ -129,7 +129,7 @@ const (
 
 // defaultMergeStrategy defines the default merge strategy for Cluster API conditions.
 type defaultMergeStrategy struct {
-	getPriority func(condition metav1.Condition) MergePriority
+	getPriorityFunc func(condition metav1.Condition) MergePriority
 }
 
 // Merge all conditions in input based on a strategy that surfaces issues first, then unknown conditions, then info (if none of issues and unknown condition exists).
@@ -141,7 +141,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 		return "", "", "", errors.New("can't merge an empty list of conditions")
 	}
 
-	if d.getPriority == nil {
+	if d.getPriorityFunc == nil {
 		return "", "", "", errors.New("can't merge without a getPriority func")
 	}
 
@@ -157,7 +157,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	// sortConditions the relevance defined by the users (the order of condition types), LastTransition time (older first).
 	sortConditions(conditions, conditionTypes)
 
-	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, d.getPriority)
+	issueConditions, unknownConditions, infoConditions := splitConditionsByPriority(conditions, d.getPriorityFunc)
 
 	// Compute the status for the target condition:
 	// Note: This function always returns a condition with positive polarity.
@@ -213,7 +213,7 @@ func (d *defaultMergeStrategy) Merge(conditions []ConditionWithOwnerInfo, condit
 	if isSummaryOperation {
 		messages := []string{}
 		for _, condition := range append(issueConditions, append(unknownConditions, infoConditions...)...) {
-			priority := d.getPriority(condition.Condition)
+			priority := d.getPriorityFunc(condition.Condition)
 			if priority == InfoMergePriority {
 				// Drop info messages when we are surfacing issues or unknown.
 				if status != metav1.ConditionTrue {

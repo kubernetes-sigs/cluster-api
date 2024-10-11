@@ -878,7 +878,7 @@ func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, s *scope) (bo
 		return true, nil
 	}
 
-	if s.bootstrapConfig != nil {
+	if s.bootstrapConfig != nil && s.bootstrapConfig.GetDeletionTimestamp().IsZero() {
 		if err := r.Client.Delete(ctx, s.bootstrapConfig); err != nil && !apierrors.IsNotFound(err) {
 			return false, errors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",
@@ -895,7 +895,7 @@ func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, s *scope
 		return true, nil
 	}
 
-	if s.infraMachine != nil {
+	if s.infraMachine != nil && s.infraMachine.GetDeletionTimestamp().IsZero() {
 		if err := r.Client.Delete(ctx, s.infraMachine); err != nil && !apierrors.IsNotFound(err) {
 			return false, errors.Wrapf(err,
 				"failed to delete %v %q for Machine %q in namespace %q",

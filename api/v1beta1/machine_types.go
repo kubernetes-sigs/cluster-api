@@ -104,7 +104,7 @@ const (
 
 	// MachineAvailableV1Beta2Reason surfaces when a machine is ready for at least MinReadySeconds.
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
-	MachineAvailableV1Beta2Reason = "MachineAvailable"
+	MachineAvailableV1Beta2Reason = AvailableV1Beta2Condition
 )
 
 // Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -124,7 +124,7 @@ const (
 // Note: UpToDate condition is set by the controller owning the machine.
 const (
 	// MachineUpToDateV1Beta2Condition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
-	// The Machine's owner (e.g MachineDeployment) is authoritative to set their owned Machine's UpToDate conditions based on its current spec.
+	// The Machine's owner (e.g. MachineDeployment) is authoritative to set their owned Machine's UpToDate conditions based on its current spec.
 	MachineUpToDateV1Beta2Condition = "UpToDate"
 )
 
@@ -139,11 +139,11 @@ const (
 	MachineBootstrapDataSecretProvidedV1Beta2Reason = "DataSecretProvided"
 
 	// MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason surfaces a BootstrapConfig Ready condition (read from a bootstrap config object) which is invalid.
-	// (e.g. it is status is missing).
-	MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason = InvalidConditionReported
+	// (e.g. its status is missing).
+	MachineBootstrapConfigInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
 
-	// MachineBootstrapConfigReadyNoV1Beta2ReasonReported applies to a BootstrapConfig Ready condition (read from a bootstrap config object) that reports no reason.
-	MachineBootstrapConfigReadyNoV1Beta2ReasonReported = NoV1Beta2ReasonReported
+	// MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason applies to a BootstrapConfig Ready condition (read from a bootstrap config object) that reports no reason.
+	MachineBootstrapConfigReadyNoReasonReportedV1Beta2Reason = NoV1Beta2ReasonReported
 
 	// MachineBootstrapConfigInternalErrorV1Beta2Reason surfaces unexpected failures when reading a BootstrapConfig object.
 	MachineBootstrapConfigInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
@@ -165,11 +165,11 @@ const (
 	MachineInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
 
 	// MachineInfrastructureInvalidConditionReportedV1Beta2Reason surfaces a infrastructure Ready condition (read from an infra machine object) which is invalid.
-	// (e.g. it is status is missing).
-	MachineInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReported
+	// (e.g. its status is missing).
+	MachineInfrastructureInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
 
-	// MachineInfrastructureReadyNoV1Beta2ReasonReported applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
-	MachineInfrastructureReadyNoV1Beta2ReasonReported = NoV1Beta2ReasonReported
+	// MachineInfrastructureReadyNoReasonReportedV1Beta2Reason applies to a infrastructure Ready condition (read from an infra machine object) that reports no reason.
+	MachineInfrastructureReadyNoReasonReportedV1Beta2Reason = NoV1Beta2ReasonReported
 
 	// MachineInfrastructureInternalErrorV1Beta2Reason surfaces unexpected failures when reading a infra machine object.
 	MachineInfrastructureInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
@@ -196,14 +196,14 @@ const (
 	// MachineNodeConditionNotYetReportedV1Beta2Reason surfaces when a Machine's Node doesn't have a condition reported yet.
 	MachineNodeConditionNotYetReportedV1Beta2Reason = "NodeConditionNotYetReported"
 
-	// MachineNodeNotFoundV1Beta2Reason surfaces when the node hosted on the machine cannot be found.
+	// MachineNodeDoesNotExistV1Beta2Reason surfaces when the node hosted on the machine does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
-	MachineNodeNotFoundV1Beta2Reason = "NodeNotFound"
+	MachineNodeDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
 
 	// MachineNodeDeletedV1Beta2Reason surfaces when  the node hosted on the machine has been deleted.
 	// Note: controllers can't identify if the Node was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
-	MachineNodeDeletedV1Beta2Reason = "NodeDeleted"
+	MachineNodeDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
 )
 
 // Machine's HealthCheckSucceeded and OwnerRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
@@ -228,12 +228,6 @@ const (
 const (
 	// MachinePausedV1Beta2Condition is true if the Machine or the Cluster it belongs to are paused.
 	MachinePausedV1Beta2Condition = PausedV1Beta2Condition
-
-	// MachineNotPausedV1Beta2Reason surfaces when a Machine is not paused.
-	MachineNotPausedV1Beta2Reason = NotPausedV1Beta2Reason
-
-	// MachineObjectPausedV1Beta2Reason surfaces when a Machine is paused.
-	MachineObjectPausedV1Beta2Reason = ObjectPausedV1Beta2Reason
 )
 
 // ANCHOR: MachineSpec

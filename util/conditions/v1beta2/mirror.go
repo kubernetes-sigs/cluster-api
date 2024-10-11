@@ -52,7 +52,8 @@ func (o *MirrorOptions) ApplyOptions(opts []MirrorOption) *MirrorOptions {
 }
 
 // NewMirrorCondition create a mirror of the given condition from obj; if the given condition does not exist in the source obj,
-// a new condition with status Unknown, reason NotYetReported is created.
+// the condition specified in the FallbackCondition is used; if this option is not set, a new condition with status Unknown
+// and reason NotYetReported is created.
 //
 // By default, the Mirror condition has the same type as the source condition, but this can be changed by using
 // the TargetConditionType option.
@@ -62,7 +63,7 @@ func NewMirrorCondition(sourceObj Getter, sourceConditionType string, opts ...Mi
 	return newMirrorCondition(sourceObj, condition, sourceConditionType, opts)
 }
 
-func newMirrorCondition(sourceObj any, condition *metav1.Condition, sourceConditionType string, opts []MirrorOption) *metav1.Condition {
+func newMirrorCondition(sourceObj any, sourceCondition *metav1.Condition, sourceConditionType string, opts []MirrorOption) *metav1.Condition {
 	mirrorOpt := &MirrorOptions{
 		targetConditionType: sourceConditionType,
 	}
@@ -70,17 +71,17 @@ func newMirrorCondition(sourceObj any, condition *metav1.Condition, sourceCondit
 
 	conditionOwner := getConditionOwnerInfo(sourceObj)
 
-	if condition != nil {
+	if sourceCondition != nil {
 		message := ""
-		if condition.Message != "" {
-			message = fmt.Sprintf("%s (from %s)", condition.Message, conditionOwner.Kind)
+		if sourceCondition.Message != "" {
+			message = fmt.Sprintf("%s (from %s)", sourceCondition.Message, conditionOwner.Kind)
 		}
 		return &metav1.Condition{
 			Type:   mirrorOpt.targetConditionType,
-			Status: condition.Status,
+			Status: sourceCondition.Status,
 			// NOTE: we are preserving the original transition time (when the underlying condition changed)
-			LastTransitionTime: condition.LastTransitionTime,
-			Reason:             condition.Reason,
+			LastTransitionTime: sourceCondition.LastTransitionTime,
+			Reason:             sourceCondition.Reason,
 			Message:            message,
 			// NOTE: ObservedGeneration will be set when this condition is added to an object by calling Set
 			// (also preserving ObservedGeneration from the source object will be confusing when the mirror conditions shows up in the target object).
@@ -93,8 +94,7 @@ func newMirrorCondition(sourceObj any, condition *metav1.Condition, sourceCondit
 			Status:  mirrorOpt.fallbackStatus,
 			Reason:  mirrorOpt.fallbackReason,
 			Message: mirrorOpt.fallbackMessage,
-			// NOTE: ObservedGeneration will be set when this condition is added to an object by calling Set.
-			// LastTransitionTime will be set to now.
+			// NOTE: LastTransitionTime and ObservedGeneration will be set when this condition is added to an object by calling Set.
 		}
 	}
 
@@ -114,8 +114,9 @@ func SetMirrorCondition(sourceObj Getter, targetObj Setter, sourceConditionType 
 	Set(targetObj, *mirrorCondition)
 }
 
-// SetMirrorConditionFromUnstructured is a convenience method that calls NewMirrorCondition to create a mirror condition from the source object,
-// and then calls Set to add the new condition to the target object.
+// SetMirrorConditionFromUnstructured is a convenience method that mirror of the given condition from the unstructured source obj
+// into the target object. It combines, UnstructuredGet, NewMirrorCondition (most specifically it uses only the logic to
+// create a mirror condition), and Set.
 func SetMirrorConditionFromUnstructured(sourceObj runtime.Unstructured, targetObj Setter, sourceConditionType string, opts ...MirrorOption) error {
 	condition, err := UnstructuredGet(sourceObj, sourceConditionType)
 	if err != nil {

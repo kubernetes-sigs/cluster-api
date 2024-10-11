@@ -32,13 +32,13 @@ const (
 	expirationInterval = 10 * time.Hour
 )
 
-// CacheEntry is an entry of the requeue cache. It stores at which time a Machine was proceeded the last time.
+// CacheEntry is an entry of the requeue cache. It stores at which time a Machine was processed the last time.
 type CacheEntry struct {
-	Machine     types.NamespacedName
-	LastProceed time.Time
+	Machine       types.NamespacedName
+	LastProcessed time.Time
 }
 
-// Cache caches the time when the a Machine was processed last.
+// Cache caches the time when Machines were processed last.
 // Specifically we use it to ensure we only drain or wait for volume detachment
 // at a specific interval and not more often.
 type Cache interface {

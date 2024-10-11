@@ -416,9 +416,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 				// Don't cache Pods & DaemonSets (we get/list them e.g. during drain).
 				&corev1.Pod{},
 				&appsv1.DaemonSet{},
-				// Don;t cache PersistentVolumes and VolumeAttachments (we get/list them e.g. during wait for volumes to detach)
+				// Don't cache PersistentVolumes and VolumeAttachments (we get/list them e.g. during wait for volumes to detach)
 				&storagev1.VolumeAttachment{},
-				&corev1.PersistentVolumeClaim{},
+				&corev1.PersistentVolume{},
 			},
 			Indexes:     []remote.Index{remote.NodeProviderIDIndex},
 			ClientQPS:   clusterCacheTrackerClientQPS,

@@ -590,6 +590,13 @@ func TestMachineSetReconcile(t *testing.T) {
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: testClusterName,
 			},
+			Status: clusterv1.MachineSetStatus{
+				V1Beta2: &clusterv1.MachineSetV1Beta2Status{Conditions: []metav1.Condition{{
+					Type:   clusterv1.PausedV1Beta2Condition,
+					Status: metav1.ConditionFalse,
+					Reason: clusterv1.NotPausedV1Beta2Reason,
+				}}},
+			},
 		}
 		request := reconcile.Request{
 			NamespacedName: util.ObjectKey(ms),
@@ -916,6 +923,13 @@ func newMachineSet(name, cluster string, replicas int32) *clusterv1.MachineSet {
 				},
 			},
 		},
+		Status: clusterv1.MachineSetStatus{
+			V1Beta2: &clusterv1.MachineSetV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 }
 
@@ -966,6 +980,13 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
+		},
+		Status: clusterv1.MachineSetStatus{
+			V1Beta2: &clusterv1.MachineSetV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 

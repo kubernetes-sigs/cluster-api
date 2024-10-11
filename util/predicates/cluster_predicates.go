@@ -218,6 +218,23 @@ func ClusterControlPlaneInitialized(scheme *runtime.Scheme, logger logr.Logger) 
 	}
 }
 
+// ClusterInfrastructureReady returns a Predicate that returns true on Cluster creation events where
+// Cluster.Status.InfrastructureReady is true and Update events when Cluster.Status.InfrastructureReady transitions to true.
+// This implements a common requirement for some cluster-api and provider controllers (such as Machine Infrastructure
+// controllers) to resume reconciliation when the Cluster is unpaused and when the infrastructure becomes ready.
+// Example use:
+//
+//	err := controller.Watch(
+//	    source.Kind(cache, &clusterv1.Cluster{}),
+//	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
+//	    predicates.ClusterInfrastructureReady(mgr.GetScheme(), r.Log),
+//	)
+func ClusterInfrastructureReady(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	log := logger.WithValues("predicate", "ClusterInfrastructureReady")
+
+	return Any(scheme, log, ClusterCreateInfraReady(scheme, log), ClusterUpdateInfraReady(scheme, log))
+}
+
 // ClusterUnpausedAndInfrastructureReady returns a Predicate that returns true on Cluster creation events where
 // both Cluster.Spec.Paused is false and Cluster.Status.InfrastructureReady is true and Update events when
 // either Cluster.Spec.Paused transitions to false or Cluster.Status.InfrastructureReady transitions to true.

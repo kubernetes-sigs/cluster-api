@@ -353,9 +353,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil
+	fn := func(err error) bool {
+		errs := []error{
+			errNoControlPlaneNodes, errLastControlPlaneNode,
+			errNilNodeRef, errClusterIsBeingDeleted,
+			errControlPlaneIsBeingDeleted,
+		}
+		for _, e := range errs {
+			if errors.Is(err, e) {
+				return true
+			}
+		}
+		return false
+	}
 	if err != nil {
-		switch err {
-		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted, errControlPlaneIsBeingDeleted:
+		switch {
+		case fn(err):
 			nodeName := ""
 			if m.Status.NodeRef != nil {
 				nodeName = m.Status.NodeRef.Name

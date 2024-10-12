@@ -59,6 +59,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [InfraMachineTemplate: support for SSA dry run]                      | No        | Mandatory for ClusterClasses support |
 | [Multi tenancy]                                                      | No        | Mandatory for clusterctl CLI support |
 | [Clusterctl support]                                                 | No        | Mandatory for clusterctl CLI support |
+| [InfraMachine: pausing]                                              | No        |                                      |
 
 Note:
 - `All resources` refers to all the provider's resources "core" Cluster API interacts with;
@@ -393,6 +394,12 @@ See [Improving status in CAPI resources].
 
 </aside>
 
+### InfraMachine: pausing
+
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Machine object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachine object.
+
+If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
+
 ### InfraMachineTemplate, InfraMachineTemplateList resource definition
 
 For a given InfraMachine resource, you MUST also add a corresponding InfraMachineTemplate resources in order to use it
@@ -552,3 +559,4 @@ is implemented in InfraMachine controllers:
 [infrastructure Provider Security Guidance]: ../security-guidelines.md
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
 [the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate_webhook.go
+[InfraMachine: pausing] #inframachine-pausing

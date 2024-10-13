@@ -94,10 +94,12 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	addOpts.ApplyOptions(opts)
 
 	var objReady, parentReady *clusterv1.Condition
-	var objReadyV1Beta2, parentReadyV1Beta2 *metav1.Condition
+	var objAvailableV1Beta2, objReadyV1Beta2, objUpTodateV1Beta2, parentReadyV1Beta2 *metav1.Condition
 	switch od.options.V1Beta2 {
 	case true:
+		objAvailableV1Beta2 = GetAvailableV1Beta2Condition(obj)
 		objReadyV1Beta2 = GetReadyV1Beta2Condition(obj)
+		objUpTodateV1Beta2 = GetMachineUpToDateV1Beta2Condition(obj)
 		parentReadyV1Beta2 = GetReadyV1Beta2Condition(parent)
 	default:
 		objReady = GetReadyCondition(obj)
@@ -116,7 +118,7 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	if addOpts.NoEcho && !od.options.Echo {
 		switch od.options.V1Beta2 {
 		case true:
-			if (objReadyV1Beta2 != nil && objReadyV1Beta2.Status == metav1.ConditionTrue) || hasSameReadyStatusAndReason(parentReadyV1Beta2, objReadyV1Beta2) {
+			if (objReadyV1Beta2 != nil && objReadyV1Beta2.Status == metav1.ConditionTrue) || hasSameAvailableReadyUptoDateStatusAndReason(nil, nil, parentReadyV1Beta2, objReadyV1Beta2, nil, nil) {
 				return false, false
 			}
 		default:
@@ -150,14 +152,16 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 			s := siblings[i]
 
 			var sReady *clusterv1.Condition
-			var sReadyV1Beta2 *metav1.Condition
+			var sAvailableV1Beta2, sReadyV1Beta2, sUpTodateV1Beta2 *metav1.Condition
 			switch od.options.V1Beta2 {
 			case true:
+				sAvailableV1Beta2 = GetAvailableV1Beta2Condition(s)
 				sReadyV1Beta2 = GetReadyV1Beta2Condition(s)
+				sUpTodateV1Beta2 = GetMachineUpToDateV1Beta2Condition(s)
 
 				// If the object's ready condition has a different Status or Reason than the sibling object,
 				// move on (they should not be grouped).
-				if !hasSameReadyStatusAndReason(objReadyV1Beta2, sReadyV1Beta2) {
+				if !hasSameAvailableReadyUptoDateStatusAndReason(objAvailableV1Beta2, sAvailableV1Beta2, objReadyV1Beta2, sReadyV1Beta2, objUpTodateV1Beta2, sUpTodateV1Beta2) {
 					continue
 				}
 			default:
@@ -177,7 +181,7 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 				if s.GetObjectKind().GroupVersionKind().Kind == obj.GetObjectKind().GroupVersionKind().Kind+"Group" {
 					switch od.options.V1Beta2 {
 					case true:
-						updateV1Beta2GroupNode(s, sReadyV1Beta2, obj, objReadyV1Beta2)
+						updateV1Beta2GroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpTodateV1Beta2)
 					default:
 						updateGroupNode(s, sReady, obj, objReady)
 					}
@@ -195,7 +199,7 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 			var groupNode *NodeObject
 			switch od.options.V1Beta2 {
 			case true:
-				groupNode = createV1Beta2GroupNode(s, sReadyV1Beta2, obj, objReadyV1Beta2)
+				groupNode = createV1Beta2GroupNode(s, sReadyV1Beta2, obj, objAvailableV1Beta2, objReadyV1Beta2, objUpTodateV1Beta2)
 			default:
 				groupNode = createGroupNode(s, sReady, obj, objReady)
 			}
@@ -260,16 +264,24 @@ func (od ObjectTree) GetObjectsByParent(id types.UID) []client.Object {
 	return out
 }
 
-func hasSameReadyStatusAndReason(a, b *metav1.Condition) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if (a == nil) != (b == nil) {
+func hasSameAvailableReadyUptoDateStatusAndReason(availableA, availableB, readyA, readyB, upToDateA, upToDateB *metav1.Condition) bool {
+	if ((availableA == nil) != (availableB == nil)) || ((availableA != nil && availableB != nil) && (availableA.Status != availableB.Status)) {
 		return false
 	}
 
-	return a.Status == b.Status &&
-		a.Reason == b.Reason
+	if ((upToDateA == nil) != (upToDateB == nil)) || ((upToDateA != nil && upToDateB != nil) && (upToDateA.Status != upToDateB.Status)) {
+		return false
+	}
+
+	if readyA == nil && readyB == nil {
+		return true
+	}
+	if (readyA == nil) != (readyB == nil) {
+		return false
+	}
+
+	return readyA.Status == readyB.Status &&
+		readyA.Reason == readyB.Reason
 }
 
 func hasSameReadyStatusSeverityAndReason(a, b *clusterv1.Condition) bool {
@@ -285,7 +297,7 @@ func hasSameReadyStatusSeverityAndReason(a, b *clusterv1.Condition) bool {
 		a.Reason == b.Reason
 }
 
-func createV1Beta2GroupNode(sibling client.Object, siblingReady *metav1.Condition, obj client.Object, objReady *metav1.Condition) *NodeObject {
+func createV1Beta2GroupNode(sibling client.Object, siblingReady *metav1.Condition, obj client.Object, objAvailable, objReady, ObjUpToDate *metav1.Condition) *NodeObject {
 	kind := fmt.Sprintf("%sGroup", obj.GetObjectKind().GroupVersionKind().Kind)
 
 	// Create a new group node and add the GroupObjectAnnotation to signal
@@ -299,12 +311,39 @@ func createV1Beta2GroupNode(sibling client.Object, siblingReady *metav1.Conditio
 	sort.Strings(items)
 	addAnnotation(groupNode, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
 
-	// Update the group's ready condition.
+	// Update the group's available condition and counter.
+	addAnnotation(groupNode, GroupItemsAvailableCounter, "0")
+	if objAvailable != nil {
+		objAvailable.LastTransitionTime = metav1.Time{}
+		objAvailable.Message = ""
+		setAvailableV1Beta2Condition(groupNode, objAvailable)
+		if objAvailable.Status == metav1.ConditionTrue {
+			addAnnotation(groupNode, GroupItemsAvailableCounter, "2")
+		}
+	}
+
+	// Update the group's ready condition and counter.
+	addAnnotation(groupNode, GroupItemsReadyCounter, "0")
 	if objReady != nil {
 		objReady.LastTransitionTime = minLastTransitionTimeV1Beta2(objReady, siblingReady)
 		objReady.Message = ""
 		setReadyV1Beta2Condition(groupNode, objReady)
+		if objReady.Status == metav1.ConditionTrue {
+			addAnnotation(groupNode, GroupItemsReadyCounter, "2")
+		}
 	}
+
+	// Update the group's upToDate condition and counter.
+	addAnnotation(groupNode, GroupItemsUpToDateCounter, "0")
+	if ObjUpToDate != nil {
+		ObjUpToDate.LastTransitionTime = metav1.Time{}
+		ObjUpToDate.Message = ""
+		setAvailableV1Beta2Condition(groupNode, ObjUpToDate)
+		if ObjUpToDate.Status == metav1.ConditionTrue {
+			addAnnotation(groupNode, GroupItemsUpToDateCounter, "2")
+		}
+	}
+
 	return groupNode
 }
 
@@ -379,19 +418,41 @@ func minLastTransitionTime(a, b *clusterv1.Condition) metav1.Time {
 	return a.LastTransitionTime
 }
 
-func updateV1Beta2GroupNode(groupObj client.Object, groupReady *metav1.Condition, obj client.Object, objReady *metav1.Condition) {
+func updateV1Beta2GroupNode(groupObj client.Object, groupReady *metav1.Condition, obj client.Object, objAvailable, objReady, ObjUpToDate *metav1.Condition) {
 	// Update the list of items included in the group and store it in the GroupItemsAnnotation.
 	items := strings.Split(GetGroupItems(groupObj), GroupItemsSeparator)
 	items = append(items, obj.GetName())
 	sort.Strings(items)
 	addAnnotation(groupObj, GroupItemsAnnotation, strings.Join(items, GroupItemsSeparator))
 
-	// Update the group's ready condition.
+	// Update the group's available counter.
+	if objAvailable != nil {
+		if objAvailable.Status == metav1.ConditionTrue {
+			availableCounter := GetGroupItemsAvailableCounter(groupObj)
+			addAnnotation(groupObj, GroupItemsAvailableCounter, fmt.Sprintf("%d", availableCounter+1))
+		}
+	}
+
+	// Update the group's ready condition and ready counter.
 	if groupReady != nil {
 		groupReady.LastTransitionTime = minLastTransitionTimeV1Beta2(objReady, groupReady)
 		groupReady.Message = ""
 		setReadyV1Beta2Condition(groupObj, groupReady)
 	}
+
+	if objReady.Status == metav1.ConditionTrue {
+		readyCounter := GetGroupItemsReadyCounter(groupObj)
+		addAnnotation(groupObj, GroupItemsReadyCounter, fmt.Sprintf("%d", readyCounter+1))
+	}
+
+	// Update the group's upToDate counter.
+	if ObjUpToDate != nil {
+		if ObjUpToDate.Status == metav1.ConditionTrue {
+			upToDateCounter := GetGroupItemsUpToDateCounter(groupObj)
+			addAnnotation(groupObj, GroupItemsUpToDateCounter, fmt.Sprintf("%d", upToDateCounter+1))
+		}
+	}
+
 }
 
 func updateGroupNode(groupObj client.Object, groupReady *clusterv1.Condition, obj client.Object, objReady *clusterv1.Condition) {

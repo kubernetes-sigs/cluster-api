@@ -83,7 +83,7 @@ func Test_hasSameReadyStatusAndReason(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := hasSameReadyStatusAndReason(tt.args.a, tt.args.b)
+			got := hasSameAvailableReadyUptoDateStatusAndReason(nil, nil, tt.args.a, tt.args.b, nil, nil)
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -359,7 +359,9 @@ func Test_createV1Beta2GroupNode(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			V1Beta2: &clusterv1.MachineV1Beta2Status{
 				Conditions: []metav1.Condition{
-					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: now},
+					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
+					{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
+					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
 				},
 			},
 		},
@@ -391,27 +393,38 @@ func Test_createV1Beta2GroupNode(t *testing.T) {
 			Name:      "", // random string
 			Namespace: "ns",
 			Annotations: map[string]string{
-				VirtualObjectAnnotation: "True",
-				GroupObjectAnnotation:   "True",
-				GroupItemsAnnotation:    "my-machine, sibling-machine",
+				VirtualObjectAnnotation:    "True",
+				GroupObjectAnnotation:      "True",
+				GroupItemsAnnotation:       "my-machine, sibling-machine",
+				GroupItemsReadyCounter:     "2",
+				GroupItemsAvailableCounter: "2",
+				GroupItemsUpToDateCounter:  "0",
 			},
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
 			V1Beta2: &NodeObjectV1Beta2Status{
 				Conditions: []metav1.Condition{
-					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
+					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
+					{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: beforeNow},
+					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
 				},
 			},
 		},
 	}
 
 	g := NewWithT(t)
-	got := createV1Beta2GroupNode(sibling, GetReadyV1Beta2Condition(sibling), obj, GetReadyV1Beta2Condition(obj))
+	got := createV1Beta2GroupNode(sibling, GetReadyV1Beta2Condition(sibling), obj, GetAvailableV1Beta2Condition(obj), GetReadyV1Beta2Condition(obj), GetMachineUpToDateV1Beta2Condition(obj))
 
 	// Some values are generated randomly, so pick up them.
 	want.SetName(got.GetName())
 	want.SetUID(got.GetUID())
+	for i := range got.Status.V1Beta2.Conditions {
+		if got.Status.V1Beta2.Conditions[i].Type == clusterv1.ReadyV1Beta2Condition {
+			continue
+		}
+		got.Status.V1Beta2.Conditions[i].LastTransitionTime = metav1.Time{}
+	}
 
 	g.Expect(got).To(BeComparableTo(want))
 }
@@ -499,16 +512,21 @@ func Test_updateV1Beta2GroupNode(t *testing.T) {
 			Name:      "", // random string
 			Namespace: "ns",
 			Annotations: map[string]string{
-				VirtualObjectAnnotation: "True",
-				GroupObjectAnnotation:   "True",
-				GroupItemsAnnotation:    "my-machine, sibling-machine",
+				VirtualObjectAnnotation:    "True",
+				GroupObjectAnnotation:      "True",
+				GroupItemsAnnotation:       "my-machine, sibling-machine",
+				GroupItemsReadyCounter:     "2",
+				GroupItemsAvailableCounter: "2",
+				GroupItemsUpToDateCounter:  "0",
 			},
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
 			V1Beta2: &NodeObjectV1Beta2Status{
 				Conditions: []metav1.Condition{
+					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
 					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
+					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
 				},
 			},
 		},
@@ -525,7 +543,9 @@ func Test_updateV1Beta2GroupNode(t *testing.T) {
 		Status: clusterv1.MachineStatus{
 			V1Beta2: &clusterv1.MachineV1Beta2Status{
 				Conditions: []metav1.Condition{
-					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: now},
+					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
+					{Type: clusterv1.ReadyV1Beta2Condition, Status: metav1.ConditionTrue, LastTransitionTime: now},
+					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
 				},
 			},
 		},
@@ -540,23 +560,28 @@ func Test_updateV1Beta2GroupNode(t *testing.T) {
 			Name:      "", // random string
 			Namespace: "ns",
 			Annotations: map[string]string{
-				VirtualObjectAnnotation: "True",
-				GroupObjectAnnotation:   "True",
-				GroupItemsAnnotation:    "another-machine, my-machine, sibling-machine",
+				VirtualObjectAnnotation:    "True",
+				GroupObjectAnnotation:      "True",
+				GroupItemsAnnotation:       "another-machine, my-machine, sibling-machine",
+				GroupItemsReadyCounter:     "3",
+				GroupItemsAvailableCounter: "3",
+				GroupItemsUpToDateCounter:  "0",
 			},
 			UID: types.UID(""), // random string
 		},
 		Status: NodeStatus{
 			V1Beta2: &NodeObjectV1Beta2Status{
 				Conditions: []metav1.Condition{
+					{Type: clusterv1.AvailableV1Beta2Condition, Status: metav1.ConditionTrue},
 					{Type: clusterv1.ReadyV1Beta2Condition, LastTransitionTime: beforeNow},
+					{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse},
 				},
 			},
 		},
 	}
 
 	g := NewWithT(t)
-	updateV1Beta2GroupNode(group, GetReadyV1Beta2Condition(group), obj, GetReadyV1Beta2Condition(obj))
+	updateV1Beta2GroupNode(group, GetReadyV1Beta2Condition(group), obj, GetAvailableV1Beta2Condition(obj), GetReadyV1Beta2Condition(obj), GetMachineUpToDateV1Beta2Condition(obj))
 
 	g.Expect(group).To(BeComparableTo(want))
 }

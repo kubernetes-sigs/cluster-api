@@ -73,24 +73,11 @@ func GetReadyCondition(obj client.Object) *clusterv1.Condition {
 	return conditions.Get(getter, clusterv1.ReadyCondition)
 }
 
-// GetOtherV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
-func GetOtherV1Beta2Conditions(obj client.Object) []metav1.Condition {
-	filterOther := func(conditions []metav1.Condition) []metav1.Condition {
-		var r []metav1.Condition
-		for _, c := range conditions {
-			if c.Type != clusterv1.ReadyV1Beta2Condition {
-				r = append(r, c)
-			}
-		}
-		sort.Slice(r, func(i, j int) bool {
-			return r[i].Type < r[j].Type
-		})
-		return r
-	}
+// GetAllV1Beta2Conditions returns the other conditions (all the conditions except ready) for an object, if defined.
+func GetAllV1Beta2Conditions(obj client.Object) []metav1.Condition {
 
 	if getter, ok := obj.(v1beta2conditions.Getter); ok {
-		conditionList := getter.GetV1Beta2Conditions()
-		return filterOther(conditionList)
+		return getter.GetV1Beta2Conditions()
 	}
 
 	if objUnstructured, ok := obj.(*unstructured.Unstructured); ok {
@@ -98,7 +85,7 @@ func GetOtherV1Beta2Conditions(obj client.Object) []metav1.Condition {
 		if err != nil {
 			return nil
 		}
-		return filterOther(conditionList)
+		return conditionList
 	}
 
 	return nil
@@ -122,9 +109,21 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 	return conditions
 }
 
+func setAvailableV1Beta2Condition(obj client.Object, available *metav1.Condition) {
+	if setter, ok := obj.(v1beta2conditions.Setter); ok {
+		v1beta2conditions.Set(setter, *available)
+	}
+}
+
 func setReadyV1Beta2Condition(obj client.Object, ready *metav1.Condition) {
 	if setter, ok := obj.(v1beta2conditions.Setter); ok {
 		v1beta2conditions.Set(setter, *ready)
+	}
+}
+
+func setUpToDateV1Beta2Condition(obj client.Object, upToDate *metav1.Condition) {
+	if setter, ok := obj.(v1beta2conditions.Setter); ok {
+		v1beta2conditions.Set(setter, *upToDate)
 	}
 }
 

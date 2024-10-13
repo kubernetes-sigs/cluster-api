@@ -194,11 +194,7 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 func printObjectTreeV1Beta2(tree *tree.ObjectTree, showOther bool) {
 	// Creates the output table
 	tbl := tablewriter.NewWriter(os.Stdout)
-	other := ""
-	if showOther {
-		other = "OTHER"
-	}
-	tbl.SetHeader([]string{"NAME", "AVAILABLE", "", "READY", "", "UP TO DATE", "", other, "REASON", "SINCE", "MESSAGE"})
+	tbl.SetHeader([]string{"NAME", "AVAILABLE", "READY", "UP TO DATE", "STATUS", "REASON", "SINCE", "MESSAGE"})
 
 	formatTableTreeV1Beta2(tbl)
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
@@ -279,13 +275,10 @@ func addObjectRowV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree
 	// - Condition "REASON", "SINCE", "MESSAGE"
 	tbl.Append([]string{
 		fmt.Sprintf("%s%s", gray.Sprint(prefix), name),
-		rowDescriptor.availableCondition,
 		rowDescriptor.availableCounters,
-		rowDescriptor.readyCondition,
 		rowDescriptor.readyCounters,
-		rowDescriptor.upToDateCondition,
 		rowDescriptor.upToDateCounters,
-		"",
+		rowDescriptor.status,
 		rowDescriptor.reason,
 		rowDescriptor.age,
 		rowDescriptor.message})
@@ -374,8 +367,7 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 	}
 }
 
-// addOtherConditionsV1Beta2 adds a row for each object condition except the ready and the available condition,
-// which is already represented on the object's main row.
+// addAllConditionsV1Beta2 adds a row for each object condition.
 func addOtherConditionsV1Beta2(prefix string, tbl *tablewriter.Table, objectTree *tree.ObjectTree, obj ctrlclient.Object) {
 	// Add a row for each other condition, taking care of updating the tree view prefix.
 	// In this case the tree prefix get a filler, to indent conditions from objects, and eventually a
@@ -386,28 +378,26 @@ func addOtherConditionsV1Beta2(prefix string, tbl *tablewriter.Table, objectTree
 		childrenPipe = pipe
 	}
 
-	otherConditions := tree.GetOtherV1Beta2Conditions(obj)
-	for i := range otherConditions {
-		otherCondition := otherConditions[i]
-		otherPositivePolarity := true
-		if otherCondition.Type == clusterv1.PausedV1Beta2Condition {
-			otherPositivePolarity = false
+	conditions := tree.GetAllV1Beta2Conditions(obj)
+	for i := range conditions {
+		condition := conditions[i]
+		positivePolarity := true
+		if condition.Type == clusterv1.PausedV1Beta2Condition {
+			positivePolarity = false
 		}
 
-		otherConditionPrefix := getChildPrefix(prefix+childrenPipe+filler, i, len(otherConditions))
-		otherColor, otherStatus, otherAge, otherReason, otherMessage := v1Beta2ConditionInfo(otherCondition, otherPositivePolarity)
+		childPrefix := getChildPrefix(prefix+childrenPipe+filler, i, len(conditions))
+		color, status, age, reason, message := v1Beta2ConditionInfo(condition, positivePolarity)
 		tbl.Append([]string{
-			fmt.Sprintf("%s%s", gray.Sprint(otherConditionPrefix), cyan.Sprint(otherCondition.Type)),
+			fmt.Sprintf("%s%s", gray.Sprint(childPrefix), cyan.Sprint(condition.Type)),
 			"",
 			"",
 			"",
 			"",
-			"",
-			"",
-			otherColor.Sprint(otherStatus),
-			otherColor.Sprint(otherReason),
-			otherColor.Sprint(otherAge),
-			otherColor.Sprint(otherMessage)})
+			color.Sprint(status),
+			color.Sprint(reason),
+			color.Sprint(age),
+			color.Sprint(message)})
 	}
 }
 
@@ -494,15 +484,13 @@ func getRowName(obj ctrlclient.Object) string {
 
 // v1beta2RowDescriptor contains all the info for representing a condition.
 type v1beta2RowDescriptor struct {
-	age                string
-	availableCondition string
-	availableCounters  string
-	readyCondition     string
-	readyCounters      string
-	upToDateCondition  string
-	upToDateCounters   string
-	reason             string
-	message            string
+	age               string
+	availableCounters string
+	readyCounters     string
+	upToDateCounters  string
+	status            string
+	reason            string
+	message           string
 }
 
 // newV1beta2RowDescriptor returns a v1beta2ConditionDescriptor for the given condition.
@@ -516,43 +504,89 @@ func newV1beta2RowDescriptor(obj ctrlclient.Object) v1beta2RowDescriptor {
 		md := obj.(*clusterv1.MachineDeployment)
 
 		if md.Status.V1Beta2 != nil {
-			if md.Spec.Replicas != nil && *md.Spec.Replicas != md.Status.Replicas {
-				v.availableCounters = fmt.Sprintf("%d/(%d -> %d)", md.Status.V1Beta2.AvailableReplicas, md.Status.Replicas, *md.Spec.Replicas)
-			} else {
-				v.availableCounters = fmt.Sprintf("%d/%d", md.Status.V1Beta2.AvailableReplicas, md.Status.Replicas)
+			if md.Status.V1Beta2.ReadyReplicas != nil {
+				if md.Spec.Replicas != nil && *md.Spec.Replicas != md.Status.Replicas {
+					v.availableCounters = fmt.Sprintf("%d/(%d -> %d)", md.Status.V1Beta2.AvailableReplicas, md.Status.Replicas, *md.Spec.Replicas)
+				} else {
+					v.availableCounters = fmt.Sprintf("%d/%d", md.Status.V1Beta2.AvailableReplicas, md.Status.Replicas)
+				}
 			}
-			v.readyCounters = fmt.Sprintf("%d/%d", md.Status.V1Beta2.ReadyReplicas, md.Status.Replicas)
-			v.upToDateCounters = fmt.Sprintf("%d/%d", md.Status.V1Beta2.ReadyReplicas, md.Status.Replicas)
+			if md.Status.V1Beta2.ReadyReplicas != nil {
+				v.readyCounters = fmt.Sprintf("%d/%d", md.Status.V1Beta2.ReadyReplicas, md.Status.Replicas)
+			}
+			if md.Status.V1Beta2.UpToDateReplicas != nil {
+				v.upToDateCounters = fmt.Sprintf("%d/%d", md.Status.V1Beta2.UpToDateReplicas, md.Status.Replicas)
+			}
 		}
 
-		v.availableCondition = "false"
-		v.availableCounters = "4/7"
-		v.readyCounters = "5/7"
-		v.upToDateCounters = "6/7"
-	case *clusterv1.Machine:
 		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
-			v.availableCondition = string(available.Status)
+			availableColor, availableStatus, availableAge, availableReason, availableMessage := v1Beta2ConditionInfo(*available, true)
+			v.status = availableColor.Sprintf("Available: %s", availableStatus)
+			v.reason = availableColor.Sprint(availableReason)
+			v.age = availableColor.Sprint(availableAge)
+			v.message = availableColor.Sprint(availableMessage)
 		}
 
+	case *clusterv1.MachineSet:
+		ms := obj.(*clusterv1.MachineSet)
+
+		if ms.Status.V1Beta2 != nil {
+			if ms.Status.V1Beta2.ReadyReplicas != nil {
+				if ms.Spec.Replicas != nil && *ms.Spec.Replicas != ms.Status.Replicas {
+					v.availableCounters = fmt.Sprintf("%d/(%d -> %d)", ms.Status.V1Beta2.AvailableReplicas, ms.Status.Replicas, *ms.Spec.Replicas)
+				} else {
+					v.availableCounters = fmt.Sprintf("%d/%d", ms.Status.V1Beta2.AvailableReplicas, ms.Status.Replicas)
+				}
+			}
+			if ms.Status.V1Beta2.ReadyReplicas != nil {
+				v.readyCounters = fmt.Sprintf("%d/%d", ms.Status.V1Beta2.ReadyReplicas, ms.Status.Replicas)
+			}
+			if ms.Status.V1Beta2.UpToDateReplicas != nil {
+				v.upToDateCounters = fmt.Sprintf("%d/%d", ms.Status.V1Beta2.UpToDateReplicas, ms.Status.Replicas)
+			}
+		}
+
+	case *clusterv1.Machine:
+		v.availableCounters = "0"
+		if available := tree.GetAvailableV1Beta2Condition(obj); available != nil {
+			if available.Status == metav1.ConditionTrue {
+				v.availableCounters = "1"
+			}
+		}
+
+		v.readyCounters = "0"
 		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := v1Beta2ConditionInfo(*ready, true)
-			v.readyCondition = readyColor.Sprint(readyStatus)
+			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyColor.Sprint(readyReason)
 			v.age = readyColor.Sprint(readyAge)
 			v.message = readyColor.Sprint(readyMessage)
+			if ready.Status == metav1.ConditionTrue {
+				v.readyCounters = "1"
+			}
 		}
 
+		v.upToDateCounters = "0"
 		if upToDate := tree.GetMachineUpToDateV1Beta2Condition(obj); upToDate != nil {
-			v.upToDateCondition = string(upToDate.Status)
+			if upToDate.Status == metav1.ConditionTrue {
+				v.upToDateCounters = "1"
+			}
 		}
 
 	case *unstructured.Unstructured:
 		if ready := tree.GetReadyV1Beta2Condition(obj); ready != nil {
 			readyColor, readyStatus, readyAge, readyReason, readyMessage := v1Beta2ConditionInfo(*ready, true)
-			v.readyCondition = readyColor.Sprint(readyStatus)
+			v.status = readyColor.Sprintf("Ready: %s", readyStatus)
 			v.reason = readyReason
 			v.age = readyAge
 			v.message = readyMessage
+		}
+
+	case *tree.NodeObject:
+		if tree.IsGroupObject(obj) {
+			v.readyCounters = fmt.Sprintf("%d", tree.GetGroupItemsReadyCounter(obj))
+			v.availableCounters = fmt.Sprintf("%d", tree.GetGroupItemsAvailableCounter(obj))
+			v.upToDateCounters = fmt.Sprintf("%d", tree.GetGroupItemsUpToDateCounter(obj))
 		}
 	default:
 		fmt.Printf("I don't know about type %T!\n", t)

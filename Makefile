@@ -941,7 +941,7 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 
 .PHONY: test-docker-infrastructure
 test-docker-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests for docker infrastructure provider
-	cd $(CAPD_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	cd $(CAPD_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 
 .PHONY: test-docker-infrastructure-verbose
 test-docker-infrastructure-verbose: ## Run unit and integration tests for docker infrastructure provider with verbose flag
@@ -949,13 +949,13 @@ test-docker-infrastructure-verbose: ## Run unit and integration tests for docker
 
 .PHONY: test-docker-infrastructure-junit
 test-docker-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for docker infrastructure provider
-	cd $(CAPD_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_docker.exitcode) | tee $(ARTIFACTS)/junit.infra_docker.stdout
+	cd $(CAPD_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_docker.exitcode) | tee $(ARTIFACTS)/junit.infra_docker.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit.infra_docker.stdout
 	exit $$(cat $(ARTIFACTS)/junit.infra_docker.exitcode)
 
 .PHONY: test-in-memory-infrastructure
 test-in-memory-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests for in-memory infrastructure provider
-	cd $(CAPIM_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	cd $(CAPIM_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 
 .PHONY: test-in-memory-infrastructure-verbose
 test-in-memory-infrastructure-verbose: ## Run unit and integration tests for in-memory infrastructure provider with verbose flag
@@ -963,13 +963,13 @@ test-in-memory-infrastructure-verbose: ## Run unit and integration tests for in-
 
 .PHONY: test-in-memory-infrastructure-junit
 test-in-memory-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for in-memory infrastructure provider
-	cd $(CAPIM_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_inmemory.exitcode) | tee $(ARTIFACTS)/junit.infra_inmemory.stdout
+	cd $(CAPIM_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_inmemory.exitcode) | tee $(ARTIFACTS)/junit.infra_inmemory.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_inmemory.xml --raw-command cat $(ARTIFACTS)/junit.infra_inmemory.stdout
 	exit $$(cat $(ARTIFACTS)/junit.infra_inmemory.exitcode)
 
 .PHONY: test-test-extension
 test-test-extension: $(SETUP_ENVTEST) ## Run unit and integration tests for the test extension
-	cd $(TEST_EXTENSION_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+	cd $(TEST_EXTENSION_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race ./... $(TEST_ARGS)
 
 .PHONY: test-test-extension-verbose
 test-test-extension-verbose: ## Run unit and integration tests with verbose flag
@@ -977,7 +977,7 @@ test-test-extension-verbose: ## Run unit and integration tests with verbose flag
 
 .PHONY: test-test-extension-junit
 test-test-extension-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for the test extension
-	cd $(TEST_EXTENSION_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.test_extension.exitcode) | tee $(ARTIFACTS)/junit.test_extension.stdout
+	cd $(TEST_EXTENSION_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -race -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.test_extension.exitcode) | tee $(ARTIFACTS)/junit.test_extension.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.test_extension.xml --raw-command cat $(ARTIFACTS)/junit.test_extension.stdout
 	exit $$(cat $(ARTIFACTS)/junit.test_extension.exitcode)
 
@@ -1197,7 +1197,7 @@ release-notes: release-notes-tool
 
 .PHONY: test-release-notes-tool
 test-release-notes-tool:
-	go test -C hack/tools -v -tags tools,integration sigs.k8s.io/cluster-api/hack/tools/release/notes
+	go test -race -C hack/tools -v -tags tools,integration sigs.k8s.io/cluster-api/hack/tools/release/notes
 
 .PHONY: release-provider-issues-tool
 release-provider-issues-tool: # Creates GitHub issues in a pre-defined list of CAPI provider repositories

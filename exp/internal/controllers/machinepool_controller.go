@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -151,8 +152,13 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("Cluster", klog.KRef(mp.ObjectMeta.Namespace, mp.Spec.ClusterName))
+	log = log.WithValues("Cluster", klog.KRef(mp.Namespace, mp.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, mp, expv1.MachinePoolFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, mp.ObjectMeta.Namespace, mp.Spec.ClusterName)
 	if err != nil {
@@ -221,13 +227,6 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 
 		return ctrl.Result{}, err
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(mp, expv1.MachinePoolFinalizer) {
-		controllerutil.AddFinalizer(mp, expv1.MachinePoolFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	// Handle normal reconciliation loop.

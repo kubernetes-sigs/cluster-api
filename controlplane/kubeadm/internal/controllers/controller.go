@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -149,6 +150,11 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, err
 	}
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, kcp, controlplanev1.KubeadmControlPlaneFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)
 	if err != nil {
@@ -174,22 +180,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	if err != nil {
 		log.Error(err, "Failed to configure the patch helper")
 		return ctrl.Result{Requeue: true}, nil
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if kcp.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer) {
-		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
-
-		// patch and return right away instead of reusing the main defer,
-		// because the main defer may take too much time to get cluster status
-		// Patch ObservedGeneration only if the reconciliation completed successfully
-		patchOpts := []patch.Option{patch.WithStatusObservedGeneration{}}
-		if err := patchHelper.Patch(ctx, kcp, patchOpts...); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to add finalizer")
-		}
-
-		return ctrl.Result{}, nil
 	}
 
 	// Initialize the control plane scope; this includes also checking for orphan machines and

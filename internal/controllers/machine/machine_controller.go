@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -173,15 +174,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(m.Namespace, m.Spec.ClusterName))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, m, clusterv1.MachineFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// AddOwners adds the owners of Machine as k/v pairs to the logger.
 	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
 	ctx, log, err := clog.AddOwners(ctx, r.Client, m)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	log = log.WithValues("Cluster", klog.KRef(m.ObjectMeta.Namespace, m.Spec.ClusterName))
-	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, m.ObjectMeta.Namespace, m.Spec.ClusterName)
 	if err != nil {
@@ -219,13 +225,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) && m.ObjectMeta.DeletionTimestamp.IsZero() {
-		controllerutil.AddFinalizer(m, clusterv1.MachineFinalizer)
-		return ctrl.Result{}, nil
-	}
 
 	alwaysReconcile := []machineReconcileFunc{
 		r.reconcileMachineOwnerAndLabels,

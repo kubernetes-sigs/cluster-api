@@ -317,6 +317,9 @@ func TestReconcileNoCluster(t *testing.T) {
 					Name:       "foo",
 				},
 			},
+			Finalizers: []string{
+				controlplanev1.KubeadmControlPlaneFinalizer,
+			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",

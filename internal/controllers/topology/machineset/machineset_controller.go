@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -121,15 +122,26 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineSet/%s", req.NamespacedName.Name)
 	}
 
+	log := ctrl.LoggerFrom(ctx).WithValues("Cluster", klog.KRef(ms.Namespace, ms.Spec.ClusterName))
+	ctx = ctrl.LoggerInto(ctx, log)
+
+	// Return early if the MachineSet is not topology owned.
+	if !labels.IsTopologyOwned(ms) {
+		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineSet does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, ms, clusterv1.MachineSetTopologyFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
 	ctx, log, err := clog.AddOwners(ctx, r.Client, ms)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	log = log.WithValues("Cluster", klog.KRef(ms.Namespace, ms.Spec.ClusterName))
-	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, ms.Namespace, ms.Spec.ClusterName)
 	if err != nil {
@@ -139,12 +151,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, ms) {
 		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
-	// Return early if the MachineSet is not topology owned.
-	if !labels.IsTopologyOwned(ms) {
-		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineSet does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
 		return ctrl.Result{}, nil
 	}
 
@@ -162,13 +168,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Handle deletion reconciliation loop.
 	if !ms.ObjectMeta.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, ms)
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetTopologyFinalizer) {
-		controllerutil.AddFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil

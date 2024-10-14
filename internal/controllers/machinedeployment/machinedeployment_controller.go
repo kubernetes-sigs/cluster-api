@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -131,6 +132,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	log = log.WithValues("Cluster", klog.KRef(deployment.Namespace, deployment.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, deployment, clusterv1.MachineDeploymentFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -163,13 +169,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Handle deletion reconciliation loop.
 	if !deployment.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, deployment)
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(deployment, clusterv1.MachineDeploymentFinalizer) {
-		controllerutil.AddFinalizer(deployment, clusterv1.MachineDeploymentFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	err = r.reconcile(ctx, cluster, deployment)

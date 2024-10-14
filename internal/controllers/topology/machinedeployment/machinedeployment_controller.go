@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -124,6 +125,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	log = log.WithValues("Cluster", klog.KRef(md.Namespace, md.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	// Return early if the MachineDeployment is not topology owned.
+	if !labels.IsTopologyOwned(md) {
+		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineDeployment does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
+		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, md, clusterv1.MachineDeploymentTopologyFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, md.Namespace, md.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -132,12 +144,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, md) {
 		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
-	}
-
-	// Return early if the MachineDeployment is not topology owned.
-	if !labels.IsTopologyOwned(md) {
-		log.Info(fmt.Sprintf("Reconciliation is skipped because the MachineDeployment does not have the %q label", clusterv1.ClusterTopologyOwnedLabel))
 		return ctrl.Result{}, nil
 	}
 
@@ -155,13 +161,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Handle deletion reconciliation loop.
 	if !md.ObjectMeta.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, md)
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer) {
-		controllerutil.AddFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	return ctrl.Result{}, nil

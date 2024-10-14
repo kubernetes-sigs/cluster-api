@@ -37,6 +37,7 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -69,6 +70,11 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
+		return ctrl.Result{}, err
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, inMemoryCluster, infrav1.ClusterFinalizer); err != nil || finalizerAdded {
 		return ctrl.Result{}, err
 	}
 
@@ -107,13 +113,6 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Handle deleted clusters
 	if !inMemoryCluster.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, inMemoryCluster)
-	}
-
-	// Add finalizer first if not set to avoid the race condition between init and delete.
-	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
-	if !controllerutil.ContainsFinalizer(inMemoryCluster, infrav1.ClusterFinalizer) {
-		controllerutil.AddFinalizer(inMemoryCluster, infrav1.ClusterFinalizer)
-		return ctrl.Result{}, nil
 	}
 
 	// Handle non-deleted clusters

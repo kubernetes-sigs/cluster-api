@@ -108,6 +108,7 @@ var (
 	logOptions                  = logs.NewOptions()
 	// core Cluster API specific flags.
 	remoteConnectionGracePeriod     time.Duration
+	remoteConditionsGracePeriod     time.Duration
 	clusterTopologyConcurrency      int
 	clusterCacheConcurrency         int
 	clusterClassConcurrency         int
@@ -176,6 +177,10 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.DurationVar(&remoteConnectionGracePeriod, "remote-connection-grace-period", 50*time.Second,
 		"Grace period after which the RemoteConnectionProbe condition on a Cluster goes to false, "+
+			"if connection failures to a workload cluster occur")
+
+	fs.DurationVar(&remoteConditionsGracePeriod, "remote-conditions-grace-period", 5*time.Minute,
+		"Grace period after which remote conditions (e.g. `NodeHealthy`) are set to `Unknown`, "+
 			"if connection failures to a workload cluster occur")
 
 	fs.IntVar(&clusterTopologyConcurrency, "clustertopology-concurrency", 10,
@@ -535,10 +540,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
-		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
-		ClusterCache:     clusterCache,
-		WatchFilterValue: watchFilterValue,
+		Client:                      mgr.GetClient(),
+		APIReader:                   mgr.GetAPIReader(),
+		ClusterCache:                clusterCache,
+		WatchFilterValue:            watchFilterValue,
+		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)

@@ -209,6 +209,32 @@ func TestSummary(t *testing.T) {
 				Message: "B: Message-B",             // messages from all the info conditions (empty messages are dropped)
 			},
 		},
+		{
+			name: "Include additional condition",
+			conditions: []metav1.Condition{
+				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},  // info
+				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C", Message: "Message-C"}, // issue
+			},
+			conditionType: clusterv1.AvailableV1Beta2Condition,
+			options: []SummaryOption{ForConditionTypes{"A"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
+				AdditionalConditions{
+					{
+						OwnerResource: ConditionOwnerInfo{
+							Kind: "Phase3Obj",
+							Name: "SourceObject",
+						},
+						Condition: metav1.Condition{
+							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
+						},
+					},
+				}}, // AdditionalCondition replaces the same condition from the SourceObject
+			want: &metav1.Condition{
+				Type:    clusterv1.AvailableV1Beta2Condition,
+				Status:  metav1.ConditionFalse,      // False because !C is an issue
+				Reason:  "Reason-C-additional",      // Picking the reason from the additional condition
+				Message: "!C: Message-C-additional", // Picking the message from the additional condition (info dropped)
+			},
+		},
 	}
 
 	for _, tt := range tests {

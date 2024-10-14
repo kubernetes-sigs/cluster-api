@@ -79,6 +79,14 @@ func (t IgnoreTypesIfMissing) ApplyToSummary(opts *SummaryOptions) {
 	opts.ignoreTypesIfMissing = t
 }
 
+// AdditionalConditions allows to add additional conditions that should be used in the summary.
+type AdditionalConditions []ConditionWithOwnerInfo
+
+// ApplyToSummary applies this configuration to the given summary options.
+func (t AdditionalConditions) ApplyToSummary(opts *SummaryOptions) {
+	opts.additionalConditions = t
+}
+
 // CustomMergeStrategy allows to define a custom merge strategy when creating new summary or aggregate conditions.
 type CustomMergeStrategy struct {
 	MergeStrategy

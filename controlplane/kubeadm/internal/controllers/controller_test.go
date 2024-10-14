@@ -440,6 +440,13 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 				},
 			},
 		},
+		Status: controlplanev1.KubeadmControlPlaneStatus{
+			V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 	webhook := &controlplanev1webhooks.KubeadmControlPlane{}
 	g.Expect(webhook.Default(ctx, kcp)).To(Succeed())

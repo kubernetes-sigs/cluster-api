@@ -80,6 +80,15 @@ func (k *KubeadmConfigBuilder) Build() *bootstrapv1.KubeadmConfig {
 			Namespace: k.namespace,
 			Name:      k.name,
 		},
+		Status: bootstrapv1.KubeadmConfigStatus{
+			V1Beta2: &bootstrapv1.KubeadmConfigV1Beta2Status{
+				Conditions: []metav1.Condition{{
+					Type:   "Paused",
+					Status: metav1.ConditionFalse,
+					Reason: "NotPaused",
+				}},
+			},
+		},
 	}
 	if k.initConfig != nil {
 		config.Spec.InitConfiguration = k.initConfig

@@ -44,10 +44,10 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -109,14 +109,13 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&expv1.MachinePool{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 			builder.WithPredicates(
 				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
 			),
@@ -168,10 +167,8 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			mp.Spec.ClusterName, mp.Name, mp.Namespace)
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, mp) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, mp); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the patch helper.

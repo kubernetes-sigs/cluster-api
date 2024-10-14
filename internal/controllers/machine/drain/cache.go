@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/cache"
+	kcache "k8s.io/client-go/tools/cache"
 )
 
 const (
@@ -32,14 +32,14 @@ const (
 	expirationInterval = 10 * time.Hour
 )
 
-// CacheEntry is an entry of the drain cache. It stores at which time a Machine was drained the last time.
+// CacheEntry is an entry of the requeue cache. It stores at which time a Machine was processed the last time.
 type CacheEntry struct {
-	Machine   types.NamespacedName
-	LastDrain time.Time
+	Machine       types.NamespacedName
+	LastProcessed time.Time
 }
 
-// Cache caches the time when the last drain was done for a Machine.
-// Specifically we only use it to ensure we only retry drains
+// Cache caches the time when Machines were processed last.
+// Specifically we use it to ensure we only drain or wait for volume detachment
 // at a specific interval and not more often.
 type Cache interface {
 	// Add adds the given entry to the Cache.
@@ -53,8 +53,8 @@ type Cache interface {
 
 // NewCache creates a new cache.
 func NewCache() Cache {
-	r := &drainCache{
-		Store: cache.NewTTLStore(func(obj interface{}) (string, error) {
+	r := &cache{
+		Store: kcache.NewTTLStore(func(obj interface{}) (string, error) {
 			// We only add CacheEntries to the cache, so it's safe to cast to CacheEntry.
 			return obj.(CacheEntry).Machine.String(), nil
 		}, ttl),
@@ -72,13 +72,13 @@ func NewCache() Cache {
 	return r
 }
 
-type drainCache struct {
-	cache.Store
+type cache struct {
+	kcache.Store
 }
 
 // Add adds the given entry to the Cache.
 // Note: entries expire after the ttl.
-func (r *drainCache) Add(entry CacheEntry) {
+func (r *cache) Add(entry CacheEntry) {
 	// Note: We can ignore the error here because by only allowing CacheEntries
 	// and providing the corresponding keyFunc ourselves we can guarantee that
 	// the error never occurs.
@@ -87,7 +87,7 @@ func (r *drainCache) Add(entry CacheEntry) {
 
 // Has checks if the given key (still) exists in the Cache.
 // Note: entries expire after the ttl.
-func (r *drainCache) Has(machineName types.NamespacedName) (CacheEntry, bool) {
+func (r *cache) Has(machineName types.NamespacedName) (CacheEntry, bool) {
 	// Note: We can ignore the error here because GetByKey never returns an error.
 	item, exists, _ := r.Store.GetByKey(machineName.String())
 	if exists {

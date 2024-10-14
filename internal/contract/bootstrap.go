@@ -39,6 +39,11 @@ func (b *BootstrapContract) Ready() *Bool {
 	}
 }
 
+// ReadyConditionType returns the type of the ready condition.
+func (b *BootstrapContract) ReadyConditionType() string {
+	return "Ready"
+}
+
 // DataSecretName provide access to status.dataSecretName field in a bootstrap object.
 func (b *BootstrapContract) DataSecretName() *String {
 	return &String{

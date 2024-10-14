@@ -57,7 +57,7 @@ func NewAggregateCondition[T Getter](sourceObjs []T, sourceConditionType string,
 	}
 
 	aggregateOpt := &AggregateOptions{
-		mergeStrategy:       newDefaultMergeStrategy(),
+		mergeStrategy:       newDefaultMergeStrategy(nil),
 		targetConditionType: sourceConditionType,
 	}
 	aggregateOpt.ApplyOptions(opts)
@@ -95,12 +95,7 @@ func NewAggregateCondition[T Getter](sourceObjs []T, sourceConditionType string,
 		}
 	}
 
-	status, reason, message, err := aggregateOpt.mergeStrategy.Merge(
-		conditionsInScope,
-		[]string{sourceConditionType},
-		nil,   // negative conditions
-		false, // step counter
-	)
+	status, reason, message, err := aggregateOpt.mergeStrategy.Merge(conditionsInScope, []string{sourceConditionType})
 	if err != nil {
 		return nil, err
 	}

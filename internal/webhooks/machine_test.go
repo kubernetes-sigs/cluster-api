@@ -70,6 +70,11 @@ func TestMachineBootstrapValidation(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name:      "should not return error if dataSecretName is set",
+			bootstrap: clusterv1.Bootstrap{ConfigRef: nil, DataSecretName: ptr.To("")},
+			expectErr: false,
+		},
+		{
 			name:      "should not return error if config ref is set",
 			bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}, DataSecretName: nil},
 			expectErr: false,

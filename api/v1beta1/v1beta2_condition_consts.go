@@ -85,45 +85,33 @@ const (
 	PausedV1Beta2Condition = "Paused"
 )
 
-// Conditions that will be used for the Machine object in v1Beta2 API version.
+// Reasons that are used across different objects.
 const (
-	// MachineAvailableV1Beta2Condition is true if the machine is Ready for at least MinReadySeconds, as defined by the Machine's MinReadySeconds field.
-	MachineAvailableV1Beta2Condition = AvailableV1Beta2Condition
+	// InvalidConditionReportedV1Beta2Reason applies to a condition, usually read from an external object, that is invalid
+	// (e.g. its status is missing).
+	InvalidConditionReportedV1Beta2Reason = "InvalidConditionReported"
 
-	// MachineReadyV1Beta2Condition is true if the Machine is not deleted, Machine's BootstrapConfigReady, InfrastructureReady,
-	// NodeHealthy and HealthCheckSucceeded (if present) are true; if other conditions are defined in spec.readinessGates,
-	// these conditions must be true as well.
-	MachineReadyV1Beta2Condition = ReadyV1Beta2Condition
+	// NoReasonReportedV1Beta2Reason applies to a condition, usually read from an external object, that reports no reason.
+	// Note: this could happen e.g. when an external object still uses Cluster API v1beta1 Conditions.
+	NoReasonReportedV1Beta2Reason = "NoReasonReported"
 
-	// MachineUpToDateV1Beta2Condition is true if the Machine spec matches the spec of the Machine's owner resource, e.g. KubeadmControlPlane or MachineDeployment.
-	// The Machine's owner (e.g MachineDeployment) is authoritative to set their owned Machine's UpToDate conditions based on its current spec.
-	MachineUpToDateV1Beta2Condition = "UpToDate"
+	// InternalErrorV1Beta2Reason surfaces unexpected errors reporting by controllers.
+	// In most cases, it will be required to look at controllers logs to properly triage those issues.
+	InternalErrorV1Beta2Reason = "InternalError"
 
-	// MachineBootstrapConfigReadyV1Beta2Condition condition mirrors the corresponding Ready condition from the Machine's BootstrapConfig resource.
-	MachineBootstrapConfigReadyV1Beta2Condition = BootstrapConfigReadyV1Beta2Condition
+	// ObjectDoesNotExistV1Beta2Reason surfaces when a referenced object does not exist.
+	ObjectDoesNotExistV1Beta2Reason = "ObjectDoesNotExist"
 
-	// MachineInfrastructureReadyV1Beta2Condition mirrors the corresponding Ready condition from the Machine's Infrastructure resource.
-	MachineInfrastructureReadyV1Beta2Condition = InfrastructureReadyV1Beta2Condition
+	// ObjectDeletedV1Beta2Reason surfaces when a referenced object has been deleted.
+	// Note: controllers can't identify if the object was deleted by the controller itself, e.g.
+	// during the deletion workflow, or by a users.
+	ObjectDeletedV1Beta2Reason = "ObjectDeleted"
 
-	// MachineNodeHealthyV1Beta2Condition is true if the Machine's Node is ready and it does not report MemoryPressure, DiskPressure and PIDPressure.
-	MachineNodeHealthyV1Beta2Condition = "NodeHealthy"
+	// NotPausedV1Beta2Reason surfaces when an object is not paused.
+	NotPausedV1Beta2Reason = "NotPaused"
 
-	// MachineNodeReadyV1Beta2Condition is true if the Machine's Node is ready.
-	MachineNodeReadyV1Beta2Condition = "NodeReady"
-
-	// MachineHealthCheckSucceededV1Beta2Condition is true if MHC instances targeting this machine report the Machine
-	// is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object.
-	MachineHealthCheckSucceededV1Beta2Condition = "HealthCheckSucceeded"
-
-	// MachineOwnerRemediatedV1Beta2Condition is only present if MHC instances targeting this machine
-	// determine that the controller owning this machine should perform remediation.
-	MachineOwnerRemediatedV1Beta2Condition = "OwnerRemediated"
-
-	// MachineDeletingV1Beta2Condition surfaces details about progress in the machine deletion workflow.
-	MachineDeletingV1Beta2Condition = DeletingV1Beta2Condition
-
-	// MachinePausedV1Beta2Condition is true if the Machine or the Cluster it belongs to are paused.
-	MachinePausedV1Beta2Condition = PausedV1Beta2Condition
+	// PausedV1Beta2Reason surfaces when an object is paused.
+	PausedV1Beta2Reason = "Paused"
 )
 
 // Conditions that will be used for the MachineSet object in v1Beta2 API version.

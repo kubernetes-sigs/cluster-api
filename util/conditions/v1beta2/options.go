@@ -39,6 +39,21 @@ func (t TargetConditionType) ApplyToAggregate(opts *AggregateOptions) {
 	opts.targetConditionType = string(t)
 }
 
+// FallbackCondition defines the condition that should be returned by mirror if the source condition
+// does not exist.
+type FallbackCondition struct {
+	Status  metav1.ConditionStatus
+	Reason  string
+	Message string
+}
+
+// ApplyToMirror applies this configuration to the given mirror options.
+func (f FallbackCondition) ApplyToMirror(opts *MirrorOptions) {
+	opts.fallbackStatus = f.Status
+	opts.fallbackReason = f.Reason
+	opts.fallbackMessage = f.Message
+}
+
 // ForConditionTypes allows to define the set of conditions in scope for a summary operation.
 // Please note that condition types have an implicit order that can be used by the summary operation to determine relevance of the different conditions.
 type ForConditionTypes []string
@@ -77,14 +92,6 @@ func (t CustomMergeStrategy) ApplyToSummary(opts *SummaryOptions) {
 // ApplyToAggregate applies this configuration to the given aggregate options.
 func (t CustomMergeStrategy) ApplyToAggregate(opts *AggregateOptions) {
 	opts.mergeStrategy = t
-}
-
-// StepCounter adds a step counter message to new summary conditions.
-type StepCounter bool
-
-// ApplyToSummary applies this configuration to the given summary options.
-func (t StepCounter) ApplyToSummary(opts *SummaryOptions) {
-	opts.stepCounter = bool(t)
 }
 
 // OwnedConditionTypes allows to define condition types owned by the controller when performing patch apply.

@@ -159,6 +159,34 @@ func TestReconcileNode(t *testing.T) {
 			expectResult: ctrl.Result{},
 			expectError:  true,
 		},
+		{
+			name: "node not found is tolerated when machine is deleting",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: "test-cluster",
+					},
+					DeletionTimestamp: ptr.To(metav1.Now()),
+					Finalizers:        []string{"foo"},
+				},
+				Spec: clusterv1.MachineSpec{
+					ProviderID: ptr.To("aws://us-east-1/test-node-1"),
+				},
+				Status: clusterv1.MachineStatus{
+					NodeRef: &corev1.ObjectReference{
+						Kind:       "Node",
+						Name:       "test-node-1",
+						APIVersion: "v1",
+					},
+				},
+			},
+			node:         nil,
+			nodeGetErr:   false,
+			expectResult: ctrl.Result{},
+			expectError:  false,
+		},
 	}
 
 	for _, tc := range testCases {

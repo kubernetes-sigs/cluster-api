@@ -75,7 +75,7 @@ func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string)
 		if conditions, ok := value.([]interface{}); ok {
 			r, err := convertFromUnstructuredConditions(conditions)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to convert %s.status.v1beta2.conditions to []metav1.Condition", ownerInfo)
+				return nil, errors.Wrapf(err, "failed to convert status.v1beta2.conditions from %s to []metav1.Condition", ownerInfo.Kind)
 			}
 			return meta.FindStatusCondition(r, sourceConditionType), nil
 		}
@@ -86,7 +86,7 @@ func UnstructuredGet(sourceObj runtime.Unstructured, sourceConditionType string)
 		if conditions, ok := value.([]interface{}); ok {
 			r, err := convertFromUnstructuredConditions(conditions)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to convert %s.status.conditions to []metav1.Condition", ownerInfo)
+				return nil, errors.Wrapf(err, "failed to convert status.conditions from %s to []metav1.Condition", ownerInfo.Kind)
 			}
 			return meta.FindStatusCondition(r, sourceConditionType), nil
 		}
@@ -166,20 +166,19 @@ func convertFromUnstructuredConditions(conditions []interface{}) ([]metav1.Condi
 // also, only a few, minimal rules are enforced, just enough to allow surfacing a condition from a providers object with Mirror.
 func validateAndFixConvertedCondition(c *metav1.Condition) error {
 	if c.Type == "" {
-		return errors.New("condition type must be set")
+		return errors.New("type must be set for all conditions")
 	}
 	if c.Status == "" {
-		return errors.New("condition status must be set")
+		return errors.Errorf("status must be set for the %s condition", c.Type)
+	}
+	switch c.Status {
+	case metav1.ConditionFalse, metav1.ConditionTrue, metav1.ConditionUnknown:
+		break
+	default:
+		return errors.Errorf("status for the %s condition must be one of %s, %s, %s", c.Type, metav1.ConditionTrue, metav1.ConditionFalse, metav1.ConditionUnknown)
 	}
 	if c.Reason == "" {
-		switch c.Status {
-		case metav1.ConditionFalse: // When using old Cluster API condition utils, for conditions with Status false, Reason can be empty only when a condition has negative polarity (means "good")
-			c.Reason = NoReasonReported
-		case metav1.ConditionTrue: // When using old Cluster API condition utils, for conditions with Status true, Reason can be empty only when a condition has positive polarity (means "good").
-			c.Reason = NoReasonReported
-		case metav1.ConditionUnknown:
-			return errors.New("condition reason must be set when a condition is unknown")
-		}
+		c.Reason = NoReasonReported
 	}
 
 	// NOTE: Empty LastTransitionTime is tolerated because it will be set when assigning the newly generated mirror condition to an object.

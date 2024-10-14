@@ -72,6 +72,11 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	node, err := r.getNode(ctx, remoteClient, *machine.Spec.ProviderID)
 	if err != nil {
 		if err == ErrNodeNotFound {
+			if !s.machine.DeletionTimestamp.IsZero() {
+				// Tolerate node not found when the machine is being deleted.
+				return ctrl.Result{}, nil
+			}
+
 			// While a NodeRef is set in the status, failing to get that node means the node is deleted.
 			// If Status.NodeRef is not set before, node still can be in the provisioning state.
 			if machine.Status.NodeRef != nil {
@@ -87,21 +92,22 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 		conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeInspectionFailedReason, "Failed to get the Node for this Machine by ProviderID")
 		return ctrl.Result{}, err
 	}
+	s.node = node
 
 	// Set the Machine NodeRef.
 	if machine.Status.NodeRef == nil {
 		machine.Status.NodeRef = &corev1.ObjectReference{
 			APIVersion: corev1.SchemeGroupVersion.String(),
 			Kind:       "Node",
-			Name:       node.Name,
-			UID:        node.UID,
+			Name:       s.node.Name,
+			UID:        s.node.UID,
 		}
 		log.Info("Infrastructure provider reporting spec.providerID, Kubernetes node is now available", machine.Spec.InfrastructureRef.Kind, klog.KRef(machine.Spec.InfrastructureRef.Namespace, machine.Spec.InfrastructureRef.Name), "providerID", *machine.Spec.ProviderID, "Node", klog.KRef("", machine.Status.NodeRef.Name))
 		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetNodeRef", machine.Status.NodeRef.Name)
 	}
 
 	// Set the NodeSystemInfo.
-	machine.Status.NodeInfo = &node.Status.NodeInfo
+	machine.Status.NodeInfo = &s.node.Status.NodeInfo
 
 	// Compute all the annotations that CAPI is setting on nodes;
 	// CAPI only enforces some annotations and never changes or removes them.
@@ -134,21 +140,26 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 		}
 	}
 
-	_, nodeHadInterruptibleLabel := node.Labels[clusterv1.InterruptibleLabel]
+	_, nodeHadInterruptibleLabel := s.node.Labels[clusterv1.InterruptibleLabel]
 
 	// Reconcile node taints
-	if err := r.patchNode(ctx, remoteClient, node, nodeLabels, nodeAnnotations, machine); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(node))
+	if err := r.patchNode(ctx, remoteClient, s.node, nodeLabels, nodeAnnotations, machine); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(s.node))
 	}
 	if !nodeHadInterruptibleLabel && interruptible {
 		// If the interruptible label is added to the node then record the event.
 		// Nb. Only record the event if the node previously did not have the label to avoid recording
 		// the event during every reconcile.
-		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetInterruptibleNodeLabel", node.Name)
+		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetInterruptibleNodeLabel", s.node.Name)
+	}
+
+	if s.infraMachine == nil || !s.infraMachine.GetDeletionTimestamp().IsZero() {
+		conditions.MarkFalse(s.machine, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, nil
 	}
 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.
-	status, message := summarizeNodeConditions(node)
+	status, message := summarizeNodeConditions(s.node)
 	if status == corev1.ConditionFalse {
 		conditions.MarkFalse(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeConditionsFailedReason, clusterv1.ConditionSeverityWarning, message)
 		return ctrl.Result{}, nil
@@ -214,6 +225,7 @@ func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string)
 			}
 		}
 	}
+	message = strings.TrimSuffix(message, ". ")
 	if semanticallyFalseStatus > 0 {
 		return corev1.ConditionFalse, message
 	}

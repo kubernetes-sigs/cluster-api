@@ -916,6 +916,7 @@ func TestReconcileRequest(t *testing.T) {
 				Client:   clientFake,
 				Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				ssaCache: ssa.NewCache(),
+				recorder: record.NewFakeRecorder(10),
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
@@ -1213,95 +1214,6 @@ func TestMachineConditions(t *testing.T) {
 	}
 }
 
-func TestReconcileDeleteExternal(t *testing.T) {
-	testCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
-	}
-
-	bootstrapConfig := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-			"metadata": map[string]interface{}{
-				"name":      "delete-bootstrap",
-				"namespace": metav1.NamespaceDefault,
-			},
-		},
-	}
-
-	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "delete",
-			Namespace: metav1.NamespaceDefault,
-		},
-		Spec: clusterv1.MachineSpec{
-			ClusterName: "test-cluster",
-			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-					Kind:       "BootstrapConfig",
-					Name:       "delete-bootstrap",
-				},
-			},
-		},
-	}
-
-	testCases := []struct {
-		name            string
-		bootstrapExists bool
-		expectError     bool
-		expected        *unstructured.Unstructured
-	}{
-		{
-			name:            "should continue to reconcile delete of external refs if exists",
-			bootstrapExists: true,
-			expected: &unstructured.Unstructured{
-				Object: map[string]interface{}{
-					"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
-					"kind":       "BootstrapConfig",
-					"metadata": map[string]interface{}{
-						"name":            "delete-bootstrap",
-						"namespace":       metav1.NamespaceDefault,
-						"resourceVersion": "999",
-					},
-				},
-			},
-			expectError: false,
-		},
-		{
-			name:            "should no longer reconcile deletion of external refs since it doesn't exist",
-			bootstrapExists: false,
-			expected:        nil,
-			expectError:     false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			objs := []client.Object{testCluster, machine}
-
-			if tc.bootstrapExists {
-				objs = append(objs, bootstrapConfig)
-			}
-
-			c := fake.NewClientBuilder().WithObjects(objs...).Build()
-			r := &Reconciler{
-				Client: c,
-			}
-
-			obj, err := r.reconcileDeleteExternal(ctx, testCluster, machine, machine.Spec.Bootstrap.ConfigRef)
-			if tc.expectError {
-				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
-			}
-			g.Expect(obj).To(BeComparableTo(tc.expected))
-		})
-	}
-}
-
 func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	g := NewWithT(t)
 
@@ -1329,7 +1241,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
-	c := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&clusterv1.Machine{}).Build()
+	c := fake.NewClientBuilder().WithObjects(testCluster, m, builder.GenericInfrastructureMachineCRD.DeepCopy()).WithStatusSubresource(&clusterv1.Machine{}).Build()
 	mr := &Reconciler{
 		Client: c,
 	}
@@ -2869,7 +2781,13 @@ func TestNodeDeletion(t *testing.T) {
 				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
 			}
 
-			_, err := r.reconcileDelete(context.Background(), cluster, m)
+			s := &scope{
+				cluster:                   cluster,
+				machine:                   m,
+				infraMachineIsNotFound:    true,
+				bootstrapConfigIsNotFound: true,
+			}
+			_, err := r.reconcileDelete(context.Background(), s)
 
 			if tc.resultErr {
 				g.Expect(err).To(HaveOccurred())
@@ -2988,8 +2906,13 @@ func TestNodeDeletionWithoutNodeRefFallback(t *testing.T) {
 				nodeDeletionRetryTimeout: 10 * time.Millisecond,
 			}
 
-			cluster := testCluster.DeepCopy()
-			_, err := r.reconcileDelete(context.Background(), cluster, m)
+			s := &scope{
+				cluster:                   testCluster.DeepCopy(),
+				machine:                   m,
+				infraMachineIsNotFound:    true,
+				bootstrapConfigIsNotFound: true,
+			}
+			_, err := r.reconcileDelete(context.Background(), s)
 
 			if tc.resultErr {
 				g.Expect(err).To(HaveOccurred())

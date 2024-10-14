@@ -42,39 +42,17 @@ func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
 	// - ScalingUp
 	// - ScalingDown
 	setReplicas(s.machineSet, s.machines)
-	setScalingUpCondition(s.machineSet, s.machines)
-	setScalingDownCondition(s.machineSet, s.machines)
 
 	// Conditions
 
-	// MachinesReady
-	readyCondition, err := v1beta2conditions.NewAggregateCondition(
-		s.machines, clusterv1.MachineReadyV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition))
-	if err != nil {
-		v1beta2conditions.Set(s.machineSet, metav1.Condition{
-			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
-			Status:  metav1.ConditionFalse,
-			Reason:  "TODOFailedDuringAggregation",
-			Message: "something TODO at MachinesReady",
-		})
-	} else if readyCondition.Status == metav1.ConditionTrue {
-		readyCondition.Message = "All Machines are ready."
-	}
-	v1beta2conditions.Set(s.machineSet, *readyCondition)
+	// Update the ScalingUp and ScalingDown condition, which requires the above setReplicas function.
+	setScalingUpCondition(s.machineSet, s.machines)
+	setScalingDownCondition(s.machineSet, s.machines)
 
+	// MachinesReady
+	setMachinesReadyCondition(s.machineSet, s.machines)
 	// MachinesUpToDate
-	if err := v1beta2conditions.SetAggregateCondition(s.machines, s.machineSet,
-		clusterv1.MachinesUpToDateV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
-	); err != nil {
-		v1beta2conditions.Set(s.machineSet, metav1.Condition{
-			Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
-			Status:  metav1.ConditionFalse,
-			Reason:  "TODOFailedDuringAggregation",
-			Message: "something TODO on MachinesUpToDate",
-		})
-	}
+	setMachinesUpToDateCondition(s.machineSet, s.machines)
 
 	// Deleting
 	setDeletingCondition(s.machineSet)
@@ -174,6 +152,38 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 		Reason:  "TooManyReplicas", // TODO: create a const.
 		Message: fmt.Sprintf("The MachineSet currently has %d replicas but should only have %d", len(machines), desiredReplicas),
 	})
+}
+
+func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	readyCondition, err := v1beta2conditions.NewAggregateCondition(
+		machines, clusterv1.MachineReadyV1Beta2Condition,
+		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition))
+	if err != nil {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "TODOFailedDuringAggregation",
+			Message: "something TODO at MachinesReady",
+		})
+	} else if readyCondition.Status == metav1.ConditionTrue {
+		readyCondition.Message = "All Machines are ready."
+	}
+	v1beta2conditions.Set(machineSet, *readyCondition)
+}
+
+func setMachinesUpToDateCondition(machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	if err := v1beta2conditions.SetAggregateCondition(machines, machineSet,
+		clusterv1.MachinesUpToDateV1Beta2Condition,
+		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
+	); err != nil {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "TODOFailedDuringAggregation",
+			Message: "something TODO on MachinesUpToDate",
+		})
+	}
+
 }
 
 func setDeletingCondition(ms *clusterv1.MachineSet) {

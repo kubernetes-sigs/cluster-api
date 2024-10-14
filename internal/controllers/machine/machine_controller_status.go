@@ -22,13 +22,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
@@ -53,7 +56,8 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) {
 	// Update status from the Node external resource.
 	// Note: some of the status fields are managed in reconcileNode, e.g. status.NodeRef, etc.
 	// here we are taking care only of the delta (condition).
-	setNodeHealthyAndReadyConditions(ctx, s.machine, s.node)
+	lastProbeSuccessTime := r.ClusterCache.GetLastProbeSuccessTimestamp(ctx, client.ObjectKeyFromObject(s.cluster))
+	setNodeHealthyAndReadyConditions(ctx, s.machine, s.node, s.nodeGetError, lastProbeSuccessTime, r.RemoteConditionsGracePeriod)
 
 	// Updates Machine status not observed from Bootstrap Config, InfraMachine or Node (update Machine's own status).
 	// Note: some of the status are set in reconcileCertificateExpiry (e.g.status.CertificatesExpiryDate),
@@ -62,6 +66,8 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) {
 	// MHC controller sets HealthCheckSucceeded and OwnerRemediated conditions, KCP sets conditions about etcd and control plane pods).
 
 	// TODO: Set the uptodate condition for standalone pods
+
+	setDeletingCondition(ctx, s.machine, s.reconcileDeleteExecuted, s.deletingReason, s.deletingMessage)
 
 	setReadyCondition(ctx, s.machine)
 
@@ -213,8 +219,49 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 	})
 }
 
-func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Machine, node *corev1.Node) {
-	// TODO: handle disconnected clusters when the new ClusterCache is merged
+func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, lastProbeSuccessTime time.Time, remoteConditionsGracePeriod time.Duration) {
+	if time.Since(lastProbeSuccessTime) > remoteConditionsGracePeriod {
+		v1beta2conditions.Set(machine, metav1.Condition{
+			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
+			Message: fmt.Sprintf("Remote connection down since %s", lastProbeSuccessTime.Format(time.RFC3339)),
+		})
+
+		v1beta2conditions.Set(machine, metav1.Condition{
+			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
+			Message: fmt.Sprintf("Remote connection down since %s", lastProbeSuccessTime.Format(time.RFC3339)),
+		})
+		return
+	}
+
+	if nodeGetErr != nil {
+		if errors.Is(nodeGetErr, clustercache.ErrClusterNotConnected) {
+			// Don't update conditions when the connection to the workload cluster is down.
+			// This can happen either when the cluster comes up initially or when the cluster
+			// becomes unreachable later.
+			// If the cluster becomes unreachable later, the conditions will be set to `Unknown`
+			// only after remote conditions grace period.
+			return
+		}
+
+		v1beta2conditions.Set(machine, metav1.Condition{
+			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+
+		v1beta2conditions.Set(machine, metav1.Condition{
+			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
 
 	if node != nil {
 		var nodeReady *metav1.Condition
@@ -438,7 +485,8 @@ func summarizeNodeV1Beta2Conditions(_ context.Context, node *corev1.Node) (metav
 }
 
 type machineConditionCustomMergeStrategy struct {
-	machine *clusterv1.Machine
+	machine                        *clusterv1.Machine
+	negativePolarityConditionTypes sets.Set[string]
 }
 
 func (c machineConditionCustomMergeStrategy) Merge(conditions []v1beta2conditions.ConditionWithOwnerInfo, conditionTypes []string) (status metav1.ConditionStatus, reason, message string, err error) {
@@ -456,15 +504,38 @@ func (c machineConditionCustomMergeStrategy) Merge(conditions []v1beta2condition
 			}
 			// Note: MachineNodeReadyV1Beta2Condition is not relevant for the summary.
 		}
-		return v1beta2conditions.GetDefaultMergePriorityFunc(nil)(condition)
+		return v1beta2conditions.GetDefaultMergePriorityFunc(c.negativePolarityConditionTypes)(condition)
 	}).Merge(conditions, conditionTypes)
+}
+
+func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconcileDeleteExecuted bool, deletingReason, deletingMessage string) {
+	if machine.DeletionTimestamp.IsZero() {
+		v1beta2conditions.Set(machine, metav1.Condition{
+			Type:   clusterv1.MachineDeletingV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+		})
+	}
+
+	if !reconcileDeleteExecuted {
+		// Don't update the Deleting condition if reconcileDelete was not executed (e.g.
+		// because of rate-limiting).
+		return
+	}
+
+	v1beta2conditions.Set(machine, metav1.Condition{
+		Type:    clusterv1.MachineDeletingV1Beta2Condition,
+		Status:  metav1.ConditionTrue,
+		Reason:  deletingReason,
+		Message: deletingMessage,
+	})
 }
 
 func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	log := ctrl.LoggerFrom(ctx)
 
 	forConditionTypes := v1beta2conditions.ForConditionTypes{
-		// TODO: add machine deleting condition once implemented.
+		// MachineDeletingV1Beta2Condition is added via AdditionalConditions if DeletionTimestamp is set.
 		clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
 		clusterv1.MachineInfrastructureReadyV1Beta2Condition,
 		clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -473,12 +544,29 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	for _, g := range machine.Spec.ReadinessGates {
 		forConditionTypes = append(forConditionTypes, g.ConditionType)
 	}
-	readyCondition, err := v1beta2conditions.NewSummaryCondition(machine, clusterv1.MachineReadyV1Beta2Condition, forConditionTypes,
-		v1beta2conditions.IgnoreTypesIfMissing{clusterv1.MachineHealthCheckSucceededV1Beta2Condition},
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: machineConditionCustomMergeStrategy{machine: machine},
+
+	summaryOpts := []v1beta2conditions.SummaryOption{
+		forConditionTypes,
+		v1beta2conditions.IgnoreTypesIfMissing{
+			clusterv1.MachineDeletingV1Beta2Condition,
+			clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
 		},
-	)
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: machineConditionCustomMergeStrategy{
+				machine:                        machine,
+				negativePolarityConditionTypes: sets.Set[string]{}.Insert(clusterv1.MachineDeletingV1Beta2Condition),
+			},
+		},
+		v1beta2conditions.NegativePolarityConditionTypes{
+			clusterv1.MachineDeletingV1Beta2Condition,
+		},
+	}
+
+	if !machine.DeletionTimestamp.IsZero() {
+		summaryOpts = append(summaryOpts, v1beta2conditions.AdditionalConditions{calculateDeletingConditionForSummary(machine)})
+	}
+
+	readyCondition, err := v1beta2conditions.NewSummaryCondition(machine, clusterv1.MachineReadyV1Beta2Condition, summaryOpts...)
 	if err != nil || readyCondition == nil {
 		// Note, this could only happen if we hit edge cases in computing the summary, which should not happen due to the fact
 		// that we are passing a non empty list of ForConditionTypes.
@@ -492,6 +580,39 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	}
 
 	v1beta2conditions.Set(machine, *readyCondition)
+}
+
+func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2conditions.ConditionWithOwnerInfo {
+	deletingCondition := v1beta2conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
+
+	var msg string
+	switch {
+	case deletingCondition == nil:
+		msg = "Machine deletion in progress"
+	case deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason &&
+		machine.Status.Deletion != nil && machine.Status.Deletion.NodeDrainStartTime != nil &&
+		time.Since(machine.Status.Deletion.NodeDrainStartTime.Time) > 30*time.Minute:
+		msg = fmt.Sprintf("Machine deletion in progress, stage: %s (since more than 30m)", deletingCondition.Reason)
+	case deletingCondition.Reason == clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason &&
+		machine.Status.Deletion != nil && machine.Status.Deletion.WaitForNodeVolumeDetachStartTime != nil &&
+		time.Since(machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Time) > 30*time.Minute:
+		msg = fmt.Sprintf("Machine deletion in progress, stage: %s (since more than 30m)", deletingCondition.Reason)
+	default:
+		msg = fmt.Sprintf("Machine deletion in progress, stage: %s", deletingCondition.Reason)
+	}
+
+	return v1beta2conditions.ConditionWithOwnerInfo{
+		OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+			Kind: "Machine",
+			Name: machine.Name,
+		},
+		Condition: metav1.Condition{
+			Type:    clusterv1.MachineDeletingV1Beta2Condition,
+			Status:  metav1.ConditionTrue,
+			Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+			Message: msg,
+		},
+	}
 }
 
 func setAvailableCondition(_ context.Context, machine *clusterv1.Machine) {

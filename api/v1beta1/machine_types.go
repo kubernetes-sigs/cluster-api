@@ -196,6 +196,9 @@ const (
 	// MachineNodeConditionNotYetReportedV1Beta2Reason surfaces when a Machine's Node doesn't have a condition reported yet.
 	MachineNodeConditionNotYetReportedV1Beta2Reason = "NodeConditionNotYetReported"
 
+	// MachineNodeInternalErrorV1Beta2Reason surfaces unexpected failures when reading a Node object.
+	MachineNodeInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
 	// MachineNodeDoesNotExistV1Beta2Reason surfaces when the node hosted on the machine does not exist.
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
 	MachineNodeDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
@@ -204,6 +207,11 @@ const (
 	// Note: controllers can't identify if the Node was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
 	MachineNodeDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
+
+	// MachineNodeRemoteConnectionFailedV1Beta2Reason surfaces that the remote connection failed.
+	// If the remote connection probe failed for longer than remote conditions grace period,
+	// this reason is used when setting NodeHealthy and NodeReady conditions to `Unknown`.
+	MachineNodeRemoteConnectionFailedV1Beta2Reason = RemoteConnectionFailedV1Beta2Reason
 )
 
 // Machine's HealthCheckSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -271,6 +279,54 @@ const (
 const (
 	// MachineDeletingV1Beta2Condition surfaces details about progress in the machine deletion workflow.
 	MachineDeletingV1Beta2Condition = DeletingV1Beta2Condition
+
+	// MachineDeletingDeletingV1Beta2Reason surfaces when the Machine is deleting.
+	// This reason is only used for the MachineDeletingV1Beta2Condition when calculating the
+	// Ready condition when the deletionTimestamp on a Machine is set.
+	MachineDeletingDeletingV1Beta2Reason = DeletingV1Beta2Condition
+
+	// MachineDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the Machine is not deleting because the
+	// DeletionTimestamp is not set.
+	MachineDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+
+	// MachineDeletingDeletionTimestampSetV1Beta2Reason surfaces when the Machine is deleting because the
+	// DeletionTimestamp is set. This reason is used if none of the more specific reasons apply.
+	MachineDeletingDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+
+	// MachineDeletingWaitingForPreDrainHookV1Beta2Reason surfaces when the Machine deletion
+	// waits for pre-drain hooks to complete. I.e. it waits until there are no annotations
+	// with the `pre-drain.delete.hook.machine.cluster.x-k8s.io` prefix on the Machine anymore.
+	MachineDeletingWaitingForPreDrainHookV1Beta2Reason = "WaitingForPreDrainHook"
+
+	// MachineDeletingDrainingNodeV1Beta2Reason surfaces when the Machine deletion is draining the Node.
+	MachineDeletingDrainingNodeV1Beta2Reason = "DrainingNode"
+
+	// MachineDeletingWaitingForVolumeDetachV1Beta2Reason surfaces when the Machine deletion is
+	// waiting for volumes to detach from the Node.
+	MachineDeletingWaitingForVolumeDetachV1Beta2Reason = "WaitingForVolumeDetach"
+
+	// MachineDeletingWaitingForPreTerminateHookV1Beta2Reason surfaces when the Machine deletion
+	// waits for pre-terminate hooks to complete. I.e. it waits until there are no annotations
+	// with the `pre-terminate.delete.hook.machine.cluster.x-k8s.io` prefix on the Machine anymore.
+	MachineDeletingWaitingForPreTerminateHookV1Beta2Reason = "WaitingForPreTerminateHook"
+
+	// MachineDeletingWaitingForInfrastructureDeletionV1Beta2Reason surfaces when the Machine deletion
+	// waits for InfraMachine deletion to complete.
+	MachineDeletingWaitingForInfrastructureDeletionV1Beta2Reason = "WaitingForInfrastructureDeletion"
+
+	// MachineDeletingWaitingForBootstrapDeletionV1Beta2Reason surfaces when the Machine deletion
+	// waits for BootstrapConfig deletion to complete.
+	MachineDeletingWaitingForBootstrapDeletionV1Beta2Reason = "WaitingForBootstrapDeletion"
+
+	// MachineDeletingDeletingNodeV1Beta2Reason surfaces when the Machine deletion is
+	// deleting the Node.
+	MachineDeletingDeletingNodeV1Beta2Reason = "DeletingNode"
+
+	// MachineDeletingDeletionCompletedV1Beta2Reason surfaces when the Machine deletion has been completed.
+	// This reason is set right after the `machine.cluster.x-k8s.io` finalizer is removed.
+	// This means that the object will go away (i.e. be removed from etcd), except if there are other
+	// finalizers on the Machine object.
+	MachineDeletingDeletionCompletedV1Beta2Reason = DeletionCompletedV1Beta2Reason
 )
 
 // ANCHOR: MachineSpec

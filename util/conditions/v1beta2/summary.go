@@ -36,6 +36,7 @@ type SummaryOptions struct {
 	conditionTypes                 []string
 	negativePolarityConditionTypes []string
 	ignoreTypesIfMissing           []string
+	additionalConditions           []ConditionWithOwnerInfo
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -73,6 +74,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	expectedConditionTypes := sets.New[string](summarizeOpt.conditionTypes...)
 	ignoreTypesIfMissing := sets.New[string](summarizeOpt.ignoreTypesIfMissing...)
 	existingConditionTypes := sets.New[string]()
+	allConditionTypes := summarizeOpt.conditionTypes
 
 	// Drops all the conditions not in scope for the merge operation
 	conditions := getConditionsWithOwnerInfo(sourceObj)
@@ -83,6 +85,12 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 		}
 		conditionsInScope = append(conditionsInScope, condition)
 		existingConditionTypes.Insert(condition.Type)
+	}
+
+	for _, condition := range summarizeOpt.additionalConditions {
+		conditionsInScope = append(conditionsInScope, condition)
+		existingConditionTypes.Insert(condition.Type)
+		allConditionTypes = append(allConditionTypes, condition.Type)
 	}
 
 	// Add the expected conditions which do not exist, so we are compliant with K8s guidelines
@@ -110,7 +118,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 		return nil, errors.New("summary can't be performed when the list of conditions to be summarized is empty")
 	}
 
-	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(conditionsInScope, summarizeOpt.conditionTypes)
+	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(conditionsInScope, allConditionTypes)
 	if err != nil {
 		return nil, err
 	}

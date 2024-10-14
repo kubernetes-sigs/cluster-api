@@ -74,7 +74,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterclass")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.ClusterClass{}).
-		Named("clusterclass").
 		WithOptions(options).
 		Watches(
 			&runtimev1.ExtensionConfig{},

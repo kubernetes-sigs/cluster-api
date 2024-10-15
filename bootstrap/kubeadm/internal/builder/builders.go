@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 )
 
@@ -83,9 +84,9 @@ func (k *KubeadmConfigBuilder) Build() *bootstrapv1.KubeadmConfig {
 		Status: bootstrapv1.KubeadmConfigStatus{
 			V1Beta2: &bootstrapv1.KubeadmConfigV1Beta2Status{
 				Conditions: []metav1.Condition{{
-					Type:   "Paused",
+					Type:   clusterv1.PausedV1Beta2Condition,
 					Status: metav1.ConditionFalse,
-					Reason: "NotPaused",
+					Reason: clusterv1.NotPausedV1Beta2Reason,
 				}},
 			},
 		},

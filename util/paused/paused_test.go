@@ -28,110 +28,67 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
 func TestEnsurePausedCondition(t *testing.T) {
 	g := NewWithT(t)
 
 	scheme := runtime.NewScheme()
+	g.Expect(builder.AddTransitionV1Beta2ToScheme(scheme)).To(Succeed())
 	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
 
+	// Cluster Case 1: unpaused
 	normalCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "some-cluster",
 			Namespace: "default",
 		},
 	}
-	normalClusterWithCondition := normalCluster.DeepCopy()
-	v1beta2conditions.Set(normalClusterWithCondition, pausedCondition(normalClusterWithCondition, normalClusterWithCondition, clusterv1.PausedV1Beta2Condition))
 
-	pausedSpecCluster := normalCluster.DeepCopy()
-	pausedSpecCluster.Spec.Paused = true
-	pausedSpecClusterWithCondition := pausedSpecCluster.DeepCopy()
-	v1beta2conditions.Set(pausedSpecClusterWithCondition, pausedCondition(pausedSpecClusterWithCondition, pausedSpecClusterWithCondition, clusterv1.PausedV1Beta2Condition))
+	// Cluster Case 2: paused
+	pausedCluster := normalCluster.DeepCopy()
+	pausedCluster.Spec.Paused = true
 
-	pausedAnnotationCluster := normalCluster.DeepCopy()
-	pausedAnnotationCluster.SetAnnotations(map[string]string{clusterv1.PausedAnnotation: "true"})
-	pausedAnnotationClusterWithCondition := pausedAnnotationCluster.DeepCopy()
-	v1beta2conditions.Set(pausedAnnotationClusterWithCondition, pausedCondition(pausedAnnotationClusterWithCondition, pausedAnnotationClusterWithCondition, clusterv1.PausedV1Beta2Condition))
+	// Object case 1: unpaused
+	obj := &builder.Phase1Obj{ObjectMeta: metav1.ObjectMeta{
+		Name:      "some-object",
+		Namespace: "default",
+	}}
 
-	pausedSpecAnnotationCluster := pausedSpecCluster.DeepCopy()
-	pausedSpecAnnotationCluster.SetAnnotations(map[string]string{clusterv1.PausedAnnotation: "true"})
-	pausedSpecAnnotationClusterWithCondition := pausedSpecAnnotationCluster.DeepCopy()
-	v1beta2conditions.Set(pausedSpecAnnotationClusterWithCondition, pausedCondition(pausedSpecAnnotationClusterWithCondition, pausedSpecAnnotationClusterWithCondition, clusterv1.PausedV1Beta2Condition))
+	// Object case 2: paused
+	pausedObj := obj.DeepCopy()
+	pausedObj.SetAnnotations(map[string]string{clusterv1.PausedAnnotation: "true"})
 
 	tests := []struct {
-		name                 string
-		cluster              *clusterv1.Cluster
-		object               PausedConditionSetter
-		wantIsPaused         bool
-		wantConditionChanged bool
-		wantErr              bool
+		name         string
+		cluster      *clusterv1.Cluster
+		object       ConditionSetter
+		wantIsPaused bool
 	}{
 		{
-			name:                 "not paused cluster without condition",
-			cluster:              normalCluster.DeepCopy(),
-			object:               normalCluster.DeepCopy(),
-			wantIsPaused:         false,
-			wantConditionChanged: true,
-			wantErr:              false,
+			name:         "unpaused cluster and unpaused object",
+			cluster:      normalCluster.DeepCopy(),
+			object:       obj.DeepCopy(),
+			wantIsPaused: false,
 		},
 		{
-			name:                 "not paused cluster with condition",
-			cluster:              normalClusterWithCondition.DeepCopy(),
-			object:               normalClusterWithCondition.DeepCopy(),
-			wantIsPaused:         false,
-			wantConditionChanged: false,
-			wantErr:              false,
+			name:         "paused cluster and unpaused object",
+			cluster:      pausedCluster.DeepCopy(),
+			object:       obj.DeepCopy(),
+			wantIsPaused: true,
 		},
 		{
-			name:                 "paused cluster via spec without condition",
-			cluster:              pausedSpecCluster.DeepCopy(),
-			object:               pausedSpecCluster.DeepCopy(),
-			wantIsPaused:         true,
-			wantConditionChanged: true,
-			wantErr:              false,
+			name:         "unpaused cluster and paused object",
+			cluster:      normalCluster.DeepCopy(),
+			object:       pausedObj.DeepCopy(),
+			wantIsPaused: true,
 		},
 		{
-			name:                 "paused cluster via spec with condition",
-			cluster:              pausedSpecClusterWithCondition.DeepCopy(),
-			object:               pausedSpecClusterWithCondition.DeepCopy(),
-			wantIsPaused:         true,
-			wantConditionChanged: false,
-			wantErr:              false,
-		},
-		{
-			name:                 "paused cluster via annotation without condition",
-			cluster:              pausedAnnotationCluster.DeepCopy(),
-			object:               pausedAnnotationCluster.DeepCopy(),
-			wantIsPaused:         true,
-			wantConditionChanged: true,
-			wantErr:              false,
-		},
-		{
-			name:                 "paused cluster via annotation with condition",
-			cluster:              pausedAnnotationClusterWithCondition.DeepCopy(),
-			object:               pausedAnnotationClusterWithCondition.DeepCopy(),
-			wantIsPaused:         true,
-			wantConditionChanged: false,
-			wantErr:              false,
-		},
-		{
-			name:                 "paused cluster via spec and annotation without condition",
-			cluster:              pausedSpecAnnotationCluster.DeepCopy(),
-			object:               pausedSpecAnnotationCluster.DeepCopy(),
-			wantIsPaused:         true,
-			wantConditionChanged: true,
-			wantErr:              false,
-		},
-		{
-			name:                 "paused cluster via spec and annotation with condition",
-			cluster:              pausedSpecAnnotationClusterWithCondition.DeepCopy(),
-			object:               pausedSpecAnnotationClusterWithCondition.DeepCopy(),
-			wantIsPaused:         true,
-			wantConditionChanged: false,
-			wantErr:              false,
+			name:         "paused cluster and paused object",
+			cluster:      pausedCluster.DeepCopy(),
+			object:       pausedObj.DeepCopy(),
+			wantIsPaused: true,
 		},
 	}
 	for _, tt := range tests {
@@ -139,22 +96,22 @@ func TestEnsurePausedCondition(t *testing.T) {
 			g := NewWithT(t)
 			ctx := context.Background()
 
-			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&clusterv1.Cluster{}).
-				WithObjects(tt.object).Build()
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&clusterv1.Cluster{}, &builder.Phase1Obj{}).
+				WithObjects(tt.object, tt.cluster).Build()
 
 			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(tt.object), tt.object)).To(Succeed())
 
+			// The first run should set the condition.
 			gotIsPaused, gotConditionChanged, err := EnsurePausedCondition(ctx, c, tt.cluster, tt.object)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("EnsurePausedCondition() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotIsPaused != tt.wantIsPaused {
-				t.Errorf("EnsurePausedCondition() gotIsPaused = %v, want %v", gotIsPaused, tt.wantIsPaused)
-			}
-			if gotConditionChanged != tt.wantConditionChanged {
-				t.Errorf("EnsurePausedCondition() gotConditionChanged = %v, want %v", gotConditionChanged, tt.wantConditionChanged)
-			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotConditionChanged).To(BeTrue(), "The first reconcile should set the Paused condition")
+			g.Expect(gotIsPaused).To(Equal(tt.wantIsPaused))
+
+			// The second reconcile should be a no-op.
+			gotIsPaused, gotConditionChanged, err = EnsurePausedCondition(ctx, c, tt.cluster, tt.object)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotConditionChanged).To(BeFalse(), "The second reconcile should not change the Paused condition")
+			g.Expect(gotIsPaused).To(Equal(tt.wantIsPaused))
 		})
 	}
 }

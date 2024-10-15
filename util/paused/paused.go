@@ -32,14 +32,14 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// PausedConditionSetter combines the client.Object and Setter interface.
-type PausedConditionSetter interface {
+// ConditionSetter combines the client.Object and Setter interface.
+type ConditionSetter interface {
 	v1beta2conditions.Setter
 	client.Object
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj PausedConditionSetter) (isPaused bool, conditionChanged bool, err error) {
+func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, conditionChanged bool, err error) {
 	oldCondition := v1beta2conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(cluster, obj, clusterv1.PausedV1Beta2Condition)
 
@@ -48,12 +48,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the paused condition did not change.
-	if oldCondition != nil &&
-		oldCondition.Type == newCondition.Type &&
-		oldCondition.Status == newCondition.Status &&
-		oldCondition.Reason == newCondition.Reason &&
-		oldCondition.Message == newCondition.Message &&
-		oldCondition.ObservedGeneration == obj.GetGeneration() {
+	if oldCondition != nil && v1beta2conditions.HasSameState(oldCondition, &newCondition) {
 		if isPaused {
 			log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
 		}
@@ -83,7 +78,7 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 }
 
 // pausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func pausedCondition(cluster *clusterv1.Cluster, obj PausedConditionSetter, targetConditionType string) metav1.Condition {
+func pausedCondition(cluster *clusterv1.Cluster, obj ConditionSetter, targetConditionType string) metav1.Condition {
 	if (cluster != nil && cluster.Spec.Paused) || annotations.HasPaused(obj) {
 		var messages []string
 		if cluster != nil && cluster.Spec.Paused {

@@ -1163,9 +1163,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToInMemoryMachines),
-			builder.WithPredicates(
-				predicates.ClusterInfrastructureReady(mgr.GetScheme(), predicateLog),
-			),
+			builder.WithPredicates(predicates.ClusterInfrastructureReady(mgr.GetScheme(), predicateLog)),
 		).Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")

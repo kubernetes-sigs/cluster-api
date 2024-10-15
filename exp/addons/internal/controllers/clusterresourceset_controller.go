@@ -83,9 +83,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(
 				resourceToClusterResourceSetFunc[client.Object](r.Client),
 			),
-			builder.WithPredicates(
-				resourcepredicates.TypedResourceCreateOrUpdate[client.Object](predicateLog),
-			),
+			builder.WithPredicates(resourcepredicates.TypedResourceCreateOrUpdate[client.Object](predicateLog)),
 		).
 		WatchesRawSource(source.Kind(
 			partialSecretCache,

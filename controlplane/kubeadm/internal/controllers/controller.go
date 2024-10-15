@@ -106,7 +106,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			builder.WithPredicates(
 				predicates.All(mgr.GetScheme(), predicateLog,
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
-					predicates.ClusterInfrastructureReady(mgr.GetScheme(), predicateLog),
+					predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 				),
 			),
 		).

@@ -396,7 +396,7 @@ See [Improving status in CAPI resources].
 
 ### InfraMachine: pausing
 
-Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Machine object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachine object.
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachine object.
 
 If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 

@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/topology/desiredstate"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
 	"sigs.k8s.io/cluster-api/feature"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/contract"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -247,6 +248,13 @@ func getScope(cluster *clusterv1.Cluster, clusterClassFile string) (*scope.Scope
 	s.Blueprint.ClusterClass = mustFind(findObject[*clusterv1.ClusterClass](parsedObjects, groupVersionKindName{
 		Kind: "ClusterClass",
 	}))
+	// Set paused condition for ClusterClass
+	v1beta2conditions.Set(s.Blueprint.ClusterClass, metav1.Condition{
+		Type:               clusterv1.PausedV1Beta2Condition,
+		Status:             metav1.ConditionFalse,
+		Reason:             clusterv1.NotPausedV1Beta2Reason,
+		ObservedGeneration: s.Blueprint.ClusterClass.GetGeneration(),
+	})
 	// InfrastructureClusterTemplate
 	s.Blueprint.InfrastructureClusterTemplate = mustFind(findObject[*unstructured.Unstructured](parsedObjects, refToGroupVersionKindName(s.Blueprint.ClusterClass.Spec.Infrastructure.Ref)))
 

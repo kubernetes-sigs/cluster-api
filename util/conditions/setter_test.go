@@ -84,6 +84,12 @@ func TestLexicographicLess(t *testing.T) {
 	a = TrueCondition("A")
 	b = TrueCondition(clusterv1.ReadyCondition)
 	g.Expect(lexicographicLess(a, b)).To(BeFalse())
+
+	a = TrueCondition("A")
+	g.Expect(lexicographicLess(a, nil1)).To(BeFalse())
+
+	b = TrueCondition("A")
+	g.Expect(lexicographicLess(nil1, b)).To(BeTrue())
 }
 
 func TestSet(t *testing.T) {

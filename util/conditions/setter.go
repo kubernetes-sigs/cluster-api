@@ -191,6 +191,12 @@ func Delete(to Setter, t clusterv1.ConditionType) {
 // According to this order the Ready condition always goes first, followed by all the other
 // conditions sorted by Type.
 func lexicographicLess(i, j *clusterv1.Condition) bool {
+	if i == nil {
+		return true
+	}
+	if j == nil {
+		return false
+	}
 	return (i.Type == clusterv1.ReadyCondition || i.Type < j.Type) && j.Type != clusterv1.ReadyCondition
 }
 

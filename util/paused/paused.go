@@ -37,75 +37,55 @@ type pausedConditionSetter interface {
 	client.Object
 }
 
-// EnsurePausedOption is some configuration that modifies options for a EnsurePausedCondition request.
-type EnsurePausedOption interface {
-	// ApplyToSet applies this configuration to the given EnsurePausedCondition options.
-	ApplyToSet(option *EnsurePausedOptions)
-}
-
-// EnsurePausedOptions allows to define options for the EnsurePausedCondition operation.
-type EnsurePausedOptions struct {
-	targetConditionType string
-}
-
-// ApplyOptions applies the given list options on these options,
-// and then returns itself (for convenient chaining).
-func (o *EnsurePausedOptions) ApplyOptions(opts []EnsurePausedOption) *EnsurePausedOptions {
-	for _, opt := range opts {
-		opt.ApplyToSet(o)
-	}
-	return o
-}
-
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func EnsurePausedCondition[T pausedConditionSetter](ctx context.Context, c client.Client, cluster *clusterv1.Cluster, o T, opts ...EnsurePausedOption) (isPaused bool, conditionChanged bool, err error) {
-	op := &EnsurePausedOptions{
-		targetConditionType: clusterv1.PausedV1Beta2Condition,
-	}
-	for _, opt := range opts {
-		opt.ApplyToSet(op)
-	}
-
-	oldCondition := v1beta2conditions.Get(o, op.targetConditionType)
-	newCondition := pausedCondition(cluster, o, op.targetConditionType)
+func EnsurePausedCondition[T pausedConditionSetter](ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj T) (isPaused bool, conditionChanged bool, err error) {
+	oldCondition := v1beta2conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
+	newCondition := pausedCondition(cluster, obj, clusterv1.PausedV1Beta2Condition)
 
 	isPaused = newCondition.Status == metav1.ConditionTrue
 
 	// Return early if the paused condition did not change.
 	if oldCondition != nil &&
+		oldCondition.Type == newCondition.Type &&
 		oldCondition.Status == newCondition.Status &&
 		oldCondition.Reason == newCondition.Reason &&
-		oldCondition.Message == newCondition.Message {
+		oldCondition.Message == newCondition.Message &&
+		oldCondition.ObservedGeneration == obj.GetGeneration() {
 		return isPaused, false, nil
 	}
 
-	patchHelper, err := patch.NewHelper(o, c)
+	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
 		return isPaused, false, err
 	}
 
-	v1beta2conditions.Set(o, newCondition)
-
+	log := ctrl.LoggerFrom(ctx)
 	if isPaused {
-		log := ctrl.LoggerFrom(ctx)
-		log.Info("Reconciliation is paused for this object")
+		log.V(4).Info("Pausing reconciliation for this object")
+	} else {
+		log.V(4).Info("Unpausing reconciliation for this object")
 	}
 
-	return newCondition.Status == metav1.ConditionTrue, true,
-		patchHelper.Patch(ctx, o, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
-			op.targetConditionType,
-		}})
+	v1beta2conditions.Set(obj, newCondition)
+
+	if err := patchHelper.Patch(ctx, obj, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		clusterv1.PausedV1Beta2Condition,
+	}}); err != nil {
+		return isPaused, false, err
+	}
+
+	return isPaused, true, nil
 }
 
 // pausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func pausedCondition[T pausedConditionSetter](cluster *clusterv1.Cluster, o T, targetConditionType string) metav1.Condition {
-	if (cluster == nil && annotations.HasPaused(o)) || (cluster != nil && annotations.IsPaused(cluster, o)) {
+func pausedCondition[T pausedConditionSetter](cluster *clusterv1.Cluster, obj T, targetConditionType string) metav1.Condition {
+	if (cluster != nil && cluster.Spec.Paused) || annotations.HasPaused(obj) {
 		var messages []string
 		if cluster != nil && cluster.Spec.Paused {
 			messages = append(messages, "Cluster spec.paused is set to true")
 		}
-		if annotations.HasPaused(o) {
-			messages = append(messages, fmt.Sprintf("%s has the cluster.x-k8s.io/paused annotation", o.GetObjectKind().GroupVersionKind().Kind))
+		if annotations.HasPaused(obj) {
+			messages = append(messages, fmt.Sprintf("%s has the cluster.x-k8s.io/paused annotation", obj.GetObjectKind().GroupVersionKind().Kind))
 		}
 
 		return metav1.Condition{

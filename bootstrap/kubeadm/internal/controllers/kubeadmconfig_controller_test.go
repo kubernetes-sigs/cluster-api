@@ -24,7 +24,6 @@ import (
 	"time"
 
 	ignition "github.com/flatcar/ignition/config/v2_3"
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,14 +33,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	bootstrapbuilder "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/builder"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
@@ -509,7 +507,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}
 
@@ -571,7 +569,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}
 
@@ -693,7 +691,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 			k := &KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -770,7 +768,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			k := &KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -871,7 +869,7 @@ func TestBootstrapDataFormat(t *testing.T) {
 			k := &KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 			request := ctrl.Request{
@@ -952,7 +950,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,
 		SecretCachingClient: myclient,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		KubeadmInitLock:     &myInitLocker{},
 	}
 	request := ctrl.Request{
@@ -1033,7 +1031,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		SecretCachingClient: myclient,
 		KubeadmInitLock:     &myInitLocker{},
 		TokenTTL:            DefaultTokenTTL,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, remoteClient, remoteClient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1279,7 +1277,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		SecretCachingClient: myclient,
 		KubeadmInitLock:     &myInitLocker{},
 		TokenTTL:            DefaultTokenTTL,
-		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, remoteClient, remoteClient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		ClusterCache:        clustercache.NewFakeClusterCache(remoteClient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1602,7 +1600,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 			k := &KubeadmConfigReconciler{
 				Client:              fakeClient,
 				SecretCachingClient: fakeClient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), fakeClient, fakeClient, fakeClient.Scheme(), client.ObjectKey{Name: tc.cluster.Name, Namespace: tc.cluster.Namespace}),
+				ClusterCache:        clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: tc.cluster.Name, Namespace: tc.cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 
@@ -1827,7 +1825,7 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 			reconciler := KubeadmConfigReconciler{
 				Client:              myclient,
 				SecretCachingClient: myclient,
-				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				ClusterCache:        clustercache.NewFakeClusterCache(myclient, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 				KubeadmInitLock:     &myInitLocker{},
 			}
 

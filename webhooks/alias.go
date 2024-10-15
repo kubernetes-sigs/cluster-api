@@ -29,19 +29,19 @@ import (
 
 // Cluster implements a validating and defaulting webhook for Cluster.
 type Cluster struct {
-	Client                    client.Reader
-	ClusterCacheTrackerReader ClusterCacheTrackerReader
+	Client             client.Reader
+	ClusterCacheReader ClusterCacheReader
 }
 
-// ClusterCacheTrackerReader is a read-only ClusterCacheTracker useful to gather information
+// ClusterCacheReader is a read-only ClusterCacheReader useful to gather information
 // for MachinePool nodes for workload clusters.
-type ClusterCacheTrackerReader = webhooks.ClusterCacheTrackerReader
+type ClusterCacheReader = webhooks.ClusterCacheReader
 
 // SetupWebhookWithManager sets up Cluster webhooks.
 func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.Cluster{
-		Client:  webhook.Client,
-		Tracker: webhook.ClusterCacheTrackerReader,
+		Client:             webhook.Client,
+		ClusterCacheReader: webhook.ClusterCacheReader,
 	}).SetupWebhookWithManager(mgr)
 }
 

@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
@@ -553,9 +553,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			}).WithObjects(trackerObjects...).Build()
 
 			r := &MachinePoolReconciler{
-				Client:    clientFake,
-				APIReader: clientFake,
-				Tracker:   remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, trackerClientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				Client:       clientFake,
+				APIReader:    clientFake,
+				ClusterCache: clustercache.NewFakeClusterCache(trackerClientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machinePool)})
@@ -824,8 +824,8 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	clientFake := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build()
 	mr := &MachinePoolReconciler{
-		Client:  clientFake,
-		Tracker: remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+		Client:       clientFake,
+		ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1100,9 +1100,9 @@ func TestMachinePoolConditions(t *testing.T) {
 			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 
 			r := &MachinePoolReconciler{
-				Client:    clientFake,
-				APIReader: clientFake,
-				Tracker:   remote.NewTestClusterCacheTracker(ctrl.LoggerFrom(ctx), clientFake, clientFake, clientFake.Scheme(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				Client:       clientFake,
+				APIReader:    clientFake,
+				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})

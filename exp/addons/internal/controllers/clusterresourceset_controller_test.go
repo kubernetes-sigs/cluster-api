@@ -110,8 +110,15 @@ metadata:
 		g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
 		t.Log("Creating the remote Cluster kubeconfig")
 		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
-		_, err = tracker.GetClient(ctx, client.ObjectKeyFromObject(testCluster))
-		g.Expect(err).ToNot(HaveOccurred())
+		// Set InfrastructureReady to true so ClusterCache creates the clusterAccessor.
+		patch := client.MergeFrom(testCluster.DeepCopy())
+		testCluster.Status.InfrastructureReady = true
+		g.Expect(env.Status().Patch(ctx, testCluster, patch)).To(Succeed())
+
+		g.Eventually(func(g Gomega) {
+			_, err = clusterCache.GetClient(ctx, client.ObjectKeyFromObject(testCluster))
+			g.Expect(err).ToNot(HaveOccurred())
+		}, 1*time.Minute, 5*time.Second).Should(Succeed())
 
 		createConfigMapAndSecret(g, ns.Name, configmapName, secretName)
 		return ns

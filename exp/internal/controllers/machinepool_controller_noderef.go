@@ -75,7 +75,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 		return ctrl.Result{}, nil
 	}
 
-	clusterClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	clusterClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -86,7 +86,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, s *scope)
 
 	// Return early if nodeRefMap is nil.
 	if s.nodeRefMap == nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")
+		return ctrl.Result{}, errors.New("failed to get Node references")
 	}
 
 	// Get the Node references.

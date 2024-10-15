@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -57,10 +57,10 @@ type Generator interface {
 }
 
 // NewGenerator creates a new generator to generate desired state.
-func NewGenerator(client client.Client, tracker *remote.ClusterCacheTracker, runtimeClient runtimeclient.Client) Generator {
+func NewGenerator(client client.Client, clusterCache clustercache.ClusterCache, runtimeClient runtimeclient.Client) Generator {
 	return &generator{
 		Client:        client,
-		Tracker:       tracker,
+		ClusterCache:  clusterCache,
 		RuntimeClient: runtimeClient,
 		patchEngine:   patches.NewEngine(runtimeClient),
 	}
@@ -71,7 +71,7 @@ func NewGenerator(client client.Client, tracker *remote.ClusterCacheTracker, run
 type generator struct {
 	Client client.Client
 
-	Tracker *remote.ClusterCacheTracker
+	ClusterCache clustercache.ClusterCache
 
 	RuntimeClient runtimeclient.Client
 
@@ -118,7 +118,7 @@ func (g *generator) Generate(ctx context.Context, s *scope.Scope) (*scope.Cluste
 	// - Make upgrade decisions on the control plane.
 	// - Making upgrade decisions on machine pools.
 	if len(s.Current.MachinePools) > 0 {
-		client, err := g.Tracker.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
+		client, err := g.ClusterCache.GetClient(ctx, client.ObjectKeyFromObject(s.Current.Cluster))
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to check if any MachinePool is upgrading")
 		}

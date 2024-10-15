@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,7 +43,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
@@ -2352,13 +2351,9 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 		},
 	}
 
-	g.Expect(env.Create(ctx, cluster)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
 
-	// Make sure the cluster is in the cache before proceeding
-	g.Eventually(func() error {
-		var cl clusterv1.Cluster
-		return env.Get(ctx, util.ObjectKey(cluster), &cl)
-	}, timeout, 100*time.Millisecond).Should(Succeed())
+	g.Expect(env.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
 
 	// This is required for MHC to perform checks
 	patchHelper, err := patch.NewHelper(cluster, env.Client)
@@ -2366,17 +2361,11 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 	conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
-	// Wait for cluster in cache to be updated post-patch
-	g.Eventually(func() bool {
-		err := env.Get(ctx, util.ObjectKey(cluster), cluster)
-		if err != nil {
-			return false
-		}
-
-		return conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)
-	}, timeout, 100*time.Millisecond).Should(BeTrue())
-
-	g.Expect(env.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
+	// Wait for cluster in the cached client to be updated post-patch
+	g.Eventually(func(g Gomega) {
+		g.Expect(env.Get(ctx, util.ObjectKey(cluster), cluster)).To(Succeed())
+		g.Expect(conditions.IsTrue(cluster, clusterv1.InfrastructureReadyCondition)).To(BeTrue())
+	}, timeout, 100*time.Millisecond).Should(Succeed())
 
 	return cluster
 }
@@ -2680,9 +2669,9 @@ func TestPatchTargets(t *testing.T) {
 		mhc,
 	).WithStatusSubresource(&clusterv1.MachineHealthCheck{}, &clusterv1.Machine{}).Build()
 	r := &Reconciler{
-		Client:   cl,
-		recorder: record.NewFakeRecorder(32),
-		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
+		Client:       cl,
+		recorder:     record.NewFakeRecorder(32),
+		ClusterCache: clustercache.NewFakeClusterCache(cl, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),
 	}
 
 	// To make the patch fail, create patchHelper with a different client.

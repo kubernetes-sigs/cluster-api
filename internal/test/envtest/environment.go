@@ -78,7 +78,17 @@ func init() {
 	// Otherwise it would fall back and log to os.Stderr.
 	// This would lead to race conditions because input.M.Run() writes os.Stderr
 	// while some go routines in controller-runtime use os.Stderr to write logs.
-	if err := logsv1.ValidateAndApply(logs.NewOptions(), nil); err != nil {
+	logOptions := logs.NewOptions()
+	logOptions.Verbosity = logsv1.VerbosityLevel(2)
+	if logLevel := os.Getenv("CAPI_TEST_ENV_LOG_LEVEL"); logLevel != "" {
+		logLevelInt, err := strconv.Atoi(logLevel)
+		if err != nil {
+			klog.ErrorS(err, "Unable to convert value of CAPI_TEST_ENV_LOG_LEVEL environment variable to integer")
+			os.Exit(1)
+		}
+		logOptions.Verbosity = logsv1.VerbosityLevel(logLevelInt)
+	}
+	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
 		klog.ErrorS(err, "Unable to validate and apply log options")
 		os.Exit(1)
 	}

@@ -43,9 +43,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
@@ -81,9 +81,9 @@ var (
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client       client.Client
+	APIReader    client.Reader
+	ClusterCache clustercache.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -135,6 +135,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
 			)).
+		WatchesRawSource(r.ClusterCache.GetClusterSource("machine", clusterToMachines)).
 		Watches(
 			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(msToMachines),
@@ -242,10 +243,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		)
 
 		res, err := doReconcile(ctx, reconcileDelete, s)
-		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
-		// the current cluster because of concurrent access.
-		if errors.Is(err, remote.ErrClusterLocked) {
-			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+		// Requeue if the reconcile failed because connection to workload cluster was down.
+		if errors.Is(err, clustercache.ErrClusterNotConnected) {
+			log.V(5).Info("Requeuing because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		return res, err
@@ -253,10 +253,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Handle normal reconciliation loop.
 	res, err := doReconcile(ctx, alwaysReconcile, s)
-	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
-	// the current cluster because of concurrent access.
-	if errors.Is(err, remote.ErrClusterLocked) {
-		log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+	// Requeue if the reconcile failed because connection to workload cluster was down.
+	if errors.Is(err, clustercache.ErrClusterNotConnected) {
+		log.V(5).Info("Requeuing because connection to the workload cluster is down")
 		return ctrl.Result{RequeueAfter: time.Minute}, nil
 	}
 	return res, err
@@ -622,7 +621,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		// NOTE: The following is a best-effort attempt to retrieve the node,
 		// errors are logged but not returned to ensure machines are deleted
 		// even if the node cannot be retrieved.
-		remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+		remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 		if err != nil {
 			log.Error(err, "Failed to get cluster client while deleting Machine and checking for nodes")
 		} else {
@@ -697,10 +696,10 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		if errors.Is(err, remote.ErrClusterLocked) {
-			log.V(5).Info("Requeuing drain Node because another worker has the lock on the ClusterCacheTracker")
+		if errors.Is(err, clustercache.ErrClusterNotConnected) {
+			log.V(5).Info("Requeuing drain Node because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "Error creating a remote client for cluster while draining Node, won't retry")
@@ -767,7 +766,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	// even the "no-op" drain would be requeued.
 	if cacheEntry, ok := r.drainCache.Has(client.ObjectKeyFromObject(machine)); ok {
 		if requeueAfter, requeue := shouldRequeueDrain(time.Now(), cacheEntry.LastDrain); requeue {
-			log.Info(fmt.Sprintf("Requeuing in %s because there already was a drain in the last %s", requeueAfter, drainRetryInterval))
+			log.Info(fmt.Sprintf("Requeuing in %s because there already was a drain in the last %s", requeueAfter.Truncate(time.Second/10), drainRetryInterval))
 			return ctrl.Result{RequeueAfter: requeueAfter}, nil
 		}
 	}
@@ -817,7 +816,7 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return true, err
 	}
@@ -850,10 +849,10 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		if errors.Is(err, remote.ErrClusterLocked) {
-			return errors.Wrapf(err, "failed deleting Node because another worker has the lock on the ClusterCacheTracker")
+		if errors.Is(err, clustercache.ErrClusterNotConnected) {
+			return errors.Wrapf(err, "failed deleting Node because connection to the workload cluster is down")
 		}
 		log.Error(err, "Error creating a remote client for cluster while deleting Node, won't retry")
 		return nil
@@ -941,13 +940,12 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 	}
 
 	// If there is no tracker, don't watch remote nodes
-	if r.Tracker == nil {
+	if r.ClusterCache == nil {
 		return nil
 	}
 
-	return r.Tracker.Watch(ctx, remote.WatchInput{
+	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.WatchInput{
 		Name:         "machine-watchNodes",
-		Cluster:      util.ObjectKey(cluster),
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachine),

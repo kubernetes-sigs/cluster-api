@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	conditionsv1beta2 "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -80,6 +81,28 @@ func TestClusterReconciler(t *testing.T) {
 			}
 			return len(instance.Finalizers) > 0
 		}, timeout).Should(BeTrue())
+
+		// Validate the RemoteConnectionProbe condition is false (because kubeconfig Secret doesn't exist)
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
+
+			condition := conditionsv1beta2.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeFailedV1Beta2Reason))
+		}, timeout).Should(Succeed())
+
+		t.Log("Creating the Cluster Kubeconfig Secret")
+		g.Expect(env.CreateKubeconfigSecret(ctx, instance)).To(Succeed())
+
+		g.Eventually(func(g Gomega) {
+			g.Expect(env.Get(ctx, key, instance)).To(Succeed())
+
+			condition := conditionsv1beta2.Get(instance, clusterv1.ClusterRemoteConnectionProbeV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(metav1.ConditionTrue))
+			g.Expect(condition.Reason).To(Equal(clusterv1.ClusterRemoteConnectionProbeSucceededV1Beta2Reason))
+		}, timeout).Should(Succeed())
 	})
 
 	t.Run("Should successfully patch a cluster object if the status diff is empty but the spec diff is not", func(t *testing.T) {

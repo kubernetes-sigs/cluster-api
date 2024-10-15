@@ -176,7 +176,7 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 		Client:              env,
 		SecretCachingClient: secretCachingClient,
 		recorder:            record.NewFakeRecorder(32),
-		managementCluster:   &internal.Management{Client: env.Client, Tracker: nil},
+		managementCluster:   &internal.Management{Client: env.Client, ClusterCache: nil},
 	}
 
 	ns, err := env.CreateNamespace(ctx, "test-reconcile-upd-og")

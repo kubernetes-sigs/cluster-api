@@ -22,10 +22,14 @@ import (
 	"os"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -42,12 +46,31 @@ func TestMain(m *testing.M) {
 	}
 
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		machinePoolReconciler := MachinePoolReconciler{
-			Client:   mgr.GetClient(),
-			recorder: mgr.GetEventRecorderFor("machinepool-controller"),
-		}
-		err := machinePoolReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1})
+		clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+			SecretClient: mgr.GetClient(),
+			Cache: clustercache.CacheOptions{
+				Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
+			},
+			Client: clustercache.ClientOptions{
+				UserAgent: remote.DefaultClusterAPIUserAgent("test-controller-manager"),
+				Cache: clustercache.ClientCacheOptions{
+					DisableFor: []client.Object{
+						// Don't cache ConfigMaps & Secrets.
+						&corev1.ConfigMap{},
+						&corev1.Secret{},
+					},
+				},
+			},
+		}, controller.Options{MaxConcurrentReconciles: 10})
 		if err != nil {
+			panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
+		}
+
+		if err := (&MachinePoolReconciler{
+			Client:       mgr.GetClient(),
+			ClusterCache: clusterCache,
+			recorder:     mgr.GetEventRecorderFor("machinepool-controller"),
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to set up machine pool reconciler: %v", err))
 		}
 	}

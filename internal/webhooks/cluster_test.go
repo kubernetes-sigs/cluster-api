@@ -2131,11 +2131,11 @@ func TestClusterTopologyValidation(t *testing.T) {
 				WithScheme(fakeScheme).
 				Build()
 
-			// Use an empty fakeClusterCacheTracker here because the real cases are tested in Test_validateTopologyMachinePoolVersions.
-			fakeClusterCacheTrackerReader := &fakeClusterCacheTracker{client: fake.NewFakeClient()}
+			// Use an empty fakeClusterCache here because the real cases are tested in Test_validateTopologyMachinePoolVersions.
+			fakeClusterCacheReader := &fakeClusterCache{client: fake.NewFakeClient()}
 
 			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
-			webhook := &Cluster{Client: fakeClient, Tracker: fakeClusterCacheTrackerReader}
+			webhook := &Cluster{Client: fakeClient, ClusterCacheReader: fakeClusterCacheReader}
 
 			warnings, err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
@@ -3628,7 +3628,7 @@ func Test_validateTopologyMachinePoolVersions(t *testing.T) {
 			oldVersion, err := semver.ParseTolerant(tt.old.Spec.Topology.Version)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			fakeClusterCacheTracker := &fakeClusterCacheTracker{
+			fakeClusterCacheTracker := &fakeClusterCache{
 				client: fake.NewClientBuilder().
 					WithObjects(tt.workloadObjects...).
 					Build(),
@@ -3795,10 +3795,10 @@ func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
 	return output
 }
 
-type fakeClusterCacheTracker struct {
+type fakeClusterCache struct {
 	client client.Reader
 }
 
-func (f *fakeClusterCacheTracker) GetReader(_ context.Context, _ types.NamespacedName) (client.Reader, error) {
+func (f *fakeClusterCache) GetReader(_ context.Context, _ types.NamespacedName) (client.Reader, error) {
 	return f.client, nil
 }

@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	resourcepredicates "sigs.k8s.io/cluster-api/exp/addons/internal/controllers/predicates"
 	"sigs.k8s.io/cluster-api/util"
@@ -61,8 +61,8 @@ var ErrSecretTypeNotSupported = errors.New("unsupported secret type")
 
 // ClusterResourceSetReconciler reconciles a ClusterResourceSet object.
 type ClusterResourceSetReconciler struct {
-	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Client       client.Client
+	ClusterCache clustercache.ClusterCache
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -76,6 +76,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSet),
 		).
+		WatchesRawSource(r.ClusterCache.GetClusterSource("clusterresourceset", r.clusterToClusterResourceSet)).
 		WatchesMetadata(
 			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(
@@ -159,14 +160,13 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	errs := []error{}
-	errClusterLockedOccurred := false
+	errClusterNotConnectedOccurred := false
 	for _, cluster := range clusters {
 		if err := r.ApplyClusterResourceSet(ctx, cluster, clusterResourceSet); err != nil {
-			// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
-			// the current cluster because of concurrent access.
-			if errors.Is(err, remote.ErrClusterLocked) {
-				log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
-				errClusterLockedOccurred = true
+			// Requeue if the reconcile failed because connection to workload cluster was down.
+			if errors.Is(err, clustercache.ErrClusterNotConnected) {
+				log.V(5).Info("Requeuing because connection to the workload cluster is down")
+				errClusterNotConnectedOccurred = true
 			} else {
 				// Append the error if the error is not ErrClusterLocked.
 				errs = append(errs, err)
@@ -195,8 +195,8 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 
-	// Requeue if ErrClusterLocked was returned for one of the clusters.
-	if errClusterLockedOccurred {
+	// Requeue if ErrClusterNotConnected was returned for one of the clusters.
+	if errClusterNotConnectedOccurred {
 		// Requeue after a minute to not end up in exponential delayed requeue which
 		// could take up to 16m40s.
 		return ctrl.Result{RequeueAfter: time.Minute}, nil
@@ -353,7 +353,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 
 	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 
-	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err

@@ -510,7 +510,10 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 			listOpts = append(listOpts, client.InNamespace(cluster.Namespace))
 		}
 
-		objectList = objectList.DeepCopyObject().(client.ObjectList)
+		// Note: We have to DeepCopy objectList into a new variable. Otherwise
+		// we have a race condition between DeepCopyObject and client.List if this
+		// mapper func is called concurrently.
+		objectList := objectList.DeepCopyObject().(client.ObjectList)
 		if err := c.List(ctx, objectList, listOpts...); err != nil {
 			return nil
 		}

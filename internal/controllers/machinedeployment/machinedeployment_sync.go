@@ -524,6 +524,9 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 		AvailableReplicas:   availableReplicas,
 		UnavailableReplicas: unavailableReplicas,
 		Conditions:          deployment.Status.Conditions,
+
+		// preserve v1beta2 status
+		V1Beta2: deployment.Status.V1Beta2,
 	}
 
 	if *deployment.Spec.Replicas == status.ReadyReplicas {

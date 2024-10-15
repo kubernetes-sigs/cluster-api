@@ -183,7 +183,6 @@ func setMachinesUpToDateCondition(machineSet *clusterv1.MachineSet, machines []*
 			Message: "something TODO on MachinesUpToDate",
 		})
 	}
-
 }
 
 func setDeletingCondition(ms *clusterv1.MachineSet) {

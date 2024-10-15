@@ -59,6 +59,7 @@ repo or add an item to the agenda in the [Cluster API community meeting](https:/
 | [Taint Nodes at creation]                                                  | No        |                                      |
 | [Support for running multiple instances]                                   | No        | Mandatory for clusterctl CLI support |
 | [Clusterctl support]                                                       | No        | Mandatory for clusterctl CLI support |
+| [BootstrapConfig: pausing]                                                 | No        |                                      |
 
 Note:
 - `All resources` refers to all the provider's resources "core" Cluster API interacts with;
@@ -283,6 +284,12 @@ the implication of this choice which are described both in the document above an
 
 </aside>
 
+### BootstrapConfig: pausing
+
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the BootstrapConfig object.
+
+If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
+
 ### BootstrapConfig: terminal failures
 
 Each BootstrapConfig SHOULD report when BootstrapConfig's enter in a state that cannot be recovered (terminal failure) by
@@ -481,3 +488,4 @@ The following diagram shows the typical logic for a bootstrap provider:
 [implementation best practices]: ../best-practices.md
 [Server Side Apply]: https://kubernetes.io/docs/reference/using-api/server-side-apply/
 [the DockerMachineTemplate webhook]: https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/internal/webhooks/dockermachinetemplate_webhook.go
+[BootstrapConfig: pausing]: #bootstrapconfig-pausing

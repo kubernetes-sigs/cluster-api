@@ -177,3 +177,22 @@ func TestSet(t *testing.T) {
 		g.Expect(foo.Status.Conditions).To(Equal(expected), cmp.Diff(foo.Status.Conditions, expected))
 	})
 }
+
+func TestDelete(t *testing.T) {
+	g := NewWithT(t)
+
+	obj := &builder.Phase2Obj{
+		Status: builder.Phase2ObjStatus{
+			Conditions: []metav1.Condition{
+				{Type: "trueCondition", Status: metav1.ConditionTrue},
+				{Type: "falseCondition", Status: metav1.ConditionFalse},
+			},
+		},
+	}
+
+	Delete(nil, "foo") // no-op
+	Delete(obj, "trueCondition")
+	Delete(obj, "trueCondition") // no-op
+
+	g.Expect(obj.GetV1Beta2Conditions()).To(MatchConditions([]metav1.Condition{{Type: "falseCondition", Status: metav1.ConditionFalse}}, IgnoreLastTransitionTime(true)))
+}

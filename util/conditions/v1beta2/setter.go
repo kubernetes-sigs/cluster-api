@@ -97,3 +97,19 @@ func Set(targetObj Setter, condition metav1.Condition, opts ...SetOption) {
 
 	targetObj.SetV1Beta2Conditions(conditions)
 }
+
+// Delete deletes the condition with the given type.
+func Delete(to Setter, conditionType string) {
+	if to == nil {
+		return
+	}
+
+	conditions := to.GetV1Beta2Conditions()
+	newConditions := make([]metav1.Condition, 0, len(conditions)-1)
+	for _, condition := range conditions {
+		if condition.Type != conditionType {
+			newConditions = append(newConditions, condition)
+		}
+	}
+	to.SetV1Beta2Conditions(newConditions)
+}

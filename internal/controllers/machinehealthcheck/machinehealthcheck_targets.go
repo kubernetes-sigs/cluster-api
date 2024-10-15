@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -97,6 +98,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	if annotations.HasRemediateMachine(t.Machine) {
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.HasRemediateMachineAnnotationReason, clusterv1.ConditionSeverityWarning, "Marked for remediation via remediate-machine annotation")
 		logger.V(3).Info("Target is marked for remediation via remediate-machine annotation")
+
+		v1beta2conditions.Set(t.Machine, metav1.Condition{
+			Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason,
+			Message: "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation",
+		})
 		return true, time.Duration(0)
 	}
 
@@ -116,6 +124,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 	if t.nodeMissing {
 		logger.V(3).Info("Target is unhealthy: node is missing")
 		conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
+
+		v1beta2conditions.Set(t.Machine, metav1.Condition{
+			Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason,
+			Message: fmt.Sprintf("Node %s has been deleted", t.Machine.Status.NodeRef.Name),
+		})
 		return true, time.Duration(0)
 	}
 
@@ -170,6 +185,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		if comparisonTime.Add(timeoutForMachineToHaveNode.Duration).Before(now) {
 			conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeStartupTimeoutReason, clusterv1.ConditionSeverityWarning, "Node failed to report startup in %s", timeoutDuration)
 			logger.V(3).Info("Target is unhealthy: machine has no node", "duration", timeoutDuration)
+
+			v1beta2conditions.Set(t.Machine, metav1.Condition{
+				Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineHealthCheckNodeStartupTimeoutV1Beta2Reason,
+				Message: fmt.Sprintf("Node failed to report startup in %s", timeoutDuration),
+			})
 			return true, time.Duration(0)
 		}
 
@@ -194,6 +216,13 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		if nodeCondition.LastTransitionTime.Add(c.Timeout.Duration).Before(now) {
 			conditions.MarkFalse(t.Machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.UnhealthyNodeConditionReason, clusterv1.ConditionSeverityWarning, "Condition %s on node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String())
 			logger.V(3).Info("Target is unhealthy: condition is in state longer than allowed timeout", "condition", c.Type, "state", c.Status, "timeout", c.Timeout.Duration.String())
+
+			v1beta2conditions.Set(t.Machine, metav1.Condition{
+				Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineHealthCheckUnhealthyNodeV1Beta2Reason,
+				Message: fmt.Sprintf("Condition %s on Node is reporting status %s for more than %s", c.Type, c.Status, c.Timeout.Duration.String()),
+			})
 			return true, time.Duration(0)
 		}
 
@@ -327,6 +356,12 @@ func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr
 
 		if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
 			conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSucceededCondition)
+
+			v1beta2conditions.Set(t.Machine, metav1.Condition{
+				Type:   clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineHealthCheckSucceededV1Beta2Reason,
+			})
 			healthy = append(healthy, t)
 		}
 	}

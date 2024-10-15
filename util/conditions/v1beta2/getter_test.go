@@ -593,6 +593,34 @@ func TestConvertFromUnstructuredConditions(t *testing.T) {
 	}
 }
 
+func TestIsMethods(t *testing.T) {
+	g := NewWithT(t)
+
+	obj := objectWithValueGetter{
+		Status: objectWithValueGetterStatus{
+			Conditions: []metav1.Condition{
+				{Type: "trueCondition", Status: metav1.ConditionTrue},
+				{Type: "falseCondition", Status: metav1.ConditionFalse},
+				{Type: "unknownCondition", Status: metav1.ConditionUnknown},
+			},
+		},
+	}
+
+	// test isTrue
+	g.Expect(IsTrue(obj, "trueCondition")).To(BeTrue())
+	g.Expect(IsTrue(obj, "falseCondition")).To(BeFalse())
+	g.Expect(IsTrue(obj, "unknownCondition")).To(BeFalse())
+	// test isFalse
+	g.Expect(IsFalse(obj, "trueCondition")).To(BeFalse())
+	g.Expect(IsFalse(obj, "falseCondition")).To(BeTrue())
+	g.Expect(IsFalse(obj, "unknownCondition")).To(BeFalse())
+
+	// test isUnknown
+	g.Expect(IsUnknown(obj, "trueCondition")).To(BeFalse())
+	g.Expect(IsUnknown(obj, "falseCondition")).To(BeFalse())
+	g.Expect(IsUnknown(obj, "unknownCondition")).To(BeTrue())
+}
+
 type objectWithValueGetter struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

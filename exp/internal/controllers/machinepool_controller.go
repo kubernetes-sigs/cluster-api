@@ -114,7 +114,12 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
-			builder.WithPredicates(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)),
+			builder.WithPredicates(
+				predicates.All(mgr.GetScheme(), predicateLog,
+					predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
+					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
+				),
+			),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("machinepool", clusterToMachinePools)).
 		Build(r)

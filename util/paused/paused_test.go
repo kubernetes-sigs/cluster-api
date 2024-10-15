@@ -64,7 +64,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 	tests := []struct {
 		name                 string
 		cluster              *clusterv1.Cluster
-		object               pausedConditionSetter
+		object               PausedConditionSetter
 		wantIsPaused         bool
 		wantConditionChanged bool
 		wantErr              bool

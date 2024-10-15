@@ -32,17 +32,20 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-type pausedConditionSetter interface {
+// PausedConditionSetter combines the client.Object and Setter interface.
+type PausedConditionSetter interface {
 	v1beta2conditions.Setter
 	client.Object
 }
 
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func EnsurePausedCondition[T pausedConditionSetter](ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj T) (isPaused bool, conditionChanged bool, err error) {
+func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj PausedConditionSetter) (isPaused bool, conditionChanged bool, err error) {
 	oldCondition := v1beta2conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(cluster, obj, clusterv1.PausedV1Beta2Condition)
 
 	isPaused = newCondition.Status == metav1.ConditionTrue
+
+	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the paused condition did not change.
 	if oldCondition != nil &&
@@ -51,6 +54,9 @@ func EnsurePausedCondition[T pausedConditionSetter](ctx context.Context, c clien
 		oldCondition.Reason == newCondition.Reason &&
 		oldCondition.Message == newCondition.Message &&
 		oldCondition.ObservedGeneration == obj.GetGeneration() {
+		if isPaused {
+			log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
+		}
 		return isPaused, false, nil
 	}
 
@@ -59,9 +65,8 @@ func EnsurePausedCondition[T pausedConditionSetter](ctx context.Context, c clien
 		return isPaused, false, err
 	}
 
-	log := ctrl.LoggerFrom(ctx)
 	if isPaused {
-		log.V(4).Info("Pausing reconciliation for this object")
+		log.V(4).Info("Pausing reconciliation for this object", "reason", newCondition.Message)
 	} else {
 		log.V(4).Info("Unpausing reconciliation for this object")
 	}
@@ -78,7 +83,7 @@ func EnsurePausedCondition[T pausedConditionSetter](ctx context.Context, c clien
 }
 
 // pausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func pausedCondition[T pausedConditionSetter](cluster *clusterv1.Cluster, obj T, targetConditionType string) metav1.Condition {
+func pausedCondition(cluster *clusterv1.Cluster, obj PausedConditionSetter, targetConditionType string) metav1.Condition {
 	if (cluster != nil && cluster.Spec.Paused) || annotations.HasPaused(obj) {
 		var messages []string
 		if cluster != nil && cluster.Spec.Paused {
@@ -89,16 +94,18 @@ func pausedCondition[T pausedConditionSetter](cluster *clusterv1.Cluster, obj T,
 		}
 
 		return metav1.Condition{
-			Type:    targetConditionType,
-			Status:  metav1.ConditionTrue,
-			Reason:  clusterv1.PausedV1Beta2Reason,
-			Message: strings.Join(messages, ", "),
+			Type:               targetConditionType,
+			Status:             metav1.ConditionTrue,
+			Reason:             clusterv1.PausedV1Beta2Reason,
+			Message:            strings.Join(messages, ", "),
+			ObservedGeneration: obj.GetGeneration(),
 		}
 	}
 
 	return metav1.Condition{
-		Type:   targetConditionType,
-		Status: metav1.ConditionFalse,
-		Reason: clusterv1.NotPausedV1Beta2Reason,
+		Type:               targetConditionType,
+		Status:             metav1.ConditionFalse,
+		Reason:             clusterv1.NotPausedV1Beta2Reason,
+		ObservedGeneration: obj.GetGeneration(),
 	}
 }

@@ -51,16 +51,15 @@ func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
 
 	// MachinesReady
 	setMachinesReadyCondition(s.machineSet, s.machines)
-	// MachinesUpToDate
-	setMachinesUpToDateCondition(s.machineSet, s.machines)
 
-	// Deleting
-	setDeletingCondition(s.machineSet)
+	// TODO MachinesUpToDate
+
+	// TODO Deleting
 }
 
 func setReplicas(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
 	if machines == nil {
-		// TODO: what about replicas fields? Not touch?!
+		// TODO: what todo if listing machines failed? Not touch replicas?
 		return
 	}
 
@@ -80,7 +79,7 @@ func setReplicas(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
 
 func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
 	if machines == nil {
-		// Question: should we only do this if the condition does not exist?
+		// TODO(chrischdi): Question: should we only do this if the condition does not exist?
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
@@ -120,8 +119,6 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 			Reason:  "InternalError", // TODO: create a const.
 			Message: "Please check controller logs for errors",
 		})
-
-		// TODO: what about replicas fields? Not touch?
 		return
 	}
 
@@ -169,34 +166,4 @@ func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clu
 		readyCondition.Message = "All Machines are ready."
 	}
 	v1beta2conditions.Set(machineSet, *readyCondition)
-}
-
-func setMachinesUpToDateCondition(machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) {
-	if err := v1beta2conditions.SetAggregateCondition(machines, machineSet,
-		clusterv1.MachinesUpToDateV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
-	); err != nil {
-		v1beta2conditions.Set(machineSet, metav1.Condition{
-			Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
-			Status:  metav1.ConditionFalse,
-			Reason:  "TODOFailedDuringAggregation",
-			Message: "something TODO on MachinesUpToDate",
-		})
-	}
-}
-
-func setDeletingCondition(ms *clusterv1.MachineSet) {
-	if !ms.DeletionTimestamp.IsZero() {
-		v1beta2conditions.Set(ms, metav1.Condition{
-			Type:   clusterv1.MachineSetDeletingV1Beta2Condition,
-			Status: metav1.ConditionTrue,
-			Reason: "DeletionTimestampSet", // TODO: create a const.
-		})
-		return
-	}
-	v1beta2conditions.Set(ms, metav1.Condition{
-		Type:   clusterv1.MachineSetDeletingV1Beta2Condition,
-		Status: metav1.ConditionFalse,
-		Reason: "NoDeletionTimestamp", // TODO: create a const.
-	})
 }

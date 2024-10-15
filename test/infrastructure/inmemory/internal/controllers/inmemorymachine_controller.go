@@ -48,7 +48,6 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
@@ -126,12 +125,6 @@ func (r *InMemoryMachineReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, inMemoryMachine); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
-	}
-
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, inMemoryMachine) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
 	}
 
 	// Fetch the in-memory Cluster.

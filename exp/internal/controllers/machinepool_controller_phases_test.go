@@ -26,16 +26,19 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	fakeController "sigs.k8s.io/cluster-api/controllers/external/fake"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
@@ -128,6 +131,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -165,6 +173,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -199,6 +212,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -249,6 +267,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -311,6 +334,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -351,6 +379,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -398,6 +431,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -458,6 +496,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -524,6 +567,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -588,6 +636,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -674,6 +727,11 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		r := &MachinePoolReconciler{
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -990,6 +1048,11 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachinePoolReconciler{
 				Client: fake.NewClientBuilder().WithObjects(tc.machinepool, bootstrapConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
+				externalTracker: external.ObjectTracker{
+					Controller: fakeController.Controller{},
+					Cache:      &informertest.FakeInformers{},
+					Scheme:     runtime.NewScheme(),
+				},
 			}
 
 			scope := &scope{
@@ -1285,6 +1348,11 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			r := &MachinePoolReconciler{
 				Client:       fakeClient,
 				ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+				externalTracker: external.ObjectTracker{
+					Controller: fakeController.Controller{},
+					Cache:      &informertest.FakeInformers{},
+					Scheme:     runtime.NewScheme(),
+				},
 			}
 
 			scope := &scope{
@@ -1368,6 +1436,11 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			r := &MachinePoolReconciler{
 				Client:   env,
 				ssaCache: ssa.NewCache(),
+				externalTracker: external.ObjectTracker{
+					Controller: fakeController.Controller{},
+					Cache:      &informertest.FakeInformers{},
+					Scheme:     runtime.NewScheme(),
+				},
 			}
 			scope := &scope{
 				machinePool: &machinePool,
@@ -1431,6 +1504,11 @@ func TestReconcileMachinePoolMachines(t *testing.T) {
 			r := &MachinePoolReconciler{
 				Client:   env,
 				ssaCache: ssa.NewCache(),
+				externalTracker: external.ObjectTracker{
+					Controller: fakeController.Controller{},
+					Cache:      &informertest.FakeInformers{},
+					Scheme:     runtime.NewScheme(),
+				},
 			}
 
 			scope := &scope{
@@ -1789,6 +1867,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(env.GetClient(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			recorder:     record.NewFakeRecorder(32),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -1851,6 +1934,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(env.GetClient(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			recorder:     record.NewFakeRecorder(32),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -1896,6 +1984,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Client:       fakeClient,
 			recorder:     record.NewFakeRecorder(32),
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -1937,6 +2030,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Client:       fakeClient,
 			recorder:     record.NewFakeRecorder(32),
 			ClusterCache: clustercache.NewFakeClusterCache(fakeClient, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{
@@ -2000,6 +2098,11 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 			Client:       fakeClient,
 			ClusterCache: clustercache.NewFakeClusterCache(env.GetClient(), client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			recorder:     record.NewFakeRecorder(32),
+			externalTracker: external.ObjectTracker{
+				Controller: fakeController.Controller{},
+				Cache:      &informertest.FakeInformers{},
+				Scheme:     runtime.NewScheme(),
+			},
 		}
 
 		scope := &scope{

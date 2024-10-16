@@ -35,10 +35,6 @@ import (
 // comply with the recommendation in the Kubernetes API guidelines.
 // Note: v1beta1 conditions are not managed by this func.
 func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
-	if s.machineSet.Status.V1Beta2 == nil {
-		s.machineSet.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
-	}
-
 	// Update the following fields in status from the machines list.
 	// - ReadyReplicas
 	// - AvailableReplicas
@@ -75,6 +71,10 @@ func setReplicas(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
 		if meta.IsStatusConditionTrue(machine.GetV1Beta2Conditions(), clusterv1.MachineAvailableV1Beta2Condition) {
 			availableReplicas++
 		}
+	}
+
+	if ms.Status.V1Beta2 == nil {
+		ms.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
 	}
 
 	ms.Status.V1Beta2.ReadyReplicas = ptr.To(readyReplicas)
@@ -225,6 +225,7 @@ func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clu
 			Reason:  clusterv1.MachineSetMachineInvalidConditionReportedV1Beta2Reason,
 			Message: err.Error(),
 		})
+		return
 	}
 
 	// Overwrite the message for the true case.

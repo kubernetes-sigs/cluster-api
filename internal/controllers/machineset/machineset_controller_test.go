@@ -624,8 +624,10 @@ func TestMachineSetReconcile(t *testing.T) {
 			Client:   c,
 			recorder: rec,
 		}
-		_, _ = msr.Reconcile(ctx, request)
+		res, err := msr.Reconcile(ctx, request)
 		g.Eventually(rec.Events).Should(Receive())
+		_ = res
+		_ = err
 	})
 
 	t.Run("reconcile successfully when labels are missing", func(t *testing.T) {

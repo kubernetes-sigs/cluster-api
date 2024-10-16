@@ -87,6 +87,49 @@ type MachineSetSpec struct {
 	Template MachineTemplateSpec `json:"template,omitempty"`
 }
 
+// MachineSet's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineSetScalingUpV1Beta2Condition is true if available replicas < desired replicas.
+	MachineSetScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
+
+	// MachineSetNotScalingUpReasonV1Beta2Reason surfaces when a the number of available replicas is greater or equal to
+	// the number of desired replicas.
+	MachineSetNotScalingUpReasonV1Beta2Reason = "NotScalingUp"
+
+	// MachineSetNotAllAvailableReasonV1Beta2Reason surfaces when a the MachineSet is getting scaled up because the
+	// number of available replicas lower then the number of desired replicas.
+	MachineSetNotAllAvailableReasonV1Beta2Reason = "NotAllAvailable"
+)
+
+// MachineSet's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineSetScalingDownV1Beta2Condition is true if replicas > desired replicas.
+	MachineSetScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
+
+	// MachineSetNotScalingDownReasonV1Beta2Reason surfaces when a the number of actual replicas is lower or equal to
+	// the number of desired replicas.
+	MachineSetNotScalingDownReasonV1Beta2Reason = "NotScalingDown"
+
+	// MachineSetTooManyReplicasReasonV1Beta2Reason surfaces when the MachineSet is getting scaled down because the
+	// number of actual replicas is higher then the number of desired replicas and the MachineSet is not in deletion.
+	MachineSetTooManyReplicasReasonV1Beta2Reason = "TooManyReplicas"
+
+	// MachineSetDeletingReasonV1Beta2Reason surfaces when the MachineSet is getting scaled down because the
+	// MachineSet is in deletion and the number of actual replicas is not yet 0.
+	MachineSetDeletingReasonV1Beta2Reason = MachineSetDeletingV1Beta2Condition
+)
+
+// MachineSet's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+// Note: Reason's could also be derived from the aggregation of machine's Ready conditions.
+const (
+	// MachineSetMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
+	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
+
+	// MachineSetMachineInvalidConditionReportedV1Beta2Reason surfaces a Machine's Ready condition
+	// (read from a machine object) which is invalid. (e.g. its status is missing).
+	MachineSetMachineInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+)
+
 // ANCHOR_END: MachineSetSpec
 
 // ANCHOR: MachineTemplateSpec

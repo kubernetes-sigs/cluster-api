@@ -59,7 +59,7 @@ func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
 
 func setReplicas(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
 	if machines == nil {
-		// TODO: what todo if listing machines failed? Not touch replicas?
+		// TODO(chrischdi) ask: what todo if listing machines failed? Not touch replicas?
 		return
 	}
 
@@ -78,92 +78,155 @@ func setReplicas(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
 }
 
 func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	// TODO(chrischdi) ask: should we surface when scaling won't work due to missing bootstraptemplate or inframachinetemplate?
+
+	// If we got unexpected errors in listing the machines (this should happen rarely), surface them
 	if machines == nil {
-		// TODO(chrischdi): Question: should we only do this if the condition does not exist?
+		// TODO(chrischdi) ask: should we only do this only if the condition does not exist or always?
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  "InternalError", // TODO: create a const.
+			Reason:  clusterv1.InternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return
 	}
 
-	desiredReplicas := *ms.Spec.Replicas
-	availableReplicas := *ms.Status.V1Beta2.AvailableReplicas
-
-	if availableReplicas < desiredReplicas {
+	if ms.Spec.Replicas == nil {
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
-			Status:  metav1.ConditionTrue,
-			Reason:  "NotAllAvailable", // TODO: create a const.
-			Message: fmt.Sprintf("The MachineSet currently has %d/%d available replicas", availableReplicas, desiredReplicas),
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.InternalErrorV1Beta2Reason,
+			Message: ".Spec.Replicas is nil, please check controller logs for errors",
+		})
+		return
+	}
+	desiredReplicas := *ms.Spec.Replicas
+
+	// In case of deletion the desired replicas are 0.
+	// TODO(chrischdi): what should ScalingUp report when deleting? Currently it would report "not scaling up"
+	if !ms.DeletionTimestamp.IsZero() {
+		desiredReplicas = 0
+	}
+
+	// AvailableReplicas should always be set (this should never happen), surface if it is not the case.
+	if ms.Status.V1Beta2.AvailableReplicas == nil {
+		// Should never happen because AvailableReplicas get set in setReplicas and that should always be the case
+		// when machines is not nil.
+		v1beta2conditions.Set(ms, metav1.Condition{
+			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.InternalErrorV1Beta2Reason,
+			Message: "AvailableReplicas is expected to be set, please check controller logs for errors",
 		})
 		return
 	}
 
+	availableReplicas := *ms.Status.V1Beta2.AvailableReplicas
+
+	// Not scaling up.
+	if availableReplicas >= desiredReplicas {
+		v1beta2conditions.Set(ms, metav1.Condition{
+			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1.MachineSetNotScalingUpReasonV1Beta2Reason,
+			Message: "MachineSet is not scaling up",
+		})
+		return
+	}
+
+	// Scaling up.
+	// TODO(chrischdi) ask: should we surface more and/or split this up? E.g.:
+	// * summary of machines which are not available
+	// * separate reasons for when machines need to get created vs only waiting for them to get available
 	v1beta2conditions.Set(ms, metav1.Condition{
 		Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
-		Status:  metav1.ConditionFalse,
-		Reason:  "NotScalingUp", // TODO: create a const.
-		Message: "MachineSet is not scaling up",
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachineSetNotAllAvailableReasonV1Beta2Reason, // Question: Should this maybe simply "ScalingUp" instead?
+		Message: fmt.Sprintf("The MachineSet currently has %d/%d available replicas", availableReplicas, desiredReplicas),
 	})
 }
 
 func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	// If we got unexpected errors in listing the machines (this should happen rarely), surface them
 	if machines == nil {
-		// Question: should we only do this if the condition does not exist?
+		// TODO(chrischdi) ask: should we only do this only if the condition does not exist or always?
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  "InternalError", // TODO: create a const.
+			Reason:  clusterv1.InternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return
 	}
 
+	if ms.Spec.Replicas == nil {
+		v1beta2conditions.Set(ms, metav1.Condition{
+			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.InternalErrorV1Beta2Reason,
+			Message: ".Spec.Replicas is nil, please check controller logs for errors",
+		})
+		return
+	}
 	desiredReplicas := *ms.Spec.Replicas
 
+	// Deletion
+	if !ms.DeletionTimestamp.IsZero() {
+		// TODO(chrischdi) ask: surface more?
+		v1beta2conditions.Set(ms, metav1.Condition{
+			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
+			Status:  metav1.ConditionTrue,
+			Reason:  clusterv1.MachineSetDeletingReasonV1Beta2Reason,
+			Message: "The MachineSet is in deletion",
+		})
+		return
+	}
+
+	// Not Scaling down
 	if int32(len(machines)) <= (desiredReplicas) {
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
-			Reason:  "NotScalingDown", // TODO: create a const.
+			Reason:  clusterv1.MachineSetNotScalingDownReasonV1Beta2Reason,
 			Message: "MachineSet is not scaling down",
 		})
 		return
 	}
 
-	if !ms.DeletionTimestamp.IsZero() {
-		v1beta2conditions.Set(ms, metav1.Condition{
-			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
-			Status:  metav1.ConditionTrue,
-			Reason:  "Deleting", // TODO: create a const.
-			Message: "The MachineSet is in deletion",
-		})
-		return
-	}
+	// Scaling down
+	// TODO(chrischdi) ask: surface more? e.g.:
+	// * x machines deleting and summarize their Deleting condition?
 	v1beta2conditions.Set(ms, metav1.Condition{
 		Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
 		Status:  metav1.ConditionTrue,
-		Reason:  "TooManyReplicas", // TODO: create a const.
+		Reason:  clusterv1.MachineSetTooManyReplicasReasonV1Beta2Reason, // Question: Should this maybe simply "ScalingDown" instead?
 		Message: fmt.Sprintf("The MachineSet currently has %d replicas but should only have %d", len(machines), desiredReplicas),
 	})
 }
 
 func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	// TODO(chrischdi) asks:
+	// * what if scaling up (not all machines exist yet)
+	// * what if scaling down (machines are getting removed)
+
 	readyCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines, clusterv1.MachineReadyV1Beta2Condition,
-		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition))
+		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition),
+	)
 	if err != nil {
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
-			Status:  metav1.ConditionFalse,
-			Reason:  "TODOFailedDuringAggregation",
-			Message: "something TODO at MachinesReady",
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetMachineInvalidConditionReportedV1Beta2Reason,
+			Message: err.Error(),
 		})
-	} else if readyCondition.Status == metav1.ConditionTrue {
+	}
+
+	// Overwrite the message for the true case.
+	if readyCondition.Status == metav1.ConditionTrue {
 		readyCondition.Message = "All Machines are ready."
 	}
+
 	v1beta2conditions.Set(machineSet, *readyCondition)
 }

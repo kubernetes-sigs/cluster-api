@@ -87,6 +87,9 @@ const (
 
 // Reasons that are used across different objects.
 const (
+	// AvailableV1Beta2Reason applies to a condition surfacing object availability.
+	AvailableV1Beta2Reason = "Available"
+
 	// InvalidConditionReportedV1Beta2Reason applies to a condition, usually read from an external object, that is invalid
 	// (e.g. its status is missing).
 	InvalidConditionReportedV1Beta2Reason = "InvalidConditionReported"

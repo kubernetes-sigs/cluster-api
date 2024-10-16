@@ -17,6 +17,7 @@ limitations under the License.
 package machinehealthcheck
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -269,6 +270,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:    nil,
 	}
 	nodeNotYetStartedTarget1200sCondition := newFailedHealthCheckCondition(clusterv1.NodeStartupTimeoutReason, "Node failed to report startup in %s", timeoutForMachineToHaveNode)
+	nodeNotYetStartedTarget1200sV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeStartupTimeoutV1Beta2Reason, "Node failed to report startup in %s", timeoutForMachineToHaveNode)
 
 	testMachineCreated400s := testMachine.DeepCopy()
 	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
@@ -290,6 +292,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		nodeMissing: true,
 	}
 	nodeGoneAwayCondition := newFailedHealthCheckCondition(clusterv1.NodeNotFoundReason, "")
+	nodeGoneAwayV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckNodeDeletedV1Beta2Reason, "Node %s has been deleted", testMachine.Status.NodeRef.Name)
 
 	// Create a test MHC without conditions
 	testMHCEmptyConditions := &clusterv1.MachineHealthCheck{
@@ -369,6 +372,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		nodeMissing: false,
 	}
 	nodeUnknown400Condition := newFailedHealthCheckCondition(clusterv1.UnhealthyNodeConditionReason, "Condition Ready on node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
+	nodeUnknown400V1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckUnhealthyNodeV1Beta2Reason, "Condition Ready on Node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
 
 	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")
@@ -407,6 +411,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	// Target for when the machine has the remediate machine annotation
 	const annotationRemediationMsg = "Marked for remediation via remediate-machine annotation"
+	const annotationRemediationV1Beta2Msg = "Marked for remediation via cluster.x-k8s.io/remediate-machine annotation"
 	testMachineAnnotationRemediation := testMachine.DeepCopy()
 	testMachineAnnotationRemediation.Annotations = map[string]string{clusterv1.RemediateMachineAnnotation: ""}
 	machineAnnotationRemediation := healthCheckTarget{
@@ -416,15 +421,17 @@ func TestHealthCheckTargets(t *testing.T) {
 		Node:    nil,
 	}
 	machineAnnotationRemediationCondition := newFailedHealthCheckCondition(clusterv1.HasRemediateMachineAnnotationReason, annotationRemediationMsg)
+	machineAnnotationRemediationV1Beta2Condition := newFailedHealthCheckV1Beta2Condition(clusterv1.MachineHealthCheckHasRemediateAnnotationV1Beta2Reason, annotationRemediationV1Beta2Msg)
 
 	testCases := []struct {
-		desc                              string
-		targets                           []healthCheckTarget
-		timeoutForMachineToHaveNode       *time.Duration
-		expectedHealthy                   []healthCheckTarget
-		expectedNeedsRemediation          []healthCheckTarget
-		expectedNeedsRemediationCondition []clusterv1.Condition
-		expectedNextCheckTimes            []time.Duration
+		desc                                     string
+		targets                                  []healthCheckTarget
+		timeoutForMachineToHaveNode              *time.Duration
+		expectedHealthy                          []healthCheckTarget
+		expectedNeedsRemediation                 []healthCheckTarget
+		expectedNeedsRemediationCondition        []clusterv1.Condition
+		expectedNeedsRemediationV1Beta2Condition []metav1.Condition
+		expectedNextCheckTimes                   []time.Duration
 	}{
 		{
 			desc:                     "when the node has not yet started for shorter than the timeout",
@@ -441,20 +448,22 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 50*time.Second},
 		},
 		{
-			desc:                              "when the node has not yet started for longer than the timeout",
-			targets:                           []healthCheckTarget{nodeNotYetStartedTarget1200s},
-			expectedHealthy:                   []healthCheckTarget{},
-			expectedNeedsRemediation:          []healthCheckTarget{nodeNotYetStartedTarget1200s},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeNotYetStartedTarget1200sCondition},
-			expectedNextCheckTimes:            []time.Duration{},
+			desc:                                     "when the node has not yet started for longer than the timeout",
+			targets:                                  []healthCheckTarget{nodeNotYetStartedTarget1200s},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeNotYetStartedTarget1200s},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeNotYetStartedTarget1200sCondition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeNotYetStartedTarget1200sV1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{
-			desc:                              "when the node has gone away",
-			targets:                           []healthCheckTarget{nodeGoneAway},
-			expectedHealthy:                   []healthCheckTarget{},
-			expectedNeedsRemediation:          []healthCheckTarget{nodeGoneAway},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeGoneAwayCondition},
-			expectedNextCheckTimes:            []time.Duration{},
+			desc:                                     "when the node has gone away",
+			targets:                                  []healthCheckTarget{nodeGoneAway},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeGoneAway},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeGoneAwayCondition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeGoneAwayV1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{
 			desc:                     "when the node has been in an unknown state for shorter than the timeout",
@@ -464,12 +473,13 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNextCheckTimes:   []time.Duration{100 * time.Second},
 		},
 		{
-			desc:                              "when the node has been in an unknown state for longer than the timeout",
-			targets:                           []healthCheckTarget{nodeUnknown400},
-			expectedHealthy:                   []healthCheckTarget{},
-			expectedNeedsRemediation:          []healthCheckTarget{nodeUnknown400},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeUnknown400Condition},
-			expectedNextCheckTimes:            []time.Duration{},
+			desc:                                     "when the node has been in an unknown state for longer than the timeout",
+			targets:                                  []healthCheckTarget{nodeUnknown400},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeUnknown400},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeUnknown400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeUnknown400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{
 			desc:                     "when the node is healthy",
@@ -479,12 +489,13 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNextCheckTimes:   []time.Duration{},
 		},
 		{
-			desc:                              "with a mix of healthy and unhealthy nodes",
-			targets:                           []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeUnknown400, nodeHealthy},
-			expectedHealthy:                   []healthCheckTarget{nodeHealthy},
-			expectedNeedsRemediation:          []healthCheckTarget{nodeUnknown400},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeUnknown400Condition},
-			expectedNextCheckTimes:            []time.Duration{200 * time.Second, 100 * time.Second},
+			desc:                                     "with a mix of healthy and unhealthy nodes",
+			targets:                                  []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeUnknown400, nodeHealthy},
+			expectedHealthy:                          []healthCheckTarget{nodeHealthy},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeUnknown400},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeUnknown400Condition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeUnknown400V1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{200 * time.Second, 100 * time.Second},
 		},
 		{
 			desc:                        "when the node has not started for a long time but the startup timeout is disabled",
@@ -511,20 +522,22 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNextCheckTimes:            []time.Duration{},
 		},
 		{
-			desc:                              "when the machine is manually marked for remediation",
-			targets:                           []healthCheckTarget{machineAnnotationRemediation},
-			expectedHealthy:                   []healthCheckTarget{},
-			expectedNeedsRemediation:          []healthCheckTarget{machineAnnotationRemediation},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{machineAnnotationRemediationCondition},
-			expectedNextCheckTimes:            []time.Duration{},
+			desc:                                     "when the machine is manually marked for remediation",
+			targets:                                  []healthCheckTarget{machineAnnotationRemediation},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{machineAnnotationRemediation},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{machineAnnotationRemediationCondition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{machineAnnotationRemediationV1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{
-			desc:                              "health check with empty unhealthy conditions and missing node",
-			targets:                           []healthCheckTarget{nodeGoneAwayEmptyConditions},
-			expectedHealthy:                   []healthCheckTarget{},
-			expectedNeedsRemediation:          []healthCheckTarget{nodeGoneAwayEmptyConditions},
-			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeGoneAwayCondition},
-			expectedNextCheckTimes:            []time.Duration{},
+			desc:                                     "health check with empty unhealthy conditions and missing node",
+			targets:                                  []healthCheckTarget{nodeGoneAwayEmptyConditions},
+			expectedHealthy:                          []healthCheckTarget{},
+			expectedNeedsRemediation:                 []healthCheckTarget{nodeGoneAwayEmptyConditions},
+			expectedNeedsRemediationCondition:        []clusterv1.Condition{nodeGoneAwayCondition},
+			expectedNeedsRemediationV1Beta2Condition: []metav1.Condition{nodeGoneAwayV1Beta2Condition},
+			expectedNextCheckTimes:                   []time.Duration{},
 		},
 		{
 			desc:                              "health check with empty unhealthy conditions and node",
@@ -574,12 +587,27 @@ func TestHealthCheckTargets(t *testing.T) {
 				return out
 			}
 
+			removeLastTransitionTimesV1Beta2 := func(in []metav1.Condition) []metav1.Condition {
+				out := []metav1.Condition{}
+				for _, c := range in {
+					withoutTime := c.DeepCopy()
+					withoutTime.LastTransitionTime = metav1.Time{}
+					out = append(out, *withoutTime)
+				}
+				return out
+			}
+
 			gs.Expect(healthy).To(ConsistOf(tc.expectedHealthy))
 			gs.Expect(unhealthy).To(ConsistOf(tc.expectedNeedsRemediation))
 			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
 			for i, expectedMachineCondition := range tc.expectedNeedsRemediationCondition {
 				actualConditions := unhealthy[i].Machine.GetConditions()
 				conditionsMatcher := WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineCondition))
+				gs.Expect(actualConditions).To(conditionsMatcher)
+			}
+			for i, expectedMachineCondition := range tc.expectedNeedsRemediationV1Beta2Condition {
+				actualConditions := unhealthy[i].Machine.GetV1Beta2Conditions()
+				conditionsMatcher := WithTransform(removeLastTransitionTimesV1Beta2, ContainElements(expectedMachineCondition))
 				gs.Expect(actualConditions).To(conditionsMatcher)
 			}
 		})
@@ -654,4 +682,13 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 
 func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
 	return *conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededCondition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
+}
+
+func newFailedHealthCheckV1Beta2Condition(reason string, messageFormat string, messageArgs ...interface{}) metav1.Condition {
+	return metav1.Condition{
+		Type:    clusterv1.MachineHealthCheckSucceededV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: fmt.Sprintf(messageFormat, messageArgs...),
+	}
 }

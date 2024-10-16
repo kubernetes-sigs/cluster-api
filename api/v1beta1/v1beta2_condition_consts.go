@@ -225,16 +225,6 @@ const (
 	ClusterPausedV1Beta2Condition = PausedV1Beta2Condition
 )
 
-// Conditions that will be used for the MachineHealthCheck object in v1Beta2 API version.
-const (
-	// MachineHealthCheckRemediationAllowedV1Beta2Condition surfaces whether the MachineHealthCheck is
-	// allowed to remediate any Machines or whether it is blocked from remediating any further.
-	MachineHealthCheckRemediationAllowedV1Beta2Condition = "RemediationAllowed"
-
-	// MachineHealthCheckPausedV1Beta2Condition is true if this MachineHealthCheck or the Cluster it belongs to are paused.
-	MachineHealthCheckPausedV1Beta2Condition = PausedV1Beta2Condition
-)
-
 // Conditions that will be used for the ClusterClass object in v1Beta2 API version.
 const (
 	// ClusterClassVariablesReadyV1Beta2Condition is true if the ClusterClass variables, including both inline and external

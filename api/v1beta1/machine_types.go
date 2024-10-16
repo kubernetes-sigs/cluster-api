@@ -200,22 +200,71 @@ const (
 	// Note: this could happen when creating the machine. However, this state should be treated as an error if it lasts indefinitely.
 	MachineNodeDoesNotExistV1Beta2Reason = ObjectDoesNotExistV1Beta2Reason
 
-	// MachineNodeDeletedV1Beta2Reason surfaces when  the node hosted on the machine has been deleted.
+	// MachineNodeDeletedV1Beta2Reason surfaces when the node hosted on the machine has been deleted.
 	// Note: controllers can't identify if the Node was deleted by the controller itself, e.g.
 	// during the deletion workflow, or by a users.
 	MachineNodeDeletedV1Beta2Reason = ObjectDeletedV1Beta2Reason
 )
 
-// Machine's HealthCheckSucceeded and OwnerRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
-// Note: HealthCheckSucceeded and OwnerRemediated condition are set by the MachineHealthCheck controller.
+// Machine's HealthCheckSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.
+// Note: HealthCheckSucceeded condition is set by the MachineHealthCheck controller.
 const (
 	// MachineHealthCheckSucceededV1Beta2Condition is true if MHC instances targeting this machine report the Machine
 	// is healthy according to the definition of healthy present in the spec of the MachineHealthCheck object.
 	MachineHealthCheckSucceededV1Beta2Condition = "HealthCheckSucceeded"
 
+	// MachineHealthCheckSucceededV1Beta2Reason surfaces when a machine passes all the health checks defined by a MachineHealthCheck object.
+	MachineHealthCheckSucceededV1Beta2Reason = "HealthCheckSucceeded"
+
+	// MachineHealthCheckUnhealthyNodeV1Beta2Reason surfaces when the node hosted on the machine does not pass the health checks
+	// defined by a MachineHealthCheck object.
+	MachineHealthCheckUnhealthyNodeV1Beta2Reason = "UnhealthyNode"
+
+	// MachineHealthCheckNodeStartupTimeoutV1Beta2Reason surfaces when the node hosted on the machine does not appear within
+	// the timeout defined by a MachineHealthCheck object.
+	MachineHealthCheckNodeStartupTimeoutV1Beta2Reason = "NodeStartupTimeout"
+
+	// MachineHealthCheckNodeDeletedV1Beta2Reason surfaces when a MachineHealthCheck detect that the node hosted on the
+	// machine has been deleted while the Machine is still running.
+	MachineHealthCheckNodeDeletedV1Beta2Reason = "NodeDeleted"
+
+	// MachineHealthCheckHasRemediateAnnotationV1Beta2Reason surfaces a MachineHealthCheck detects a machine manually remediated
+	// via the remediate-machine annotation.
+	MachineHealthCheckHasRemediateAnnotationV1Beta2Reason = "HasRemediateAnnotation"
+)
+
+// Machine's OwnerRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
+// Note: OwnerRemediated condition is initially set by the MachineHealthCheck controller; then it is up to the Machine's
+// owner controller to update or delete this condition.
+const (
 	// MachineOwnerRemediatedV1Beta2Condition is only present if MHC instances targeting this machine
 	// determine that the controller owning this machine should perform remediation.
 	MachineOwnerRemediatedV1Beta2Condition = "OwnerRemediated"
+
+	// MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason surfaces the machine is waiting for the owner controller
+	// to start remediation.
+	MachineOwnerRemediatedWaitingForRemediationV1Beta2Reason = "WaitingForRemediation"
+)
+
+// Machine's ExternallyRemediated conditions and corresponding reasons that will be used in v1Beta2 API version.
+// Note: ExternallyRemediated condition is initially set by the MachineHealthCheck controller; then it is up to the external
+// remediation controller to update or delete this condition.
+const (
+	// MachineExternallyRemediatedV1Beta2Condition is only present if MHC instances targeting this machine
+	// determine that an external controller should perform remediation.
+	MachineExternallyRemediatedV1Beta2Condition = "ExternallyRemediated"
+
+	// MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason surfaces the machine is waiting for the
+	// external remediation controller to start remediation.
+	MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason = "WaitingForRemediation"
+
+	// MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason surfaces that the MachineHealthCheck cannot
+	// find the template for a external remediation request.
+	MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason = "RemediationTemplateNotFound"
+
+	// MachineExternallyRemediatedRemediationRequestCreationFailedV1Beta2Reason surfaces that the MachineHealthCheck cannot
+	// create a request for the external remediation controller.
+	MachineExternallyRemediatedRemediationRequestCreationFailedV1Beta2Reason = "RemediationRequestCreationFailed"
 )
 
 // Machine's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.

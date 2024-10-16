@@ -55,6 +55,38 @@ func Get(sourceObj Getter, sourceConditionType string) *metav1.Condition {
 	return meta.FindStatusCondition(sourceObj.GetV1Beta2Conditions(), sourceConditionType)
 }
 
+// Has returns true if a condition with the given type exists.
+func Has(from Getter, conditionType string) bool {
+	return Get(from, conditionType) != nil
+}
+
+// IsTrue is true if the condition with the given type is True, otherwise it returns false
+// if the condition is not True or if the condition does not exist (is nil).
+func IsTrue(from Getter, conditionType string) bool {
+	if c := Get(from, conditionType); c != nil {
+		return c.Status == metav1.ConditionTrue
+	}
+	return false
+}
+
+// IsFalse is true if the condition with the given type is False, otherwise it returns false
+// if the condition is not False or if the condition does not exist (is nil).
+func IsFalse(from Getter, conditionType string) bool {
+	if c := Get(from, conditionType); c != nil {
+		return c.Status == metav1.ConditionFalse
+	}
+	return false
+}
+
+// IsUnknown is true if the condition with the given type is Unknown or if the condition
+// does not exist (is nil).
+func IsUnknown(from Getter, conditionType string) bool {
+	if c := Get(from, conditionType); c != nil {
+		return c.Status == metav1.ConditionUnknown
+	}
+	return true
+}
+
 // UnstructuredGet returns a condition from an Unstructured object.
 //
 // UnstructuredGet supports retrieving conditions from objects at different stages of the transition from

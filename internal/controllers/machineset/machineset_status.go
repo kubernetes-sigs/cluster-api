@@ -35,6 +35,10 @@ import (
 // comply with the recommendation in the Kubernetes API guidelines.
 // Note: v1beta1 conditions are not managed by this func.
 func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
+	if s.machineSet.Status.V1Beta2 != nil {
+		s.machineSet.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
+	}
+
 	// Update the following fields in status from the machines list.
 	// - ReadyReplicas
 	// - AvailableReplicas

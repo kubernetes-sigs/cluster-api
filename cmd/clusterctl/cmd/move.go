@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/util/apiwarnings"
 )
@@ -49,12 +50,12 @@ var moveCmd = &cobra.Command{
 	Use:     "move",
 	GroupID: groupManagement,
 	Short:   "Move Cluster API objects and all dependencies between management clusters",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Move Cluster API objects and all dependencies between management clusters.
 
 		Note: The destination cluster MUST have the required provider components installed.`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		Move Cluster API objects and all dependencies between management clusters.
 		clusterctl move --to-kubeconfig=target-kubeconfig.yaml
 

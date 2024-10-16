@@ -24,6 +24,7 @@ import (
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 type generateProvidersOptions struct {
@@ -46,7 +47,7 @@ var generateProviderCmd = &cobra.Command{
 	Use:   "provider",
 	Args:  cobra.NoArgs,
 	Short: "Generate templates for provider components",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Generate templates for provider components.
 
 		clusterctl fetches the provider components from the provider repository and performs variable substitution.
@@ -54,7 +55,7 @@ var generateProviderCmd = &cobra.Command{
 		Variable values are either sourced from the clusterctl config file or
 		from environment variables`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		# Generates a yaml file for creating provider with variable values using
         # components defined in the provider repository.
 		clusterctl generate provider --infrastructure aws

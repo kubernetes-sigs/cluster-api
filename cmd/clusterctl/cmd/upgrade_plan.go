@@ -26,6 +26,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 type upgradePlanOptions struct {
@@ -38,7 +39,7 @@ var up = &upgradePlanOptions{}
 var upgradePlanCmd = &cobra.Command{
 	Use:   "plan",
 	Short: "Provide a list of recommended target versions for upgrading Cluster API providers in a management cluster",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		The upgrade plan command provides a list of recommended target versions for upgrading the
         Cluster API providers in a management cluster.
 
@@ -49,7 +50,7 @@ var upgradePlanCmd = &cobra.Command{
 		- The latest patch release for the current API Version of Cluster API (contract).
 		- The latest patch release for the next API Version of Cluster API (contract), if available.`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		# Gets the recommended target versions for upgrading Cluster API providers.
 		clusterctl upgrade plan`),
 

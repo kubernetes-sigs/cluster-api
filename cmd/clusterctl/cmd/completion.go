@@ -30,6 +30,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 const completionBoilerPlate = `# Copyright 2021 The Kubernetes Authors.
@@ -48,13 +49,13 @@ const completionBoilerPlate = `# Copyright 2021 The Kubernetes Authors.
 `
 
 var (
-	completionLong = LongDesc(`
+	completionLong = templates.LongDesc(`
 		Output shell completion code for the specified shell (bash, zsh or fish).
 		The shell code must be evaluated to provide interactive completion of
 		clusterctl commands. This can be done by sourcing it from the
 		.bash_profile.`)
 
-	completionExample = Examples(`
+	completionExample = templates.Examples(`
 		Bash:
 		# Install bash completion on macOS using Homebrew
 		brew install bash-completion
@@ -87,7 +88,7 @@ var (
 		Use:     "completion [bash|zsh|fish]",
 		GroupID: groupOther,
 		Short:   "Output shell completion code for the specified shell (bash, zsh or fish)",
-		Long:    LongDesc(completionLong),
+		Long:    templates.LongDesc(completionLong),
 		Example: completionExample,
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {

@@ -280,10 +280,10 @@ const (
 	// MachineDeletingV1Beta2Condition surfaces details about progress in the machine deletion workflow.
 	MachineDeletingV1Beta2Condition = DeletingV1Beta2Condition
 
-	// MachineDeletingDeletingV1Beta2Reason surfaces when the Machine is deleting.
+	// MachineDeletingV1Beta2Reason surfaces when the Machine is deleting.
 	// This reason is only used for the MachineDeletingV1Beta2Condition when calculating the
 	// Ready condition when the deletionTimestamp on a Machine is set.
-	MachineDeletingDeletingV1Beta2Reason = DeletingV1Beta2Condition
+	MachineDeletingV1Beta2Reason = "Deleting"
 
 	// MachineDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the Machine is not deleting because the
 	// DeletionTimestamp is not set.
@@ -292,6 +292,9 @@ const (
 	// MachineDeletingDeletionTimestampSetV1Beta2Reason surfaces when the Machine is deleting because the
 	// DeletionTimestamp is set. This reason is used if none of the more specific reasons apply.
 	MachineDeletingDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+
+	// MachineDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a Machine.
+	MachineDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 
 	// MachineDeletingWaitingForPreDrainHookV1Beta2Reason surfaces when the Machine deletion
 	// waits for pre-drain hooks to complete. I.e. it waits until there are no annotations

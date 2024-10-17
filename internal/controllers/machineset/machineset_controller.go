@@ -309,6 +309,22 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 	return patchHelper.Patch(ctx, machineSet, options...)
 }
 
+func (r *Reconciler) getOwningMachineDeployment(ctx context.Context, s *scope) (ctrl.Result, error) {
+	if !isDeploymentChild(s.machineSet) {
+		// If the MachineSet is not in a MachineDeployment, return immediately.
+		return ctrl.Result{}, nil
+	}
+
+	// Otherwise get the owning MachineDeployment
+	var err error
+	s.owningMachineDeployment, err = r.getOwnerMachineDeployment(ctx, s.machineSet)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
 func (r *Reconciler) reconcileMachineSetOwnerAndLabels(_ context.Context, s *scope) (ctrl.Result, error) {
 	// Reconcile and retrieve the Cluster object.
 	if s.machineSet.Labels == nil {
@@ -338,22 +354,6 @@ func (r *Reconciler) reconcileMachineSetOwnerAndLabels(_ context.Context, s *sco
 
 	s.machineSet.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.machineSet.Spec.ClusterName
 	s.machineSet.Spec.Template.Labels[clusterv1.ClusterNameLabel] = s.machineSet.Spec.ClusterName
-
-	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) getOwningMachineDeployment(ctx context.Context, s *scope) (ctrl.Result, error) {
-	if !isDeploymentChild(s.machineSet) {
-		// If the MachineSet is not in a MachineDeployment, return immediately.
-		return ctrl.Result{}, nil
-	}
-
-	// Otherwise get the owning MachineDeployment
-	var err error
-	s.owningMachineDeployment, err = r.getOwnerMachineDeployment(ctx, s.machineSet)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 
 	return ctrl.Result{}, nil
 }

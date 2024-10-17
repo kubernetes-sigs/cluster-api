@@ -221,7 +221,10 @@ Each BootstrapConfig MUST report when the bootstrap data secret is fully provisi
 
 ```go
 type FooConfigStatus struct {
-    // Ready denotes that the foo bootstrap data secret is fully provisioned.
+    // ready denotes that the foo bootstrap data secret is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed. Please use conditions
+	// to check the operational state of the bootstrap config.
     // +optional
     Ready bool `json:"ready"`
     
@@ -284,12 +287,6 @@ the implication of this choice which are described both in the document above an
 
 </aside>
 
-### BootstrapConfig: pausing
-
-Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the BootstrapConfig object.
-
-If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
-
 ### BootstrapConfig: terminal failures
 
 Each BootstrapConfig SHOULD report when BootstrapConfig's enter in a state that cannot be recovered (terminal failure) by
@@ -297,7 +294,7 @@ setting `status.failureReason` and `status.failureMessage` in the BootstrapConfi
 
 ```go
 type FooConfigStatus struct {
-    // FailureReason will be set in the event that there is a terminal problem reconciling the FooConfig 
+    // failureReason will be set in the event that there is a terminal problem reconciling the FooConfig 
     // and will contain a succinct value suitable for machine interpretation.
     //
     // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
@@ -305,7 +302,7 @@ type FooConfigStatus struct {
     // +optional
     FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
     
-    // FailureMessage will be set in the event that there is a terminal problem reconciling the FooConfig
+    // failureMessage will be set in the event that there is a terminal problem reconciling the FooConfig
     // and will contain a more verbose string suitable for logging and human consumption.
     //
     // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
@@ -431,6 +428,12 @@ Please, read carefully the page linked above to fully understand implications an
 ### Clusterctl support
 
 The clusterctl command is designed to work with all the providers compliant with the rules defined in the [clusterctl provider contract].
+
+### BootstrapConfig: pausing
+
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the BootstrapConfig object.
+
+If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 
 ## Typical BootstrapConfig reconciliation workflow
 

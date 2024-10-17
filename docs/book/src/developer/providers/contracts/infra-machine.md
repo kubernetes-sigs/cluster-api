@@ -204,7 +204,7 @@ Node's Provider id  MUST surface on `spec.providerID` in the InfraMachine resour
 
 ```go
 type FooMachineSpec struct {
-    // ProviderID must match the provider ID as seen on the node object corresponding to this machine.
+    // providerID must match the provider ID as seen on the node object corresponding to this machine.
 	// For Kubernetes Nodes running on the Foo provider, this value is set by the corresponding CPI component 
 	// and it has the format docker:////<vm-name>. 
     // +optional
@@ -244,7 +244,7 @@ new corresponding field (also in status).
 
 ```go
 type FooMachineStatus struct {
-    // FailureDomain is the unique identifier of the failure domain where this Machine has been placed in.
+    // failureDomain is the unique identifier of the failure domain where this Machine has been placed in.
     // For this Foo infrastructure provider, the name is equivalent to the name of one of the available regions.
     FailureDomain *string `json:"failureDomain,omitempty"`
 
@@ -264,7 +264,7 @@ In case you want to surface machine's addresses, you MUST surface them in `statu
 
 ```go
 type FooMachineStatus struct {
-    // Addresses contains the associated addresses for the machine.
+    // addresses contains the associated addresses for the machine.
     // +optional
     Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
@@ -285,7 +285,10 @@ Each InfraMachine MUST report when Machine's infrastructure is fully provisioned
 
 ```go
 type FooMachineStatus struct {
-    // Ready denotes that the foo machine infrastructure is fully provisioned.
+    // ready denotes that the foo machine infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed. Please use conditions
+	// to check the operational state of the infra machine.
     // +optional
     Ready bool `json:"ready"`
     
@@ -356,7 +359,7 @@ setting `status.failureReason` and `status.failureMessage` in the InfraMachine r
 
 ```go
 type FooMachineStatus struct {
-    // FailureReason will be set in the event that there is a terminal problem reconciling the FooMachine 
+    // failureReason will be set in the event that there is a terminal problem reconciling the FooMachine 
     // and will contain a succinct value suitable for machine interpretation.
     //
     // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
@@ -364,7 +367,7 @@ type FooMachineStatus struct {
     // +optional
     FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
     
-    // FailureMessage will be set in the event that there is a terminal problem reconciling the FooMachine
+    // failureMessage will be set in the event that there is a terminal problem reconciling the FooMachine
     // and will contain a more verbose string suitable for logging and human consumption.
     //
     // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
@@ -393,12 +396,6 @@ will be dropped.
 See [Improving status in CAPI resources].
 
 </aside>
-
-### InfraMachine: pausing
-
-Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachine object.
-
-If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 
 ### InfraMachineTemplate, InfraMachineTemplateList resource definition
 
@@ -488,6 +485,12 @@ Please, read carefully the page linked above to fully understand implications an
 ### Clusterctl support
 
 The clusterctl command is designed to work with all the providers compliant with the rules defined in the [clusterctl provider contract].
+
+### InfraMachine: pausing
+
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraMachine object.
+
+If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 
 ## Typical InfraMachine reconciliation workflow
 

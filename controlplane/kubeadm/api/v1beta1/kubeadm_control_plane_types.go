@@ -271,8 +271,11 @@ type KubeadmControlPlaneStatus struct {
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas"`
 
-	// Initialized denotes whether or not the control plane has the
-	// uploaded kubeadm-config configmap.
+	// Initialized denotes that the KubeadmControlPlane API Server is initialized and thus
+	// it can accept requests.
+	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed. Please use conditions
+	// to check the operational state of the control plane.
 	// +optional
 	Initialized bool `json:"initialized"`
 

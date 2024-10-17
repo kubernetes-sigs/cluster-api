@@ -24,6 +24,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 type generateClusterOptions struct {
@@ -52,7 +53,7 @@ var gc = &generateClusterOptions{}
 var generateClusterClusterCmd = &cobra.Command{
 	Use:   "cluster NAME",
 	Short: "Generate templates for creating workload clusters",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Generate templates for creating workload clusters.
 
 		clusterctl ships with a list of known providers; if necessary, edit
@@ -61,7 +62,7 @@ var generateClusterClusterCmd = &cobra.Command{
 		Each provider configuration links to a repository; clusterctl uses this information
 		to fetch templates when creating a new cluster.`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		# Generates a yaml file for creating workload clusters using
 		# the pre-installed infrastructure and bootstrap providers.
 		clusterctl generate cluster my-cluster

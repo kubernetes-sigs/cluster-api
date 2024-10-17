@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 const (
@@ -73,12 +74,12 @@ var dc = &describeClusterOptions{}
 var describeClusterClusterCmd = &cobra.Command{
 	Use:   "cluster NAME",
 	Short: "Describe workload clusters",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Provide an "at glance" view of a Cluster API cluster designed to help the user in quickly
 		understanding if there are problems and where.
 		.`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		# Describe the cluster named test-1.
 		clusterctl describe cluster test-1
 

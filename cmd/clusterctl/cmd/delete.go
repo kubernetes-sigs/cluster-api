@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/cmd/internal/templates"
 )
 
 type deleteOptions struct {
@@ -46,10 +47,10 @@ var deleteCmd = &cobra.Command{
 	Use:     "delete [providers]",
 	GroupID: groupManagement,
 	Short:   "Delete one or more providers from the management cluster",
-	Long: LongDesc(`
+	Long: templates.LongDesc(`
 		Delete one or more providers from the management cluster.`),
 
-	Example: Examples(`
+	Example: templates.Examples(`
 		# Deletes the AWS provider
 		# Please note that this implies the deletion of all provider components except the hosting namespace
 		# and the CRDs.

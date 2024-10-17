@@ -23,8 +23,10 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -41,7 +43,7 @@ type ConditionSetter interface {
 // EnsurePausedCondition sets the paused condition on the object and returns if it should be considered as paused.
 func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, conditionChanged bool, err error) {
 	oldCondition := v1beta2conditions.Get(obj, clusterv1.PausedV1Beta2Condition)
-	newCondition := pausedCondition(cluster, obj, clusterv1.PausedV1Beta2Condition)
+	newCondition := pausedCondition(c.Scheme(), cluster, obj, clusterv1.PausedV1Beta2Condition)
 
 	isPaused = newCondition.Status == metav1.ConditionTrue
 
@@ -78,14 +80,18 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 }
 
 // pausedCondition sets the paused condition on the object and returns if it should be considered as paused.
-func pausedCondition(cluster *clusterv1.Cluster, obj ConditionSetter, targetConditionType string) metav1.Condition {
+func pausedCondition(scheme *runtime.Scheme, cluster *clusterv1.Cluster, obj ConditionSetter, targetConditionType string) metav1.Condition {
 	if (cluster != nil && cluster.Spec.Paused) || annotations.HasPaused(obj) {
 		var messages []string
 		if cluster != nil && cluster.Spec.Paused {
 			messages = append(messages, "Cluster spec.paused is set to true")
 		}
 		if annotations.HasPaused(obj) {
-			messages = append(messages, fmt.Sprintf("%s has the cluster.x-k8s.io/paused annotation", obj.GetObjectKind().GroupVersionKind().Kind))
+			kind := "Object"
+			if gvk, err := apiutil.GVKForObject(obj, scheme); err == nil {
+				kind = gvk.Kind
+			}
+			messages = append(messages, fmt.Sprintf("%s has the cluster.x-k8s.io/paused annotation", kind))
 		}
 
 		return metav1.Condition{

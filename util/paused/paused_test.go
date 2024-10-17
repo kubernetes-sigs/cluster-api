@@ -58,7 +58,7 @@ func TestEnsurePausedCondition(t *testing.T) {
 
 	// Object case 2: paused
 	pausedObj := obj.DeepCopy()
-	pausedObj.SetAnnotations(map[string]string{clusterv1.PausedAnnotation: "true"})
+	pausedObj.SetAnnotations(map[string]string{clusterv1.PausedAnnotation: ""})
 
 	tests := []struct {
 		name         string

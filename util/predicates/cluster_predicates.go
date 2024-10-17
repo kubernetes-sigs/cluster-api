@@ -259,7 +259,7 @@ func ClusterControlPlaneInitialized(scheme *runtime.Scheme, logger logr.Logger) 
 // ClusterPausedTransitionsOrInfrastructureReady returns a Predicate that returns true on Cluster Update events where
 // either Cluster.Spec.Paused transitions or Cluster.Status.InfrastructureReady transitions to true.
 // This implements a common requirement for some cluster-api and provider controllers (such as Machine Infrastructure
-// controllers) to resume reconciliation when the Cluster is gets paused or unpaused and when the infrastructure becomes ready.
+// controllers) to resume reconciliation when the Cluster gets paused or unpaused and when the infrastructure becomes ready.
 // Example use:
 //
 //	err := controller.Watch(

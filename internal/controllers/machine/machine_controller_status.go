@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
@@ -72,8 +73,6 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) {
 	setReadyCondition(ctx, s.machine)
 
 	setAvailableCondition(ctx, s.machine)
-
-	// TODO: Update the Deleting condition.
 
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
 }
@@ -586,10 +585,10 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 // calculateDeletingConditionForSummary calculates a Deleting condition for the calculation of the Ready condition
 // (which is done via a summary). This is necessary to avoid including the verbose details of the Deleting condition
 // message in the summary.
-// This is important to ensure we have a limited amount of unique messages across Machines. This allows us to deduplicate
-// messages when aggregating Ready conditions of many Machines into the MachinesReady condition of e.g. the MachineSet.
+// This is also important to ensure we have a limited amount of unique messages across Machines thus allowing to
+// nicely aggregate Ready conditions from many Machines into the MachinesReady condition of e.g. the MachineSet.
 // For the same reason we are only surfacing messages with "more than 30m" instead of using the exact durations.
-// We assume that 30m is a duration after which it makes sense to notify users that Node drains and waiting for volume
+// 30 minutes is a duration after which we assume it makes sense to emphasize that Node drains and waiting for volume
 // detach are still in progress.
 func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2conditions.ConditionWithOwnerInfo {
 	deletingCondition := v1beta2conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)

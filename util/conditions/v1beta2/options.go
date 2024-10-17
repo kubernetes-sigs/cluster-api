@@ -79,7 +79,8 @@ func (t IgnoreTypesIfMissing) ApplyToSummary(opts *SummaryOptions) {
 	opts.ignoreTypesIfMissing = t
 }
 
-// OverrideConditions allows to override conditions from the source object that should be used in the summary.
+// OverrideConditions allows to override conditions read from the source object only for the scope of a summary operation.
+// The condition on the source object will preserve the original value.
 type OverrideConditions []ConditionWithOwnerInfo
 
 // ApplyToSummary applies this configuration to the given summary options.

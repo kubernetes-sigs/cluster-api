@@ -34,6 +34,9 @@ import (
 
 // ClusterCreateInfraReady returns a predicate that returns true for a create event when a cluster has Status.InfrastructureReady set as true
 // it also returns true if the resource provided is not a Cluster to allow for use with controller-runtime NewControllerManagedBy.
+//
+// Deprecated: This predicate is deprecated and will be removed in a future version. On creation of a cluster the status will always be empty.
+// Because of that the predicate would never return true for InfrastructureReady.
 func ClusterCreateInfraReady(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc: func(e event.CreateEvent) bool {
@@ -285,6 +288,9 @@ func ClusterPausedTransitionsOrInfrastructureReady(scheme *runtime.Scheme, logge
 //	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
 //	    predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), r.Log),
 //	)
+//
+// Deprecated: This predicate is deprecated and will be removed in a future version,
+// use ClusterPausedTransitionsOrInfrastructureReady instead.
 func ClusterUnpausedAndInfrastructureReady(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
 	log := logger.WithValues("predicate", "ClusterUnpausedAndInfrastructureReady")
 

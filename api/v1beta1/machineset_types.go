@@ -89,34 +89,37 @@ type MachineSetSpec struct {
 
 // MachineSet's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineSetScalingUpV1Beta2Condition is true if available replicas < desired replicas.
+	// MachineSetScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
 	MachineSetScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
 
-	// MachineSetNotScalingUpReasonV1Beta2Reason surfaces when a the number of available replicas is greater or equal to
+	// MachineSetScalingUpReasonV1Beta2Reason surfaces when a the number of actual replicas is less than
 	// the number of desired replicas.
-	MachineSetNotScalingUpReasonV1Beta2Reason = "NotScalingUp"
+	MachineSetScalingUpV1Beta2Reason = ScalingUpV1Beta2Condition
 
-	// MachineSetNotAllAvailableReasonV1Beta2Reason surfaces when a the MachineSet is getting scaled up because the
-	// number of available replicas lower then the number of desired replicas.
-	MachineSetNotAllAvailableReasonV1Beta2Reason = "NotAllAvailable"
+	// MachineSetNotScalingUpV1Beta2Reason surfaces when a the number of actual replicas is more or
+	// equal to the number of desired replicas.
+	MachineSetNotScalingUpV1Beta2Reason = "Not" + MachineSetScalingUpV1Beta2Reason
 )
 
 // MachineSet's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineSetScalingDownV1Beta2Condition is true if replicas > desired replicas.
+	// MachineSetScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
 	MachineSetScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
 
-	// MachineSetNotScalingDownReasonV1Beta2Reason surfaces when a the number of actual replicas is lower or equal to
+	// MachineSetScalingDownV1Beta2Reason surfaces when a the number of actual replicas is more than
 	// the number of desired replicas.
-	MachineSetNotScalingDownReasonV1Beta2Reason = "NotScalingDown"
+	MachineSetScalingDownV1Beta2Reason = ScalingDownV1Beta2Condition
 
-	// MachineSetTooManyReplicasReasonV1Beta2Reason surfaces when the MachineSet is getting scaled down because the
-	// number of actual replicas is higher then the number of desired replicas and the MachineSet is not in deletion.
-	MachineSetTooManyReplicasReasonV1Beta2Reason = "TooManyReplicas"
+	// MachineSetNotScalingDownV1Beta2Reason surfaces when a the number of actual replicas is less or
+	// equal to the number of desired replicas.
+	MachineSetNotScalingDownV1Beta2Reason = "Not" + MachineSetScalingDownV1Beta2Reason
+)
 
-	// MachineSetDeletingReasonV1Beta2Reason surfaces when the MachineSet is getting scaled down because the
-	// MachineSet is in deletion and the number of actual replicas is not yet 0.
-	MachineSetDeletingReasonV1Beta2Reason = MachineSetDeletingV1Beta2Condition
+const (
+	// MachineSetWaitingForReplicasToBeSetV1Beta2Reason surfaces when the .spec.replicas field of the MachineSet
+	// is not set.
+	// Note: This can surface for the ScalingUp and ScalingDown conditions.
+	MachineSetWaitingForReplicasToBeSetV1Beta2Reason = "WaitingForReplicasToBeSet"
 )
 
 // MachineSet's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.

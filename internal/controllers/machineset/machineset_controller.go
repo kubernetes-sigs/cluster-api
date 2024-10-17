@@ -1037,7 +1037,9 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 		}
 	}
 
-	newStatus.Replicas = int32(len(s.machines))
+	// Replicas get's calculated in the reconcileStatus function.
+	newStatus.Replicas = s.machineSet.Status.Replicas
+
 	newStatus.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
 	newStatus.ReadyReplicas = int32(readyReplicasCount)
 	newStatus.AvailableReplicas = int32(availableReplicasCount)

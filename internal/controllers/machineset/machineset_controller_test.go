@@ -610,8 +610,10 @@ func TestMachineSetReconcile(t *testing.T) {
 		g := NewWithT(t)
 
 		ms := newMachineSet("machineset1", testClusterName, int32(0))
-		ms.Spec.Selector.MatchLabels = map[string]string{
-			"--$-invalid": "true",
+		ms.Spec.Template.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
+			Kind:      "FooTemplate",
+			Namespace: ms.GetNamespace(),
+			Name:      "doesnotexist",
 		}
 
 		request := reconcile.Request{
@@ -1045,6 +1047,8 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 				machineSet: tc.machineSet,
 				machines:   tc.machines,
 			}
+			_, err := msr.getAndAdoptMachinesForMachineSet(ctx, s)
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(msr.reconcileV1Beta1Status(ctx, s)).To(Succeed())
 			gotCond := conditions.Get(tc.machineSet, clusterv1.ResizedCondition)
 			g.Expect(gotCond).ToNot(BeNil())

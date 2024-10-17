@@ -47,6 +47,10 @@ const (
 	// GroupItemsAnnotation contains the list of names for the objects included in a group object.
 	GroupItemsAnnotation = "tree.cluster.x-k8s.io.io/group-items"
 
+	GroupItemsAvailableCounter = "tree.cluster.x-k8s.io.io/group-items-available-count"
+	GroupItemsReadyCounter     = "tree.cluster.x-k8s.io.io/group-items-ready-count"
+	GroupItemsUpToDateCounter  = "tree.cluster.x-k8s.io.io/group-items-up-to-date-count"
+
 	// GroupItemsSeparator is the separator used in the GroupItemsAnnotation.
 	GroupItemsSeparator = ", "
 
@@ -89,6 +93,39 @@ func GetGroupItems(obj client.Object) string {
 		return val
 	}
 	return ""
+}
+
+func GetGroupItemsAvailableCounter(obj client.Object) int {
+	val, ok := getAnnotation(obj, GroupItemsAvailableCounter)
+	if !ok {
+		return 0
+	}
+	if v, err := strconv.Atoi(val); err == nil {
+		return v
+	}
+	return 0
+}
+
+func GetGroupItemsReadyCounter(obj client.Object) int {
+	val, ok := getAnnotation(obj, GroupItemsReadyCounter)
+	if !ok {
+		return 0
+	}
+	if v, err := strconv.Atoi(val); err == nil {
+		return v
+	}
+	return 0
+}
+
+func GetGroupItemsUpToDateCounter(obj client.Object) int {
+	val, ok := getAnnotation(obj, GroupItemsUpToDateCounter)
+	if !ok {
+		return 0
+	}
+	if v, err := strconv.Atoi(val); err == nil {
+		return v
+	}
+	return 0
 }
 
 // GetZOrder return the zOrder of the object. Objects with no zOrder have a default zOrder of 0.

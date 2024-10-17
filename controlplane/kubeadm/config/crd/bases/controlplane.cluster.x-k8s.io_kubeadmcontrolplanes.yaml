@@ -945,6 +945,15 @@ spec:
                           type: string
                         type: array
                     type: object
+                  bootCommands:
+                    description: BootCommands specifies extra commands to run very early
+                      in the boot process
+                    items:
+                      description: Defines each boot command to be executed
+                      items:
+                        type: string
+                      type: array
+                    type: array
                   postKubeadmCommands:
                     description: PostKubeadmCommands specifies extra commands to run
                       after kubeadm runs
@@ -2089,6 +2098,15 @@ spec:
                           type: string
                         type: array
                     type: object
+                  bootCommands:
+                    description: BootCommands specifies extra commands to run very early
+                      in the boot process
+                    items:
+                      description: Defines each boot command to be executed
+                      items:
+                        type: string
+                      type: array
+                    type: array
                   postKubeadmCommands:
                     description: PostKubeadmCommands specifies extra commands to run
                       after kubeadm runs
@@ -4075,6 +4093,15 @@ spec:
                           type: string
                         type: array
                     type: object
+                  bootCommands:
+                    description: BootCommands specifies extra commands to run very early
+                      in the boot process
+                    items:
+                      description: Defines each boot command to be executed
+                      items:
+                        type: string
+                      type: array
+                    type: array
                   postKubeadmCommands:
                     description: PostKubeadmCommands specifies extra commands to run
                       after kubeadm runs

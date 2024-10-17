@@ -82,6 +82,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology":               schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckTopology(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckV1Beta2Status":          schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckV1Beta2Status(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineList":                              schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineNamingStrategy":                    schema_sigsk8sio_cluster_api_api_v1beta1_MachineNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachinePoolClass":                         schema_sigsk8sio_cluster_api_api_v1beta1_MachinePoolClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachinePoolClassNamingStrategy":           schema_sigsk8sio_cluster_api_api_v1beta1_MachinePoolClassNamingStrategy(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachinePoolClassTemplate":                 schema_sigsk8sio_cluster_api_api_v1beta1_MachinePoolClassTemplate(ref),
@@ -2372,11 +2373,17 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStrategy(ref comm
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.RemediationStrategy"),
 						},
 					},
+					"machineNamingStrategy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MachineNamingStrategy allows changing the naming pattern used when creating Machines. Note: InfraMachines will use the same name as the corresponding Machines.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineNamingStrategy"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.MachineRollingUpdateDeployment", "sigs.k8s.io/cluster-api/api/v1beta1.RemediationStrategy"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.MachineNamingStrategy", "sigs.k8s.io/cluster-api/api/v1beta1.MachineRollingUpdateDeployment", "sigs.k8s.io/cluster-api/api/v1beta1.RemediationStrategy"},
 	}
 }
 
@@ -3018,6 +3025,26 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref common.ReferenceCa
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.Machine"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineNamingStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineNamingStrategy allows changing the naming pattern used when creating Machines. Note: InfraMachines will use the same name as the corresponding Machines.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Template defines the template to use for generating the names of the Machine objects. If not defined, it will fallback to `{{ .machinedeployment.name }}-{{ .random }}`. If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will get concatenated with a random suffix of length 5. The templating mechanism provides the following arguments: * `.machinedeployment.name`: The name of the MachineDeployment object. * `.random`: A random alphanumeric string, without vowels, of length 5.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 

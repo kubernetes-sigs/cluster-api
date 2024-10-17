@@ -2119,7 +2119,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got := (&Reconciler{}).computeDesiredMachine(ms, tt.existingMachine)
+			got, _ := (&Reconciler{}).computeDesiredMachine(ctx, ms, tt.existingMachine)
 			assertMachine(g, got, tt.want)
 		})
 	}

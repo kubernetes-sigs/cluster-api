@@ -176,6 +176,11 @@ type MachineDeploymentStrategy struct {
 	// and how remediating operations should occur during the lifecycle of the dependant MachineSets.
 	// +optional
 	Remediation *RemediationStrategy `json:"remediation,omitempty"`
+
+	// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// Note: InfraMachines will use the same name as the corresponding Machines.
+	// +optional
+	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentStrategy
@@ -249,6 +254,20 @@ type RemediationStrategy struct {
 }
 
 // ANCHOR_END: RemediationStrategy
+
+// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+// Note: InfraMachines will use the same name as the corresponding Machines.
+type MachineNamingStrategy struct {
+	// Template defines the template to use for generating the names of the Machine objects.
+	// If not defined, it will fallback to `{{ .machinedeployment.name }}-{{ .random }}`.
+	// If the templated string exceeds 63 characters, it will be trimmed to 58 characters and will
+	// get concatenated with a random suffix of length 5.
+	// The templating mechanism provides the following arguments:
+	// * `.machinedeployment.name`: The name of the MachineDeployment object.
+	// * `.random`: A random alphanumeric string, without vowels, of length 5.
+	// +optional
+	Template string `json:"template,omitempty"`
+}
 
 // ANCHOR: MachineDeploymentStatus
 

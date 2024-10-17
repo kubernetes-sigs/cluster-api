@@ -34,6 +34,7 @@ func TestSummary(t *testing.T) {
 		conditionType string
 		options       []SummaryOption
 		want          *metav1.Condition
+		wantErr       bool
 	}{
 		{
 			name: "One issue",
@@ -210,14 +211,14 @@ func TestSummary(t *testing.T) {
 			},
 		},
 		{
-			name: "Include additional condition",
+			name: "Override condition",
 			conditions: []metav1.Condition{
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},  // info
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C", Message: "Message-C"}, // issue
 			},
 			conditionType: clusterv1.AvailableV1Beta2Condition,
-			options: []SummaryOption{ForConditionTypes{"A"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
-				AdditionalConditions{
+			options: []SummaryOption{ForConditionTypes{"A", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
+				OverrideConditions{
 					{
 						OwnerResource: ConditionOwnerInfo{
 							Kind: "Phase3Obj",
@@ -227,13 +228,34 @@ func TestSummary(t *testing.T) {
 							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
 						},
 					},
-				}}, // AdditionalCondition replaces the same condition from the SourceObject
+				}}, // OverrideCondition replaces the same condition from the SourceObject
 			want: &metav1.Condition{
 				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,      // False because !C is an issue
 				Reason:  "Reason-C-additional",      // Picking the reason from the additional condition
 				Message: "!C: Message-C-additional", // Picking the message from the additional condition (info dropped)
 			},
+		},
+		{
+			name: "Error if override condition does not exist in source object",
+			conditions: []metav1.Condition{
+				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"}, // info
+				// !C is missing in source object
+			},
+			conditionType: clusterv1.AvailableV1Beta2Condition,
+			options: []SummaryOption{ForConditionTypes{"A", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
+				OverrideConditions{
+					{
+						OwnerResource: ConditionOwnerInfo{
+							Kind: "Phase3Obj",
+							Name: "SourceObject",
+						},
+						Condition: metav1.Condition{
+							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
+						},
+					},
+				}},
+			wantErr: true,
 		},
 	}
 
@@ -252,7 +274,7 @@ func TestSummary(t *testing.T) {
 			}
 
 			got, err := NewSummaryCondition(obj, tt.conditionType, tt.options...)
-			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(err != nil).To(Equal(tt.wantErr))
 
 			g.Expect(got).To(Equal(tt.want))
 		})

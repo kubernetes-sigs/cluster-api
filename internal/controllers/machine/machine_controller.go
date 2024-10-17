@@ -100,7 +100,11 @@ type Reconciler struct {
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
 	ssaCache                 ssa.Cache
-	reconcileDeleteCache     cache.Cache[cache.ReconcileEntry]
+
+	// reconcileDeleteCache is used to store when reconcileDelete should not be executed before a
+	// specific time for a specific Request. This is used to implement rate-limiting to avoid
+	// e.g. spamming workload clusters with eviction requests during Node drain.
+	reconcileDeleteCache cache.Cache[cache.ReconcileEntry]
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {

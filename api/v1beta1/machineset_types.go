@@ -134,12 +134,15 @@ const (
 	// MachineSetMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
 	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
 
-	// MachineSetMachineInvalidConditionReportedV1Beta2Reason surfaces a Machine's Ready condition
+	// MachineSetMachinesReadyInvalidConditionReportedV1Beta2Reason surfaces a Machine's Ready condition
 	// (read from a machine object) which is invalid. (e.g. its status is missing).
-	MachineSetMachineInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+	MachineSetMachinesReadyInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
 
-	// MachineSetNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
-	MachineSetNoReplicasV1Beta2Reason = "NoReplicas"
+	// MachineSetMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
+	MachineSetMachinesReadyNoReplicasV1Beta2Reason = "NoReplicas"
+
+	// MaMachineSetScalingDownErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
+	MachineSetMachinesReadyErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 // ANCHOR_END: MachineSetSpec

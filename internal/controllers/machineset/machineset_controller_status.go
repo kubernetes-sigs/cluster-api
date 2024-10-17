@@ -220,11 +220,22 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 }
 
 func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	// If we got unexpected errors in listing the machines (this should happen rarely), surface them
+	if machines == nil {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+			Message: "Please check controller logs for errors",
+		})
+		return
+	}
+
 	if len(machines) == 0 {
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 			Status: metav1.ConditionTrue,
-			Reason: clusterv1.MachineSetNoReplicasV1Beta2Reason,
+			Reason: clusterv1.MachineSetMachinesReadyNoReplicasV1Beta2Reason,
 		})
 		return
 	}
@@ -237,7 +248,7 @@ func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clu
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineSetMachineInvalidConditionReportedV1Beta2Reason,
+			Reason:  clusterv1.MachineSetMachinesReadyInvalidConditionReportedV1Beta2Reason,
 			Message: err.Error(),
 		})
 		return

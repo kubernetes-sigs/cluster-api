@@ -220,6 +220,15 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 }
 
 func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	if len(machines) == 0 {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachineSetNoReplicasV1Beta2Reason,
+		})
+		return
+	}
+
 	readyCondition, err := v1beta2conditions.NewAggregateCondition(
 		machines, clusterv1.MachineReadyV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition),
@@ -232,11 +241,6 @@ func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clu
 			Message: err.Error(),
 		})
 		return
-	}
-
-	// Overwrite the message for the true case.
-	if readyCondition.Status == metav1.ConditionTrue {
-		readyCondition.Message = "All Machines are ready."
 	}
 
 	v1beta2conditions.Set(machineSet, *readyCondition)

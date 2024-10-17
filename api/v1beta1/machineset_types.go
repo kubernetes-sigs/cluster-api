@@ -137,6 +137,9 @@ const (
 	// MachineSetMachineInvalidConditionReportedV1Beta2Reason surfaces a Machine's Ready condition
 	// (read from a machine object) which is invalid. (e.g. its status is missing).
 	MachineSetMachineInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+
+	// MachineSetNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
+	MachineSetNoReplicasV1Beta2Reason = "NoReplicas"
 )
 
 // ANCHOR_END: MachineSetSpec

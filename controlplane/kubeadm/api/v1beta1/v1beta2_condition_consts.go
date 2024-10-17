@@ -20,7 +20,7 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // KubeadmControlPlane's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneAvailableV1Beta2Condition True if the control plane can be reached, EtcdClusterAvailable is true,
+	// KubeadmControlPlaneAvailableV1Beta2Condition True if the control plane can be reached, EtcdClusterHealthy is true,
 	// and CertificatesAvailable is true.
 	KubeadmControlPlaneAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
 )
@@ -40,12 +40,54 @@ const (
 	KubeadmControlPlaneCertificatesAvailableV1Beta2Reason = clusterv1.AvailableV1Beta2Reason
 )
 
-// KubeadmControlPlane's EtcdClusterAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
+// KubeadmControlPlane's EtcdClusterHealthy condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneEtcdClusterAvailableV1Beta2Condition surfaces issues to the managed etcd cluster, if any.
-	// It is computed as aggregation of Machines's EtcdMemberHealthy (if not using an external etcd) conditions plus
-	// additional checks validating potential issues to etcd quorum.
-	KubeadmControlPlaneEtcdClusterAvailableV1Beta2Condition = "EtcdClusterAvailable"
+	// KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition surfaces issues to etcd cluster hosted on machines managed by this object.
+	// It is computed as aggregation of Machine's EtcdMemberHealthy conditions plus additional checks validating
+	// potential issues to etcd quorum.
+	// Note: this condition is not set when using an external etcd.
+	KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition = "EtcdClusterHealthy"
+
+	// KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
+	// etcd cluster hosted on KubeadmControlPlane controlled machines.
+	KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
+
+	// KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason surfaces when the etcd cluster hosted on KubeadmControlPlane
+	// machines is healthy.
+	KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason = "Healthy"
+
+	// KubeadmControlPlaneEtcdClusterNotHealthyV1Beta2Reason surfaces when the etcd cluster hosted on KubeadmControlPlane
+	// machines is not healthy.
+	KubeadmControlPlaneEtcdClusterNotHealthyV1Beta2Reason = "NotHealthy"
+
+	// KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason surfaces when the health status of the etcd cluster hosted
+	// on KubeadmControlPlane machines is unknown.
+	KubeadmControlPlaneEtcdClusterHealthUnknownV1Beta2Reason = "HealthUnknown"
+)
+
+// KubeadmControlPlane's ControlPlaneComponentsHealthy condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition surfaces issues to Kubernetes control plane components
+	// hosted on machines managed by this object. It is computed as aggregation of Machine's `APIServerPodHealthy`,
+	// `ControllerManagerPodHealthy`, `SchedulerPodHealthy`, `EtcdPodHealthy` conditions plus additional checks on
+	// control plane machines and nodes.
+	KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition = "ControlPlaneComponentsHealthy"
+
+	// KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
+	// control plane components hosted on KubeadmControlPlane controlled machines.
+	KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
+
+	// KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Reason surfaces when the Kubernetes control plane components
+	// hosted on KubeadmControlPlane machines are healthy.
+	KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Reason = "Healthy"
+
+	// KubeadmControlPlaneControlPlaneComponentsNotHealthyV1Beta2Reason surfaces when the Kubernetes control plane components
+	// hosted on KubeadmControlPlane machines are not healthy.
+	KubeadmControlPlaneControlPlaneComponentsNotHealthyV1Beta2Reason = "NotHealthy"
+
+	// KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason surfaces when the health status of the
+	// Kubernetes control plane components hosted on KubeadmControlPlane machines is unknown.
+	KubeadmControlPlaneControlPlaneComponentsHealthUnknownV1Beta2Reason = "HealthUnknown"
 )
 
 // KubeadmControlPlane's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -113,7 +155,8 @@ const (
 	KubeadmControlPlanePausedV1Beta2Condition = clusterv1.PausedV1Beta2Condition
 )
 
-// Conditions that will be used for the KubeadmControlPlane controlled machines in v1Beta2 API version.
+// APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy and EtcdPodHealthy condition and corresponding
+// reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.
 const (
 	// KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition surfaces the status of the API server pod hosted on a KubeadmControlPlane controlled machine.
 	KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition = "APIServerPodHealthy"
@@ -127,6 +170,50 @@ const (
 	// KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition surfaces the status of the etcd pod hosted on a KubeadmControlPlane controlled machine.
 	KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition = "EtcdPodHealthy"
 
+	// KubeadmControlPlaneMachinePodRunningV1Beta2Reason surfaces a pod hosted on a KubeadmControlPlane controlled machine that is running.
+	KubeadmControlPlaneMachinePodRunningV1Beta2Reason = "Running"
+
+	// KubeadmControlPlaneMachinePodProvisioningV1Beta2Reason surfaces a pod hosted on a KubeadmControlPlane controlled machine
+	// waiting to be provisioned i.e., Pod is in "Pending" phase.
+	KubeadmControlPlaneMachinePodProvisioningV1Beta2Reason = "Provisioning"
+
+	// KubeadmControlPlaneMachinePodDoesNotExistV1Beta2Reason surfaces a when a pod hosted on a KubeadmControlPlane controlled machine
+	// does not exist.
+	KubeadmControlPlaneMachinePodDoesNotExistV1Beta2Reason = "DoesNotExist"
+
+	// KubeadmControlPlaneMachinePodFailedV1Beta2Reason surfaces a when a pod hosted on a KubeadmControlPlane controlled machine
+	// failed during provisioning, e.g. CrashLoopBackOff, ImagePullBackOff or if all the containers in a pod have terminated.
+	KubeadmControlPlaneMachinePodFailedV1Beta2Reason = "Failed"
+
+	// KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason documents a failure when inspecting the status of a
+	// pod hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
+
+	// KubeadmControlPlaneMachinePodDeletingV1Beta2Reason surfaces when the machine hosting control plane components
+	// is being deleted.
+	KubeadmControlPlaneMachinePodDeletingV1Beta2Reason = "Deleting"
+
+	// KubeadmControlPlaneMachinePodInternalErrorV1Beta2Reason surfaces unexpected failures when reading pod hosted
+	// on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachinePodInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
+)
+
+// EtcdMemberHealthy condition and corresponding reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.
+const (
 	// KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition surfaces the status of the etcd member hosted on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition = "EtcdMemberHealthy"
+	KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition = "Healthy"
+
+	// KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason surfaces when the etcd member hosted on a KubeadmControlPlane controlled machine is not healthy.
+	KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason = "NotHealthy"
+
+	// KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Reason surfaces when the etcd member hosted on a KubeadmControlPlane controlled machine is healthy.
+	KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Reason = "Healthy"
+
+	// KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason documents a failure when inspecting the status of an
+	// etcd member hosted on a KubeadmControlPlane controlled machine.
+	KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
+
+	// KubeadmControlPlaneMachineEtcdMemberDeletingV1Beta2Reason surfaces when the machine hosting an etcd member
+	// is being deleted.
+	KubeadmControlPlaneMachineEtcdMemberDeletingV1Beta2Reason = "Deleting"
 )

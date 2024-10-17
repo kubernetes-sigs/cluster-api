@@ -139,6 +139,9 @@ const (
 	// This means that the object will go away (i.e. be removed from etcd), except if there are other
 	// finalizers on the object.
 	DeletionCompletedV1Beta2Reason = "DeletionCompleted"
+
+	// InspectionFailedV1Beta2Reason applies to a condition when inspection of the underlying object failed.
+	InspectionFailedV1Beta2Reason = "InspectionFailed"
 )
 
 // Conditions that will be used for the MachineSet object in v1Beta2 API version.

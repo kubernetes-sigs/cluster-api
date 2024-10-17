@@ -26,14 +26,14 @@ import (
 
 // MachineHealthCheckSpec defines the desired state of MachineHealthCheck.
 type MachineHealthCheckSpec struct {
-	// ClusterName is the name of the Cluster this object belongs to.
+	// clusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
 	// Label selector to match machines whose health will be exercised
 	Selector metav1.LabelSelector `json:"selector"`
 
-	// UnhealthyConditions contains a list of the conditions that determine
+	// unhealthyConditions contains a list of the conditions that determine
 	// whether a node is considered unhealthy.  The conditions are combined in a
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
@@ -61,7 +61,7 @@ type MachineHealthCheckSpec struct {
 	// +optional
 	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
 
-	// RemediationTemplate is a reference to a remediation template
+	// remediationTemplate is a reference to a remediation template
 	// provided by an infrastructure provider.
 	//
 	// This field is completely optional, when filled, the MachineHealthCheck controller
@@ -104,20 +104,20 @@ type MachineHealthCheckStatus struct {
 	// +kubebuilder:validation:Minimum=0
 	CurrentHealthy int32 `json:"currentHealthy,omitempty"`
 
-	// RemediationsAllowed is the number of further remediations allowed by this machine health check before
+	// remediationsAllowed is the number of further remediations allowed by this machine health check before
 	// maxUnhealthy short circuiting will be applied
 	// +kubebuilder:validation:Minimum=0
 	RemediationsAllowed int32 `json:"remediationsAllowed,omitempty"`
 
-	// ObservedGeneration is the latest generation observed by the controller.
+	// observedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Targets shows the current list of machines the machine health check is watching
+	// targets shows the current list of machines the machine health check is watching
 	// +optional
 	Targets []string `json:"targets,omitempty"`
 
-	// Conditions defines current service state of the MachineHealthCheck.
+	// conditions defines current service state of the MachineHealthCheck.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
 }

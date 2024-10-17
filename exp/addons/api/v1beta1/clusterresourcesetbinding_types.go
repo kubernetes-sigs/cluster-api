@@ -30,16 +30,16 @@ type ResourceBinding struct {
 	// ResourceRef specifies a resource.
 	ResourceRef `json:",inline"`
 
-	// Hash is the hash of a resource's data. This can be used to decide if a resource is changed.
+	// hash is the hash of a resource's data. This can be used to decide if a resource is changed.
 	// For "ApplyOnce" ClusterResourceSet.spec.strategy, this is no-op as that strategy does not act on change.
 	// +optional
 	Hash string `json:"hash,omitempty"`
 
-	// LastAppliedTime identifies when this resource was last applied to the cluster.
+	// lastAppliedTime identifies when this resource was last applied to the cluster.
 	// +optional
 	LastAppliedTime *metav1.Time `json:"lastAppliedTime,omitempty"`
 
-	// Applied is to track if a resource is applied to the cluster or not.
+	// applied is to track if a resource is applied to the cluster or not.
 	Applied bool `json:"applied"`
 }
 
@@ -47,10 +47,10 @@ type ResourceBinding struct {
 
 // ResourceSetBinding keeps info on all of the resources in a ClusterResourceSet.
 type ResourceSetBinding struct {
-	// ClusterResourceSetName is the name of the ClusterResourceSet that is applied to the owner cluster of the binding.
+	// clusterResourceSetName is the name of the ClusterResourceSet that is applied to the owner cluster of the binding.
 	ClusterResourceSetName string `json:"clusterResourceSetName"`
 
-	// Resources is a list of resources that the ClusterResourceSet has.
+	// resources is a list of resources that the ClusterResourceSet has.
 	// +optional
 	Resources []ResourceBinding `json:"resources,omitempty"`
 }
@@ -182,11 +182,11 @@ type ClusterResourceSetBinding struct {
 
 // ClusterResourceSetBindingSpec defines the desired state of ClusterResourceSetBinding.
 type ClusterResourceSetBindingSpec struct {
-	// Bindings is a list of ClusterResourceSets and their resources.
+	// bindings is a list of ClusterResourceSets and their resources.
 	// +optional
 	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
 
-	// ClusterName is the name of the Cluster this binding applies to.
+	// clusterName is the name of the Cluster this binding applies to.
 	// Note: this field mandatory in v1beta2.
 	// +optional
 	ClusterName string `json:"clusterName,omitempty"`

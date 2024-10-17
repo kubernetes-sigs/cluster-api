@@ -23,19 +23,19 @@ import (
 
 // IPAddressSpec is the desired state of an IPAddress.
 type IPAddressSpec struct {
-	// ClaimRef is a reference to the claim this IPAddress was created for.
+	// claimRef is a reference to the claim this IPAddress was created for.
 	ClaimRef corev1.LocalObjectReference `json:"claimRef"`
 
-	// PoolRef is a reference to the pool that this IPAddress was created from.
+	// poolRef is a reference to the pool that this IPAddress was created from.
 	PoolRef corev1.TypedLocalObjectReference `json:"poolRef"`
 
-	// Address is the IP address.
+	// address is the IP address.
 	Address string `json:"address"`
 
-	// Prefix is the prefix of the address.
+	// prefix is the prefix of the address.
 	Prefix int `json:"prefix"`
 
-	// Gateway is the network gateway of the network the address is from.
+	// gateway is the network gateway of the network the address is from.
 	// +optional
 	Gateway string `json:"gateway,omitempty"`
 }

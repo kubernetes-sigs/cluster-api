@@ -41,10 +41,10 @@ type ClusterResourceSetSpec struct {
 	// Label selector cannot be empty.
 	ClusterSelector metav1.LabelSelector `json:"clusterSelector"`
 
-	// Resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.
+	// resources is a list of Secrets/ConfigMaps where each contains 1 or more resources to be applied to remote clusters.
 	Resources []ResourceRef `json:"resources,omitempty"`
 
-	// Strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.
+	// strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.
 	// +kubebuilder:validation:Enum=ApplyOnce
 	// +optional
 	Strategy string `json:"strategy,omitempty"`
@@ -63,11 +63,11 @@ const (
 
 // ResourceRef specifies a resource.
 type ResourceRef struct {
-	// Name of the resource that is in the same namespace with ClusterResourceSet object.
+	// name of the resource that is in the same namespace with ClusterResourceSet object.
 	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 
-	// Kind of the resource. Supported kinds are: Secrets and ConfigMaps.
+	// kind of the resource. Supported kinds are: Secrets and ConfigMaps.
 	// +kubebuilder:validation:Enum=Secret;ConfigMap
 	Kind string `json:"kind"`
 }
@@ -90,11 +90,11 @@ func (c *ClusterResourceSetSpec) SetTypedStrategy(p ClusterResourceSetStrategy) 
 
 // ClusterResourceSetStatus defines the observed state of ClusterResourceSet.
 type ClusterResourceSetStatus struct {
-	// ObservedGeneration reflects the generation of the most recently observed ClusterResourceSet.
+	// observedGeneration reflects the generation of the most recently observed ClusterResourceSet.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions defines current state of the ClusterResourceSet.
+	// conditions defines current state of the ClusterResourceSet.
 	// +optional
 	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }

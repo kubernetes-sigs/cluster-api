@@ -39,12 +39,6 @@ const (
 	MachineHealthCheckRemediationAllowedV1Beta2Reason = "RemediationAllowed"
 )
 
-// MachineHealthCheck's Paused condition and corresponding reasons that will be used in v1Beta2 API version.
-const (
-	// MachineHealthCheckPausedV1Beta2Condition is true if this MachineHealthCheck or the Cluster it belongs to are paused.
-	MachineHealthCheckPausedV1Beta2Condition = PausedV1Beta2Condition
-)
-
 var (
 	// DefaultNodeStartupTimeout is the time allowed for a node to start up.
 	// Can be made longer as part of spec if required for particular provider.

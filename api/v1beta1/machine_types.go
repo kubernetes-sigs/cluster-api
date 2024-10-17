@@ -224,12 +224,12 @@ const (
 	// the timeout defined by a MachineHealthCheck object.
 	MachineHealthCheckNodeStartupTimeoutV1Beta2Reason = "NodeStartupTimeout"
 
-	// MachineHealthCheckNodeDeletedV1Beta2Reason surfaces when a MachineHealthCheck detect that the node hosted on the
+	// MachineHealthCheckNodeDeletedV1Beta2Reason surfaces when a MachineHealthCheck detects that the node hosted on the
 	// machine has been deleted while the Machine is still running.
 	MachineHealthCheckNodeDeletedV1Beta2Reason = "NodeDeleted"
 
-	// MachineHealthCheckHasRemediateAnnotationV1Beta2Reason surfaces a MachineHealthCheck detects a machine manually remediated
-	// via the remediate-machine annotation.
+	// MachineHealthCheckHasRemediateAnnotationV1Beta2Reason surfaces when a MachineHealthCheck detects that a Machine was
+	// marked for remediation via the `cluster.x-k8s.io/remediate-machine` annotation.
 	MachineHealthCheckHasRemediateAnnotationV1Beta2Reason = "HasRemediateAnnotation"
 )
 
@@ -259,7 +259,7 @@ const (
 	MachineExternallyRemediatedWaitingForRemediationV1Beta2Reason = "WaitingForRemediation"
 
 	// MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason surfaces that the MachineHealthCheck cannot
-	// find the template for a external remediation request.
+	// find the template for an external remediation request.
 	MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason = "RemediationTemplateNotFound"
 
 	// MachineExternallyRemediatedRemediationRequestCreationFailedV1Beta2Reason surfaces that the MachineHealthCheck cannot

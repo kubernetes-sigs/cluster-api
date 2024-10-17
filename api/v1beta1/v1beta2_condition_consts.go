@@ -133,9 +133,6 @@ const (
 
 	// MachineSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	MachineSetDeletingV1Beta2Condition = DeletingV1Beta2Condition
-
-	// MachineSetPausedV1Beta2Condition is true if this MachineSet or the Cluster it belongs to are paused.
-	MachineSetPausedV1Beta2Condition = PausedV1Beta2Condition
 )
 
 // Conditions that will be used for the MachineDeployment object in v1Beta2 API version.
@@ -162,9 +159,6 @@ const (
 
 	// MachineDeploymentDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	MachineDeploymentDeletingV1Beta2Condition = DeletingV1Beta2Condition
-
-	// MachineDeploymentPausedV1Beta2Condition is true if this MachineDeployment or the Cluster it belongs to are paused.
-	MachineDeploymentPausedV1Beta2Condition = PausedV1Beta2Condition
 )
 
 // Conditions that will be used for the Cluster object in v1Beta2 API version.
@@ -220,9 +214,6 @@ const (
 
 	// ClusterDeletingV1Beta2Condition surfaces details about ongoing deletion of the cluster.
 	ClusterDeletingV1Beta2Condition = DeletingV1Beta2Condition
-
-	// ClusterPausedV1Beta2Condition is true if Cluster and all the resources being part of it are paused.
-	ClusterPausedV1Beta2Condition = PausedV1Beta2Condition
 )
 
 // Conditions that will be used for the ClusterClass object in v1Beta2 API version.
@@ -236,7 +227,4 @@ const (
 	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
 	// the corresponding CRD).
 	ClusterClassRefVersionsUpToDateV1Beta2Condition = "RefVersionsUpToDate"
-
-	// ClusterClassPausedV1Beta2Condition is true if this ClusterClass is paused.
-	ClusterClassPausedV1Beta2Condition = PausedV1Beta2Condition
 )

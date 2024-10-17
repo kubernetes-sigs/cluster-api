@@ -418,7 +418,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 						Type:    clusterv1.MachineExternallyRemediatedV1Beta2Condition,
 						Status:  metav1.ConditionFalse,
 						Reason:  clusterv1.MachineExternallyRemediatedRemediationTemplateNotFoundV1Beta2Reason,
-						Message: fmt.Sprintf("error retrieving remediation template %s %s", m.Spec.RemediationTemplate.Kind, klog.KRef(t.Machine.Namespace, m.Spec.RemediationTemplate.Name)),
+						Message: fmt.Sprintf("Error retrieving remediation template %s %s", m.Spec.RemediationTemplate.Kind, klog.KRef(t.Machine.Namespace, m.Spec.RemediationTemplate.Name)),
 					})
 					errList = append(errList, errors.Wrapf(err, "error retrieving remediation template %v %q for machine %q in namespace %q within cluster %q", m.Spec.RemediationTemplate.GroupVersionKind(), m.Spec.RemediationTemplate.Name, t.Machine.Name, t.Machine.Namespace, m.Spec.ClusterName))
 					return errList

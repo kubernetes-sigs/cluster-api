@@ -661,7 +661,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		}).Should(Equal(1))
 	})
 
-	t.Run("it marks unhealthy machines for remediation when the unhealthy Machines exceed MaxUnhealthy", func(t *testing.T) {
+	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines exceed MaxUnhealthy", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 
@@ -807,7 +807,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		assertMachinesOwnerRemediated(g, mhc, 1)
 	})
 
-	t.Run("it marks unhealthy machines for remediation when the unhealthy Machines is not within UnhealthyRange", func(t *testing.T) {
+	t.Run("it marks unhealthy machines as unhealthy but not for remediation when the unhealthy Machines is not within UnhealthyRange", func(t *testing.T) {
 		g := NewWithT(t)
 		cluster := createCluster(g, ns.Name)
 

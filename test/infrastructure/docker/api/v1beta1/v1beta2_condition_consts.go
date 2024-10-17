@@ -29,9 +29,6 @@ const (
 
 	// DockerClusterDeletingV1Beta2Condition surfaces details about ongoing deletion of the DockerCluster.
 	DockerClusterDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
-
-	// DockerClusterPausedV1Beta2Condition is true if this DockerCluster or the Cluster it belongs to are paused.
-	DockerClusterPausedV1Beta2Condition = clusterv1.PausedV1Beta2Condition
 )
 
 // Conditions that will be used for the DockerMachine object in v1Beta2 API version.
@@ -58,7 +55,4 @@ const (
 
 	// DockerMachineDeletingV1Beta2Condition surfaces details about ongoing deletion of the DockerMachine.
 	DockerMachineDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
-
-	// DockerMachinePausedV1Beta2Condition is true if this DockerMachine or the Cluster it belongs to are paused.
-	DockerMachinePausedV1Beta2Condition = clusterv1.PausedV1Beta2Condition
 )

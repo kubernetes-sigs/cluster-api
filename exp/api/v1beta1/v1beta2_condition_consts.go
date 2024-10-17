@@ -46,7 +46,4 @@ const (
 
 	// MachinePoolDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	MachinePoolDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
-
-	// MachinePoolPausedV1Beta2Condition is true if this MachinePool or the Cluster it belongs to are paused.
-	MachinePoolPausedV1Beta2Condition = clusterv1.PausedV1Beta2Condition
 )

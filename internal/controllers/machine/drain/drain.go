@@ -301,12 +301,12 @@ func (r EvictionResult) DrainCompleted() bool {
 }
 
 // ConditionMessage returns a condition message for the case where a drain is not completed.
-func (r EvictionResult) ConditionMessage() string {
+func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string {
 	if r.DrainCompleted() {
 		return ""
 	}
 
-	conditionMessage := "Drain not completed yet:"
+	conditionMessage := fmt.Sprintf("Drain not completed yet (started at %s):", nodeDrainStartTime.Format(time.RFC3339))
 	if len(r.PodsDeletionTimestampSet) > 0 {
 		conditionMessage = fmt.Sprintf("%s\n* Pods with deletionTimestamp that still exist: %s",
 			conditionMessage, PodListToString(r.PodsDeletionTimestampSet, 5))

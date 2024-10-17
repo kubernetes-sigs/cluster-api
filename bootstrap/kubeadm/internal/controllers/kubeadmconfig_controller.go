@@ -55,10 +55,10 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -117,7 +117,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
-		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue))
+		).WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue))
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		b = b.Watches(
@@ -131,7 +131,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmConfigs),
 		builder.WithPredicates(
 			predicates.All(mgr.GetScheme(), predicateLog,
-				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 				predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 			),
 		),
@@ -199,9 +199,8 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	if annotations.IsPaused(cluster, config) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, config); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	scope := &Scope{

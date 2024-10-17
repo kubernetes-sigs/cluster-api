@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -90,6 +91,10 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
+
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, inMemoryCluster); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
+	}
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(inMemoryCluster, r.Client)
@@ -211,12 +216,12 @@ func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ct
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.InMemoryCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("InMemoryCluster"), mgr.GetClient(), &infrav1.InMemoryCluster{})),
 			builder.WithPredicates(
-				predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

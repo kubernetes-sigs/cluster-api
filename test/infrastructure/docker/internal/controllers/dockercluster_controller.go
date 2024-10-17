@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -81,6 +82,10 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if cluster == nil {
 		log.Info("Waiting for Cluster Controller to set OwnerRef on DockerCluster")
 		return ctrl.Result{}, nil
+	}
+
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, dockerCluster); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	log = log.WithValues("Cluster", klog.KObj(cluster))
@@ -201,12 +206,12 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DockerCluster"), mgr.GetClient(), &infrav1.DockerCluster{})),
 			builder.WithPredicates(
-				predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

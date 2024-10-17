@@ -51,6 +51,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -79,7 +80,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&runtimev1.ExtensionConfig{},
 			handler.EnqueueRequestsFromMapFunc(r.extensionConfigToClusterClass),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
 
 	if err != nil {
@@ -89,8 +90,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	clusterClass := &clusterv1.ClusterClass{}
 	if err := r.Client.Get(ctx, req.NamespacedName, clusterClass); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -100,10 +99,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	// Return early if the ClusterClass is paused.
-	if annotations.HasPaused(clusterClass) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, clusterClass); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	if !clusterClass.ObjectMeta.DeletionTimestamp.IsZero() {

@@ -52,7 +52,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -60,6 +59,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -117,14 +117,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
+					predicates.ClusterPausedTransitions(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
 			),
@@ -172,10 +172,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, machineSet) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, machineSet); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the patch helper

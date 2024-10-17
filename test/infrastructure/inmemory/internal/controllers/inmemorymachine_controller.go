@@ -48,12 +48,12 @@ import (
 	inmemoryruntime "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime"
 	inmemoryserver "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -123,10 +123,8 @@ func (r *InMemoryMachineReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, inMemoryMachine) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, inMemoryMachine); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Fetch the in-memory Cluster.
@@ -1146,7 +1144,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.InMemoryMachine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("InMemoryMachine"))),
@@ -1159,7 +1157,7 @@ func (r *InMemoryMachineReconciler) SetupWithManager(ctx context.Context, mgr ct
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToInMemoryMachines),
 			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).Complete(r)
 	if err != nil {

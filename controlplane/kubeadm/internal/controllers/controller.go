@@ -48,11 +48,11 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -99,14 +99,14 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToKubeadmControlPlane),
 			builder.WithPredicates(
 				predicates.All(mgr.GetScheme(), predicateLog,
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
-					predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
+					predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 				),
 			),
 		).
@@ -172,9 +172,8 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	if annotations.IsPaused(cluster, kcp) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, kcp); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the patch helper.

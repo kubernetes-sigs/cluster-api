@@ -158,6 +158,13 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Replicas:    ptr.To[int32](1),
 			ClusterName: "invalid",
 		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 
 	machinePoolValidCluster := &expv1.MachinePool{
@@ -175,6 +182,13 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				},
 			},
 			ClusterName: "test-cluster",
+		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 
@@ -196,6 +210,13 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				},
 			},
 			ClusterName: "test-cluster",
+		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 
@@ -345,6 +366,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 						{Name: "test"},
 					},
 					ObservedGeneration: 1,
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			expected: expected{
@@ -390,6 +416,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -447,6 +478,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -504,6 +540,11 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 							Name:       "test-node",
 						},
 					},
+					V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+						Type:   clusterv1.PausedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: clusterv1.NotPausedV1Beta2Reason,
+					}}},
 				},
 			},
 			nodes: []corev1.Node{
@@ -820,6 +861,13 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 				},
 			},
 		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	clientFake := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build()
@@ -912,6 +960,13 @@ func TestMachinePoolConditions(t *testing.T) {
 				},
 			},
 		},
+		Status: expv1.MachinePoolStatus{
+			V1Beta2: &expv1.MachinePoolV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 
 	nodeList := corev1.NodeList{
@@ -951,14 +1006,12 @@ func TestMachinePoolConditions(t *testing.T) {
 			infrastructureReady: true,
 			beforeFunc: func(_, _ *unstructured.Unstructured, mp *expv1.MachinePool, _ *corev1.NodeList) {
 				mp.Spec.ProviderIDList = []string{"azure://westus2/id-node-4", "aws://us-east-1/id-node-1"}
-				mp.Status = expv1.MachinePoolStatus{
-					NodeRefs: []corev1.ObjectReference{
-						{Name: "node-1"},
-						{Name: "azure-node-4"},
-					},
-					Replicas:      2,
-					ReadyReplicas: 2,
+				mp.Status.NodeRefs = []corev1.ObjectReference{
+					{Name: "node-1"},
+					{Name: "azure-node-4"},
 				}
+				mp.Status.Replicas = 2
+				mp.Status.ReadyReplicas = 2
 			},
 			conditionAssertFunc: func(t *testing.T, getter conditions.Getter) {
 				t.Helper()

@@ -47,12 +47,12 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	conditionsv1beta2 "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -98,7 +98,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
 		).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Build(r)
 
 	if err != nil {
@@ -115,8 +115,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
@@ -135,10 +133,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, cluster) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, cluster); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the patch helper.

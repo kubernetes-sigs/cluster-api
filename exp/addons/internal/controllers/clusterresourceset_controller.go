@@ -48,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -82,9 +83,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(
 				resourceToClusterResourceSetFunc[client.Object](r.Client),
 			),
-			builder.WithPredicates(
-				resourcepredicates.TypedResourceCreateOrUpdate[client.Object](predicateLog),
-			),
+			builder.WithPredicates(resourcepredicates.TypedResourceCreateOrUpdate[client.Object](predicateLog)),
 		).
 		WatchesRawSource(source.Kind(
 			partialSecretCache,
@@ -100,7 +99,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			resourcepredicates.TypedResourceCreateOrUpdate[*metav1.PartialObjectMetadata](predicateLog),
 		)).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Complete(r)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -126,6 +125,10 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
 	if finalizerAdded, err := finalizers.EnsureFinalizer(ctx, r.Client, clusterResourceSet, addonsv1.ClusterResourceSetFinalizer); err != nil || finalizerAdded {
+		return ctrl.Result{}, err
+	}
+
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, nil, clusterResourceSet); err != nil || isPaused || conditionChanged {
 		return ctrl.Result{}, err
 	}
 

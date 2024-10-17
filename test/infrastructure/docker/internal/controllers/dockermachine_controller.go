@@ -44,12 +44,12 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	"sigs.k8s.io/cluster-api/util/labels"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -122,10 +122,8 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log = log.WithValues("Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, dockerMachine) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, nil
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, dockerMachine); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
 	}
 
 	if cluster.Spec.InfrastructureRef == nil {
@@ -487,7 +485,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	err = ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerMachine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
@@ -500,7 +498,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachines),
 			builder.WithPredicates(
-				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
+				predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).
 		WatchesRawSource(r.ClusterCache.GetClusterSource("dockermachine", clusterToDockerMachines)).

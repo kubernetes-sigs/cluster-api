@@ -55,6 +55,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/finalizers"
 	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -121,17 +122,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
 		WithOptions(options).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 				predicates.All(mgr.GetScheme(), predicateLog,
-					predicates.Any(mgr.GetScheme(), predicateLog,
-						predicates.ClusterUnpaused(mgr.GetScheme(), predicateLog),
-						predicates.ClusterControlPlaneInitialized(mgr.GetScheme(), predicateLog),
-					),
+					predicates.ClusterControlPlaneInitialized(mgr.GetScheme(), predicateLog),
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
 			)).
@@ -196,15 +194,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			m.Spec.ClusterName, m.Name, m.Namespace)
 	}
 
+	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, m); err != nil || isPaused || conditionChanged {
+		return ctrl.Result{}, err
+	}
+
 	s := &scope{
 		cluster: cluster,
 		machine: m,
-	}
-
-	// Return early if the object or Cluster is paused.
-	if annotations.IsPaused(cluster, m) {
-		log.Info("Reconciliation is paused for this object")
-		return ctrl.Result{}, setPausedCondition(ctx, r.Client, s)
 	}
 
 	// Initialize the patch helper
@@ -303,7 +299,6 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.MachineNodeReadyV1Beta2Condition,
 			clusterv1.MachineNodeHealthyV1Beta2Condition,
 			clusterv1.MachineDeletingV1Beta2Condition,
-			clusterv1.MachinePausedV1Beta2Condition,
 		}},
 	)
 

@@ -150,7 +150,7 @@ func ClusterUpdateUnpaused(scheme *runtime.Scheme, logger logr.Logger) predicate
 			}
 
 			// This predicate always work in "or" with Paused predicates
-			// so the logs are adjusted to not provide false negatives/verbosity al V<=5.
+			// so the logs are adjusted to not provide false negatives/verbosity at V<=5.
 			log.V(6).Info("Cluster was not unpaused, blocking further processing")
 			return false
 		},
@@ -176,6 +176,44 @@ func ClusterUnpaused(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs
 
 	// Use any to ensure we process either create or update events we care about
 	return Any(scheme, log, ClusterCreateNotPaused(scheme, log), ClusterUpdateUnpaused(scheme, log))
+}
+
+// ClusterPausedTransitions returns a predicate that returns true for an update event when a cluster has Spec.Paused changed.
+func ClusterPausedTransitions(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	return predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			log := logger.WithValues("predicate", "ClusterPausedTransitions", "eventType", "update")
+			if gvk, err := apiutil.GVKForObject(e.ObjectOld, scheme); err == nil {
+				log = log.WithValues(gvk.Kind, klog.KObj(e.ObjectOld))
+			}
+
+			oldCluster, ok := e.ObjectOld.(*clusterv1.Cluster)
+			if !ok {
+				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
+				return false
+			}
+
+			newCluster := e.ObjectNew.(*clusterv1.Cluster)
+
+			if oldCluster.Spec.Paused && !newCluster.Spec.Paused {
+				log.V(6).Info("Cluster unpausing, allowing further processing")
+				return true
+			}
+
+			if !oldCluster.Spec.Paused && newCluster.Spec.Paused {
+				log.V(6).Info("Cluster pausing, allowing further processing")
+				return true
+			}
+
+			// This predicate always work in "or" with Paused predicates
+			// so the logs are adjusted to not provide false negatives/verbosity at V<=5.
+			log.V(6).Info("Cluster paused state was not changed, blocking further processing")
+			return false
+		},
+		CreateFunc:  func(event.CreateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
+	}
 }
 
 // ClusterControlPlaneInitialized returns a Predicate that returns true on Update events
@@ -216,6 +254,23 @@ func ClusterControlPlaneInitialized(scheme *runtime.Scheme, logger logr.Logger) 
 		DeleteFunc:  func(event.DeleteEvent) bool { return false },
 		GenericFunc: func(event.GenericEvent) bool { return false },
 	}
+}
+
+// ClusterPausedTransitionsOrInfrastructureReady returns a Predicate that returns true on Cluster Update events where
+// either Cluster.Spec.Paused transitions or Cluster.Status.InfrastructureReady transitions to true.
+// This implements a common requirement for some cluster-api and provider controllers (such as Machine Infrastructure
+// controllers) to resume reconciliation when the Cluster gets paused or unpaused and when the infrastructure becomes ready.
+// Example use:
+//
+//	err := controller.Watch(
+//	    source.Kind(cache, &clusterv1.Cluster{}),
+//	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
+//	    predicates.ClusterPausedTransitionsOrInfrastructureReady(mgr.GetScheme(), r.Log),
+//	)
+func ClusterPausedTransitionsOrInfrastructureReady(scheme *runtime.Scheme, logger logr.Logger) predicate.Funcs {
+	log := logger.WithValues("predicate", "ClusterPausedTransitionsOrInfrastructureReady")
+
+	return Any(scheme, log, ClusterPausedTransitions(scheme, log), ClusterUpdateInfraReady(scheme, log))
 }
 
 // ClusterUnpausedAndInfrastructureReady returns a Predicate that returns true on Cluster creation events where

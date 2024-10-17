@@ -107,7 +107,9 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 		machine,
 		config,
 	}
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().
+		WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).
+		WithObjects(objects...).Build()
 
 	k := &KubeadmConfigReconciler{
 		Client:              myclient,

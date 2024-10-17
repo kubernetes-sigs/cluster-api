@@ -27,13 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // reconcileStatus reconciles Machine's status during the entire lifecycle of the machine.
@@ -71,8 +68,6 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) {
 	setAvailableCondition(ctx, s.machine)
 
 	// TODO: Update the Deleting condition.
-
-	unsetPausedCondition(s)
 
 	setMachinePhaseAndLastUpdated(ctx, s.machine)
 }
@@ -536,40 +531,6 @@ func setAvailableCondition(_ context.Context, machine *clusterv1.Machine) {
 		Type:   clusterv1.MachineAvailableV1Beta2Condition,
 		Status: metav1.ConditionFalse,
 		Reason: clusterv1.MachineWaitingForMinReadySecondsV1Beta2Reason,
-	})
-}
-
-func setPausedCondition(ctx context.Context, c client.Client, s *scope) error {
-	patchHelper, err := patch.NewHelper(s.machine, c)
-	if err != nil {
-		return err
-	}
-
-	var messages []string
-	if s.cluster.Spec.Paused {
-		messages = append(messages, "Cluster spec.paused is set to true")
-	}
-	if annotations.HasPaused(s.machine) {
-		messages = append(messages, "Machine has the cluster.x-k8s.io/paused annotation")
-	}
-	v1beta2conditions.Set(s.machine, metav1.Condition{
-		Type:    clusterv1.MachinePausedV1Beta2Condition,
-		Status:  metav1.ConditionTrue,
-		Reason:  clusterv1.PausedV1Beta2Reason,
-		Message: strings.Join(messages, ", "),
-	})
-
-	return patchHelper.Patch(ctx, s.machine, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
-		clusterv1.MachinePausedV1Beta2Condition,
-	}})
-}
-
-func unsetPausedCondition(s *scope) {
-	// Note: If we hit this code, the controller is reconciling and this Paused condition must be set to false.
-	v1beta2conditions.Set(s.machine, metav1.Condition{
-		Type:   clusterv1.MachinePausedV1Beta2Condition,
-		Status: metav1.ConditionFalse,
-		Reason: clusterv1.NotPausedV1Beta2Reason,
 	})
 }
 

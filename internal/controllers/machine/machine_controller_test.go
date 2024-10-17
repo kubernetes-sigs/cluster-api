@@ -627,6 +627,13 @@ func TestMachineOwnerReference(t *testing.T) {
 			},
 			ClusterName: "test-cluster",
 		},
+		Status: clusterv1.MachineStatus{
+			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
+		},
 	}
 
 	machineValidMachine := &clusterv1.Machine{
@@ -650,6 +657,13 @@ func TestMachineOwnerReference(t *testing.T) {
 				DataSecretName: &bootstrapData,
 			},
 			ClusterName: "test-cluster",
+		},
+		Status: clusterv1.MachineStatus{
+			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 
@@ -1016,6 +1030,11 @@ func TestMachineConditions(t *testing.T) {
 				Name: "test",
 			},
 			ObservedGeneration: 1,
+			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 
@@ -1240,6 +1259,13 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 				Name:       "infra-config1",
 			},
 			Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{{
+				Type:   clusterv1.PausedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedV1Beta2Reason,
+			}}},
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}

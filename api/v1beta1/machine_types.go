@@ -273,12 +273,6 @@ const (
 	MachineDeletingV1Beta2Condition = DeletingV1Beta2Condition
 )
 
-// Machine's Paused condition and corresponding reasons that will be used in v1Beta2 API version.
-const (
-	// MachinePausedV1Beta2Condition is true if the Machine or the Cluster it belongs to are paused.
-	MachinePausedV1Beta2Condition = PausedV1Beta2Condition
-)
-
 // ANCHOR: MachineSpec
 
 // MachineSpec defines the desired state of Machine.

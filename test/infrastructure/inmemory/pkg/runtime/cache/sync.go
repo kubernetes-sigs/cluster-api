@@ -50,10 +50,8 @@ func (c *cache) startSyncer(ctx context.Context) error {
 		c.syncQueue.ShutDown()
 	}()
 
-	syncLoopStarted := false
 	go func() {
 		log.Info("Starting sync loop")
-		syncLoopStarted = true
 		for {
 			select {
 			case <-time.After(c.syncPeriod / 4):
@@ -80,15 +78,6 @@ func (c *cache) startSyncer(ctx context.Context) error {
 		<-ctx.Done()
 		wg.Wait()
 	}()
-
-	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (done bool, err error) {
-		if !syncLoopStarted {
-			return false, nil
-		}
-		return true, nil
-	}); err != nil {
-		return fmt.Errorf("failed to start sync loop: %v", err)
-	}
 
 	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (done bool, err error) {
 		if atomic.LoadInt64(&workers) < int64(c.syncConcurrency) {

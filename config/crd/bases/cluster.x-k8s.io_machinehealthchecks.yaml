@@ -839,6 +839,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               currentHealthy:
                 description: total number of healthy machines counted by this machine
                   health check

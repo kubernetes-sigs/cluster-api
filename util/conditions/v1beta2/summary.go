@@ -36,7 +36,7 @@ type SummaryOptions struct {
 	conditionTypes                 []string
 	negativePolarityConditionTypes []string
 	ignoreTypesIfMissing           []string
-	additionalConditions           []ConditionWithOwnerInfo
+	overrideConditions             []ConditionWithOwnerInfo
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -74,23 +74,36 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	expectedConditionTypes := sets.New[string](summarizeOpt.conditionTypes...)
 	ignoreTypesIfMissing := sets.New[string](summarizeOpt.ignoreTypesIfMissing...)
 	existingConditionTypes := sets.New[string]()
-	allConditionTypes := summarizeOpt.conditionTypes
 
-	// Drops all the conditions not in scope for the merge operation
 	conditions := getConditionsWithOwnerInfo(sourceObj)
+
+	conditionsByType := map[string]ConditionWithOwnerInfo{}
+	for _, c := range conditions {
+		conditionsByType[c.Type] = c
+	}
+	overrideConditionsByType := map[string]ConditionWithOwnerInfo{}
+	for _, c := range summarizeOpt.overrideConditions {
+		overrideConditionsByType[c.Type] = c
+
+		if _, ok := conditionsByType[c.Type]; !ok {
+			return nil, errors.Errorf("override condition %s must exist in source object", c.Type)
+		}
+	}
+
 	conditionsInScope := make([]ConditionWithOwnerInfo, 0, len(expectedConditionTypes))
 	for _, condition := range conditions {
+		// Drops all the conditions not in scope for the merge operation
 		if !expectedConditionTypes.Has(condition.Type) {
 			continue
 		}
-		conditionsInScope = append(conditionsInScope, condition)
-		existingConditionTypes.Insert(condition.Type)
-	}
 
-	for _, condition := range summarizeOpt.additionalConditions {
-		conditionsInScope = append(conditionsInScope, condition)
+		if overrideCondition, ok := overrideConditionsByType[condition.Type]; ok {
+			conditionsInScope = append(conditionsInScope, overrideCondition)
+		} else {
+			conditionsInScope = append(conditionsInScope, condition)
+		}
+
 		existingConditionTypes.Insert(condition.Type)
-		allConditionTypes = append(allConditionTypes, condition.Type)
 	}
 
 	// Add the expected conditions which do not exist, so we are compliant with K8s guidelines
@@ -118,7 +131,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 		return nil, errors.New("summary can't be performed when the list of conditions to be summarized is empty")
 	}
 
-	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(conditionsInScope, allConditionTypes)
+	status, reason, message, err := summarizeOpt.mergeStrategy.Merge(conditionsInScope, summarizeOpt.conditionTypes)
 	if err != nil {
 		return nil, err
 	}

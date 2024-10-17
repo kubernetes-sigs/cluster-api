@@ -791,7 +791,7 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
-			got, err := u.createCustomPlan(ctx, tt.args.providersToUpgrade)
+			got, err := u.createCustomPlan(ctx, UpgradeOptions{}, tt.args.providersToUpgrade)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -99,6 +99,9 @@ const (
 	// MachineSetNotScalingUpV1Beta2Reason surfaces when a the number of actual replicas is more or
 	// equal to the number of desired replicas.
 	MachineSetNotScalingUpV1Beta2Reason = "Not" + MachineSetScalingUpV1Beta2Reason
+
+	// MaMachineSetScalingUpErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
+	MachineSetScalingUpErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 // MachineSet's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -113,6 +116,9 @@ const (
 	// MachineSetNotScalingDownV1Beta2Reason surfaces when a the number of actual replicas is less or
 	// equal to the number of desired replicas.
 	MachineSetNotScalingDownV1Beta2Reason = "Not" + MachineSetScalingDownV1Beta2Reason
+
+	// MaMachineSetScalingDownErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
+	MachineSetScalingDownErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 const (

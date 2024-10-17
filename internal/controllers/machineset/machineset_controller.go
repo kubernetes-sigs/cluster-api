@@ -78,9 +78,14 @@ var (
 const machineSetManagerName = "capi-machineset"
 
 type scope struct {
-	machineSet *clusterv1.MachineSet
-	cluster    *clusterv1.Cluster
-	machines   []*clusterv1.Machine
+	machineSet                   *clusterv1.MachineSet
+	cluster                      *clusterv1.Cluster
+	machines                     []*clusterv1.Machine
+	bootstrapObjectNotFound      bool
+	infrastructureObjectNotFound bool
+	owningMachineDeployment      *clusterv1.MachineDeployment
+
+	staleDeletingMachines []string
 }
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -214,6 +219,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	}()
 
 	alwaysReconcile := []machineSetReconcileFunc{
+		wrapErrMachineSetReconcileFunc(r.getOwningMachineDeployment, "failed to getOwningMachineDeployment"),
 		wrapErrMachineSetReconcileFunc(r.reconcileInfrastructure, "failed to reconcile infrastructure"),
 		wrapErrMachineSetReconcileFunc(r.reconcileBootstrapConfig, "failed to reconcile bootstrapConfig"),
 		wrapErrMachineSetReconcileFunc(r.getAndAdoptMachinesForMachineSet, "failed to getAndAdoptMachinesForMachineSet"),
@@ -336,9 +342,27 @@ func (r *Reconciler) reconcileMachineSetOwnerAndLabels(_ context.Context, s *sco
 	return ctrl.Result{}, nil
 }
 
+func (r *Reconciler) getOwningMachineDeployment(ctx context.Context, s *scope) (ctrl.Result, error) {
+	if !isDeploymentChild(s.machineSet) {
+		// If the MachineSet is not in a MachineDeployment, return immediately.
+		return ctrl.Result{}, nil
+	}
+
+	// Otherwise get the owning MachineDeployment
+	var err error
+	s.owningMachineDeployment, err = r.getOwnerMachineDeployment(ctx, s.machineSet)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
+}
+
 func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctrl.Result, error) {
 	// Make sure to reconcile the external infrastructure reference.
-	if err := r.reconcileExternalTemplateReference(ctx, s.cluster, s.machineSet, &s.machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
+	var err error
+	s.infrastructureObjectNotFound, err = r.reconcileExternalTemplateReference(ctx, s.cluster, s.machineSet, s.owningMachineDeployment, &s.machineSet.Spec.Template.Spec.InfrastructureRef)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
@@ -347,7 +371,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 func (r *Reconciler) reconcileBootstrapConfig(ctx context.Context, s *scope) (ctrl.Result, error) {
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if s.machineSet.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := r.reconcileExternalTemplateReference(ctx, s.cluster, s.machineSet, s.machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+		var err error
+		s.bootstrapObjectNotFound, err = r.reconcileExternalTemplateReference(ctx, s.cluster, s.machineSet, s.owningMachineDeployment, s.machineSet.Spec.Template.Spec.Bootstrap.ConfigRef)
+		if err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -958,9 +984,17 @@ func (r *Reconciler) getMachineSetsForMachine(ctx context.Context, m *clusterv1.
 }
 
 // isDeploymentChild returns true if the MachineSet originated from a MachineDeployment by checking its labels.
-func (r *Reconciler) isDeploymentChild(ms *clusterv1.MachineSet) bool {
+func isDeploymentChild(ms *clusterv1.MachineSet) bool {
 	_, ok := ms.Labels[clusterv1.MachineDeploymentNameLabel]
 	return ok
+}
+
+// isCurrentMachineSet returns true if the MachineSet's and MachineDeployments revision are equal.
+func isCurrentMachineSet(ms *clusterv1.MachineSet, md *clusterv1.MachineDeployment) bool {
+	if md == nil {
+		return false
+	}
+	return md.Annotations[clusterv1.RevisionAnnotation] == ms.Annotations[clusterv1.RevisionAnnotation]
 }
 
 // shouldAdopt returns true if the MachineSet should be adopted as a stand-alone MachineSet directly owned by the Cluster.
@@ -973,7 +1007,7 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	// If the MachineSet is originated by a MachineDeployment object, it should not be adopted directly by the Cluster as a stand-alone MachineSet.
 	// Note: this is required because after restore from a backup both the MachineSet controller and the
 	// MachineDeployment controller are racing to adopt MachineSets, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
-	return !r.isDeploymentChild(ms)
+	return !isDeploymentChild(ms)
 }
 
 // reconcileV1Beta1Status updates the Status field for the MachineSet
@@ -1145,22 +1179,25 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 
 	// If the MachineSet is part of a MachineDeployment, only allow remediations if
 	// it's the desired revision.
-	if r.isDeploymentChild(s.machineSet) {
-		owner, err := r.getOwnerMachineDeployment(ctx, s.machineSet)
-		if err != nil {
-			return ctrl.Result{}, err
+	if isDeploymentChild(s.machineSet) {
+		if s.owningMachineDeployment == nil {
+			var err error
+			s.owningMachineDeployment, err = r.getOwnerMachineDeployment(ctx, s.machineSet)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 
-		if owner.Annotations[clusterv1.RevisionAnnotation] != s.machineSet.Annotations[clusterv1.RevisionAnnotation] {
+		if s.owningMachineDeployment.Annotations[clusterv1.RevisionAnnotation] != s.machineSet.Annotations[clusterv1.RevisionAnnotation] {
 			// MachineSet is part of a MachineDeployment but isn't the current revision, no remediations allowed.
 			return ctrl.Result{}, nil
 		}
 
-		if owner.Spec.Strategy != nil && owner.Spec.Strategy.Remediation != nil {
-			if owner.Spec.Strategy.Remediation.MaxInFlight != nil {
+		if s.owningMachineDeployment.Spec.Strategy != nil && s.owningMachineDeployment.Spec.Strategy.Remediation != nil {
+			if s.owningMachineDeployment.Spec.Strategy.Remediation.MaxInFlight != nil {
 				var err error
-				replicas := int(ptr.Deref(owner.Spec.Replicas, 1))
-				maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(owner.Spec.Strategy.Remediation.MaxInFlight, replicas, true)
+				replicas := int(ptr.Deref(s.owningMachineDeployment.Spec.Replicas, 1))
+				maxInFlight, err = intstr.GetScaledValueFromIntOrPercent(s.owningMachineDeployment.Spec.Strategy.Remediation.MaxInFlight, replicas, true)
 				if err != nil {
 					return ctrl.Result{}, fmt.Errorf("failed to calculate maxInFlight to remediate machines: %v", err)
 				}
@@ -1264,13 +1301,13 @@ func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, ref *corev1.ObjectReference) error {
+func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, owner *clusterv1.MachineDeployment, ref *corev1.ObjectReference) (bool, error) {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
-		return nil
+		return false, nil
 	}
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
-		return err
+		return false, err
 	}
 
 	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
@@ -1278,28 +1315,27 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 		if apierrors.IsNotFound(err) {
 			if !ms.DeletionTimestamp.IsZero() {
 				// Tolerate object not found when the machineSet is being deleted.
-				return nil
+				return true, nil
 			}
-			if _, ok := ms.Labels[clusterv1.MachineDeploymentNameLabel]; !ok {
+			if !isDeploymentChild(ms) {
 				// If the MachineSet is not in a MachineDeployment, return the error immediately.
-				return err
+				return true, err
 			}
 			// When the MachineSet is part of a MachineDeployment but isn't the current revision, we should
 			// ignore the not found references and allow the controller to proceed.
-			owner, err := r.getOwnerMachineDeployment(ctx, ms)
-			if err != nil {
-				return err
+			if owner == nil {
+				return true, errors.New("Expected owningMachineDeployment to be set")
 			}
-			if owner.Annotations[clusterv1.RevisionAnnotation] != ms.Annotations[clusterv1.RevisionAnnotation] {
-				return nil
+			if isCurrentMachineSet(ms, owner) {
+				return true, nil
 			}
 		}
-		return err
+		return false, err
 	}
 
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
@@ -1309,5 +1345,5 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 		UID:        cluster.UID,
 	}))
 
-	return patchHelper.Patch(ctx, obj)
+	return false, patchHelper.Patch(ctx, obj)
 }

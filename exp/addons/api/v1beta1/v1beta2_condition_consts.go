@@ -26,7 +26,4 @@ const (
 
 	// ClusterResourceSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the ClusterResourceSet.
 	ClusterResourceSetDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
-
-	// ClusterResourceSetPausedV1Beta2Condition is true if this ClusterResourceSet is paused.
-	ClusterResourceSetPausedV1Beta2Condition = clusterv1.PausedV1Beta2Condition
 )

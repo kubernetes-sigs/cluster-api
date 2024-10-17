@@ -51,9 +51,6 @@ const (
 
 	// KubeadmControlPlaneDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
 	KubeadmControlPlaneDeletingV1Beta2Condition = clusterv1.DeletingV1Beta2Condition
-
-	// KubeadmControlPlanePausedV1Beta2Condition is true if this resource or the Cluster it belongs to are paused.
-	KubeadmControlPlanePausedV1Beta2Condition = clusterv1.PausedV1Beta2Condition
 )
 
 // Conditions that will be used for the KubeadmControlPlane controlled machines in v1Beta2 API version.

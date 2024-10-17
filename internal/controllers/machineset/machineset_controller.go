@@ -1329,6 +1329,7 @@ func (r *Reconciler) reconcileExternalTemplateReference(ctx context.Context, clu
 			if isCurrentMachineSet(ms, owner) {
 				return true, nil
 			}
+			return true, err
 		}
 		return false, err
 	}

@@ -122,7 +122,7 @@ func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machi
 	if gotReplicas >= desiredReplicas || !ms.DeletionTimestamp.IsZero() {
 		var message string
 		if referencesMessage != "" {
-			message = fmt.Sprintf("The MachineSet is not scaling up but scaling up would fail because %s", referencesMessage)
+			message = fmt.Sprintf("ScalingUp would fail because %s", referencesMessage)
 		}
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,

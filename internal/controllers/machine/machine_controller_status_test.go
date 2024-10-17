@@ -1099,7 +1099,7 @@ func TestSetReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+				Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 				Message: "Deleting: Machine deletion in progress, stage: WaitingForPreDrainHook",
 			},
 		},
@@ -1150,7 +1150,7 @@ func TestSetReadyCondition(t *testing.T) {
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
-				Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+				Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 				Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
 			},
 		},
@@ -1302,7 +1302,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 				Condition: metav1.Condition{
 					Type:    clusterv1.MachineDeletingV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 					Message: "Machine deletion in progress",
 				},
 			},
@@ -1346,7 +1346,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 				Condition: metav1.Condition{
 					Type:    clusterv1.MachineDeletingV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 					Message: "Machine deletion in progress, stage: DrainingNode (since more than 30m)",
 				},
 			},
@@ -1382,7 +1382,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 				Condition: metav1.Condition{
 					Type:    clusterv1.MachineDeletingV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 					Message: "Machine deletion in progress, stage: WaitingForVolumeDetach (since more than 30m)",
 				},
 			},
@@ -1415,7 +1415,7 @@ func TestCalculateDeletingConditionForSummary(t *testing.T) {
 				Condition: metav1.Condition{
 					Type:    clusterv1.MachineDeletingV1Beta2Condition,
 					Status:  metav1.ConditionTrue,
-					Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 					Message: "Machine deletion in progress, stage: WaitingForPreDrainHook",
 				},
 			},

@@ -515,6 +515,7 @@ func setDeletingCondition(_ context.Context, machine *clusterv1.Machine, reconci
 			Status: metav1.ConditionFalse,
 			Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
 		})
+		return
 	}
 
 	if !reconcileDeleteExecuted {
@@ -582,12 +583,17 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	v1beta2conditions.Set(machine, *readyCondition)
 }
 
+// calculateDeletingConditionForSummary calculates a Deleting condition for the calculation of the Ready condition
+// (which is done via a summary). This is necessary to avoid including the verbose details of the Deleting condition
+// message in the summary.
 func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2conditions.ConditionWithOwnerInfo {
 	deletingCondition := v1beta2conditions.Get(machine, clusterv1.MachineDeletingV1Beta2Condition)
 
 	var msg string
 	switch {
 	case deletingCondition == nil:
+		// NOTE: this should never happen given that setDeletingCondition is called before this method and
+		// it always adds a Deleting condition.
 		msg = "Machine deletion in progress"
 	case deletingCondition.Reason == clusterv1.MachineDeletingDrainingNodeV1Beta2Reason &&
 		machine.Status.Deletion != nil && machine.Status.Deletion.NodeDrainStartTime != nil &&
@@ -609,7 +615,7 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2con
 		Condition: metav1.Condition{
 			Type:    clusterv1.MachineDeletingV1Beta2Condition,
 			Status:  metav1.ConditionTrue,
-			Reason:  clusterv1.MachineDeletingDeletingV1Beta2Reason,
+			Reason:  clusterv1.MachineDeletingV1Beta2Reason,
 			Message: msg,
 		},
 	}

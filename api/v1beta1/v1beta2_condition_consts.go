@@ -116,17 +116,8 @@ const (
 
 // Conditions that will be used for the MachineSet object in v1Beta2 API version.
 const (
-	// MachineSetMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
-	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
-
 	// MachineSetMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
 	MachineSetMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
-
-	// MachineSetScalingUpV1Beta2Condition is true if available replicas < desired replicas.
-	MachineSetScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
-
-	// MachineSetScalingDownV1Beta2Condition is true if replicas > desired replicas.
-	MachineSetScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
 
 	// MachineSetRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
 	MachineSetRemediatingV1Beta2Condition = RemediatingV1Beta2Condition

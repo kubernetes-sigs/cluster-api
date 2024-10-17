@@ -237,6 +237,36 @@ func TestSummary(t *testing.T) {
 			},
 		},
 		{
+			name: "Error if the same override condition is specified multiple times",
+			conditions: []metav1.Condition{
+				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"},  // info
+				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C", Message: "Message-C"}, // issue
+			},
+			conditionType: clusterv1.AvailableV1Beta2Condition,
+			options: []SummaryOption{ForConditionTypes{"A", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
+				OverrideConditions{
+					{
+						OwnerResource: ConditionOwnerInfo{
+							Kind: "Phase3Obj",
+							Name: "SourceObject",
+						},
+						Condition: metav1.Condition{
+							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
+						},
+					},
+					{
+						OwnerResource: ConditionOwnerInfo{
+							Kind: "Phase3Obj",
+							Name: "SourceObject",
+						},
+						Condition: metav1.Condition{
+							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
+						},
+					},
+				}}, // OverrideCondition is specified multiple times
+			wantErr: true,
+		},
+		{
 			name: "Error if override condition does not exist in source object",
 			conditions: []metav1.Condition{
 				{Type: "A", Status: metav1.ConditionTrue, Reason: "Reason-A", Message: "Message-A"}, // info

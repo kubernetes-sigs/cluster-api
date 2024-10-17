@@ -83,6 +83,10 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	}
 	overrideConditionsByType := map[string]ConditionWithOwnerInfo{}
 	for _, c := range summarizeOpt.overrideConditions {
+		if _, ok := overrideConditionsByType[c.Type]; ok {
+			return nil, errors.Errorf("override condition %s specified multiple times", c.Type)
+		}
+
 		overrideConditionsByType[c.Type] = c
 
 		if _, ok := conditionsByType[c.Type]; !ok {

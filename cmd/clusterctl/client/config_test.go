@@ -57,6 +57,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
 				config.ClusterAPIProviderName,
+				config.CanonicalKubernetesBootstrapProviderName,
 				config.K0smotronBootstrapProviderName,
 				config.KubeadmBootstrapProviderName,
 				config.KubeKeyK3sBootstrapProviderName,
@@ -64,6 +65,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.OracleCloudNativeBootstrapProviderName,
 				config.RKE2BootstrapProviderName,
 				config.TalosBootstrapProviderName,
+				config.CanonicalKubernetesControlPlaneProviderName,
 				config.K0smotronControlPlaneProviderName,
 				config.KamajiControlPlaneProviderName,
 				config.KubeadmControlPlaneProviderName,
@@ -119,6 +121,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
 				config.ClusterAPIProviderName,
+				config.CanonicalKubernetesBootstrapProviderName,
 				customProviderConfig.Name(),
 				config.K0smotronBootstrapProviderName,
 				config.KubeadmBootstrapProviderName,
@@ -127,6 +130,7 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 				config.OracleCloudNativeBootstrapProviderName,
 				config.RKE2BootstrapProviderName,
 				config.TalosBootstrapProviderName,
+				config.CanonicalKubernetesControlPlaneProviderName,
 				config.K0smotronControlPlaneProviderName,
 				config.KamajiControlPlaneProviderName,
 				config.KubeadmControlPlaneProviderName,

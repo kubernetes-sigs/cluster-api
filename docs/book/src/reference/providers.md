@@ -7,6 +7,7 @@ updated info about which API version they are supporting.
 
 ## Bootstrap
 - [Amazon Elastic Kubernetes Service (EKS)](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)
+- [Canonical Kubernetes](https://github.com/canonical/cluster-api-k8s)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 - [Oracle Cloud Native Environment (OCNE)](https://github.com/verrazzano/cluster-api-provider-ocne)
@@ -15,6 +16,7 @@ updated info about which API version they are supporting.
 - [k0smotron/k0s](https://github.com/k0sproject/k0smotron)
 
 ## Control Plane
+- [Canonical Kubernetes](https://github.com/canonical/cluster-api-k8s)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-control-plane-provider-microk8s)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)

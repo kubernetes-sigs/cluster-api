@@ -53,6 +53,16 @@ spec:
                       KubeadmConfigSpec defines the desired state of KubeadmConfig.
                       Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
                     properties:
+                      bootCommands:
+                        description: BootCommands specifies extra commands to run
+                          very early in the boot process
+                        items:
+                          description: BootCommand defines input for each bootcmd
+                            command in cloud-init.
+                          items:
+                            type: string
+                          type: array
+                        type: array
                       clusterConfiguration:
                         description: clusterConfiguration along with InitConfiguration
                           are the configurations necessary for the init command
@@ -878,15 +888,6 @@ spec:
                               type: string
                             type: array
                         type: object
-                      bootCommands:
-                        description: BootCommands specifies extra commands to run very early
-                          in the boot process
-                        items:
-                          description: Defines each boot command to be executed
-                          items:
-                            type: string
-                          type: array
-                        type: array
                       postKubeadmCommands:
                         description: postKubeadmCommands specifies extra commands
                           to run after kubeadm runs
@@ -1021,6 +1022,16 @@ spec:
                       KubeadmConfigSpec defines the desired state of KubeadmConfig.
                       Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
                     properties:
+                      bootCommands:
+                        description: BootCommands specifies extra commands to run
+                          before kubeadm runs
+                        items:
+                          description: BootCommand defines input for each bootcmd
+                            command in cloud-init.
+                          items:
+                            type: string
+                          type: array
+                        type: array
                       clusterConfiguration:
                         description: clusterConfiguration along with InitConfiguration
                           are the configurations necessary for the init command
@@ -1845,15 +1856,6 @@ spec:
                               type: string
                             type: array
                         type: object
-                      bootCommands:
-                        description: BootCommands specifies extra commands to run very early
-                          in the boot process
-                        items:
-                          description: Defines each boot command to be executed
-                          items:
-                            type: string
-                          type: array
-                        type: array
                       postKubeadmCommands:
                         description: postKubeadmCommands specifies extra commands
                           to run after kubeadm runs
@@ -2010,6 +2012,16 @@ spec:
                       KubeadmConfigSpec defines the desired state of KubeadmConfig.
                       Either ClusterConfiguration and InitConfiguration should be defined or the JoinConfiguration should be defined.
                     properties:
+                      bootCommands:
+                        description: BootCommands specifies extra commands to run
+                          very early in the boot process
+                        items:
+                          description: BootCommand defines input for each bootcmd
+                            command in cloud-init.
+                          items:
+                            type: string
+                          type: array
+                        type: array
                       clusterConfiguration:
                         description: clusterConfiguration along with InitConfiguration
                           are the configurations necessary for the init command
@@ -3598,15 +3610,6 @@ spec:
                               type: string
                             type: array
                         type: object
-                      bootCommands:
-                        description: BootCommands specifies extra commands to run very early
-                          in the boot process
-                        items:
-                          description: Defines each boot command to be executed
-                          items:
-                            type: string
-                          type: array
-                        type: array
                       postKubeadmCommands:
                         description: postKubeadmCommands specifies extra commands
                           to run after kubeadm runs

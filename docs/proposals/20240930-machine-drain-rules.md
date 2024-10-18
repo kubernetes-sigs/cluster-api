@@ -170,9 +170,12 @@ spec:
 
 Notes:
 
+* The Machine controller will evaluate `machines` and `pods` selectors to determine for which Machine and to which Pods
+  the rule should be applied.
 * All selectors are of type `metav1.LabelSelector`
 * In order to allow expressing selectors with AND and OR predicates, both `machines` and `pods` have a list of 
-  selectors instead of a single selector
+  selectors instead of a single selector. Within a single element of the selector lists AND is used, while between multiple 
+  entries in the selector lists OR is used.
 
 ##### Example: Exclude Pods from drain
 
@@ -188,17 +191,27 @@ spec:
   machines:
   - selector: {}
   pods:
-  - selector:
+   # This selects all Pods with the app label in (example-app1,example-app2) AND in the example-namespace 
+  - selector:  
       matchExpressions:
       - key: app
         operator: In
         values:
         - example-app1
         - example-app2
-        - example-app3
     namespaceSelector:
       matchLabels:
         kubernetes.io/metadata.name: example-namespace
+  # This additionally selects Pods with the app label == monitoring AND in the monitoring namespace
+  - selector:
+      matchExpressions:
+        - key: app
+          operator: In
+          values:
+            - monitoring
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: monitoring
 ```
 
 ##### Example: Drain order
@@ -263,6 +276,14 @@ Notes:
 * It does not make sense to evict static Pods, because the kubelet won’t actually terminate them and the Pod object 
   will get recreated.
 * If multiple `MachineDrainRules` match the same Pod, the “first” rule (based on alphabetical order) will be applied
+  * Alphabetical order is used because:
+    * There is no way to ensure only a single `MachineDrainRule` applies to a specific Pod, because not all Pods and their 
+      labels are known when `MachineDrainRules` are created/updated especially as the Pods will also change over time. 
+    * So a criteria is needed to decide which `MachineDrainRule` is used when multiple `MachineDrainRules` apply
+    * For now, we decided to use simple alphabetical order. An alternative would have been to add a `priority` field
+      to `MachineDrainRules` and enforce that each priority is used only once, but this is not entirely race condition
+      free (when two `MachineDrainRules` are created "at the same time") and adding "another" priority field on top
+      of `order` can be confusing to users.
 * `Pods` with drain behavior `Drain` and given order will be evicted only after all other `Pods` with a lower order 
   have been already deleted
 * When waiting for volume detach, volumes belonging to `Pods` with drain behavior `Skip` are going to be ignored.
@@ -278,6 +299,10 @@ Please note, today the only Pods for which we skip drain that can have volumes a
 has a volume currently wait for volume detach would block indefinitely. The only way around this today is to set either
 the `Machine.spec.nodeVolumeDetachTimeout` field or the `machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach`
 annotation. With this change we will stop waiting for volumes of DaemonSet Pods to be detached.
+
+**Note**: We can't exclude the possibility that with some CSI implementations deleting Machines while volumes are still attached
+will lead to problems. So please use this carefully. However, we verified that the `kube-controller-manager` will handle these
+situations correctly by ensuring the volume gets freed up after the Machine & Node have been deleted and can be used again.
 
 ### Security Model
 

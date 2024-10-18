@@ -290,17 +290,6 @@ func WithVersion() Func {
 	}
 }
 
-// HealthyAPIServer returns a filter to find all machines that have a MachineAPIServerPodHealthyCondition
-// set to true.
-func HealthyAPIServer() Func {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-		return conditions.IsTrue(machine, controlplanev1.MachineAPIServerPodHealthyCondition)
-	}
-}
-
 // HasNode returns a filter to find all machines that have a corresponding Kubernetes node.
 func HasNode() Func {
 	return func(machine *clusterv1.Machine) bool {

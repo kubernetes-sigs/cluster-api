@@ -777,6 +777,8 @@ func TestEvictPods(t *testing.T) {
 }
 
 func TestEvictionResult_ConditionMessage(t *testing.T) {
+	g := NewWithT(t)
+
 	tests := []struct {
 		name                 string
 		evictionResult       EvictionResult
@@ -819,7 +821,7 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 					},
 				},
 			},
-			wantConditionMessage: `Drain not completed yet:
+			wantConditionMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-3-to-trigger-eviction-successfully-1
 * Pods with eviction failed:
   * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1
@@ -949,7 +951,7 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 					},
 				},
 			},
-			wantConditionMessage: `Drain not completed yet:
+			wantConditionMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
 * Pods with eviction failed:
   * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
@@ -1024,7 +1026,7 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 					},
 				},
 			},
-			wantConditionMessage: `Drain not completed yet:
+			wantConditionMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
 * Pods with eviction failed:
   * some other error 1: pod-1-to-trigger-eviction-some-other-error
   * some other error 2: pod-2-to-trigger-eviction-some-other-error
@@ -1035,11 +1037,14 @@ func TestEvictionResult_ConditionMessage(t *testing.T) {
 		},
 	}
 
+	nodeDrainStartTime, err := time.Parse(time.RFC3339, "2024-10-09T16:13:59Z")
+	g.Expect(err).ToNot(HaveOccurred())
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(tt.evictionResult.ConditionMessage()).To(Equal(tt.wantConditionMessage))
+			g.Expect(tt.evictionResult.ConditionMessage(&metav1.Time{Time: nodeDrainStartTime})).To(Equal(tt.wantConditionMessage))
 		})
 	}
 }

@@ -36,6 +36,7 @@ type SummaryOptions struct {
 	conditionTypes                 []string
 	negativePolarityConditionTypes []string
 	ignoreTypesIfMissing           []string
+	overrideConditions             []ConditionWithOwnerInfo
 }
 
 // ApplyOptions applies the given list options on these options,
@@ -74,14 +75,38 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 	ignoreTypesIfMissing := sets.New[string](summarizeOpt.ignoreTypesIfMissing...)
 	existingConditionTypes := sets.New[string]()
 
-	// Drops all the conditions not in scope for the merge operation
 	conditions := getConditionsWithOwnerInfo(sourceObj)
+
+	conditionsByType := map[string]ConditionWithOwnerInfo{}
+	for _, c := range conditions {
+		conditionsByType[c.Type] = c
+	}
+	overrideConditionsByType := map[string]ConditionWithOwnerInfo{}
+	for _, c := range summarizeOpt.overrideConditions {
+		if _, ok := overrideConditionsByType[c.Type]; ok {
+			return nil, errors.Errorf("override condition %s specified multiple times", c.Type)
+		}
+
+		overrideConditionsByType[c.Type] = c
+
+		if _, ok := conditionsByType[c.Type]; !ok {
+			return nil, errors.Errorf("override condition %s must exist in source object", c.Type)
+		}
+	}
+
 	conditionsInScope := make([]ConditionWithOwnerInfo, 0, len(expectedConditionTypes))
 	for _, condition := range conditions {
+		// Drops all the conditions not in scope for the merge operation
 		if !expectedConditionTypes.Has(condition.Type) {
 			continue
 		}
-		conditionsInScope = append(conditionsInScope, condition)
+
+		if overrideCondition, ok := overrideConditionsByType[condition.Type]; ok {
+			conditionsInScope = append(conditionsInScope, overrideCondition)
+		} else {
+			conditionsInScope = append(conditionsInScope, condition)
+		}
+
 		existingConditionTypes.Insert(condition.Type)
 	}
 

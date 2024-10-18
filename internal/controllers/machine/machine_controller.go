@@ -19,16 +19,19 @@ package machine
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -47,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine/drain"
+	"sigs.k8s.io/cluster-api/internal/util/cache"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -60,7 +64,8 @@ import (
 )
 
 const (
-	drainRetryInterval = time.Duration(20) * time.Second
+	drainRetryInterval               = time.Duration(20) * time.Second
+	waitForVolumeDetachRetryInterval = time.Duration(20) * time.Second
 )
 
 var (
@@ -89,6 +94,8 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	RemoteConditionsGracePeriod time.Duration
+
 	controller      controller.Controller
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -97,7 +104,11 @@ type Reconciler struct {
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
 	ssaCache                 ssa.Cache
-	drainCache               drain.Cache
+
+	// reconcileDeleteCache is used to store when reconcileDelete should not be executed before a
+	// specific time for a specific Request. This is used to implement rate-limiting to avoid
+	// e.g. spamming workload clusters with eviction requests during Node drain.
+	reconcileDeleteCache cache.Cache[cache.ReconcileEntry]
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -133,7 +144,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 					predicates.ResourceHasFilterLabel(mgr.GetScheme(), predicateLog, r.WatchFilterValue),
 				),
 			)).
-		WatchesRawSource(r.ClusterCache.GetClusterSource("machine", clusterToMachines)).
+		WatchesRawSource(r.ClusterCache.GetClusterSource("machine", clusterToMachines, clustercache.WatchForProbeFailure(r.RemoteConditionsGracePeriod))).
 		Watches(
 			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(msToMachines),
@@ -155,7 +166,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Scheme:     mgr.GetScheme(),
 	}
 	r.ssaCache = ssa.NewCache()
-	r.drainCache = drain.NewCache()
+	r.reconcileDeleteCache = cache.New[cache.ReconcileEntry]()
 	return nil
 }
 
@@ -350,6 +361,21 @@ type scope struct {
 
 	// node is the Kubernetes node hosted on the machine.
 	node *corev1.Node
+
+	// nodeGetError is the error that occurred when trying to get the Node.
+	nodeGetError error
+
+	// reconcileDeleteExecuted will be set to true if the logic in reconcileDelete is executed.
+	// We might requeue early in reconcileDelete because of rate-limiting.
+	// If the Machine has the deletionTimestamp set and this field is false we don't update the
+	// Deleting condition.
+	reconcileDeleteExecuted bool
+
+	// deletingReason is the reason that should be used when setting the Deleting condition.
+	deletingReason string
+
+	// deletingMessage is the message that should be used when setting the Deleting condition.
+	deletingMessage string
 }
 
 func (r *Reconciler) reconcileMachineOwnerAndLabels(_ context.Context, s *scope) (ctrl.Result, error) {
@@ -378,6 +404,25 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 	cluster := s.cluster
 	m := s.machine
 
+	// Check reconcileDeleteCache to ensure we won't run reconcileDelete too frequently.
+	if cacheEntry, ok := r.reconcileDeleteCache.Has(cache.NewReconcileEntryKey(s.machine)); ok {
+		if requeueAfter, requeue := cacheEntry.ShouldRequeue(time.Now()); requeue {
+			return ctrl.Result{RequeueAfter: requeueAfter}, nil
+		}
+	}
+
+	s.reconcileDeleteExecuted = true
+
+	// Add entry to the reconcileDeleteCache so we won't run reconcileDelete more than once per second.
+	// Under certain circumstances the ReconcileAfter time will be set to a later time, e.g. when we're waiting
+	// for Pods to terminate or volumes to detach.
+	// This is done to ensure we're not spamming the workload cluster API server.
+	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(s.machine, time.Now().Add(1*time.Second)))
+
+	// Set "fallback" reason and message. This is used if we don't set a more specific reason and message below.
+	s.deletingReason = clusterv1.MachineDeletingDeletionTimestampSetV1Beta2Reason
+	s.deletingMessage = ""
+
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil
 	if err != nil {
@@ -389,6 +434,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 			log.Info("Skipping deletion of Kubernetes Node associated with Machine as it is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
 		default:
+			s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+			s.deletingMessage = "Please check controller logs for errors" //nolint:goconst // Not making this a constant for now
 			return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
 		}
 	}
@@ -405,6 +452,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 			}
 			log.Info("Waiting for pre-drain hooks to succeed", "hooks", strings.Join(hooks, ","))
 			conditions.MarkFalse(m, clusterv1.PreDrainDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "")
+			s.deletingReason = clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason
+			s.deletingMessage = fmt.Sprintf("Waiting for pre-drain hooks to complete (hooks: %s)", strings.Join(hooks, ","))
 			return ctrl.Result{}, nil
 		}
 		conditions.MarkTrue(m, clusterv1.PreDrainDeleteHookSucceededCondition)
@@ -413,12 +462,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		if r.isNodeDrainAllowed(m) {
 			patchHelper, err := patch.NewHelper(m, r.Client)
 			if err != nil {
+				s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+				s.deletingMessage = "Please check controller logs for errors"
 				return ctrl.Result{}, err
-			}
-
-			// The DrainingSucceededCondition never exists before the node is drained for the first time.
-			if conditions.Get(m, clusterv1.DrainingSucceededCondition) == nil {
-				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
 			}
 
 			if m.Status.Deletion == nil {
@@ -428,13 +474,24 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 				m.Status.Deletion.NodeDrainStartTime = ptr.To(metav1.Now())
 			}
 
+			// The DrainingSucceededCondition never exists before the node is drained for the first time.
+			if conditions.Get(m, clusterv1.DrainingSucceededCondition) == nil {
+				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, "Draining the node before deletion")
+			}
+			s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
+			s.deletingMessage = fmt.Sprintf("Drain not completed yet (started at %s):", m.Status.Deletion.NodeDrainStartTime.Format(time.RFC3339))
+
 			if err := patchMachine(ctx, patchHelper, m); err != nil {
-				return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
+				s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+				s.deletingMessage = "Please check controller logs for errors"
+				return ctrl.Result{}, err
 			}
 
-			result, err := r.drainNode(ctx, cluster, m, m.Status.NodeRef.Name)
+			result, err := r.drainNode(ctx, s)
 			if err != nil {
 				conditions.MarkFalse(m, clusterv1.DrainingSucceededCondition, clusterv1.DrainingFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+				s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
+				s.deletingMessage = "Error draining Node, please check controller logs for errors"
 				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDrainNode", "error draining Machine's node %q: %v", m.Status.NodeRef.Name, err)
 				return ctrl.Result{}, err
 			}
@@ -451,11 +508,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		// volumes are detached before proceeding to delete the Node.
 		// In case the node is unreachable, the detachment is skipped.
 		if r.isNodeVolumeDetachingAllowed(m) {
-			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
-			if conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
-				conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
-			}
-
 			if m.Status.Deletion == nil {
 				m.Status.Deletion = &clusterv1.MachineDeletionStatus{}
 			}
@@ -463,12 +515,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 				m.Status.Deletion.WaitForNodeVolumeDetachStartTime = ptr.To(metav1.Now())
 			}
 
-			if ok, err := r.shouldWaitForNodeVolumes(ctx, cluster, m.Status.NodeRef.Name); ok || err != nil {
-				if err != nil {
-					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedWaitForVolumeDetach", "error waiting for node volumes detaching, Machine's node %q: %v", m.Status.NodeRef.Name, err)
-					return ctrl.Result{}, err
-				}
-				return ctrl.Result{}, nil
+			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time.
+			if conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
+				conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
+			}
+			s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason
+			s.deletingMessage = fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", m.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+
+			result, err := r.shouldWaitForNodeVolumes(ctx, s)
+			if err != nil {
+				s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason
+				s.deletingMessage = "Error waiting for volumes to be detached from Node, please check controller logs for errors"
+				r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedWaitForVolumeDetach", "error waiting for node volumes detaching, Machine's node %q: %v", m.Status.NodeRef.Name, err)
+				return ctrl.Result{}, err
+			}
+			if !result.IsZero() {
+				return result, nil
 			}
 			conditions.MarkTrue(m, clusterv1.VolumeDetachSucceededCondition)
 			r.recorder.Eventf(m, corev1.EventTypeNormal, "NodeVolumesDetached", "success waiting for node volumes detaching Machine's node %q", m.Status.NodeRef.Name)
@@ -486,26 +548,36 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		}
 		log.Info("Waiting for pre-terminate hooks to succeed", "hooks", strings.Join(hooks, ","))
 		conditions.MarkFalse(m, clusterv1.PreTerminateDeleteHookSucceededCondition, clusterv1.WaitingExternalHookReason, clusterv1.ConditionSeverityInfo, "")
+		s.deletingReason = clusterv1.MachineDeletingWaitingForPreTerminateHookV1Beta2Reason
+		s.deletingMessage = fmt.Sprintf("Waiting for pre-terminate hooks to succeed (hooks: %s)", strings.Join(hooks, ","))
 		return ctrl.Result{}, nil
 	}
 	conditions.MarkTrue(m, clusterv1.PreTerminateDeleteHookSucceededCondition)
 
 	infrastructureDeleted, err := r.reconcileDeleteInfrastructure(ctx, s)
 	if err != nil {
+		s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+		s.deletingMessage = fmt.Sprintf("Failed to delete %s, please check controller logs for errors", m.Spec.InfrastructureRef.Kind)
 		return ctrl.Result{}, err
 	}
 	if !infrastructureDeleted {
 		log.Info("Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
+		s.deletingReason = clusterv1.MachineDeletingWaitingForInfrastructureDeletionV1Beta2Reason
+		s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.InfrastructureRef.Kind)
 		return ctrl.Result{}, nil
 	}
 
 	if m.Spec.Bootstrap.ConfigRef != nil {
 		bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, s)
 		if err != nil {
+			s.deletingReason = clusterv1.MachineDeletingInternalErrorV1Beta2Reason
+			s.deletingMessage = fmt.Sprintf("Failed to delete %s, please check controller logs for errors", m.Spec.Bootstrap.ConfigRef.Kind)
 			return ctrl.Result{}, err
 		}
 		if !bootstrapDeleted {
 			log.Info("Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+			s.deletingReason = clusterv1.MachineDeletingWaitingForBootstrapDeletionV1Beta2Reason
+			s.deletingMessage = fmt.Sprintf("Waiting for %s to be deleted", m.Spec.Bootstrap.ConfigRef.Kind)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -529,11 +601,16 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 
 			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
 			if m.Spec.NodeDeletionTimeout == nil || m.Spec.NodeDeletionTimeout.Nanoseconds() == 0 || m.DeletionTimestamp.Add(m.Spec.NodeDeletionTimeout.Duration).After(time.Now()) {
+				s.deletingReason = clusterv1.MachineDeletingDeletingNodeV1Beta2Reason
+				s.deletingMessage = "Error deleting Node, please check controller logs for errors"
 				return ctrl.Result{}, deleteNodeErr
 			}
 			log.Info("Node deletion timeout expired, continuing without Node deletion.")
 		}
 	}
+
+	s.deletingReason = clusterv1.MachineDeletingDeletionCompletedV1Beta2Reason
+	s.deletingMessage = ""
 
 	controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
 	return ctrl.Result{}, nil
@@ -687,7 +764,11 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 	return nil
 }
 
-func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, nodeName string) (ctrl.Result, error) {
+func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, error) {
+	cluster := s.cluster
+	machine := s.machine
+	nodeName := s.machine.Status.NodeRef.Name
+
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
@@ -695,6 +776,8 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	if err != nil {
 		if errors.Is(err, clustercache.ErrClusterNotConnected) {
 			log.V(5).Info("Requeuing drain Node because connection to the workload cluster is down")
+			s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
+			s.deletingMessage = "Requeuing drain Node because connection to the workload cluster is down"
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		log.Error(err, "Error creating a remote client for cluster while draining Node, won't retry")
@@ -705,7 +788,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	if err := remoteClient.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
 		if apierrors.IsNotFound(err) {
 			// If an admin deletes the node directly, we'll end up here.
-			log.Error(err, "Could not find node from noderef, it may have already been deleted")
+			log.Info("Could not find Node from Machine.status.nodeRef, skip waiting for volume detachment.")
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, errors.Wrapf(err, "unable to get Node %s", nodeName)
@@ -756,32 +839,22 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 		return ctrl.Result{}, nil
 	}
 
-	// Check drain cache to ensure we won't retry drain before drainRetryInterval.
-	// Note: This is intentionally only done if we have Pods to evict, because otherwise
-	// even the "no-op" drain would be requeued.
-	if cacheEntry, ok := r.drainCache.Has(client.ObjectKeyFromObject(machine)); ok {
-		if requeueAfter, requeue := shouldRequeueDrain(time.Now(), cacheEntry.LastDrain); requeue {
-			log.Info(fmt.Sprintf("Requeuing in %s because there already was a drain in the last %s", requeueAfter.Truncate(time.Second/10), drainRetryInterval))
-			return ctrl.Result{RequeueAfter: requeueAfter}, nil
-		}
-	}
-
 	log.Info("Draining Node")
 
 	evictionResult := drainer.EvictPods(ctx, podDeleteList)
-
-	// Add entry to the drain cache so we won't retry drain before drainRetryInterval.
-	r.drainCache.Add(drain.CacheEntry{
-		Machine:   client.ObjectKeyFromObject(machine),
-		LastDrain: time.Now(),
-	})
 
 	if evictionResult.DrainCompleted() {
 		log.Info("Drain completed, remaining Pods on the Node have been evicted")
 		return ctrl.Result{}, nil
 	}
 
-	conditions.MarkFalse(machine, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, evictionResult.ConditionMessage())
+	// Add entry to the reconcileDeleteCache so we won't retry drain again before drainRetryInterval.
+	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(machine, time.Now().Add(drainRetryInterval)))
+
+	conditionMessage := evictionResult.ConditionMessage(machine.Status.Deletion.NodeDrainStartTime)
+	conditions.MarkFalse(machine, clusterv1.DrainingSucceededCondition, clusterv1.DrainingReason, clusterv1.ConditionSeverityInfo, conditionMessage)
+	s.deletingReason = clusterv1.MachineDeletingDrainingNodeV1Beta2Reason
+	s.deletingMessage = conditionMessage
 	podsFailedEviction := []*corev1.Pod{}
 	for _, p := range evictionResult.PodsFailedEviction {
 		podsFailedEviction = append(podsFailedEviction, p...)
@@ -793,36 +866,31 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	return ctrl.Result{RequeueAfter: drainRetryInterval}, nil
 }
 
-func shouldRequeueDrain(now time.Time, lastDrain time.Time) (time.Duration, bool) {
-	timeSinceLastDrain := now.Sub(lastDrain)
-	if timeSinceLastDrain < drainRetryInterval {
-		return drainRetryInterval - timeSinceLastDrain, true
-	}
-
-	return time.Duration(0), false
-}
-
 // shouldWaitForNodeVolumes returns true if node status still have volumes attached and the node is reachable
 // pod deletion and volume detach happen asynchronously, so pod could be deleted before volume detached from the node
 // this could cause issue for some storage provisioner, for example, vsphere-volume this is problematic
 // because if the node is deleted before detach success, then the underline VMDK will be deleted together with the Machine
 // so after node draining we need to check if all volumes are detached before deleting the node.
-func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (bool, error) {
+func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, s *scope) (ctrl.Result, error) {
+	nodeName := s.machine.Status.NodeRef.Name
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
+	cluster := s.cluster
+	machine := s.machine
+
 	remoteClient, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		return true, err
+		return ctrl.Result{}, err
 	}
 
 	node := &corev1.Node{}
 	if err := remoteClient.Get(ctx, types.NamespacedName{Name: nodeName}, node); err != nil {
 		if apierrors.IsNotFound(err) {
 			log.Error(err, "Could not find node from noderef, it may have already been deleted")
-			return false, nil
+			return ctrl.Result{}, nil
 		}
-		return true, err
+		return ctrl.Result{}, err
 	}
 
 	if noderefutil.IsNodeUnreachable(node) {
@@ -830,15 +898,49 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 		// We need to skip the detachment as we otherwise block deletions
 		// of unreachable nodes when a volume is attached.
 		log.Info("Node is unreachable, skip waiting for volume detachment.")
-		return false, nil
+		return ctrl.Result{}, nil
 	}
 
-	if len(node.Status.VolumesAttached) != 0 {
-		log.Info("Waiting for Node volumes to be detached")
-		return true, nil
+	// Get two sets of information about volumes currently attached to the node:
+	// * VolumesAttached names from node.Status.VolumesAttached
+	// * PersistentVolume names from VolumeAttachments with status.Attached set to true
+	attachedNodeVolumeNames, attachedPVNames, err := getAttachedVolumeInformation(ctx, remoteClient, node)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	return false, nil
+	// Return early if there are no volumes to wait for getting detached.
+	if len(attachedNodeVolumeNames) == 0 && len(attachedPVNames) == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	// Get all PVCs we want to ignore because they belong to Pods for which we skipped drain.
+	pvcsToIgnoreFromPods, err := getPersistentVolumeClaimsToIgnore(ctx, remoteClient, nodeName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// List all PersistentVolumes and return the ones we want to wait for.
+	attachedVolumeInformation, err := getPersistentVolumesWaitingForDetach(ctx, remoteClient, attachedNodeVolumeNames, attachedPVNames, pvcsToIgnoreFromPods)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// If no pvcs were found we have to wait for and there is no unmatched information, then we are finished with waiting for volumes.
+	if attachedVolumeInformation.isEmpty() {
+		return ctrl.Result{}, nil
+	}
+
+	// Add entry to the reconcileDeleteCache so we won't retry shouldWaitForNodeVolumes again before waitForVolumeDetachRetryInterval.
+	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(machine, time.Now().Add(waitForVolumeDetachRetryInterval)))
+
+	s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason
+	s.deletingMessage = attachedVolumeInformation.conditionMessage(machine)
+
+	log.Info("Waiting for Node volumes to be detached",
+		attachedVolumeInformation.logKeys()...,
+	)
+	return ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval}, nil
 }
 
 func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
@@ -999,4 +1101,244 @@ func (r *Reconciler) nodeToMachine(ctx context.Context, o client.Object) []recon
 	}
 
 	return nil
+}
+
+// getAttachedVolumeInformation returns information about volumes attached to the node:
+// * VolumesAttached names from node.Status.VolumesAttached.
+// * PersistentVolume names from VolumeAttachments with status.Attached set to true.
+func getAttachedVolumeInformation(ctx context.Context, remoteClient client.Client, node *corev1.Node) (sets.Set[string], sets.Set[string], error) {
+	attachedVolumeName := sets.Set[string]{}
+	attachedPVNames := sets.Set[string]{}
+
+	for _, attachedVolume := range node.Status.VolumesAttached {
+		attachedVolumeName.Insert(string(attachedVolume.Name))
+	}
+
+	volumeAttachments, err := getVolumeAttachmentForNode(ctx, remoteClient, node.GetName())
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to list VolumeAttachments")
+	}
+
+	for _, va := range volumeAttachments {
+		// Return an error if a VolumeAttachments does not refer a PersistentVolume.
+		if va.Spec.Source.PersistentVolumeName == nil {
+			return nil, nil, errors.Errorf("spec.source.persistentVolumeName for VolumeAttachment %s is not set", va.GetName())
+		}
+		attachedPVNames.Insert(*va.Spec.Source.PersistentVolumeName)
+	}
+
+	return attachedVolumeName, attachedPVNames, nil
+}
+
+// getPersistentVolumeClaimsToIgnore gets all pods which have been ignored by drain and returns a list of
+// NamespacedNames for all PersistentVolumeClaims referred by the pods.
+// Note: this does not require us to list PVC's directly.
+func getPersistentVolumeClaimsToIgnore(ctx context.Context, remoteClient client.Client, nodeName string) (sets.Set[string], error) {
+	drainHelper := drain.Helper{
+		Client: remoteClient,
+	}
+
+	pods, err := drainHelper.GetPodsForEviction(ctx, nodeName)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find PersistentVolumeClaims from Pods ignored during drain")
+	}
+
+	ignoredPods := pods.IgnoredPods()
+
+	pvcsToIgnore := sets.Set[string]{}
+
+	for _, pod := range ignoredPods {
+		for _, volume := range pod.Spec.Volumes {
+			if volume.PersistentVolumeClaim == nil {
+				continue
+			}
+
+			key := types.NamespacedName{Namespace: pod.GetNamespace(), Name: volume.PersistentVolumeClaim.ClaimName}.String()
+			pvcsToIgnore.Insert(key)
+		}
+	}
+
+	return pvcsToIgnore, nil
+}
+
+// getVolumeAttachmentForNode does a paged list of VolumeAttachments and returns a list
+// of VolumeAttachments attached to the given node.
+func getVolumeAttachmentForNode(ctx context.Context, c client.Client, nodeName string) ([]*storagev1.VolumeAttachment, error) {
+	volumeAttachments := []*storagev1.VolumeAttachment{}
+	volumeAttachmentList := &storagev1.VolumeAttachmentList{}
+	for {
+		listOpts := []client.ListOption{
+			client.Continue(volumeAttachmentList.GetContinue()),
+			client.Limit(100),
+		}
+		if err := c.List(ctx, volumeAttachmentList, listOpts...); err != nil {
+			return nil, errors.Wrap(err, "failed to list VolumeAttachments")
+		}
+
+		for _, volumeAttachment := range volumeAttachmentList.Items {
+			// Skip VolumeAttachments which are not in attached state.
+			if !volumeAttachment.Status.Attached {
+				continue
+			}
+			// Skip VolumeAttachments which are not for the given node.
+			if volumeAttachment.Spec.NodeName != nodeName {
+				continue
+			}
+			volumeAttachments = append(volumeAttachments, &volumeAttachment)
+		}
+
+		if volumeAttachmentList.GetContinue() == "" {
+			break
+		}
+	}
+
+	return volumeAttachments, nil
+}
+
+type attachedVolumeInformation struct {
+	// Attached PersistentVolumeClaims.
+	persistentVolumeClaims []string
+
+	// Attached PersistentVolumes without a corresponding PersistentVolumeClaim.
+	persistentVolumesWithoutPVCClaimRef []string
+
+	// Entries in Node.Status.AttachedVolumes[].Name without a corresponding PersistentVolume.
+	nodeStatusVolumeNamesWithoutPV []string
+	// Names of PersistentVolumes from VolumeAttachments which don't have a corresponding PersistentVolume.
+	persistentVolumeNamesWithoutPV []string
+}
+
+func (a *attachedVolumeInformation) isEmpty() bool {
+	return len(a.persistentVolumeClaims) == 0 &&
+		len(a.persistentVolumesWithoutPVCClaimRef) == 0 &&
+		len(a.nodeStatusVolumeNamesWithoutPV) == 0 &&
+		len(a.persistentVolumeNamesWithoutPV) == 0
+}
+
+func (a *attachedVolumeInformation) logKeys() []any {
+	logKeys := []any{}
+	if len(a.persistentVolumeClaims) > 0 {
+		slices.Sort(a.persistentVolumeClaims)
+		logKeys = append(logKeys, "PersistentVolumeClaims", clog.StringListToString(a.persistentVolumeClaims))
+	}
+
+	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
+		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
+		logKeys = append(logKeys, "PersistentVolumesWithoutPVCClaimRef", clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+	}
+
+	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
+		logKeys = append(logKeys, "NodeStatusVolumeNamesWithoutPV", clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+	}
+
+	if len(a.persistentVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.persistentVolumeNamesWithoutPV)
+		logKeys = append(logKeys, "PersistentVolumeNamesWithoutPV", clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+	}
+
+	return logKeys
+}
+
+func (a *attachedVolumeInformation) conditionMessage(machine *clusterv1.Machine) string {
+	if a.isEmpty() {
+		return ""
+	}
+
+	conditionMessage := fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+
+	if len(a.persistentVolumeClaims) > 0 {
+		slices.Sort(a.persistentVolumeClaims)
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumeClaims: %s", conditionMessage, clog.StringListToString(a.persistentVolumeClaims))
+	}
+
+	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
+		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: %s", conditionMessage, clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+	}
+
+	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
+		conditionMessage = fmt.Sprintf("%s\n* Node.status.volumesAttached entries not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+	}
+
+	if len(a.persistentVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.persistentVolumeNamesWithoutPV)
+		conditionMessage = fmt.Sprintf("%s\n* VolumeAttachment.spec.source.persistentVolumeName not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+	}
+
+	return conditionMessage
+}
+
+// getPersistentVolumesWaitingForDetach returns a list of all persistentVolumes which either have
+// the calculated AttachedVolume name in attachedVolumeNames or their name in attachedPVNames.
+// PersistentVolumes which refer a PersistentVolumeClaim contained in pvcsToIgnore are filtered out.
+// If there are names in attachedVolumeNames or attachedPVNames without a corresponding PV, this returns an error.
+func getPersistentVolumesWaitingForDetach(ctx context.Context, c client.Client, attachedNodeVolumeNames, attachedPVNames, pvcsToIgnore sets.Set[string]) (*attachedVolumeInformation, error) {
+	pvcsWaitingForDetach := sets.Set[string]{}
+	persistentVolumesWithoutPVCClaimRef := []string{}
+	foundAttachedVolumeNames := sets.Set[string]{}
+	foundAttachedPVNames := sets.Set[string]{}
+
+	// List all PersistentVolumes and preserve the ones we have to wait for.
+	// Also store the found VolumeHandles and names of PersistentVolumes to check
+	// that all expected PersistentVolumes have been found.
+	// Note: pvsWaitingFor will not include PersistentVolumes we want to ignore.
+	// These are usually volumes which have a Pod which is expected to be kept.
+	persistentVolumeList := &corev1.PersistentVolumeList{}
+	for {
+		listOpts := []client.ListOption{
+			client.Continue(persistentVolumeList.GetContinue()),
+			client.Limit(100),
+		}
+		if err := c.List(ctx, persistentVolumeList, listOpts...); err != nil {
+			return nil, errors.Wrap(err, "failed to list PersistentVolumes")
+		}
+
+		for _, persistentVolume := range persistentVolumeList.Items {
+			found := false
+			// Lookup if the PersistentVolume matches an entry in attachedVolumeNames.
+			if persistentVolume.Spec.CSI != nil {
+				attachedVolumeName := fmt.Sprintf("kubernetes.io/csi/%s^%s", persistentVolume.Spec.CSI.Driver, persistentVolume.Spec.CSI.VolumeHandle)
+				if attachedNodeVolumeNames.Has(attachedVolumeName) {
+					foundAttachedVolumeNames.Insert(attachedVolumeName)
+					found = true
+				}
+			}
+
+			// Lookup if the PersistentVolume matches an entry in attachedPVNames.
+			if attachedPVNames.Has(persistentVolume.Name) {
+				foundAttachedPVNames.Insert(persistentVolume.Name)
+				found = true
+			}
+
+			// PersistentVolume which do not match an entry in attachedVolumeNames or
+			// attachedPVNames can be ignored.
+			if !found {
+				continue
+			}
+
+			// The ClaimRef should only be nil for unbound volumes and these should not be able to be attached.
+			// Also we're unable to map references which are not of Kind PersistentVolumeClaim so we record the PersistentVolume instead.
+			if persistentVolume.Spec.ClaimRef == nil || persistentVolume.Spec.ClaimRef.Kind != "PersistentVolumeClaim" {
+				persistentVolumesWithoutPVCClaimRef = append(persistentVolumesWithoutPVCClaimRef, persistentVolume.Name)
+				continue
+			}
+
+			key := types.NamespacedName{Namespace: persistentVolume.Spec.ClaimRef.Namespace, Name: persistentVolume.Spec.ClaimRef.Name}.String()
+			// Add the PersistentVolumeClaim namespaced name to the list we are waiting for being detached.
+			pvcsWaitingForDetach.Insert(key)
+		}
+
+		if persistentVolumeList.GetContinue() == "" {
+			break
+		}
+	}
+
+	return &attachedVolumeInformation{
+		persistentVolumeClaims:              pvcsWaitingForDetach.Difference(pvcsToIgnore).UnsortedList(),
+		persistentVolumesWithoutPVCClaimRef: persistentVolumesWithoutPVCClaimRef,
+		nodeStatusVolumeNamesWithoutPV:      attachedNodeVolumeNames.Difference(foundAttachedVolumeNames).UnsortedList(),
+		persistentVolumeNamesWithoutPV:      attachedPVNames.Difference(foundAttachedPVNames).UnsortedList(),
+	}, nil
 }

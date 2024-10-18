@@ -98,13 +98,12 @@ const (
 	// MachineWaitingForMinReadySecondsV1Beta2Reason surfaces when a machine is ready for less than MinReadySeconds (and thus not yet available).
 	MachineWaitingForMinReadySecondsV1Beta2Reason = "WaitingForMinReadySeconds"
 
-	// MachineReadyNotYetReportedV1Beta2Reason surfaces when a machine ready is not reported yet.
-	// Note: this should never happen and it is a signal of some internal error.
-	MachineReadyNotYetReportedV1Beta2Reason = "ReadyNotYetReported"
-
 	// MachineAvailableV1Beta2Reason surfaces when a machine is ready for at least MinReadySeconds.
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
 	MachineAvailableV1Beta2Reason = AvailableV1Beta2Reason
+
+	// MachineAvailableInternalErrorV1Beta2Reason surfaces unexpected error when computing the Available condition.
+	MachineAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 // Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -115,9 +114,8 @@ const (
 	// these conditions must be true as well.
 	MachineReadyV1Beta2Condition = ReadyV1Beta2Condition
 
-	// MachineErrorComputingReadyV1Beta2Reason surfaces when there was an error computing the ready condition.
-	// Note: this should never happen and it is a signal of some internal error.
-	MachineErrorComputingReadyV1Beta2Reason = "ErrorComputingReady"
+	// MachineReadyInternalErrorV1Beta2Reason surfaces unexpected error when computing the Ready condition.
+	MachineReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 )
 
 // Machine's UpToDate condition and corresponding reasons that will be used in v1Beta2 API version.

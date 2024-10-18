@@ -146,7 +146,7 @@ func NewSummaryCondition(sourceObj Getter, targetConditionType string, opts ...S
 		Reason:  reason,
 		Message: message,
 		// NOTE: LastTransitionTime and ObservedGeneration will be set when this condition is added to an object by calling Set.
-	}, err
+	}, nil
 }
 
 // SetSummaryCondition is a convenience method that calls NewSummaryCondition to create a summary condition from the source object,

@@ -114,6 +114,7 @@ func setBootstrapReadyCondition(_ context.Context, machine *clusterv1.Machine, b
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineBootstrapConfigInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
+			// NOTE: the error is logged by reconcileBootstrap.
 		})
 		return
 	}
@@ -169,6 +170,7 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineInfrastructureInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
+			// NOTE: the error is logged by reconcileInfrastructure.
 		})
 		return
 	}
@@ -276,6 +278,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Ma
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
+			// NOTE: the error is logged by reconcileNode.
 		})
 
 		v1beta2conditions.Set(machine, metav1.Condition{
@@ -283,6 +286,7 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Ma
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
+			// NOTE: the error is logged by reconcileNode.
 		})
 		return
 	}
@@ -592,14 +596,14 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 	}
 
 	readyCondition, err := v1beta2conditions.NewSummaryCondition(machine, clusterv1.MachineReadyV1Beta2Condition, summaryOpts...)
-	if err != nil || readyCondition == nil {
+	if err != nil {
 		// Note, this could only happen if we hit edge cases in computing the summary, which should not happen due to the fact
 		// that we are passing a non empty list of ForConditionTypes.
-		log.Error(err, "Failed to set ready condition")
+		log.Error(err, "Failed to set Ready condition")
 		readyCondition = &metav1.Condition{
 			Type:    clusterv1.MachineReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineErrorComputingReadyV1Beta2Reason,
+			Reason:  clusterv1.MachineReadyInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		}
 	}
@@ -650,16 +654,18 @@ func calculateDeletingConditionForSummary(machine *clusterv1.Machine) v1beta2con
 	}
 }
 
-func setAvailableCondition(_ context.Context, machine *clusterv1.Machine) {
+func setAvailableCondition(ctx context.Context, machine *clusterv1.Machine) {
+	log := ctrl.LoggerFrom(ctx)
 	readyCondition := v1beta2conditions.Get(machine, clusterv1.MachineReadyV1Beta2Condition)
 
 	if readyCondition == nil {
 		// NOTE: this should never happen given that setReadyCondition is called before this method and
 		// it always add a ready condition.
+		log.Error(errors.New("Ready condition must be set before setting the available condition"), "Failed to set Available condition")
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineReadyNotYetReportedV1Beta2Reason,
+			Reason:  clusterv1.MachineAvailableInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return

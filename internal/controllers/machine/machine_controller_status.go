@@ -599,7 +599,7 @@ func setReadyCondition(ctx context.Context, machine *clusterv1.Machine) {
 		readyCondition = &metav1.Condition{
 			Type:    clusterv1.MachineReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineErrorComputingReadyV1Beta2Reason,
+			Reason:  clusterv1.MachineReadyInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		}
 	}
@@ -659,7 +659,7 @@ func setAvailableCondition(_ context.Context, machine *clusterv1.Machine) {
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineAvailableV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineReadyNotYetReportedV1Beta2Reason,
+			Reason:  clusterv1.MachineAvailableInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return

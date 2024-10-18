@@ -218,7 +218,7 @@ in the InfraCluster resource.
 
 ```go
 type FooClusterSpec struct {
-    // ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+    // controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
     // +optional
     ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
     
@@ -228,10 +228,10 @@ type FooClusterSpec struct {
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
-    // The hostname on which the API server is serving.
+    // host is the hostname on which the API server is serving.
     Host string `json:"host"`
     
-    // The port on which the API server is serving.
+    // port is the port on which the API server is serving.
     Port int32 `json:"port"`
 }
 ```
@@ -249,7 +249,7 @@ placed in, the list of available failure domains MUST surface on `status.failure
 
 ```go
 type FooClusterStatus struct {
-    // FailureDomains is a list of failure domain objects synced from the infrastructure provider.
+    // failureDomains is a list of failure domain objects synced from the infrastructure provider.
     FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
     
     // See other rules for more details about mandatory/optional fields in InfraCluster status.
@@ -272,7 +272,10 @@ Each InfraCluster MUST report when Cluster's infrastructure is fully provisioned
 
 ```go
 type FooClusterStatus struct {
-    // Ready denotes that the foo cluster infrastructure is fully provisioned.
+    // ready denotes that the foo cluster infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract and it is used to orchestrate provisioning.
+	// The value of this field is never updated after provisioning is completed. Please use conditions
+	// to check the operational state of the infa cluster.
     // +optional
     Ready bool `json:"ready"`
     
@@ -281,7 +284,7 @@ type FooClusterStatus struct {
 }
 ```
 
-Once `status.ready` the Cluster "core" controller will bubbles up this info in Cluster's `status.infrastructureReady`;
+Once `status.ready` is set, the Cluster "core" controller will bubbles up this info in Cluster's `status.infrastructureReady`;
 If defined, also InfraCluster's `spec.controlPlaneEndpoint` and `status.failureDomains` will be surfaced on Cluster's
 corresponding fields at the same time.
 
@@ -336,12 +339,6 @@ the implication of this choice which are described both in the document above an
 
 </aside>
 
-### InfraCluster: pausing
-
-Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraCluster object.
-
-If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
-
 ### InfraCluster: terminal failures
 
 Each InfraCluster SHOULD report when Cluster's enter in a state that cannot be recovered (terminal failure) by
@@ -349,7 +346,7 @@ setting `status.failureReason` and `status.failureMessage` in the InfraCluster r
 
 ```go
 type FooClusterStatus struct {
-    // FailureReason will be set in the event that there is a terminal problem reconciling the FooCluster 
+    // failureReason will be set in the event that there is a terminal problem reconciling the FooCluster 
     // and will contain a succinct value suitable for machine interpretation.
     //
     // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
@@ -357,7 +354,7 @@ type FooClusterStatus struct {
     // +optional
     FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
     
-    // FailureMessage will be set in the event that there is a terminal problem reconciling the FooCluster
+    // failureMessage will be set in the event that there is a terminal problem reconciling the FooCluster
     // and will contain a more verbose string suitable for logging and human consumption.
     //
     // This field should not be set for transitive errors that can be fixed automatically or with manual intervention,
@@ -474,6 +471,12 @@ Please, read carefully the page linked above to fully understand implications an
 ### Clusterctl support
 
 The clusterctl command is designed to work with all the providers compliant with the rules defined in the [clusterctl provider contract].
+
+### InfraCluster: pausing
+
+Providers SHOULD implement the pause behaviour for every object with a reconciliation loop. This is done by checking if `spec.paused` is set on the Cluster object and by checking for the `cluster.x-k8s.io/paused` annotation on the InfraCluster object.
+
+If implementing the pause behavior, providers SHOULD surface the paused status of an object using the Paused condition: `Status.Conditions[Paused]`.
 
 ## Typical InfraCluster reconciliation workflow
 

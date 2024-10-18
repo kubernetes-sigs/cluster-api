@@ -18,8 +18,12 @@ Among those rules:
 Similarly, in order to support different solutions for control plane management, The Cluster resource references
 an ControlPlane object, e.g. KubeadmControlPlane, EKSControlPlane etc.
 
-The [ControlPlane resource contract](../../providers/contracts/control-plane.md) defines a set of rules a provider is expected to comply with in order to allow
-the expected interactions with the Cluster controller.
+Among those rules:
+- ControlPlane SHOULD report a [controlplane endpoint](../../providers/contracts/control-plane.md#controlplane-endpoint) for the Cluster
+- ControlPlane MUST report when Cluster's control plane is [fully provisioned](../../providers/contracts/control-plane.md#controlplane-initialization-completed)
+- ControlPlane MUST manage a [KubeConfig secret](../../providers/contracts/control-plane.md#cluster-kubeconfig-management)
+- ControlPlane SHOULD report [conditions](../../providers/contracts/control-plane.md#controlplane-conditions)
+- ControlPlane SHOULD report [terminal failures](../../providers/contracts/control-plane.md#controlplane-terminal-failures)
 
 Considering all the info above, the Cluster controller's main responsibilities are:
 

@@ -78,7 +78,6 @@
           - [Machine](./developer/core/controllers/machine.md)
           - [MachinePool](./developer/core/controllers/machine-pool.md)
           - [MachineHealthCheck](./developer/core/controllers/machine-health-check.md)
-          - [Control Plane](./developer/core/controllers/control-plane.md)
         - [Logging](developer/core/logging.md)
         - [Testing](developer/core/testing.md)
         - [Developing E2E tests](developer/core/e2e.md)

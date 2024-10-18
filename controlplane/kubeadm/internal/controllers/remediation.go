@@ -77,6 +77,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 		if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.MachineOwnerRemediatedCondition,
+		}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		}}); err != nil {
 			errList = append(errList, err)
 		}
@@ -141,8 +143,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	patchHelper, err := patch.NewHelper(machineToBeRemediated, r.Client)
 	if err != nil {
-		log.Error(err, "failed to create patch helper")
-
 		return ctrl.Result{}, err
 	}
 
@@ -206,7 +206,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason,
-				Message: "KCP waiting for control plane machine provisioning to complete before triggering remediation",
+				Message: "KCP waiting for control plane Machine provisioning to complete before triggering remediation",
 			})
 			return ctrl.Result{}, nil
 		}
@@ -220,7 +220,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  controlplanev1.KubeadmControlPlaneMachineRemediationDeferredV1Beta2Reason,
-				Message: "KCP waiting for control plane machine deletion to complete before triggering remediation",
+				Message: "KCP waiting for control plane Machine deletion to complete before triggering remediation",
 			})
 			return ctrl.Result{}, nil
 		}
@@ -248,7 +248,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 					Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,
-					Message: "KCP can't remediate this machine because this could result in etcd loosing quorum",
+					Message: "KCP can't remediate this Machine because this could result in etcd loosing quorum",
 				})
 				return ctrl.Result{}, nil
 			}
@@ -279,7 +279,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 					Type:    clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 					Status:  metav1.ConditionFalse,
 					Reason:  controlplanev1.KubeadmControlPlaneMachineCannotBeRemediatedV1Beta2Reason,
-					Message: "KCP can't remediate this machine because there is no healthy machine to forward etcd leadership to",
+					Message: "KCP can't remediate this Machine because there is no healthy Machine to forward etcd leadership to",
 				})
 				return ctrl.Result{}, nil
 			}
@@ -320,7 +320,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	v1beta2conditions.Set(machineToBeRemediated, metav1.Condition{
 		Type:   clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		Status: metav1.ConditionFalse,
-		Reason: controlplanev1.KubeadmControlPlaneMachineRemediationDoneV1Beta2Reason,
+		Reason: controlplanev1.KubeadmControlPlaneMachineRemediationMachineDeletedV1Beta2Reason,
 	})
 
 	// Prepare the info for tracking the remediation progress into the RemediationInProgressAnnotation.
@@ -524,7 +524,6 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		}
 
 		// Check member health as reported by machine's health conditions
-		// TODO: note as phase 2 task
 		if !conditions.IsTrue(machine, controlplanev1.MachineEtcdMemberHealthyCondition) {
 			targetUnhealthyMembers++
 			unhealthyMembers = append(unhealthyMembers, fmt.Sprintf("%s (%s)", etcdMember, machine.Name))

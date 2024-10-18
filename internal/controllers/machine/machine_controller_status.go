@@ -220,29 +220,54 @@ func setInfrastructureReadyCondition(_ context.Context, machine *clusterv1.Machi
 
 func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, lastProbeSuccessTime time.Time, remoteConditionsGracePeriod time.Duration) {
 	if time.Since(lastProbeSuccessTime) > remoteConditionsGracePeriod {
+		var msg string
+		if lastProbeSuccessTime.IsZero() {
+			msg = "Remote connection down"
+		} else {
+			msg = fmt.Sprintf("Remote connection down since %s", lastProbeSuccessTime.Format(time.RFC3339))
+		}
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
-			Message: fmt.Sprintf("Remote connection down since %s", lastProbeSuccessTime.Format(time.RFC3339)),
+			Message: msg,
 		})
 
 		v1beta2conditions.Set(machine, metav1.Condition{
 			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
 			Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
-			Message: fmt.Sprintf("Remote connection down since %s", lastProbeSuccessTime.Format(time.RFC3339)),
+			Message: msg,
 		})
 		return
 	}
 
 	if nodeGetErr != nil {
 		if errors.Is(nodeGetErr, clustercache.ErrClusterNotConnected) {
-			// Don't update conditions when the connection to the workload cluster is down.
+			// If the connection to the workload cluster is down, only set the conditions if they
+			// are not set, but don't update them.
 			// This can happen either when the cluster comes up initially or when the cluster
 			// becomes unreachable later.
 			// If the cluster becomes unreachable later, the conditions will be set to `Unknown`
 			// only after remote conditions grace period.
+			if !v1beta2conditions.Has(machine, clusterv1.MachineNodeReadyV1Beta2Condition) {
+				v1beta2conditions.Set(machine, metav1.Condition{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
+					Message: "Cannot determine Node state, connection to the cluster is down",
+				})
+			}
+
+			if !v1beta2conditions.Has(machine, clusterv1.MachineNodeHealthyV1Beta2Condition) {
+				v1beta2conditions.Set(machine, metav1.Condition{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
+					Message: "Cannot determine Node state, connection to the cluster is down",
+				})
+			}
+
 			return
 		}
 

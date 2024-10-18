@@ -835,6 +835,27 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
+			name:                 "connection down, set conditions if they haven't been set before (remote conditions grace period not passed yet)",
+			machine:              defaultMachine.DeepCopy(),
+			node:                 nil,
+			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			lastProbeSuccessTime: now.Add(-3 * time.Minute), // remoteConditionsGracePeriod is 5m
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
+					Message: "Cannot determine Node state, connection to the cluster is down",
+				},
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
+					Message: "Cannot determine Node state, connection to the cluster is down",
+				},
+			},
+		},
+		{
 			name:                 "connection down, set conditions to unknown (remote conditions grace period passed)",
 			machine:              defaultMachine.DeepCopy(),
 			node:                 nil,

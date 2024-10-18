@@ -212,6 +212,11 @@ const (
 	// If the remote connection probe failed for longer than remote conditions grace period,
 	// this reason is used when setting NodeHealthy and NodeReady conditions to `Unknown`.
 	MachineNodeRemoteConnectionFailedV1Beta2Reason = RemoteConnectionFailedV1Beta2Reason
+
+	// MachineNodeRemoteConnectionDownV1Beta2Reason surfaces that the remote connection is down.
+	// This is used when setting NodeHealthy and NodeReady conditions to `Unknown`
+	// when the connection is down and they haven't been set yet.
+	MachineNodeRemoteConnectionDownV1Beta2Reason = RemoteConnectionDownV1Beta2Reason
 )
 
 // Machine's HealthCheckSucceeded condition and corresponding reasons that will be used in v1Beta2 API version.

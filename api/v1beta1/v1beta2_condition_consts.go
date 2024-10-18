@@ -118,6 +118,11 @@ const (
 	// after the remote connection probe didn't succeed for remote conditions grace period.
 	RemoteConnectionFailedV1Beta2Reason = "RemoteConnectionFailed"
 
+	// RemoteConnectionDownV1Beta2Reason surfaces that the remote connection is down.
+	// This is typically used when setting remote conditions (e.g. `NodeHealthy`) to `Unknown`
+	// when the connection is down and they haven't been set yet.
+	RemoteConnectionDownV1Beta2Reason = "RemoteConnectionDown"
+
 	// DeletionTimestampNotSetV1Beta2Reason surfaces when an object is not deleting because the
 	// DeletionTimestamp is not set.
 	DeletionTimestampNotSetV1Beta2Reason = "DeletionTimestampNotSet"

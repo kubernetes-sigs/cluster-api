@@ -213,6 +213,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               handlers:
                 description: Handlers defines the current ExtensionHandlers supported
                   by an Extension.

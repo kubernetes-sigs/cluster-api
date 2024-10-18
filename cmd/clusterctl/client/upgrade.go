@@ -123,6 +123,9 @@ type ApplyUpgradeOptions struct {
 
 	// WaitProviderTimeout sets the timeout per provider upgrade.
 	WaitProviderTimeout time.Duration
+
+	// SkipLaggingProvidersCheck skips checking if other providers in the management cluster are lagging behind the target contract during upgrade planning.
+	SkipLaggingProvidersCheck bool
 }
 
 func (c *clusterctlClient) ApplyUpgrade(ctx context.Context, options ApplyUpgradeOptions) error {
@@ -171,8 +174,9 @@ func (c *clusterctlClient) ApplyUpgrade(ctx context.Context, options ApplyUpgrad
 		len(options.AddonProviders) > 0
 
 	opts := cluster.UpgradeOptions{
-		WaitProviders:       options.WaitProviders,
-		WaitProviderTimeout: options.WaitProviderTimeout,
+		WaitProviders:             options.WaitProviders,
+		WaitProviderTimeout:       options.WaitProviderTimeout,
+		SkipLaggingProvidersCheck: options.SkipLaggingProvidersCheck,
 	}
 
 	// If we are upgrading a specific set of providers only, process the providers and call ApplyCustomPlan.

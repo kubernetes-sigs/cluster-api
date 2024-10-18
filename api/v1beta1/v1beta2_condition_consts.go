@@ -112,6 +112,30 @@ const (
 
 	// PausedV1Beta2Reason surfaces when an object is paused.
 	PausedV1Beta2Reason = "Paused"
+
+	// RemoteConnectionFailedV1Beta2Reason surfaces that the remote connection failed.
+	// This is typically used when setting remote conditions (e.g. `NodeHealthy`) to `Unknown`
+	// after the remote connection probe didn't succeed for remote conditions grace period.
+	RemoteConnectionFailedV1Beta2Reason = "RemoteConnectionFailed"
+
+	// RemoteConnectionDownV1Beta2Reason surfaces that the remote connection is down.
+	// This is typically used when setting remote conditions (e.g. `NodeHealthy`) to `Unknown`
+	// when the connection is down and they haven't been set yet.
+	RemoteConnectionDownV1Beta2Reason = "RemoteConnectionDown"
+
+	// DeletionTimestampNotSetV1Beta2Reason surfaces when an object is not deleting because the
+	// DeletionTimestamp is not set.
+	DeletionTimestampNotSetV1Beta2Reason = "DeletionTimestampNotSet"
+
+	// DeletionTimestampSetV1Beta2Reason surfaces when an object is deleting because the
+	// DeletionTimestamp is set. This reason is used if none of the more specific reasons apply.
+	DeletionTimestampSetV1Beta2Reason = "DeletionTimestampSet"
+
+	// DeletionCompletedV1Beta2Reason surfaces when the deletion process has been completed.
+	// This reason is set right after the corresponding finalizer is removed.
+	// This means that the object will go away (i.e. be removed from etcd), except if there are other
+	// finalizers on the object.
+	DeletionCompletedV1Beta2Reason = "DeletionCompleted"
 )
 
 // Conditions that will be used for the MachineSet object in v1Beta2 API version.

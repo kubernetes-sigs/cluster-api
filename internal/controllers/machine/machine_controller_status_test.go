@@ -22,6 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
@@ -582,11 +584,15 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		},
 	}
 
+	now := time.Now()
+
 	testCases := []struct {
-		name             string
-		machine          *clusterv1.Machine
-		node             *corev1.Node
-		expectConditions []metav1.Condition
+		name                 string
+		machine              *clusterv1.Machine
+		node                 *corev1.Node
+		nodeGetErr           error
+		lastProbeSuccessTime time.Time
+		expectConditions     []metav1.Condition
 	}{
 		{
 			name:    "get NodeHealthy and NodeReady from node",
@@ -601,6 +607,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					},
 				},
 			},
+			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -617,6 +624,34 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
+			name:    "get NodeHealthy and NodeReady from node (Node is ready & healthy)",
+			machine: defaultMachine.DeepCopy(),
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{Type: corev1.NodeReady, Status: corev1.ConditionTrue, Reason: "KubeletReady", Message: "kubelet is posting ready status"},
+						{Type: corev1.NodeMemoryPressure, Status: corev1.ConditionFalse},
+						{Type: corev1.NodeDiskPressure, Status: corev1.ConditionFalse},
+						{Type: corev1.NodePIDPressure, Status: corev1.ConditionFalse},
+					},
+				},
+			},
+			lastProbeSuccessTime: now,
+			expectConditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: v1beta2conditions.MultipleInfoReportedReason,
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  "KubeletReady",
+					Message: "kubelet is posting ready status (from Node)",
+				},
+			},
+		},
+		{
 			name:    "NodeReady missing from node",
 			machine: defaultMachine.DeepCopy(),
 			node: &corev1.Node{
@@ -628,6 +663,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 					},
 				},
 			},
+			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -652,7 +688,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				}
 				return m
 			}(),
-			node: nil,
+			node:                 nil,
+			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -675,7 +712,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
 				return m
 			}(),
-			node: nil,
+			node:                 nil,
+			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -700,7 +738,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				}
 				return m
 			}(),
-			node: nil,
+			node:                 nil,
+			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -723,7 +762,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				m.Spec.ProviderID = ptr.To("foo://test-node-1")
 				return m
 			}(),
-			node: nil,
+			node:                 nil,
+			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -740,9 +780,10 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
-			name:    "machine with ProviderID not yet set, waiting for it",
-			machine: defaultMachine.DeepCopy(),
-			node:    nil,
+			name:                 "machine with ProviderID not yet set, waiting for it",
+			machine:              defaultMachine.DeepCopy(),
+			node:                 nil,
+			lastProbeSuccessTime: now,
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -758,14 +799,238 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "connection down, don't update existing conditions (remote conditions grace period not passed yet)",
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				v1beta2conditions.Set(m, metav1.Condition{
+					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: v1beta2conditions.MultipleInfoReportedReason,
+				})
+				v1beta2conditions.Set(m, metav1.Condition{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  "KubeletReady",
+					Message: "kubelet is posting ready status (from Node)",
+				})
+				return m
+			}(),
+			node:                 nil,
+			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			lastProbeSuccessTime: now.Add(-3 * time.Minute), // remoteConditionsGracePeriod is 5m
+			// Conditions have not been updated.
+			expectConditions: []metav1.Condition{
+				{
+					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: v1beta2conditions.MultipleInfoReportedReason,
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  "KubeletReady",
+					Message: "kubelet is posting ready status (from Node)",
+				},
+			},
+		},
+		{
+			name:                 "connection down, set conditions if they haven't been set before (remote conditions grace period not passed yet)",
+			machine:              defaultMachine.DeepCopy(),
+			node:                 nil,
+			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			lastProbeSuccessTime: now.Add(-3 * time.Minute), // remoteConditionsGracePeriod is 5m
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
+					Message: "Cannot determine Node state, connection to the cluster is down",
+				},
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
+					Message: "Cannot determine Node state, connection to the cluster is down",
+				},
+			},
+		},
+		{
+			name:                 "connection down, set conditions to unknown (remote conditions grace period passed)",
+			machine:              defaultMachine.DeepCopy(),
+			node:                 nil,
+			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
+			lastProbeSuccessTime: now.Add(-6 * time.Minute), // remoteConditionsGracePeriod is 5m
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
+					Message: fmt.Sprintf("Remote connection down since %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
+				},
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
+					Message: fmt.Sprintf("Remote connection down since %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
+				},
+			},
+		},
+		{
+			name:                 "internal error occurred when trying to get Node",
+			machine:              defaultMachine.DeepCopy(),
+			nodeGetErr:           errors.Errorf("error creating watch machine-watchNodes for *v1.Node"),
+			lastProbeSuccessTime: now,
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
+					Message: "Please check controller logs for errors",
+				},
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
+					Message: "Please check controller logs for errors",
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setNodeHealthyAndReadyConditions(ctx, tc.machine, tc.node)
+			setNodeHealthyAndReadyConditions(ctx, tc.machine, tc.node, tc.nodeGetErr, tc.lastProbeSuccessTime, 5*time.Minute)
 			g.Expect(tc.machine.GetV1Beta2Conditions()).To(v1beta2conditions.MatchConditions(tc.expectConditions, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func TestDeletingCondition(t *testing.T) {
+	testCases := []struct {
+		name                    string
+		machine                 *clusterv1.Machine
+		reconcileDeleteExecuted bool
+		deletingReason          string
+		deletingMessage         string
+		expectCondition         metav1.Condition
+	}{
+		{
+			name: "deletionTimestamp not set",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+			},
+			reconcileDeleteExecuted: false,
+			deletingReason:          "",
+			deletingMessage:         "",
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeletingV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+			},
+		},
+		{
+			name: "deletionTimestamp set (waiting for pre-drain hooks)",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "machine-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+			},
+			reconcileDeleteExecuted: true,
+			deletingReason:          clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+			deletingMessage:         "Waiting for pre-drain hooks to complete (hooks: test-hook)",
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeletingV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+				Message: "Waiting for pre-drain hooks to complete (hooks: test-hook)",
+			},
+		},
+		{
+			name: "deletionTimestamp set (waiting for Node drain)",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "machine-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+			},
+			reconcileDeleteExecuted: true,
+			deletingReason:          clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+			deletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
+* Pods with eviction failed:
+  * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
+  * some other error 1: pod-6-to-trigger-eviction-some-other-error
+  * some other error 2: pod-7-to-trigger-eviction-some-other-error
+  * some other error 3: pod-8-to-trigger-eviction-some-other-error
+  * some other error 4: pod-9-to-trigger-eviction-some-other-error
+  * ... (1 more error applying to 1 Pod)`,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeletingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+				Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
+* Pods with eviction failed:
+  * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
+  * some other error 1: pod-6-to-trigger-eviction-some-other-error
+  * some other error 2: pod-7-to-trigger-eviction-some-other-error
+  * some other error 3: pod-8-to-trigger-eviction-some-other-error
+  * some other error 4: pod-9-to-trigger-eviction-some-other-error
+  * ... (1 more error applying to 1 Pod)`,
+			},
+		},
+		{
+			name: "deletionTimestamp set, reconcileDelete not executed",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "machine-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:    clusterv1.MachineDeletingV1Beta2Condition,
+								Status:  metav1.ConditionTrue,
+								Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+								Message: "Waiting for pre-drain hooks to complete (hooks: test-hook)",
+							},
+						},
+					},
+				},
+			},
+			reconcileDeleteExecuted: false,
+			deletingReason:          "",
+			deletingMessage:         "",
+			// Condition was not updated because reconcileDelete was not executed.
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineDeletingV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+				Message: "Waiting for pre-drain hooks to complete (hooks: test-hook)",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setDeletingCondition(ctx, tc.machine, tc.reconcileDeleteExecuted, tc.deletingReason, tc.deletingMessage)
+
+			deletingCondition := v1beta2conditions.Get(tc.machine, clusterv1.MachineDeletingV1Beta2Condition)
+			g.Expect(deletingCondition).ToNot(BeNil())
+			g.Expect(*deletingCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }
@@ -801,6 +1066,11 @@ func TestSetReadyCondition(t *testing.T) {
 								Status: metav1.ConditionTrue,
 								Reason: "Foo",
 							},
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+							},
 						},
 					},
 				},
@@ -812,7 +1082,7 @@ func TestSetReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "Tolerates BootstrapConfig, InfraMachine and Node do not exists while the machine is deleting",
+			name: "Tolerates BootstrapConfig, InfraMachine and Node do not exists while the machine is deleting (waiting for pre-drain hooks)",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "machine-test",
@@ -837,14 +1107,72 @@ func TestSetReadyCondition(t *testing.T) {
 								Status: metav1.ConditionUnknown,
 								Reason: clusterv1.MachineNodeDeletedV1Beta2Reason,
 							},
+							{
+								Type:    clusterv1.MachineDeletingV1Beta2Condition,
+								Status:  metav1.ConditionTrue,
+								Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+								Message: "Waiting for pre-drain hooks to complete (hooks: test-hook)",
+							},
 						},
 					},
 				},
 			},
 			expectCondition: metav1.Condition{
-				Type:   clusterv1.MachineReadyV1Beta2Condition,
-				Status: metav1.ConditionTrue,
-				Reason: v1beta2conditions.MultipleInfoReportedReason,
+				Type:    clusterv1.MachineReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+				Message: "Deleting: Machine deletion in progress, stage: WaitingForPreDrainHook",
+			},
+		},
+		{
+			name: "Aggregates Ready condition correctly while the machine is deleting (waiting for Node drain)",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              "machine-test",
+					Namespace:         metav1.NamespaceDefault,
+					DeletionTimestamp: &metav1.Time{Time: time.Now()},
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.InfrastructureReadyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "Foo",
+							},
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+								Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
+* Pods with eviction failed:
+  * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
+  * some other error 1: pod-6-to-trigger-eviction-some-other-error
+  * some other error 2: pod-7-to-trigger-eviction-some-other-error
+  * some other error 3: pod-8-to-trigger-eviction-some-other-error
+  * some other error 4: pod-9-to-trigger-eviction-some-other-error
+  * ... (1 more error applying to 1 Pod)`,
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+				Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
 			},
 		},
 		{
@@ -877,6 +1205,11 @@ func TestSetReadyCondition(t *testing.T) {
 								Status:  metav1.ConditionFalse,
 								Reason:  "SomeReason",
 								Message: "Some message",
+							},
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
 							},
 						},
 					},
@@ -932,6 +1265,11 @@ func TestSetReadyCondition(t *testing.T) {
 								Reason:  "SomeReason",
 								Message: "Some message",
 							},
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+							},
 						},
 					},
 				},
@@ -954,6 +1292,162 @@ func TestSetReadyCondition(t *testing.T) {
 			condition := v1beta2conditions.Get(tc.machine, clusterv1.MachineReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func TestCalculateDeletingConditionForSummary(t *testing.T) {
+	testCases := []struct {
+		name            string
+		machine         *clusterv1.Machine
+		expectCondition v1beta2conditions.ConditionWithOwnerInfo
+	}{
+		{
+			name: "No Deleting condition",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{},
+					},
+				},
+			},
+			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
+				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+					Kind: "Machine",
+					Name: "machine-test",
+				},
+				Condition: metav1.Condition{
+					Type:    clusterv1.MachineDeletingV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Message: "Machine deletion in progress",
+				},
+			},
+		},
+		{
+			name: "Deleting condition with DrainingNode since more than 30m",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
+								Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
+* Pods with deletionTimestamp that still exist: pod-2-deletionTimestamp-set-1, pod-2-deletionTimestamp-set-2, pod-2-deletionTimestamp-set-3, pod-3-to-trigger-eviction-successfully-1, pod-3-to-trigger-eviction-successfully-2, ... (2 more)
+* Pods with eviction failed:
+  * Cannot evict pod as it would violate the pod's disruption budget. The disruption budget pod-5-pdb needs 20 healthy pods and has 20 currently: pod-5-to-trigger-eviction-pdb-violated-1, pod-5-to-trigger-eviction-pdb-violated-2, pod-5-to-trigger-eviction-pdb-violated-3, ... (3 more)
+  * some other error 1: pod-6-to-trigger-eviction-some-other-error
+  * some other error 2: pod-7-to-trigger-eviction-some-other-error
+  * some other error 3: pod-8-to-trigger-eviction-some-other-error
+  * some other error 4: pod-9-to-trigger-eviction-some-other-error
+  * ... (1 more error applying to 1 Pod)`,
+							},
+						},
+					},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						NodeDrainStartTime: &metav1.Time{Time: time.Now().Add(-31 * time.Minute)},
+					},
+				},
+			},
+			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
+				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+					Kind: "Machine",
+					Name: "machine-test",
+				},
+				Condition: metav1.Condition{
+					Type:    clusterv1.MachineDeletingV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Message: "Machine deletion in progress, stage: DrainingNode (since more than 30m)",
+				},
+			},
+		},
+		{
+			name: "Deleting condition with WaitingForVolumeDetach since more than 30m",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:    clusterv1.MachineDeletingV1Beta2Condition,
+								Status:  metav1.ConditionTrue,
+								Reason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+								Message: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
+							},
+						},
+					},
+					Deletion: &clusterv1.MachineDeletionStatus{
+						WaitForNodeVolumeDetachStartTime: &metav1.Time{Time: time.Now().Add(-31 * time.Minute)},
+					},
+				},
+			},
+			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
+				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+					Kind: "Machine",
+					Name: "machine-test",
+				},
+				Condition: metav1.Condition{
+					Type:    clusterv1.MachineDeletingV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Message: "Machine deletion in progress, stage: WaitingForVolumeDetach (since more than 30m)",
+				},
+			},
+		},
+		{
+			name: "Deleting condition with WaitingForPreDrainHook",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Status: clusterv1.MachineStatus{
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:    clusterv1.MachineDeletingV1Beta2Condition,
+								Status:  metav1.ConditionTrue,
+								Reason:  clusterv1.MachineDeletingWaitingForPreDrainHookV1Beta2Reason,
+								Message: "Waiting for pre-drain hooks to complete (hooks: test-hook)",
+							},
+						},
+					},
+				},
+			},
+			expectCondition: v1beta2conditions.ConditionWithOwnerInfo{
+				OwnerResource: v1beta2conditions.ConditionOwnerInfo{
+					Kind: "Machine",
+					Name: "machine-test",
+				},
+				Condition: metav1.Condition{
+					Type:    clusterv1.MachineDeletingV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Message: "Machine deletion in progress, stage: WaitingForPreDrainHook",
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(calculateDeletingConditionForSummary(tc.machine)).To(BeComparableTo(tc.expectCondition))
 		})
 	}
 }
@@ -1049,9 +1543,9 @@ func TestAvailableCondition(t *testing.T) {
 
 			setAvailableCondition(ctx, tc.machine)
 
-			readyCondition := v1beta2conditions.Get(tc.machine, clusterv1.MachineAvailableV1Beta2Condition)
-			g.Expect(readyCondition).ToNot(BeNil())
-			g.Expect(*readyCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+			availableCondition := v1beta2conditions.Get(tc.machine, clusterv1.MachineAvailableV1Beta2Condition)
+			g.Expect(availableCondition).ToNot(BeNil())
+			g.Expect(*availableCondition).To(v1beta2conditions.MatchCondition(tc.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
 }

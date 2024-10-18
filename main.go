@@ -25,6 +25,7 @@ import (
 	goruntime "runtime"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -108,6 +109,7 @@ var (
 	logOptions                  = logs.NewOptions()
 	// core Cluster API specific flags.
 	remoteConnectionGracePeriod     time.Duration
+	remoteConditionsGracePeriod     time.Duration
 	clusterTopologyConcurrency      int
 	clusterCacheConcurrency         int
 	clusterClassConcurrency         int
@@ -175,8 +177,12 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Enable block profiling")
 
 	fs.DurationVar(&remoteConnectionGracePeriod, "remote-connection-grace-period", 50*time.Second,
-		"Grace period after which the RemoteConnectionProbe condition on a Cluster goes to false, "+
-			"if connection failures to a workload cluster occur")
+		"Grace period after which the RemoteConnectionProbe condition on a Cluster goes to `False`, "+
+			"the grace period starts from the last successful health probe to the workload cluster")
+
+	fs.DurationVar(&remoteConditionsGracePeriod, "remote-conditions-grace-period", 5*time.Minute,
+		"Grace period after which remote conditions (e.g. `NodeHealthy`) are set to `Unknown`, "+
+			"the grace period starts from the last successful health probe to the workload cluster")
 
 	fs.IntVar(&clusterTopologyConcurrency, "clustertopology-concurrency", 10,
 		"Number of clusters to process simultaneously")
@@ -282,6 +288,11 @@ func main() {
 	minVer := version.MinimumKubernetesVersion
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		minVer = version.MinimumKubernetesVersionClusterTopology
+	}
+
+	if !(remoteConditionsGracePeriod > remoteConnectionGracePeriod) {
+		setupLog.Error(errors.Errorf("--remote-conditions-grace-period must be greater than --remote-connection-grace-period"), "Unable to start manager")
+		os.Exit(1)
 	}
 
 	if err := version.CheckKubernetesVersion(restConfig, minVer); err != nil {
@@ -535,10 +546,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
-		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
-		ClusterCache:     clusterCache,
-		WatchFilterValue: watchFilterValue,
+		Client:                      mgr.GetClient(),
+		APIReader:                   mgr.GetAPIReader(),
+		ClusterCache:                clusterCache,
+		WatchFilterValue:            watchFilterValue,
+		RemoteConditionsGracePeriod: remoteConditionsGracePeriod,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "Unable to create controller", "controller", "Machine")
 		os.Exit(1)

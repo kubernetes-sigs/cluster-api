@@ -67,13 +67,14 @@ func TestReconcileNode(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name         string
-		machine      *clusterv1.Machine
-		node         *corev1.Node
-		nodeGetErr   bool
-		expectResult ctrl.Result
-		expectError  bool
-		expected     func(g *WithT, m *clusterv1.Machine)
+		name               string
+		machine            *clusterv1.Machine
+		node               *corev1.Node
+		nodeGetErr         bool
+		expectResult       ctrl.Result
+		expectError        bool
+		expected           func(g *WithT, m *clusterv1.Machine)
+		expectNodeGetError bool
 	}{
 		{
 			name:         "No op if provider ID is not set",
@@ -84,12 +85,13 @@ func TestReconcileNode(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:         "err reading node (something different than not found), it should return error",
-			machine:      defaultMachine.DeepCopy(),
-			node:         nil,
-			nodeGetErr:   true,
-			expectResult: ctrl.Result{},
-			expectError:  true,
+			name:               "err reading node (something different than not found), it should return error",
+			machine:            defaultMachine.DeepCopy(),
+			node:               nil,
+			nodeGetErr:         true,
+			expectResult:       ctrl.Result{},
+			expectError:        true,
+			expectNodeGetError: true,
 		},
 		{
 			name:         "waiting for the node to exist, no op",
@@ -222,6 +224,8 @@ func TestReconcileNode(t *testing.T) {
 			if tc.expected != nil {
 				tc.expected(g, tc.machine)
 			}
+
+			g.Expect(s.nodeGetError != nil).To(Equal(tc.expectNodeGetError))
 		})
 	}
 }

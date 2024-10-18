@@ -1,0 +1,12 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  topology:
+    class: quick-start
+    controlPlane:
+      metadata:
+        annotations:
+          pre-drain.delete.hook.machine.cluster.x-k8s.io/kcp-ready-check: "true"

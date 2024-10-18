@@ -347,4 +347,5 @@ type Filesystem struct {
 // MountPoints defines input for generated mounts in cloud-init.
 type MountPoints []string
 
+// BootCommand defines input for each bootcmd command in cloud-init.
 type BootCommand []string

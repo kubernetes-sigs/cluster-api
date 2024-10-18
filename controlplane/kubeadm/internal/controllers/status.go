@@ -56,8 +56,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 		return nil
 	}
 
-	machinesWithHealthyAPIServer := controlPlane.Machines.Filter(collections.HealthyAPIServer())
-	lowestVersion := machinesWithHealthyAPIServer.LowestVersion()
+	lowestVersion := controlPlane.Machines.LowestVersion()
 	if lowestVersion != nil {
 		controlPlane.KCP.Status.Version = lowestVersion
 	}

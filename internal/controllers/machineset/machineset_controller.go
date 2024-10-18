@@ -84,8 +84,6 @@ type scope struct {
 	bootstrapObjectNotFound      bool
 	infrastructureObjectNotFound bool
 	owningMachineDeployment      *clusterv1.MachineDeployment
-
-	staleDeletingMachines []string
 }
 
 // Update permissions on /finalizers subresrouce is required on management clusters with 'OwnerReferencesPermissionEnforcement' plugin enabled.
@@ -201,15 +199,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 	}
 
 	defer func() {
-		r.reconcileStatus(ctx, s)
-
-		if err := r.reconcileV1Beta1Status(ctx, s); err != nil {
+		if err := r.reconcileStatus(ctx, s); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update v1beta1 status")})
 		}
 
-		// Adjust requeue for scaleups
+		r.reconcileV1Beta2Status(ctx, s)
+
+		// Adjust requeue when scaling up
 		if s.machineSet.DeletionTimestamp.IsZero() && reterr == nil {
-			retres = util.LowestNonZeroResult(retres, requeueAfterWaitingForNodes(s))
+			retres = util.LowestNonZeroResult(retres, shouldRequeueForReplicaCountersRefresh(s))
 		}
 
 		// Always attempt to patch the object and status after each reconciliation.
@@ -218,8 +216,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		}
 	}()
 
+	if isDeploymentChild(s.machineSet) {
+		// If the MachineSet is in a MachineDeployment, try to get the owning MachineDeployment.
+		s.owningMachineDeployment, err = r.getOwnerMachineDeployment(ctx, s.machineSet)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
 	alwaysReconcile := []machineSetReconcileFunc{
-		wrapErrMachineSetReconcileFunc(r.getOwningMachineDeployment, "failed to getOwningMachineDeployment"),
+		wrapErrMachineSetReconcileFunc(r.reconcileMachineSetOwnerAndLabels, "failed to set cluster labels"),
 		wrapErrMachineSetReconcileFunc(r.reconcileInfrastructure, "failed to reconcile infrastructure"),
 		wrapErrMachineSetReconcileFunc(r.reconcileBootstrapConfig, "failed to reconcile bootstrapConfig"),
 		wrapErrMachineSetReconcileFunc(r.getAndAdoptMachinesForMachineSet, "failed to getAndAdoptMachinesForMachineSet"),
@@ -234,13 +240,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		return doReconcile(ctx, s, reconcileDelete)
 	}
 
-	reconcileNormal := append([]machineSetReconcileFunc{},
-		wrapErrMachineSetReconcileFunc(r.reconcileMachineSetOwnerAndLabels, "failed to set cluster labels"),
-	)
-	reconcileNormal = append(reconcileNormal,
-		alwaysReconcile...,
-	)
-	reconcileNormal = append(reconcileNormal,
+	reconcileNormal := append(alwaysReconcile,
 		wrapErrMachineSetReconcileFunc(r.reconcileUnhealthyMachines, "failed to reconcile unhealthy machines"),
 		wrapErrMachineSetReconcileFunc(r.syncMachines, "failed to sync machines"),
 		wrapErrMachineSetReconcileFunc(r.syncReplicas, "failed to sync replicas"),
@@ -305,24 +305,16 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 			clusterv1.ResizedCondition,
 			clusterv1.MachinesReadyCondition,
 		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.MachineSetScalingUpV1Beta2Condition,
+			clusterv1.MachineSetScalingDownV1Beta2Condition,
+			clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+			clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+			clusterv1.MachineSetRemediatingV1Beta2Condition,
+			clusterv1.MachineSetDeletingV1Beta2Condition,
+		}},
 	}
 	return patchHelper.Patch(ctx, machineSet, options...)
-}
-
-func (r *Reconciler) getOwningMachineDeployment(ctx context.Context, s *scope) (ctrl.Result, error) {
-	if !isDeploymentChild(s.machineSet) {
-		// If the MachineSet is not in a MachineDeployment, return immediately.
-		return ctrl.Result{}, nil
-	}
-
-	// Otherwise get the owning MachineDeployment
-	var err error
-	s.owningMachineDeployment, err = r.getOwnerMachineDeployment(ctx, s.machineSet)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) reconcileMachineSetOwnerAndLabels(_ context.Context, s *scope) (ctrl.Result, error) {
@@ -382,7 +374,7 @@ func (r *Reconciler) reconcileBootstrapConfig(ctx context.Context, s *scope) (ct
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result, error) {
 	if s.machines == nil {
-		return ctrl.Result{}, errors.New("Cannot do reconcileDelete when s.machines is nil")
+		return ctrl.Result{}, nil
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -393,7 +385,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (ctrl.Result
 		return ctrl.Result{}, nil
 	}
 
-	log.Info("Waiting for Machines to be deleted", "Machines", clog.ObjNamesString(s.machines))
+	log.Info("Deleting Machines", "Machines", clog.ObjNamesString(s.machines))
 
 	// else delete owned machines.
 	for _, machine := range s.machines {
@@ -466,7 +458,7 @@ func (r *Reconciler) getAndAdoptMachinesForMachineSet(ctx context.Context, s *sc
 // able to e.g. drop labels and annotations.
 func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, error) {
 	if s.machines == nil {
-		return ctrl.Result{}, errors.New("Cannot do syncMachines when s.machines is nil")
+		return ctrl.Result{}, nil
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -555,7 +547,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, s *scope) (ctrl.Result, e
 // syncReplicas scales Machine resources up or down.
 func (r *Reconciler) syncReplicas(ctx context.Context, s *scope) (ctrl.Result, error) {
 	if s.machines == nil {
-		return ctrl.Result{}, errors.New("Cannot do syncReplicas when s.machines is nil")
+		return ctrl.Result{}, nil
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -1010,11 +1002,11 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	return !isDeploymentChild(ms)
 }
 
-// reconcileV1Beta1Status updates the Status field for the MachineSet
+// reconcileStatus updates the Status field for the MachineSet
 // It checks for the current state of the replicas and updates the Status of the MachineSet.
-func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error {
+func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	if s.machines == nil {
-		return errors.New("Cannot update status when s.machines is nil")
+		return nil
 	}
 
 	if s.machineSet.Spec.Replicas == nil {
@@ -1072,7 +1064,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 	}
 
 	// Replicas get's calculated in the reconcileStatus function.
-	newStatus.Replicas = s.machineSet.Status.Replicas
+	newStatus.Replicas = int32(len(s.machines))
 
 	newStatus.FullyLabeledReplicas = int32(fullyLabeledReplicasCount)
 	newStatus.ReadyReplicas = int32(readyReplicasCount)
@@ -1126,7 +1118,7 @@ func (r *Reconciler) reconcileV1Beta1Status(ctx context.Context, s *scope) error
 	return nil
 }
 
-func requeueAfterWaitingForNodes(s *scope) ctrl.Result {
+func shouldRequeueForReplicaCountersRefresh(s *scope) ctrl.Result {
 	var replicas int32
 	if s.machineSet.Spec.Replicas != nil {
 		replicas = *s.machineSet.Spec.Replicas
@@ -1168,7 +1160,7 @@ func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Clus
 
 func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, s *scope) (ctrl.Result, error) {
 	if s.machines == nil {
-		return ctrl.Result{}, errors.New("Cannot do reconcileUnhealthyMachines when s.machines is nil")
+		return ctrl.Result{}, nil
 	}
 
 	log := ctrl.LoggerFrom(ctx)

@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
@@ -31,37 +30,36 @@ import (
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
-// reconcileStatus reconciles Machine's status during the entire lifecycle of the machine.
+// reconcileV1Beta2Status reconciles Machine's status during the entire lifecycle of the machine.
 // This implies that the code in this function should account for several edge cases e.g. machine being partially provisioned,
 // machine being partially deleted but also for running machines being disrupted e.g. by deleting the node.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
 // Note: v1beta1 conditions are not managed by this func.
-func (r *Reconciler) reconcileStatus(_ context.Context, s *scope) {
+func (r *Reconciler) reconcileV1Beta2Status(_ context.Context, s *scope) {
 	// Update the following fields in status from the machines list.
 	// - replicas
 	// - v1beta2.readyReplicas
 	// - v1beta2.availableReplicas
 	// Also records the names of machines which are in deletion for more than 30 minutes in s.staleDeletingMachines.
-	setReplicas(s)
+	setReplicas(s.machineSet, s.machines)
 
 	// Conditions
 
 	// Update the ScalingUp and ScalingDown condition, require the above setReplicas function.
 	setScalingUpCondition(s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound)
-	setScalingDownCondition(s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.owningMachineDeployment, s.staleDeletingMachines)
+	setScalingDownCondition(s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.owningMachineDeployment)
 
 	// MachinesReady condition: aggregate the Machine's Ready condition
 	setMachinesReadyCondition(s.machineSet, s.machines)
 
-	// TODO MachinesUpToDate
+	// MachinesUpToDate condition: aggregate the Machine's UpToDate condition
+	setMachinesUpToDateCondition(s.machineSet, s.machines)
 
 	// TODO Deleting
 }
 
-func setReplicas(s *scope) {
-	ms := s.machineSet
-	machines := s.machines
+func setReplicas(ms *clusterv1.MachineSet, machines []*clusterv1.Machine) {
 	// Return early when machines is nil. It's not possible to calculate replica counters.
 	// Conditions may surface to be unknown in this case.
 	if machines == nil {
@@ -70,14 +68,11 @@ func setReplicas(s *scope) {
 
 	var readyReplicas, availableReplicas int32
 	for _, machine := range machines {
-		if meta.IsStatusConditionTrue(machine.GetV1Beta2Conditions(), clusterv1.MachineReadyV1Beta2Condition) {
+		if v1beta2conditions.IsTrue(machine, clusterv1.MachineReadyV1Beta2Condition) {
 			readyReplicas++
 		}
-		if meta.IsStatusConditionTrue(machine.GetV1Beta2Conditions(), clusterv1.MachineAvailableV1Beta2Condition) {
+		if v1beta2conditions.IsTrue(machine, clusterv1.MachineAvailableV1Beta2Condition) {
 			availableReplicas++
-		}
-		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) >= time.Minute*30 {
-			s.staleDeletingMachines = append(s.staleDeletingMachines, machine.GetName())
 		}
 	}
 
@@ -85,7 +80,6 @@ func setReplicas(s *scope) {
 		ms.Status.V1Beta2 = &clusterv1.MachineSetV1Beta2Status{}
 	}
 
-	ms.Status.Replicas = int32(len(machines))
 	ms.Status.V1Beta2.ReadyReplicas = ptr.To(readyReplicas)
 	ms.Status.V1Beta2.AvailableReplicas = ptr.To(availableReplicas)
 }
@@ -96,7 +90,7 @@ func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machi
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineSetScalingUpErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineSetScalingUpInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -108,21 +102,24 @@ func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machi
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
 			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineSetWaitingForReplicasToBeSetV1Beta2Reason,
+			Reason: clusterv1.MachineSetScalingUpWaitingForReplicasToBeSetV1Beta2Reason,
 		})
 		return
 	}
 
 	desiredReplicas := *ms.Spec.Replicas
+	if !ms.DeletionTimestamp.IsZero() {
+		desiredReplicas = 0
+	}
 	gotReplicas := ms.Status.Replicas
 
-	referencesMessage := calculateMissingReferencesMessage(bootstrapObjectNotFound, infrastructureObjectNotFound)
+	referencesMessage := calculateMissingReferencesMessage(ms, bootstrapObjectNotFound, infrastructureObjectNotFound)
 
 	// Not scaling up or in deletion.
-	if gotReplicas >= desiredReplicas || !ms.DeletionTimestamp.IsZero() {
+	if gotReplicas >= desiredReplicas {
 		var message string
 		if referencesMessage != "" {
-			message = fmt.Sprintf("ScalingUp would fail because %s", referencesMessage)
+			message = fmt.Sprintf("ScalingUp can't happen %s", referencesMessage)
 		}
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
@@ -135,7 +132,7 @@ func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machi
 
 	message := fmt.Sprintf("ScalingUp from %d to %d replicas", gotReplicas, desiredReplicas)
 	if referencesMessage != "" {
-		message = fmt.Sprintf("%s is blocked because %s", message, referencesMessage)
+		message = fmt.Sprintf("%s is blocked %s", message, referencesMessage)
 	}
 	// Scaling up.
 	v1beta2conditions.Set(ms, metav1.Condition{
@@ -146,13 +143,13 @@ func setScalingUpCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machi
 	})
 }
 
-func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound bool, owner *clusterv1.MachineDeployment, machinesStaleDeleting []string) {
+func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound bool, owner *clusterv1.MachineDeployment) {
 	// If we got unexpected errors in listing the machines (this should happen rarely), surface them
 	if machines == nil {
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineSetScalingDownErrorV1Beta2Reason,
+			Reason:  clusterv1.MachineSetScalingDownInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -164,27 +161,28 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
 			Status: metav1.ConditionUnknown,
-			Reason: clusterv1.MachineSetWaitingForReplicasToBeSetV1Beta2Reason,
+			Reason: clusterv1.MachineSetScalingDownWaitingForReplicasToBeSetV1Beta2Reason,
 		})
 		return
 	}
 
 	desiredReplicas := *ms.Spec.Replicas
-
 	// Deletion is equal to 0 desired replicas.
 	if !ms.DeletionTimestamp.IsZero() {
-		v1beta2conditions.Set(ms, metav1.Condition{
-			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
-			Status:  metav1.ConditionTrue,
-			Reason:  clusterv1.MachineSetScalingDownV1Beta2Reason,
-			Message: "MachineSet is getting deleted",
-		})
-		return
+		desiredReplicas = 0
 	}
 
 	// Scaling down.
 	if int32(len(machines)) > (desiredReplicas) {
 		messages := []string{fmt.Sprintf("ScalingDown from %d to %d replicas", len(machines), desiredReplicas)}
+
+		machinesStaleDeleting := []string{}
+
+		for _, machine := range machines {
+			if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) >= time.Minute*30 {
+				machinesStaleDeleting = append(machinesStaleDeleting, machine.GetName())
+			}
+		}
 
 		if len(machinesStaleDeleting) > 0 {
 			messages = append(messages, fmt.Sprintf("Machines stuck in deletion for more than 30 minutes: %s", clog.StringListToString(machinesStaleDeleting)))
@@ -192,7 +190,7 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 
 		// Scaling is blocked when the bootstrap or infrastructure objects do not exist.
 		if bootstrapObjectNotFound || infrastructureObjectNotFound {
-			messages[0] = fmt.Sprintf("%s is blocked because %s", messages[0], calculateMissingReferencesMessage(bootstrapObjectNotFound, infrastructureObjectNotFound))
+			messages[0] = fmt.Sprintf("%s is blocked %s", messages[0], calculateMissingReferencesMessage(ms, bootstrapObjectNotFound, infrastructureObjectNotFound))
 		}
 
 		v1beta2conditions.Set(ms, metav1.Condition{
@@ -209,7 +207,7 @@ func setScalingDownCondition(ms *clusterv1.MachineSet, machines []*clusterv1.Mac
 	// The referenced objects are required to exist for the current MachineSet.
 	// Add a message if that's not the case.
 	if isCurrentMachineSet(ms, owner) && (bootstrapObjectNotFound || infrastructureObjectNotFound) {
-		message = fmt.Sprintf("ScalingDown would fail because %s", calculateMissingReferencesMessage(bootstrapObjectNotFound, infrastructureObjectNotFound))
+		message = fmt.Sprintf("ScalingDown can't happen %s", calculateMissingReferencesMessage(ms, bootstrapObjectNotFound, infrastructureObjectNotFound))
 	}
 	v1beta2conditions.Set(ms, metav1.Condition{
 		Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
@@ -257,22 +255,60 @@ func setMachinesReadyCondition(machineSet *clusterv1.MachineSet, machines []*clu
 	v1beta2conditions.Set(machineSet, *readyCondition)
 }
 
-func calculateMissingReferencesMessage(bootstrapTemplateNotFound, infraMachineTemplateNotFound bool) string {
-	missingPaths := []string{}
-	if bootstrapTemplateNotFound {
-		missingPaths = append(missingPaths, ".spec.template.spec.bootstrap.configRef")
-	}
-	if infraMachineTemplateNotFound {
-		missingPaths = append(missingPaths, ".spec.template.spec.infrastructureRef")
+func setMachinesUpToDateCondition(machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) {
+	// If we got unexpected errors in listing the machines (this should happen rarely), surface them
+	if machines == nil {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+			Message: "Please check controller logs for errors",
+		})
+		return
 	}
 
-	if len(missingPaths) == 0 {
+	if len(machines) == 0 {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:   clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.MachineSetMachinesUpToDateNoReplicasV1Beta2Reason,
+		})
+		return
+	}
+
+	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
+		machines, clusterv1.MachinesUpToDateV1Beta2Condition,
+		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
+	)
+	if err != nil {
+		v1beta2conditions.Set(machineSet, metav1.Condition{
+			Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  clusterv1.MachineSetMachinesUpToDateInvalidConditionReportedV1Beta2Reason,
+			Message: err.Error(),
+		})
+		return
+	}
+
+	v1beta2conditions.Set(machineSet, *upToDateCondition)
+}
+
+func calculateMissingReferencesMessage(ms *clusterv1.MachineSet, bootstrapTemplateNotFound, infraMachineTemplateNotFound bool) string {
+	missingObjects := []string{}
+	if bootstrapTemplateNotFound {
+		missingObjects = append(missingObjects, ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind)
+	}
+	if infraMachineTemplateNotFound {
+		missingObjects = append(missingObjects, ms.Spec.Template.Spec.InfrastructureRef.Kind)
+	}
+
+	if len(missingObjects) == 0 {
 		return ""
 	}
 
-	if len(missingPaths) == 1 {
-		return fmt.Sprintf("the object referenced at %s does not exist", missingPaths[0])
+	if len(missingObjects) == 1 {
+		return fmt.Sprintf("because %s does not exist", missingObjects[0])
 	}
 
-	return fmt.Sprintf("the objects referenced at %s do not exist", strings.Join(missingPaths, " and "))
+	return fmt.Sprintf("because %s do not exist", strings.Join(missingObjects, " and "))
 }

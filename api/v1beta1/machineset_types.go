@@ -92,16 +92,20 @@ const (
 	// MachineSetScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
 	MachineSetScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
 
-	// MachineSetScalingUpReasonV1Beta2Reason surfaces when a the number of actual replicas is less than
+	// MachineSetScalingUpV1Beta2Reason surfaces when a the number of actual replicas is less than
 	// the number of desired replicas.
-	MachineSetScalingUpV1Beta2Reason = ScalingUpV1Beta2Condition
+	MachineSetScalingUpV1Beta2Reason = ScalingUpV1Beta2Reason
 
 	// MachineSetNotScalingUpV1Beta2Reason surfaces when a the number of actual replicas is more or
 	// equal to the number of desired replicas.
-	MachineSetNotScalingUpV1Beta2Reason = "Not" + MachineSetScalingUpV1Beta2Reason
+	MachineSetNotScalingUpV1Beta2Reason = NotScalingUpV1Beta2Reason
 
-	// MaMachineSetScalingUpErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
-	MachineSetScalingUpErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineSetScalingUpInternalErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
+	MachineSetScalingUpInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
+	// MachineSetScalingUpWaitingForReplicasToBeSetV1Beta2Reason surfaces when the .spec.replicas
+	// field of the MachineSet is not set.
+	MachineSetScalingUpWaitingForReplicasToBeSetV1Beta2Reason = WaitingForReplicasToBeSetV1Beta2Reason
 )
 
 // MachineSet's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -111,21 +115,18 @@ const (
 
 	// MachineSetScalingDownV1Beta2Reason surfaces when a the number of actual replicas is more than
 	// the number of desired replicas.
-	MachineSetScalingDownV1Beta2Reason = ScalingDownV1Beta2Condition
+	MachineSetScalingDownV1Beta2Reason = ScalingDownV1Beta2Reason
 
 	// MachineSetNotScalingDownV1Beta2Reason surfaces when a the number of actual replicas is less or
 	// equal to the number of desired replicas.
-	MachineSetNotScalingDownV1Beta2Reason = "Not" + MachineSetScalingDownV1Beta2Reason
+	MachineSetNotScalingDownV1Beta2Reason = NotScalingDownV1Beta2Reason
 
-	// MaMachineSetScalingDownErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
-	MachineSetScalingDownErrorV1Beta2Reason = InternalErrorV1Beta2Reason
-)
+	// MachineSetScalingDownInternalErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
+	MachineSetScalingDownInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 
-const (
-	// MachineSetWaitingForReplicasToBeSetV1Beta2Reason surfaces when the .spec.replicas field of the MachineSet
-	// is not set.
-	// Note: This can surface for the ScalingUp and ScalingDown conditions.
-	MachineSetWaitingForReplicasToBeSetV1Beta2Reason = "WaitingForReplicasToBeSet"
+	// MachineSetScalingDownWaitingForReplicasToBeSetV1Beta2Reason surfaces when the .spec.replicas
+	// field of the MachineSet is not set.
+	MachineSetScalingDownWaitingForReplicasToBeSetV1Beta2Reason = WaitingForReplicasToBeSetV1Beta2Reason
 )
 
 // MachineSet's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -141,8 +142,34 @@ const (
 	// MachineSetMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
 	MachineSetMachinesReadyNoReplicasV1Beta2Reason = "NoReplicas"
 
-	// MaMachineSetScalingDownErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
-	MachineSetMachinesReadyErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+	// MachineSetMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
+	MachineSetMachinesReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// MachineSet's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+// Note: Reason's could also be derived from the aggregation of machine's MachinesUpToDate conditions.
+const (
+	// MachineSetMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	MachineSetMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+
+	// MachineSetMachinesUpToDateInvalidConditionReportedV1Beta2Reason surfaces a Machine's Ready condition
+	// (read from a machine object) which is invalid. (e.g. its status is missing).
+	MachineSetMachinesUpToDateInvalidConditionReportedV1Beta2Reason = InvalidConditionReportedV1Beta2Reason
+
+	// MachineSetMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
+	MachineSetMachinesUpToDateNoReplicasV1Beta2Reason = "NoReplicas"
+
+	// MachineSetMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing owned machines.
+	MachineSetMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// Conditions that will be used for the MachineSet object in v1Beta2 API version.
+const (
+	// MachineSetRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
+	MachineSetRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+
+	// MachineSetDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
+	MachineSetDeletingV1Beta2Condition = DeletingV1Beta2Condition
 )
 
 // ANCHOR_END: MachineSetSpec

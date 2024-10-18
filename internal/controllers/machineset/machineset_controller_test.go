@@ -1047,8 +1047,8 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 				machineSet: tc.machineSet,
 				machines:   tc.machines,
 			}
-			setReplicas(s)
-			g.Expect(msr.reconcileV1Beta1Status(ctx, s)).To(Succeed())
+			setReplicas(s.machineSet, s.machines)
+			g.Expect(msr.reconcileStatus(ctx, s)).To(Succeed())
 			gotCond := conditions.Get(tc.machineSet, clusterv1.ResizedCondition)
 			g.Expect(gotCond).ToNot(BeNil())
 			g.Expect(gotCond.Status).To(Equal(corev1.ConditionFalse))

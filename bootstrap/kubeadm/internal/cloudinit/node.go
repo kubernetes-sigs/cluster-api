@@ -41,6 +41,7 @@ runcmd:
 {{- template "mounts" .Mounts}}
 `
 )
+
 // NodeInput defines the context to generate a node user data.
 type NodeInput struct {
 	BaseUserData

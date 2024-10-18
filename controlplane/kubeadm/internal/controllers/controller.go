@@ -317,15 +317,29 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	// Also, if requested, we are adding additional options like e.g. Patch ObservedGeneration when issuing the
 	// patch at the end of the reconcile loop.
-	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-		controlplanev1.MachinesCreatedCondition,
-		clusterv1.ReadyCondition,
-		controlplanev1.MachinesSpecUpToDateCondition,
-		controlplanev1.ResizedCondition,
-		controlplanev1.MachinesReadyCondition,
-		controlplanev1.AvailableCondition,
-		controlplanev1.CertificatesAvailableCondition,
-	}})
+	options = append(options,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			controlplanev1.MachinesCreatedCondition,
+			clusterv1.ReadyCondition,
+			controlplanev1.MachinesSpecUpToDateCondition,
+			controlplanev1.ResizedCondition,
+			controlplanev1.MachinesReadyCondition,
+			controlplanev1.AvailableCondition,
+			controlplanev1.CertificatesAvailableCondition,
+		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneDeletingV1Beta2Condition,
+		}},
+	)
 
 	return patchHelper.Patch(ctx, kcp, options...)
 }

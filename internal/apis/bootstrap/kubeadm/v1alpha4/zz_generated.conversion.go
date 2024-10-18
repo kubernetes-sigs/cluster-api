@@ -1144,6 +1144,7 @@ func autoConvert_v1alpha4_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(in *Kub
 	}
 	out.DiskSetup = (*v1beta1.DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]v1beta1.MountPoints)(unsafe.Pointer(&in.Mounts))
+	out.BootCommands = *(*[]v1beta1.BootCommand)(unsafe.Pointer(&in.BootCommands))
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
 	out.PostKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PostKubeadmCommands))
 	if in.Users != nil {
@@ -1210,6 +1211,7 @@ func autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *v1b
 	}
 	out.DiskSetup = (*DiskSetup)(unsafe.Pointer(in.DiskSetup))
 	out.Mounts = *(*[]MountPoints)(unsafe.Pointer(&in.Mounts))
+	out.BootCommands = *(*[]BootCommand)(unsafe.Pointer(&in.BootCommands))
 	out.PreKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PreKubeadmCommands))
 	out.PostKubeadmCommands = *(*[]string)(unsafe.Pointer(&in.PostKubeadmCommands))
 	if in.Users != nil {

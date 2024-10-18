@@ -140,6 +140,7 @@ const (
 	skipPhases           = "skipPhases"
 	patches              = "patches"
 	directory            = "directory"
+	bootCommands         = "bootCommands"
 	preKubeadmCommands   = "preKubeadmCommands"
 	postKubeadmCommands  = "postKubeadmCommands"
 	files                = "files"
@@ -206,6 +207,7 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, kubeadmConfigSpec, joinConfiguration, "discovery"},
 		{spec, kubeadmConfigSpec, joinConfiguration, "discovery", "*"},
 		// spec.kubeadmConfigSpec
+		{spec, kubeadmConfigSpec, "bootCommands"},
 		{spec, kubeadmConfigSpec, preKubeadmCommands},
 		{spec, kubeadmConfigSpec, postKubeadmCommands},
 		{spec, kubeadmConfigSpec, files},

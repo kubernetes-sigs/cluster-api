@@ -1944,6 +1944,9 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		},
 	}
 
+	persistentVolumeWithoutClaim := persistentVolume.DeepCopy()
+	persistentVolumeWithoutClaim.Spec.ClaimRef.Kind = "NotAPVC"
+
 	volumeAttachment := &storagev1.VolumeAttachment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-va",
@@ -2004,9 +2007,56 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			objs: []client.Object{
 				persistentVolume,
 			},
-			expected:                true,
-			expectedDeletingReason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
-			expectedDeletingMessage: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
+			expected:               true,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+* PersistentVolumeClaims: default/test-pvc`,
+		},
+		{
+			name: "Node has volumes attached according to node status but the pv does not reference a PersistentVolumeClaim",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					VolumesAttached: attachedVolumes,
+				},
+			},
+			objs: []client.Object{
+				persistentVolumeWithoutClaim,
+			},
+			expected:               true,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+* PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: test-pv`,
+		},
+		{
+			name: "Node has volumes attached according to node status but without a pv",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+					VolumesAttached: attachedVolumes,
+				},
+			},
+			objs:                   []client.Object{},
+			expected:               true,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+* Node.status.volumesAttached entries not matching a PersistentVolume: kubernetes.io/csi/dummy^foo`,
 		},
 		{
 			name: "Node has volumes attached according to node status but its from a daemonset pod which gets ignored",
@@ -2080,9 +2130,33 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				volumeAttachment,
 				persistentVolume,
 			},
-			expected:                true,
-			expectedDeletingReason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
-			expectedDeletingMessage: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
+			expected:               true,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+* PersistentVolumeClaims: default/test-pvc`,
+		},
+		{
+			name: "Node has volumes attached according to volumeattachments but without a pv",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				},
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			objs: []client.Object{
+				volumeAttachment,
+			},
+			expected:               true,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+* VolumeAttachment.spec.source.persistentVolumeName not matching a PersistentVolume: test-pv`,
 		},
 		{
 			name: "Node has volumes attached according to volumeattachments but its from a daemonset pod which gets ignored",
@@ -2180,9 +2254,10 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				},
 				persistentVolume,
 			},
-			expected:                true,
-			expectedDeletingReason:  clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
-			expectedDeletingMessage: "Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)",
+			expected:               true,
+			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
+			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
+* PersistentVolumeClaims: default/test-pvc`,
 		},
 		{
 			name: "Node has no volumes attached",
@@ -2265,8 +2340,8 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			got, err := r.shouldWaitForNodeVolumes(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(!got.IsZero()).To(Equal(tt.expected))
-			g.Expect(s.deletingReason).To(Equal(tt.expectedDeletingReason))
-			g.Expect(s.deletingMessage).To(Equal(tt.expectedDeletingMessage))
+			g.Expect(s.deletingReason).To(BeEquivalentTo(tt.expectedDeletingReason))
+			g.Expect(s.deletingMessage).To(BeEquivalentTo(tt.expectedDeletingMessage))
 		})
 	}
 }

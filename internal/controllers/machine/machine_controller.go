@@ -935,7 +935,7 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, s *scope) (ct
 	r.reconcileDeleteCache.Add(cache.NewReconcileEntry(machine, time.Now().Add(waitForVolumeDetachRetryInterval)))
 
 	s.deletingReason = clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason
-	s.deletingMessage = fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+	s.deletingMessage = attachedVolumeInformation.conditionMessage(machine)
 
 	log.Info("Waiting for Node volumes to be detached",
 		attachedVolumeInformation.logKeys()...,
@@ -1238,6 +1238,36 @@ func (a *attachedVolumeInformation) logKeys() []any {
 	}
 
 	return logKeys
+}
+
+func (a *attachedVolumeInformation) conditionMessage(machine *clusterv1.Machine) string {
+	if a.isEmpty() {
+		return ""
+	}
+
+	conditionMessage := fmt.Sprintf("Waiting for Node volumes to be detached (started at %s)", machine.Status.Deletion.WaitForNodeVolumeDetachStartTime.Format(time.RFC3339))
+
+	if len(a.persistentVolumeClaims) > 0 {
+		slices.Sort(a.persistentVolumeClaims)
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumeClaims: %s", conditionMessage, clog.StringListToString(a.persistentVolumeClaims))
+	}
+
+	if len(a.persistentVolumesWithoutPVCClaimRef) > 0 {
+		slices.Sort(a.persistentVolumesWithoutPVCClaimRef)
+		conditionMessage = fmt.Sprintf("%s\n* PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: %s", conditionMessage, clog.StringListToString(a.persistentVolumesWithoutPVCClaimRef))
+	}
+
+	if len(a.nodeStatusVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.nodeStatusVolumeNamesWithoutPV)
+		conditionMessage = fmt.Sprintf("%s\n* Node.status.volumesAttached entries not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.nodeStatusVolumeNamesWithoutPV))
+	}
+
+	if len(a.persistentVolumeNamesWithoutPV) > 0 {
+		slices.Sort(a.persistentVolumeNamesWithoutPV)
+		conditionMessage = fmt.Sprintf("%s\n* VolumeAttachment.spec.source.persistentVolumeName not matching a PersistentVolume: %s", conditionMessage, clog.StringListToString(a.persistentVolumeNamesWithoutPV))
+	}
+
+	return conditionMessage
 }
 
 // getPersistentVolumesWaitingForDetach returns a list of all persistentVolumes which either have

@@ -84,6 +84,11 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to create ClusterCache: %v", err))
 		}
 
+		// Setting ConnectionCreationRetryInterval to 2 seconds, otherwise client creation is
+		// only retried every 30s. If we get unlucky tests are then failing with timeout.
+		clusterCache.(interface{ SetConnectionCreationRetryInterval(time.Duration) }).
+			SetConnectionCreationRetryInterval(2 * time.Second)
+
 		if err := (&Reconciler{
 			Client:                      mgr.GetClient(),
 			APIReader:                   mgr.GetClient(),

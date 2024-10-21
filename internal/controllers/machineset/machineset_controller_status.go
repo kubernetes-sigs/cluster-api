@@ -19,6 +19,7 @@ package machineset
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -45,7 +46,7 @@ func (r *Reconciler) reconcileV1Beta2Status(ctx context.Context, s *scope) {
 	// Conditions
 
 	// Update the ScalingUp and ScalingDown condition.
-	setScalingUpCondition(ctx, s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded)
+	setScalingUpCondition(ctx, s.machineSet, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded)
 	setScalingDownCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	// MachinesReady condition: aggregate the Machine's Ready condition.
@@ -85,7 +86,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 	ms.Status.V1Beta2.UpToDateReplicas = ptr.To(upToDateReplicas)
 }
 
-func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(ms, metav1.Condition{
@@ -118,7 +119,7 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 	if currentReplicas >= desiredReplicas {
 		var message string
 		if missingReferencesMessage != "" {
-			message = fmt.Sprintf("Scaling up can't happen %s", missingReferencesMessage)
+			message = fmt.Sprintf("Scaling up would be blocked %s", missingReferencesMessage)
 		}
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
@@ -130,26 +131,16 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines
 	}
 
 	// Scaling up.
+	message := fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas)
+	if missingReferencesMessage != "" {
+		message += fmt.Sprintf(" is blocked %s", missingReferencesMessage)
+	}
 	v1beta2conditions.Set(ms, metav1.Condition{
 		Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: clusterv1.MachineSetScalingUpV1Beta2Reason,
 		// Message: message,
-		Message: bulletMessage(
-			fmt.Sprintf("Scaling up from %d to %d replicas", currentReplicas, desiredReplicas),
-			aggregateMachinesFunc(
-				machines,
-				func(machine *clusterv1.Machine) bool {
-					return machine.Status.NodeRef == nil && time.Since(machine.GetCreationTimestamp().Time) >= time.Minute*30
-				},
-				"not reporting a .status.nodeRef by more than 30 minutes",
-			),
-			func() (message string) {
-				if missingReferencesMessage != "" {
-					message = fmt.Sprintf("%s is blocked %s", message, missingReferencesMessage)
-				}
-				return message
-			}),
+		Message: message,
 	})
 }
 
@@ -166,7 +157,6 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 	}
 
 	// Surface if .spec.replicas is not yet set (this should never happen).
-	// This could e.g. be the case when using autoscaling with MachineSets.
 	if ms.Spec.Replicas == nil {
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
@@ -183,21 +173,17 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 	}
 
 	// Scaling down.
+	message := fmt.Sprintf("Scaling down from %d to %d replicas", len(machines), desiredReplicas)
+	staleMessage := aggregateStaleMachines(machines)
+	if staleMessage != "" {
+		message += fmt.Sprintf(" and %s", staleMessage)
+	}
 	if int32(len(machines)) > (desiredReplicas) {
 		v1beta2conditions.Set(ms, metav1.Condition{
-			Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
-			Status: metav1.ConditionTrue,
-			Reason: clusterv1.MachineSetScalingDownV1Beta2Reason,
-			Message: bulletMessage(
-				fmt.Sprintf("Scaling down from %d to %d replicas", len(machines), desiredReplicas),
-				aggregateMachinesFunc(
-					machines,
-					func(machine *clusterv1.Machine) bool {
-						return !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) >= time.Minute*30
-					},
-					"reported in deletion by more than 30 minutes",
-				),
-			),
+			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
+			Status:  metav1.ConditionTrue,
+			Reason:  clusterv1.MachineSetScalingDownV1Beta2Reason,
+			Message: message,
 		})
 		return
 	}
@@ -310,41 +296,32 @@ func calculateMissingReferencesMessage(ms *clusterv1.MachineSet, bootstrapTempla
 	return fmt.Sprintf("because %s do not exist", strings.Join(missingObjects, " and "))
 }
 
-func bulletMessage(header string, bulletGenerators ...func() string) string {
-	lines := []string{}
-
-	for _, bulletbulletGenerator := range bulletGenerators {
-		if s := bulletbulletGenerator(); s != "" {
-			lines = append(lines, fmt.Sprintf("* %s", s))
+func aggregateStaleMachines(machines []*clusterv1.Machine) string {
+	machineNames := []string{}
+	for _, machine := range machines {
+		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) >= time.Minute*30 {
+			machineNames = append(machineNames, machine.GetName())
 		}
 	}
 
-	if len(lines) == 0 {
-		return header
+	if len(machineNames) == 0 {
+		return ""
 	}
 
-	lines = append([]string{header}, lines...)
-	return strings.Join(lines, "\n")
-}
-
-func aggregateMachinesFunc(machines []*clusterv1.Machine, filter func(*clusterv1.Machine) bool, suffix string) func() string {
-	return func() string {
-		machineNames := []string{}
-		for _, machine := range machines {
-			if filter(machine) {
-				machineNames = append(machineNames, machine.GetName())
-			}
-		}
-
-		if len(machineNames) == 0 {
-			return ""
-		}
-
-		prefix := "Machine"
-		if len(machineNames) > 1 {
-			prefix += "s"
-		}
-
-		return strings.Join([]string{prefix, clog.StringListToString(machineNames), suffix}, " ")
+	message := "Machine"
+	if len(machineNames) > 1 {
+		message += "s"
 	}
+
+	sort.Strings(machineNames)
+	message += " " + clog.ListToString(machineNames, func(s string) string { return s }, 3)
+
+	if len(machineNames) == 1 {
+		message += " is "
+	} else {
+		message += " are "
+	}
+	message += "in deletion by more than 30 minutes"
+
+	return message
 }

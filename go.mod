@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/sprig/v3 v3.3.0
-	github.com/adrg/xdg v0.5.0
+	github.com/adrg/xdg v0.5.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/coredns/corefile-migration v1.0.24
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc

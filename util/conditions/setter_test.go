@@ -158,6 +158,9 @@ func TestSetLastTransitionTime(t *testing.T) {
 	fooWithBarMessage := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message bar")
 	fooWithLastTransitionTime := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
 	fooWithLastTransitionTime.LastTransitionTime = x
+	fooWithLastTransitionTimeWithBarMessage := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message bar")
+	fooWithLastTransitionTimeWithBarMessage.LastTransitionTime = y
+
 	fooWithAnotherState := TrueCondition("foo")
 	fooWithAnotherStateWithLastTransitionTime := TrueCondition("foo")
 	fooWithAnotherStateWithLastTransitionTime.LastTransitionTime = y
@@ -212,6 +215,14 @@ func TestSetLastTransitionTime(t *testing.T) {
 			name: "Set a condition that already exists but with different Message should preserve the last transition time",
 			to:   setterWithConditions(fooWithLastTransitionTime),
 			new:  fooWithBarMessage,
+			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
+				g.Expect(lastTransitionTime).To(Equal(x))
+			},
+		},
+		{
+			name: "Set a condition that already exists, with different state but same Status should ignore the last transition even if defined",
+			to:   setterWithConditions(fooWithLastTransitionTime),
+			new:  fooWithLastTransitionTimeWithBarMessage,
 			LastTransitionTimeCheck: func(g *WithT, lastTransitionTime metav1.Time) {
 				g.Expect(lastTransitionTime).To(Equal(x))
 			},

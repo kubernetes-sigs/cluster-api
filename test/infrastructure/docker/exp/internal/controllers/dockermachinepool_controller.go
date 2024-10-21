@@ -180,6 +180,7 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachinePools),
 			builder.WithPredicates(
+				//nolint:staticcheck // This usage will be removed when adding v1beta2 status and implementing the Paused condition.
 				predicates.ClusterUnpausedAndInfrastructureReady(mgr.GetScheme(), predicateLog),
 			),
 		).Build(r)

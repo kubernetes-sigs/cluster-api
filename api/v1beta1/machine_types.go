@@ -104,7 +104,7 @@ const (
 
 	// MachineAvailableV1Beta2Reason surfaces when a machine is ready for at least MinReadySeconds.
 	// Note: MinReadySeconds is assumed 0 until it will be implemented in v1beta2 API.
-	MachineAvailableV1Beta2Reason = AvailableV1Beta2Condition
+	MachineAvailableV1Beta2Reason = AvailableV1Beta2Reason
 )
 
 // Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.

@@ -202,7 +202,7 @@ func setMachinesReadyCondition(ctx context.Context, machineSet *clusterv1.Machin
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+			Reason:  clusterv1.MachineSetMachinesReadyInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -242,7 +242,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+			Reason:  clusterv1.MachineSetMachinesUpToDateInternalErrorV1Beta2Reason,
 			Message: "Please check controller logs for errors",
 		})
 		return
@@ -258,7 +258,7 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 	}
 
 	upToDateCondition, err := v1beta2conditions.NewAggregateCondition(
-		machines, clusterv1.MachinesUpToDateV1Beta2Condition,
+		machines, clusterv1.MachineUpToDateV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
 	)
 	if err != nil {

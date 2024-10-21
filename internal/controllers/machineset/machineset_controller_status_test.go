@@ -284,26 +284,14 @@ func Test_setScalingUpCondition(t *testing.T) {
 	}
 }
 
-func testMachine(name string, staleDeleting bool) *clusterv1.Machine {
-	m := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-	if staleDeleting {
-		m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
-	}
-	return m
-}
-
 func Test_setScalingDownCondition(t *testing.T) {
-	defaultMachineSet := &clusterv1.MachineSet{
+	machineSet := &clusterv1.MachineSet{
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: ptr.To[int32](0),
 		},
 	}
 
-	machineSet1Replica := defaultMachineSet.DeepCopy()
+	machineSet1Replica := machineSet.DeepCopy()
 	machineSet1Replica.Spec.Replicas = ptr.To[int32](1)
 
 	tests := []struct {
@@ -314,7 +302,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 	}{
 		{
 			name:     "getAndAdoptMachines failed",
-			ms:       defaultMachineSet,
+			ms:       machineSet,
 			machines: nil,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
@@ -325,7 +313,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 		},
 		{
 			name:     "not scaling down and no machines",
-			ms:       defaultMachineSet,
+			ms:       machineSet,
 			machines: []*clusterv1.Machine{},
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineSetScalingDownV1Beta2Condition,
@@ -345,7 +333,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 		},
 		{
 			name: "scaling down to zero",
-			ms:   defaultMachineSet,
+			ms:   machineSet,
 			machines: []*clusterv1.Machine{
 				testMachine("machine-1", false),
 			},
@@ -419,19 +407,105 @@ func Test_setScalingDownCondition(t *testing.T) {
 }
 
 func Test_setMachinesReadyCondition(t *testing.T) {
+	machineSet := &clusterv1.MachineSet{}
+
+	readyCondition := metav1.Condition{
+		Type:   clusterv1.MachineReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: v1beta2conditions.MultipleInfoReportedReason,
+	}
+
 	tests := []struct {
 		name            string
 		machineSet      *clusterv1.MachineSet
 		machines        []*clusterv1.Machine
 		expectCondition metav1.Condition
 	}{
-		// TODO: Add test cases.
+		{
+			name:       "getAndAdoptMachines failed",
+			machineSet: machineSet,
+			machines:   nil,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineSetMachinesReadyInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:       "no machines",
+			machineSet: machineSet,
+			machines:   []*clusterv1.Machine{},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.MachineSetMachinesReadyNoReplicasV1Beta2Reason,
+			},
+		},
+		{
+			name:       "all machines are ready",
+			machineSet: machineSet,
+			machines: []*clusterv1.Machine{
+				createMachine("machine-1", readyCondition),
+				createMachine("machine-2", readyCondition),
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleInfoReportedReason,
+			},
+		},
+		{
+			name:       "one ready, one has nothing reported",
+			machineSet: machineSet,
+			machines: []*clusterv1.Machine{
+				createMachine("machine-1", readyCondition),
+				createMachine("machine-2"),
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  v1beta2conditions.NotYetReportedReason,
+				Message: "Condition Ready not yet reported from Machine machine-2",
+			},
+		},
+		{
+			name:       "one ready, one reporting not ready, one reporting unknown, one reporting deleting",
+			machineSet: machineSet,
+			machines: []*clusterv1.Machine{
+				createMachine("machine-1", readyCondition),
+				createMachine("machine-2", metav1.Condition{
+					Type:    clusterv1.MachineReadyV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  "SomeReason",
+					Message: "HealthCheckSucceeded: Some message",
+				}),
+				createMachine("machine-3", metav1.Condition{
+					Type:    clusterv1.MachineReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  "SomeUnknownReason",
+					Message: "Some unknown message",
+				}),
+				createMachine("machine-4", metav1.Condition{
+					Type:    clusterv1.MachineReadyV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  clusterv1.MachineDeletingV1Beta2Reason,
+					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
+				}),
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  v1beta2conditions.MultipleIssuesReportedReason,
+				Message: "Deleting: Machine deletion in progress, stage: DrainingNode from Machine machine-4; HealthCheckSucceeded: Some message from Machine machine-2; Some unknown message from Machine machine-3",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setMachinesReadyCondition(ctx, tt.machineSet, tt.machines, true)
+			setMachinesReadyCondition(ctx, tt.machineSet, tt.machines, tt.machines != nil)
 
 			condition := v1beta2conditions.Get(tt.machineSet, clusterv1.MachineSetMachinesReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -441,23 +515,111 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 }
 
 func Test_setMachinesUpToDateCondition(t *testing.T) {
+	machineSet := &clusterv1.MachineSet{}
+
 	tests := []struct {
 		name            string
 		machineSet      *clusterv1.MachineSet
 		machines        []*clusterv1.Machine
 		expectCondition metav1.Condition
 	}{
-		// TODO: Add test cases.
+		{
+			name:       "getAndAdoptMachines failed",
+			machineSet: machineSet,
+			machines:   nil,
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  clusterv1.MachineSetMachinesUpToDateInternalErrorV1Beta2Reason,
+				Message: "Please check controller logs for errors",
+			},
+		},
+		{
+			name:       "One machine up-to-date",
+			machineSet: machineSet,
+			machines: []*clusterv1.Machine{
+				createMachine("up-to-date-1", metav1.Condition{
+					Type:   clusterv1.MachineUpToDateV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: "some-reason-1",
+				}),
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  "some-reason-1",
+				Message: "",
+			},
+		},
+		{
+			name:       "One machine unknown",
+			machineSet: machineSet,
+			machines: []*clusterv1.Machine{
+				createMachine("unknown-1", metav1.Condition{
+					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  "some-unknown-reason-1",
+					Message: "some unknown message",
+				}),
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  "some-unknown-reason-1",
+				Message: "some unknown message from Machine unknown-1",
+			},
+		},
+		{
+			name:       "One machine not up-to-date",
+			machineSet: machineSet,
+			machines: []*clusterv1.Machine{
+				createMachine("not-up-to-date-machine-1", metav1.Condition{
+					Type:    clusterv1.MachineUpToDateV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  "some-not-up-to-date-reason",
+					Message: "some not up-to-date message",
+				}),
+			},
+			expectCondition: metav1.Condition{
+				Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "some-not-up-to-date-reason",
+				Message: "some not up-to-date message from Machine not-up-to-date-machine-1",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setMachinesUpToDateCondition(ctx, tt.machineSet, tt.machines, true)
+			setMachinesUpToDateCondition(ctx, tt.machineSet, tt.machines, tt.machines != nil)
 
 			condition := v1beta2conditions.Get(tt.machineSet, clusterv1.MachineSetMachinesUpToDateV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
 			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
 		})
 	}
+}
+
+func createMachine(name string, conditions ...metav1.Condition) *clusterv1.Machine {
+	m := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	for _, condition := range conditions {
+		v1beta2conditions.Set(m, condition)
+	}
+
+	return m
+}
+
+func testMachine(name string, staleDeleting bool) *clusterv1.Machine {
+	m := createMachine(name)
+	if staleDeleting {
+		m.DeletionTimestamp = ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})
+	}
+	return m
 }

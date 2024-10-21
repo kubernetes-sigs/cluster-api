@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -39,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	fakeController "sigs.k8s.io/cluster-api/controllers/external/fake"
+	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -142,9 +141,9 @@ func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
 	r.desiredStateGenerator = desiredstate.NewGenerator(r.Client, r.ClusterCache, r.RuntimeClient)
 	r.recorder = recorder
 	r.externalTracker = external.ObjectTracker{
-		Controller: fakeController.Controller{},
+		Controller: externalfake.Controller{},
 		Cache:      &informertest.FakeInformers{},
-		Scheme:     runtime.NewScheme(),
+		Scheme:     r.Client.Scheme(),
 	}
 	r.patchHelperFactory = dryRunPatchHelperFactory(r.Client)
 }

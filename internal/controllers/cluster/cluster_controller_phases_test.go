@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache/informertest"
@@ -33,7 +32,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	fakeController "sigs.k8s.io/cluster-api/controllers/external/fake"
+	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -210,9 +209,9 @@ func TestClusterReconcilePhases(t *testing.T) {
 					Client:   c,
 					recorder: record.NewFakeRecorder(32),
 					externalTracker: external.ObjectTracker{
-						Controller: fakeController.Controller{},
+						Controller: externalfake.Controller{},
 						Cache:      &informertest.FakeInformers{},
-						Scheme:     runtime.NewScheme(),
+						Scheme:     c.Scheme(),
 					},
 				}
 
@@ -406,9 +405,9 @@ func TestClusterReconcilePhases(t *testing.T) {
 					Client:   c,
 					recorder: record.NewFakeRecorder(32),
 					externalTracker: external.ObjectTracker{
-						Controller: fakeController.Controller{},
+						Controller: externalfake.Controller{},
 						Cache:      &informertest.FakeInformers{},
-						Scheme:     runtime.NewScheme(),
+						Scheme:     c.Scheme(),
 					},
 				}
 
@@ -783,9 +782,9 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				Client:   c,
 				recorder: record.NewFakeRecorder(32),
 				externalTracker: external.ObjectTracker{
-					Controller: fakeController.Controller{},
+					Controller: externalfake.Controller{},
 					Cache:      &informertest.FakeInformers{},
-					Scheme:     runtime.NewScheme(),
+					Scheme:     c.Scheme(),
 				},
 			}
 

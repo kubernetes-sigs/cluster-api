@@ -1241,7 +1241,8 @@ func TestMachineConditions(t *testing.T) {
 					Controller: externalfake.Controller{},
 					Cache:      &informertest.FakeInformers{},
 					Scheme:     clientFake.Scheme(),
-				}}
+				},
+			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
 			if tt.wantErr {

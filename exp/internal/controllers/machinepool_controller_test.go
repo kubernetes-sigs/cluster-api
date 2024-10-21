@@ -41,7 +41,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	fakeController "sigs.k8s.io/cluster-api/controllers/external/fake"
+	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
@@ -601,9 +601,9 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				APIReader:    clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(trackerClientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				externalTracker: external.ObjectTracker{
-					Controller: fakeController.Controller{},
+					Controller: externalfake.Controller{},
 					Cache:      &informertest.FakeInformers{},
-					Scheme:     runtime.NewScheme(),
+					Scheme:     clientFake.Scheme(),
 				},
 			}
 
@@ -1165,9 +1165,9 @@ func TestMachinePoolConditions(t *testing.T) {
 				APIReader:    clientFake,
 				ClusterCache: clustercache.NewFakeClusterCache(clientFake, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 				externalTracker: external.ObjectTracker{
-					Controller: fakeController.Controller{},
+					Controller: externalfake.Controller{},
 					Cache:      &informertest.FakeInformers{},
-					Scheme:     runtime.NewScheme(),
+					Scheme:     clientFake.Scheme(),
 				},
 			}
 

@@ -33,7 +33,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	fakeController "sigs.k8s.io/cluster-api/controllers/external/fake"
+	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -304,7 +304,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			r := &Reconciler{
 				Client: c,
 				externalTracker: external.ObjectTracker{
-					Controller: fakeController.Controller{},
+					Controller: externalfake.Controller{},
 					Cache:      &informertest.FakeInformers{},
 					Scheme:     runtime.NewScheme(),
 				},
@@ -861,9 +861,9 @@ func TestReconcileInfrastructure(t *testing.T) {
 			r := &Reconciler{
 				Client: c,
 				externalTracker: external.ObjectTracker{
-					Controller: fakeController.Controller{},
+					Controller: externalfake.Controller{},
 					Cache:      &informertest.FakeInformers{},
-					Scheme:     runtime.NewScheme(),
+					Scheme:     c.Scheme(),
 				},
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}

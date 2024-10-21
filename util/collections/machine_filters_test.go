@@ -378,26 +378,6 @@ func TestWithVersion(t *testing.T) {
 	})
 }
 
-func TestHealthyAPIServer(t *testing.T) {
-	t.Run("nil machine returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		g.Expect(collections.HealthyAPIServer()(nil)).To(BeFalse())
-	})
-
-	t.Run("unhealthy machine returns false", func(t *testing.T) {
-		g := NewWithT(t)
-		machine := &clusterv1.Machine{}
-		g.Expect(collections.HealthyAPIServer()(machine)).To(BeFalse())
-	})
-
-	t.Run("healthy machine returns true", func(t *testing.T) {
-		g := NewWithT(t)
-		machine := &clusterv1.Machine{}
-		conditions.Set(machine, conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition))
-		g.Expect(collections.HealthyAPIServer()(machine)).To(BeTrue())
-	})
-}
-
 func TestGetFilteredMachinesForCluster(t *testing.T) {
 	g := NewWithT(t)
 

@@ -112,8 +112,8 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConditionsGracePeriod == time.Duration(0) {
-		return errors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be 0")
+	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConditionsGracePeriod < 2*time.Minute {
+		return errors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be < 2m")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "machine")

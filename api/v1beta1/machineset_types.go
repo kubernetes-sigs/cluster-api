@@ -181,8 +181,13 @@ type MachineSetStatus struct {
 	// Any transient errors that occur during the reconciliation of Machines
 	// can be added as events to the MachineSet object and/or logged in the
 	// controller's output.
+	//
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	FailureReason *capierrors.MachineSetStatusError `json:"failureReason,omitempty"`
+	// Deprecated: This field is deprecated and is going to be removed in the next apiVersion. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions defines current service state of the MachineSet.

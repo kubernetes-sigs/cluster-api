@@ -59,20 +59,11 @@ type KubeadmConfigSpec struct {
 	// +optional
 	Mounts []MountPoints `json:"mounts,omitempty"`
 
-	// BootCommands specifies extra commands to run very early in the boot process via the cloud-init bootcmd
-	// module. This is typically run in the cloud-init.service systemd unit. This has no effect in Ignition.
-	// +optional
-	BootCommands []BootCommand `json:"bootCommands,omitempty"`
-
-	// PreKubeadmCommands specifies extra commands to run before kubeadm runs.
-	// With cloud-init, this is prepended to the runcmd module configuration, and is typically executed in
-	// the cloud-final.service systemd unit. In Ignition, this is prepended to /etc/kubeadm.sh.
+	// PreKubeadmCommands specifies extra commands to run before kubeadm runs
 	// +optional
 	PreKubeadmCommands []string `json:"preKubeadmCommands,omitempty"`
 
-	// PostKubeadmCommands specifies extra commands to run after kubeadm runs.
-	// With cloud-init, this is appended to the runcmd module configuration, and is typically executed in
-	// the cloud-final.service systemd unit. In Ignition, this is appended to /etc/kubeadm.sh.
+	// PostKubeadmCommands specifies extra commands to run after kubeadm runs
 	// +optional
 	PostKubeadmCommands []string `json:"postKubeadmCommands,omitempty"`
 
@@ -351,6 +342,3 @@ type Filesystem struct {
 
 // MountPoints defines input for generated mounts in cloud-init.
 type MountPoints []string
-
-// BootCommand defines input for each bootcmd command in cloud-init.
-type BootCommand []string

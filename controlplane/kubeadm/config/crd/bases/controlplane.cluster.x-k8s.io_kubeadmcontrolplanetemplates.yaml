@@ -64,16 +64,6 @@ spec:
                           kubeadmConfigSpec is a KubeadmConfigSpec
                           to use for initializing and joining machines to the control plane.
                         properties:
-                          bootCommands:
-                            description: BootCommands specifies extra commands to
-                              run before kubeadm runs
-                            items:
-                              description: BootCommand defines input for each bootcmd
-                                command in cloud-init.
-                              items:
-                                type: string
-                              type: array
-                            type: array
                           clusterConfiguration:
                             description: clusterConfiguration along with InitConfiguration
                               are the configurations necessary for the init command

@@ -91,9 +91,6 @@ providers:
       - sourcePath: "../data/shared/v1.7/metadata.yaml"
   - name: v1.8.99 # next; use manifest from source files
     value: ../../../config/default
-    replacements:
-    - old: "--leader-elect"
-      new: "--leader-elect\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -156,9 +153,6 @@ providers:
     - sourcePath: "../data/shared/v1.7/metadata.yaml"
   - name: v1.8.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
-    replacements:
-    - old: "--leader-elect"
-      new: "--leader-elect\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -221,9 +215,6 @@ providers:
     - sourcePath: "../data/shared/v1.7/metadata.yaml"
   - name: v1.8.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
-    replacements:
-    - old: "--leader-elect"
-      new: "--leader-elect\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -298,9 +289,6 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1.7/clusterclass-quick-start.yaml"
   - name: v1.8.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
-    replacements:
-    - old: "--leader-elect"
-      new: "--leader-elect\n        - --logging-format=json"
     files:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"
@@ -329,9 +317,6 @@ providers:
   versions:
   - name: v1.8.99 # next; use manifest from source files
     value: ../../../test/infrastructure/inmemory/config/default
-    replacements:
-    - old: "--leader-elect"
-      new: "--leader-elect\n        - --logging-format=json"
     files:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-inmemory/main/clusterclass-in-memory.yaml"
@@ -343,9 +328,6 @@ providers:
   versions:
     - name: v1.8.99 # next; use manifest from source files
       value: ../../../test/extension/config/default
-      replacements:
-      - old: "--leader-elect"
-        new: "--leader-elect\n        - --logging-format=json"
       files:
       - sourcePath: "../data/shared/main/metadata.yaml"
 

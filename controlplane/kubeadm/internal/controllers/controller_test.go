@@ -1466,7 +1466,7 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 	cluster.Status = clusterv1.ClusterStatus{InfrastructureReady: true}
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
-	g.Expect(env.Create(ctx, certSecret)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, certSecret)).To(Succeed())
 
 	genericInfrastructureMachineTemplate := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -1485,7 +1485,7 @@ func TestReconcileInitializeControlPlane_withUserCA(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, genericInfrastructureMachineTemplate)).To(Succeed())
 
 	kcp := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1578,7 +1578,7 @@ kubernetesVersion: metav1.16.1`,
 		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Workload: &internal.Workload{
 					Client: env,
 				},
@@ -1587,14 +1587,14 @@ kubernetesVersion: metav1.16.1`,
 		},
 		managementClusterUncached: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
-			Workload: fakeWorkloadCluster{
+			Workload: &fakeWorkloadCluster{
 				Workload: &internal.Workload{
 					Client: env,
 				},
 				Status: internal.ClusterStatus{},
 			},
 		},
-		ssaCache: ssa.NewCache(),
+		ssaCache: ssa.NewCache("test-controller"),
 	}
 
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -1641,7 +1641,7 @@ kubernetesVersion: metav1.16.1`,
 		machine := machineList.Items[0]
 		g.Expect(machine.Name).To(HavePrefix(kcp.Name))
 		// Newly cloned infra objects should have the infraref annotation.
-		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Spec.InfrastructureRef.Namespace)
+		infraObj, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))

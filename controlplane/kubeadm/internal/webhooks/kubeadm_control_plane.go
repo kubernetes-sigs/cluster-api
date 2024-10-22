@@ -620,6 +620,12 @@ func (webhook *KubeadmControlPlane) validateCoreDNSVersion(oldK, newK *controlpl
 	if toVersion.Equals(fromVersion) {
 		return allErrs
 	}
+
+	// Skip validating if the skip CoreDNS annotation is set. If set, KCP doesn't use the migration library.
+	if _, ok := newK.Annotations[controlplanev1.SkipCoreDNSAnnotation]; ok {
+		return allErrs
+	}
+
 	if err := migration.ValidUpMigration(fromVersion.String(), toVersion.String()); err != nil {
 		allErrs = append(
 			allErrs,

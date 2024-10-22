@@ -1029,7 +1029,7 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	cluster := s.cluster
 
 	if ms.Spec.Replicas == nil {
-		return errors.New("cannot update status when MachineSet .spec.replicas is not set")
+		return errors.New("Cannot update status when MachineSet spec.replicas is not set")
 	}
 
 	log := ctrl.LoggerFrom(ctx)

@@ -197,6 +197,7 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 }
 
 func setMachinesReadyCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
+	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(machineSet, metav1.Condition{
@@ -222,7 +223,6 @@ func setMachinesReadyCondition(ctx context.Context, machineSet *clusterv1.Machin
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesReadyV1Beta2Condition),
 	)
 	if err != nil {
-		log := ctrl.LoggerFrom(ctx)
 		log.Error(err, "Failed to aggregate Machine's Ready conditions")
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetMachinesReadyV1Beta2Condition,
@@ -237,6 +237,7 @@ func setMachinesReadyCondition(ctx context.Context, machineSet *clusterv1.Machin
 }
 
 func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine, getAndAdoptMachinesForMachineSetSucceeded bool) {
+	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(machineSet, metav1.Condition{
@@ -262,7 +263,6 @@ func setMachinesUpToDateCondition(ctx context.Context, machineSet *clusterv1.Mac
 		v1beta2conditions.TargetConditionType(clusterv1.MachineSetMachinesUpToDateV1Beta2Condition),
 	)
 	if err != nil {
-		log := ctrl.LoggerFrom(ctx)
 		log.Error(err, "Failed to aggregate Machine's UpToDate conditions")
 		v1beta2conditions.Set(machineSet, metav1.Condition{
 			Type:    clusterv1.MachineSetMachinesUpToDateV1Beta2Condition,

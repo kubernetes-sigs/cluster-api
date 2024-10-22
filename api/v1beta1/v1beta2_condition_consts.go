@@ -103,7 +103,7 @@ const (
 	NotScalingDownV1Beta2Reason = "NotScalingDown"
 
 	// WaitingForReplicasSetV1Beta2Reason surfaces when the repicla field of an object is not set.
-	WaitingForReplicasSetV1Beta2Reason = "WaitingForReplicasToBeSet"
+	WaitingForReplicasSetV1Beta2Reason = "WaitingForReplicasSet"
 
 	// InvalidConditionReportedV1Beta2Reason applies to a condition, usually read from an external object, that is invalid
 	// (e.g. its status is missing).

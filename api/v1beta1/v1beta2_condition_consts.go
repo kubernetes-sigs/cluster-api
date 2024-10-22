@@ -102,6 +102,17 @@ const (
 	// NotScalingDownV1Beta2Reason surfaces when an object is not scaling down.
 	NotScalingDownV1Beta2Reason = "NotScalingDown"
 
+	// RemediatingV1Beta2Reason surfaces when an object owns at least one machine with HealthCheckSucceeded
+	// set to false and with the OwnerRemediated condition set to false by the MachineHealthCheck controller.
+	RemediatingV1Beta2Reason = "Remediating"
+
+	// NotRemediatingV1Beta2Reason surfaces when an object does not own any machines marked as not healthy
+	// by the MachineHealthCheck controller.
+	NotRemediatingV1Beta2Reason = "NotRemediating"
+
+	// NoReplicasV1Beta2Reason surfaces when an object that manage replicas does not have any.
+	NoReplicasV1Beta2Reason = "NoReplicas"
+
 	// WaitingForReplicasSetV1Beta2Reason surfaces when the replica field of an object is not set.
 	WaitingForReplicasSetV1Beta2Reason = "WaitingForReplicasSet"
 

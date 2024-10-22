@@ -96,30 +96,74 @@ const (
 	// Please note this will include also APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy conditions.
 	// If not using an external etcd also EtcdPodHealthy, EtcdMemberHealthy conditions are included.
 	KubeadmControlPlaneMachinesReadyV1Beta2Condition = clusterv1.MachinesReadyV1Beta2Condition
+
+	// KubeadmControlPlaneMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the KubeadmControlPlane.
+	KubeadmControlPlaneMachinesReadyNoReplicasV1Beta2Reason = clusterv1.NoReplicasV1Beta2Reason
+
+	// KubeadmControlPlaneMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when computing the MachinesReady condition.
+	KubeadmControlPlaneMachinesReadyInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
 )
 
 // KubeadmControlPlane's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// KubeadmControlPlaneMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
 	KubeadmControlPlaneMachinesUpToDateV1Beta2Condition = clusterv1.MachinesUpToDateV1Beta2Condition
+
+	// KubeadmControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the KubeadmControlPlane.
+	KubeadmControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason = clusterv1.NoReplicasV1Beta2Reason
+
+	// KubeadmControlPlaneMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when computing the MachinesUpToDate condition.
+	KubeadmControlPlaneMachinesUpToDateInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
 )
 
 // KubeadmControlPlane's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneScalingUpV1Beta2Condition is true if available replicas < desired replicas.
+	// KubeadmControlPlaneScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
 	KubeadmControlPlaneScalingUpV1Beta2Condition = clusterv1.ScalingUpV1Beta2Condition
+
+	// KubeadmControlPlaneScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
+	KubeadmControlPlaneScalingUpV1Beta2Reason = clusterv1.ScalingUpV1Beta2Reason
+
+	// KubeadmControlPlaneNotScalingUpV1Beta2Reason surfaces when actual replicas >= desired replicas.
+	KubeadmControlPlaneNotScalingUpV1Beta2Reason = clusterv1.NotScalingUpV1Beta2Reason
+
+	// KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
+	// field of the KubeadmControlPlane is not set.
+	KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason = clusterv1.WaitingForReplicasSetV1Beta2Reason
 )
 
 // KubeadmControlPlane's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneScalingDownV1Beta2Condition is true if replicas > desired replicas.
+	// KubeadmControlPlaneScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
 	KubeadmControlPlaneScalingDownV1Beta2Condition = clusterv1.ScalingDownV1Beta2Condition
+
+	// KubeadmControlPlaneScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.
+	KubeadmControlPlaneScalingDownV1Beta2Reason = clusterv1.ScalingDownV1Beta2Reason
+
+	// KubeadmControlPlaneNotScalingDownV1Beta2Reason surfaces when actual replicas <= desired replicas.
+	KubeadmControlPlaneNotScalingDownV1Beta2Reason = clusterv1.NotScalingDownV1Beta2Reason
+
+	// KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
+	// field of the KubeadmControlPlane is not set.
+	KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason = clusterv1.WaitingForReplicasSetV1Beta2Reason
 )
 
 // KubeadmControlPlane's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
 	// KubeadmControlPlaneRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
+	// Note: KubeadmControlPlane only remediates machines with HealthCheckSucceeded set to false and with the OwnerRemediated condition set to false.
 	KubeadmControlPlaneRemediatingV1Beta2Condition = clusterv1.RemediatingV1Beta2Condition
+
+	// KubeadmControlPlaneRemediatingV1Beta2Reason surfaces when kcp has at least one machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	KubeadmControlPlaneRemediatingV1Beta2Reason = clusterv1.RemediatingV1Beta2Reason
+
+	// KubeadmControlPlaneNotRemediatingV1Beta2Reason surfaces when kcp does not have any machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	KubeadmControlPlaneNotRemediatingV1Beta2Reason = clusterv1.NotRemediatingV1Beta2Reason
+
+	// KubeadmControlPlaneRemediatingInternalErrorV1Beta2Reason surfaces unexpected failures when computing the Remediating condition.
+	KubeadmControlPlaneRemediatingInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
 )
 
 // Reasons that will be used for the OwnerRemediated condition set by MachineHealthCheck on KubeadmControlPlane controlled machines
@@ -201,7 +245,7 @@ const (
 // EtcdMemberHealthy condition and corresponding reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.
 const (
 	// KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition surfaces the status of the etcd member hosted on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition = "Healthy"
+	KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition = "EtcdMemberHealthy"
 
 	// KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason surfaces when the etcd member hosted on a KubeadmControlPlane controlled machine is not healthy.
 	KubeadmControlPlaneMachineEtcdMemberNotHealthyV1Beta2Reason = "NotHealthy"

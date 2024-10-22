@@ -132,7 +132,7 @@ const (
 	MachineSetMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
 
 	// MachineSetMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
-	MachineSetMachinesReadyNoReplicasV1Beta2Reason = "NoReplicas"
+	MachineSetMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
 
 	// MachineSetMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
 	// or aggregating machine's conditions.
@@ -146,7 +146,7 @@ const (
 	MachineSetMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
 
 	// MachineSetMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineSet.
-	MachineSetMachinesUpToDateNoReplicasV1Beta2Reason = "NoReplicas"
+	MachineSetMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
 
 	// MachineSetMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
 	// or aggregating status.

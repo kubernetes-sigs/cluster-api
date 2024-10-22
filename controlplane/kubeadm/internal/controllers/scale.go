@@ -169,6 +169,7 @@ func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, con
 
 	// If there are deleting machines, wait for the operation to complete.
 	if controlPlane.HasDeletingMachine() {
+		controlPlane.PreflightCheckResults.HasDeletingMachine = true
 		logger.Info("Waiting for machines to be deleted", "machines", strings.Join(controlPlane.Machines.Filter(collections.HasDeletionTimestamp).Names(), ", "))
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
@@ -203,9 +204,19 @@ loopmachines:
 			// Instead of confusing users with errors about that the conditions are not set, let's point them
 			// towards the unset nodeRef (which is the root cause of the conditions not being there).
 			machineErrors = append(machineErrors, errors.Errorf("Machine %s does not have a corresponding Node yet (Machine.status.nodeRef not set)", machine.Name))
+
+			controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
+			if controlPlane.IsEtcdManaged() {
+				controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+			}
 		} else {
 			for _, condition := range allMachineHealthConditions {
 				if err := preflightCheckCondition("Machine", machine, condition); err != nil {
+					if condition == controlplanev1.MachineEtcdMemberHealthyCondition {
+						controlPlane.PreflightCheckResults.EtcdClusterNotHealthy = true
+					} else {
+						controlPlane.PreflightCheckResults.ControlPlaneComponentsNotHealthy = true
+					}
 					machineErrors = append(machineErrors, err)
 				}
 			}

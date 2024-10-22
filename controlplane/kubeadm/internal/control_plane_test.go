@@ -63,45 +63,66 @@ func TestControlPlane(t *testing.T) {
 	})
 }
 
-func TestHasUnhealthyMachine(t *testing.T) {
+func TestHasMachinesToBeRemediated(t *testing.T) {
 	// healthy machine (without MachineHealthCheckSucceded condition)
-	healthyMachine1 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine1"}}
+	healthyMachineNotProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine1"}}
 	// healthy machine (with MachineHealthCheckSucceded == true)
-	healthyMachine2 := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine2"}}
-	conditions.MarkTrue(healthyMachine2, clusterv1.MachineHealthCheckSucceededCondition)
+	healthyMachineProvisioned := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "healthyMachine2"}, Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Kind: "Node", Name: "node1"}}}
+	conditions.MarkTrue(healthyMachineProvisioned, clusterv1.MachineHealthCheckSucceededCondition)
 	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceded == False, but without MachineOwnerRemediated condition)
-	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineNOTOwnerRemediated"}}
+	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineNOTOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Kind: "Node", Name: "node2"}}}
 	conditions.MarkFalse(unhealthyMachineNOTOwnerRemediated, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "Something is wrong")
 	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceded == False, with MachineOwnerRemediated condition)
-	unhealthyMachineOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineOwnerRemediated"}}
+	unhealthyMachineOwnerRemediated := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "unhealthyMachineOwnerRemediated"}, Status: clusterv1.MachineStatus{NodeRef: &corev1.ObjectReference{Kind: "Node", Name: "node3"}}}
 	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "Something is wrong")
 	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP should remediate this issue")
 
 	t.Run("One unhealthy machine to be remediated by KCP", func(t *testing.T) {
 		c := ControlPlane{
 			Machines: collections.FromMachines(
-				healthyMachine1,                    // healthy machine, should be ignored
-				healthyMachine2,                    // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
+				healthyMachineNotProvisioned,       // healthy machine, should be ignored
+				healthyMachineProvisioned,          // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
 				unhealthyMachineNOTOwnerRemediated, // unhealthy machine, but KCP should not remediate it, should be ignored.
 				unhealthyMachineOwnerRemediated,
 			),
 		}
 
 		g := NewWithT(t)
-		g.Expect(c.HasUnhealthyMachineByMachineHealthCheck()).To(BeTrue())
+		g.Expect(c.MachinesToBeRemediatedByKCP()).To(ConsistOf(unhealthyMachineOwnerRemediated))
+		g.Expect(c.UnhealthyMachines()).To(ConsistOf(unhealthyMachineOwnerRemediated, unhealthyMachineNOTOwnerRemediated))
+		g.Expect(c.HealthyMachines()).To(ConsistOf(healthyMachineNotProvisioned, healthyMachineProvisioned))
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeTrue())
 	})
 
 	t.Run("No unhealthy machine to be remediated by KCP", func(t *testing.T) {
 		c := ControlPlane{
 			Machines: collections.FromMachines(
-				healthyMachine1,                    // healthy machine, should be ignored
-				healthyMachine2,                    // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
+				healthyMachineNotProvisioned,       // healthy machine, should be ignored
+				healthyMachineProvisioned,          // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
 				unhealthyMachineNOTOwnerRemediated, // unhealthy machine, but KCP should not remediate it, should be ignored.
 			),
 		}
 
 		g := NewWithT(t)
-		g.Expect(c.HasUnhealthyMachineByMachineHealthCheck()).To(BeFalse())
+		g.Expect(c.MachinesToBeRemediatedByKCP()).To(BeEmpty())
+		g.Expect(c.UnhealthyMachines()).To(ConsistOf(unhealthyMachineNOTOwnerRemediated))
+		g.Expect(c.HealthyMachines()).To(ConsistOf(healthyMachineNotProvisioned, healthyMachineProvisioned))
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeTrue())
+	})
+
+	t.Run("No unhealthy machine to be remediated by KCP", func(t *testing.T) {
+		c := ControlPlane{
+			Machines: collections.FromMachines(
+				healthyMachineProvisioned,          // healthy machine, should be ignored (the MachineHealthCheckSucceededCondition is true)
+				unhealthyMachineNOTOwnerRemediated, // unhealthy machine, but KCP should not remediate it, should be ignored.
+			),
+		}
+
+		g := NewWithT(t)
+		g.Expect(c.MachinesToBeRemediatedByKCP()).To(BeEmpty())
+		g.Expect(c.UnhealthyMachines()).To(ConsistOf(unhealthyMachineNOTOwnerRemediated))
+		g.Expect(c.HealthyMachines()).To(ConsistOf(healthyMachineProvisioned))
+		g.Expect(c.HasHealthyMachineStillProvisioning()).To(BeFalse())
 	})
 }
 

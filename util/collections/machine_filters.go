@@ -148,14 +148,23 @@ func HasDeletionTimestamp(machine *clusterv1.Machine) bool {
 	return !machine.DeletionTimestamp.IsZero()
 }
 
-// HasUnhealthyCondition returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
-// indicating a problem was detected on the machine, and the MachineOwnerRemediated condition set, indicating that KCP is
-// responsible of performing remediation as owner of the machine.
-func HasUnhealthyCondition(machine *clusterv1.Machine) bool {
+// IsUnhealthyAndOwnerRemediated returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
+// indicating a problem was detected on the machine, and the MachineOwnerRemediated condition set to False, indicating that the machine owner is
+// responsible of performing remediation for the machine.
+func IsUnhealthyAndOwnerRemediated(machine *clusterv1.Machine) bool {
 	if machine == nil {
 		return false
 	}
 	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
+}
+
+// IsUnhealthy returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
+// indicating a problem was detected on the machine.
+func IsUnhealthy(machine *clusterv1.Machine) bool {
+	if machine == nil {
+		return false
+	}
+	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition)
 }
 
 // HasUnhealthyControlPlaneComponents returns a filter to find all unhealthy control plane machines that

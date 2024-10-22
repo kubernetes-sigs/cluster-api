@@ -1984,7 +1984,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		name                    string
 		node                    *corev1.Node
 		objs                    []client.Object
-		expected                bool
+		expected                ctrl.Result
 		expectedDeletingReason  string
 		expectedDeletingMessage string
 	}{
@@ -2007,7 +2007,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			objs: []client.Object{
 				persistentVolume,
 			},
-			expected:               true,
+			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
@@ -2031,7 +2031,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			objs: []client.Object{
 				persistentVolumeWithoutClaim,
 			},
-			expected:               true,
+			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumes without a .spec.claimRef to a PersistentVolumeClaim: test-pv`,
@@ -2053,10 +2053,10 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				},
 			},
 			objs:                   []client.Object{},
-			expected:               true,
+			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
-* Node.status.volumesAttached entries not matching a PersistentVolume: kubernetes.io/csi/dummy^foo`,
+* Node with .status.volumesAttached entries not matching a PersistentVolume: kubernetes.io/csi/dummy^foo`,
 		},
 		{
 			name: "Node has volumes attached according to node status but its from a daemonset pod which gets ignored",
@@ -2109,7 +2109,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				},
 				persistentVolume,
 			},
-			expected: false,
+			expected: ctrl.Result{},
 		},
 		{
 			name: "Node has volumes attached according to volumeattachments",
@@ -2130,7 +2130,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				volumeAttachment,
 				persistentVolume,
 			},
-			expected:               true,
+			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
@@ -2153,10 +2153,10 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 			objs: []client.Object{
 				volumeAttachment,
 			},
-			expected:               true,
+			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
-* VolumeAttachment.spec.source.persistentVolumeName not matching a PersistentVolume: test-pv`,
+* VolumeAttachment with .spec.source.persistentVolumeName not matching a PersistentVolume: test-pv`,
 		},
 		{
 			name: "Node has volumes attached according to volumeattachments but its from a daemonset pod which gets ignored",
@@ -2209,7 +2209,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				},
 				persistentVolume,
 			},
-			expected: false,
+			expected: ctrl.Result{},
 		},
 		{
 			name: "Node has volumes attached from a Pod which is in deletion",
@@ -2254,7 +2254,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 				},
 				persistentVolume,
 			},
-			expected:               true,
+			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
 * PersistentVolumeClaims: default/test-pvc`,
@@ -2274,7 +2274,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expected: ctrl.Result{},
 		},
 		{
 			name: "Node is unreachable and has volumes attached",
@@ -2292,7 +2292,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					VolumesAttached: attachedVolumes,
 				},
 			},
-			expected: false,
+			expected: ctrl.Result{},
 		},
 		{
 			name: "Node is unreachable and has no volumes attached",
@@ -2309,7 +2309,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					},
 				},
 			},
-			expected: false,
+			expected: ctrl.Result{},
 		},
 	}
 	for _, tt := range tests {
@@ -2339,7 +2339,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 
 			got, err := r.shouldWaitForNodeVolumes(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(!got.IsZero()).To(Equal(tt.expected))
+			g.Expect(got).To(BeEquivalentTo(tt.expected))
 			g.Expect(s.deletingReason).To(BeEquivalentTo(tt.expectedDeletingReason))
 			g.Expect(s.deletingMessage).To(BeEquivalentTo(tt.expectedDeletingMessage))
 		})

@@ -194,14 +194,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 		r.reconcileV1Beta2Status(ctx, s)
 
-		// Adjust requeue when scaling up
-		if s.machineSet.DeletionTimestamp.IsZero() && reterr == nil {
-			retres = util.LowestNonZeroResult(retres, shouldRequeueForReplicaCountersRefresh(s))
-		}
-
 		// Always attempt to patch the object and status after each reconciliation.
 		if err := patchMachineSet(ctx, patchHelper, s.machineSet); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+
+		if reterr != nil {
+			retres = ctrl.Result{}
+			return
+		}
+
+		// Adjust requeue when scaling up
+		if s.machineSet.DeletionTimestamp.IsZero() && reterr == nil {
+			retres = util.LowestNonZeroResult(retres, shouldRequeueForReplicaCountersRefresh(s))
 		}
 	}()
 
@@ -217,7 +222,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 		wrapErrMachineSetReconcileFunc(r.reconcileMachineSetOwnerAndLabels, "failed to set MachineSet owner and labels"),
 		wrapErrMachineSetReconcileFunc(r.reconcileInfrastructure, "failed to reconcile infrastructure"),
 		wrapErrMachineSetReconcileFunc(r.reconcileBootstrapConfig, "failed to reconcile bootstrapConfig"),
-		wrapErrMachineSetReconcileFunc(r.getAndAdoptMachinesForMachineSet, "failed to get and adopt Machines fo r MachineSet"),
+		wrapErrMachineSetReconcileFunc(r.getAndAdoptMachinesForMachineSet, "failed to get and adopt Machines for MachineSet"),
 	}
 
 	// Handle deletion reconciliation loop.
@@ -231,18 +236,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 
 	reconcileNormal := append(alwaysReconcile,
 		wrapErrMachineSetReconcileFunc(r.reconcileUnhealthyMachines, "failed to reconcile unhealthy machines"),
-		wrapErrMachineSetReconcileFunc(r.syncMachines, "failed to sync machines"),
+		wrapErrMachineSetReconcileFunc(r.syncMachines, "failed to sync Machines"),
 		wrapErrMachineSetReconcileFunc(r.syncReplicas, "failed to sync replicas"),
 	)
 
-	result, err := doReconcile(ctx, s, reconcileNormal)
-	if err != nil {
+	result, kerr := doReconcile(ctx, s, reconcileNormal)
+	if kerr != nil {
 		// Requeue if the reconcile failed because connection to workload cluster was down.
-		if errors.Is(err, clustercache.ErrClusterNotConnected) {
-			log.V(5).Info("Requeuing because connection to the workload cluster is down")
+		if errors.Is(kerr, clustercache.ErrClusterNotConnected) {
+			if len(kerr.Errors()) > 1 {
+				log.Error(kerr, "Requeuing because connection to the workload cluster is down")
+			} else {
+				log.V(5).Info("Requeuing because connection to the workload cluster is down")
+			}
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
-		r.recorder.Eventf(s.machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", err)
+		r.recorder.Eventf(s.machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", kerr)
 	}
 	return result, err
 }
@@ -266,7 +275,7 @@ func wrapErrMachineSetReconcileFunc(f machineSetReconcileFunc, msg string) machi
 	}
 }
 
-func doReconcile(ctx context.Context, s *scope, phases []machineSetReconcileFunc) (ctrl.Result, error) {
+func doReconcile(ctx context.Context, s *scope, phases []machineSetReconcileFunc) (ctrl.Result, kerrors.Aggregate) {
 	res := ctrl.Result{}
 	errs := []error{}
 	for _, phase := range phases {
@@ -1052,6 +1061,9 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) error {
 	readyReplicasCount := 0
 	availableReplicasCount := 0
 	desiredReplicas := *ms.Spec.Replicas
+	if !ms.DeletionTimestamp.IsZero() {
+		desiredReplicas = 0
+	}
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
 
 	for _, machine := range filteredMachines {

@@ -46,7 +46,7 @@ func (r *Reconciler) reconcileV1Beta2Status(ctx context.Context, s *scope) {
 	// Conditions
 
 	// Update the ScalingUp and ScalingDown condition.
-	setScalingUpCondition(ctx, s.machineSet, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded)
+	setScalingUpCondition(ctx, s.machineSet, s.machines, s.bootstrapObjectNotFound, s.infrastructureObjectNotFound, s.getAndAdoptMachinesForMachineSetSucceeded)
 	setScalingDownCondition(ctx, s.machineSet, s.machines, s.getAndAdoptMachinesForMachineSetSucceeded)
 
 	// MachinesReady condition: aggregate the Machine's Ready condition.
@@ -86,7 +86,7 @@ func setReplicas(_ context.Context, ms *clusterv1.MachineSet, machines []*cluste
 	ms.Status.V1Beta2.UpToDateReplicas = ptr.To(upToDateReplicas)
 }
 
-func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool) {
+func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine, bootstrapObjectNotFound, infrastructureObjectNotFound, getAndAdoptMachinesForMachineSetSucceeded bool) {
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
 	if !getAndAdoptMachinesForMachineSetSucceeded {
 		v1beta2conditions.Set(ms, metav1.Condition{
@@ -112,7 +112,7 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, bootstra
 	if !ms.DeletionTimestamp.IsZero() {
 		desiredReplicas = 0
 	}
-	currentReplicas := ms.Status.Replicas
+	currentReplicas := int32(len(machines))
 
 	missingReferencesMessage := calculateMissingReferencesMessage(ms, bootstrapObjectNotFound, infrastructureObjectNotFound)
 
@@ -136,10 +136,9 @@ func setScalingUpCondition(_ context.Context, ms *clusterv1.MachineSet, bootstra
 		message += fmt.Sprintf(" is blocked %s", missingReferencesMessage)
 	}
 	v1beta2conditions.Set(ms, metav1.Condition{
-		Type:   clusterv1.MachineSetScalingUpV1Beta2Condition,
-		Status: metav1.ConditionTrue,
-		Reason: clusterv1.MachineSetScalingUpV1Beta2Reason,
-		// Message: message,
+		Type:    clusterv1.MachineSetScalingUpV1Beta2Condition,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1.MachineSetScalingUpV1Beta2Reason,
 		Message: message,
 	})
 }
@@ -167,18 +166,18 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 	}
 
 	desiredReplicas := *ms.Spec.Replicas
-	// Deletion is equal to 0 desired replicas.
 	if !ms.DeletionTimestamp.IsZero() {
 		desiredReplicas = 0
 	}
+	currentReplicas := int32(len(machines))
 
 	// Scaling down.
-	message := fmt.Sprintf("Scaling down from %d to %d replicas", len(machines), desiredReplicas)
-	staleMessage := aggregateStaleMachines(machines)
-	if staleMessage != "" {
-		message += fmt.Sprintf(" and %s", staleMessage)
-	}
-	if int32(len(machines)) > (desiredReplicas) {
+	if currentReplicas > desiredReplicas {
+		message := fmt.Sprintf("Scaling down from %d to %d replicas", len(machines), desiredReplicas)
+		staleMessage := aggregateStaleMachines(machines)
+		if staleMessage != "" {
+			message += fmt.Sprintf(" and %s", staleMessage)
+		}
 		v1beta2conditions.Set(ms, metav1.Condition{
 			Type:    clusterv1.MachineSetScalingDownV1Beta2Condition,
 			Status:  metav1.ConditionTrue,
@@ -299,7 +298,7 @@ func calculateMissingReferencesMessage(ms *clusterv1.MachineSet, bootstrapTempla
 func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 	machineNames := []string{}
 	for _, machine := range machines {
-		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) >= time.Minute*30 {
+		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*30 {
 			machineNames = append(machineNames, machine.GetName())
 		}
 	}
@@ -321,7 +320,7 @@ func aggregateStaleMachines(machines []*clusterv1.Machine) string {
 	} else {
 		message += " are "
 	}
-	message += "in deletion by more than 30 minutes"
+	message += "in deletion since more than 30m"
 
 	return message
 }

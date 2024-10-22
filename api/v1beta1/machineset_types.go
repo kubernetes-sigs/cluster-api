@@ -120,7 +120,7 @@ const (
 	// MachineSetScalingDownInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines.
 	MachineSetScalingDownInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
 
-	// MachineSetScalingDownWaitingForReplicasToBeSetV1Beta2Reason surfaces when the .spec.replicas
+	// MachineSetScalingDownWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
 	// field of the MachineSet is not set.
 	MachineSetScalingDownWaitingForReplicasSetV1Beta2Reason = WaitingForReplicasSetV1Beta2Reason
 )

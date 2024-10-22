@@ -32,6 +32,8 @@ import (
 
 // ClusterCacheReconciler is responsible for stopping remote cluster caches when
 // the cluster for the remote cache is being deleted.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.ClusterCache instead.
 type ClusterCacheReconciler struct {
 	Client  client.Client
 	Tracker *ClusterCacheTracker

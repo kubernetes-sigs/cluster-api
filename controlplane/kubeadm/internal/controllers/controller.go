@@ -121,9 +121,6 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	r.ssaCache = ssa.NewCache()
 
 	if r.managementCluster == nil {
-		if r.ClusterCache == nil {
-			return errors.New("cluster cache tracker is nil, cannot create the internal management cluster resource")
-		}
 		r.managementCluster = &internal.Management{
 			Client:              r.Client,
 			SecretCachingClient: r.SecretCachingClient,

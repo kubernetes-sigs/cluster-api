@@ -66,6 +66,8 @@ const (
 var ErrClusterLocked = errors.New("cluster is locked already")
 
 // ClusterCacheTracker manages client caches for workload clusters.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.ClusterCache instead.
 type ClusterCacheTracker struct {
 	log logr.Logger
 
@@ -108,6 +110,8 @@ type ClusterCacheTracker struct {
 
 // ClusterCacheTrackerOptions defines options to configure
 // a ClusterCacheTracker.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.ClusterCache instead.
 type ClusterCacheTrackerOptions struct {
 	// SecretCachingClient is a client which caches secrets.
 	// If set it will be used to read the kubeconfig secret.
@@ -172,6 +176,8 @@ func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
 }
 
 // NewClusterCacheTracker creates a new ClusterCacheTracker.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.SetupWithManager instead.
 func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOptions) (*ClusterCacheTracker, error) {
 	setDefaultOptions(&options)
 

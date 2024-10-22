@@ -95,10 +95,10 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
-			Header:              "test",
 			BootCommands: []bootstrapv1.BootCommand{
 				{"echo", "hello"},
 			},
+			Header:              "test",
 			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
 			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
 			AdditionalFiles:     nil,
@@ -199,10 +199,10 @@ func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {
 
 	cpinput := &ControlPlaneJoinInput{
 		BaseUserData: BaseUserData{
-			Header:              "test",
 			BootCommands: []bootstrapv1.BootCommand{
 				{"echo", "hello"},
 			},
+			Header:              "test",
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,
 			AdditionalFiles: []bootstrapv1.File{

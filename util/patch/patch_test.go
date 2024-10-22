@@ -1378,7 +1378,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			},
 		}
 
-		t.Run("should mark it ready", func(t *testing.T) {
+		t.Run("should mark it ready and sort conditions", func(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := obj.DeepCopy()
@@ -1397,6 +1397,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				return env.Get(ctx, key, obj)
 			}).Should(Succeed())
 
+			// Adding Ready first
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -1404,6 +1405,17 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Marking clusterv1.conditions and metav1.conditions Ready=True")
 			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+
+			t.Log("Patching the object")
+			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
+
+			// Adding Available as a second condition, but it should be sorted as first
+			t.Log("Creating a new patch helper")
+			patcher, err = NewHelper(obj, env)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			t.Log("Marking metav1.conditions Available=True")
+			v1beta2conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1421,6 +1433,13 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return nil
 				}
+				if len(objAfter.Status.V1Beta2.Conditions) != 2 {
+					return nil
+				}
+				if objAfter.Status.V1Beta2.Conditions[0].Type != "Available" || objAfter.Status.V1Beta2.Conditions[1].Type != "Ready" {
+					return nil
+				}
+
 				return objAfter.Status.V1Beta2.Conditions
 			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.V1Beta2.Conditions))
 		})
@@ -1866,7 +1885,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			},
 		}
 
-		t.Run("should mark it ready", func(t *testing.T) {
+		t.Run("should mark it ready and sort conditions", func(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := obj.DeepCopy()
@@ -1885,6 +1904,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				return env.Get(ctx, key, obj)
 			}).Should(Succeed())
 
+			// Adding Ready first
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -1892,6 +1912,17 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Marking condition and back compatibility condition Ready=True")
 			conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 			v1beta2conditions.Set(obj, metav1.Condition{Type: "Ready", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+
+			t.Log("Patching the object")
+			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
+
+			// Adding Available as a second condition, but it should be sorted as first
+			t.Log("Creating a new patch helper")
+			patcher, err = NewHelper(obj, env)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			t.Log("Marking condition Available=True")
+			v1beta2conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
@@ -1909,6 +1940,13 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return nil
 				}
+				if len(objAfter.Status.Conditions) != 2 {
+					return nil
+				}
+				if objAfter.Status.Conditions[0].Type != "Available" || objAfter.Status.Conditions[1].Type != "Ready" {
+					return nil
+				}
+
 				return objAfter.Status.Conditions
 			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.Conditions))
 		})
@@ -2351,7 +2389,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			},
 		}
 
-		t.Run("should mark it ready", func(t *testing.T) {
+		t.Run("should mark it ready and sort conditions", func(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := obj.DeepCopy()
@@ -2370,6 +2408,7 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 				return env.Get(ctx, key, obj)
 			}).Should(Succeed())
 
+			// Adding Ready first
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
 			g.Expect(err).ToNot(HaveOccurred())
@@ -2380,12 +2419,30 @@ func TestPatchHelperForV1beta2Transition(t *testing.T) {
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
 
+			// Adding Available as a second condition, but it should be sorted as first
+			t.Log("Creating a new patch helper")
+			patcher, err = NewHelper(obj, env)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			t.Log("Marking condition Available=True")
+			v1beta2conditions.Set(obj, metav1.Condition{Type: "Available", Status: metav1.ConditionTrue, Reason: "AllGood", LastTransitionTime: now})
+
+			t.Log("Patching the object")
+			g.Expect(patcher.Patch(ctx, obj)).To(Succeed())
+
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() []metav1.Condition {
 				objAfter := obj.DeepCopy()
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return nil
 				}
+				if len(objAfter.Status.Conditions) != 2 {
+					return nil
+				}
+				if objAfter.Status.Conditions[0].Type != "Available" || objAfter.Status.Conditions[1].Type != "Ready" {
+					return nil
+				}
+
 				return objAfter.Status.Conditions
 			}, timeout).Should(v1beta2conditions.MatchConditions(obj.Status.Conditions))
 		})

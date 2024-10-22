@@ -138,7 +138,7 @@ func TestApply(t *testing.T) {
 		before  Setter
 		after   Setter
 		latest  Setter
-		options []ApplyOption
+		options []PatchApplyOption
 		want    []metav1.Condition
 		wantErr bool
 	}{
@@ -195,7 +195,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(),
 			after:   objectWithConditions(fooTrue),
 			latest:  objectWithConditions(fooFalse),
-			options: []ApplyOption{ForceOverwrite(true)},
+			options: []PatchApplyOption{ForceOverwrite(true)},
 			want:    []metav1.Condition{fooTrue}, // after condition should be kept in case of error
 			wantErr: false,
 		},
@@ -204,7 +204,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(),
 			after:   objectWithConditions(fooTrue),
 			latest:  objectWithConditions(fooFalse),
-			options: []ApplyOption{OwnedConditionTypes("foo")},
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
 			want:    []metav1.Condition{fooTrue}, // after condition should be kept in case of error
 			wantErr: false,
 		},
@@ -237,7 +237,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(fooTrue),
 			after:   objectWithConditions(),
 			latest:  objectWithConditions(fooFalse),
-			options: []ApplyOption{ForceOverwrite(true)},
+			options: []PatchApplyOption{ForceOverwrite(true)},
 			want:    []metav1.Condition{},
 			wantErr: false,
 		},
@@ -246,7 +246,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(fooTrue),
 			after:   objectWithConditions(),
 			latest:  objectWithConditions(fooFalse),
-			options: []ApplyOption{OwnedConditionTypes("foo")},
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
 			want:    []metav1.Condition{},
 			wantErr: false,
 		},
@@ -279,7 +279,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(fooFalse),
 			after:   objectWithConditions(fooFalse2),
 			latest:  objectWithConditions(fooTrue),
-			options: []ApplyOption{ForceOverwrite(true)},
+			options: []PatchApplyOption{ForceOverwrite(true)},
 			want:    []metav1.Condition{fooFalse2},
 			wantErr: false,
 		},
@@ -288,7 +288,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(fooFalse),
 			after:   objectWithConditions(fooFalse2),
 			latest:  objectWithConditions(fooTrue),
-			options: []ApplyOption{OwnedConditionTypes("foo")},
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
 			want:    []metav1.Condition{fooFalse2},
 			wantErr: false,
 		},
@@ -305,7 +305,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(fooTrue),
 			after:   objectWithConditions(fooFalse),
 			latest:  objectWithConditions(),
-			options: []ApplyOption{ForceOverwrite(true)},
+			options: []PatchApplyOption{ForceOverwrite(true)},
 			want:    []metav1.Condition{fooFalse},
 			wantErr: false,
 		},
@@ -314,7 +314,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(fooTrue),
 			after:   objectWithConditions(fooFalse),
 			latest:  objectWithConditions(),
-			options: []ApplyOption{OwnedConditionTypes("foo")},
+			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
 			want:    []metav1.Condition{fooFalse},
 			wantErr: false,
 		},
@@ -323,7 +323,7 @@ func TestApply(t *testing.T) {
 			before:  objectWithConditions(fooTrue),
 			after:   objectWithConditions(fooFalse),
 			latest:  objectWithConditions(),
-			options: []ApplyOption{nil},
+			options: []PatchApplyOption{nil},
 			wantErr: true,
 		},
 	}

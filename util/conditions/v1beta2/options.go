@@ -26,6 +26,11 @@ func (f ConditionSortFunc) ApplyToSet(opts *SetOptions) {
 	opts.conditionSortFunc = f
 }
 
+// ApplyToPatchApply applies this configuration to the given patch apply options.
+func (f ConditionSortFunc) ApplyToPatchApply(opts *PatchApplyOptions) {
+	opts.conditionSortFunc = f
+}
+
 // TargetConditionType allows to specify the type of new mirror or aggregate conditions.
 type TargetConditionType string
 
@@ -105,15 +110,17 @@ func (t CustomMergeStrategy) ApplyToAggregate(opts *AggregateOptions) {
 
 // OwnedConditionTypes allows to define condition types owned by the controller when performing patch apply.
 // In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
-func OwnedConditionTypes(conditionTypes ...string) ApplyOption {
-	return func(c *applyOptions) {
-		c.ownedConditionTypes = conditionTypes
-	}
+type OwnedConditionTypes []string
+
+// ApplyToPatchApply applies this configuration to the given patch apply options.
+func (o OwnedConditionTypes) ApplyToPatchApply(opts *PatchApplyOptions) {
+	opts.ownedConditionTypes = o
 }
 
 // ForceOverwrite instructs patch apply to always use the value provided by the controller (no matter of what value exists currently).
-func ForceOverwrite(v bool) ApplyOption {
-	return func(c *applyOptions) {
-		c.forceOverwrite = v
-	}
+type ForceOverwrite bool
+
+// ApplyToPatchApply applies this configuration to the given patch apply options.
+func (f ForceOverwrite) ApplyToPatchApply(opts *PatchApplyOptions) {
+	opts.forceOverwrite = bool(f)
 }

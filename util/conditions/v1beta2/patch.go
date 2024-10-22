@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"reflect"
+	"sort"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
@@ -90,13 +91,32 @@ func NewPatch(before, after Getter) (Patch, error) {
 	return patch, nil
 }
 
-// applyOptions allows to set strategies for patch apply.
-type applyOptions struct {
-	ownedConditionTypes []string
-	forceOverwrite      bool
+// PatchApplyOption is some configuration that modifies options for a patch apply call.
+type PatchApplyOption interface {
+	// ApplyToPatchApply applies this configuration to the given patch apply options.
+	ApplyToPatchApply(option *PatchApplyOptions)
 }
 
-func (o *applyOptions) isOwnedConditionType(conditionType string) bool {
+// PatchApplyOptions allows to set strategies for patch apply.
+type PatchApplyOptions struct {
+	ownedConditionTypes []string
+	forceOverwrite      bool
+	conditionSortFunc   ConditionSortFunc
+}
+
+// ApplyOptions applies the given list options on these options,
+// and then returns itself (for convenient chaining).
+func (o *PatchApplyOptions) ApplyOptions(opts []PatchApplyOption) *PatchApplyOptions {
+	for _, opt := range opts {
+		if util.IsNil(opt) {
+			continue
+		}
+		opt.ApplyToPatchApply(o)
+	}
+	return o
+}
+
+func (o *PatchApplyOptions) isOwnedConditionType(conditionType string) bool {
 	for _, i := range o.ownedConditionTypes {
 		if i == conditionType {
 			return true
@@ -105,12 +125,9 @@ func (o *applyOptions) isOwnedConditionType(conditionType string) bool {
 	return false
 }
 
-// ApplyOption defines an option for applying a condition patch.
-type ApplyOption func(*applyOptions)
-
 // Apply executes a three-way merge of a list of Patch.
 // When merge conflicts are detected (latest deviated from before in an incompatible way), an error is returned.
-func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
+func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 	if p.IsZero() {
 		return nil
 	}
@@ -120,13 +137,11 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 	}
 	latestConditions := latest.GetV1Beta2Conditions()
 
-	applyOpt := &applyOptions{}
-	for _, o := range options {
-		if util.IsNil(o) {
-			return errors.New("error patching conditions: ApplyOption is nil")
-		}
-		o(applyOpt)
+	applyOpt := &PatchApplyOptions{
+		// By default, sort conditions by the default condition order: available and ready always first, deleting and paused always last, all the other conditions in alphabetical order.
+		conditionSortFunc: defaultSortLessFunc,
 	}
+	applyOpt.ApplyOptions(opts)
 
 	for _, conditionPatch := range p {
 		switch conditionPatch.Op {
@@ -199,6 +214,12 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 			// Otherwise the latest and after agreed on the delete operation, so there's nothing to change.
 			meta.RemoveStatusCondition(&latestConditions, conditionPatch.Before.Type)
 		}
+	}
+
+	if applyOpt.conditionSortFunc != nil {
+		sort.SliceStable(latestConditions, func(i, j int) bool {
+			return applyOpt.conditionSortFunc(latestConditions[i], latestConditions[j])
+		})
 	}
 
 	latest.SetV1Beta2Conditions(latestConditions)

@@ -132,7 +132,7 @@ func Test_cache_scale(t *testing.T) {
 
 	time.Sleep(testDuration)
 
-	t.Log("createCount", createCount, "getCount", getCount, "listCount", listCount, "deleteCount", deleteCount)
+	t.Log("createCount", createCount.Load(), "getCount", getCount.Load(), "listCount", listCount.Load(), "deleteCount", deleteCount.Load())
 
 	cancel()
 }

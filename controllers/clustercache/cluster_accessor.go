@@ -447,6 +447,43 @@ func (ca *clusterAccessor) Watch(ctx context.Context, input WatchInput) error {
 	return nil
 }
 
+func typedWatch[object client.Object, request comparable](ctx context.Context, ca *clusterAccessor, input TypedWatchInput[object, request]) error {
+	if input.Name == "" {
+		return errors.New("input.Name is required")
+	}
+
+	if !ca.Connected(ctx) {
+		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", input.Name, input.Kind)
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+
+	// Calling Watch on a controller is non-blocking because it only calls Start on the Kind source.
+	// Start on the Kind source starts an additional go routine to create an informer.
+	// Because it is non-blocking we can use a full lock here without blocking other reconcilers too long.
+	ca.lock(ctx)
+	defer ca.unlock(ctx)
+
+	// Checking connection again while holding the lock, because maybe Disconnect was called since checking above.
+	if ca.lockedState.connection == nil {
+		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", input.Name, input.Kind)
+	}
+
+	// Return early if the watch was already added.
+	if ca.lockedState.connection.watches.Has(input.Name) {
+		log.V(6).Info(fmt.Sprintf("Skip creation of watch %s for %T because it already exists", input.Name, input.Kind))
+		return nil
+	}
+
+	log.Info(fmt.Sprintf("Creating watch %s for %T", input.Name, input.Kind))
+	if err := input.Watcher.Watch(source.TypedKind(ca.lockedState.connection.cache, input.Kind, input.EventHandler, input.Predicates...)); err != nil {
+		return errors.Wrapf(err, "error creating watch %s for %T", input.Name, input.Kind)
+	}
+
+	ca.lockedState.connection.watches.Insert(input.Name)
+	return nil
+}
+
 func (ca *clusterAccessor) GetLastProbeSuccessTimestamp(ctx context.Context) time.Time {
 	ca.rLock(ctx)
 	defer ca.rUnlock(ctx)

@@ -199,6 +199,29 @@ type WatchInput struct {
 	Predicates []predicate.Predicate
 }
 
+// TypedWatcher is a scoped-down interface from Controller that only knows how to watch.
+type TypedWatcher[request comparable] interface {
+	Watch(src source.TypedSource[request]) error
+}
+
+// TypedWatchInput specifies the parameters used to establish a new watch for a remote cluster.
+type TypedWatchInput[object client.Object, request comparable] struct {
+	// Name represents a unique watch request for the specified Cluster.
+	Name string
+
+	// Watcher is the watcher (controller) whose Reconcile() function will be called for events.
+	Watcher TypedWatcher[request]
+
+	// Kind is the type of resource to watch.
+	Kind object
+
+	// EventHandler contains the event handlers to invoke for resource events.
+	EventHandler handler.TypedEventHandler[object, request]
+
+	// Predicates is used to filter resource events.
+	Predicates []predicate.TypedPredicate[object]
+}
+
 // GetClusterSourceOption is an option that modifies GetClusterSourceOptions for a GetClusterSource call.
 type GetClusterSourceOption interface {
 	// ApplyToGetClusterSourceOptions applies this option to the given GetClusterSourceOptions.
@@ -348,6 +371,15 @@ func (cc *clusterCache) Watch(ctx context.Context, cluster client.ObjectKey, inp
 		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", input.Name, input.Kind)
 	}
 	return accessor.Watch(ctx, input)
+}
+
+// TypedWatch starts a typed watch.
+func TypedWatch[object client.Object, request comparable](ctx context.Context, cc *clusterCache, cluster client.ObjectKey, input TypedWatchInput[object, request]) error {
+	accessor := cc.getClusterAccessor(cluster)
+	if accessor == nil {
+		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", input.Name, input.Kind)
+	}
+	return typedWatch(ctx, accessor, input)
 }
 
 func (cc *clusterCache) GetLastProbeSuccessTimestamp(ctx context.Context, cluster client.ObjectKey) time.Time {

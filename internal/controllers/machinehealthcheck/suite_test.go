@@ -93,9 +93,10 @@ func TestMain(m *testing.M) {
 			SetConnectionCreationRetryInterval(2 * time.Second)
 
 		if err := (&clustercontroller.Reconciler{
-			Client:       mgr.GetClient(),
-			APIReader:    mgr.GetClient(),
-			ClusterCache: clusterCache,
+			Client:                      mgr.GetClient(),
+			APIReader:                   mgr.GetClient(),
+			ClusterCache:                clusterCache,
+			RemoteConnectionGracePeriod: 50 * time.Second,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 		}

@@ -71,6 +71,10 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.RuntimeClient == nil {
+		return errors.New("Client and RuntimeClient must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterclass")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.ClusterClass{}).

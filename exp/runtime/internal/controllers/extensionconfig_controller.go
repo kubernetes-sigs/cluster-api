@@ -63,6 +63,10 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+	if r.Client == nil || r.APIReader == nil || r.RuntimeClient == nil {
+		return errors.New("Client, APIReader and RuntimeClient must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "extensionconfig")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&runtimev1.ExtensionConfig{}).

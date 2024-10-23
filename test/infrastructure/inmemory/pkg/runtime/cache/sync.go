@@ -50,8 +50,10 @@ func (c *cache) startSyncer(ctx context.Context) error {
 		c.syncQueue.ShutDown()
 	}()
 
+	var syncLoopStarted atomic.Bool
 	go func() {
 		log.Info("Starting sync loop")
+		syncLoopStarted.Store(true)
 		for {
 			select {
 			case <-time.After(c.syncPeriod / 4):
@@ -61,15 +63,14 @@ func (c *cache) startSyncer(ctx context.Context) error {
 			}
 		}
 	}()
-
-	var workers int64
+	var workers atomic.Int64
 	go func() {
 		log.Info("Starting sync workers", "count", c.syncConcurrency)
 		wg := &sync.WaitGroup{}
 		wg.Add(c.syncConcurrency)
 		for range c.syncConcurrency {
 			go func() {
-				atomic.AddInt64(&workers, 1)
+				workers.Add(1)
 				defer wg.Done()
 				for c.processSyncWorkItem(ctx) {
 				}
@@ -80,7 +81,16 @@ func (c *cache) startSyncer(ctx context.Context) error {
 	}()
 
 	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (done bool, err error) {
-		if atomic.LoadInt64(&workers) < int64(c.syncConcurrency) {
+		if !syncLoopStarted.Load() {
+			return false, nil
+		}
+		return true, nil
+	}); err != nil {
+		return fmt.Errorf("failed to start sync loop: %v", err)
+	}
+
+	if err := wait.PollUntilContextTimeout(ctx, 50*time.Millisecond, 5*time.Second, false, func(context.Context) (done bool, err error) {
+		if workers.Load() < int64(c.syncConcurrency) {
 			return false, nil
 		}
 		return true, nil

@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -127,6 +128,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
+	_ = storagev1.AddToScheme(scheme)
 
 	_ = clusterv1alpha3.AddToScheme(scheme)
 	_ = clusterv1alpha4.AddToScheme(scheme)
@@ -433,6 +435,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager, watchNamespaces map
 					// Don't cache Pods & DaemonSets (we get/list them e.g. during drain).
 					&corev1.Pod{},
 					&appsv1.DaemonSet{},
+					// Don't cache PersistentVolumes and VolumeAttachments (we get/list them e.g. during wait for volumes to detach)
+					&storagev1.VolumeAttachment{},
+					&corev1.PersistentVolume{},
 				},
 			},
 		},

@@ -53,10 +53,12 @@ func Test_cache_scale(t *testing.T) {
 	operationFrequencyForResourceGroup := 10 * time.Millisecond
 	testDuration := 2 * time.Minute
 
-	var createCount uint64
-	var getCount uint64
-	var listCount uint64
-	var deleteCount uint64
+	var (
+		createCount atomic.Uint64
+		getCount    atomic.Uint64
+		listCount   atomic.Uint64
+		deleteCount atomic.Uint64
+	)
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
@@ -95,17 +97,17 @@ func Test_cache_scale(t *testing.T) {
 						err := c.Create(resourceGroup, machine)
 						if apierrors.IsAlreadyExists(err) {
 							if err = c.Get(resourceGroup, types.NamespacedName{Name: machineName(item)}, machine); err == nil {
-								atomic.AddUint64(&getCount, 1)
+								getCount.Add(1)
 								continue
 							}
 						}
 						g.Expect(err).ToNot(HaveOccurred())
-						atomic.AddUint64(&createCount, 1)
+						createCount.Add(1)
 					case 1: // list
 						obj := &cloudv1.CloudMachineList{}
 						err := c.List(resourceGroup, obj)
 						g.Expect(err).ToNot(HaveOccurred())
-						atomic.AddUint64(&listCount, 1)
+						listCount.Add(1)
 					case 2: // delete
 						g.Expect(err).ToNot(HaveOccurred())
 						machine := &cloudv1.CloudMachine{
@@ -118,7 +120,7 @@ func Test_cache_scale(t *testing.T) {
 							continue
 						}
 						g.Expect(err).ToNot(HaveOccurred())
-						atomic.AddUint64(&deleteCount, 1)
+						deleteCount.Add(1)
 					}
 
 				case <-ctx.Done():

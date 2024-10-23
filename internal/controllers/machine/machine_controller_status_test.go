@@ -1125,6 +1125,60 @@ func TestSetReadyCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "Drops messages from BootstrapConfigReady and Infrastructure ready when using fallback to fields",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							Kind: "KubeadmConfig",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						Kind: "AWSMachine",
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					InfrastructureReady: true,
+					BootstrapReady:      true,
+					V1Beta2: &clusterv1.MachineV1Beta2Status{
+						Conditions: []metav1.Condition{
+							{
+								Type:    clusterv1.MachineBootstrapConfigReadyV1Beta2Condition,
+								Status:  metav1.ConditionTrue,
+								Reason:  "Foo",
+								Message: bootstrapConfigReadyFallBackMessage("KubeadmConfig", true),
+							},
+							{
+								Type:    clusterv1.InfrastructureReadyV1Beta2Condition,
+								Status:  metav1.ConditionTrue,
+								Reason:  "Bar",
+								Message: infrastructureReadyFallBackMessage("AWSMachine", true),
+							},
+							{
+								Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+								Status: metav1.ConditionTrue,
+								Reason: "AllGood",
+							},
+							{
+								Type:   clusterv1.MachineDeletingV1Beta2Condition,
+								Status: metav1.ConditionFalse,
+								Reason: clusterv1.MachineDeletingDeletionTimestampNotSetV1Beta2Reason,
+							},
+						},
+					},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: v1beta2conditions.MultipleInfoReportedReason,
+			},
+		},
+		{
 			name: "Aggregates Ready condition correctly while the machine is deleting (waiting for Node drain)",
 			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{

@@ -59,6 +59,10 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.APIReader == nil {
+		return errors.New("Client and APIReader must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/machinedeployment")
 	clusterToMachineDeployments, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
 	if err != nil {

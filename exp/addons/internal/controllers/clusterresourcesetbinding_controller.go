@@ -48,6 +48,10 @@ type ClusterResourceSetBindingReconciler struct {
 }
 
 func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil {
+		return errors.New("Client must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterresourcesetbinding")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSetBinding{}).

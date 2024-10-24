@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/clusterclass"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -48,7 +49,8 @@ func TestMain(m *testing.M) {
 	}
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&clusterclass.Reconciler{
-			Client: mgr.GetClient(),
+			Client:        mgr.GetClient(),
+			RuntimeClient: fakeruntimeclient.NewRuntimeClientBuilder().Build(),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
 			panic(fmt.Sprintf("unable to create clusterclass reconciler: %v", err))
 		}

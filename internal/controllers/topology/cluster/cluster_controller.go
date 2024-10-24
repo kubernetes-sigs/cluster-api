@@ -89,6 +89,10 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil {
+		return errors.New("Client, APIReader and ClusterCache must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "topology/cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}, builder.WithPredicates(

@@ -157,6 +157,10 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.ContainerRuntime == nil || r.Scheme == nil {
+		return errors.New("Client, ContainerRuntime and Scheme must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockermachinepool")
 	clusterToDockerMachinePools, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &infraexpv1.DockerMachinePoolList{}, mgr.GetScheme())
 	if err != nil {

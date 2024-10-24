@@ -68,6 +68,7 @@ func TestMain(m *testing.M) {
 
 		if err := (&MachinePoolReconciler{
 			Client:       mgr.GetClient(),
+			APIReader:    mgr.GetAPIReader(),
 			ClusterCache: clusterCache,
 			recorder:     mgr.GetEventRecorderFor("machinepool-controller"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {

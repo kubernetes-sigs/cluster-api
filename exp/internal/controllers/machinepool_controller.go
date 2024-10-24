@@ -100,6 +100,10 @@ type scope struct {
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil {
+		return errors.New("Client, APIReader and ClusterCache must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "machinepool")
 	clusterToMachinePools, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &expv1.MachinePoolList{}, mgr.GetScheme())
 	if err != nil {

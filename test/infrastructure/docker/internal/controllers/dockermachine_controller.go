@@ -476,6 +476,10 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, dockerClu
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.ContainerRuntime == nil || r.ClusterCache == nil {
+		return errors.New("Client, ContainerRuntime and ClusterCache must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockermachine")
 	clusterToDockerMachines, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &infrav1.DockerMachineList{}, mgr.GetScheme())
 	if err != nil {

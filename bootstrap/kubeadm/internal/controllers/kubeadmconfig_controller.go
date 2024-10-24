@@ -103,6 +103,10 @@ type Scope struct {
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.SecretCachingClient == nil || r.ClusterCache == nil || r.TokenTTL == time.Duration(0) {
+		return errors.New("Client, SecretCachingClient and ClusterCache must not be nil and TokenTTL must not be 0")
+	}
+
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(mgr.GetClient())
 	}

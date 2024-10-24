@@ -70,6 +70,10 @@ type ClusterResourceSetReconciler struct {
 }
 
 func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options, partialSecretCache cache.Cache) error {
+	if r.Client == nil || r.ClusterCache == nil {
+		return errors.New("Client and ClusterCache must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "clusterresourceset")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).

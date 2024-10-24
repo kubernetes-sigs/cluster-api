@@ -212,6 +212,10 @@ func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *
 
 // SetupWithManager will add watches for this controller.
 func (r *InMemoryClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.InMemoryManager == nil || r.APIServerMux == nil {
+		return errors.New("Client, InMemoryManager and APIServerMux must not be nil")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "inmemorycluster")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.InMemoryCluster{}).

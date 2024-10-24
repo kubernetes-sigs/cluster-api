@@ -87,6 +87,10 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConnectionGracePeriod == time.Duration(0) {
+		return errors.New("Client, APIReader and ClusterCache must not be nil and RemoteConnectionGracePeriod must not be 0")
+	}
+
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).

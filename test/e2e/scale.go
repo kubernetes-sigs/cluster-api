@@ -61,7 +61,7 @@ const (
 )
 
 // scaleSpecInput is the input for scaleSpec.
-type scaleSpecInput struct {
+type ScaleSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -119,6 +119,9 @@ type scaleSpecInput struct {
 	// If not specified, this is a no-op.
 	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
 
+	// Allows to inject a function to be run after test workload cluster name and namespace are generated.
+	// If not specified, this is a no-op.
+	PostScaleClusterNamespaceCreated func(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string, clusterTemplateYAML []byte) (template []byte)
 	// FailFast if set to true will return immediately after the first cluster operation fails.
 	// If set to false, the test suite will not exit immediately after the first cluster operation fails.
 	// Example: When creating clusters from c1 to c20 consider c6 fails creation. If FailFast is set to true
@@ -142,10 +145,10 @@ type scaleSpecInput struct {
 }
 
 // scaleSpec implements a scale test for clusters with MachineDeployments.
-func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
+func ScaleSpec(ctx context.Context, inputGetter func() ScaleSpecInput) {
 	var (
 		specName      = "scale"
-		input         scaleSpecInput
+		input         ScaleSpecInput
 		namespace     *corev1.Namespace
 		cancelWatches context.CancelFunc
 	)
@@ -331,7 +334,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			Concurrency:  concurrency,
 			FailFast:     input.FailFast,
 			WorkerFunc: func(ctx context.Context, inputChan chan string, resultChan chan workResult, wg *sync.WaitGroup) {
-				createClusterWorker(ctx, input.BootstrapClusterProxy, inputChan, resultChan, wg, namespace.Name, input.DeployClusterInSeparateNamespaces, baseClusterClassYAML, baseClusterTemplateYAML, creator)
+				createClusterWorker(ctx, input.BootstrapClusterProxy, inputChan, resultChan, wg, namespace.Name, input.DeployClusterInSeparateNamespaces, baseClusterClassYAML, baseClusterTemplateYAML, creator, input.PostScaleClusterNamespaceCreated)
 			},
 		})
 		if err != nil {
@@ -568,7 +571,9 @@ func getClusterCreateFn(clusterProxy framework.ClusterProxy) clusterCreator {
 	}
 }
 
-func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProxy, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, defaultNamespace string, deployClusterInSeparateNamespaces bool, baseClusterClassYAML, baseClusterTemplateYAML []byte, create clusterCreator) {
+type PostScaleClusterNamespaceCreated func(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string, clusterTemplateYAML []byte) (template []byte)
+
+func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProxy, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, defaultNamespace string, deployClusterInSeparateNamespaces bool, baseClusterClassYAML, baseClusterTemplateYAML []byte, create clusterCreator, postScaleClusterNamespaceCreated PostScaleClusterNamespaceCreated) {
 	defer wg.Done()
 
 	for {
@@ -619,9 +624,14 @@ func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProx
 						return clusterProxy.CreateOrUpdate(ctx, clusterClassYAML)
 					}, 1*time.Minute).Should(Succeed())
 				}
-
+				// Call postScaleClusterNamespaceCreated hook to apply custom requirements based on the clustername and namespace
+				customizedClusterTemplateYAML := baseClusterTemplateYAML
+				if postScaleClusterNamespaceCreated != nil {
+					Logf("Calling postScaleClusterNamespaceCreated for namespace %s", namespaceName)
+					customizedClusterTemplateYAML = postScaleClusterNamespaceCreated(clusterProxy, namespaceName, clusterName, baseClusterTemplateYAML)
+				}
 				// Adjust namespace and name in Cluster YAML
-				clusterTemplateYAML := bytes.Replace(baseClusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
+				clusterTemplateYAML := bytes.Replace(customizedClusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
 				clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName), -1)
 
 				// Deploy Cluster.

@@ -34,6 +34,7 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
 			Header:              "test",
+			BootCommands:        nil,
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,
 			AdditionalFiles: []bootstrapv1.File{
@@ -94,6 +95,9 @@ func TestNewInitControlPlaneCommands(t *testing.T) {
 
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
+			BootCommands: []bootstrapv1.BootCommand{
+				{"echo", "hello"},
+			},
 			Header:              "test",
 			PreKubeadmCommands:  []string{`"echo $(date) ': hello world!'"`},
 			PostKubeadmCommands: []string{"echo $(date) ': hello world!'"},
@@ -132,6 +136,7 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 	cpinput := &ControlPlaneInput{
 		BaseUserData: BaseUserData{
 			Header:              "test",
+			BootCommands:        nil,
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,
 			WriteFiles:          nil,
@@ -194,6 +199,9 @@ func TestNewJoinControlPlaneAdditionalFileEncodings(t *testing.T) {
 
 	cpinput := &ControlPlaneJoinInput{
 		BaseUserData: BaseUserData{
+			BootCommands: []bootstrapv1.BootCommand{
+				{"echo", "hello"},
+			},
 			Header:              "test",
 			PreKubeadmCommands:  nil,
 			PostKubeadmCommands: nil,
@@ -247,6 +255,7 @@ func TestNewJoinControlPlaneExperimentalRetry(t *testing.T) {
 	cpinput := &ControlPlaneJoinInput{
 		BaseUserData: BaseUserData{
 			Header:               "test",
+			BootCommands:         nil,
 			PreKubeadmCommands:   nil,
 			PostKubeadmCommands:  nil,
 			UseExperimentalRetry: true,

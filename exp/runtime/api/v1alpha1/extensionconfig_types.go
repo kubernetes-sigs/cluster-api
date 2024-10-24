@@ -26,16 +26,16 @@ import (
 
 // ExtensionConfigSpec defines the desired state of ExtensionConfig.
 type ExtensionConfigSpec struct {
-	// ClientConfig defines how to communicate with the Extension server.
+	// clientConfig defines how to communicate with the Extension server.
 	ClientConfig ClientConfig `json:"clientConfig"`
 
-	// NamespaceSelector decides whether to call the hook for an object based
+	// namespaceSelector decides whether to call the hook for an object based
 	// on whether the namespace for that object matches the selector.
 	// Defaults to the empty LabelSelector, which matches all objects.
 	// +optional
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 
-	// Settings defines key value pairs to be passed to all calls
+	// settings defines key value pairs to be passed to all calls
 	// to all supported RuntimeExtensions.
 	// Note: Settings can be overridden on the ClusterClass.
 	// +optional
@@ -45,7 +45,7 @@ type ExtensionConfigSpec struct {
 // ClientConfig contains the information to make a client
 // connection with an Extension server.
 type ClientConfig struct {
-	// URL gives the location of the Extension server, in standard URL form
+	// url gives the location of the Extension server, in standard URL form
 	// (`scheme://host:port/path`).
 	// Note: Exactly one of `url` or `service` must be specified.
 	//
@@ -64,7 +64,7 @@ type ClientConfig struct {
 	// +optional
 	URL *string `json:"url,omitempty"`
 
-	// Service is a reference to the Kubernetes service for the Extension server.
+	// service is a reference to the Kubernetes service for the Extension server.
 	// Note: Exactly one of `url` or `service` must be specified.
 	//
 	// If the Extension server is running within a cluster, then you should use `service`.
@@ -72,25 +72,25 @@ type ClientConfig struct {
 	// +optional
 	Service *ServiceReference `json:"service,omitempty"`
 
-	// CABundle is a PEM encoded CA bundle which will be used to validate the Extension server's server certificate.
+	// caBundle is a PEM encoded CA bundle which will be used to validate the Extension server's server certificate.
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 }
 
 // ServiceReference holds a reference to a Kubernetes Service of an Extension server.
 type ServiceReference struct {
-	// Namespace is the namespace of the service.
+	// namespace is the namespace of the service.
 	Namespace string `json:"namespace"`
 
-	// Name is the name of the service.
+	// name is the name of the service.
 	Name string `json:"name"`
 
-	// Path is an optional URL path and if present may be any string permissible in
+	// path is an optional URL path and if present may be any string permissible in
 	// a URL. If a path is set it will be used as prefix to the hook-specific path.
 	// +optional
 	Path *string `json:"path,omitempty"`
 
-	// Port is the port on the service that's hosting the Extension server.
+	// port is the port on the service that's hosting the Extension server.
 	// Defaults to 443.
 	// Port should be a valid port number (1-65535, inclusive).
 	// +optional
@@ -103,31 +103,31 @@ type ServiceReference struct {
 
 // ExtensionConfigStatus defines the observed state of ExtensionConfig.
 type ExtensionConfigStatus struct {
-	// Handlers defines the current ExtensionHandlers supported by an Extension.
+	// handlers defines the current ExtensionHandlers supported by an Extension.
 	// +optional
 	// +listType=map
 	// +listMapKey=name
 	Handlers []ExtensionHandler `json:"handlers,omitempty"`
 
-	// Conditions define the current service state of the ExtensionConfig.
+	// conditions define the current service state of the ExtensionConfig.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
 // ExtensionHandler specifies the details of a handler for a particular runtime hook registered by an Extension server.
 type ExtensionHandler struct {
-	// Name is the unique name of the ExtensionHandler.
+	// name is the unique name of the ExtensionHandler.
 	Name string `json:"name"`
 
-	// RequestHook defines the versioned runtime hook which this ExtensionHandler serves.
+	// requestHook defines the versioned runtime hook which this ExtensionHandler serves.
 	RequestHook GroupVersionHook `json:"requestHook"`
 
-	// TimeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
+	// timeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
 	// Defaults to 10 is not set.
 	// +optional
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
-	// FailurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
+	// failurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.
 	// Defaults to Fail if not set.
 	// +optional
 	FailurePolicy *FailurePolicy `json:"failurePolicy,omitempty"`
@@ -135,10 +135,10 @@ type ExtensionHandler struct {
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.
 type GroupVersionHook struct {
-	// APIVersion is the group and version of the Hook.
+	// apiVersion is the group and version of the Hook.
 	APIVersion string `json:"apiVersion"`
 
-	// Hook is the name of the hook.
+	// hook is the name of the hook.
 	Hook string `json:"hook"`
 }
 

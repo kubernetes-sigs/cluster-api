@@ -131,7 +131,8 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 	return nil
 }
 
-func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, controlPlane *internal.ControlPlane) error {
+	ref := &controlPlane.KCP.Spec.MachineTemplate.InfrastructureRef
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
@@ -140,8 +141,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 		return err
 	}
 
-	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref, controlPlane.Cluster.Namespace)
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			controlPlane.InfraMachineTemplateIsNotFound = true
+		}
 		return err
 	}
 
@@ -155,8 +159,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
-		Name:       cluster.Name,
-		UID:        cluster.UID,
+		Name:       controlPlane.Cluster.Name,
+		UID:        controlPlane.Cluster.UID,
 	}))
 
 	return patchHelper.Patch(ctx, obj)

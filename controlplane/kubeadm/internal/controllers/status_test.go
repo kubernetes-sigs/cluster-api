@@ -19,6 +19,7 @@ package controllers
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -31,8 +32,528 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	controlplanev1webhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
+
+func TestSetReplicas(t *testing.T) {
+	g := NewWithT(t)
+	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionTrue}
+	readyFalse := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionFalse}
+	readyUnknown := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionUnknown}
+
+	availableTrue := metav1.Condition{Type: clusterv1.MachineAvailableV1Beta2Condition, Status: metav1.ConditionTrue}
+	availableFalse := metav1.Condition{Type: clusterv1.MachineAvailableV1Beta2Condition, Status: metav1.ConditionFalse}
+	availableUnknown := metav1.Condition{Type: clusterv1.MachineAvailableV1Beta2Condition, Status: metav1.ConditionUnknown}
+
+	upToDateTrue := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionTrue}
+	upToDateFalse := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse}
+	upToDateUnknown := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionUnknown}
+
+	kcp := &controlplanev1.KubeadmControlPlane{}
+	c := &internal.ControlPlane{
+		KCP: kcp,
+		Machines: collections.FromMachines(
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, availableTrue, upToDateTrue}}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, availableTrue, upToDateTrue}}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse, availableFalse, upToDateTrue}}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, availableFalse, upToDateTrue}}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse, availableFalse, upToDateFalse}}}},
+			&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m6"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyUnknown, availableUnknown, upToDateUnknown}}}},
+		),
+	}
+
+	setReplicas(ctx, c.KCP, c.Machines)
+
+	g.Expect(kcp.Status.V1Beta2).ToNot(BeNil())
+	g.Expect(kcp.Status.V1Beta2.ReadyReplicas).ToNot(BeNil())
+	g.Expect(*kcp.Status.V1Beta2.ReadyReplicas).To(Equal(int32(3)))
+	g.Expect(kcp.Status.V1Beta2.AvailableReplicas).ToNot(BeNil())
+	g.Expect(*kcp.Status.V1Beta2.AvailableReplicas).To(Equal(int32(2)))
+	g.Expect(kcp.Status.V1Beta2.UpToDateReplicas).ToNot(BeNil())
+	g.Expect(*kcp.Status.V1Beta2.UpToDateReplicas).To(Equal(int32(4)))
+}
+
+func Test_setScalingUpCondition(t *testing.T) {
+	tests := []struct {
+		name            string
+		controlPlane    *internal.ControlPlane
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "Replica not set",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneScalingUpWaitingForReplicasSetV1Beta2Reason,
+			},
+		},
+		{
+			name: "Not scaling up",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneNotScalingUpV1Beta2Reason,
+			},
+		},
+		{
+			name: "Not scaling up, infra template not found",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3)), MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{InfrastructureRef: corev1.ObjectReference{Kind: "AWSTemplate"}}},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+				InfraMachineTemplateIsNotFound: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotScalingUpV1Beta2Reason,
+				Message: "Scaling up would be blocked because AWSTemplate does not exist",
+			},
+		},
+		{
+			name: "Scaling up",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Message: "Scaling up from 3 to 5 replicas",
+			},
+		},
+		{
+			name: "Scaling up is always false when kcp is deleted",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now()})},
+					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
+					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneNotScalingUpV1Beta2Reason,
+			},
+		},
+		{
+			name: "Scaling up, infra template not found",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5)), MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{InfrastructureRef: corev1.ObjectReference{Kind: "AWSTemplate"}}},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+				InfraMachineTemplateIsNotFound: true,
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Message: "Scaling up from 3 to 5 replicas is blocked because AWSTemplate does not exist",
+			},
+		},
+		{
+			name: "Scaling up, preflight checks blocking",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(5))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+				PreflightCheckResults: internal.PreflightCheckResults{
+					HasDeletingMachine:               true,
+					ControlPlaneComponentsNotHealthy: true,
+					EtcdClusterNotHealthy:            true,
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Reason,
+				Message: "Scaling up from 3 to 5 replicas; waiting for Machine being deleted; waiting for control plane components to be healthy; waiting for etcd cluster to be healthy",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setScalingUpCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.InfraMachineTemplateIsNotFound, tt.controlPlane.PreflightCheckResults)
+
+			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingUpV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func Test_setScalingDownCondition(t *testing.T) {
+	tests := []struct {
+		name            string
+		controlPlane    *internal.ControlPlane
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "Replica not set",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: controlplanev1.KubeadmControlPlaneScalingDownWaitingForReplicasSetV1Beta2Reason,
+			},
+		},
+		{
+			name: "Not scaling down",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneNotScalingDownV1Beta2Reason,
+			},
+		},
+		{
+			name: "Scaling down",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 5},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 5 to 3 replicas",
+			},
+		},
+		{
+			name: "Scaling down to zero when kcp is deleted",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now()})},
+					Spec:       controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(3))},
+					Status:     controlplanev1.KubeadmControlPlaneStatus{Replicas: 5},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m4"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m5"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 5 to 0 replicas",
+			},
+		},
+		{
+			name: "Scaling down with one stale machine",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 3 to 1 replicas; Machine m1 is in deletion since more than 30m",
+			},
+		},
+		{
+			name: "Scaling down with two stale machine",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2", DeletionTimestamp: ptr.To(metav1.Time{Time: time.Now().Add(-1 * time.Hour)})}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 3 to 1 replicas; Machines m1, m2 are in deletion since more than 30m",
+			},
+		},
+		{
+			name: "Scaling down, preflight checks blocking",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Spec:   controlplanev1.KubeadmControlPlaneSpec{Replicas: ptr.To(int32(1))},
+					Status: controlplanev1.KubeadmControlPlaneStatus{Replicas: 3},
+				},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}},
+				),
+				PreflightCheckResults: internal.PreflightCheckResults{
+					HasDeletingMachine:               true,
+					ControlPlaneComponentsNotHealthy: true,
+					EtcdClusterNotHealthy:            true,
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Reason,
+				Message: "Scaling down from 3 to 1 replicas; waiting for Machine being deleted; waiting for control plane components to be healthy; waiting for etcd cluster to be healthy",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setScalingDownCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines, tt.controlPlane.PreflightCheckResults)
+
+			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneScalingDownV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func Test_setMachinesReadyAndMachinesUpToDate(t *testing.T) {
+	readyTrue := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionTrue}
+	readyFalse := metav1.Condition{Type: clusterv1.MachineReadyV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "SomeReason", Message: "NotReady"}
+
+	upToDateTrue := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionTrue}
+	upToDateFalse := metav1.Condition{Type: clusterv1.MachineUpToDateV1Beta2Condition, Status: metav1.ConditionFalse, Reason: "SomeReason", Message: "NotUpToDate"}
+
+	tests := []struct {
+		name                            string
+		controlPlane                    *internal.ControlPlane
+		expectMachinesReadyCondition    metav1.Condition
+		expectMachinesUpToDateCondition metav1.Condition
+	}{
+		{
+			name: "Without machines",
+			controlPlane: &internal.ControlPlane{
+				KCP:      &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.FromMachines(),
+			},
+			expectMachinesReadyCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneMachinesReadyNoReplicasV1Beta2Reason,
+			},
+			expectMachinesUpToDateCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneMachinesUpToDateNoReplicasV1Beta2Reason,
+			},
+		},
+		{
+			name: "With machines",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, upToDateTrue}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyTrue, upToDateFalse}}}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{readyFalse, upToDateFalse}}}},
+				),
+			},
+			expectMachinesReadyCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "SomeReason", // There is only one machine reporting issues, using the reason from that machine.
+				Message: "NotReady from Machine m3",
+			},
+			expectMachinesUpToDateCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  v1beta2conditions.MultipleIssuesReportedReason, // There are many machines reporting issues, using a generic reason.
+				Message: "NotUpToDate from Machines m2, m3",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setMachinesReadyCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines)
+			setMachinesUpToDateCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.Machines)
+
+			readyCondition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneMachinesReadyV1Beta2Condition)
+			g.Expect(readyCondition).ToNot(BeNil())
+			g.Expect(*readyCondition).To(v1beta2conditions.MatchCondition(tt.expectMachinesReadyCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+
+			upToDateCondition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneMachinesUpToDateV1Beta2Condition)
+			g.Expect(upToDateCondition).ToNot(BeNil())
+			g.Expect(*upToDateCondition).To(v1beta2conditions.MatchCondition(tt.expectMachinesUpToDateCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
+func Test_setRemediatingCondition(t *testing.T) {
+	healthCheckSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionTrue}
+	healthCheckNotSucceeded := clusterv1.Condition{Type: clusterv1.MachineHealthCheckSucceededV1Beta2Condition, Status: corev1.ConditionFalse}
+	ownerRemediated := clusterv1.Condition{Type: clusterv1.MachineOwnerRemediatedCondition, Status: corev1.ConditionFalse}
+	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Message: "Remediation in progress"}
+
+	tests := []struct {
+		name            string
+		controlPlane    *internal.ControlPlane
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "Without unhealthy machines",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}},
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
+			},
+		},
+		{
+			name: "With machines to be remediated by KCP",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded, ownerRemediated}, V1Beta2: &clusterv1.MachineV1Beta2Status{Conditions: []metav1.Condition{ownerRemediatedV1Beta2}}}},
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
+				Status:  metav1.ConditionTrue,
+				Reason:  controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Reason,
+				Message: "Remediation in progress from Machine m3",
+			},
+		},
+		{
+			name: "With one unhealthy machine not to be remediated by KCP",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
+				Message: "Machine m2 is not healthy (not to be remediated by KCP)",
+			},
+		},
+		{
+			name: "With two unhealthy machine not to be remediated by KCP",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+				Machines: collections.FromMachines(
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m1"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m2"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckNotSucceeded}}}, // Unhealthy machine, not yet marked for remediation
+					&clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "m3"}, Status: clusterv1.MachineStatus{Conditions: clusterv1.Conditions{healthCheckSucceeded}}},    // Healthy machine
+				),
+			},
+			expectCondition: metav1.Condition{
+				Type:    controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  controlplanev1.KubeadmControlPlaneNotRemediatingV1Beta2Reason,
+				Message: "Machines m1, m2 are not healthy (not to be remediated by KCP)",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setRemediatingCondition(ctx, tt.controlPlane.KCP, tt.controlPlane.MachinesToBeRemediatedByKCP(), tt.controlPlane.UnhealthyMachines())
+
+			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
 
 func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 	g := NewWithT(t)

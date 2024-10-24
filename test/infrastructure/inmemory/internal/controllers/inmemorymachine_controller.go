@@ -334,6 +334,22 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 				{
 					Type:   corev1.NodeReady,
 					Status: corev1.ConditionTrue,
+					Reason: "KubeletReady",
+				},
+				{
+					Type:   corev1.NodeMemoryPressure,
+					Status: corev1.ConditionFalse,
+					Reason: "KubeletHasSufficientMemory",
+				},
+				{
+					Type:   corev1.NodeDiskPressure,
+					Status: corev1.ConditionFalse,
+					Reason: "KubeletHasNoDiskPressure",
+				},
+				{
+					Type:   corev1.NodePIDPressure,
+					Status: corev1.ConditionFalse,
+					Reason: "KubeletHasSufficientPID",
 				},
 			},
 		},

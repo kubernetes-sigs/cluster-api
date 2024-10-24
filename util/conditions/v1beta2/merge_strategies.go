@@ -373,6 +373,7 @@ func aggregateMessages(conditions []ConditionWithOwnerInfo, n *int, dropEmpty bo
 
 			msg := m
 			allObjects := messageObjMapForKind[m]
+			sort.Strings(allObjects)
 			switch {
 			case len(allObjects) == 0:
 				// This should never happen, entry in the map exists only when an object reports a message.

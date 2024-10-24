@@ -47,6 +47,12 @@ type ControlPlane struct {
 	// reconciliationTime is the time of the current reconciliation, and should be used for all "now" calculations
 	reconciliationTime metav1.Time
 
+	// InfraMachineTemplateIsNotFound is true if getting the infra machine template object failed with an NotFound err
+	InfraMachineTemplateIsNotFound bool
+
+	// PreflightChecks contains description about pre flight check results blocking machines creation or deletion.
+	PreflightCheckResults PreflightCheckResults
+
 	// TODO: we should see if we can combine these with the Machine objects so we don't have all these separate lookups
 	// See discussion on https://github.com/kubernetes-sigs/cluster-api/pull/3405
 	KubeadmConfigs map[string]*bootstrapv1.KubeadmConfig
@@ -54,6 +60,16 @@ type ControlPlane struct {
 
 	managementCluster ManagementCluster
 	workloadCluster   WorkloadCluster
+}
+
+// PreflightCheckResults contains description about pre flight check results blocking machines creation or deletion.
+type PreflightCheckResults struct {
+	// HasDeletingMachine reports true if preflight check detected a deleting machine.
+	HasDeletingMachine bool
+	// ControlPlaneComponentsNotHealthy reports true if preflight check detected that the control plane components are not fully healthy.
+	ControlPlaneComponentsNotHealthy bool
+	// EtcdClusterNotHealthy reports true if preflight check detected that the etcd cluster is not fully healthy.
+	EtcdClusterNotHealthy bool
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
@@ -260,24 +276,25 @@ func (c *ControlPlane) UnhealthyMachinesWithUnhealthyControlPlaneComponents(mach
 	return machines.Filter(collections.HasUnhealthyControlPlaneComponents(c.IsEtcdManaged()))
 }
 
-// UnhealthyMachinesByMachineHealthCheck returns the list of control plane machines marked as unhealthy by Machine Health Check.
-func (c *ControlPlane) UnhealthyMachinesByMachineHealthCheck() collections.Machines {
-	return c.Machines.Filter(collections.HasUnhealthyCondition)
+// UnhealthyMachines returns the list of control plane machines marked as unhealthy by MHC, no matter
+// if they are set to be remediated by KCP or not.
+func (c *ControlPlane) UnhealthyMachines() collections.Machines {
+	return c.Machines.Filter(collections.IsUnhealthy)
 }
 
-// HealthyMachinesByMachineHealthCheck returns the list of control plane machines not marked as unhealthy by Machine Health Check.
-func (c *ControlPlane) HealthyMachinesByMachineHealthCheck() collections.Machines {
-	return c.Machines.Filter(collections.Not(collections.HasUnhealthyCondition))
+// HealthyMachines returns the list of control plane machines marked as healthy by MHC (or not targeted by any MHC instance).
+func (c *ControlPlane) HealthyMachines() collections.Machines {
+	return c.Machines.Filter(collections.Not(collections.IsUnhealthy))
 }
 
-// HasUnhealthyMachineByMachineHealthCheck returns true if any machine in the control plane is marked as unhealthy by Machine Health Check.
-func (c *ControlPlane) HasUnhealthyMachineByMachineHealthCheck() bool {
-	return len(c.UnhealthyMachinesByMachineHealthCheck()) > 0
+// MachinesToBeRemediatedByKCP returns the list of control plane machines to be remediated by KCP.
+func (c *ControlPlane) MachinesToBeRemediatedByKCP() collections.Machines {
+	return c.Machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
 }
 
 // HasHealthyMachineStillProvisioning returns true if any healthy machine in the control plane is still in the process of being provisioned.
 func (c *ControlPlane) HasHealthyMachineStillProvisioning() bool {
-	return len(c.HealthyMachinesByMachineHealthCheck().Filter(collections.Not(collections.HasNode()))) > 0
+	return len(c.HealthyMachines().Filter(collections.Not(collections.HasNode()))) > 0
 }
 
 // PatchMachines patches all the machines conditions.

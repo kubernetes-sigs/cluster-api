@@ -297,7 +297,7 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj client.Object, f
 					return errors.Errorf("%s %s doesn't satisfy conditions.Setter, cannot apply patch", h.gvk.Kind, klog.KObj(latest))
 				}
 
-				return diff.Apply(latestSetter, v1beta2conditions.ForceOverwrite(forceOverwrite), v1beta2conditions.OwnedConditionTypes(ownedV1beta2Conditions...))
+				return diff.Apply(latestSetter, v1beta2conditions.ForceOverwrite(forceOverwrite), v1beta2conditions.OwnedConditionTypes(ownedV1beta2Conditions))
 			}
 		}
 	}

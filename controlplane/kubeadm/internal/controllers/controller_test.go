@@ -1567,6 +1567,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 			NodeDrainTimeout:        duration5s,
 			NodeVolumeDetachTimeout: duration5s,
 			NodeDeletionTimeout:     duration5s,
+			ReadinessGates:          mandatoryMachineReadinessGates,
 		},
 	}
 	g.Expect(env.Create(ctx, deletingMachine, client.FieldOwner(classicManager))).To(Succeed())

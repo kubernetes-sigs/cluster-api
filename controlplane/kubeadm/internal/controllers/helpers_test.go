@@ -539,6 +539,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			NodeDrainTimeout:        kcp.Spec.MachineTemplate.NodeDrainTimeout,
 			NodeDeletionTimeout:     kcp.Spec.MachineTemplate.NodeDeletionTimeout,
 			NodeVolumeDetachTimeout: kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
+			ReadinessGates:          mandatoryMachineReadinessGates,
 		}
 		g.Expect(createdMachine.Name).To(HavePrefix(kcp.Name))
 		g.Expect(createdMachine.Namespace).To(Equal(kcp.Namespace))
@@ -601,6 +602,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 					ConfigRef: bootstrapRef,
 				},
 				InfrastructureRef: *infraRef,
+				ReadinessGates:    []clusterv1.MachineReadinessGate{{ConditionType: "Foo"}},
 			},
 		}
 
@@ -621,6 +623,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			NodeDrainTimeout:        kcp.Spec.MachineTemplate.NodeDrainTimeout,
 			NodeDeletionTimeout:     kcp.Spec.MachineTemplate.NodeDeletionTimeout,
 			NodeVolumeDetachTimeout: kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
+			ReadinessGates:          append([]clusterv1.MachineReadinessGate{{ConditionType: "Foo"}}, mandatoryMachineReadinessGates...),
 		}
 		g.Expect(updatedMachine.Namespace).To(Equal(kcp.Namespace))
 		g.Expect(updatedMachine.OwnerReferences).To(HaveLen(1))

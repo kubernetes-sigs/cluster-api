@@ -37,11 +37,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 var _ reconcile.Reconciler = &Reconciler{}
@@ -1013,15 +1013,16 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 		{
 			name:       "MachineSet should have ResizedCondition=false on scale down",
 			machineSet: newMachineSet("ms-scale-down", cluster.Name, int32(0)),
-			machines: []*clusterv1.Machine{{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-a",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: cluster.Name,
+			machines: []*clusterv1.Machine{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-a",
+						Namespace: metav1.NamespaceDefault,
+						Labels: map[string]string{
+							clusterv1.ClusterNameLabel: cluster.Name,
+						},
 					},
 				},
-			},
 			},
 			expectedReason:  clusterv1.ScalingDownReason,
 			expectedMessage: "Scaling down MachineSet to 0 replicas (actual 1)",
@@ -1894,7 +1895,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		}
 
 		// Perform the second pass.
-		var allMachines = func() (res []*clusterv1.Machine) {
+		allMachines := func() (res []*clusterv1.Machine) {
 			var machineList clusterv1.MachineList
 			g.Expect(r.Client.List(ctx, &machineList)).To(Succeed())
 			for i := range machineList.Items {
@@ -1914,7 +1915,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		_, err = r.reconcileUnhealthyMachines(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		var validateSecondPass = func(cleanFinalizer bool) {
+		validateSecondPass := func(cleanFinalizer bool) {
 			t.Helper()
 			for i := range unhealthyMachines {
 				m := unhealthyMachines[i]

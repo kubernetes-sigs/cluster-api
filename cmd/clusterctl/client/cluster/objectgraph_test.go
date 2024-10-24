@@ -32,7 +32,7 @@ import (
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
@@ -1043,7 +1043,6 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-
 				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/shared": {
 					owners: []string{
 						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
@@ -1638,7 +1637,6 @@ var objectGraphsTests = []struct {
 				// We need to deduplicate objects here as the clusterclasses share objects and
 				// setting up the test server panics if we try to create it with duplicate objects.
 				return deduplicateObjects(objs)
-
 			}(),
 		},
 		want: wantGraph{
@@ -1807,7 +1805,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 		namespace string
 		objs      []client.Object
 	}
-	var tests = []struct {
+	tests := []struct {
 		name    string
 		args    args
 		want    wantGraph

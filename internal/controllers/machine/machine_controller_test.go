@@ -44,12 +44,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	externalfake "sigs.k8s.io/cluster-api/controllers/external/fake"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/cache"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestWatches(t *testing.T) {
@@ -1222,7 +1222,8 @@ func TestMachineConditions(t *testing.T) {
 				tt.beforeFunc(bootstrap, infra, m)
 			}
 
-			objs := []client.Object{&testCluster, m, node,
+			objs := []client.Object{
+				&testCluster, m, node,
 				builder.GenericInfrastructureMachineCRD.DeepCopy(), infra,
 				builder.GenericBootstrapConfigCRD.DeepCopy(), bootstrap,
 			}

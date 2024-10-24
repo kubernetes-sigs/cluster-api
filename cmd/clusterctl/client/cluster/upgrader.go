@@ -57,8 +57,9 @@ type UpgradePlan struct {
 
 // UpgradeOptions defines the options used to upgrade installation.
 type UpgradeOptions struct {
-	WaitProviders       bool
-	WaitProviderTimeout time.Duration
+	WaitProviders             bool
+	WaitProviderTimeout       time.Duration
+	SkipLaggingProvidersCheck bool
 }
 
 // isPartialUpgrade returns true if at least one upgradeItem in the plan does not have a target version.
@@ -180,7 +181,7 @@ func (u *providerUpgrader) ApplyCustomPlan(ctx context.Context, opts UpgradeOpti
 
 	// Create a custom upgrade plan from the upgrade items, taking care of ensuring all the providers in a management
 	// cluster are consistent with the API Version of Cluster API (contract).
-	upgradePlan, err := u.createCustomPlan(ctx, upgradeItems)
+	upgradePlan, err := u.createCustomPlan(ctx, opts, upgradeItems)
 	if err != nil {
 		return err
 	}
@@ -218,7 +219,7 @@ func (u *providerUpgrader) getUpgradePlan(ctx context.Context, providers []clust
 
 // createCustomPlan creates a custom upgrade plan from a set of upgrade items, taking care of ensuring all the providers
 // in a management cluster are consistent with the API Version of Cluster API (contract).
-func (u *providerUpgrader) createCustomPlan(ctx context.Context, upgradeItems []UpgradeItem) (*UpgradePlan, error) {
+func (u *providerUpgrader) createCustomPlan(ctx context.Context, opts UpgradeOptions, upgradeItems []UpgradeItem) (*UpgradePlan, error) {
 	// Gets the API Version of Cluster API (contract).
 	// The this is required to ensure all the providers in a management cluster are consistent with the contract supported by the core provider.
 	// e.g if the core provider is v1beta1, all the provider should be v1beta1 as well.
@@ -286,20 +287,22 @@ func (u *providerUpgrader) createCustomPlan(ctx context.Context, upgradeItems []
 	}
 
 	// Before doing upgrades, checks if other providers in the management cluster are lagging behind the target contract.
-	for _, provider := range providerList.Items {
-		// skip providers already included in the upgrade plan
-		if upgradeInstanceNames.Has(provider.InstanceName()) {
-			continue
-		}
+	if !opts.SkipLaggingProvidersCheck {
+		for _, provider := range providerList.Items {
+			// skip providers already included in the upgrade plan
+			if upgradeInstanceNames.Has(provider.InstanceName()) {
+				continue
+			}
 
-		// Retrieves the contract that is supported by the current version of the provider.
-		contract, err := u.getProviderContractByVersion(ctx, provider, provider.Version)
-		if err != nil {
-			return nil, err
-		}
+			// Retrieves the contract that is supported by the current version of the provider.
+			contract, err := u.getProviderContractByVersion(ctx, provider, provider.Version)
+			if err != nil {
+				return nil, err
+			}
 
-		if contract != targetContract {
-			return nil, errors.Errorf("unable to complete that upgrade: the provider %s supports the %s API Version of Cluster API (contract), while the management cluster is being updated to %s. Please include the %[1]s provider in the upgrade", provider.InstanceName(), contract, targetContract)
+			if contract != targetContract {
+				return nil, errors.Errorf("unable to complete that upgrade: the provider %s supports the %s API Version of Cluster API (contract), while the management cluster is being updated to %s. Please include the %[1]s provider in the upgrade", provider.InstanceName(), contract, targetContract)
+			}
 		}
 	}
 	return upgradePlan, nil
@@ -448,7 +451,13 @@ func (u *providerUpgrader) doUpgrade(ctx context.Context, upgradePlan *UpgradePl
 		}
 	}
 
-	return waitForProvidersReady(ctx, InstallOptions(opts), installQueue, u.proxy)
+	// Convert UpgradeOptions to InstallOptions struct
+	installOptions := InstallOptions{
+		WaitProviders:       opts.WaitProviders,
+		WaitProviderTimeout: opts.WaitProviderTimeout,
+	}
+
+	return waitForProvidersReady(ctx, installOptions, installQueue, u.proxy)
 }
 
 func (u *providerUpgrader) scaleDownProvider(ctx context.Context, provider clusterctlv1.Provider) error {

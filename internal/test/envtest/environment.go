@@ -45,6 +45,7 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -117,12 +118,13 @@ func init() {
 
 // RunInput is the input for Run.
 type RunInput struct {
-	M                   *testing.M
-	ManagerUncachedObjs []client.Object
-	SetupIndexes        func(ctx context.Context, mgr ctrl.Manager)
-	SetupReconcilers    func(ctx context.Context, mgr ctrl.Manager)
-	SetupEnv            func(e *Environment)
-	MinK8sVersion       string
+	M                    *testing.M
+	ManagerUncachedObjs  []client.Object
+	CacheOptionsModifier func(*cache.Options)
+	SetupIndexes         func(ctx context.Context, mgr ctrl.Manager)
+	SetupReconcilers     func(ctx context.Context, mgr ctrl.Manager)
+	SetupEnv             func(e *Environment)
+	MinK8sVersion        string
 }
 
 // Run executes the tests of the given testing.M in a test environment.
@@ -144,7 +146,7 @@ func Run(ctx context.Context, input RunInput) int {
 	}
 
 	// Bootstrapping test environment
-	env := newEnvironment(input.ManagerUncachedObjs...)
+	env := newEnvironment(input.CacheOptionsModifier, input.ManagerUncachedObjs...)
 
 	if input.SetupIndexes != nil {
 		input.SetupIndexes(ctx, env.Manager)
@@ -228,7 +230,7 @@ type Environment struct {
 //
 // This function should be called only once for each package you're running tests within,
 // usually the environment is initialized in a suite_test.go file within a `BeforeSuite` ginkgo block.
-func newEnvironment(uncachedObjs ...client.Object) *Environment {
+func newEnvironment(cacheOptionsModifier func(*cache.Options), uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
 	root := path.Join(path.Dir(filename), "..", "..", "..")
@@ -306,6 +308,10 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 				Host:    host,
 			},
 		),
+	}
+
+	if cacheOptionsModifier != nil {
+		cacheOptionsModifier(&options.Cache)
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

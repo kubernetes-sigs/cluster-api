@@ -24,7 +24,6 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -63,7 +62,6 @@ const (
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.
 type DockerMachinePoolReconciler struct {
 	Client           client.Client
-	Scheme           *runtime.Scheme
 	ContainerRuntime container.Runtime
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
@@ -157,8 +155,8 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	if r.Client == nil || r.ContainerRuntime == nil || r.Scheme == nil {
-		return errors.New("Client, ContainerRuntime and Scheme must not be nil")
+	if r.Client == nil || r.ContainerRuntime == nil {
+		return errors.New("Client and ContainerRuntime must not be nil")
 	}
 
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockermachinepool")

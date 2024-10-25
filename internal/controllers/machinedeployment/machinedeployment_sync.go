@@ -496,6 +496,9 @@ func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS 
 		conditions.MarkFalse(md, clusterv1.MachineSetReadyCondition, clusterv1.WaitingForMachineSetFallbackReason, clusterv1.ConditionSeverityInfo, "MachineSet not found")
 	}
 
+	// Set v1beta replica counters on MD status.
+	setReplicas(md, allMSs)
+
 	return nil
 }
 

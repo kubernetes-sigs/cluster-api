@@ -225,7 +225,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	defer func() {
-		r.reconcileStatus(ctx, s)
+		r.updateStatus(ctx, s)
 
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully

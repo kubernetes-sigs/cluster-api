@@ -34,6 +34,7 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/integer"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -489,7 +490,7 @@ func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clust
 func GetReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) int32 {
 	totalReplicas := int32(0)
 	for _, ms := range machineSets {
-		if ms != nil {
+		if ms != nil && ms.Spec.Replicas != nil {
 			totalReplicas += *(ms.Spec.Replicas)
 		}
 	}
@@ -543,6 +544,39 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 		}
 	}
 	return totalAvailableReplicas
+}
+
+// GetV1Beta2ReadyReplicaCountForMachineSets returns the number of ready machines corresponding to the given machine sets.
+func GetV1Beta2ReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
+	var totalReadyReplicas *int32
+	for _, ms := range machineSets {
+		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.ReadyReplicas != nil {
+			totalReadyReplicas = ptr.To(ptr.Deref(totalReadyReplicas, 0) + *ms.Status.V1Beta2.ReadyReplicas)
+		}
+	}
+	return totalReadyReplicas
+}
+
+// GetV1Beta2AvailableReplicaCountForMachineSets returns the number of available machines corresponding to the given machine sets.
+func GetV1Beta2AvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
+	var totalAvailableReplicas *int32
+	for _, ms := range machineSets {
+		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.AvailableReplicas != nil {
+			totalAvailableReplicas = ptr.To(ptr.Deref(totalAvailableReplicas, 0) + *ms.Status.V1Beta2.AvailableReplicas)
+		}
+	}
+	return totalAvailableReplicas
+}
+
+// GetV1Beta2UptoDateReplicaCountForMachineSets returns the number of up to date machines corresponding to the given machine sets.
+func GetV1Beta2UptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
+	var totalUpToDateReplicas *int32
+	for _, ms := range machineSets {
+		if ms != nil && ms.Status.V1Beta2 != nil && ms.Status.V1Beta2.UpToDateReplicas != nil {
+			totalUpToDateReplicas = ptr.To(ptr.Deref(totalUpToDateReplicas, 0) + *ms.Status.V1Beta2.UpToDateReplicas)
+		}
+	}
+	return totalUpToDateReplicas
 }
 
 // IsRollingUpdate returns true if the strategy type is a rolling update.

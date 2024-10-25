@@ -968,11 +968,14 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			got, err := r.getAndAdoptMachineSetsForDeployment(ctx, &tc.machineDeployment)
+			s := &scope{
+				machineDeployment: &tc.machineDeployment,
+			}
+			err := r.getAndAdoptMachineSetsForDeployment(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(got).To(HaveLen(len(tc.expected)))
 
-			for idx, res := range got {
+			g.Expect(s.machineSets).To(HaveLen(len(tc.expected)))
+			for idx, res := range s.machineSets {
 				g.Expect(res.Name).To(Equal(tc.expected[idx].Name))
 				g.Expect(res.Namespace).To(Equal(tc.expected[idx].Namespace))
 			}
@@ -1065,7 +1068,10 @@ func TestReconciler_reconcileDelete(t *testing.T) {
 				recorder: record.NewFakeRecorder(32),
 			}
 
-			err := r.reconcileDelete(ctx, tt.machineDeployment)
+			s := &scope{
+				machineDeployment: tt.machineDeployment,
+			}
+			err := r.reconcileDelete(ctx, s)
 			if tt.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

@@ -77,6 +77,129 @@ const (
 	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
 
+// MachineDeployment's Available condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentAvailableV1Beta2Condition is true if the MachineDeployment is not deleted, and it has minimum
+	// availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy,
+	// availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas.
+	MachineDeploymentAvailableV1Beta2Condition = AvailableV1Beta2Condition
+
+	// MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
+	// field of the MachineDeployment is not set.
+	MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason = WaitingForReplicasSetV1Beta2Reason
+
+	// 	MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason surfaces when the .status.v1beta2.availableReplicas
+	// field of the MachineDeployment is not set.
+	MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason = "WaitingForAvailableReplicasSet"
+
+	// MachineDeploymentAvailableV1Beta2Reason surfaces when a Deployment is available.
+	MachineDeploymentAvailableV1Beta2Reason = AvailableV1Beta2Reason
+
+	// MachineDeploymentNotAvailableV1Beta2Reason surfaces when a Deployment is not available.
+	MachineDeploymentNotAvailableV1Beta2Reason = NotAvailableV1Beta2Reason
+
+	// MachineDeploymentAvailableInternalErrorV1Beta2Reason surfaces unexpected failures when computing the Available condition.
+	MachineDeploymentAvailableInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// MachineDeployment's MachinesReady condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
+	MachineDeploymentMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
+
+	// MachineDeploymentMachinesReadyNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineDeployment.
+	MachineDeploymentMachinesReadyNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+
+	// MachineDeploymentMachinesReadyInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// or aggregating machine's conditions.
+	MachineDeploymentMachinesReadyInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// MachineDeployment's MachinesUpToDate condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
+	MachineDeploymentMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
+
+	// MachineDeploymentMachinesUpToDateNoReplicasV1Beta2Reason surfaces when no machines exist for the MachineDeployment.
+	MachineDeploymentMachinesUpToDateNoReplicasV1Beta2Reason = NoReplicasV1Beta2Reason
+
+	// MachineDeploymentMachinesUpToDateInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines
+	// or aggregating status.
+	MachineDeploymentMachinesUpToDateInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// MachineDeployment's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentScalingUpV1Beta2Condition is true if available replicas < desired replicas.
+	MachineDeploymentScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
+
+	// MachineDeploymentScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
+	MachineDeploymentScalingUpV1Beta2Reason = ScalingUpV1Beta2Reason
+
+	// MachineDeploymentNotScalingUpV1Beta2Reason surfaces when actual replicas >= desired replicas.
+	MachineDeploymentNotScalingUpV1Beta2Reason = NotScalingUpV1Beta2Reason
+
+	// MachineDeploymentScalingUpInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines.
+	MachineDeploymentScalingUpInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
+	// MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
+	// field of the MachineDeployment is not set.
+	MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason = WaitingForReplicasSetV1Beta2Reason
+)
+
+// MachineDeployment's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentScalingDownV1Beta2Condition is true if replicas > desired replicas.
+	MachineDeploymentScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
+
+	// MachineDeploymentScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.
+	MachineDeploymentScalingDownV1Beta2Reason = ScalingDownV1Beta2Reason
+
+	// MachineDeploymentNotScalingDownV1Beta2Reason surfaces when actual replicas <= desired replicas.
+	MachineDeploymentNotScalingDownV1Beta2Reason = NotScalingDownV1Beta2Reason
+
+	// MachineDeploymentScalingDownInternalErrorV1Beta2Reason surfaces unexpected failures when listing machines.
+	MachineDeploymentScalingDownInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+
+	// MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason surfaces when the .spec.replicas
+	// field of the MachineDeployment is not set.
+	MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason = WaitingForReplicasSetV1Beta2Reason
+)
+
+// MachineDeployment's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentRemediatingV1Beta2Condition details about ongoing remediation of the controlled machines, if any.
+	MachineDeploymentRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
+
+	// MachineDeploymentRemediatingV1Beta2Reason surfaces when the MachineDeployment has at least one machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	MachineDeploymentRemediatingV1Beta2Reason = RemediatingV1Beta2Reason
+
+	// MachineDeploymentNotRemediatingV1Beta2Reason surfaces when the MachineDeployment does not have any machine with HealthCheckSucceeded set to false
+	// and with the OwnerRemediated condition set to false.
+	MachineDeploymentNotRemediatingV1Beta2Reason = NotRemediatingV1Beta2Reason
+
+	// MachineDeploymentRemediatingInternalErrorV1Beta2Reason surfaces unexpected failures when computing the Remediating condition.
+	MachineDeploymentRemediatingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
+// MachineDeployment's Deleting condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// MachineDeploymentDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
+	MachineDeploymentDeletingV1Beta2Condition = DeletingV1Beta2Condition
+
+	// MachineDeploymentDeletingDeletionTimestampNotSetV1Beta2Reason surfaces when the MachineDeployment is not deleting because the
+	// DeletionTimestamp is not set.
+	MachineDeploymentDeletingDeletionTimestampNotSetV1Beta2Reason = DeletionTimestampNotSetV1Beta2Reason
+
+	// MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason surfaces when the MachineDeployment is deleting because the
+	// DeletionTimestamp is set.
+	MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason = DeletionTimestampSetV1Beta2Reason
+
+	// MachineDeploymentDeletingInternalErrorV1Beta2Reason surfaces unexpected failures when deleting a MachineDeployment.
+	MachineDeploymentDeletingInternalErrorV1Beta2Reason = InternalErrorV1Beta2Reason
+)
+
 // ANCHOR: MachineDeploymentSpec
 
 // MachineDeploymentSpec defines the desired state of MachineDeployment.

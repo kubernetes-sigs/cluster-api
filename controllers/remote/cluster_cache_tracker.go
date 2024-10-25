@@ -63,6 +63,8 @@ const (
 
 // ErrClusterLocked is returned in methods that require cluster-level locking
 // if the cluster is already locked by another concurrent call.
+//
+// Deprecated: This will be removed in Cluster API v1.10, use clustercache.ErrClusterNotConnected instead.
 var ErrClusterLocked = errors.New("cluster is locked already")
 
 // ClusterCacheTracker manages client caches for workload clusters.

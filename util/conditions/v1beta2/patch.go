@@ -148,7 +148,7 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 		case AddConditionPatch:
 			// If the condition is owned, always keep the after value.
 			if applyOpt.forceOverwrite || applyOpt.isOwnedConditionType(conditionPatch.After.Type) {
-				meta.SetStatusCondition(&latestConditions, *conditionPatch.After)
+				setStatusCondition(&latestConditions, *conditionPatch.After)
 				continue
 			}
 
@@ -163,12 +163,12 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 				continue
 			}
 			// If the condition does not exists on the latest, add the new after condition.
-			meta.SetStatusCondition(&latestConditions, *conditionPatch.After)
+			setStatusCondition(&latestConditions, *conditionPatch.After)
 
 		case ChangeConditionPatch:
 			// If the conditions is owned, always keep the after value.
 			if applyOpt.forceOverwrite || applyOpt.isOwnedConditionType(conditionPatch.After.Type) {
-				meta.SetStatusCondition(&latestConditions, *conditionPatch.After)
+				setStatusCondition(&latestConditions, *conditionPatch.After)
 				continue
 			}
 
@@ -190,7 +190,7 @@ func (p Patch) Apply(latest Setter, opts ...PatchApplyOption) error {
 				continue
 			}
 			// Otherwise apply the new after condition.
-			meta.SetStatusCondition(&latestConditions, *conditionPatch.After)
+			setStatusCondition(&latestConditions, *conditionPatch.After)
 
 		case RemoveConditionPatch:
 			// If latestConditions is nil or empty, nothing to remove.

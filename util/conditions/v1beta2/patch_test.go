@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,8 +27,9 @@ import (
 )
 
 func TestNewPatch(t *testing.T) {
-	fooTrue := metav1.Condition{Type: "foo", Status: metav1.ConditionTrue}
-	fooFalse := metav1.Condition{Type: "foo", Status: metav1.ConditionFalse}
+	now := metav1.Now()
+	fooTrue := metav1.Condition{Type: "foo", Status: metav1.ConditionTrue, LastTransitionTime: now}
+	fooFalse := metav1.Condition{Type: "foo", Status: metav1.ConditionFalse, LastTransitionTime: now}
 
 	tests := []struct {
 		name    string
@@ -133,6 +135,12 @@ func TestApply(t *testing.T) {
 	fooFalse := metav1.Condition{Type: "foo", Status: metav1.ConditionFalse, LastTransitionTime: now}
 	fooFalse2 := metav1.Condition{Type: "foo", Status: metav1.ConditionFalse, Reason: "Something else", LastTransitionTime: now}
 
+	addMilliseconds := func(c metav1.Condition) metav1.Condition {
+		c1 := c.DeepCopy()
+		c1.LastTransitionTime.Time = c1.LastTransitionTime.Add(10 * time.Millisecond)
+		return *c1
+	}
+
 	tests := []struct {
 		name    string
 		before  Setter
@@ -169,7 +177,7 @@ func TestApply(t *testing.T) {
 		{
 			name:    "Add: When a condition does not exists, it should add",
 			before:  objectWithConditions(),
-			after:   objectWithConditions(fooTrue),
+			after:   objectWithConditions(addMilliseconds(fooTrue)), // this will force the test to fail if an AddConditionPatch operation doesn't drop milliseconds
 			latest:  objectWithConditions(),
 			want:    []metav1.Condition{fooTrue},
 			wantErr: false,
@@ -193,7 +201,7 @@ func TestApply(t *testing.T) {
 		{
 			name:    "Add: When a condition already exists but with conflicts, it should not error if force override is set",
 			before:  objectWithConditions(),
-			after:   objectWithConditions(fooTrue),
+			after:   objectWithConditions(addMilliseconds(fooTrue)), // this will force the test to fail if an AddConditionPatch operation doesn't drop milliseconds
 			latest:  objectWithConditions(fooFalse),
 			options: []PatchApplyOption{ForceOverwrite(true)},
 			want:    []metav1.Condition{fooTrue}, // after condition should be kept in case of error
@@ -202,7 +210,7 @@ func TestApply(t *testing.T) {
 		{
 			name:    "Add: When a condition already exists but with conflicts, it should not error if the condition is owned",
 			before:  objectWithConditions(),
-			after:   objectWithConditions(fooTrue),
+			after:   objectWithConditions(addMilliseconds(fooTrue)), // this will force the test to fail if an AddConditionPatch operation doesn't drop milliseconds
 			latest:  objectWithConditions(fooFalse),
 			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
 			want:    []metav1.Condition{fooTrue}, // after condition should be kept in case of error
@@ -253,7 +261,7 @@ func TestApply(t *testing.T) {
 		{
 			name:    "Change: When a condition exists without conflicts, it should change",
 			before:  objectWithConditions(fooTrue),
-			after:   objectWithConditions(fooFalse),
+			after:   objectWithConditions(addMilliseconds(fooFalse)), // this will force the test to fail if an ChangeConditionPatch operation doesn't drop milliseconds
 			latest:  objectWithConditions(fooTrue),
 			want:    []metav1.Condition{fooFalse},
 			wantErr: false,
@@ -277,7 +285,7 @@ func TestApply(t *testing.T) {
 		{
 			name:    "Change: When a condition exists with conflicts but there is no agreement on the final state, it should not error if force override is set",
 			before:  objectWithConditions(fooFalse),
-			after:   objectWithConditions(fooFalse2),
+			after:   objectWithConditions(addMilliseconds(fooFalse2)), // this will force the test to fail if an ChangeConditionPatch operation doesn't drop milliseconds
 			latest:  objectWithConditions(fooTrue),
 			options: []PatchApplyOption{ForceOverwrite(true)},
 			want:    []metav1.Condition{fooFalse2},
@@ -286,7 +294,7 @@ func TestApply(t *testing.T) {
 		{
 			name:    "Change: When a condition exists with conflicts but there is no agreement on the final state, it should not error if the condition is owned",
 			before:  objectWithConditions(fooFalse),
-			after:   objectWithConditions(fooFalse2),
+			after:   objectWithConditions(addMilliseconds(fooFalse2)), // this will force the test to fail if an ChangeConditionPatch operation doesn't drop milliseconds
 			latest:  objectWithConditions(fooTrue),
 			options: []PatchApplyOption{OwnedConditionTypes{"foo"}},
 			want:    []metav1.Condition{fooFalse2},

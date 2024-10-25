@@ -572,11 +572,6 @@ func (r *Reconciler) nodeToMachineHealthCheck(ctx context.Context, o client.Obje
 }
 
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
-	// If there is no tracker, don't watch remote nodes
-	if r.ClusterCache == nil {
-		return nil
-	}
-
 	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.WatchInput{
 		Name:         "machinehealthcheck-watchClusterNodes",
 		Watcher:      r.controller,

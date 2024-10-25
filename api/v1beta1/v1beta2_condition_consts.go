@@ -90,7 +90,7 @@ const (
 	// AvailableV1Beta2Reason applies to a condition surfacing object availability.
 	AvailableV1Beta2Reason = "Available"
 
-	// NotAvailableV1Beta2Reason applies to a condition surfacing object not satisfying availability per-requisites.
+	// NotAvailableV1Beta2Reason applies to a condition surfacing object not satisfying availability criteria.
 	NotAvailableV1Beta2Reason = "NotAvailable"
 
 	// ScalingUpV1Beta2Reason surfaces when an object is scaling up.

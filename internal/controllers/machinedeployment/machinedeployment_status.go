@@ -37,35 +37,38 @@ import (
 
 func (r *Reconciler) updateStatus(ctx context.Context, s *scope) (retErr error) {
 	// Get all Machines controlled by this MachineDeployment.
-	var machines, machinesToBeRemediated, unHealthyMachines collections.Machines
+	var machines, machinesToBeRemediated, unhealthyMachines collections.Machines
+	var getMachinesSucceeded bool
 	if selectorMap, err := metav1.LabelSelectorAsMap(&s.machineDeployment.Spec.Selector); err == nil {
 		machineList := &clusterv1.MachineList{}
 		if err := r.Client.List(ctx, machineList, client.InNamespace(s.machineDeployment.Namespace), client.MatchingLabels(selectorMap)); err != nil {
 			retErr = errors.Wrap(err, "failed to list machines")
+		} else {
+			getMachinesSucceeded = true
+			machines = collections.FromMachineList(machineList)
+			machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
+			unhealthyMachines = machines.Filter(collections.IsUnhealthy)
 		}
-		machines = collections.FromMachineList(machineList)
-		machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
-		unHealthyMachines = machines.Filter(collections.IsUnhealthy)
 	} else {
 		retErr = errors.Wrap(err, "failed to convert label selector to a map")
 	}
 
-	// If the controller failed to read MachineSets, do not update replica counters.
-	if !s.getAndAdoptMachineSetsForDeploymentSucceeded {
+	// If the controller could read MachineSets, update replica counters.
+	if s.getAndAdoptMachineSetsForDeploymentSucceeded {
 		setReplicas(s.machineDeployment, s.machineSets)
 	}
 
 	setAvailableCondition(ctx, s.machineDeployment, s.getAndAdoptMachineSetsForDeploymentSucceeded)
 
 	setScalingUpCondition(ctx, s.machineDeployment, s.machineSets, s.bootstrapTemplateNotFound, s.infrastructureTemplateNotFound, s.getAndAdoptMachineSetsForDeploymentSucceeded)
-	setScalingDownCondition(ctx, s.machineDeployment, s.machineSets, machines, s.getAndAdoptMachineSetsForDeploymentSucceeded)
+	setScalingDownCondition(ctx, s.machineDeployment, s.machineSets, machines, s.getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded)
 
-	setMachinesReadyCondition(ctx, s.machineDeployment, machines)
-	setMachinesUpToDateCondition(ctx, s.machineDeployment, machines)
+	setMachinesReadyCondition(ctx, s.machineDeployment, machines, getMachinesSucceeded)
+	setMachinesUpToDateCondition(ctx, s.machineDeployment, machines, getMachinesSucceeded)
 
-	setRemediatingCondition(ctx, s.machineDeployment, machinesToBeRemediated, unHealthyMachines)
+	setRemediatingCondition(ctx, s.machineDeployment, machinesToBeRemediated, unhealthyMachines, getMachinesSucceeded)
 
-	setDeletingCondition(ctx, s.machineDeployment, s.machineSets, machines, s.getAndAdoptMachineSetsForDeploymentSucceeded)
+	setDeletingCondition(ctx, s.machineDeployment, s.machineSets, machines, s.getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded)
 
 	return retErr
 }
@@ -132,7 +135,7 @@ func setAvailableCondition(_ context.Context, machineDeployment *clusterv1.Machi
 
 	message := fmt.Sprintf("%d available replicas, at least %d required", *machineDeployment.Status.V1Beta2.AvailableReplicas, minReplicasNeeded)
 	if machineDeployment.Spec.Strategy != nil && mdutil.IsRollingUpdate(machineDeployment) && machineDeployment.Spec.Strategy.RollingUpdate != nil {
-		message += fmt.Sprintf(" (spec.strategy.rollout.maxUnavailable is %s)", machineDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable)
+		message += fmt.Sprintf(" (spec.strategy.rollout.maxUnavailable is %s, spec.replicas is %d)", machineDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable, *machineDeployment.Spec.Replicas)
 	}
 	v1beta2conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
@@ -168,7 +171,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	if !machineDeployment.DeletionTimestamp.IsZero() {
 		desiredReplicas = 0
 	}
-	currentReplicas := mdutil.GetReplicaCountForMachineSets(machineSets)
+	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
 
 	missingReferencesMessage := calculateMissingReferencesMessage(machineDeployment, bootstrapObjectNotFound, infrastructureObjectNotFound)
 
@@ -199,7 +202,7 @@ func setScalingUpCondition(_ context.Context, machineDeployment *clusterv1.Machi
 	})
 }
 
-func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, machines collections.Machines, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
+func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, machines collections.Machines, getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded bool) {
 	// If we got unexpected errors in listing the machines sets (this should never happen), surface them.
 	if !getAndAdoptMachineSetsForDeploymentSucceeded {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
@@ -225,14 +228,16 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 	if !machineDeployment.DeletionTimestamp.IsZero() {
 		desiredReplicas = 0
 	}
-	currentReplicas := mdutil.GetReplicaCountForMachineSets(machineSets)
+	currentReplicas := mdutil.GetActualReplicaCountForMachineSets(machineSets)
 
 	// Scaling down.
 	if currentReplicas > desiredReplicas {
 		message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
-		staleMessage := aggregateStaleMachines(machines)
-		if staleMessage != "" {
-			message += fmt.Sprintf(" and %s", staleMessage)
+		if getMachinesSucceeded {
+			staleMessage := aggregateStaleMachines(machines)
+			if staleMessage != "" {
+				message += fmt.Sprintf(" and %s", staleMessage)
+			}
 		}
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
@@ -251,10 +256,10 @@ func setScalingDownCondition(_ context.Context, machineDeployment *clusterv1.Mac
 	})
 }
 
-func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines) {
+func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, getMachinesSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
-	if machines == nil {
+	if !getMachinesSucceeded {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
@@ -291,10 +296,10 @@ func setMachinesReadyCondition(ctx context.Context, machineDeployment *clusterv1
 	v1beta2conditions.Set(machineDeployment, *readyCondition)
 }
 
-func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines) {
+func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machines collections.Machines, getMachinesSucceeded bool) {
 	log := ctrl.LoggerFrom(ctx)
 	// If we got unexpected errors in listing the machines (this should never happen), surface them.
-	if machines == nil {
+	if !getMachinesSucceeded {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
@@ -331,8 +336,8 @@ func setMachinesUpToDateCondition(ctx context.Context, machineDeployment *cluste
 	v1beta2conditions.Set(machineDeployment, *upToDateCondition)
 }
 
-func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machinesToBeRemediated, unhealthyMachines collections.Machines) {
-	if machinesToBeRemediated == nil || unhealthyMachines == nil {
+func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.MachineDeployment, machinesToBeRemediated, unhealthyMachines collections.Machines, getMachinesSucceeded bool) {
+	if !getMachinesSucceeded {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
@@ -378,9 +383,9 @@ func setRemediatingCondition(ctx context.Context, machineDeployment *clusterv1.M
 	})
 }
 
-func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, machines collections.Machines, getAndAdoptMachineSetsForDeploymentSucceeded bool) {
+func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.MachineDeployment, machineSets []*clusterv1.MachineSet, machines collections.Machines, getAndAdoptMachineSetsForDeploymentSucceeded, getMachinesSucceeded bool) {
 	// If we got unexpected errors in listing the machines sets or machines (this should never happen), surface them.
-	if !getAndAdoptMachineSetsForDeploymentSucceeded || machines == nil {
+	if !getAndAdoptMachineSetsForDeploymentSucceeded || !getMachinesSucceeded {
 		v1beta2conditions.Set(machineDeployment, metav1.Condition{
 			Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 			Status:  metav1.ConditionUnknown,
@@ -401,7 +406,11 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 
 	message := ""
 	if len(machines) > 0 {
-		message = fmt.Sprintf("Deleting %d replicas", len(machines))
+		if len(machines) == 1 {
+			message = fmt.Sprintf("Deleting %d Machine", len(machines))
+		} else {
+			message = fmt.Sprintf("Deleting %d Machines", len(machines))
+		}
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
 			message += fmt.Sprintf(" and %s", staleMessage)
@@ -413,7 +422,7 @@ func setDeletingCondition(_ context.Context, machineDeployment *clusterv1.Machin
 	}
 	v1beta2conditions.Set(machineDeployment, metav1.Condition{
 		Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
-		Status:  metav1.ConditionFalse,
+		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
 		Message: message,
 	})
@@ -474,6 +483,10 @@ func aggregateStaleMachines(machines collections.Machines) string {
 }
 
 func aggregateUnhealthyMachines(machines collections.Machines) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
 	machineNames := []string{}
 	for _, machine := range machines {
 		machineNames = append(machineNames, machine.GetName())
@@ -496,7 +509,7 @@ func aggregateUnhealthyMachines(machines collections.Machines) string {
 	} else {
 		message += " are "
 	}
-	message += "not healthy (not to be remediated by KCP)"
+	message += "not healthy (not to be remediated by MachineDeployment/MachineSet)"
 
 	return message
 }

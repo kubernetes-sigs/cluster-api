@@ -406,6 +406,10 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 }
 
 func aggregateStaleMachines(machines collections.Machines) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
 	machineNames := []string{}
 	for _, machine := range machines {
 		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*30 {
@@ -436,6 +440,10 @@ func aggregateStaleMachines(machines collections.Machines) string {
 }
 
 func aggregateUnhealthyMachines(machines collections.Machines) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
 	machineNames := []string{}
 	for _, machine := range machines {
 		machineNames = append(machineNames, machine.GetName())

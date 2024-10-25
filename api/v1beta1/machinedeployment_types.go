@@ -88,7 +88,7 @@ const (
 	// field of the MachineDeployment is not set.
 	MachineDeploymentAvailableWaitingForReplicasSetV1Beta2Reason = WaitingForReplicasSetV1Beta2Reason
 
-	// 	MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason surfaces when the .status.v1beta2.availableReplicas
+	// MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason surfaces when the .status.v1beta2.availableReplicas
 	// field of the MachineDeployment is not set.
 	MachineDeploymentAvailableWaitingForAvailableReplicasSetV1Beta2Reason = "WaitingForAvailableReplicasSet"
 
@@ -130,7 +130,7 @@ const (
 
 // MachineDeployment's ScalingUp condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentScalingUpV1Beta2Condition is true if available replicas < desired replicas.
+	// MachineDeploymentScalingUpV1Beta2Condition is true if actual replicas < desired replicas.
 	MachineDeploymentScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
 
 	// MachineDeploymentScalingUpV1Beta2Reason surfaces when actual replicas < desired replicas.
@@ -149,7 +149,7 @@ const (
 
 // MachineDeployment's ScalingDown condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentScalingDownV1Beta2Condition is true if replicas > desired replicas.
+	// MachineDeploymentScalingDownV1Beta2Condition is true if actual replicas > desired replicas.
 	MachineDeploymentScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
 
 	// MachineDeploymentScalingDownV1Beta2Reason surfaces when actual replicas > desired replicas.
@@ -168,7 +168,7 @@ const (
 
 // MachineDeployment's Remediating condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// MachineDeploymentRemediatingV1Beta2Condition details about ongoing remediation of the controlled machines, if any.
+	// MachineDeploymentRemediatingV1Beta2Condition surfaces details about ongoing remediation of the controlled machines, if any.
 	MachineDeploymentRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
 
 	// MachineDeploymentRemediatingV1Beta2Reason surfaces when the MachineDeployment has at least one machine with HealthCheckSucceeded set to false

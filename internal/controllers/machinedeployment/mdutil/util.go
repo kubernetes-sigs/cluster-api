@@ -547,6 +547,7 @@ func GetAvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet)
 }
 
 // GetV1Beta2ReadyReplicaCountForMachineSets returns the number of ready machines corresponding to the given machine sets.
+// Note: When none of the ms.Status.V1Beta2.ReadyReplicas are set, the func returns nil.
 func GetV1Beta2ReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
 	var totalReadyReplicas *int32
 	for _, ms := range machineSets {
@@ -558,6 +559,7 @@ func GetV1Beta2ReadyReplicaCountForMachineSets(machineSets []*clusterv1.MachineS
 }
 
 // GetV1Beta2AvailableReplicaCountForMachineSets returns the number of available machines corresponding to the given machine sets.
+// Note: When none of the ms.Status.V1Beta2.AvailableReplicas are set, the func returns nil.
 func GetV1Beta2AvailableReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
 	var totalAvailableReplicas *int32
 	for _, ms := range machineSets {
@@ -569,6 +571,7 @@ func GetV1Beta2AvailableReplicaCountForMachineSets(machineSets []*clusterv1.Mach
 }
 
 // GetV1Beta2UptoDateReplicaCountForMachineSets returns the number of up to date machines corresponding to the given machine sets.
+// Note: When none of the ms.Status.V1Beta2.UpToDateReplicas are set, the func returns nil.
 func GetV1Beta2UptoDateReplicaCountForMachineSets(machineSets []*clusterv1.MachineSet) *int32 {
 	var totalUpToDateReplicas *int32
 	for _, ms := range machineSets {

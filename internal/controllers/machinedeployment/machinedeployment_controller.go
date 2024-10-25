@@ -116,7 +116,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineDeployment instance.
@@ -173,6 +173,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		if err := patchMachineDeployment(ctx, patchHelper, deployment, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
+
+		if reterr != nil {
+			retres = ctrl.Result{}
+		}
 	}()
 
 	// Handle deletion reconciliation loop.
@@ -188,7 +192,9 @@ type scope struct {
 	cluster                                      *clusterv1.Cluster
 	machineSets                                  []*clusterv1.MachineSet
 	bootstrapTemplateNotFound                    bool
+	bootstrapTemplateExists                      bool
 	infrastructureTemplateNotFound               bool
+	infrastructureTemplateExists                 bool
 	getAndAdoptMachineSetsForDeploymentSucceeded bool
 }
 
@@ -205,6 +211,15 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			clusterv1.MachineDeploymentAvailableCondition,
+		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.MachineDeploymentAvailableV1Beta2Condition,
+			clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
+			clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
+			clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+			clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
+			clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
+			clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 		}},
 	)
 	return patchHelper.Patch(ctx, md, options...)
@@ -280,8 +295,10 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		}
 	}
 
+	templateExists := s.infrastructureTemplateExists && (md.Spec.Template.Spec.Bootstrap.ConfigRef == nil || s.bootstrapTemplateExists)
+
 	if md.Spec.Paused {
-		return r.sync(ctx, md, s.machineSets)
+		return r.sync(ctx, md, s.machineSets, templateExists)
 	}
 
 	if md.Spec.Strategy == nil {
@@ -292,11 +309,11 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 		if md.Spec.Strategy.RollingUpdate == nil {
 			return errors.Errorf("missing MachineDeployment settings for strategy type: %s", md.Spec.Strategy.Type)
 		}
-		return r.rolloutRolling(ctx, md, s.machineSets)
+		return r.rolloutRolling(ctx, md, s.machineSets, templateExists)
 	}
 
 	if md.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return r.rolloutOnDelete(ctx, md, s.machineSets)
+		return r.rolloutOnDelete(ctx, md, s.machineSets, templateExists)
 	}
 
 	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
@@ -314,8 +331,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 		return nil
 	}
 
-	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
-
 	// else delete owned machinesets.
 	for _, ms := range s.machineSets {
 		if ms.DeletionTimestamp.IsZero() {
@@ -326,6 +341,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 		}
 	}
 
+	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
 	return nil
 }
 
@@ -470,6 +486,8 @@ func (r *Reconciler) getTemplatesAndSetOwner(ctx context.Context, s *scope) erro
 			return err
 		}
 		s.infrastructureTemplateNotFound = true
+	} else {
+		s.infrastructureTemplateExists = true
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
@@ -478,6 +496,8 @@ func (r *Reconciler) getTemplatesAndSetOwner(ctx context.Context, s *scope) erro
 				return err
 			}
 			s.bootstrapTemplateNotFound = true
+		} else {
+			s.bootstrapTemplateExists = true
 		}
 	}
 	return nil

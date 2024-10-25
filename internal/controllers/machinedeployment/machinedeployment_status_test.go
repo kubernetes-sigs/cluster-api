@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
@@ -124,7 +123,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "all the expected replicase are available",
+			name: "all the expected replicas are available",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To(int32(5)),
@@ -146,7 +145,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "some replicase are not available, but within MaxUnavailable range",
+			name: "some replicas are not available, but within MaxUnavailable range",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To(int32(5)),
@@ -168,30 +167,7 @@ func Test_setAvailableCondition(t *testing.T) {
 			},
 		},
 		{
-			name: "some replicase are not available, less than MaxUnavailable",
-			machineDeployment: &clusterv1.MachineDeployment{
-				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: ptr.To(int32(5)),
-					Strategy: &clusterv1.MachineDeploymentStrategy{
-						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
-							MaxSurge:       ptr.To(intstr.FromInt32(1)),
-							MaxUnavailable: ptr.To(intstr.FromInt32(1)),
-						},
-					},
-				},
-				Status: clusterv1.MachineDeploymentStatus{V1Beta2: &clusterv1.MachineDeploymentV1Beta2Status{AvailableReplicas: ptr.To(int32(4))}},
-			},
-			getAndAdoptMachineSetsForDeploymentSucceeded: true,
-			expectCondition: metav1.Condition{
-				Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
-				Status:  metav1.ConditionTrue,
-				Reason:  clusterv1.MachineDeploymentAvailableV1Beta2Reason,
-				Message: "",
-			},
-		},
-		{
-			name: "some replicase are not available, more than MaxUnavailable",
+			name: "some replicas are not available, more than MaxUnavailable",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
 					Replicas: ptr.To(int32(5)),
@@ -210,7 +186,7 @@ func Test_setAvailableCondition(t *testing.T) {
 				Type:    clusterv1.MachineDeploymentAvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineDeploymentNotAvailableV1Beta2Reason,
-				Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1)",
+				Message: "3 available replicas, at least 4 required (spec.strategy.rollout.maxUnavailable is 1, spec.replicas is 5)",
 			},
 		},
 	}
@@ -280,6 +256,22 @@ func Test_setScalingUpCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "replicas not set",
+			machineDeployment: func() *clusterv1.MachineDeployment {
+				md := defaultMachineDeployment.DeepCopy()
+				md.Spec.Replicas = nil
+				return md
+			}(),
+			bootstrapTemplateNotFound:                    false,
+			infrastructureTemplateNotFound:               false,
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: clusterv1.MachineDeploymentScalingUpWaitingForReplicasSetV1Beta2Reason,
+			},
+		},
+		{
 			name:                           "not scaling up and no machines",
 			machineDeployment:              defaultMachineDeployment,
 			bootstrapTemplateNotFound:      false,
@@ -295,8 +287,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 			name:              "not scaling up with machines",
 			machineDeployment: deletingMachineDeploymentWith3Replicas,
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
-				fakeMachineSet("ms2", withSpecReplicas(2)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
+				fakeMachineSet("ms2", withStatusReplicas(2)),
 			},
 			bootstrapTemplateNotFound:                    false,
 			infrastructureTemplateNotFound:               false,
@@ -363,8 +355,8 @@ func Test_setScalingUpCondition(t *testing.T) {
 			name:              "scaling up with machines",
 			machineDeployment: scalingUpMachineDeploymentWith3Replicas,
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
-				fakeMachineSet("ms2", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
+				fakeMachineSet("ms2", withStatusReplicas(1)),
 			},
 			bootstrapTemplateNotFound:                    false,
 			infrastructureTemplateNotFound:               false,
@@ -464,6 +456,20 @@ func Test_setScalingDownCondition(t *testing.T) {
 			},
 		},
 		{
+			name: "replicas not set",
+			machineDeployment: func() *clusterv1.MachineDeployment {
+				md := defaultMachineDeployment.DeepCopy()
+				md.Spec.Replicas = nil
+				return md
+			}(),
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			expectCondition: metav1.Condition{
+				Type:   clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+				Status: metav1.ConditionUnknown,
+				Reason: clusterv1.MachineDeploymentScalingDownWaitingForReplicasSetV1Beta2Reason,
+			},
+		},
+		{
 			name:              "not scaling down and no machines",
 			machineDeployment: defaultMachineDeployment,
 			machineSets:       []*clusterv1.MachineSet{},
@@ -489,7 +495,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name:              "scaling down to zero",
 			machineDeployment: defaultMachineDeployment,
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -503,8 +509,8 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name:              "scaling down with 1 stale machine",
 			machineDeployment: machineDeploymentWith1Replica,
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
-				fakeMachineSet("ms2", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
+				fakeMachineSet("ms2", withStatusReplicas(1)),
 			},
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
@@ -522,8 +528,8 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name:              "scaling down with 3 stale machines",
 			machineDeployment: machineDeploymentWith1Replica,
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(3)),
-				fakeMachineSet("ms2", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(3)),
+				fakeMachineSet("ms2", withStatusReplicas(1)),
 			},
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
@@ -543,8 +549,8 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name:              "scaling down with 5 stale machines",
 			machineDeployment: machineDeploymentWith1Replica,
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(5)),
-				fakeMachineSet("ms2", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(5)),
+				fakeMachineSet("ms2", withStatusReplicas(1)),
 			},
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
@@ -577,7 +583,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 			name:              "deleting machine deployment having 1 replica",
 			machineDeployment: deletingMachineDeployment,
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			expectCondition: metav1.Condition{
@@ -592,7 +598,7 @@ func Test_setScalingDownCondition(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setScalingDownCondition(ctx, tt.machineDeployment, tt.machineSets, collections.FromMachines(tt.machines...), tt.getAndAdoptMachineSetsForDeploymentSucceeded)
+			setScalingDownCondition(ctx, tt.machineDeployment, tt.machineSets, collections.FromMachines(tt.machines...), tt.getAndAdoptMachineSetsForDeploymentSucceeded, true)
 
 			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentScalingDownV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -609,15 +615,17 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 	}
 
 	tests := []struct {
-		name              string
-		machineDeployment *clusterv1.MachineDeployment
-		machines          []*clusterv1.Machine
-		expectCondition   metav1.Condition
+		name                 string
+		machineDeployment    *clusterv1.MachineDeployment
+		machines             []*clusterv1.Machine
+		getMachinesSucceeded bool
+		expectCondition      metav1.Condition
 	}{
 		{
-			name:              "get machines failed",
-			machineDeployment: &clusterv1.MachineDeployment{},
-			machines:          nil,
+			name:                 "get machines failed",
+			machineDeployment:    &clusterv1.MachineDeployment{},
+			machines:             nil,
+			getMachinesSucceeded: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -626,9 +634,10 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			},
 		},
 		{
-			name:              "no machines",
-			machineDeployment: &clusterv1.MachineDeployment{},
-			machines:          []*clusterv1.Machine{},
+			name:                 "no machines",
+			machineDeployment:    &clusterv1.MachineDeployment{},
+			machines:             []*clusterv1.Machine{},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
@@ -642,6 +651,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 				fakeMachine("machine-1", withV1Beta2Condition(readyCondition)),
 				fakeMachine("machine-2", withV1Beta2Condition(readyCondition)),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 				Status: metav1.ConditionTrue,
@@ -655,6 +665,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 				fakeMachine("machine-1", withV1Beta2Condition(readyCondition)),
 				fakeMachine("machine-2"),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -686,6 +697,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 					Message: "Deleting: Machine deletion in progress, stage: DrainingNode",
 				})),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -702,7 +714,7 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setMachinesReadyCondition(ctx, tt.machineDeployment, machines)
+			setMachinesReadyCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
 
 			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -713,15 +725,17 @@ func Test_setMachinesReadyCondition(t *testing.T) {
 
 func Test_setMachinesUpToDateCondition(t *testing.T) {
 	tests := []struct {
-		name              string
-		machineDeployment *clusterv1.MachineDeployment
-		machines          []*clusterv1.Machine
-		expectCondition   metav1.Condition
+		name                 string
+		machineDeployment    *clusterv1.MachineDeployment
+		machines             []*clusterv1.Machine
+		getMachinesSucceeded bool
+		expectCondition      metav1.Condition
 	}{
 		{
-			name:              "get machines failed",
-			machineDeployment: &clusterv1.MachineDeployment{},
-			machines:          nil,
+			name:                 "get machines failed",
+			machineDeployment:    &clusterv1.MachineDeployment{},
+			machines:             nil,
+			getMachinesSucceeded: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -730,9 +744,10 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			},
 		},
 		{
-			name:              "no machines",
-			machineDeployment: &clusterv1.MachineDeployment{},
-			machines:          []*clusterv1.Machine{},
+			name:                 "no machines",
+			machineDeployment:    &clusterv1.MachineDeployment{},
+			machines:             []*clusterv1.Machine{},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
@@ -750,6 +765,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 					Reason: "some-reason-1",
 				})),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
@@ -768,6 +784,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 					Message: "some unknown message",
 				})),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -786,6 +803,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 					Message: "some not up-to-date message",
 				})),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -799,6 +817,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				fakeMachine("no-condition-machine-1"),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -835,6 +854,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 				fakeMachine("no-condition-machine-1"),
 				fakeMachine("no-condition-machine-2"),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
@@ -851,7 +871,7 @@ func Test_setMachinesUpToDateCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setMachinesUpToDateCondition(ctx, tt.machineDeployment, machines)
+			setMachinesUpToDateCondition(ctx, tt.machineDeployment, machines, tt.getMachinesSucceeded)
 
 			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -867,15 +887,17 @@ func Test_setRemediatingCondition(t *testing.T) {
 	ownerRemediatedV1Beta2 := metav1.Condition{Type: clusterv1.MachineOwnerRemediatedV1Beta2Condition, Status: metav1.ConditionFalse, Message: "Remediation in progress"}
 
 	tests := []struct {
-		name              string
-		machineDeployment *clusterv1.MachineDeployment
-		machines          []*clusterv1.Machine
-		expectCondition   metav1.Condition
+		name                 string
+		machineDeployment    *clusterv1.MachineDeployment
+		machines             []*clusterv1.Machine
+		getMachinesSucceeded bool
+		expectCondition      metav1.Condition
 	}{
 		{
-			name:              "get machines failed",
-			machineDeployment: &clusterv1.MachineDeployment{},
-			machines:          nil,
+			name:                 "get machines failed",
+			machineDeployment:    &clusterv1.MachineDeployment{},
+			machines:             nil,
+			getMachinesSucceeded: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -890,6 +912,7 @@ func Test_setRemediatingCondition(t *testing.T) {
 				fakeMachine("m1"),
 				fakeMachine("m2"),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -897,13 +920,14 @@ func Test_setRemediatingCondition(t *testing.T) {
 			},
 		},
 		{
-			name:              "With machines to be remediated by KCP",
+			name:              "With machines to be remediated by MD/MS",
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withConditions(healthCheckSucceeded)),    // Healthy machine
 				fakeMachine("m2", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
 				fakeMachine("m3", withConditions(healthCheckNotSucceeded, ownerRemediated), withV1Beta2Condition(ownerRemediatedV1Beta2)),
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionTrue,
@@ -912,33 +936,35 @@ func Test_setRemediatingCondition(t *testing.T) {
 			},
 		},
 		{
-			name:              "With one unhealthy machine not to be remediated by KCP",
+			name:              "With one unhealthy machine not to be remediated by MD/MS",
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withConditions(healthCheckSucceeded)),    // Healthy machine
 				fakeMachine("m2", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
 				fakeMachine("m3", withConditions(healthCheckSucceeded)),    // Healthy machine
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineDeploymentNotRemediatingV1Beta2Reason,
-				Message: "Machine m2 is not healthy (not to be remediated by KCP)",
+				Message: "Machine m2 is not healthy (not to be remediated by MachineDeployment/MachineSet)",
 			},
 		},
 		{
-			name:              "With two unhealthy machine not to be remediated by KCP",
+			name:              "With two unhealthy machine not to be remediated by MD/MS",
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
 				fakeMachine("m2", withConditions(healthCheckNotSucceeded)), // Unhealthy machine, not yet marked for remediation
 				fakeMachine("m3", withConditions(healthCheckSucceeded)),    // Healthy machine
 			},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  clusterv1.MachineDeploymentNotRemediatingV1Beta2Reason,
-				Message: "Machines m1, m2 are not healthy (not to be remediated by KCP)",
+				Message: "Machines m1, m2 are not healthy (not to be remediated by MachineDeployment/MachineSet)",
 			},
 		},
 	}
@@ -947,12 +973,12 @@ func Test_setRemediatingCondition(t *testing.T) {
 			g := NewWithT(t)
 
 			var machinesToBeRemediated, unHealthyMachines collections.Machines
-			if tt.machines != nil {
+			if tt.getMachinesSucceeded {
 				machines := collections.FromMachines(tt.machines...)
 				machinesToBeRemediated = machines.Filter(collections.IsUnhealthyAndOwnerRemediated)
 				unHealthyMachines = machines.Filter(collections.IsUnhealthy)
 			}
-			setRemediatingCondition(ctx, tt.machineDeployment, machinesToBeRemediated, unHealthyMachines)
+			setRemediatingCondition(ctx, tt.machineDeployment, machinesToBeRemediated, unHealthyMachines, tt.getMachinesSucceeded)
 
 			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentRemediatingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -966,16 +992,18 @@ func Test_setDeletingCondition(t *testing.T) {
 		name                                         string
 		machineDeployment                            *clusterv1.MachineDeployment
 		machineSets                                  []*clusterv1.MachineSet
-		machines                                     []*clusterv1.Machine
 		getAndAdoptMachineSetsForDeploymentSucceeded bool
+		machines                                     []*clusterv1.Machine
+		getMachinesSucceeded                         bool
 		expectCondition                              metav1.Condition
 	}{
 		{
 			name:              "get machine sets failed",
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machineSets:       nil,
-			machines:          []*clusterv1.Machine{},
 			getAndAdoptMachineSetsForDeploymentSucceeded: false,
+			machines:             []*clusterv1.Machine{},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -987,8 +1015,9 @@ func Test_setDeletingCondition(t *testing.T) {
 			name:              "get machines failed",
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machineSets:       []*clusterv1.MachineSet{},
-			machines:          nil,
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			machines:             nil,
+			getMachinesSucceeded: false,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 				Status:  metav1.ConditionUnknown,
@@ -1000,8 +1029,9 @@ func Test_setDeletingCondition(t *testing.T) {
 			name:              "not deleting",
 			machineDeployment: &clusterv1.MachineDeployment{},
 			machineSets:       []*clusterv1.MachineSet{},
-			machines:          []*clusterv1.Machine{},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			machines:             []*clusterv1.Machine{},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:   clusterv1.MachineDeploymentDeletingV1Beta2Condition,
 				Status: metav1.ConditionFalse,
@@ -1012,47 +1042,50 @@ func Test_setDeletingCondition(t *testing.T) {
 			name:              "Deleting with still some machine",
 			machineDeployment: &clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1"),
 			},
-			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
+				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
-				Message: "Deleting 1 replicas",
+				Message: "Deleting 1 Machine",
 			},
 		},
 		{
 			name:              "Deleting with still some stale machine",
 			machineDeployment: &clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
+			getAndAdoptMachineSetsForDeploymentSucceeded: true,
 			machines: []*clusterv1.Machine{
 				fakeMachine("m1", withStaleDeletion()),
 			},
-			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
+				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
-				Message: "Deleting 1 replicas and Machine m1 is in deletion since more than 30m",
+				Message: "Deleting 1 Machine and Machine m1 is in deletion since more than 30m",
 			},
 		},
 		{
 			name:              "Deleting with no machines and a machine set still around",
 			machineDeployment: &clusterv1.MachineDeployment{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &metav1.Time{Time: time.Now()}}},
 			machineSets: []*clusterv1.MachineSet{
-				fakeMachineSet("ms1", withSpecReplicas(1)),
+				fakeMachineSet("ms1", withStatusReplicas(1)),
 			},
-			machines: []*clusterv1.Machine{},
 			getAndAdoptMachineSetsForDeploymentSucceeded: true,
+			machines:             []*clusterv1.Machine{},
+			getMachinesSucceeded: true,
 			expectCondition: metav1.Condition{
 				Type:    clusterv1.MachineDeploymentDeletingV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
+				Status:  metav1.ConditionTrue,
 				Reason:  clusterv1.MachineDeploymentDeletingDeletionTimestampSetV1Beta2Reason,
 				Message: "Deleting 1 MachineSets",
 			},
@@ -1066,7 +1099,7 @@ func Test_setDeletingCondition(t *testing.T) {
 			if tt.machines != nil {
 				machines = collections.FromMachines(tt.machines...)
 			}
-			setDeletingCondition(ctx, tt.machineDeployment, tt.machineSets, machines, tt.getAndAdoptMachineSetsForDeploymentSucceeded)
+			setDeletingCondition(ctx, tt.machineDeployment, tt.machineSets, machines, tt.getAndAdoptMachineSetsForDeploymentSucceeded, tt.getMachinesSucceeded)
 
 			condition := v1beta2conditions.Get(tt.machineDeployment, clusterv1.MachineDeploymentDeletingV1Beta2Condition)
 			g.Expect(condition).ToNot(BeNil())
@@ -1089,9 +1122,9 @@ func fakeMachineSet(name string, options ...fakeMachineSetOption) *clusterv1.Mac
 	return p
 }
 
-func withSpecReplicas(n int32) fakeMachineSetOption {
+func withStatusReplicas(n int32) fakeMachineSetOption {
 	return func(ms *clusterv1.MachineSet) {
-		ms.Spec.Replicas = &n
+		ms.Status.Replicas = n
 	}
 }
 
@@ -1147,7 +1180,7 @@ func withV1Beta2Condition(c metav1.Condition) fakeMachinesOption {
 		if m.Status.V1Beta2 == nil {
 			m.Status.V1Beta2 = &clusterv1.MachineV1Beta2Status{}
 		}
-		meta.SetStatusCondition(&m.Status.V1Beta2.Conditions, c)
+		v1beta2conditions.Set(m, c)
 	}
 }
 

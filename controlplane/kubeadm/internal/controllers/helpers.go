@@ -47,6 +47,15 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
+// mandatoryMachineReadinessGates are readinessGates KCP enforces to be set on machine it owns.
+var mandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition)},
+}
+
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -443,7 +452,29 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 	if existingMachine != nil {
 		desiredMachine.Spec.InfrastructureRef = existingMachine.Spec.InfrastructureRef
 		desiredMachine.Spec.Bootstrap.ConfigRef = existingMachine.Spec.Bootstrap.ConfigRef
+		desiredMachine.Spec.ReadinessGates = existingMachine.Spec.ReadinessGates
 	}
+	ensureMandatoryReadinessGates(desiredMachine)
 
 	return desiredMachine, nil
+}
+
+func ensureMandatoryReadinessGates(m *clusterv1.Machine) {
+	if m.Spec.ReadinessGates == nil {
+		m.Spec.ReadinessGates = mandatoryMachineReadinessGates
+		return
+	}
+
+	for _, want := range mandatoryMachineReadinessGates {
+		found := false
+		for _, got := range m.Spec.ReadinessGates {
+			if got.ConditionType == want.ConditionType {
+				found = true
+				break
+			}
+		}
+		if !found {
+			m.Spec.ReadinessGates = append(m.Spec.ReadinessGates, want)
+		}
+	}
 }

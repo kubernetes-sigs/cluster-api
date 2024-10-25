@@ -1045,11 +1045,6 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 		return nil
 	}
 
-	// If there is no tracker, don't watch remote nodes
-	if r.ClusterCache == nil {
-		return nil
-	}
-
 	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.WatchInput{
 		Name:         "machine-watchNodes",
 		Watcher:      r.controller,

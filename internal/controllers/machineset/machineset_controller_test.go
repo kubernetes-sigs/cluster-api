@@ -613,30 +613,6 @@ func TestMachineSetReconcile(t *testing.T) {
 		g.Expect(result).To(BeComparableTo(reconcile.Result{}))
 	})
 
-	t.Run("records event if reconcile fails", func(t *testing.T) {
-		g := NewWithT(t)
-
-		ms := newMachineSet("machineset1", testClusterName, int32(0))
-		ms.Spec.Template.Spec.Bootstrap.ConfigRef = &corev1.ObjectReference{
-			Kind:      "FooTemplate",
-			Namespace: ms.GetNamespace(),
-			Name:      "doesnotexist",
-		}
-
-		request := reconcile.Request{
-			NamespacedName: util.ObjectKey(ms),
-		}
-
-		rec := record.NewFakeRecorder(32)
-		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
-		msr := &Reconciler{
-			Client:   c,
-			recorder: rec,
-		}
-		_, _ = msr.Reconcile(ctx, request)
-		g.Eventually(rec.Events).Should(Receive())
-	})
-
 	t.Run("reconcile successfully when labels are missing", func(t *testing.T) {
 		g := NewWithT(t)
 

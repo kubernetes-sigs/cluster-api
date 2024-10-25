@@ -182,7 +182,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			log.V(5).Info("Requeuing because connection to the workload cluster is down")
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
-		r.recorder.Eventf(m, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 
 		// Requeue immediately if any errors occurred
 		return ctrl.Result{}, err

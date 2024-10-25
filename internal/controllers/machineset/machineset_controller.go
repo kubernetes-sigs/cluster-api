@@ -256,7 +256,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 			return ctrl.Result{RequeueAfter: time.Minute}, nil
 		}
 		err = kerr
-		r.recorder.Eventf(s.machineSet, corev1.EventTypeWarning, "ReconcileError", "%v", kerr)
 	}
 	return result, err
 }

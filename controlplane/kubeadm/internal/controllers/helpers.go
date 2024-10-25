@@ -49,11 +49,11 @@ import (
 
 // mandatoryMachineReadinessGates are readinessGates KCP enforces to be set on machine it owns.
 var mandatoryMachineReadinessGates = []clusterv1.MachineReadinessGate{
-	{ConditionType: string(controlplanev1.MachineAPIServerPodHealthyCondition)},
-	{ConditionType: string(controlplanev1.MachineControllerManagerPodHealthyCondition)},
-	{ConditionType: string(controlplanev1.MachineSchedulerPodHealthyCondition)},
-	{ConditionType: string(controlplanev1.MachineEtcdPodHealthyCondition)},
-	{ConditionType: string(controlplanev1.MachineEtcdMemberHealthyCondition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition)},
+	{ConditionType: string(controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition)},
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
@@ -465,8 +465,6 @@ func ensureMandatoryReadinessGates(m *clusterv1.Machine) {
 		return
 	}
 
-	additionalConditions := []clusterv1.MachineReadinessGate{}
-
 	for _, want := range mandatoryMachineReadinessGates {
 		found := false
 		for _, got := range m.Spec.ReadinessGates {
@@ -476,9 +474,7 @@ func ensureMandatoryReadinessGates(m *clusterv1.Machine) {
 			}
 		}
 		if !found {
-			additionalConditions = append(additionalConditions, want)
+			m.Spec.ReadinessGates = append(m.Spec.ReadinessGates, want)
 		}
 	}
-
-	m.Spec.ReadinessGates = append(m.Spec.ReadinessGates, additionalConditions...)
 }

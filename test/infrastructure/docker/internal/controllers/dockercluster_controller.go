@@ -202,6 +202,9 @@ func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerClu
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.Client == nil || r.ContainerRuntime == nil {
+		return errors.New("Client and ContainerRuntime must not be nil")
+	}
 	predicateLog := ctrl.LoggerFrom(ctx).WithValues("controller", "dockercluster")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).

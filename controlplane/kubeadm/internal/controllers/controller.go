@@ -490,11 +490,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		// Create new Machine w/ init
 		log.Info("Initializing control plane", "desired", desiredReplicas, "existing", numMachines)
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
-		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
-			Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
-			Status: metav1.ConditionFalse,
-			Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
-		})
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:

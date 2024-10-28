@@ -75,6 +75,50 @@ func TestSetReplicas(t *testing.T) {
 	g.Expect(*kcp.Status.V1Beta2.UpToDateReplicas).To(Equal(int32(4)))
 }
 
+func Test_setInitializedCondition(t *testing.T) {
+	tests := []struct {
+		name            string
+		controlPlane    *internal.ControlPlane
+		expectCondition metav1.Condition
+	}{
+		{
+			name: "KCP not initialized",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{},
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+			},
+		},
+		{
+			name: "KCP initialized",
+			controlPlane: &internal.ControlPlane{
+				KCP: &controlplanev1.KubeadmControlPlane{
+					Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
+				},
+			},
+			expectCondition: metav1.Condition{
+				Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			setInitializedCondition(ctx, tt.controlPlane.KCP)
+
+			condition := v1beta2conditions.Get(tt.controlPlane.KCP, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(*condition).To(v1beta2conditions.MatchCondition(tt.expectCondition, v1beta2conditions.IgnoreLastTransitionTime(true)))
+		})
+	}
+}
+
 func Test_setScalingUpCondition(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -769,7 +813,6 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
-	g.Expect(v1beta2conditions.IsTrue(kcp, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)).To(BeTrue())
 	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 

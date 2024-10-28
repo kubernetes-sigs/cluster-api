@@ -101,6 +101,11 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// The RemediationStrategy that controls how control plane machine remediation happens.
 	// +optional
 	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
+
+	// MachineNamingStrategy allows changing the naming pattern used when creating Machines.
+	// InfraMachines & KubeadmConfigs will use the same name as the corresponding Machines.
+	// +optional
+	MachineNamingStrategy *MachineNamingStrategy `json:"machineNamingStrategy,omitempty"`
 }
 
 // KubeadmControlPlaneTemplateMachineTemplate defines the template for Machines

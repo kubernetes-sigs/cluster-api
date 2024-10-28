@@ -53,6 +53,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Status.LastRemediation = restored.Status.LastRemediation
 	}
 
+	if restored.Spec.MachineNamingStrategy != nil {
+		dst.Spec.MachineNamingStrategy = restored.Spec.MachineNamingStrategy
+	}
+
 	bootstrapv1alpha4.MergeRestoredKubeadmConfigSpec(&dst.Spec.KubeadmConfigSpec, &restored.Spec.KubeadmConfigSpec)
 	dst.Status.V1Beta2 = restored.Status.V1Beta2
 
@@ -113,6 +117,10 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	if restored.Spec.Template.Spec.RemediationStrategy != nil {
 		dst.Spec.Template.Spec.RemediationStrategy = restored.Spec.Template.Spec.RemediationStrategy
+	}
+
+	if restored.Spec.Template.Spec.MachineNamingStrategy != nil {
+		dst.Spec.Template.Spec.MachineNamingStrategy = restored.Spec.Template.Spec.MachineNamingStrategy
 	}
 
 	bootstrapv1alpha4.MergeRestoredKubeadmConfigSpec(&dst.Spec.Template.Spec.KubeadmConfigSpec, &restored.Spec.Template.Spec.KubeadmConfigSpec)

@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -37,6 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -234,6 +236,8 @@ func (webhook *KubeadmControlPlane) ValidateUpdate(_ context.Context, oldObj, ne
 		{spec, "version"},
 		{spec, "remediationStrategy"},
 		{spec, "remediationStrategy", "*"},
+		{spec, "machineNamingStrategy"},
+		{spec, "machineNamingStrategy", "*"},
 		{spec, "rolloutAfter"},
 		{spec, "rolloutBefore"},
 		{spec, "rolloutBefore", "*"},
@@ -393,6 +397,9 @@ func validateKubeadmControlPlaneSpec(s controlplanev1.KubeadmControlPlaneSpec, n
 	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
 	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
 
+	if s.MachineNamingStrategy != nil {
+		allErrs = append(allErrs, validateNamingStrategy(s.MachineNamingStrategy, pathPrefix.Child("machineNamingStrategy"))...)
+	}
 	return allErrs
 }
 
@@ -450,6 +457,42 @@ func validateRolloutStrategy(rolloutStrategy *controlplanev1.RolloutStrategy, re
 				"value must be 1 or 0",
 			),
 		)
+	}
+
+	return allErrs
+}
+
+func validateNamingStrategy(machineNamingStrategy *controlplanev1.MachineNamingStrategy, pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if machineNamingStrategy.Template != "" {
+		if !strings.Contains(machineNamingStrategy.Template, "{{ .random }}") {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("template"),
+					machineNamingStrategy.Template,
+					"invalid template, {{ .random }} is missing",
+				))
+			return allErrs
+		}
+		name, err := names.KCPMachineNameGenerator(machineNamingStrategy.Template, "cluster", "kubeadmcontrolplane").GenerateName()
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					pathPrefix.Child("template"),
+					machineNamingStrategy.Template,
+					fmt.Sprintf("invalid template: %v", err),
+				))
+		} else {
+			for _, err := range validation.IsDNS1123Subdomain(name) {
+				allErrs = append(allErrs,
+					field.Invalid(
+						pathPrefix.Child("template"),
+						machineNamingStrategy.Template,
+						fmt.Sprintf("invalid template, generated names would not be valid Kubernetes object names: %v", err),
+					))
+			}
+		}
 	}
 
 	return allErrs

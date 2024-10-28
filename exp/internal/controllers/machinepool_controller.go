@@ -371,12 +371,12 @@ func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *
 		return nil
 	}
 
-	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.WatchInput{
+	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.NewWatcher(clustercache.WatcherOptions{
 		Name:         "machinepool-watchNodes",
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachinePool),
-	})
+	}))
 }
 
 func (r *MachinePoolReconciler) nodeToMachinePool(ctx context.Context, o client.Object) []reconcile.Request {

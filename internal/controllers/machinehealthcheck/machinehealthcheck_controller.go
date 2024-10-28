@@ -571,12 +571,12 @@ func (r *Reconciler) nodeToMachineHealthCheck(ctx context.Context, o client.Obje
 }
 
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
-	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.WatchInput{
+	return r.ClusterCache.Watch(ctx, util.ObjectKey(cluster), clustercache.NewWatcher(clustercache.WatcherOptions{
 		Name:         "machinehealthcheck-watchClusterNodes",
 		Watcher:      r.controller,
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachineHealthCheck),
-	})
+	}))
 }
 
 // getMachineFromNode retrieves the machine with a nodeRef to nodeName

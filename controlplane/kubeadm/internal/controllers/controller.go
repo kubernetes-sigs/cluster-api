@@ -100,6 +100,10 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	if r.Client == nil || r.SecretCachingClient == nil || r.ClusterCache == nil ||
 		r.EtcdDialTimeout == time.Duration(0) || r.EtcdCallTimeout == time.Duration(0) ||
 		r.RemoteConditionsGracePeriod < 2*time.Minute {
+		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
+		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
+		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
+		// to have some buffer.
 		return errors.New("Client, SecretCachingClient and ClusterCache must not be nil and " +
 			"EtcdDialTimeout and EtcdCallTimeout must not be 0 and " +
 			"RemoteConditionsGracePeriod must not be < 2m")
@@ -867,6 +871,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx cont
 	if err != nil {
 		if errors.Is(err, clustercache.ErrClusterNotConnected) {
 			// If conditions are not set, set them to ConnectionDown.
+			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
+			// However, if connection errors persist more than r.RemoteConditionsGracePeriod, conditions will be overridden.
 			setConditionsToUnknown(setConditionsToUnknownInput{
 				ControlPlane:                        controlPlane,
 				Overwrite:                           false, // Don't overwrite.

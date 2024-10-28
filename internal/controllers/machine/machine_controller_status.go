@@ -257,6 +257,8 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cl
 	if nodeGetErr != nil {
 		if errors.Is(nodeGetErr, clustercache.ErrClusterNotConnected) {
 			// If conditions are not set, set them to ConnectionDown.
+			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
+			// However, if connection errors persist more than remoteConditionsGracePeriod, conditions will be overridden.
 			if !v1beta2conditions.Has(machine, clusterv1.MachineNodeReadyV1Beta2Condition) ||
 				!v1beta2conditions.Has(machine, clusterv1.MachineNodeHealthyV1Beta2Condition) {
 				setNodeConditions(machine, metav1.ConditionUnknown,

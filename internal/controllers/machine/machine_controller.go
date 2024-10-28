@@ -113,6 +113,10 @@ type Reconciler struct {
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.Client == nil || r.APIReader == nil || r.ClusterCache == nil || r.RemoteConditionsGracePeriod < 2*time.Minute {
+		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
+		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
+		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
+		// to have some buffer.
 		return errors.New("Client, APIReader and ClusterCache must not be nil and RemoteConditionsGracePeriod must not be < 2m")
 	}
 

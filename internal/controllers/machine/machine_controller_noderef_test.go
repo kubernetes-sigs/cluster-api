@@ -351,14 +351,14 @@ func TestGetNode(t *testing.T) {
 
 	// Retry because the ClusterCache might not have immediately created the clusterAccessor.
 	g.Eventually(func(g Gomega) {
-		g.Expect(clusterCache.Watch(ctx, util.ObjectKey(testCluster), clustercache.WatchInput{
+		g.Expect(clusterCache.Watch(ctx, util.ObjectKey(testCluster), clustercache.NewWatcher(clustercache.WatcherOptions{
 			Name:    "TestGetNode",
 			Watcher: w,
 			Kind:    &corev1.Node{},
 			EventHandler: handler.EnqueueRequestsFromMapFunc(func(context.Context, client.Object) []reconcile.Request {
 				return nil
 			}),
-		})).To(Succeed())
+		}))).To(Succeed())
 	}, 1*time.Minute, 5*time.Second).Should(Succeed())
 
 	for _, tc := range testCases {

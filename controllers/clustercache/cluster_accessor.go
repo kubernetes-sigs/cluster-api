@@ -32,7 +32,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"sigs.k8s.io/cluster-api/util/certs"
 )
@@ -407,16 +406,16 @@ func (ca *clusterAccessor) GetClientCertificatePrivateKey(ctx context.Context) *
 }
 
 // Watch watches a workload cluster for events.
-// Each unique watch (by input.Name) is only added once after a Connect (otherwise we return early).
+// Each unique watch (by watcher.Name()) is only added once after a Connect (otherwise we return early).
 // During a disconnect existing watches (i.e. informers) are shutdown when stopping the cache.
 // After a re-connect watches will be re-added (assuming the Watch method is called again).
-func (ca *clusterAccessor) Watch(ctx context.Context, input WatchInput) error {
-	if input.Name == "" {
-		return errors.New("input.Name is required")
+func (ca *clusterAccessor) Watch(ctx context.Context, watcher Watcher) error {
+	if watcher.Name() == "" {
+		return errors.New("watcher.Name() cannot be empty")
 	}
 
 	if !ca.Connected(ctx) {
-		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", input.Name, input.Kind)
+		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 
 	log := ctrl.LoggerFrom(ctx)
@@ -429,21 +428,21 @@ func (ca *clusterAccessor) Watch(ctx context.Context, input WatchInput) error {
 
 	// Checking connection again while holding the lock, because maybe Disconnect was called since checking above.
 	if ca.lockedState.connection == nil {
-		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", input.Name, input.Kind)
+		return errors.Wrapf(ErrClusterNotConnected, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 
 	// Return early if the watch was already added.
-	if ca.lockedState.connection.watches.Has(input.Name) {
-		log.V(6).Info(fmt.Sprintf("Skip creation of watch %s for %T because it already exists", input.Name, input.Kind))
+	if ca.lockedState.connection.watches.Has(watcher.Name()) {
+		log.V(6).Info(fmt.Sprintf("Skip creation of watch %s for %T because it already exists", watcher.Name(), watcher.Object()))
 		return nil
 	}
 
-	log.Info(fmt.Sprintf("Creating watch %s for %T", input.Name, input.Kind))
-	if err := input.Watcher.Watch(source.Kind(ca.lockedState.connection.cache, input.Kind, input.EventHandler, input.Predicates...)); err != nil {
-		return errors.Wrapf(err, "error creating watch %s for %T", input.Name, input.Kind)
+	log.Info(fmt.Sprintf("Creating watch %s for %T", watcher.Name(), watcher.Object()))
+	if err := watcher.Watch(ca.lockedState.connection.cache); err != nil {
+		return errors.Wrapf(err, "error creating watch %s for %T", watcher.Name(), watcher.Object())
 	}
 
-	ca.lockedState.connection.watches.Insert(input.Name)
+	ca.lockedState.connection.watches.Insert(watcher.Name())
 	return nil
 }
 

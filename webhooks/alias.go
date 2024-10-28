@@ -101,3 +101,11 @@ type MachineHealthCheck struct{}
 func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return (&webhooks.MachineHealthCheck{}).SetupWebhookWithManager(mgr)
 }
+
+// MachineDrainRule implements a validating webhook for MachineDrainRule.
+type MachineDrainRule struct{}
+
+// SetupWebhookWithManager sets up MachineDrainRule webhooks.
+func (webhook *MachineDrainRule) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachineDrainRule{}).SetupWebhookWithManager(mgr)
+}

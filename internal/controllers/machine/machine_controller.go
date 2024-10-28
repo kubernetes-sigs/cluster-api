@@ -83,6 +83,7 @@ var (
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status;machines/finalizers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedrainrules,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
 // Reconciler reconciles a Machine object.
@@ -808,7 +809,8 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 	}
 
 	drainer := &drain.Helper{
-		Client:             remoteClient,
+		Client:             r.Client,
+		RemoteClient:       remoteClient,
 		GracePeriodSeconds: -1,
 	}
 
@@ -840,7 +842,7 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 		return ctrl.Result{}, errors.Wrapf(err, "failed to cordon Node %s", node.Name)
 	}
 
-	podDeleteList, err := drainer.GetPodsForEviction(ctx, nodeName)
+	podDeleteList, err := drainer.GetPodsForEviction(ctx, cluster, machine, nodeName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -875,6 +877,7 @@ func (r *Reconciler) drainNode(ctx context.Context, s *scope) (ctrl.Result, erro
 	log.Info(fmt.Sprintf("Drain not completed yet, requeuing in %s", drainRetryInterval),
 		"podsFailedEviction", drain.PodListToString(podsFailedEviction, 5),
 		"podsWithDeletionTimestamp", drain.PodListToString(evictionResult.PodsDeletionTimestampSet, 5),
+		"podsToTriggerEvictionLater", drain.PodListToString(evictionResult.PodsToTriggerEvictionLater, 5),
 	)
 	return ctrl.Result{RequeueAfter: drainRetryInterval}, nil
 }
@@ -928,7 +931,7 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, s *scope) (ct
 	}
 
 	// Get all PVCs we want to ignore because they belong to Pods for which we skipped drain.
-	pvcsToIgnoreFromPods, err := getPersistentVolumeClaimsToIgnore(ctx, remoteClient, nodeName)
+	pvcsToIgnoreFromPods, err := getPersistentVolumeClaimsToIgnore(ctx, r.Client, remoteClient, cluster, machine, nodeName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -1141,17 +1144,18 @@ func getAttachedVolumeInformation(ctx context.Context, remoteClient client.Clien
 // getPersistentVolumeClaimsToIgnore gets all pods which have been ignored by drain and returns a list of
 // NamespacedNames for all PersistentVolumeClaims referred by the pods.
 // Note: this does not require us to list PVC's directly.
-func getPersistentVolumeClaimsToIgnore(ctx context.Context, remoteClient client.Client, nodeName string) (sets.Set[string], error) {
+func getPersistentVolumeClaimsToIgnore(ctx context.Context, c client.Client, remoteClient client.Client, cluster *clusterv1.Cluster, machine *clusterv1.Machine, nodeName string) (sets.Set[string], error) {
 	drainHelper := drain.Helper{
-		Client: remoteClient,
+		Client:       c,
+		RemoteClient: remoteClient,
 	}
 
-	pods, err := drainHelper.GetPodsForEviction(ctx, nodeName)
+	pods, err := drainHelper.GetPodsForEviction(ctx, cluster, machine, nodeName)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find PersistentVolumeClaims from Pods ignored during drain")
 	}
 
-	ignoredPods := pods.IgnoredPods()
+	ignoredPods := pods.SkippedPods()
 
 	pvcsToIgnore := sets.Set[string]{}
 

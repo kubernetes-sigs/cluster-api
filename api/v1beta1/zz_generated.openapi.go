@@ -74,6 +74,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentTopology":                schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentV1Beta2Status":           schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentV1Beta2Status(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables":               schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentVariables(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRule":                         schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRule(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleDrainConfig":              schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleDrainConfig(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleList":                     schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleList(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleMachineSelector":          schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleMachineSelector(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRulePodSelector":              schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRulePodSelector(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleSpec":                     schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheck":                       schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheck(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckClass":                  schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckList":                   schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref),
@@ -2568,6 +2574,230 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentVariables(ref com
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRule(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDrainRule is the Schema for the MachineDrainRule API.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleSpec"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleDrainConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDrainRuleDrainConfig configures if and how Pods are drained.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"behavior": {
+						SchemaProps: spec.SchemaProps{
+							Description: "behavior defines the drain behavior. Can be either \"Drain\" or \"Skip\".",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"order": {
+						SchemaProps: spec.SchemaProps{
+							Description: "order defines the order in which Pods are drained. Pods with higher order are drained after Pods with lower order. order can only be set if behavior is set to \"Drain\". If order is not set, 0 will be used.",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"behavior"},
+			},
+		},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDrainRuleList contains a list of MachineDrainRules.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Default: map[string]interface{}{},
+							Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRule"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRule"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleMachineSelector(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDrainRuleMachineSelector defines to which Machines this MachineDrainRule should be applied.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"selector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "selector is a label selector which selects Machines by their labels. This field follows standard label selector semantics; if not present or empty, it selects all Machines.\n\nIf clusterSelector is also set, then the selector as a whole selects Machines matching selector belonging to Clusters selected by clusterSelector. If clusterSelector is not set, it selects all Machines matching selector in all Clusters.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"clusterSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterSelector is a label selector which selects Machines by the labels of their Clusters. This field follows standard label selector semantics; if not present or empty, it selects Machines of all Clusters.\n\nIf selector is also set, then the selector as a whole selects Machines matching selector belonging to Clusters selected by clusterSelector. If selector is not set, it selects all Machines belonging to Clusters selected by clusterSelector.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRulePodSelector(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDrainRulePodSelector defines to which Pods this MachineDrainRule should be applied.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"selector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "selector is a label selector which selects Pods by their labels. This field follows standard label selector semantics; if not present or empty, it selects all Pods.\n\nIf namespaceSelector is also set, then the selector as a whole selects Pods matching selector in Namespaces selected by namespaceSelector. If namespaceSelector is not set, it selects all Pods matching selector in all Namespaces.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"namespaceSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "namespaceSelector is a label selector which selects Pods by the labels of their Namespaces. This field follows standard label selector semantics; if not present or empty, it selects Pods of all Namespaces.\n\nIf selector is also set, then the selector as a whole selects Pods matching selector in Namespaces selected by namespaceSelector. If selector is not set, it selects all Pods in Namespaces selected by namespaceSelector.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineDrainRuleSpec defines the spec of a MachineDrainRule.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"drain": {
+						SchemaProps: spec.SchemaProps{
+							Description: "drain configures if and how Pods are drained.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleDrainConfig"),
+						},
+					},
+					"machines": {
+						SchemaProps: spec.SchemaProps{
+							Description: "machines defines to which Machines this MachineDrainRule should be applied.\n\nIf machines is empty, the MachineDrainRule applies to all Machines. If machines contains multiple selectors, the results are ORed. Within a single selector the results of selector and clusterSelector are ANDed. This field is NOT optional.\n\nExample: Selects control plane Machines in all Clusters and\n         Machines with label \"os\" == \"linux\" in Clusters with label \"stage\" == \"production\".\n\n - selector:\n     matchExpressions:\n     - key: cluster.x-k8s.io/control-plane\n       operator: Exists\n - selector:\n     matchLabels:\n       os: linux\n   clusterSelector:\n     matchExpressions:\n     - key: stage\n       operator: In\n       values:\n       - production",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleMachineSelector"),
+									},
+								},
+							},
+						},
+					},
+					"pods": {
+						SchemaProps: spec.SchemaProps{
+							Description: "pods defines to which Pods this MachineDrainRule should be applied.\n\nIf pods is empty, the MachineDrainRule applies to all Pods. If pods contains multiple selectors, the results are ORed. Within a single selector the results of selector and namespaceSelector are ANDed. This field is NOT optional.\n\nExample: Selects Pods with label \"app\" == \"logging\" in all Namespaces and\n         Pods with label \"app\" == \"prometheus\" in the \"monitoring\" Namespace.\n\n - selector:\n     matchExpressions:\n     - key: app\n       operator: In\n       values:\n       - logging\n - selector:\n     matchLabels:\n       app: prometheus\n   namespaceSelector:\n     matchLabels:\n       kubernetes.io/metadata.name: monitoring",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRulePodSelector"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"drain", "machines", "pods"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleDrainConfig", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRuleMachineSelector", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDrainRulePodSelector"},
 	}
 }
 

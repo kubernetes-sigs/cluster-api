@@ -20,6 +20,7 @@ package drain
 import (
 	"context"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -32,15 +33,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
 // Helper contains the parameters to control the behaviour of the drain helper.
 type Helper struct {
+	// Client is the client for the management cluster.
 	Client client.Client
+
+	// RemoteClient is the client for the workload cluster.
+	RemoteClient client.Client
 
 	// GracePeriodSeconds is how long to wait for a Pod to terminate.
 	// IMPORTANT: 0 means "delete immediately"; set to a negative value
@@ -66,7 +74,7 @@ func (d *Helper) CordonNode(ctx context.Context, node *corev1.Node) error {
 
 	patch := client.MergeFrom(node.DeepCopy())
 	node.Spec.Unschedulable = true
-	if err := d.Client.Patch(ctx, node, patch); err != nil {
+	if err := d.RemoteClient.Patch(ctx, node, patch); err != nil {
 		return errors.Wrapf(err, "failed to cordon Node")
 	}
 
@@ -75,7 +83,7 @@ func (d *Helper) CordonNode(ctx context.Context, node *corev1.Node) error {
 
 // GetPodsForEviction gets Pods running on a Node and then filters and returns them as PodDeleteList,
 // or error if it cannot list Pods or get DaemonSets. All Pods that have to go away can be obtained with .Pods().
-func (d *Helper) GetPodsForEviction(ctx context.Context, nodeName string) (*PodDeleteList, error) {
+func (d *Helper) GetPodsForEviction(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, nodeName string) (*PodDeleteList, error) {
 	allPods := []*corev1.Pod{}
 	podList := &corev1.PodList{}
 	for {
@@ -85,7 +93,7 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, nodeName string) (*PodD
 			client.Continue(podList.Continue),
 			client.Limit(100),
 		}
-		if err := d.Client.List(ctx, podList, listOpts...); err != nil {
+		if err := d.RemoteClient.List(ctx, podList, listOpts...); err != nil {
 			return nil, errors.Wrapf(err, "failed to get Pods for eviction")
 		}
 
@@ -98,12 +106,111 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, nodeName string) (*PodD
 		}
 	}
 
-	list := filterPods(ctx, allPods, d.makeFilters())
+	// Get MachineDrainRules matching the Machine and Cluster.
+	machineDrainRulesMatchingMachine, err := d.getMatchingMachineDrainRules(ctx, cluster, machine)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get Pods for eviction")
+	}
+
+	// List all Namespaces.
+	// Note: Namespaces will be cached in the ClusterCache to avoid having to read them on every Reconcile.
+	// Note: Because we are using the cache we don't have to use pagination.
+	podNamespaces := map[string]*corev1.Namespace{}
+	namespaceList := &corev1.NamespaceList{}
+	if err := d.RemoteClient.List(ctx, namespaceList); err != nil {
+		return nil, errors.Wrapf(err, "failed to get Pods for eviction: failed to list Namespaces")
+	}
+	for _, ns := range namespaceList.Items {
+		podNamespaces[ns.Name] = &ns
+	}
+
+	// Note: As soon as a filter decides that a Pod should be skipped (i.e. DrainBehavior == "Skip")
+	// other filters won't be evaluated and the Pod will be skipped.
+	list := filterPods(ctx, allPods, []PodFilter{
+		// Phase 1: Basic filtering (aligned to kubectl drain)
+
+		// Skip Pods with deletionTimestamp (if Node is unreachable & time.Since(deletionTimestamp) > 1s)
+		d.skipDeletedFilter,
+
+		// Skip DaemonSet Pods (if they are not finished)
+		d.daemonSetFilter,
+
+		// Skip static Pods
+		d.mirrorPodFilter,
+
+		// Add warning for Pods with local storage (if they are not finished)
+		d.localStorageFilter,
+
+		// Add warning for Pods without a controller (if they are not finished)
+		d.unreplicatedFilter,
+
+		// Phase 2: Filtering based on drain label & MachineDrainRules
+
+		// Skip Pods with label cluster.x-k8s.io/drain == "skip"
+		d.drainLabelFilter,
+
+		// Use drain behavior and order from first matching MachineDrainRule
+		// If there is no matching MachineDrainRule, use behavior: "Drain" and order: 0
+		d.machineDrainRulesFilter(machineDrainRulesMatchingMachine, podNamespaces),
+	})
 	if errs := list.errors(); len(errs) > 0 {
 		return nil, errors.Wrapf(kerrors.NewAggregate(errs), "failed to get Pods for eviction")
 	}
 
 	return list, nil
+}
+
+func (d *Helper) getMatchingMachineDrainRules(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) ([]*clusterv1.MachineDrainRule, error) {
+	// List all MachineDrainRules.
+	machineDrainRuleList := &clusterv1.MachineDrainRuleList{}
+	if err := d.Client.List(ctx, machineDrainRuleList, client.InNamespace(machine.Namespace)); err != nil {
+		return nil, errors.Wrapf(err, "failed to list MachineDrainRules")
+	}
+
+	// Validate selectors of all MachineDrainRules (so we don't have to do it later for every Pod in machineDrainRulesFilter).
+	errs := []error{}
+	for _, mdr := range machineDrainRuleList.Items {
+		if validationErrs := webhooks.ValidateMachineDrainRulesSelectors(&mdr); len(validationErrs) > 0 {
+			errs = append(errs, errors.Wrapf(validationErrs.ToAggregate(), "invalid selectors in MachineDrainRule %s", mdr.Name))
+		}
+	}
+	if len(errs) > 0 {
+		return nil, errors.Wrapf(kerrors.NewAggregate(errs), "failed to get matching MachineDrainRules")
+	}
+
+	// Collect all MachineDrainRules that match the Machine and Cluster.
+	matchingMachineDrainRules := []*clusterv1.MachineDrainRule{}
+	for _, mdr := range machineDrainRuleList.Items {
+		if !machineDrainRuleAppliesToMachine(&mdr, machine, cluster) {
+			continue
+		}
+		matchingMachineDrainRules = append(matchingMachineDrainRules, &mdr)
+	}
+
+	// Sort MachineDrainRules alphabetically (so we don't have to do it later for every Pod in machineDrainRulesFilter).
+	sort.Slice(matchingMachineDrainRules, func(i, j int) bool {
+		return matchingMachineDrainRules[i].Name < matchingMachineDrainRules[j].Name
+	})
+	return matchingMachineDrainRules, nil
+}
+
+// machineDrainRuleAppliesToMachine evaluates if a MachineDrainRule applies to a Machine.
+func machineDrainRuleAppliesToMachine(mdr *clusterv1.MachineDrainRule, machine *clusterv1.Machine, cluster *clusterv1.Cluster) bool {
+	// If machines is empty, the MachineDrainRule applies to all Machines.
+	if len(mdr.Spec.Machines) == 0 {
+		return true
+	}
+
+	// The MachineDrainRule applies to a Machine if there is a MachineSelector in MachineDrainRule.spec.machines
+	// for which both the selector and clusterSelector match.
+	for _, selector := range mdr.Spec.Machines {
+		if matchesSelector(selector.Selector, machine) &&
+			matchesSelector(selector.ClusterSelector, cluster) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter) *PodDeleteList {
@@ -114,7 +221,7 @@ func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter)
 		var deleteWarnings []string
 		for _, filter := range filters {
 			status = filter(ctx, pod)
-			if !status.Delete {
+			if status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorSkip {
 				// short-circuit as soon as pod is filtered out
 				// at that point, there is no reason to run pod
 				// through any additional filters
@@ -128,7 +235,7 @@ func filterPods(ctx context.Context, allPods []*corev1.Pod, filters []PodFilter)
 		// Note: It only makes sense to aggregate warnings if we are going ahead with the deletion.
 		// If we don't, it's absolutely fine to just use the status from the filter that decided that
 		// we are not going to delete the Pod.
-		if status.Delete &&
+		if status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain &&
 			(status.Reason == PodDeleteStatusTypeOkay || status.Reason == PodDeleteStatusTypeWarning) &&
 			len(deleteWarnings) > 0 {
 			status.Reason = PodDeleteStatusTypeWarning
@@ -160,14 +267,25 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 			fmt.Sprintf("%s/%s", podDeleteList.items[j].Pod.GetNamespace(), podDeleteList.items[j].Pod.GetName())
 	})
 
-	var podsToTriggerEviction []PodDelete
+	// Get the minimum order of all existing Pods.
+	// Note: We are only going to evict or wait for termination of Pods with the minimum order.
+	// This could also mean that we don't evict any additional Pods in this call, if there are still Pods with
+	// deletionTimestamps that have a lower order.
+	minDrainOrder := minDrainOrderOfPodsToDrain(podDeleteList.items)
+
+	var podsToTriggerEvictionNow []PodDelete
+	var podsToTriggerEvictionLater []PodDelete
 	var podsWithDeletionTimestamp []PodDelete
 	var podsToBeIgnored []PodDelete
 	for _, pod := range podDeleteList.items {
 		switch {
-		case pod.Status.Delete && pod.Pod.DeletionTimestamp.IsZero():
-			podsToTriggerEviction = append(podsToTriggerEviction, pod)
-		case pod.Status.Delete:
+		case pod.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain && pod.Pod.DeletionTimestamp.IsZero():
+			if ptr.Deref(pod.Status.DrainOrder, 0) == minDrainOrder {
+				podsToTriggerEvictionNow = append(podsToTriggerEvictionNow, pod)
+			} else {
+				podsToTriggerEvictionLater = append(podsToTriggerEvictionLater, pod)
+			}
+		case pod.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain:
 			podsWithDeletionTimestamp = append(podsWithDeletionTimestamp, pod)
 		default:
 			podsToBeIgnored = append(podsToBeIgnored, pod)
@@ -175,7 +293,8 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 	}
 
 	log.Info("Drain not completed yet, there are still Pods on the Node that have to be drained",
-		"podsToTriggerEviction", podDeleteListToString(podsToTriggerEviction, 5),
+		"podsToTriggerEvictionNow", podDeleteListToString(podsToTriggerEvictionNow, 5),
+		"podsToTriggerEvictionLater", podDeleteListToString(podsToTriggerEvictionLater, 5),
 		"podsWithDeletionTimestamp", podDeleteListToString(podsWithDeletionTimestamp, 5),
 	)
 
@@ -206,7 +325,7 @@ func (d *Helper) EvictPods(ctx context.Context, podDeleteList *PodDeleteList) Ev
 	}
 
 evictionLoop:
-	for _, pd := range podsToTriggerEviction {
+	for _, pd := range podsToTriggerEvictionNow {
 		log := ctrl.LoggerFrom(ctx, "Pod", klog.KObj(pd.Pod))
 		if pd.Status.Reason == PodDeleteStatusTypeWarning && pd.Status.Message != "" {
 			log = log.WithValues("warning", pd.Status.Message)
@@ -267,7 +386,21 @@ evictionLoop:
 		}
 	}
 
+	for _, pd := range podsToTriggerEvictionLater {
+		res.PodsToTriggerEvictionLater = append(res.PodsToTriggerEvictionLater, pd.Pod)
+	}
+
 	return res
+}
+
+func minDrainOrderOfPodsToDrain(pds []PodDelete) int32 {
+	minOrder := int32(math.MaxInt32)
+	for _, pd := range pds {
+		if pd.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain && ptr.Deref(pd.Status.DrainOrder, 0) < minOrder {
+			minOrder = ptr.Deref(pd.Status.DrainOrder, 0)
+		}
+	}
+	return minOrder
 }
 
 // evictPod evicts the given Pod, or return an error if it couldn't.
@@ -286,20 +419,21 @@ func (d *Helper) evictPod(ctx context.Context, pod *corev1.Pod) error {
 		DeleteOptions: &delOpts,
 	}
 
-	return d.Client.SubResource("eviction").Create(ctx, pod, eviction)
+	return d.RemoteClient.SubResource("eviction").Create(ctx, pod, eviction)
 }
 
 // EvictionResult contains the results of an eviction.
 type EvictionResult struct {
-	PodsDeletionTimestampSet []*corev1.Pod
-	PodsFailedEviction       map[string][]*corev1.Pod
-	PodsNotFound             []*corev1.Pod
-	PodsIgnored              []*corev1.Pod
+	PodsDeletionTimestampSet   []*corev1.Pod
+	PodsFailedEviction         map[string][]*corev1.Pod
+	PodsToTriggerEvictionLater []*corev1.Pod
+	PodsNotFound               []*corev1.Pod
+	PodsIgnored                []*corev1.Pod
 }
 
 // DrainCompleted returns if a Node is entirely drained, i.e. if all relevant Pods have gone away.
 func (r EvictionResult) DrainCompleted() bool {
-	return len(r.PodsDeletionTimestampSet) == 0 && len(r.PodsFailedEviction) == 0
+	return len(r.PodsDeletionTimestampSet) == 0 && len(r.PodsFailedEviction) == 0 && len(r.PodsToTriggerEvictionLater) == 0
 }
 
 // ConditionMessage returns a condition message for the case where a drain is not completed.
@@ -311,7 +445,7 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 	conditionMessage := fmt.Sprintf("Drain not completed yet (started at %s):", nodeDrainStartTime.Format(time.RFC3339))
 	if len(r.PodsDeletionTimestampSet) > 0 {
 		conditionMessage = fmt.Sprintf("%s\n* Pods with deletionTimestamp that still exist: %s",
-			conditionMessage, PodListToString(r.PodsDeletionTimestampSet, 5))
+			conditionMessage, PodListToString(r.PodsDeletionTimestampSet, 3))
 	}
 	if len(r.PodsFailedEviction) > 0 {
 		sortedFailureMessages := maps.Keys(r.PodsFailedEviction)
@@ -347,6 +481,10 @@ func (r EvictionResult) ConditionMessage(nodeDrainStartTime *metav1.Time) string
 				conditionMessage += fmt.Sprintf("applying to %d Pods)", podCount)
 			}
 		}
+	}
+	if len(r.PodsToTriggerEvictionLater) > 0 {
+		conditionMessage = fmt.Sprintf("%s\n* After above Pods have been removed from the Node, the following Pods will be evicted: %s",
+			conditionMessage, PodListToString(r.PodsToTriggerEvictionLater, 3))
 	}
 	return conditionMessage
 }

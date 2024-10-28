@@ -1491,7 +1491,8 @@ func TestDrainNode(t *testing.T) {
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod-1-skip-mirror-pod",
+						Name:      "pod-1-skip-mirror-pod",
+						Namespace: "test-namespace",
 						Annotations: map[string]string{
 							corev1.MirrorPodAnnotationKey: "some-value",
 						},
@@ -1499,7 +1500,8 @@ func TestDrainNode(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod-4-skip-daemonset-pod",
+						Name:      "pod-4-skip-daemonset-pod",
+						Namespace: "test-namespace",
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "DaemonSet",
@@ -1528,7 +1530,8 @@ func TestDrainNode(t *testing.T) {
 			pods: []*corev1.Pod{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod-1-skip-mirror-pod",
+						Name:      "pod-1-skip-mirror-pod",
+						Namespace: "test-namespace",
 						Annotations: map[string]string{
 							corev1.MirrorPodAnnotationKey: "some-value",
 						},
@@ -1536,7 +1539,8 @@ func TestDrainNode(t *testing.T) {
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "pod-2-delete-running-deployment-pod",
+						Name:      "pod-2-delete-running-deployment-pod",
+						Namespace: "test-namespace",
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Kind:       "Deployment",
@@ -1557,11 +1561,11 @@ func TestDrainNode(t *testing.T) {
 				Severity: clusterv1.ConditionSeverityInfo,
 				Reason:   clusterv1.DrainingReason,
 				Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: pod-2-delete-running-deployment-pod`,
+* Pods with deletionTimestamp that still exist: test-namespace/pod-2-delete-running-deployment-pod`,
 			},
 			wantDeletingReason: clusterv1.MachineDeletingDrainingNodeV1Beta2Reason,
 			wantDeletingMessage: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: pod-2-delete-running-deployment-pod`,
+* Pods with deletionTimestamp that still exist: test-namespace/pod-2-delete-running-deployment-pod`,
 		},
 		{
 			name:     "Node does exist but is unreachable, no Pods have to be drained because they all have old deletionTimestamps",
@@ -1586,6 +1590,7 @@ func TestDrainNode(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "pod-1-skip-pod-old-deletionTimestamp",
+						Namespace:         "test-namespace",
 						DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Duration(1) * time.Hour * -1)},
 						Finalizers:        []string{"block-deletion"},
 					},
@@ -1620,7 +1625,15 @@ func TestDrainNode(t *testing.T) {
 			}
 			remoteObjs = append(remoteObjs, &appsv1.DaemonSet{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "daemonset-does-exist",
+					Name:      "daemonset-does-exist",
+					Namespace: "test-namespace",
+				},
+			}, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-namespace",
+					Labels: map[string]string{
+						"kubernetes.io/metadata.name": "test-namespace",
+					},
 				},
 			})
 			remoteClient := fake.NewClientBuilder().
@@ -1717,7 +1730,8 @@ func TestDrainNode_withCaching(t *testing.T) {
 	pods := []*corev1.Pod{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "pod-delete-running-deployment-pod",
+				Name:      "pod-delete-running-deployment-pod",
+				Namespace: "test-namespace",
 				Finalizers: []string{
 					// Add a finalizer so the Pod doesn't go away after eviction.
 					"cluster.x-k8s.io/block",
@@ -1737,6 +1751,14 @@ func TestDrainNode_withCaching(t *testing.T) {
 			},
 		},
 	}
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-namespace",
+			Labels: map[string]string{
+				"kubernetes.io/metadata.name": "test-namespace",
+			},
+		},
+	}
 
 	var objs []client.Object
 	objs = append(objs, testCluster, testMachine)
@@ -1744,7 +1766,7 @@ func TestDrainNode_withCaching(t *testing.T) {
 		WithObjects(objs...).
 		Build()
 
-	remoteObjs := []client.Object{node}
+	remoteObjs := []client.Object{node, ns}
 	for _, p := range pods {
 		remoteObjs = append(remoteObjs, p)
 	}
@@ -1780,11 +1802,11 @@ func TestDrainNode_withCaching(t *testing.T) {
 		Severity: clusterv1.ConditionSeverityInfo,
 		Reason:   clusterv1.DrainingReason,
 		Message: `Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: pod-delete-running-deployment-pod`,
+* Pods with deletionTimestamp that still exist: test-namespace/pod-delete-running-deployment-pod`,
 	}))
 	g.Expect(s.deletingReason).To(Equal(clusterv1.MachineDeletingDrainingNodeV1Beta2Reason))
 	g.Expect(s.deletingMessage).To(Equal(`Drain not completed yet (started at 2024-10-09T16:13:59Z):
-* Pods with deletionTimestamp that still exist: pod-delete-running-deployment-pod`))
+* Pods with deletionTimestamp that still exist: test-namespace/pod-delete-running-deployment-pod`))
 
 	// Node should be cordoned.
 	gotNode := &corev1.Node{}
@@ -1983,7 +2005,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 	tests := []struct {
 		name                    string
 		node                    *corev1.Node
-		objs                    []client.Object
+		remoteObjects           []client.Object
 		expected                ctrl.Result
 		expectedDeletingReason  string
 		expectedDeletingMessage string
@@ -2004,7 +2026,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					VolumesAttached: attachedVolumes,
 				},
 			},
-			objs: []client.Object{
+			remoteObjects: []client.Object{
 				persistentVolume,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
@@ -2028,7 +2050,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					VolumesAttached: attachedVolumes,
 				},
 			},
-			objs: []client.Object{
+			remoteObjects: []client.Object{
 				persistentVolumeWithoutClaim,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
@@ -2052,7 +2074,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					VolumesAttached: attachedVolumes,
 				},
 			},
-			objs:                   []client.Object{},
+			remoteObjects:          []client.Object{},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
 			expectedDeletingReason: clusterv1.MachineDeletingWaitingForVolumeDetachV1Beta2Reason,
 			expectedDeletingMessage: `Waiting for Node volumes to be detached (started at 2024-10-09T16:13:59Z)
@@ -2074,7 +2096,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					VolumesAttached: attachedVolumes,
 				},
 			},
-			objs: []client.Object{
+			remoteObjects: []client.Object{
 				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-pod",
@@ -2126,7 +2148,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					},
 				},
 			},
-			objs: []client.Object{
+			remoteObjects: []client.Object{
 				volumeAttachment,
 				persistentVolume,
 			},
@@ -2150,7 +2172,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					},
 				},
 			},
-			objs: []client.Object{
+			remoteObjects: []client.Object{
 				volumeAttachment,
 			},
 			expected:               ctrl.Result{RequeueAfter: waitForVolumeDetachRetryInterval},
@@ -2173,7 +2195,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					},
 				},
 			},
-			objs: []client.Object{
+			remoteObjects: []client.Object{
 				volumeAttachment,
 				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -2227,7 +2249,7 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 					VolumesAttached: attachedVolumes,
 				},
 			},
-			objs: []client.Object{
+			remoteObjects: []client.Object{
 				volumeAttachment,
 				&corev1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -2316,15 +2338,25 @@ func TestShouldWaitForNodeVolumes(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			var objs []client.Object
-			objs = append(objs, testCluster, tt.node)
-			objs = append(objs, tt.objs...)
+			fakeClient := fake.NewClientBuilder().WithObjects(testCluster).Build()
 
-			c := fake.NewClientBuilder().WithIndex(&corev1.Pod{}, "spec.nodeName", nodeNameIndex).
-				WithObjects(objs...).Build()
+			var remoteObjects []client.Object
+			remoteObjects = append(remoteObjects, tt.node)
+			remoteObjects = append(remoteObjects, tt.remoteObjects...)
+			remoteObjects = append(remoteObjects, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "default",
+					Labels: map[string]string{
+						"kubernetes.io/metadata.name": "default",
+					},
+				},
+			})
+			remoteFakeClient := fake.NewClientBuilder().WithIndex(&corev1.Pod{}, "spec.nodeName", nodeNameIndex).
+				WithObjects(remoteObjects...).Build()
+
 			r := &Reconciler{
-				Client:               c,
-				ClusterCache:         clustercache.NewFakeClusterCache(c, client.ObjectKeyFromObject(testCluster)),
+				Client:               fakeClient,
+				ClusterCache:         clustercache.NewFakeClusterCache(remoteFakeClient, client.ObjectKeyFromObject(testCluster)),
 				reconcileDeleteCache: cache.New[cache.ReconcileEntry](),
 			}
 

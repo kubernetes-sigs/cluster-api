@@ -659,6 +659,11 @@ func setupWebhooks(mgr ctrl.Manager, clusterCacheReader webhooks.ClusterCacheRea
 		os.Exit(1)
 	}
 
+	if err := (&webhooks.MachineDrainRule{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "Unable to create webhook", "webhook", "MachineDrainRule")
+		os.Exit(1)
+	}
+
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the webhook
 	// is going to prevent creating or updating new objects in case the feature flag is disabled
 	if err := (&expwebhooks.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {

@@ -26,7 +26,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // Note: This file is still mostly kept in sync with: https://github.com/kubernetes/kubernetes/blob/v1.31.0/staging/src/k8s.io/kubectl/pkg/drain/filters.go
@@ -37,7 +41,7 @@ const (
 	daemonSetOrphanedWarning = "evicting orphaned DaemonSet-managed Pod"
 	daemonSetWarning         = "ignoring DaemonSet-managed Pod"
 	localStorageWarning      = "evicting Pod with local storage"
-	unmanagedWarning         = "evicting Pod that have no controller"
+	unmanagedWarning         = "evicting Pod that has no controller"
 )
 
 // PodDelete informs filtering logic whether a pod should be deleted or not.
@@ -55,19 +59,24 @@ type PodDeleteList struct {
 func (l *PodDeleteList) Pods() []*corev1.Pod {
 	pods := []*corev1.Pod{}
 	for _, i := range l.items {
-		if i.Status.Delete {
+		if i.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorDrain {
 			pods = append(pods, i.Pod)
 		}
 	}
 	return pods
 }
 
-// IgnoredPods returns a list of Pods that have to be ignored before the Node can be considered completely drained.
-// Note: As of today only Pods from  DaemonSet, static Pods or if `SkipWaitForDeleteTimeoutSeconds` is set Pods in deletion get ignored.
-func (l *PodDeleteList) IgnoredPods() []*corev1.Pod {
+// SkippedPods returns a list of Pods that have to be ignored when considering if the Node has been completely drained.
+// Note: As of today the following Pods are skipped:
+// * DaemonSet Pods
+// * static Pods
+// * Pods in deletion (if `SkipWaitForDeleteTimeoutSeconds` is set)
+// * Pods that have the label "cluster.x-k8s.io/drain": "skip"
+// * Pods for which the first MachineDrainRule that matches specifies spec.drain.behavior = "Skip".
+func (l *PodDeleteList) SkippedPods() []*corev1.Pod {
 	pods := []*corev1.Pod{}
 	for _, i := range l.items {
-		if !i.Status.Delete {
+		if i.Status.DrainBehavior == clusterv1.MachineDrainRuleDrainBehaviorSkip {
 			pods = append(pods, i.Pod)
 		}
 	}
@@ -87,15 +96,20 @@ func (l *PodDeleteList) errors() []error {
 	}
 	errs := make([]error, 0, len(failedPods))
 	for msg, pods := range failedPods {
-		errs = append(errs, fmt.Errorf("cannot evict %s: %s", msg, strings.Join(pods, ", ")))
+		errs = append(errs, fmt.Errorf("Pods with error %q: %s", msg, strings.Join(pods, ", ")))
 	}
 	return errs
 }
 
 // PodDeleteStatus informs filters if a pod should be deleted.
 type PodDeleteStatus struct {
-	// Delete means that this Pod has to go away before the Node can be considered completely drained..
-	Delete  bool
+	// DrainBehavior defines the drain behavior of a Pod, it is either "Skip" or "Drain".
+	DrainBehavior clusterv1.MachineDrainRuleDrainBehavior
+
+	// DrainOrder defines the order in which Pods are drained.
+	// DrainOrder is only used if DrainBehavior is "Drain".
+	DrainOrder *int32
+
 	Reason  string
 	Message string
 }
@@ -117,45 +131,40 @@ const (
 // MakePodDeleteStatusOkay is a helper method to return the corresponding PodDeleteStatus.
 func MakePodDeleteStatusOkay() PodDeleteStatus {
 	return PodDeleteStatus{
-		Delete: true,
-		Reason: PodDeleteStatusTypeOkay,
+		DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+		DrainOrder:    ptr.To[int32](0),
+		Reason:        PodDeleteStatusTypeOkay,
 	}
 }
 
 // MakePodDeleteStatusSkip is a helper method to return the corresponding PodDeleteStatus.
 func MakePodDeleteStatusSkip() PodDeleteStatus {
 	return PodDeleteStatus{
-		Delete: false,
-		Reason: PodDeleteStatusTypeSkip,
+		DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
+		Reason:        PodDeleteStatusTypeSkip,
 	}
 }
 
 // MakePodDeleteStatusWithWarning is a helper method to return the corresponding PodDeleteStatus.
-func MakePodDeleteStatusWithWarning(del bool, message string) PodDeleteStatus {
+func MakePodDeleteStatusWithWarning(behavior clusterv1.MachineDrainRuleDrainBehavior, message string) PodDeleteStatus {
+	var order *int32
+	if behavior == clusterv1.MachineDrainRuleDrainBehaviorDrain {
+		order = ptr.To[int32](0)
+	}
 	return PodDeleteStatus{
-		Delete:  del,
-		Reason:  PodDeleteStatusTypeWarning,
-		Message: message,
+		DrainBehavior: behavior,
+		DrainOrder:    order,
+		Reason:        PodDeleteStatusTypeWarning,
+		Message:       message,
 	}
 }
 
 // MakePodDeleteStatusWithError is a helper method to return the corresponding PodDeleteStatus.
 func MakePodDeleteStatusWithError(message string) PodDeleteStatus {
 	return PodDeleteStatus{
-		Delete:  false,
+		// Errors are handled separately, so Behavior is not used.
 		Reason:  PodDeleteStatusTypeError,
 		Message: message,
-	}
-}
-
-// The filters are applied in a specific order.
-func (d *Helper) makeFilters() []PodFilter {
-	return []PodFilter{
-		d.skipDeletedFilter,
-		d.daemonSetFilter,
-		d.mirrorPodFilter,
-		d.localStorageFilter,
-		d.unreplicatedFilter,
 	}
 }
 
@@ -185,16 +194,16 @@ func (d *Helper) daemonSetFilter(ctx context.Context, pod *corev1.Pod) PodDelete
 		return MakePodDeleteStatusOkay()
 	}
 
-	if err := d.Client.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: controllerRef.Name}, &appsv1.DaemonSet{}); err != nil {
+	if err := d.RemoteClient.Get(ctx, client.ObjectKey{Namespace: pod.Namespace, Name: controllerRef.Name}, &appsv1.DaemonSet{}); err != nil {
 		// remove orphaned pods with a warning
 		if apierrors.IsNotFound(err) {
-			return MakePodDeleteStatusWithWarning(true, daemonSetOrphanedWarning)
+			return MakePodDeleteStatusWithWarning(clusterv1.MachineDrainRuleDrainBehaviorDrain, daemonSetOrphanedWarning)
 		}
 
 		return MakePodDeleteStatusWithError(err.Error())
 	}
 
-	return MakePodDeleteStatusWithWarning(false, daemonSetWarning)
+	return MakePodDeleteStatusWithWarning(clusterv1.MachineDrainRuleDrainBehaviorSkip, daemonSetWarning)
 }
 
 func (d *Helper) mirrorPodFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
@@ -213,7 +222,7 @@ func (d *Helper) localStorageFilter(_ context.Context, pod *corev1.Pod) PodDelet
 		return MakePodDeleteStatusOkay()
 	}
 
-	return MakePodDeleteStatusWithWarning(true, localStorageWarning)
+	return MakePodDeleteStatusWithWarning(clusterv1.MachineDrainRuleDrainBehaviorDrain, localStorageWarning)
 }
 
 func (d *Helper) unreplicatedFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
@@ -227,7 +236,7 @@ func (d *Helper) unreplicatedFilter(_ context.Context, pod *corev1.Pod) PodDelet
 		return MakePodDeleteStatusOkay()
 	}
 
-	return MakePodDeleteStatusWithWarning(true, unmanagedWarning)
+	return MakePodDeleteStatusWithWarning(clusterv1.MachineDrainRuleDrainBehaviorDrain, unmanagedWarning)
 }
 
 func shouldSkipPod(pod *corev1.Pod, skipDeletedTimeoutSeconds int) bool {
@@ -241,4 +250,83 @@ func (d *Helper) skipDeletedFilter(_ context.Context, pod *corev1.Pod) PodDelete
 		return MakePodDeleteStatusSkip()
 	}
 	return MakePodDeleteStatusOkay()
+}
+
+func (d *Helper) drainLabelFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
+	if labelValue, found := pod.ObjectMeta.Labels[clusterv1.PodDrainLabel]; found && labelValue == "skip" {
+		return MakePodDeleteStatusSkip()
+	}
+	return MakePodDeleteStatusOkay()
+}
+
+func (d *Helper) machineDrainRulesFilter(machineDrainRules []*clusterv1.MachineDrainRule, namespaces map[string]*corev1.Namespace) PodFilter {
+	return func(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
+		// Get the namespace of the Pod
+		namespace, ok := namespaces[pod.Namespace]
+		if !ok {
+			return MakePodDeleteStatusWithError("Pod Namespace does not exist")
+		}
+
+		// Iterate through the MachineDrainRules (they are already alphabetically sorted).
+		for _, mdr := range machineDrainRules {
+			if !machineDrainRuleAppliesToPod(mdr, pod, namespace) {
+				continue
+			}
+
+			// If the pod selector matches, use the drain behavior from the MachineDrainRule.
+			switch mdr.Spec.Drain.Behavior {
+			case clusterv1.MachineDrainRuleDrainBehaviorDrain:
+				pd := MakePodDeleteStatusOkay()
+				pd.DrainOrder = mdr.Spec.Drain.Order
+				return pd
+			case clusterv1.MachineDrainRuleDrainBehaviorSkip:
+				return MakePodDeleteStatusSkip()
+			default:
+				return MakePodDeleteStatusWithError(
+					fmt.Sprintf("MachineDrainRule %q has unknown spec.drain.behavior: %q",
+						mdr.Name, mdr.Spec.Drain.Behavior))
+			}
+		}
+
+		// If no MachineDrainRule matches, use behavior: "Drain" and order: 0
+		return MakePodDeleteStatusOkay()
+	}
+}
+
+// machineDrainRuleAppliesToPod evaluates if a MachineDrainRule applies to a Pod.
+func machineDrainRuleAppliesToPod(mdr *clusterv1.MachineDrainRule, pod *corev1.Pod, namespace *corev1.Namespace) bool {
+	// If pods is empty, the MachineDrainRule applies to all Pods.
+	if len(mdr.Spec.Pods) == 0 {
+		return true
+	}
+
+	// The MachineDrainRule applies to a Pod if there is a PodSelector in MachineDrainRule.spec.pods
+	// for which both the selector and namespaceSelector match.
+	for _, selector := range mdr.Spec.Pods {
+		if matchesSelector(selector.Selector, pod) &&
+			matchesSelector(selector.NamespaceSelector, namespace) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// matchesSelector evaluates if the labelSelector matches an object.
+// The labelSelector matches if:
+// * it is nil
+// * it is empty
+// * the selector matches the labels of the object.
+func matchesSelector(labelSelector *metav1.LabelSelector, obj client.Object) bool {
+	if labelSelector == nil {
+		return true
+	}
+
+	// Ignoring the error, labelSelector was already validated before calling matchesSelector.
+	selector, _ := metav1.LabelSelectorAsSelector(labelSelector)
+	if selector.Empty() {
+		return true
+	}
+
+	return selector.Matches(labels.Set(obj.GetLabels()))
 }

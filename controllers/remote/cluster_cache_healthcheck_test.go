@@ -95,7 +95,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 					Namespace: ns.GetName(),
 				},
 			}
-			g.Expect(k8sClient.Create(ctx, testCluster)).To(Succeed())
+			g.Expect(env.CreateAndWait(ctx, testCluster)).To(Succeed())
 			conditions.MarkTrue(testCluster, clusterv1.ControlPlaneInitializedCondition)
 			testCluster.Status.InfrastructureReady = true
 			g.Expect(k8sClient.Status().Update(ctx, testCluster)).To(Succeed())

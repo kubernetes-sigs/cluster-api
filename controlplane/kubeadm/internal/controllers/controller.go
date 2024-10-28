@@ -344,6 +344,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 		}},
 		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
 			controlplanev1.KubeadmControlPlaneAvailableV1Beta2Condition,
+			controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneCertificatesAvailableV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 			controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition,
@@ -489,6 +490,11 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 		// Create new Machine w/ init
 		log.Info("Initializing control plane", "desired", desiredReplicas, "existing", numMachines)
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
+		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+		})
 		return r.initializeControlPlane(ctx, controlPlane)
 	// We are scaling up
 	case numMachines < desiredReplicas && numMachines > 0:
@@ -826,6 +832,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx cont
 	// Note: The Machine controller uses the ControlPlaneInitialized condition on the Cluster instead for
 	// the same check. We don't use the ControlPlaneInitialized condition from the Cluster here because KCP
 	// Reconcile does (currently) not get triggered from condition changes to the Cluster object.
+	// TODO: Once we moved to v1beta2 conditions we should use the `Initialized` condition instead.
 	controlPlaneInitialized := conditions.Get(controlPlane.KCP, controlplanev1.AvailableCondition)
 	if !controlPlane.KCP.Status.Initialized ||
 		controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
@@ -873,6 +880,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx cont
 			// If conditions are not set, set them to ConnectionDown.
 			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
 			// However, if connection errors persist more than r.RemoteConditionsGracePeriod, conditions will be overridden.
+			// Note: Usually EtcdClusterHealthy and ControlPlaneComponentsHealthy have already been set before we reach this code,
+			// which means that usually we don't set any conditions here (because we use Overwrite: false).
 			setConditionsToUnknown(setConditionsToUnknownInput{
 				ControlPlane:                        controlPlane,
 				Overwrite:                           false, // Don't overwrite.
@@ -917,6 +926,9 @@ type setConditionsToUnknownInput struct {
 }
 
 func setConditionsToUnknown(input setConditionsToUnknownInput) {
+	// Note: We are not checking if conditions on the Machines are already set, we just check the KCP conditions instead.
+	// This means if Overwrite is set to false, we only set the EtcdMemberHealthy condition if the EtcdClusterHealthy condition is not set.
+	// The same applies to ControlPlaneComponentsHealthy and the control plane component conditions on the Machines.
 	etcdClusterHealthySet := v1beta2conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition)
 	controlPlaneComponentsHealthySet := v1beta2conditions.Has(input.ControlPlane.KCP, controlplanev1.KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Condition)
 

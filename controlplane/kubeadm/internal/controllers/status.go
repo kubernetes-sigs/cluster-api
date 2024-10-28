@@ -108,6 +108,11 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, contro
 	if status.HasKubeadmConfig {
 		controlPlane.KCP.Status.Initialized = true
 		conditions.MarkTrue(controlPlane.KCP, controlplanev1.AvailableCondition)
+		v1beta2conditions.Set(controlPlane.KCP, metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+		})
 	}
 
 	if controlPlane.KCP.Status.ReadyReplicas > 0 {

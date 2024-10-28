@@ -1379,6 +1379,7 @@ kubernetesVersion: metav1.16.1
 		g.Expect(kcp.Status.Selector).NotTo(BeEmpty())
 		g.Expect(kcp.Status.Replicas).To(BeEquivalentTo(1))
 		g.Expect(conditions.IsFalse(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
+		g.Expect(v1beta2conditions.IsFalse(kcp, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)).To(BeTrue())
 
 		s, err := secret.GetFromNamespacedName(ctx, env, client.ObjectKey{Namespace: cluster.Namespace, Name: "foo"}, secret.ClusterCA)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -1873,6 +1874,16 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 				{Type: controlplanev1.AvailableCondition, Status: corev1.ConditionTrue,
 					LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
 			},
+			V1Beta2: &controlplanev1.KubeadmControlPlaneV1Beta2Status{
+				Conditions: []metav1.Condition{
+					{
+						Type:               controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+						Status:             metav1.ConditionTrue,
+						Reason:             controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+						LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)},
+					},
+				},
+			},
 		},
 	}
 
@@ -1892,10 +1903,20 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					kcp := defaultKCP.DeepCopy()
 					kcp.Status.Initialized = false
 					conditions.MarkFalse(kcp, controlplanev1.AvailableCondition, "", clusterv1.ConditionSeverityError, "")
+					v1beta2conditions.Set(kcp, metav1.Condition{
+						Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+						Status: metav1.ConditionFalse,
+						Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+					})
 					return kcp
 				}(),
 			},
 			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionFalse,
+					Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
@@ -1919,6 +1940,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 					for i, condition := range kcp.Status.Conditions {
 						if condition.Type == controlplanev1.AvailableCondition {
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+						}
+					}
+					for i, condition := range kcp.Status.V1Beta2.Conditions {
+						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
+							kcp.Status.V1Beta2.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
 					v1beta2conditions.Set(kcp, metav1.Condition{
@@ -1965,6 +1991,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 				"connection to the workload cluster is down",
 			expectKCPConditions: []metav1.Condition{
 				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				},
+				{
 					Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 					Status: metav1.ConditionTrue,
 					Reason: controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason,
@@ -1994,6 +2025,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
 						}
 					}
+					for i, condition := range kcp.Status.V1Beta2.Conditions {
+						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
+							kcp.Status.V1Beta2.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+						}
+					}
 					return kcp
 				}(),
 				Machines: map[string]*clusterv1.Machine{
@@ -2011,6 +2047,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 			expectErr: "cannot get client for the workload cluster: error getting REST config: " +
 				"connection to the workload cluster is down",
 			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
@@ -2068,6 +2109,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 							kcp.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
 						}
 					}
+					for i, condition := range kcp.Status.V1Beta2.Conditions {
+						if condition.Type == controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition {
+							kcp.Status.V1Beta2.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
+						}
+					}
 					v1beta2conditions.Set(kcp, metav1.Condition{
 						Type:   controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 						Status: metav1.ConditionTrue,
@@ -2107,6 +2153,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 			// control plane is initialized since 7m ago, last probe success was 6m ago.
 			expectErr: "connection to the workload cluster is down",
 			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
@@ -2170,6 +2221,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 			expectErr:            "cannot get client for the workload cluster: failed to get secret; etcd CA bundle",
 			expectKCPConditions: []metav1.Condition{
 				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				},
+				{
 					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
 					Reason:  controlplanev1.KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason,
@@ -2230,6 +2286,11 @@ func TestKubeadmControlPlaneReconciler_reconcileControlPlaneConditions(t *testin
 			},
 			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			expectKCPConditions: []metav1.Condition{
+				{
+					Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+				},
 				{
 					Type:    controlplanev1.KubeadmControlPlaneEtcdClusterHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,

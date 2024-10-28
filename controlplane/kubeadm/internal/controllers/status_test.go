@@ -769,6 +769,7 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 	g.Expect(kcp.Status.Initialized).To(BeTrue())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.AvailableCondition)).To(BeTrue())
 	g.Expect(conditions.IsTrue(kcp, controlplanev1.MachinesCreatedCondition)).To(BeTrue())
+	g.Expect(v1beta2conditions.IsTrue(kcp, controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition)).To(BeTrue())
 	g.Expect(kcp.Status.Ready).To(BeTrue())
 }
 

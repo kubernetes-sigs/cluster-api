@@ -20,9 +20,23 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // KubeadmControlPlane's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneAvailableV1Beta2Condition True if the control plane can be reached, EtcdClusterHealthy is true,
+	// KubeadmControlPlaneAvailableV1Beta2Condition is True if the control plane can be reached, EtcdClusterHealthy is true,
 	// and CertificatesAvailable is true.
 	KubeadmControlPlaneAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
+)
+
+// KubeadmControlPlane's Initialized condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// KubeadmControlPlaneInitializedV1Beta2Condition is True when the control plane is functional enough to accept
+	// requests. This information is usually used as a signal for starting all the provisioning operations that
+	// depend on a functional API server, but do not require a full HA control plane to exist.
+	KubeadmControlPlaneInitializedV1Beta2Condition = "Initialized"
+
+	// KubeadmControlPlaneInitializedV1Beta2Reason surfaces when the control plane is initialized.
+	KubeadmControlPlaneInitializedV1Beta2Reason = "Initialized"
+
+	// KubeadmControlPlaneNotInitializedV1Beta2Reason surfaces when the control plane is not initialized.
+	KubeadmControlPlaneNotInitializedV1Beta2Reason = "NotInitialized"
 )
 
 // KubeadmControlPlane's CertificatesAvailable condition and corresponding reasons that will be used in v1Beta2 API version.

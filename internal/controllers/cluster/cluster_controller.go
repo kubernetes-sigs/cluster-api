@@ -19,7 +19,6 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"path"
 	"strings"
 	"time"
 
@@ -28,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -118,7 +118,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retRes ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
 	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
@@ -141,6 +143,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	s := &scope{
+		cluster: cluster,
+	}
+
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(cluster, r.Client)
 	if err != nil {
@@ -159,6 +165,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 		if err := patchCluster(ctx, patchHelper, cluster, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+
+		if reterr != nil {
+			retRes = ctrl.Result{}
 		}
 	}()
 
@@ -185,13 +195,37 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		})
 	}
 
+	alwaysReconcile := []clusterReconcileFunc{
+		r.reconcileInfrastructure,
+		r.reconcileControlPlane,
+		r.getDescendants,
+	}
+
 	// Handle deletion reconciliation loop.
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster)
+		reconcileDelete := append(
+			alwaysReconcile,
+			r.reconcileDelete,
+		)
+
+		return doReconcile(ctx, reconcileDelete, s)
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster)
+	if cluster.Spec.Topology != nil {
+		if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.InfrastructureRef == nil {
+			// TODO: add a condition to surface this scenario
+			log.Info("Waiting for the topology to be generated")
+			return ctrl.Result{}, nil
+		}
+	}
+
+	reconcileNormal := append(
+		alwaysReconcile,
+		r.reconcileKubeconfig,
+		r.reconcileControlPlaneInitialized,
+	)
+	return doReconcile(ctx, reconcileNormal, s)
 }
 
 func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clusterv1.Cluster, options ...patch.Option) error {
@@ -216,30 +250,14 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 	return patchHelper.Patch(ctx, cluster, options...)
 }
 
-// reconcile handles cluster reconciliation.
-func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
+type clusterReconcileFunc func(context.Context, *scope) (ctrl.Result, error)
 
-	if cluster.Spec.Topology != nil {
-		if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.InfrastructureRef == nil {
-			// TODO: add a condition to surface this scenario
-			log.Info("Waiting for the topology to be generated")
-			return ctrl.Result{}, nil
-		}
-	}
-
-	phases := []func(context.Context, *clusterv1.Cluster) (ctrl.Result, error){
-		r.reconcileInfrastructure,
-		r.reconcileControlPlane,
-		r.reconcileKubeconfig,
-		r.reconcileControlPlaneInitialized,
-	}
-
+func doReconcile(ctx context.Context, phases []clusterReconcileFunc, s *scope) (ctrl.Result, error) {
 	res := ctrl.Result{}
 	errs := []error{}
 	for _, phase := range phases {
 		// Call the inner reconciliation methods.
-		phaseResult, err := phase(ctx, cluster)
+		phaseResult, err := phase(ctx, s)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -248,12 +266,45 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) 
 		}
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
-	return res, kerrors.NewAggregate(errs)
+
+	if len(errs) > 0 {
+		return ctrl.Result{}, kerrors.NewAggregate(errs)
+	}
+
+	return res, nil
+}
+
+// scope holds the different objects that are read and used during the reconcile.
+type scope struct {
+	// cluster is the Cluster object being reconciled.
+	// It is set at the beginning of the reconcile function.
+	cluster *clusterv1.Cluster
+
+	// infraCluster is the Infrastructure Cluster object that is referenced by the
+	// Cluster. It is set after reconcileInfrastructure is called.
+	infraCluster *unstructured.Unstructured
+
+	// infraClusterNotFound is true if getting the infra cluster object failed with an NotFound err
+	infraClusterIsNotFound bool
+
+	// controlPlane is the ControlPlane object that is referenced by the
+	// Cluster. It is set after reconcileControlPlane is called.
+	controlPlane *unstructured.Unstructured
+
+	// controlPlaneNotFound is true if getting the ControlPlane object failed with an NotFound err
+	controlPlaneIsNotFound bool
+
+	// descendants is the list of objects related to this Cluster
+	descendants clusterDescendants
+
+	// getDescendantsSucceeded documents if getDescendants succeeded.
+	getDescendantsSucceeded bool
 }
 
 // reconcileDelete handles cluster deletion.
-func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+	cluster := s.cluster
 
 	// If the RuntimeSDK and ClusterTopology flags are enabled, for clusters with managed topologies
 	// only proceed with delete if the cluster is marked as `ok-to-delete`
@@ -263,13 +314,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		}
 	}
 
-	descendants, err := r.listDescendants(ctx, cluster)
-	if err != nil {
-		log.Error(err, "Failed to list descendants")
-		return reconcile.Result{}, err
+	// If it failed to get descendants, no-op.
+	if !s.getDescendantsSucceeded {
+		return reconcile.Result{}, nil
 	}
 
-	children, err := descendants.filterOwnedDescendants(cluster)
+	children, err := s.descendants.filterOwnedDescendants(cluster)
 	if err != nil {
 		log.Error(err, "Failed to extract direct descendants")
 		return reconcile.Result{}, err
@@ -306,36 +356,35 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		}
 	}
 
-	if descendantCount := descendants.length(); descendantCount > 0 {
+	if descendantCount := s.descendants.objectsPendingDeleteCount(cluster); descendantCount > 0 {
 		indirect := descendantCount - len(children)
-		log.Info("Cluster still has descendants - need to requeue", "descendants", descendants.descendantNames(), "indirect descendants count", indirect)
+		log.Info("Cluster still has descendants - need to requeue", "descendants", s.descendants.objectsPendingDeleteNames(cluster), "indirect descendants count", indirect)
 		// Requeue so we can check the next time to see if there are still any descendants left.
 		return ctrl.Result{RequeueAfter: deleteRequeueAfter}, nil
 	}
 
 	if cluster.Spec.ControlPlaneRef != nil {
-		obj, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
-		switch {
-		case apierrors.IsNotFound(errors.Cause(err)):
+		if s.controlPlane == nil {
+			if !s.controlPlaneIsNotFound {
+				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
+				// Note: this error surfaces in reconcile reconcileControlPlane.
+				return ctrl.Result{}, nil
+			}
 			// All good - the control plane resource has been deleted
 			conditions.MarkFalse(cluster, clusterv1.ControlPlaneReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
-		case err != nil:
-			return reconcile.Result{}, errors.Wrapf(err, "failed to get %s %q for Cluster %s/%s",
-				path.Join(cluster.Spec.ControlPlaneRef.APIVersion, cluster.Spec.ControlPlaneRef.Kind),
-				cluster.Spec.ControlPlaneRef.Name, cluster.Namespace, cluster.Name)
-		default:
-			// Report a summary of current status of the control plane object defined for this cluster.
-			conditions.SetMirror(cluster, clusterv1.ControlPlaneReadyCondition,
-				conditions.UnstructuredGetter(obj),
-				conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
-			)
+		}
 
-			// Issue a deletion request for the control plane object.
-			// Once it's been deleted, the cluster will get processed again.
-			if err := r.Client.Delete(ctx, obj); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err,
-					"failed to delete %v %q for Cluster %q in namespace %q",
-					obj.GroupVersionKind(), obj.GetName(), cluster.Name, cluster.Namespace)
+		if s.controlPlane != nil {
+			if s.controlPlane.GetDeletionTimestamp().IsZero() {
+				// Issue a deletion request for the control plane object.
+				// Once it's been deleted, the cluster will get processed again.
+				if err := r.Client.Delete(ctx, s.controlPlane); err != nil {
+					if !apierrors.IsNotFound(err) {
+						return ctrl.Result{}, errors.Wrapf(err,
+							"failed to delete %v %q for Cluster %q in namespace %q",
+							s.controlPlane.GroupVersionKind().Kind, s.controlPlane.GetName(), cluster.Name, cluster.Namespace)
+					}
+				}
 			}
 
 			// Return here so we don't remove the finalizer yet.
@@ -345,28 +394,27 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	}
 
 	if cluster.Spec.InfrastructureRef != nil {
-		obj, err := external.Get(ctx, r.Client, cluster.Spec.InfrastructureRef, cluster.Namespace)
-		switch {
-		case apierrors.IsNotFound(errors.Cause(err)):
+		if s.infraCluster == nil {
+			if !s.infraClusterIsNotFound {
+				// In case there was a generic error (different than isNotFound) in reading the InfraCluster, do not continue with deletion.
+				// Note: this error surfaces in reconcile reconcileInfrastructure.
+				return ctrl.Result{}, nil
+			}
 			// All good - the infra resource has been deleted
 			conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyCondition, clusterv1.DeletedReason, clusterv1.ConditionSeverityInfo, "")
-		case err != nil:
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get %s %q for Cluster %s/%s",
-				path.Join(cluster.Spec.InfrastructureRef.APIVersion, cluster.Spec.InfrastructureRef.Kind),
-				cluster.Spec.InfrastructureRef.Name, cluster.Namespace, cluster.Name)
-		default:
-			// Report a summary of current status of the infrastructure object defined for this cluster.
-			conditions.SetMirror(cluster, clusterv1.InfrastructureReadyCondition,
-				conditions.UnstructuredGetter(obj),
-				conditions.WithFallbackValue(false, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, ""),
-			)
+		}
 
-			// Issue a deletion request for the infrastructure object.
-			// Once it's been deleted, the cluster will get processed again.
-			if err := r.Client.Delete(ctx, obj); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err,
-					"failed to delete %v %q for Cluster %q in namespace %q",
-					obj.GroupVersionKind(), obj.GetName(), cluster.Name, cluster.Namespace)
+		if s.infraCluster != nil {
+			if s.infraCluster.GetDeletionTimestamp().IsZero() {
+				// Issue a deletion request for the infrastructure object.
+				// Once it's been deleted, the cluster will get processed again.
+				if err := r.Client.Delete(ctx, s.infraCluster); err != nil {
+					if !apierrors.IsNotFound(err) {
+						return ctrl.Result{}, errors.Wrapf(err,
+							"failed to delete %v %q for Cluster %q in namespace %q",
+							s.infraCluster.GroupVersionKind().Kind, s.infraCluster.GetName(), cluster.Name, cluster.Namespace)
+					}
+				}
 			}
 
 			// Return here so we don't remove the finalizer yet.
@@ -388,23 +436,33 @@ type clusterDescendants struct {
 	machinePools         expv1.MachinePoolList
 }
 
-// length returns the number of descendants.
-func (c *clusterDescendants) length() int {
-	return len(c.machineDeployments.Items) +
+// objectsPendingDeleteCount returns the number of descendants pending delete.
+// Note: infrastructure cluster, control plane object and its controlled machines are not included.
+func (c *clusterDescendants) objectsPendingDeleteCount(cluster *clusterv1.Cluster) int {
+	n := len(c.machineDeployments.Items) +
 		len(c.machineSets.Items) +
-		len(c.controlPlaneMachines.Items) +
 		len(c.workerMachines.Items) +
 		len(c.machinePools.Items)
+
+	if cluster.Spec.ControlPlaneRef == nil {
+		n += len(c.controlPlaneMachines.Items)
+	}
+
+	return n
 }
 
-func (c *clusterDescendants) descendantNames() string {
+// objectsPendingDeleteNames return the names of descendants pending delete.
+// Note: infrastructure cluster, control plane object and its controlled machines are not included.
+func (c *clusterDescendants) objectsPendingDeleteNames(cluster *clusterv1.Cluster) string {
 	descendants := make([]string, 0)
-	controlPlaneMachineNames := make([]string, len(c.controlPlaneMachines.Items))
-	for i, controlPlaneMachine := range c.controlPlaneMachines.Items {
-		controlPlaneMachineNames[i] = controlPlaneMachine.Name
-	}
-	if len(controlPlaneMachineNames) > 0 {
-		descendants = append(descendants, "Control plane machines: "+strings.Join(controlPlaneMachineNames, ","))
+	if cluster.Spec.ControlPlaneRef == nil {
+		controlPlaneMachineNames := make([]string, len(c.controlPlaneMachines.Items))
+		for i, controlPlaneMachine := range c.controlPlaneMachines.Items {
+			controlPlaneMachineNames[i] = controlPlaneMachine.Name
+		}
+		if len(controlPlaneMachineNames) > 0 {
+			descendants = append(descendants, "Control plane machines: "+strings.Join(controlPlaneMachineNames, ","))
+		}
 	}
 	machineDeploymentNames := make([]string, len(c.machineDeployments.Items))
 	for i, machineDeployment := range c.machineDeployments.Items {
@@ -420,13 +478,6 @@ func (c *clusterDescendants) descendantNames() string {
 	if len(machineSetNames) > 0 {
 		descendants = append(descendants, "Machine sets: "+strings.Join(machineSetNames, ","))
 	}
-	workerMachineNames := make([]string, len(c.workerMachines.Items))
-	for i, workerMachine := range c.workerMachines.Items {
-		workerMachineNames[i] = workerMachine.Name
-	}
-	if len(workerMachineNames) > 0 {
-		descendants = append(descendants, "Worker machines: "+strings.Join(workerMachineNames, ","))
-	}
 	if feature.Gates.Enabled(feature.MachinePool) {
 		machinePoolNames := make([]string, len(c.machinePools.Items))
 		for i, machinePool := range c.machinePools.Items {
@@ -436,12 +487,20 @@ func (c *clusterDescendants) descendantNames() string {
 			descendants = append(descendants, "Machine pools: "+strings.Join(machinePoolNames, ","))
 		}
 	}
-	return strings.Join(descendants, ";")
+	workerMachineNames := make([]string, len(c.workerMachines.Items))
+	for i, workerMachine := range c.workerMachines.Items {
+		workerMachineNames[i] = workerMachine.Name
+	}
+	if len(workerMachineNames) > 0 {
+		descendants = append(descendants, "Worker machines: "+strings.Join(workerMachineNames, ","))
+	}
+	return strings.Join(descendants, "; ")
 }
 
-// listDescendants returns a list of all MachineDeployments, MachineSets, MachinePools and Machines for the cluster.
-func (r *Reconciler) listDescendants(ctx context.Context, cluster *clusterv1.Cluster) (clusterDescendants, error) {
+// getDescendants collects all MachineDeployments, MachineSets, MachinePools and Machines for the cluster.
+func (r *Reconciler) getDescendants(ctx context.Context, s *scope) (reconcile.Result, error) {
 	var descendants clusterDescendants
+	cluster := s.cluster
 
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
@@ -449,39 +508,42 @@ func (r *Reconciler) listDescendants(ctx context.Context, cluster *clusterv1.Clu
 	}
 
 	if err := r.Client.List(ctx, &descendants.machineDeployments, listOptions...); err != nil {
-		return descendants, errors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s", cluster.Namespace, cluster.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to list MachineDeployments for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
 	if err := r.Client.List(ctx, &descendants.machineSets, listOptions...); err != nil {
-		return descendants, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to list MachineSets for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := r.Client.List(ctx, &descendants.machinePools, listOptions...); err != nil {
-			return descendants, errors.Wrapf(err, "failed to list MachinePools for the cluster %s/%s", cluster.Namespace, cluster.Name)
+			return reconcile.Result{}, errors.Wrapf(err, "failed to list MachinePools for the cluster %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
 	var machines clusterv1.MachineList
 	if err := r.Client.List(ctx, &machines, listOptions...); err != nil {
-		return descendants, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
+		return reconcile.Result{}, errors.Wrapf(err, "failed to list Machines for cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
-	// Split machines into control plane and worker machines so we make sure we delete control plane machines last
+	// Split machines into control plane and worker machines
 	machineCollection := collections.FromMachineList(&machines)
 	controlPlaneMachines := machineCollection.Filter(collections.ControlPlaneMachines(cluster.Name))
 	workerMachines := machineCollection.Difference(controlPlaneMachines)
-	descendants.workerMachines = collections.ToMachineList(workerMachines)
-	// Only count control plane machines as descendants if there is no control plane provider.
-	if cluster.Spec.ControlPlaneRef == nil {
-		descendants.controlPlaneMachines = collections.ToMachineList(controlPlaneMachines)
-	}
 
-	return descendants, nil
+	descendants.controlPlaneMachines = collections.ToMachineList(controlPlaneMachines)
+	descendants.workerMachines = collections.ToMachineList(workerMachines)
+
+	s.descendants = descendants
+	s.getDescendantsSucceeded = true
+
+	return reconcile.Result{}, nil
 }
 
 // filterOwnedDescendants returns an array of runtime.Objects containing only those descendants that have the cluster
 // as an owner reference, with control plane machines sorted last.
-func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) ([]client.Object, error) {
+// Note: this list must include stand-alone MachineSets and stand-alone Machines; instead MachineSets or Machines controlled
+// by higher level abstractions like e.g. MachineDeployment are not be included (if owner references are properly set on those machines).
+func (c *clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) ([]client.Object, error) {
 	var ownedDescendants []client.Object
 	eachFunc := func(o runtime.Object) error {
 		obj := o.(client.Object)
@@ -501,10 +563,22 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 		&c.machineDeployments,
 		&c.machineSets,
 		&c.workerMachines,
-		&c.controlPlaneMachines,
 	}
 	if feature.Gates.Enabled(feature.MachinePool) {
 		lists = append([]client.ObjectList{&c.machinePools}, lists...)
+	}
+
+	// Make sure that control plane machines are included only if there is no control plane object
+	// responsible to manage them.
+	// Note: Excluding machines controlled by a control plane object is an additional safeguard to ensure
+	// that the control plane is deleted only after all the workers machine are done.
+	// Note: Using stand-alone control plane machines is not yet officially deprecated, however this approach
+	// has well known limitations that have been address by the introduction of control plane objects. One of those
+	// limitation is about the deletion workflow, which is governed by this function.
+	// More specifically, when deleting a Cluster with stand-alone control plane machines, stand-alone control plane machines
+	// will be decommissioned in parallel with other machines, no matter of them being added as last in this list.
+	if cluster.Spec.ControlPlaneRef == nil {
+		lists = append(lists, []client.ObjectList{&c.controlPlaneMachines}...)
 	}
 
 	for _, list := range lists {
@@ -516,8 +590,9 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 	return ownedDescendants, nil
 }
 
-func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+	cluster := s.cluster
 
 	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
 	// reconcileControlPlane instead).

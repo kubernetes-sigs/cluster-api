@@ -32,7 +32,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -228,7 +227,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 				m.Status.FailureReason = ptr.To(capierrors.InvalidConfigurationMachineError)
 				m.Status.FailureMessage = ptr.To(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 					m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
-				return ctrl.Result{}, reconcile.TerminalError(errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace))
+				return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 			}
 			log.Info("Could not find infrastructure machine, requeuing", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
 			return ctrl.Result{RequeueAfter: externalReadyWait}, nil

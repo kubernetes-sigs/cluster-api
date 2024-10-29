@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	"sort"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,7 +86,7 @@ func Set(targetObj Setter, condition metav1.Condition, opts ...SetOption) {
 	}
 
 	conditions := targetObj.GetV1Beta2Conditions()
-	if changed := meta.SetStatusCondition(&conditions, condition); !changed {
+	if changed := setStatusCondition(&conditions, condition); !changed {
 		return
 	}
 
@@ -96,6 +97,17 @@ func Set(targetObj Setter, condition metav1.Condition, opts ...SetOption) {
 	}
 
 	targetObj.SetV1Beta2Conditions(conditions)
+}
+
+func setStatusCondition(conditions *[]metav1.Condition, condition metav1.Condition) bool {
+	// Truncate last transition time to seconds.
+	// This prevents inconsistencies from what we have in objects in memory and what Marshal/Unmarshal
+	// will do while the data is sent to/read from the API server.
+	if condition.LastTransitionTime.IsZero() {
+		condition.LastTransitionTime = metav1.Now()
+	}
+	condition.LastTransitionTime.Time = condition.LastTransitionTime.Truncate(1 * time.Second)
+	return meta.SetStatusCondition(conditions, condition)
 }
 
 // Delete deletes the condition with the given type.

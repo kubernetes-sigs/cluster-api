@@ -17,7 +17,7 @@ jobs:
       release_tag: ${{ steps.release-version.outputs.release_version }}
     steps:
       - name: Checkout code 
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # tag=v4.2.1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # tag=v4.2.2
         with:
           fetch-depth: 0
       - name: Get changed files
@@ -87,14 +87,14 @@ jobs:
         env:
           RELEASE_TAG: ${{needs.push_release_tags.outputs.release_tag}}
       - name: checkout code
-        uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # tag=v4.2.1
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # tag=v4.2.2
         with:
           fetch-depth: 0
           ref: ${{ env.RELEASE_TAG }}
       - name: Calculate go version
         run: echo "go_version=$(make go-version)" >> $GITHUB_ENV
       - name: Set up Go
-        uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # tag=v5.0.2
+        uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # tag=v5.1.0
         with:
           go-version: ${{ env.go_version }}
       - name: generate release artifacts

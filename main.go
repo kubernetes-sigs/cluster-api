@@ -296,6 +296,14 @@ func main() {
 		setupLog.Error(errors.Errorf("--remote-conditions-grace-period must be greater than --remote-connection-grace-period"), "Unable to start manager")
 		os.Exit(1)
 	}
+	if remoteConditionsGracePeriod < 2*time.Minute {
+		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
+		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
+		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
+		// to have some buffer.
+		setupLog.Error(errors.Errorf("--remote-conditions-grace-period must be at least 2m"), "Unable to start manager")
+		os.Exit(1)
+	}
 
 	if err := version.CheckKubernetesVersion(restConfig, minVer); err != nil {
 		setupLog.Error(err, "Unable to start manager")

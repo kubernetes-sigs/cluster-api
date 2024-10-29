@@ -37,6 +37,7 @@ type fakeManagementCluster struct {
 	Machines     collections.Machines
 	MachinePools *expv1.MachinePoolList
 	Workload     *fakeWorkloadCluster
+	WorkloadErr  error
 	Reader       client.Reader
 }
 
@@ -49,7 +50,7 @@ func (f *fakeManagementCluster) List(ctx context.Context, list client.ObjectList
 }
 
 func (f *fakeManagementCluster) GetWorkloadCluster(_ context.Context, _ client.ObjectKey) (internal.WorkloadCluster, error) {
-	return f.Workload, nil
+	return f.Workload, f.WorkloadErr
 }
 
 func (f *fakeManagementCluster) GetMachinesForCluster(c context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {

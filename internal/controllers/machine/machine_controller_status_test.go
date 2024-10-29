@@ -570,6 +570,8 @@ func TestSummarizeNodeV1Beta2Conditions(t *testing.T) {
 }
 
 func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
+	now := time.Now()
+
 	defaultMachine := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-test",
@@ -584,10 +586,23 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		},
 	}
 
-	now := time.Now()
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-test",
+			Namespace: metav1.NamespaceDefault,
+		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+			Conditions: clusterv1.Conditions{
+				{Type: clusterv1.ControlPlaneInitializedCondition, Status: corev1.ConditionTrue,
+					LastTransitionTime: metav1.Time{Time: now.Add(-5 * time.Second)}},
+			},
+		},
+	}
 
 	testCases := []struct {
 		name                 string
+		cluster              *clusterv1.Cluster
 		machine              *clusterv1.Machine
 		node                 *corev1.Node
 		nodeGetErr           error
@@ -595,7 +610,54 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		expectConditions     []metav1.Condition
 	}{
 		{
+			name: "Cluster status.infrastructureReady is false",
+			cluster: func() *clusterv1.Cluster {
+				c := defaultCluster.DeepCopy()
+				c.Status.InfrastructureReady = false
+				return c
+			}(),
+			machine: defaultMachine.DeepCopy(),
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster status.infrastructureReady to be true",
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster status.infrastructureReady to be true",
+				},
+			},
+		},
+		{
+			name: "Cluster control plane is not initialized",
+			cluster: func() *clusterv1.Cluster {
+				c := defaultCluster.DeepCopy()
+				conditions.MarkFalse(c, clusterv1.ControlPlaneInitializedCondition, "", clusterv1.ConditionSeverityError, "")
+				return c
+			}(),
+			machine: defaultMachine.DeepCopy(),
+			expectConditions: []metav1.Condition{
+				{
+					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+				{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionUnknown,
+					Reason:  clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
+					Message: "Waiting for Cluster control plane to be initialized",
+				},
+			},
+		},
+		{
 			name:    "get NodeHealthy and NodeReady from node",
+			cluster: defaultCluster,
 			machine: defaultMachine.DeepCopy(),
 			node: &corev1.Node{
 				Status: corev1.NodeStatus{
@@ -625,6 +687,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		},
 		{
 			name:    "get NodeHealthy and NodeReady from node (Node is ready & healthy)",
+			cluster: defaultCluster,
 			machine: defaultMachine.DeepCopy(),
 			node: &corev1.Node{
 				Status: corev1.NodeStatus{
@@ -653,6 +716,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		},
 		{
 			name:    "NodeReady missing from node",
+			cluster: defaultCluster,
 			machine: defaultMachine.DeepCopy(),
 			node: &corev1.Node{
 				Status: corev1.NodeStatus{
@@ -679,7 +743,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
-			name: "node that existed not found while machine is deleting",
+			name:    "node that existed not found while machine is deleting",
+			cluster: defaultCluster,
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
@@ -706,7 +771,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
-			name: "node not found while machine is deleting",
+			name:    "node not found while machine is deleting",
+			cluster: defaultCluster,
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
@@ -730,7 +796,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
-			name: "node missing while machine is still running",
+			name:    "node missing while machine is still running",
+			cluster: defaultCluster,
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.Status.NodeRef = &corev1.ObjectReference{
@@ -756,7 +823,8 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
-			name: "machine with ProviderID set, Node still missing",
+			name:    "machine with ProviderID set, Node still missing",
+			cluster: defaultCluster,
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				m.Spec.ProviderID = ptr.To("foo://test-node-1")
@@ -781,6 +849,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		},
 		{
 			name:                 "machine with ProviderID not yet set, waiting for it",
+			cluster:              defaultCluster,
 			machine:              defaultMachine.DeepCopy(),
 			node:                 nil,
 			lastProbeSuccessTime: now,
@@ -800,7 +869,16 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
-			name: "connection down, don't update existing conditions (remote conditions grace period not passed yet)",
+			name: "connection down, preserve conditions as they have been set before (remote conditions grace period not passed yet)",
+			cluster: func() *clusterv1.Cluster {
+				c := defaultCluster.DeepCopy()
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+					}
+				}
+				return c
+			}(),
 			machine: func() *clusterv1.Machine {
 				m := defaultMachine.DeepCopy()
 				v1beta2conditions.Set(m, metav1.Condition{
@@ -818,8 +896,10 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			}(),
 			node:                 nil,
 			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
-			lastProbeSuccessTime: now.Add(-3 * time.Minute), // remoteConditionsGracePeriod is 5m
+			lastProbeSuccessTime: now.Add(-3 * time.Minute),
 			// Conditions have not been updated.
+			// remoteConditionsGracePeriod is 5m
+			// control plane is initialized since 4m ago, last probe success was 3m ago.
 			expectConditions: []metav1.Condition{
 				{
 					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
@@ -835,49 +915,88 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 			},
 		},
 		{
-			name:                 "connection down, set conditions if they haven't been set before (remote conditions grace period not passed yet)",
+			name: "connection down, set conditions as they haven't been set before (remote conditions grace period not passed yet)",
+			cluster: func() *clusterv1.Cluster {
+				c := defaultCluster.DeepCopy()
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-4 * time.Minute)
+					}
+				}
+				return c
+			}(),
 			machine:              defaultMachine.DeepCopy(),
 			node:                 nil,
 			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
-			lastProbeSuccessTime: now.Add(-3 * time.Minute), // remoteConditionsGracePeriod is 5m
+			lastProbeSuccessTime: now.Add(-3 * time.Minute),
+			// Conditions have been set.
+			// remoteConditionsGracePeriod is 5m
+			// control plane is initialized since 4m ago, last probe success was 3m ago.
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
-					Message: "Cannot determine Node state, connection to the cluster is down",
+					Reason:  clusterv1.MachineNodeConnectionDownV1Beta2Reason,
+					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
-					Message: "Cannot determine Node state, connection to the cluster is down",
+					Reason:  clusterv1.MachineNodeConnectionDownV1Beta2Reason,
+					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-3*time.Minute).Format(time.RFC3339)),
 				},
 			},
 		},
 		{
-			name:                 "connection down, set conditions to unknown (remote conditions grace period passed)",
-			machine:              defaultMachine.DeepCopy(),
+			name: "connection down, set conditions to unknown (remote conditions grace period passed)",
+			cluster: func() *clusterv1.Cluster {
+				c := defaultCluster.DeepCopy()
+				for i, condition := range c.Status.Conditions {
+					if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+						c.Status.Conditions[i].LastTransitionTime.Time = now.Add(-7 * time.Minute)
+					}
+				}
+				return c
+			}(),
+			machine: func() *clusterv1.Machine {
+				m := defaultMachine.DeepCopy()
+				v1beta2conditions.Set(m, metav1.Condition{
+					Type:   clusterv1.MachineNodeHealthyV1Beta2Condition,
+					Status: metav1.ConditionTrue,
+					Reason: v1beta2conditions.MultipleInfoReportedReason,
+				})
+				v1beta2conditions.Set(m, metav1.Condition{
+					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
+					Status:  metav1.ConditionTrue,
+					Reason:  "KubeletReady",
+					Message: "kubelet is posting ready status (from Node)",
+				})
+				return m
+			}(),
 			node:                 nil,
 			nodeGetErr:           errors.Wrapf(clustercache.ErrClusterNotConnected, "error getting client"),
-			lastProbeSuccessTime: now.Add(-6 * time.Minute), // remoteConditionsGracePeriod is 5m
+			lastProbeSuccessTime: now.Add(-6 * time.Minute),
+			// Conditions have been updated.
+			// remoteConditionsGracePeriod is 5m
+			// control plane is initialized since 7m ago, last probe success was 6m ago.
 			expectConditions: []metav1.Condition{
 				{
 					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
-					Message: fmt.Sprintf("Remote connection down since %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
+					Reason:  clusterv1.MachineNodeConnectionDownV1Beta2Reason,
+					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 				{
 					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
 					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
-					Message: fmt.Sprintf("Remote connection down since %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
+					Reason:  clusterv1.MachineNodeConnectionDownV1Beta2Reason,
+					Message: fmt.Sprintf("Last successful probe at %s", now.Add(-6*time.Minute).Format(time.RFC3339)),
 				},
 			},
 		},
 		{
 			name:                 "internal error occurred when trying to get Node",
+			cluster:              defaultCluster,
 			machine:              defaultMachine.DeepCopy(),
 			nodeGetErr:           errors.Errorf("error creating watch machine-watchNodes for *v1.Node"),
 			lastProbeSuccessTime: now,
@@ -902,7 +1021,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			setNodeHealthyAndReadyConditions(ctx, tc.machine, tc.node, tc.nodeGetErr, tc.lastProbeSuccessTime, 5*time.Minute)
+			setNodeHealthyAndReadyConditions(ctx, tc.cluster, tc.machine, tc.node, tc.nodeGetErr, tc.lastProbeSuccessTime, 5*time.Minute)
 			g.Expect(tc.machine.GetV1Beta2Conditions()).To(v1beta2conditions.MatchConditions(tc.expectConditions, v1beta2conditions.IgnoreLastTransitionTime(true)))
 		})
 	}

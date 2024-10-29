@@ -25,6 +25,7 @@ import (
 	goruntime "runtime"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -89,6 +90,7 @@ var (
 	managerOptions              = flags.ManagerOptions{}
 	logOptions                  = logs.NewOptions()
 	// KCP specific flags.
+	remoteConditionsGracePeriod     time.Duration
 	kubeadmControlPlaneConcurrency  int
 	clusterCacheConcurrency         int
 	etcdDialTimeout                 time.Duration
@@ -134,6 +136,10 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
 		"Enable block profiling")
+
+	fs.DurationVar(&remoteConditionsGracePeriod, "remote-conditions-grace-period", 5*time.Minute,
+		"Grace period after which remote conditions (e.g. `APIServerPodHealthy`) are set to `Unknown`, "+
+			"the grace period starts from the last successful health probe to the workload cluster")
 
 	fs.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 10,
 		"Number of kubeadm control planes to process simultaneously")
@@ -214,6 +220,15 @@ func main() {
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 	restConfig.WarningHandler = apiwarnings.DefaultHandler(klog.Background().WithName("API Server Warning"))
+
+	if remoteConditionsGracePeriod < 2*time.Minute {
+		// A minimum of 2m is enforced to ensure the ClusterCache always drops the connection before the grace period is reached.
+		// In the worst case the ClusterCache will take FailureThreshold x (Interval + Timeout) = 5x(10s+5s) = 75s to drop a
+		// connection. There might be some additional delays in health checking under high load. So we use 2m as a minimum
+		// to have some buffer.
+		setupLog.Error(errors.Errorf("--remote-conditions-grace-period must be at least 2m"), "Unable to start manager")
+		os.Exit(1)
+	}
 
 	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
@@ -357,6 +372,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		WatchFilterValue:             watchFilterValue,
 		EtcdDialTimeout:              etcdDialTimeout,
 		EtcdCallTimeout:              etcdCallTimeout,
+		RemoteConditionsGracePeriod:  remoteConditionsGracePeriod,
 		DeprecatedInfraMachineNaming: useDeprecatedInfraMachineNaming,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")

@@ -150,7 +150,7 @@ func HasDeletionTimestamp(machine *clusterv1.Machine) bool {
 
 // IsUnhealthyAndOwnerRemediated returns a filter to find all machines that have a MachineHealthCheckSucceeded condition set to False,
 // indicating a problem was detected on the machine, and the MachineOwnerRemediated condition set to False, indicating that the machine owner is
-// responsible of performing remediation for the machine.
+// responsible for performing remediation for the machine.
 func IsUnhealthyAndOwnerRemediated(machine *clusterv1.Machine) bool {
 	if machine == nil {
 		return false

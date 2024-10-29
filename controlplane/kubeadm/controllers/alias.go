@@ -40,6 +40,8 @@ type KubeadmControlPlaneReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	RemoteConditionsGracePeriod time.Duration
+
 	// Deprecated: DeprecatedInfraMachineNaming. Name the InfraStructureMachines after the InfraMachineTemplate.
 	DeprecatedInfraMachineNaming bool
 }
@@ -53,6 +55,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		EtcdDialTimeout:              r.EtcdDialTimeout,
 		EtcdCallTimeout:              r.EtcdCallTimeout,
 		WatchFilterValue:             r.WatchFilterValue,
+		RemoteConditionsGracePeriod:  r.RemoteConditionsGracePeriod,
 		DeprecatedInfraMachineNaming: r.DeprecatedInfraMachineNaming,
 	}).SetupWithManager(ctx, mgr, options)
 }

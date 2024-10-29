@@ -309,6 +309,12 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 				controlplanev1.MachineSchedulerPodHealthyCondition,
 				controlplanev1.MachineEtcdPodHealthyCondition,
 				controlplanev1.MachineEtcdMemberHealthyCondition,
+			}}, patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+				controlplanev1.KubeadmControlPlaneMachineAPIServerPodHealthyV1Beta2Condition,
+				controlplanev1.KubeadmControlPlaneMachineControllerManagerPodHealthyV1Beta2Condition,
+				controlplanev1.KubeadmControlPlaneMachineSchedulerPodHealthyV1Beta2Condition,
+				controlplanev1.KubeadmControlPlaneMachineEtcdPodHealthyV1Beta2Condition,
+				controlplanev1.KubeadmControlPlaneMachineEtcdMemberHealthyV1Beta2Condition,
 			}}); err != nil {
 				errList = append(errList, err)
 			}

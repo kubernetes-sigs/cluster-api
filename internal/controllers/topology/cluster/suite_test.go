@@ -88,9 +88,10 @@ func TestMain(m *testing.M) {
 		}
 
 		if err := (&Reconciler{
-			Client:       mgr.GetClient(),
-			APIReader:    mgr.GetAPIReader(),
-			ClusterCache: clusterCache,
+			Client:        mgr.GetClient(),
+			APIReader:     mgr.GetAPIReader(),
+			ClusterCache:  clusterCache,
+			RuntimeClient: fakeruntimeclient.NewRuntimeClientBuilder().Build(),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("unable to create topology cluster reconciler: %v", err))
 		}

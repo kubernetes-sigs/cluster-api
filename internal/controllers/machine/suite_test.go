@@ -24,13 +24,9 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -112,43 +108,4 @@ func TestMain(m *testing.M) {
 		SetupIndexes:     setupIndexes,
 		SetupReconcilers: setupReconcilers,
 	}))
-}
-
-func ContainRefOfGroupKind(group, kind string) types.GomegaMatcher {
-	return &refGroupKindMatcher{
-		kind:  kind,
-		group: group,
-	}
-}
-
-type refGroupKindMatcher struct {
-	kind  string
-	group string
-}
-
-func (matcher *refGroupKindMatcher) Match(actual interface{}) (success bool, err error) {
-	ownerRefs, ok := actual.([]metav1.OwnerReference)
-	if !ok {
-		return false, errors.Errorf("expected []metav1.OwnerReference; got %T", actual)
-	}
-
-	for _, ref := range ownerRefs {
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return false, nil //nolint:nilerr // If we can't get the group version we can't match, but it's not a failure
-		}
-		if ref.Kind == matcher.kind && gv.Group == clusterv1.GroupVersion.Group {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-func (matcher *refGroupKindMatcher) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected %+v to contain refs of Group %s and Kind %s", actual, matcher.group, matcher.kind)
-}
-
-func (matcher *refGroupKindMatcher) NegatedFailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected %+v not to contain refs of Group %s and Kind %s", actual, matcher.group, matcher.kind)
 }

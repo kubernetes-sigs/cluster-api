@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
@@ -58,7 +59,7 @@ func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) {
 	// Note: some of the status fields are managed in reconcileNode, e.g. status.NodeRef, etc.
 	// here we are taking care only of the delta (condition).
 	lastProbeSuccessTime := r.ClusterCache.GetLastProbeSuccessTimestamp(ctx, client.ObjectKeyFromObject(s.cluster))
-	setNodeHealthyAndReadyConditions(ctx, s.machine, s.node, s.nodeGetError, lastProbeSuccessTime, r.RemoteConditionsGracePeriod)
+	setNodeHealthyAndReadyConditions(ctx, s.cluster, s.machine, s.node, s.nodeGetError, lastProbeSuccessTime, r.RemoteConditionsGracePeriod)
 
 	// Updates Machine status not observed from Bootstrap Config, InfraMachine or Node (update Machine's own status).
 	// Note: some of the status are set in reconcileCertificateExpiry (e.g.status.CertificatesExpiryDate),
@@ -228,74 +229,50 @@ func infrastructureReadyFallBackMessage(kind string, ready bool) string {
 	return fmt.Sprintf("%s status.ready is %t", kind, ready)
 }
 
-func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, lastProbeSuccessTime time.Time, remoteConditionsGracePeriod time.Duration) {
-	if time.Since(lastProbeSuccessTime) > remoteConditionsGracePeriod {
-		var msg string
-		if lastProbeSuccessTime.IsZero() {
-			msg = "Remote connection down"
-		} else {
-			msg = fmt.Sprintf("Remote connection down since %s", lastProbeSuccessTime.Format(time.RFC3339))
-		}
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
-			Message: msg,
-		})
+func setNodeHealthyAndReadyConditions(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, node *corev1.Node, nodeGetErr error, lastProbeSuccessTime time.Time, remoteConditionsGracePeriod time.Duration) {
+	if !cluster.Status.InfrastructureReady {
+		setNodeConditions(machine, metav1.ConditionUnknown,
+			clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
+			"Waiting for Cluster status.infrastructureReady to be true")
+		return
+	}
 
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeRemoteConnectionFailedV1Beta2Reason,
-			Message: msg,
-		})
+	controlPlaneInitialized := conditions.Get(cluster, clusterv1.ControlPlaneInitializedCondition)
+	if controlPlaneInitialized == nil || controlPlaneInitialized.Status != corev1.ConditionTrue {
+		setNodeConditions(machine, metav1.ConditionUnknown,
+			clusterv1.MachineNodeInspectionFailedV1Beta2Reason,
+			"Waiting for Cluster control plane to be initialized")
+		return
+	}
+
+	// Remote conditions grace period is counted from the later of last probe success and control plane initialized.
+	if time.Since(maxTime(lastProbeSuccessTime, controlPlaneInitialized.LastTransitionTime.Time)) > remoteConditionsGracePeriod {
+		// Overwrite conditions to ConnectionDown.
+		setNodeConditions(machine, metav1.ConditionUnknown,
+			clusterv1.MachineNodeConnectionDownV1Beta2Reason,
+			lastProbeSuccessMessage(lastProbeSuccessTime))
 		return
 	}
 
 	if nodeGetErr != nil {
 		if errors.Is(nodeGetErr, clustercache.ErrClusterNotConnected) {
-			// If the connection to the workload cluster is down, only set the conditions if they
-			// are not set, but don't update them.
-			// This can happen either when the cluster comes up initially or when the cluster
-			// becomes unreachable later.
-			// If the cluster becomes unreachable later, the conditions will be set to `Unknown`
-			// only after remote conditions grace period.
-			if !v1beta2conditions.Has(machine, clusterv1.MachineNodeReadyV1Beta2Condition) {
-				v1beta2conditions.Set(machine, metav1.Condition{
-					Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
-					Message: "Cannot determine Node state, connection to the cluster is down",
-				})
+			// If conditions are not set, set them to ConnectionDown.
+			// Note: This will allow to keep reporting last known status in case there are temporary connection errors.
+			// However, if connection errors persist more than remoteConditionsGracePeriod, conditions will be overridden.
+			if !v1beta2conditions.Has(machine, clusterv1.MachineNodeReadyV1Beta2Condition) ||
+				!v1beta2conditions.Has(machine, clusterv1.MachineNodeHealthyV1Beta2Condition) {
+				setNodeConditions(machine, metav1.ConditionUnknown,
+					clusterv1.MachineNodeConnectionDownV1Beta2Reason,
+					lastProbeSuccessMessage(lastProbeSuccessTime))
 			}
-
-			if !v1beta2conditions.Has(machine, clusterv1.MachineNodeHealthyV1Beta2Condition) {
-				v1beta2conditions.Set(machine, metav1.Condition{
-					Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-					Status:  metav1.ConditionUnknown,
-					Reason:  clusterv1.MachineNodeRemoteConnectionDownV1Beta2Reason,
-					Message: "Cannot determine Node state, connection to the cluster is down",
-				})
-			}
-
 			return
 		}
 
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
-			Message: "Please check controller logs for errors",
-			// NOTE: the error is logged by reconcileNode.
-		})
-
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeInternalErrorV1Beta2Reason,
-			Message: "Please check controller logs for errors",
-			// NOTE: the error is logged by reconcileNode.
-		})
+		// Overwrite conditions to InternalError.
+		setNodeConditions(machine, metav1.ConditionUnknown,
+			clusterv1.MachineNodeInternalErrorV1Beta2Reason,
+			"Please check controller logs for errors")
+		// NOTE: the error is logged by reconcileNode.
 		return
 	}
 
@@ -348,89 +325,66 @@ func setNodeHealthyAndReadyConditions(ctx context.Context, machine *clusterv1.Ma
 	// will be considered unreachable Machine deletion will complete.
 	if !machine.DeletionTimestamp.IsZero() {
 		if machine.Status.NodeRef != nil {
-			v1beta2conditions.Set(machine, metav1.Condition{
-				Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
-				Message: fmt.Sprintf("Node %s has been deleted", machine.Status.NodeRef.Name),
-			})
-
-			v1beta2conditions.Set(machine, metav1.Condition{
-				Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-				Status:  metav1.ConditionUnknown,
-				Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
-				Message: fmt.Sprintf("Node %s has been deleted", machine.Status.NodeRef.Name),
-			})
+			setNodeConditions(machine, metav1.ConditionUnknown,
+				clusterv1.MachineNodeDeletedV1Beta2Reason,
+				fmt.Sprintf("Node %s has been deleted", machine.Status.NodeRef.Name))
 			return
 		}
 
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
-			Message: "Node does not exist",
-		})
-
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
-			Message: "Node does not exist",
-		})
+		setNodeConditions(machine, metav1.ConditionUnknown,
+			clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+			"Node does not exist")
 		return
 	}
 
 	// Report an issue if node missing after being initialized.
 	if machine.Status.NodeRef != nil {
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-			Status:  metav1.ConditionFalse, // setting to false to keep it consistent with node below.
-			Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
-			Message: fmt.Sprintf("Node %s has been deleted while the machine still exists", machine.Status.NodeRef.Name),
-		})
-
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-			Status:  metav1.ConditionFalse, // setting to false to give more relevance in the ready condition summary.
-			Reason:  clusterv1.MachineNodeDeletedV1Beta2Reason,
-			Message: fmt.Sprintf("Node %s has been deleted while the machine still exists", machine.Status.NodeRef.Name),
-		})
+		// Setting MachineNodeHealthyV1Beta2Condition to False to give it more relevance in the Ready condition summary.
+		// Setting MachineNodeReadyV1Beta2Condition to False to keep it consistent with MachineNodeHealthyV1Beta2Condition.
+		setNodeConditions(machine, metav1.ConditionFalse,
+			clusterv1.MachineNodeDeletedV1Beta2Reason,
+			fmt.Sprintf("Node %s has been deleted while the machine still exists", machine.Status.NodeRef.Name))
 		return
 	}
 
 	// If the machine is at the end of the provisioning phase, with ProviderID set, but still waiting
 	// for a matching Node to exists, surface this.
 	if ptr.Deref(machine.Spec.ProviderID, "") != "" {
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
-			Message: fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID),
-		})
-
-		v1beta2conditions.Set(machine, metav1.Condition{
-			Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-			Status:  metav1.ConditionUnknown,
-			Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
-			Message: fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID),
-		})
+		setNodeConditions(machine, metav1.ConditionUnknown,
+			clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+			fmt.Sprintf("Waiting for a Node with spec.providerID %s to exist", *machine.Spec.ProviderID))
 		return
 	}
 
 	// If the machine is at the beginning of the provisioning phase, with ProviderID not yet set, surface this.
-	v1beta2conditions.Set(machine, metav1.Condition{
-		Type:    clusterv1.MachineNodeReadyV1Beta2Condition,
-		Status:  metav1.ConditionUnknown,
-		Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
-		Message: fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind),
-	})
+	setNodeConditions(machine, metav1.ConditionUnknown,
+		clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
+		fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind))
+}
 
-	v1beta2conditions.Set(machine, metav1.Condition{
-		Type:    clusterv1.MachineNodeHealthyV1Beta2Condition,
-		Status:  metav1.ConditionUnknown,
-		Reason:  clusterv1.MachineNodeDoesNotExistV1Beta2Reason,
-		Message: fmt.Sprintf("Waiting for %s to report spec.providerID", machine.Spec.InfrastructureRef.Kind),
-	})
+func setNodeConditions(machine *clusterv1.Machine, status metav1.ConditionStatus, reason, msg string) {
+	for _, conditionType := range []string{clusterv1.MachineNodeReadyV1Beta2Condition, clusterv1.MachineNodeHealthyV1Beta2Condition} {
+		v1beta2conditions.Set(machine, metav1.Condition{
+			Type:    conditionType,
+			Status:  status,
+			Reason:  reason,
+			Message: msg,
+		})
+	}
+}
+
+func lastProbeSuccessMessage(lastProbeSuccessTime time.Time) string {
+	if lastProbeSuccessTime.IsZero() {
+		return ""
+	}
+	return fmt.Sprintf("Last successful probe at %s", lastProbeSuccessTime.Format(time.RFC3339))
+}
+
+func maxTime(t1, t2 time.Time) time.Time {
+	if t1.After(t2) {
+		return t1
+	}
+	return t2
 }
 
 // summarizeNodeV1Beta2Conditions summarizes a Node's conditions (NodeReady, NodeMemoryPressure, NodeDiskPressure, NodePIDPressure).

@@ -161,6 +161,7 @@ func (r *KubeadmControlPlaneReconciler) updateV1beta2Status(ctx context.Context,
 	// any reason those functions are not called before, e.g. an error, this func relies on existing Machine's condition.
 
 	setReplicas(ctx, controlPlane.KCP, controlPlane.Machines)
+	setInitializedCondition(ctx, controlPlane.KCP)
 	setScalingUpCondition(ctx, controlPlane.KCP, controlPlane.Machines, controlPlane.InfraMachineTemplateIsNotFound, controlPlane.PreflightCheckResults)
 	setScalingDownCondition(ctx, controlPlane.KCP, controlPlane.Machines, controlPlane.PreflightCheckResults)
 	setMachinesReadyCondition(ctx, controlPlane.KCP, controlPlane.Machines)
@@ -191,6 +192,23 @@ func setReplicas(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, mac
 	kcp.Status.V1Beta2.ReadyReplicas = ptr.To(readyReplicas)
 	kcp.Status.V1Beta2.AvailableReplicas = ptr.To(availableReplicas)
 	kcp.Status.V1Beta2.UpToDateReplicas = ptr.To(upToDateReplicas)
+}
+
+func setInitializedCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane) {
+	if kcp.Status.Initialized {
+		v1beta2conditions.Set(kcp, metav1.Condition{
+			Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: controlplanev1.KubeadmControlPlaneInitializedV1Beta2Reason,
+		})
+		return
+	}
+
+	v1beta2conditions.Set(kcp, metav1.Condition{
+		Type:   controlplanev1.KubeadmControlPlaneInitializedV1Beta2Condition,
+		Status: metav1.ConditionFalse,
+		Reason: controlplanev1.KubeadmControlPlaneNotInitializedV1Beta2Reason,
+	})
 }
 
 func setScalingUpCondition(_ context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, infrastructureObjectNotFound bool, preflightChecks internal.PreflightCheckResults) {

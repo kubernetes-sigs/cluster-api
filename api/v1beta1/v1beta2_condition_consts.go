@@ -106,8 +106,8 @@ const (
 	// set to false and with the OwnerRemediated condition set to false by the MachineHealthCheck controller.
 	RemediatingV1Beta2Reason = "Remediating"
 
-	// NotRemediatingV1Beta2Reason surfaces when an object does not own any machines marked as not healthy
-	// by the MachineHealthCheck controller.
+	// NotRemediatingV1Beta2Reason surfaces when an object does not own any machines with HealthCheckSucceeded
+	// set to false and with the OwnerRemediated condition set to false by the MachineHealthCheck controller.
 	NotRemediatingV1Beta2Reason = "NotRemediating"
 
 	// NoReplicasV1Beta2Reason surfaces when an object that manage replicas does not have any.
@@ -142,15 +142,8 @@ const (
 	// PausedV1Beta2Reason surfaces when an object is paused.
 	PausedV1Beta2Reason = "Paused"
 
-	// RemoteConnectionFailedV1Beta2Reason surfaces that the remote connection failed.
-	// This is typically used when setting remote conditions (e.g. `NodeHealthy`) to `Unknown`
-	// after the remote connection probe didn't succeed for remote conditions grace period.
-	RemoteConnectionFailedV1Beta2Reason = "RemoteConnectionFailed"
-
-	// RemoteConnectionDownV1Beta2Reason surfaces that the remote connection is down.
-	// This is typically used when setting remote conditions (e.g. `NodeHealthy`) to `Unknown`
-	// when the connection is down and they haven't been set yet.
-	RemoteConnectionDownV1Beta2Reason = "RemoteConnectionDown"
+	// ConnectionDownV1Beta2Reason surfaces that the connection to the workload cluster is down.
+	ConnectionDownV1Beta2Reason = "ConnectionDown"
 
 	// DeletionTimestampNotSetV1Beta2Reason surfaces when an object is not deleting because the
 	// DeletionTimestamp is not set.

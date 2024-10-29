@@ -20,9 +20,23 @@ import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 // KubeadmControlPlane's Available condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// KubeadmControlPlaneAvailableV1Beta2Condition True if the control plane can be reached, EtcdClusterHealthy is true,
+	// KubeadmControlPlaneAvailableV1Beta2Condition is True if the control plane can be reached, EtcdClusterHealthy is true,
 	// and CertificatesAvailable is true.
 	KubeadmControlPlaneAvailableV1Beta2Condition = clusterv1.AvailableV1Beta2Condition
+)
+
+// KubeadmControlPlane's Initialized condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// KubeadmControlPlaneInitializedV1Beta2Condition is True when the control plane is functional enough to accept
+	// requests. This information is usually used as a signal for starting all the provisioning operations that
+	// depend on a functional API server, but do not require a full HA control plane to exist.
+	KubeadmControlPlaneInitializedV1Beta2Condition = "Initialized"
+
+	// KubeadmControlPlaneInitializedV1Beta2Reason surfaces when the control plane is initialized.
+	KubeadmControlPlaneInitializedV1Beta2Reason = "Initialized"
+
+	// KubeadmControlPlaneNotInitializedV1Beta2Reason surfaces when the control plane is not initialized.
+	KubeadmControlPlaneNotInitializedV1Beta2Reason = "NotInitialized"
 )
 
 // KubeadmControlPlane's CertificatesAvailable condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -52,6 +66,10 @@ const (
 	// etcd cluster hosted on KubeadmControlPlane controlled machines.
 	KubeadmControlPlaneEtcdClusterInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
 
+	// KubeadmControlPlaneEtcdClusterConnectionDownV1Beta2Reason surfaces that the connection to the workload
+	// cluster is down.
+	KubeadmControlPlaneEtcdClusterConnectionDownV1Beta2Reason = clusterv1.ConnectionDownV1Beta2Reason
+
 	// KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason surfaces when the etcd cluster hosted on KubeadmControlPlane
 	// machines is healthy.
 	KubeadmControlPlaneEtcdClusterHealthyV1Beta2Reason = "Healthy"
@@ -76,6 +94,10 @@ const (
 	// KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason documents a failure when inspecting the status of the
 	// control plane components hosted on KubeadmControlPlane controlled machines.
 	KubeadmControlPlaneControlPlaneComponentsInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
+
+	// KubeadmControlPlaneControlPlaneComponentsConnectionDownV1Beta2Reason surfaces that the connection to the workload
+	// cluster is down.
+	KubeadmControlPlaneControlPlaneComponentsConnectionDownV1Beta2Reason = clusterv1.ConnectionDownV1Beta2Reason
 
 	// KubeadmControlPlaneControlPlaneComponentsHealthyV1Beta2Reason surfaces when the Kubernetes control plane components
 	// hosted on KubeadmControlPlane machines are healthy.
@@ -233,13 +255,13 @@ const (
 	// pod hosted on a KubeadmControlPlane controlled machine.
 	KubeadmControlPlaneMachinePodInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
 
+	// KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason surfaces that the connection to the workload
+	// cluster is down.
+	KubeadmControlPlaneMachinePodConnectionDownV1Beta2Reason = clusterv1.ConnectionDownV1Beta2Reason
+
 	// KubeadmControlPlaneMachinePodDeletingV1Beta2Reason surfaces when the machine hosting control plane components
 	// is being deleted.
 	KubeadmControlPlaneMachinePodDeletingV1Beta2Reason = "Deleting"
-
-	// KubeadmControlPlaneMachinePodInternalErrorV1Beta2Reason surfaces unexpected failures when reading pod hosted
-	// on a KubeadmControlPlane controlled machine.
-	KubeadmControlPlaneMachinePodInternalErrorV1Beta2Reason = clusterv1.InternalErrorV1Beta2Reason
 )
 
 // EtcdMemberHealthy condition and corresponding reasons that will be used for KubeadmControlPlane controlled machines in v1Beta2 API version.
@@ -256,6 +278,10 @@ const (
 	// KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason documents a failure when inspecting the status of an
 	// etcd member hosted on a KubeadmControlPlane controlled machine.
 	KubeadmControlPlaneMachineEtcdMemberInspectionFailedV1Beta2Reason = clusterv1.InspectionFailedV1Beta2Reason
+
+	// KubeadmControlPlaneMachineEtcdMemberConnectionDownV1Beta2Reason surfaces that the connection to the workload
+	// cluster is down.
+	KubeadmControlPlaneMachineEtcdMemberConnectionDownV1Beta2Reason = clusterv1.ConnectionDownV1Beta2Reason
 
 	// KubeadmControlPlaneMachineEtcdMemberDeletingV1Beta2Reason surfaces when the machine hosting an etcd member
 	// is being deleted.

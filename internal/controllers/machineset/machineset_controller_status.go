@@ -32,11 +32,11 @@ import (
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
-// reconcileV1Beta2Status reconciles MachineSet's status during the entire lifecycle of the MachineSet.
+// updateStatus updates MachineSet's status.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
 // Note: v1beta1 conditions are not managed by this func.
-func (r *Reconciler) reconcileV1Beta2Status(ctx context.Context, s *scope) {
+func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Update the following fields in status from the machines list.
 	// - v1beta2.readyReplicas
 	// - v1beta2.availableReplicas
@@ -173,7 +173,7 @@ func setScalingDownCondition(_ context.Context, ms *clusterv1.MachineSet, machin
 
 	// Scaling down.
 	if currentReplicas > desiredReplicas {
-		message := fmt.Sprintf("Scaling down from %d to %d replicas", len(machines), desiredReplicas)
+		message := fmt.Sprintf("Scaling down from %d to %d replicas", currentReplicas, desiredReplicas)
 		staleMessage := aggregateStaleMachines(machines)
 		if staleMessage != "" {
 			message += fmt.Sprintf(" and %s", staleMessage)
@@ -296,6 +296,10 @@ func calculateMissingReferencesMessage(ms *clusterv1.MachineSet, bootstrapTempla
 }
 
 func aggregateStaleMachines(machines []*clusterv1.Machine) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
 	machineNames := []string{}
 	for _, machine := range machines {
 		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*30 {

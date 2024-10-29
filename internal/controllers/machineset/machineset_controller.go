@@ -196,7 +196,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ct
 			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to update status")})
 		}
 
-		r.reconcileV1Beta2Status(ctx, s)
+		r.updateStatus(ctx, s)
 
 		// Always attempt to patch the object and status after each reconciliation.
 		if err := patchMachineSet(ctx, patchHelper, s.machineSet); err != nil {

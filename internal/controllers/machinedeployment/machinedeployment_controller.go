@@ -116,7 +116,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	return nil
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (retres ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineDeployment instance.
@@ -154,7 +154,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	s := &scope{
+		machineDeployment: deployment,
+		cluster:           cluster,
+	}
+
 	defer func() {
+		if err := r.updateStatus(ctx, s); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, err})
+		}
+
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
@@ -164,18 +173,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		if err := patchMachineDeployment(ctx, patchHelper, deployment, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
+
+		if reterr != nil {
+			retres = ctrl.Result{}
+		}
 	}()
 
 	// Handle deletion reconciliation loop.
 	if !deployment.DeletionTimestamp.IsZero() {
-		return ctrl.Result{}, r.reconcileDelete(ctx, deployment)
+		return ctrl.Result{}, r.reconcileDelete(ctx, s)
 	}
 
-	err = r.reconcile(ctx, cluster, deployment)
-	if err != nil {
-		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "ReconcileError", "%v", err)
-	}
-	return ctrl.Result{}, err
+	return ctrl.Result{}, r.reconcile(ctx, s)
+}
+
+type scope struct {
+	machineDeployment                            *clusterv1.MachineDeployment
+	cluster                                      *clusterv1.Cluster
+	machineSets                                  []*clusterv1.MachineSet
+	bootstrapTemplateNotFound                    bool
+	bootstrapTemplateExists                      bool
+	infrastructureTemplateNotFound               bool
+	infrastructureTemplateExists                 bool
+	getAndAdoptMachineSetsForDeploymentSucceeded bool
 }
 
 func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *clusterv1.MachineDeployment, options ...patch.Option) error {
@@ -192,13 +212,25 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 			clusterv1.ReadyCondition,
 			clusterv1.MachineDeploymentAvailableCondition,
 		}},
+		patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			clusterv1.MachineDeploymentAvailableV1Beta2Condition,
+			clusterv1.MachineDeploymentMachinesReadyV1Beta2Condition,
+			clusterv1.MachineDeploymentMachinesUpToDateV1Beta2Condition,
+			clusterv1.MachineDeploymentScalingDownV1Beta2Condition,
+			clusterv1.MachineDeploymentScalingUpV1Beta2Condition,
+			clusterv1.MachineDeploymentRemediatingV1Beta2Condition,
+			clusterv1.MachineDeploymentDeletingV1Beta2Condition,
+		}},
 	)
 	return patchHelper.Patch(ctx, md, options...)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, md *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcile(ctx context.Context, s *scope) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineDeployment")
+
+	md := s.machineDeployment
+	cluster := s.cluster
 
 	// Reconcile and retrieve the Cluster object.
 	if md.Labels == nil {
@@ -221,19 +253,11 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		UID:        cluster.UID,
 	}))
 
-	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := r.getTemplatesAndSetOwner(ctx, s); err != nil {
 		return err
 	}
-	// Make sure to reconcile the external bootstrap reference, if any.
-	if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, md.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
-			return err
-		}
-	}
 
-	msList, err := r.getAndAdoptMachineSetsForDeployment(ctx, md)
-	if err != nil {
+	if err := r.getAndAdoptMachineSetsForDeployment(ctx, s); err != nil {
 		return err
 	}
 
@@ -242,8 +266,8 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	// This logic is needed to add the `cluster.x-k8s.io/deployment-name` label to MachineSets
 	// which were created before the `cluster.x-k8s.io/deployment-name` label was added
 	// to all MachineSets created by a MachineDeployment or if a user manually removed the label.
-	for idx := range msList {
-		machineSet := msList[idx]
+	for idx := range s.machineSets {
+		machineSet := s.machineSets[idx]
 		if name, ok := machineSet.Labels[clusterv1.MachineDeploymentNameLabel]; ok && name == md.Name {
 			continue
 		}
@@ -264,15 +288,17 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	// "capi-machinedeployment" and then we would not be able to e.g. drop labels and annotations.
 	// Note: We are cleaning up managed fields for all MachineSets, so we're able to remove this code in a few
 	// Cluster API releases. If we do this only for selected MachineSets, we would have to keep this code forever.
-	for idx := range msList {
-		machineSet := msList[idx]
+	for idx := range s.machineSets {
+		machineSet := s.machineSets[idx]
 		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, machineSet, machineDeploymentManagerName); err != nil {
 			return errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
 		}
 	}
 
+	templateExists := s.infrastructureTemplateExists && (md.Spec.Template.Spec.Bootstrap.ConfigRef == nil || s.bootstrapTemplateExists)
+
 	if md.Spec.Paused {
-		return r.sync(ctx, md, msList)
+		return r.sync(ctx, md, s.machineSets, templateExists)
 	}
 
 	if md.Spec.Strategy == nil {
@@ -283,33 +309,30 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		if md.Spec.Strategy.RollingUpdate == nil {
 			return errors.Errorf("missing MachineDeployment settings for strategy type: %s", md.Spec.Strategy.Type)
 		}
-		return r.rolloutRolling(ctx, md, msList)
+		return r.rolloutRolling(ctx, md, s.machineSets, templateExists)
 	}
 
 	if md.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return r.rolloutOnDelete(ctx, md, msList)
+		return r.rolloutOnDelete(ctx, md, s.machineSets, templateExists)
 	}
 
 	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
 }
 
-func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcileDelete(ctx context.Context, s *scope) error {
 	log := ctrl.LoggerFrom(ctx)
-	msList, err := r.getAndAdoptMachineSetsForDeployment(ctx, md)
-	if err != nil {
+	if err := r.getAndAdoptMachineSetsForDeployment(ctx, s); err != nil {
 		return err
 	}
 
 	// If all the descendant machinesets are deleted, then remove the machinedeployment's finalizer.
-	if len(msList) == 0 {
-		controllerutil.RemoveFinalizer(md, clusterv1.MachineDeploymentFinalizer)
+	if len(s.machineSets) == 0 {
+		controllerutil.RemoveFinalizer(s.machineDeployment, clusterv1.MachineDeploymentFinalizer)
 		return nil
 	}
 
-	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(msList))
-
 	// else delete owned machinesets.
-	for _, ms := range msList {
+	for _, ms := range s.machineSets {
 		if ms.DeletionTimestamp.IsZero() {
 			log.Info("Deleting MachineSet", "MachineSet", klog.KObj(ms))
 			if err := r.Client.Delete(ctx, ms); err != nil && !apierrors.IsNotFound(err) {
@@ -318,17 +341,20 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 		}
 	}
 
+	log.Info("Waiting for MachineSets to be deleted", "MachineSets", clog.ObjNamesString(s.machineSets))
 	return nil
 }
 
 // getAndAdoptMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
-func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
+func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, s *scope) error {
 	log := ctrl.LoggerFrom(ctx)
+
+	md := s.machineDeployment
 
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &clusterv1.MachineSetList{}
 	if err := r.Client.List(ctx, machineSets, client.InNamespace(md.Namespace)); err != nil {
-		return nil, err
+		return err
 	}
 
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))
@@ -372,7 +398,9 @@ func (r *Reconciler) getAndAdoptMachineSetsForDeployment(ctx context.Context, md
 		filtered = append(filtered, ms)
 	}
 
-	return filtered, nil
+	s.getAndAdoptMachineSetsForDeploymentSucceeded = true
+	s.machineSets = filtered
+	return nil
 }
 
 // adoptOrphan sets the MachineDeployment as a controller OwnerReference to the MachineSet.
@@ -447,13 +475,42 @@ func (r *Reconciler) MachineSetToDeployments(ctx context.Context, o client.Objec
 	return result
 }
 
+// getTemplatesAndSetOwner reconciles the templates referenced by a MachineDeployment ensuring they are owned by the Cluster.
+func (r *Reconciler) getTemplatesAndSetOwner(ctx context.Context, s *scope) error {
+	md := s.machineDeployment
+	cluster := s.cluster
+
+	// Make sure to reconcile the external infrastructure reference.
+	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+		s.infrastructureTemplateNotFound = true
+	} else {
+		s.infrastructureTemplateExists = true
+	}
+	// Make sure to reconcile the external bootstrap reference, if any.
+	if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, md.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+			if !apierrors.IsNotFound(err) {
+				return err
+			}
+			s.bootstrapTemplateNotFound = true
+		} else {
+			s.bootstrapTemplateExists = true
+		}
+	}
+	return nil
+}
+
 func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, c, ref); err != nil {
-		return err
+		// We want to surface the NotFound error only for the referenced object, so we use a generic error in case CRD is not found.
+		return errors.New(err.Error())
 	}
 
 	obj, err := external.Get(ctx, c, ref, cluster.Namespace)

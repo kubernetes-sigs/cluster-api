@@ -176,11 +176,11 @@ const (
 	// Note: KubeadmControlPlane only remediates machines with HealthCheckSucceeded set to false and with the OwnerRemediated condition set to false.
 	KubeadmControlPlaneRemediatingV1Beta2Condition = clusterv1.RemediatingV1Beta2Condition
 
-	// KubeadmControlPlaneRemediatingV1Beta2Reason surfaces when kcp has at least one machine with HealthCheckSucceeded set to false
+	// KubeadmControlPlaneRemediatingV1Beta2Reason surfaces when the KubeadmControlPlane has at least one machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
 	KubeadmControlPlaneRemediatingV1Beta2Reason = clusterv1.RemediatingV1Beta2Reason
 
-	// KubeadmControlPlaneNotRemediatingV1Beta2Reason surfaces when kcp does not have any machine with HealthCheckSucceeded set to false
+	// KubeadmControlPlaneNotRemediatingV1Beta2Reason surfaces when the KubeadmControlPlane does not have any machine with HealthCheckSucceeded set to false
 	// and with the OwnerRemediated condition set to false.
 	KubeadmControlPlaneNotRemediatingV1Beta2Reason = clusterv1.NotRemediatingV1Beta2Reason
 

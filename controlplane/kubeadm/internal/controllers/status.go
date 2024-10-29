@@ -37,8 +37,8 @@ import (
 	clog "sigs.k8s.io/cluster-api/util/log"
 )
 
-// updateStatus is called after every reconcilitation loop in a defer statement to always make sure we have the
-// resource status subresourcs up-to-date.
+// updateStatus is called after every reconciliation loop in a defer statement to always make sure we have the
+// KubeadmControlPlane status up-to-date.
 func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, controlPlane *internal.ControlPlane) error {
 	selector := collections.ControlPlaneSelectorForCluster(controlPlane.Cluster.Name)
 	// Copy label selector to its status counterpart in string format.
@@ -398,7 +398,6 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 		return
 	}
 
-	// TODO: Bring together externally remediated machines and owner remediated machines
 	remediatingCondition, err := v1beta2conditions.NewAggregateCondition(
 		machinesToBeRemediated.UnsortedList(), clusterv1.MachineOwnerRemediatedV1Beta2Condition,
 		v1beta2conditions.TargetConditionType(controlplanev1.KubeadmControlPlaneRemediatingV1Beta2Condition),
@@ -425,6 +424,10 @@ func setRemediatingCondition(ctx context.Context, kcp *controlplanev1.KubeadmCon
 }
 
 func aggregateStaleMachines(machines collections.Machines) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
 	machineNames := []string{}
 	for _, machine := range machines {
 		if !machine.GetDeletionTimestamp().IsZero() && time.Since(machine.GetDeletionTimestamp().Time) > time.Minute*30 {
@@ -455,6 +458,10 @@ func aggregateStaleMachines(machines collections.Machines) string {
 }
 
 func aggregateUnhealthyMachines(machines collections.Machines) string {
+	if len(machines) == 0 {
+		return ""
+	}
+
 	machineNames := []string{}
 	for _, machine := range machines {
 		machineNames = append(machineNames, machine.GetName())

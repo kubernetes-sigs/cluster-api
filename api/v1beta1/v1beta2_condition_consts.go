@@ -90,6 +90,9 @@ const (
 	// AvailableV1Beta2Reason applies to a condition surfacing object availability.
 	AvailableV1Beta2Reason = "Available"
 
+	// NotAvailableV1Beta2Reason applies to a condition surfacing object not satisfying availability criteria.
+	NotAvailableV1Beta2Reason = "NotAvailable"
+
 	// ScalingUpV1Beta2Reason surfaces when an object is scaling up.
 	ScalingUpV1Beta2Reason = "ScalingUp"
 
@@ -161,32 +164,6 @@ const (
 
 	// InspectionFailedV1Beta2Reason applies to a condition when inspection of the underlying object failed.
 	InspectionFailedV1Beta2Reason = "InspectionFailed"
-)
-
-// Conditions that will be used for the MachineDeployment object in v1Beta2 API version.
-const (
-	// MachineDeploymentAvailableV1Beta2Condition is true if the MachineDeployment is not deleted, and it has minimum
-	// availability according to parameters specified in the deployment strategy, e.g. If using RollingUpgrade strategy,
-	// availableReplicas must be greater or equal than desired replicas - MaxUnavailable replicas.
-	MachineDeploymentAvailableV1Beta2Condition = AvailableV1Beta2Condition
-
-	// MachineDeploymentMachinesReadyV1Beta2Condition surfaces detail of issues on the controlled machines, if any.
-	MachineDeploymentMachinesReadyV1Beta2Condition = MachinesReadyV1Beta2Condition
-
-	// MachineDeploymentMachinesUpToDateV1Beta2Condition surfaces details of controlled machines not up to date, if any.
-	MachineDeploymentMachinesUpToDateV1Beta2Condition = MachinesUpToDateV1Beta2Condition
-
-	// MachineDeploymentScalingUpV1Beta2Condition is true if available replicas < desired replicas.
-	MachineDeploymentScalingUpV1Beta2Condition = ScalingUpV1Beta2Condition
-
-	// MachineDeploymentScalingDownV1Beta2Condition is true if replicas > desired replicas.
-	MachineDeploymentScalingDownV1Beta2Condition = ScalingDownV1Beta2Condition
-
-	// MachineDeploymentRemediatingV1Beta2Condition details about ongoing remediation of the controlled machines, if any.
-	MachineDeploymentRemediatingV1Beta2Condition = RemediatingV1Beta2Condition
-
-	// MachineDeploymentDeletingV1Beta2Condition surfaces details about ongoing deletion of the controlled machines.
-	MachineDeploymentDeletingV1Beta2Condition = DeletingV1Beta2Condition
 )
 
 // Conditions that will be used for the Cluster object in v1Beta2 API version.

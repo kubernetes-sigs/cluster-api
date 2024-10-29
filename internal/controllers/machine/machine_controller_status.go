@@ -38,13 +38,13 @@ import (
 	v1beta2conditions "sigs.k8s.io/cluster-api/util/conditions/v1beta2"
 )
 
-// reconcileStatus reconciles Machine's status during the entire lifecycle of the machine.
+// updateStatus update Machine's status.
 // This implies that the code in this function should account for several edge cases e.g. machine being partially provisioned,
 // machine being partially deleted but also for running machines being disrupted e.g. by deleting the node.
 // Additionally, this func should ensure that the conditions managed by this controller are always set in order to
 // comply with the recommendation in the Kubernetes API guidelines.
 // Note: v1beta1 conditions are not managed by this func.
-func (r *Reconciler) reconcileStatus(ctx context.Context, s *scope) {
+func (r *Reconciler) updateStatus(ctx context.Context, s *scope) {
 	// Update status from the Bootstrap Config external resource.
 	// Note: some of the status fields derived from the Bootstrap Config are managed in reconcileBootstrap, e.g. status.BootstrapReady, etc.
 	// here we are taking care only of the delta (condition).

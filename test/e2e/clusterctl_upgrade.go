@@ -447,6 +447,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		})
 		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
+		// Applying the cluster template in dry-run to ensure mgmt cluster webhooks are up and available
+		log.Logf("Applying the cluster template yaml to the cluster in dry-run")
+		Eventually(func() error {
+			return managementClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate, framework.WithCreateOpts([]client.CreateOption{client.DryRunAll}...), framework.WithUpdateOpts([]client.UpdateOption{client.DryRunAll}...))
+		}, "1m", "10s").ShouldNot(HaveOccurred())
+
 		log.Logf("Applying the cluster template yaml to the cluster")
 		Expect(managementClusterProxy.CreateOrUpdate(ctx, workloadClusterTemplate)).To(Succeed())
 

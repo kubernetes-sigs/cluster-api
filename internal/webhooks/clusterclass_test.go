@@ -91,7 +91,7 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(fakeScheme).
-		WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
+		WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
 		Build()
 
 	// Create the webhook and add the fakeClient as its client.
@@ -1865,7 +1865,7 @@ func TestClusterClassValidation(t *testing.T) {
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(fakeScheme).
-				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
 				Build()
 
 			// Pin the compatibility version used in variable CEL validation to 1.29, so we don't have to continuously refactor
@@ -2512,7 +2512,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(fakeScheme).
 				WithObjects(tt.clusters...).
-				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
 				Build()
 
 			// Create the webhook and add the fakeClient as its client.
@@ -2523,6 +2523,69 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func TestGetClustersUsingClusterClass(t *testing.T) {
+	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
+	// Enabling the feature flag temporarily for this test.
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+
+	topology := builder.ClusterTopology().WithClass("class1")
+
+	tests := []struct {
+		name           string
+		clusterClass   *clusterv1.ClusterClass
+		clusters       []client.Object
+		expectErr      bool
+		expectClusters []client.Object
+	}{
+		{
+			name:         "ClusterClass should return clusters referencing it",
+			clusterClass: builder.ClusterClass("default", "class1").Build(),
+			clusters: []client.Object{
+				builder.Cluster("default", "cluster1").WithTopology(topology.Build()).Build(),
+				builder.Cluster("default", "cluster2").Build(),
+				builder.Cluster("other", "cluster2").WithTopology(topology.DeepCopy().WithClassNamespace("default").Build()).Build(),
+				builder.Cluster("other", "cluster3").WithTopology(topology.Build()).Build(),
+			},
+			expectClusters: []client.Object{
+				builder.Cluster("default", "cluster1").Build(),
+				builder.Cluster("other", "cluster2").Build(),
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(tt.clusters...).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassRefPath, index.ClusterByClusterClassRef).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client.
+			webhook := &ClusterClass{Client: fakeClient}
+			clusters, err := webhook.getClustersUsingClusterClass(ctx, tt.clusterClass)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			clusterKeys := []client.ObjectKey{}
+			for _, c := range clusters {
+				clusterKeys = append(clusterKeys, client.ObjectKeyFromObject(&c))
+			}
+			expectedKeys := []client.ObjectKey{}
+			for _, c := range tt.expectClusters {
+				expectedKeys = append(expectedKeys, client.ObjectKeyFromObject(c))
+			}
+			g.Expect(clusterKeys).To(Equal(expectedKeys))
 		})
 	}
 }

@@ -107,20 +107,6 @@ func LocalObjectTemplatesAreCompatible(current, desired clusterv1.LocalObjectTem
 				currentGK.Kind, desiredGK.Kind),
 		))
 	}
-	allErrs = append(allErrs, LocalObjectTemplatesAreInSameNamespace(current, desired, pathPrefix)...)
-	return allErrs
-}
-
-// LocalObjectTemplatesAreInSameNamespace checks if two referenced objects are in the same namespace.
-func LocalObjectTemplatesAreInSameNamespace(current, desired clusterv1.LocalObjectTemplate, pathPrefix *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-	if current.Ref.Namespace != desired.Ref.Namespace {
-		allErrs = append(allErrs, field.Forbidden(
-			pathPrefix.Child("ref", "namespace"),
-			fmt.Sprintf("templates must be in the same namespace as the ClusterClass (%s)",
-				current.Ref.Namespace),
-		))
-	}
 	return allErrs
 }
 

@@ -52,6 +52,7 @@ import (
 var (
 	clusterName1                           = "cluster1"
 	clusterName2                           = "cluster2"
+	clusterName3                           = "cluster3"
 	clusterClassName1                      = "class1"
 	clusterClassName2                      = "class2"
 	infrastructureMachineTemplateName1     = "inframachinetemplate1"
@@ -854,6 +855,19 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 				Build()).
 		Build()
 
+	// Cross ns referencing cluster
+	cluster3 := builder.Cluster(ns.Name, clusterName3).
+		WithTopology(
+			builder.ClusterTopology().
+				WithClass(clusterClass.Name).
+				WithClassNamespace("other").
+				WithMachineDeployment(machineDeploymentTopology2).
+				WithMachinePool(machinePoolTopology2).
+				WithVersion("1.21.0").
+				WithControlPlaneReplicas(1).
+				Build()).
+		Build()
+
 	// Setup kubeconfig secrets for the clusters, so the ClusterCacheTracker works.
 	cluster1Secret := kubeconfig.GenerateSecret(cluster1, kubeconfig.FromEnvTestConfig(env.Config, cluster1))
 	cluster2Secret := kubeconfig.GenerateSecret(cluster2, kubeconfig.FromEnvTestConfig(env.Config, cluster2))
@@ -876,6 +890,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 		clusterClassForRebase,
 		cluster1,
 		cluster2,
+		cluster3,
 		cluster1Secret,
 		cluster2Secret,
 	}
@@ -1574,6 +1589,59 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 				return
 			}
 			g.Expect(err.Error()).ToNot(ContainSubstring(validationErrMessage))
+		})
+	}
+}
+
+func TestClusterClassToCluster(t *testing.T) {
+	utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "cluster-reconcile-namespace")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create the objects needed for the integration test:
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Defer a cleanup function that deletes each of the objects created during setupTestEnvForIntegrationTests.
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	tests := []struct {
+		name         string
+		clusterClass *clusterv1.ClusterClass
+		expected     []reconcile.Request
+	}{
+		{
+			name:         "ClusterClass change should request reconcile for the referenced class",
+			clusterClass: builder.ClusterClass(ns.Name, clusterClassName1).Build(),
+			expected: []reconcile.Request{
+				{NamespacedName: client.ObjectKeyFromObject(builder.Cluster(ns.Name, clusterName1).Build())},
+				{NamespacedName: client.ObjectKeyFromObject(builder.Cluster(ns.Name, clusterName2).Build())},
+			},
+		},
+		{
+			name:         "ClusterClass with no matching name and namespace should not trigger reconcile",
+			clusterClass: builder.ClusterClass("other", clusterClassName2).Build(),
+			expected:     []reconcile.Request{},
+		},
+		{
+			name:         "Different ClusterClass with matching name and namespace should trigger reconcile",
+			clusterClass: builder.ClusterClass("other", clusterClassName1).Build(),
+			expected: []reconcile.Request{
+				{NamespacedName: client.ObjectKeyFromObject(builder.Cluster(ns.Name, clusterName3).Build())},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(*testing.T) {
+			r := &Reconciler{Client: env.GetClient()}
+
+			requests := r.clusterClassToCluster(ctx, tt.clusterClass)
+			g.Expect(requests).To(ConsistOf(tt.expected))
 		})
 	}
 }

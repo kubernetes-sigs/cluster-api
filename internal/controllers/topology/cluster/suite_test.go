@@ -62,7 +62,7 @@ func TestMain(m *testing.M) {
 		}
 		// Set up the ClusterClassName index explicitly here. This index is ordinarily created in
 		// index.AddDefaultIndexes. That doesn't happen here because the ClusterClass feature flag is not set.
-		if err := index.ByClusterClassName(ctx, mgr); err != nil {
+		if err := index.ByClusterClassRef(ctx, mgr); err != nil {
 			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
 	}

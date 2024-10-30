@@ -2627,7 +2627,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleDrainConfig(ref co
 				Properties: map[string]spec.Schema{
 					"behavior": {
 						SchemaProps: spec.SchemaProps{
-							Description: "behavior defines the drain behavior. Can be either \"Drain\" or \"Skip\".",
+							Description: "behavior defines the drain behavior. Can be either \"Drain\" or \"Skip\". \"Drain\" means that the Pods to which this MachineDrainRule applies will be drained. If behavior is set to \"Drain\" the order in which Pods are drained can be configured with the order field. When draining Pods of a Node the Pods will be grouped by order and one group after another will be drained (by increasing order). Cluster API will wait until all Pods of a group are terminated / removed from the Node before starting with the next group. \"Skip\" means that the Pods to which this MachineDrainRule applies will be skipped during drain.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -2635,7 +2635,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleDrainConfig(ref co
 					},
 					"order": {
 						SchemaProps: spec.SchemaProps{
-							Description: "order defines the order in which Pods are drained. Pods with higher order are drained after Pods with lower order. order can only be set if behavior is set to \"Drain\". If order is not set, 0 will be used.",
+							Description: "order defines the order in which Pods are drained. Pods with higher order are drained after Pods with lower order. order can only be set if behavior is set to \"Drain\". If order is not set, 0 will be used. Valid values for order are from -2147483648 to 2147483647 (inclusive).",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2700,8 +2700,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleMachineSelector(re
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDrainRuleMachineSelector defines to which Machines this MachineDrainRule should be applied.",
-				Type:        []string{"object"},
+				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
 					"selector": {
 						SchemaProps: spec.SchemaProps{
@@ -2727,8 +2726,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRulePodSelector(ref co
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "MachineDrainRulePodSelector defines to which Pods this MachineDrainRule should be applied.",
-				Type:        []string{"object"},
+				Type: []string{"object"},
 				Properties: map[string]spec.Schema{
 					"selector": {
 						SchemaProps: spec.SchemaProps{
@@ -2766,7 +2764,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleSpec(ref common.Re
 					},
 					"machines": {
 						SchemaProps: spec.SchemaProps{
-							Description: "machines defines to which Machines this MachineDrainRule should be applied.\n\nIf machines is empty, the MachineDrainRule applies to all Machines. If machines contains multiple selectors, the results are ORed. Within a single selector the results of selector and clusterSelector are ANDed. This field is NOT optional.\n\nExample: Selects control plane Machines in all Clusters and\n         Machines with label \"os\" == \"linux\" in Clusters with label \"stage\" == \"production\".\n\n - selector:\n     matchExpressions:\n     - key: cluster.x-k8s.io/control-plane\n       operator: Exists\n - selector:\n     matchLabels:\n       os: linux\n   clusterSelector:\n     matchExpressions:\n     - key: stage\n       operator: In\n       values:\n       - production",
+							Description: "machines defines to which Machines this MachineDrainRule should be applied.\n\nIf machines is empty, the MachineDrainRule applies to all Machines in the Namespace. If machines contains multiple selectors, the results are ORed. Within a single Machine selector the results of selector and clusterSelector are ANDed. Machines will be selected from all Clusters in the Namespace unless otherwise restricted with the clusterSelector. An empty Machine selector matches all Machines in the Namespace. This field is required.\n\nExample: Selects control plane Machines in all Clusters and\n         Machines with label \"os\" == \"linux\" in Clusters with label\n         \"stage\" == \"production\".\n\n - selector:\n     matchExpressions:\n     - key: cluster.x-k8s.io/control-plane\n       operator: Exists\n - selector:\n     matchLabels:\n       os: linux\n   clusterSelector:\n     matchExpressions:\n     - key: stage\n       operator: In\n       values:\n       - production",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -2780,7 +2778,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleSpec(ref common.Re
 					},
 					"pods": {
 						SchemaProps: spec.SchemaProps{
-							Description: "pods defines to which Pods this MachineDrainRule should be applied.\n\nIf pods is empty, the MachineDrainRule applies to all Pods. If pods contains multiple selectors, the results are ORed. Within a single selector the results of selector and namespaceSelector are ANDed. This field is NOT optional.\n\nExample: Selects Pods with label \"app\" == \"logging\" in all Namespaces and\n         Pods with label \"app\" == \"prometheus\" in the \"monitoring\" Namespace.\n\n - selector:\n     matchExpressions:\n     - key: app\n       operator: In\n       values:\n       - logging\n - selector:\n     matchLabels:\n       app: prometheus\n   namespaceSelector:\n     matchLabels:\n       kubernetes.io/metadata.name: monitoring",
+							Description: "pods defines to which Pods this MachineDrainRule should be applied.\n\nIf pods is empty, the MachineDrainRule applies to all Pods in all Namespaces. If pods contains multiple selectors, the results are ORed. Within a single Pod selector the results of selector and namespaceSelector are ANDed. Pods will be selected from all Namespaces unless otherwise restricted with the namespaceSelector. An empty Pod selector matches all Pods in all Namespaces. This field is required.\n\nExample: Selects Pods with label \"app\" == \"logging\" in all Namespaces and\n         Pods with label \"app\" == \"prometheus\" in the \"monitoring\"\n         Namespace.\n\n - selector:\n     matchExpressions:\n     - key: app\n       operator: In\n       values:\n       - logging\n - selector:\n     matchLabels:\n       app: prometheus\n   namespaceSelector:\n     matchLabels:\n       kubernetes.io/metadata.name: monitoring",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{

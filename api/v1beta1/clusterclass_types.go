@@ -699,7 +699,7 @@ type ValidationRule struct {
 	// Transition rules by default are applied only on UPDATE requests and are
 	// skipped if an old value could not be found.
 	//
-	// +kubebuilder:validation:Required
+	// +required
 	Rule string `json:"rule"`
 	// Message represents the message displayed when validation fails. The message is required if the Rule contains
 	// line breaks. The message must not contain line breaks.

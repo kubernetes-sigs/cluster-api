@@ -106,6 +106,10 @@ func (d *Helper) GetPodsForEviction(ctx context.Context, cluster *clusterv1.Clus
 		}
 	}
 
+	if len(allPods) == 0 {
+		return &PodDeleteList{}, nil
+	}
+
 	// Get MachineDrainRules matching the Machine and Cluster.
 	machineDrainRulesMatchingMachine, err := d.getMatchingMachineDrainRules(ctx, cluster, machine)
 	if err != nil {

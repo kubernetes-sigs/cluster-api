@@ -4461,6 +4461,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref common.ReferenceCallb
 							Format:      "",
 						},
 					},
+					"classNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The namespace of the ClusterClass object to create the topology.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 					"version": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The Kubernetes version of the cluster.",

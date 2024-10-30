@@ -928,6 +928,10 @@ spec:
                     description: The name of the ClusterClass object to create the
                       topology.
                     type: string
+                  classNamespace:
+                    description: The namespace of the ClusterClass object to create
+                      the topology.
+                    type: string
                   controlPlane:
                     description: controlPlane describes the cluster control plane.
                     properties:

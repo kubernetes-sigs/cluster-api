@@ -45,11 +45,11 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/topology/clustershim"
 	"sigs.k8s.io/cluster-api/internal/topology/names"
 	"sigs.k8s.io/cluster-api/internal/topology/ownerrefs"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 var (
@@ -1381,7 +1381,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 				MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
 					UnhealthyConditions: unhealthyConditions,
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(1)},
+						Duration: time.Duration(1),
+					},
 				},
 			},
 		},
@@ -2906,7 +2907,8 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			},
 		},
 		NodeStartupTimeout: &metav1.Duration{
-			Duration: time.Duration(1)},
+			Duration: time.Duration(1),
+		},
 	}
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
 		"foo": "bar",
@@ -2950,7 +2952,8 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				},
 			},
 			NodeStartupTimeout: &metav1.Duration{
-				Duration: time.Duration(1)},
+				Duration: time.Duration(1),
+			},
 		},
 	}
 

@@ -34,14 +34,16 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
-const UpdatedVersion string = "v1.17.4"
-const Host string = "nodomain.example.com"
+const (
+	UpdatedVersion string = "v1.17.4"
+	Host           string = "nodomain.example.com"
+)
 
 func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) *corev1.Namespace {

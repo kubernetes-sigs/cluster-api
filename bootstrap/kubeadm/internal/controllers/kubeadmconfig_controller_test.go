@@ -42,12 +42,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -213,7 +213,8 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 				Name:       machine.Name,
 				UID:        machine.UID,
 				Controller: ptr.To(true),
-			}})
+			},
+		})
 		g.Expect(myclient.Update(ctx, actual)).To(Succeed())
 
 		_, err = k.Reconcile(ctx, request)

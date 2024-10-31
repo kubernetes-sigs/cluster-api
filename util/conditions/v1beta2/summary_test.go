@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestSummary(t *testing.T) {
@@ -217,7 +217,10 @@ func TestSummary(t *testing.T) {
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C", Message: "Message-C"}, // issue
 			},
 			conditionType: clusterv1.AvailableV1Beta2Condition,
-			options: []SummaryOption{ForConditionTypes{"A", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
+			options: []SummaryOption{
+				ForConditionTypes{"A", "!C"},
+				NegativePolarityConditionTypes{"!C"},
+				IgnoreTypesIfMissing{"!C"},
 				OverrideConditions{
 					{
 						OwnerResource: ConditionOwnerInfo{
@@ -228,7 +231,8 @@ func TestSummary(t *testing.T) {
 							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
 						},
 					},
-				}}, // OverrideCondition replaces the same condition from the SourceObject
+				},
+			}, // OverrideCondition replaces the same condition from the SourceObject
 			want: &metav1.Condition{
 				Type:    clusterv1.AvailableV1Beta2Condition,
 				Status:  metav1.ConditionFalse,      // False because !C is an issue
@@ -243,7 +247,10 @@ func TestSummary(t *testing.T) {
 				{Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C", Message: "Message-C"}, // issue
 			},
 			conditionType: clusterv1.AvailableV1Beta2Condition,
-			options: []SummaryOption{ForConditionTypes{"A", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
+			options: []SummaryOption{
+				ForConditionTypes{"A", "!C"},
+				NegativePolarityConditionTypes{"!C"},
+				IgnoreTypesIfMissing{"!C"},
 				OverrideConditions{
 					{
 						OwnerResource: ConditionOwnerInfo{
@@ -263,7 +270,8 @@ func TestSummary(t *testing.T) {
 							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
 						},
 					},
-				}}, // OverrideCondition is specified multiple times
+				},
+			}, // OverrideCondition is specified multiple times
 			wantErr: true,
 		},
 		{
@@ -273,7 +281,10 @@ func TestSummary(t *testing.T) {
 				// !C is missing in source object
 			},
 			conditionType: clusterv1.AvailableV1Beta2Condition,
-			options: []SummaryOption{ForConditionTypes{"A", "!C"}, NegativePolarityConditionTypes{"!C"}, IgnoreTypesIfMissing{"!C"},
+			options: []SummaryOption{
+				ForConditionTypes{"A", "!C"},
+				NegativePolarityConditionTypes{"!C"},
+				IgnoreTypesIfMissing{"!C"},
 				OverrideConditions{
 					{
 						OwnerResource: ConditionOwnerInfo{
@@ -284,7 +295,8 @@ func TestSummary(t *testing.T) {
 							Type: "!C", Status: metav1.ConditionTrue, Reason: "Reason-C-additional", Message: "Message-C-additional", // issue
 						},
 					},
-				}},
+				},
+			},
 			wantErr: true,
 		},
 	}

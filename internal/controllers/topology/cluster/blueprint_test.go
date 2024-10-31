@@ -29,7 +29,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/exp/topology/scope"
-	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util/test/builder"
 )
 
 func TestGetBlueprint(t *testing.T) {
@@ -64,7 +64,8 @@ func TestGetBlueprint(t *testing.T) {
 		Build()
 	machineHealthCheck := &clusterv1.MachineHealthCheckClass{
 		NodeStartupTimeout: &metav1.Duration{
-			Duration: time.Duration(1)},
+			Duration: time.Duration(1),
+		},
 	}
 
 	machineDeployment := builder.MachineDeploymentClass("workerclass1").

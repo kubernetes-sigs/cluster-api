@@ -26,8 +26,8 @@ import (
 
 var _ = Describe("When testing the machinery for scale testing using in-memory provider", func() {
 	// Note: This test does not support MachinePools.
-	scaleSpec(ctx, func() scaleSpecInput {
-		return scaleSpecInput{
+	ScaleSpec(ctx, func() ScaleSpecInput {
+		return ScaleSpecInput{
 			E2EConfig:                e2eConfig,
 			ClusterctlConfigPath:     clusterctlConfigPath,
 			InfrastructureProvider:   ptr.To("in-memory"),

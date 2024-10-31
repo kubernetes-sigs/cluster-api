@@ -4,7 +4,7 @@ This document contains a collection of announcement templates for the release te
 
 ## Email Release Announcement Template
 
-To use this template, send an email using the following template to the `kubernetes-sig-cluster-lifecycle@googlegroups.com` mailing list. The person sending out the email should ensure that they are first part of the mailing list.
+To use this template, send an email using the following template to the `sig-cluster-lifecycle@kubernetes.io` mailing list. The person sending out the email should ensure that they are first part of the mailing list.
 
 ```
 Hello everyone,

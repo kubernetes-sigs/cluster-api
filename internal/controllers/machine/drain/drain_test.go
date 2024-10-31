@@ -628,12 +628,33 @@ func TestGetPodsForEviction(t *testing.T) {
 						},
 					},
 				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pod-2-skip-pod-with-drain-label",
+						Namespace: metav1.NamespaceDefault,
+						Labels: map[string]string{
+							clusterv1.PodDrainLabel: "Skip",
+						},
+					},
+				},
 			},
 			wantPodDeleteList: PodDeleteList{items: []PodDelete{
 				{
 					Pod: &corev1.Pod{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "pod-1-skip-pod-with-drain-label",
+							Namespace: metav1.NamespaceDefault,
+						},
+					},
+					Status: PodDeleteStatus{
+						DrainBehavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
+						Reason:        PodDeleteStatusTypeSkip,
+					},
+				},
+				{
+					Pod: &corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "pod-2-skip-pod-with-drain-label",
 							Namespace: metav1.NamespaceDefault,
 						},
 					},

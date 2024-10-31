@@ -253,7 +253,7 @@ func (d *Helper) skipDeletedFilter(_ context.Context, pod *corev1.Pod) PodDelete
 }
 
 func (d *Helper) drainLabelFilter(_ context.Context, pod *corev1.Pod) PodDeleteStatus {
-	if labelValue, found := pod.ObjectMeta.Labels[clusterv1.PodDrainLabel]; found && labelValue == "skip" {
+	if labelValue, found := pod.ObjectMeta.Labels[clusterv1.PodDrainLabel]; found && strings.EqualFold(labelValue, string(clusterv1.MachineDrainRuleDrainBehaviorSkip)) {
 		return MakePodDeleteStatusSkip()
 	}
 	return MakePodDeleteStatusOkay()

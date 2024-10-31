@@ -13,8 +13,6 @@ spec:
     kind: MachineDrainRule
     listKind: MachineDrainRuleList
     plural: machinedrainrules
-    shortNames:
-    - mdr
     singular: machinedrainrule
   scope: Namespaced
   versions:
@@ -90,15 +88,13 @@ spec:
                 description: |-
                   machines defines to which Machines this MachineDrainRule should be applied.
 
-                  If machines is empty, the MachineDrainRule applies to all Machines in the Namespace.
+                  If machines is not set, the MachineDrainRule applies to all Machines in the Namespace.
                   If machines contains multiple selectors, the results are ORed.
                   Within a single Machine selector the results of selector and clusterSelector are ANDed.
                   Machines will be selected from all Clusters in the Namespace unless otherwise
                   restricted with the clusterSelector.
-                  An empty Machine selector matches all Machines in the Namespace.
-                  This field is required.
 
-                  Example: Selects control plane Machines in all Clusters and
+                  Example: Selects control plane Machines in all Clusters or
                            Machines with label "os" == "linux" in Clusters with label
                            "stage" == "production".
 
@@ -116,6 +112,7 @@ spec:
                          values:
                          - production
                 items:
+                  minProperties: 1
                   properties:
                     clusterSelector:
                       description: |-
@@ -230,19 +227,21 @@ spec:
                 maxItems: 32
                 minItems: 1
                 type: array
+                x-kubernetes-list-type: atomic
+                x-kubernetes-validations:
+                - message: entries in machines must be unique
+                  rule: self.all(x, self.exists_one(y, x == y))
               pods:
                 description: |-
                   pods defines to which Pods this MachineDrainRule should be applied.
 
-                  If pods is empty, the MachineDrainRule applies to all Pods in all Namespaces.
+                  If pods is not set, the MachineDrainRule applies to all Pods in all Namespaces.
                   If pods contains multiple selectors, the results are ORed.
                   Within a single Pod selector the results of selector and namespaceSelector are ANDed.
                   Pods will be selected from all Namespaces unless otherwise
                   restricted with the namespaceSelector.
-                  An empty Pod selector matches all Pods in all Namespaces.
-                  This field is required.
 
-                  Example: Selects Pods with label "app" == "logging" in all Namespaces and
+                  Example: Selects Pods with label "app" == "logging" in all Namespaces or
                            Pods with label "app" == "prometheus" in the "monitoring"
                            Namespace.
 
@@ -259,6 +258,7 @@ spec:
                        matchLabels:
                          kubernetes.io/metadata.name: monitoring
                 items:
+                  minProperties: 1
                   properties:
                     namespaceSelector:
                       description: |-
@@ -373,11 +373,15 @@ spec:
                 maxItems: 32
                 minItems: 1
                 type: array
+                x-kubernetes-list-type: atomic
+                x-kubernetes-validations:
+                - message: entries in pods must be unique
+                  rule: self.all(x, self.exists_one(y, x == y))
             required:
             - drain
-            - machines
-            - pods
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

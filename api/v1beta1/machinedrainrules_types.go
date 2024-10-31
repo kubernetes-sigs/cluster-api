@@ -47,15 +47,13 @@ type MachineDrainRuleSpec struct {
 
 	// machines defines to which Machines this MachineDrainRule should be applied.
 	//
-	// If machines is empty, the MachineDrainRule applies to all Machines in the Namespace.
+	// If machines is not set, the MachineDrainRule applies to all Machines in the Namespace.
 	// If machines contains multiple selectors, the results are ORed.
 	// Within a single Machine selector the results of selector and clusterSelector are ANDed.
 	// Machines will be selected from all Clusters in the Namespace unless otherwise
 	// restricted with the clusterSelector.
-	// An empty Machine selector matches all Machines in the Namespace.
-	// This field is required.
 	//
-	// Example: Selects control plane Machines in all Clusters and
+	// Example: Selects control plane Machines in all Clusters or
 	//          Machines with label "os" == "linux" in Clusters with label
 	//          "stage" == "production".
 	//
@@ -73,22 +71,22 @@ type MachineDrainRuleSpec struct {
 	//        values:
 	//        - production
 	//
-	// +required
+	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
-	Machines []MachineDrainRuleMachineSelector `json:"machines"`
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="entries in machines must be unique"
+	Machines []MachineDrainRuleMachineSelector `json:"machines,omitempty"`
 
 	// pods defines to which Pods this MachineDrainRule should be applied.
 	//
-	// If pods is empty, the MachineDrainRule applies to all Pods in all Namespaces.
+	// If pods is not set, the MachineDrainRule applies to all Pods in all Namespaces.
 	// If pods contains multiple selectors, the results are ORed.
 	// Within a single Pod selector the results of selector and namespaceSelector are ANDed.
 	// Pods will be selected from all Namespaces unless otherwise
 	// restricted with the namespaceSelector.
-	// An empty Pod selector matches all Pods in all Namespaces.
-	// This field is required.
 	//
-	// Example: Selects Pods with label "app" == "logging" in all Namespaces and
+	// Example: Selects Pods with label "app" == "logging" in all Namespaces or
 	//          Pods with label "app" == "prometheus" in the "monitoring"
 	//          Namespace.
 	//
@@ -105,10 +103,12 @@ type MachineDrainRuleSpec struct {
 	//      matchLabels:
 	//        kubernetes.io/metadata.name: monitoring
 	//
-	// +required
+	// +optional
+	// +listType=atomic
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=32
-	Pods []MachineDrainRulePodSelector `json:"pods"`
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x == y))",message="entries in pods must be unique"
+	Pods []MachineDrainRulePodSelector `json:"pods,omitempty"`
 }
 
 // MachineDrainRuleDrainConfig configures if and how Pods are drained.
@@ -134,6 +134,7 @@ type MachineDrainRuleDrainConfig struct {
 	Order *int32 `json:"order,omitempty"`
 }
 
+// +kubebuilder:validation:MinProperties=1
 type MachineDrainRuleMachineSelector struct { //nolint:revive // Intentionally not adding a godoc comment as it would show up additionally to the field comment in the CRD
 	// selector is a label selector which selects Machines by their labels.
 	// This field follows standard label selector semantics; if not present or
@@ -159,6 +160,7 @@ type MachineDrainRuleMachineSelector struct { //nolint:revive // Intentionally n
 	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
 }
 
+// +kubebuilder:validation:MinProperties=1
 type MachineDrainRulePodSelector struct { //nolint:revive // Intentionally not adding a godoc comment as it would show up additionally to the field comment in the CRD
 	// selector is a label selector which selects Pods by their labels.
 	// This field follows standard label selector semantics; if not present or
@@ -185,7 +187,7 @@ type MachineDrainRulePodSelector struct { //nolint:revive // Intentionally not a
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=machinedrainrules,shortName=mdr,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=machinedrainrules,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Behavior",type="string",JSONPath=".spec.drain.behavior",description="Drain behavior"
 // +kubebuilder:printcolumn:name="Order",type="string",JSONPath=".spec.drain.order",description="Drain order"
@@ -196,7 +198,8 @@ type MachineDrainRule struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec MachineDrainRuleSpec `json:"spec,omitempty"`
+	// +required
+	Spec MachineDrainRuleSpec `json:"spec"`
 }
 
 // +kubebuilder:object:root=true

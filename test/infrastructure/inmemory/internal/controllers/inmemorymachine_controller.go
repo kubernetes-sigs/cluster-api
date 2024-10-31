@@ -663,25 +663,6 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 		}
 	}
 
-	// Create kube-system namespace
-	kubeSystemNS := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: metav1.NamespaceSystem,
-			Labels: map[string]string{
-				"kubernetes.io/metadata.name": metav1.NamespaceSystem,
-			},
-		},
-	}
-	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(kubeSystemNS), kubeSystemNS); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get kube-system Namespace")
-		}
-
-		if err := inmemoryClient.Create(ctx, kubeSystemNS); err != nil && !apierrors.IsAlreadyExists(err) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to create kube-system Namespace")
-		}
-	}
-
 	// If there is not yet an API server listener for this machine.
 	if !r.APIServerMux.HasAPIServer(listenerName, apiServer) {
 		// Getting the Kubernetes CA

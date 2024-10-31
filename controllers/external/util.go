@@ -31,7 +31,7 @@ import (
 )
 
 // Get uses the client and reference to get an external, unstructured object.
-func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, _ string) (*unstructured.Unstructured, error) {
 	if ref == nil {
 		return nil, errors.Errorf("cannot get object - object reference not set")
 	}
@@ -39,9 +39,9 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, name
 	obj.SetAPIVersion(ref.APIVersion)
 	obj.SetKind(ref.Kind)
 	obj.SetName(ref.Name)
-	key := client.ObjectKey{Name: obj.GetName(), Namespace: namespace}
-	if err := c.Get(ctx, key, obj); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s external object %q/%q", obj.GetKind(), key.Namespace, key.Name)
+	obj.SetNamespace(ref.Namespace)
+	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve %s external object %q/%q", obj.GetKind(), ref.Namespace, ref.Name)
 	}
 	return obj, nil
 }

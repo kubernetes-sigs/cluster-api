@@ -1,0 +1,638 @@
+/*
+Copyright 2020 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package e2e
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
+)
+
+// NodeDrainTimeoutSpecInput is the input for NodeDrainTimeoutSpec.
+type NodeDrainTimeoutSpecInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	ClusterctlConfigPath  string
+	BootstrapClusterProxy framework.ClusterProxy
+	ArtifactFolder        string
+	SkipCleanup           bool
+	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
+
+	// InfrastructureProviders specifies the infrastructure to use for clusterctl
+	// operations (Example: get cluster templates).
+	// Note: In most cases this need not be specified. It only needs to be specified when
+	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
+	// able to identify the default.
+	InfrastructureProvider *string
+
+	// Flavor, if specified, must refer to a template that uses a Cluster with ClusterClass.
+	// The cluster must use a KubeadmControlPlane and a MachineDeployment.
+	// If not specified, "node-drain" is used.
+	Flavor *string
+
+	// Allows to inject a function to be run after test namespace is created.
+	// If not specified, this is a no-op.
+	PostNamespaceCreated func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string)
+}
+
+// NodeDrainTimeoutSpec goes through the following steps:
+// * Create cluster with 3 CP & 1 worker Machine
+// * Ensure Node label is set & NodeDrainTimeout is set to 0 (wait forever)
+// * Deploy MachineDrainRules
+// * Deploy Deployment with unevictable Pods on CP & MD Nodes
+// * Deploy Deployment with evictable Pods with finalizer on CP & MD Nodes
+// * Trigger Node drain by scaling down the control plane to 1 and MachineDeployments to 0
+// * Get draining control plane and MachineDeployment Machines
+// * Verify drain of Deployments with order 1
+// * Verify drain of Deployments with order 5
+// * Verify skipped Pods are still there and don't have a deletionTimestamp
+// * Verify Node drains for control plane and MachineDeployment Machines are blocked (only by PDBs)
+// * Set NodeDrainTimeout to 1s to unblock Node drain
+// * Verify scale down succeeded because Node drains were unblocked.
+func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeoutSpecInput) {
+	var (
+		specName         = "node-drain"
+		input            NodeDrainTimeoutSpecInput
+		namespace        *corev1.Namespace
+		cancelWatches    context.CancelFunc
+		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
+	)
+
+	BeforeEach(func() {
+		Expect(ctx).NotTo(BeNil(), "ctx is required for %s spec", specName)
+		input = inputGetter()
+		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
+		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
+		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
+		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
+
+		Expect(input.E2EConfig.GetIntervals(specName, "wait-deployment-available")).ToNot(BeNil())
+		Expect(input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")).ToNot(BeNil())
+
+		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
+		namespace, cancelWatches = framework.SetupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, input.PostNamespaceCreated)
+		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
+	})
+
+	It("A node should be drained correctly", func() {
+		By("Creating a workload cluster")
+		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
+		if input.InfrastructureProvider != nil {
+			infrastructureProvider = *input.InfrastructureProvider
+		}
+
+		controlPlaneReplicas := 3
+		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			ConfigCluster: clusterctl.ConfigClusterInput{
+				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+				ClusterctlConfigPath:     input.ClusterctlConfigPath,
+				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+				InfrastructureProvider:   infrastructureProvider,
+				Flavor:                   ptr.Deref(input.Flavor, "node-drain"),
+				Namespace:                namespace.Name,
+				ClusterName:              clusterName,
+				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
+				ControlPlaneMachineCount: ptr.To[int64](int64(controlPlaneReplicas)),
+				WorkerMachineCount:       ptr.To[int64](1),
+			},
+			ControlPlaneWaiters:          input.ControlPlaneWaiters,
+			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		}, clusterResources)
+		cluster := clusterResources.Cluster
+		controlplane := clusterResources.ControlPlane
+		machineDeployments := clusterResources.MachineDeployments
+		Expect(machineDeployments[0].Spec.Replicas).To(Equal(ptr.To[int32](1)))
+
+		// This label will be added to all Machines so we can later create Pods on the right Nodes.
+		nodeOwnerLabelKey := "owner.node.cluster.x-k8s.io"
+
+		By("Ensure Node label is set & NodeDrainTimeout is set to 0 (wait forever) on ControlPlane and MachineDeployment topologies")
+		modifyControlPlaneViaClusterAndWait(ctx, modifyControlPlaneViaClusterAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			Cluster:      cluster,
+			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
+				topology.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(0)}
+				if topology.Metadata.Labels == nil {
+					topology.Metadata.Labels = map[string]string{}
+				}
+				topology.Metadata.Labels[nodeOwnerLabelKey] = "KubeadmControlPlane-" + controlplane.Name
+			},
+			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		})
+		modifyMachineDeploymentViaClusterAndWait(ctx, modifyMachineDeploymentViaClusterAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			Cluster:      cluster,
+			ModifyMachineDeploymentTopology: func(topology *clusterv1.MachineDeploymentTopology) {
+				topology.NodeDrainTimeout = &metav1.Duration{Duration: time.Duration(0)}
+				if topology.Metadata.Labels == nil {
+					topology.Metadata.Labels = map[string]string{}
+				}
+				for _, md := range machineDeployments {
+					if md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] == topology.Name {
+						topology.Metadata.Labels[nodeOwnerLabelKey] = "MachineDeployment-" + md.Name
+					}
+				}
+			},
+			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		workloadClusterProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
+
+		By("Deploy MachineDrainRules.")
+		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
+			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-1", 1))).To(Succeed())
+		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
+			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-5", 5))).To(Succeed())
+		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
+			generateMachineDrainRule(namespace.Name, clusterName, "drain-order-10", 10))).To(Succeed())
+
+		By("Deploy Deployment with unevictable Pods on control plane and MachineDeployment Nodes.")
+		framework.DeployUnevictablePod(ctx, framework.DeployUnevictablePodInput{
+			WorkloadClusterProxy: workloadClusterProxy,
+			ControlPlane:         controlplane,
+			DeploymentName:       cpDeploymentWithPDBName(),
+			Namespace:            "unevictable-workload",
+			NodeSelector:         map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
+			ModifyDeployment: func(deployment *appsv1.Deployment) {
+				// Ensure we try to drain unevictable Pods last, otherwise they block drain of evictable Pods.
+				deployment.Spec.Template.Labels["mdr"] = "drain-order-10"
+			},
+			WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+		})
+		for _, md := range machineDeployments {
+			framework.DeployUnevictablePod(ctx, framework.DeployUnevictablePodInput{
+				WorkloadClusterProxy: workloadClusterProxy,
+				MachineDeployment:    md,
+				DeploymentName:       mdDeploymentWithPDBName(md.Name),
+				Namespace:            "unevictable-workload",
+				NodeSelector:         map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
+				ModifyDeployment: func(deployment *appsv1.Deployment) {
+					// Ensure we try to drain unevictable Pods last, otherwise they block drain of evictable Pods.
+					deployment.Spec.Template.Labels["mdr"] = "drain-order-10"
+				},
+				WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+			})
+		}
+
+		By("Deploy Deployments with evictable Pods with finalizer on control plane and MachineDeployment Nodes.")
+		evictablePodDeployments := map[string]map[string]string{
+			"drain-order-1": {"mdr": "drain-order-1"},
+			"drain-order-5": {"mdr": "drain-order-5"},
+			"skip":          {"cluster.x-k8s.io/drain": string(clusterv1.MachineDrainRuleDrainBehaviorSkip)},
+		}
+		for deploymentNamePrefix, deploymentLabels := range evictablePodDeployments {
+			framework.DeployEvictablePod(ctx, framework.DeployEvictablePodInput{
+				WorkloadClusterProxy: workloadClusterProxy,
+				ControlPlane:         controlplane,
+				DeploymentName:       cpDeploymentName(deploymentNamePrefix),
+				Namespace:            "evictable-workload",
+				NodeSelector:         map[string]string{nodeOwnerLabelKey: "KubeadmControlPlane-" + controlplane.Name},
+				ModifyDeployment: func(deployment *appsv1.Deployment) {
+					deployment.Spec.Template.ObjectMeta.Finalizers = []string{"test.cluster.x-k8s.io/block"}
+					for k, v := range deploymentLabels {
+						deployment.Spec.Template.Labels[k] = v
+					}
+				},
+				WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+			})
+			for _, md := range machineDeployments {
+				framework.DeployEvictablePod(ctx, framework.DeployEvictablePodInput{
+					WorkloadClusterProxy: workloadClusterProxy,
+					MachineDeployment:    md,
+					DeploymentName:       mdDeploymentName(deploymentNamePrefix, md.Name),
+					Namespace:            "evictable-workload",
+					NodeSelector:         map[string]string{nodeOwnerLabelKey: "MachineDeployment-" + md.Name},
+					ModifyDeployment: func(deployment *appsv1.Deployment) {
+						deployment.Spec.Template.ObjectMeta.Finalizers = []string{"test.cluster.x-k8s.io/block"}
+						for k, v := range deploymentLabels {
+							deployment.Spec.Template.Labels[k] = v
+						}
+					},
+					WaitForDeploymentAvailableInterval: input.E2EConfig.GetIntervals(specName, "wait-deployment-available"),
+				})
+			}
+		}
+
+		By("Trigger Node drain by scaling down the control plane to 1 and MachineDeployments to 0.")
+		modifyControlPlaneViaClusterAndWait(ctx, modifyControlPlaneViaClusterAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			Cluster:      cluster,
+			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
+				topology.Replicas = ptr.To[int32](1)
+			},
+			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		})
+		modifyMachineDeploymentViaClusterAndWait(ctx, modifyMachineDeploymentViaClusterAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			Cluster:      cluster,
+			ModifyMachineDeploymentTopology: func(topology *clusterv1.MachineDeploymentTopology) {
+				topology.Replicas = ptr.To[int32](0)
+			},
+			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Get draining control plane and MachineDeployment Machines.")
+		var drainingCPMachineKey client.ObjectKey
+		var drainingCPNodeName string
+		drainingMDMachineKeys := map[string]client.ObjectKey{}
+		drainingMDNodeNames := map[string]string{}
+		Eventually(func(g Gomega) {
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      input.BootstrapClusterProxy.GetClient(),
+				ClusterName: cluster.Name,
+				Namespace:   cluster.Namespace,
+			})
+			var condition *clusterv1.Condition
+			for _, machine := range controlPlaneMachines {
+				condition = conditions.Get(&machine, clusterv1.DrainingSucceededCondition)
+				if condition != nil {
+					// We only expect to find the condition on one Machine (as KCP will only try to drain one Machine at a time)
+					drainingCPMachineKey = client.ObjectKeyFromObject(&machine)
+					drainingCPNodeName = machine.Status.NodeRef.Name
+					return
+				}
+			}
+			g.Expect(drainingCPNodeName).ToNot(BeEmpty())
+		}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
+		for _, md := range machineDeployments {
+			Eventually(func(g Gomega) {
+				machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+					Lister:            input.BootstrapClusterProxy.GetClient(),
+					ClusterName:       cluster.Name,
+					Namespace:         cluster.Namespace,
+					MachineDeployment: *md,
+				})
+				g.Expect(machines).To(HaveLen(1))
+				drainingMDMachineKeys[md.Name] = client.ObjectKeyFromObject(&machines[0])
+				drainingMDNodeNames[md.Name] = machines[0].Status.NodeRef.Name
+			}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
+		}
+
+		By("Verify drain of Deployments with order 1.")
+		verifyNodeDrainsBlockedAndUnblock(ctx, verifyNodeDrainsBlockedAndUnblockInput{
+			BootstrapClusterProxy: input.BootstrapClusterProxy,
+			WorkloadClusterProxy:  workloadClusterProxy,
+			Cluster:               cluster,
+			MachineDeployments:    machineDeployments,
+			DrainedCPMachineKey:   drainingCPMachineKey,
+			DrainedMDMachineKeys:  drainingMDMachineKeys,
+			DeploymentNamePrefix:  "drain-order-1",
+			CPConditionMessageSubstrings: []string{
+				// The evictable Pod with order 1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+				fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", cpDeploymentName("drain-order-1")),
+				// After the Pod with order 1 is gone, the drain continues with the Pod with order 5.
+				fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload/%s", cpDeploymentName("drain-order-5")),
+			},
+			MDConditionMessageSubstrings: func() map[string][]string {
+				messageSubStrings := map[string][]string{}
+				for _, md := range machineDeployments {
+					messageSubStrings[md.Name] = []string{
+						// The evictable Pod with order 1 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+						fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", mdDeploymentName("drain-order-1", md.Name)),
+						// After the Pod with order 1 is gone, the drain continues with the Pod with order 5.
+						fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: evictable-workload/%s", mdDeploymentName("drain-order-5", md.Name)),
+					}
+				}
+				return messageSubStrings
+			}(),
+			WaitForMachineDelete: input.E2EConfig.GetIntervals(specName, "wait-machine-deleted"),
+		})
+
+		By("Verify drain of Deployments with order 5.")
+		verifyNodeDrainsBlockedAndUnblock(ctx, verifyNodeDrainsBlockedAndUnblockInput{
+			BootstrapClusterProxy: input.BootstrapClusterProxy,
+			WorkloadClusterProxy:  workloadClusterProxy,
+			Cluster:               cluster,
+			MachineDeployments:    machineDeployments,
+			DrainedCPMachineKey:   drainingCPMachineKey,
+			DrainedMDMachineKeys:  drainingMDMachineKeys,
+			DeploymentNamePrefix:  "drain-order-5",
+			CPConditionMessageSubstrings: []string{
+				// The evictable Pod with order 5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+				fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", cpDeploymentName("drain-order-5")),
+				// After the Pod with order 5 is gone, the drain continues with the unevictable Pod.
+				fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload/%s", cpDeploymentWithPDBName()),
+			},
+			MDConditionMessageSubstrings: func() map[string][]string {
+				messageSubStrings := map[string][]string{}
+				for _, md := range machineDeployments {
+					messageSubStrings[md.Name] = []string{
+						// The evictable Pod with order 5 was evicted. It still blocks the drain because of the finalizer, otherwise the Pod would be gone already.
+						fmt.Sprintf("Pods with deletionTimestamp that still exist: evictable-workload/%s", mdDeploymentName("drain-order-5", md.Name)),
+						// After the Pod with order 5 is gone, the drain continues with the unevictable Pod.
+						fmt.Sprintf("After above Pods have been removed from the Node, the following Pods will be evicted: unevictable-workload/%s", mdDeploymentWithPDBName(md.Name)),
+					}
+				}
+				return messageSubStrings
+			}(),
+			WaitForMachineDelete: input.E2EConfig.GetIntervals(specName, "wait-machine-deleted"),
+		})
+
+		By("Verify skipped Pods are still there and don't have a deletionTimestamp")
+		skippedCPPods := &corev1.PodList{}
+		Expect(workloadClusterProxy.GetClient().List(ctx, skippedCPPods,
+			client.InNamespace("evictable-workload"),
+			client.MatchingLabels{"deployment": cpDeploymentName("skip")},
+			client.MatchingFieldsSelector{Selector: fields.OneTermEqualSelector("spec.nodeName", drainingCPNodeName)},
+		)).To(Succeed())
+		Expect(skippedCPPods.Items).To(HaveLen(1))
+		Expect(skippedCPPods.Items[0].DeletionTimestamp.IsZero()).To(BeTrue())
+		for _, md := range machineDeployments {
+			skippedMDPods := &corev1.PodList{}
+			Expect(workloadClusterProxy.GetClient().List(ctx, skippedMDPods,
+				client.InNamespace("evictable-workload"),
+				client.MatchingLabels{"deployment": mdDeploymentName("skip", md.Name)},
+				client.MatchingFieldsSelector{Selector: fields.OneTermEqualSelector("spec.nodeName", drainingMDNodeNames[md.Name])},
+			)).To(Succeed())
+			Expect(skippedMDPods.Items).To(HaveLen(1))
+			Expect(skippedMDPods.Items[0].DeletionTimestamp.IsZero()).To(BeTrue())
+		}
+
+		By("Verify Node drains for control plane and MachineDeployment Machines are blocked (only by PDBs)")
+		Eventually(func(g Gomega) {
+			drainedCPMachine := &clusterv1.Machine{}
+			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingCPMachineKey, drainedCPMachine)).To(Succeed())
+
+			condition := conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+			// The evictable Pod should be gone now.
+			g.Expect(condition.Message).ToNot(ContainSubstring("Pods with deletionTimestamp that still exist"))
+			// The unevictable Pod should still not be evicted because of the PDB.
+			g.Expect(condition.Message).To(ContainSubstring(fmt.Sprintf("Cannot evict pod as it would violate the pod's disruption budget. The disruption budget %s needs", cpDeploymentWithPDBName())))
+		}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
+		for _, md := range machineDeployments {
+			Eventually(func(g Gomega) {
+				drainedMDMachine := &clusterv1.Machine{}
+				g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, drainingMDMachineKeys[md.Name], drainedMDMachine)).To(Succeed())
+
+				condition := conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededCondition)
+				g.Expect(condition).ToNot(BeNil())
+				g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+				// The evictable Pod should be gone now.
+				g.Expect(condition.Message).ToNot(ContainSubstring("Pods with deletionTimestamp that still exist"))
+				// The unevictable Pod should still not be evicted because of the PDB.
+				g.Expect(condition.Message).To(ContainSubstring(fmt.Sprintf("Cannot evict pod as it would violate the pod's disruption budget. The disruption budget %s needs", mdDeploymentWithPDBName(md.Name))))
+			}, input.E2EConfig.GetIntervals(specName, "wait-machine-deleted")...).Should(Succeed())
+		}
+
+		By("Set NodeDrainTimeout to 1s to unblock Node drain")
+		// Note: This also verifies that KCP & MachineDeployments are still propagating changes to NodeDrainTimeout down to
+		// Machines that already have a deletionTimestamp.
+		drainTimeout := &metav1.Duration{Duration: time.Duration(1) * time.Second}
+		modifyControlPlaneViaClusterAndWait(ctx, modifyControlPlaneViaClusterAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			Cluster:      cluster,
+			ModifyControlPlaneTopology: func(topology *clusterv1.ControlPlaneTopology) {
+				topology.NodeDrainTimeout = drainTimeout
+			},
+			WaitForControlPlane: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+		})
+		modifyMachineDeploymentViaClusterAndWait(ctx, modifyMachineDeploymentViaClusterAndWaitInput{
+			ClusterProxy: input.BootstrapClusterProxy,
+			Cluster:      cluster,
+			ModifyMachineDeploymentTopology: func(topology *clusterv1.MachineDeploymentTopology) {
+				topology.NodeDrainTimeout = drainTimeout
+			},
+			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+
+		By("Verify scale down succeeded because Node drains were unblocked")
+		// When we scale down the KCP, controlplane machines are deleted one by one, so it requires more time
+		// MD Machine deletion is done in parallel and will be faster.
+		nodeDrainTimeoutKCPInterval := getDrainAndDeleteInterval(input.E2EConfig.GetIntervals(specName, "wait-machine-deleted"), drainTimeout, controlPlaneReplicas)
+		Eventually(func(g Gomega) {
+			// When all drains complete we only have 1 control plane & 0 MD replicas left.
+			controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx, framework.GetControlPlaneMachinesByClusterInput{
+				Lister:      input.BootstrapClusterProxy.GetClient(),
+				ClusterName: cluster.Name,
+				Namespace:   cluster.Namespace,
+			})
+			g.Expect(controlPlaneMachines).To(HaveLen(1))
+
+			for _, md := range machineDeployments {
+				machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+					Lister:            input.BootstrapClusterProxy.GetClient(),
+					ClusterName:       cluster.Name,
+					Namespace:         cluster.Namespace,
+					MachineDeployment: *md,
+				})
+				g.Expect(machines).To(BeEmpty())
+			}
+		}, nodeDrainTimeoutKCPInterval...).Should(Succeed())
+
+		By("PASSED!")
+	})
+
+	AfterEach(func() {
+		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
+		framework.DumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+	})
+}
+
+func generateMachineDrainRule(clusterNamespace, clusterName, mdrName string, order int32) *clusterv1.MachineDrainRule {
+	return &clusterv1.MachineDrainRule{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      mdrName,
+			Namespace: clusterNamespace,
+		},
+		Spec: clusterv1.MachineDrainRuleSpec{
+			Drain: clusterv1.MachineDrainRuleDrainConfig{
+				Behavior: clusterv1.MachineDrainRuleDrainBehaviorDrain,
+				Order:    ptr.To[int32](order),
+			},
+			Machines: []clusterv1.MachineDrainRuleMachineSelector{
+				// Select all Machines with the ClusterNameLabel belonging to Clusters with the ClusterNameLabel.
+				{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							clusterv1.ClusterNameLabel: clusterName,
+						},
+					},
+					ClusterSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							clusterv1.ClusterNameLabel: clusterName,
+						},
+					},
+				},
+			},
+			Pods: []clusterv1.MachineDrainRulePodSelector{
+				// Select all Pods with label "mdr": mdrName in all Namespaces except "kube-system".
+				{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"mdr": mdrName,
+						},
+					},
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchExpressions: []metav1.LabelSelectorRequirement{
+							{
+								Key:      "kubernetes.io/metadata.name",
+								Operator: metav1.LabelSelectorOpNotIn,
+								Values: []string{
+									metav1.NamespaceSystem,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func cpDeploymentName(prefix string) string {
+	return fmt.Sprintf("%s-%s", prefix, "cp")
+}
+
+func cpDeploymentWithPDBName() string {
+	return "unevictable-cp"
+}
+
+func mdDeploymentName(prefix, name string) string {
+	return fmt.Sprintf("%s-%s", prefix, name)
+}
+
+func mdDeploymentWithPDBName(name string) string {
+	return fmt.Sprintf("unevictable-%s", name)
+}
+
+type verifyNodeDrainsBlockedAndUnblockInput struct {
+	BootstrapClusterProxy        framework.ClusterProxy
+	WorkloadClusterProxy         framework.ClusterProxy
+	Cluster                      *clusterv1.Cluster
+	MachineDeployments           []*clusterv1.MachineDeployment
+	DrainedCPMachineKey          client.ObjectKey
+	DrainedMDMachineKeys         map[string]client.ObjectKey
+	DeploymentNamePrefix         string
+	CPConditionMessageSubstrings []string
+	MDConditionMessageSubstrings map[string][]string
+	WaitForMachineDelete         []interface{}
+}
+
+func verifyNodeDrainsBlockedAndUnblock(ctx context.Context, input verifyNodeDrainsBlockedAndUnblockInput) {
+	By(fmt.Sprintf("Verify Node drains for control plane and MachineDeployment Machines are blocked (%s)", input.DeploymentNamePrefix))
+	var evictedCPPod *corev1.Pod
+	Eventually(func(g Gomega) {
+		drainedCPMachine := &clusterv1.Machine{}
+		g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, input.DrainedCPMachineKey, drainedCPMachine)).To(Succeed())
+
+		// Verify condition on drained CP Machine.
+		condition := conditions.Get(drainedCPMachine, clusterv1.DrainingSucceededCondition)
+		g.Expect(condition).ToNot(BeNil())
+		g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+		for _, messageSubstring := range input.CPConditionMessageSubstrings {
+			g.Expect(condition.Message).To(ContainSubstring(messageSubstring))
+		}
+
+		// Verify evictable Pod was evicted and terminated (i.e. phase is succeeded)
+		evictedPods := &corev1.PodList{}
+		g.Expect(input.WorkloadClusterProxy.GetClient().List(ctx, evictedPods,
+			client.InNamespace("evictable-workload"),
+			client.MatchingLabels{"deployment": cpDeploymentName(input.DeploymentNamePrefix)},
+			client.MatchingFieldsSelector{Selector: fields.OneTermEqualSelector("spec.nodeName", drainedCPMachine.Status.NodeRef.Name)},
+		)).To(Succeed())
+		g.Expect(evictedPods.Items).To(HaveLen(1))
+		evictedCPPod = &evictedPods.Items[0]
+		verifyPodEvictedAndSucceeded(g, evictedCPPod)
+	}, input.WaitForMachineDelete...).Should(Succeed())
+
+	evictedMDPods := map[string]*corev1.Pod{}
+	for _, md := range input.MachineDeployments {
+		Eventually(func(g Gomega) {
+			drainedMDMachine := &clusterv1.Machine{}
+			g.Expect(input.BootstrapClusterProxy.GetClient().Get(ctx, input.DrainedMDMachineKeys[md.Name], drainedMDMachine)).To(Succeed())
+
+			// Verify condition on drained MD Machine.
+			condition := conditions.Get(drainedMDMachine, clusterv1.DrainingSucceededCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.Status).To(Equal(corev1.ConditionFalse))
+			for _, messageSubstring := range input.MDConditionMessageSubstrings[md.Name] {
+				g.Expect(condition.Message).To(ContainSubstring(messageSubstring))
+			}
+
+			// Verify evictable Pod was evicted and terminated (i.e. phase is succeeded)
+			evictedPods := &corev1.PodList{}
+			g.Expect(input.WorkloadClusterProxy.GetClient().List(ctx, evictedPods,
+				client.InNamespace("evictable-workload"),
+				client.MatchingLabels{"deployment": mdDeploymentName(input.DeploymentNamePrefix, md.Name)},
+				client.MatchingFieldsSelector{Selector: fields.OneTermEqualSelector("spec.nodeName", drainedMDMachine.Status.NodeRef.Name)},
+			)).To(Succeed())
+			g.Expect(evictedPods.Items).To(HaveLen(1))
+			evictedMDPods[md.Name] = &evictedPods.Items[0]
+			verifyPodEvictedAndSucceeded(g, evictedMDPods[md.Name])
+		}, input.WaitForMachineDelete...).Should(Succeed())
+	}
+
+	By(fmt.Sprintf("Unblock deletion of evicted Pods by removing the finalizer (%s)", input.DeploymentNamePrefix))
+	Eventually(func(g Gomega) {
+		g.Expect(input.WorkloadClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(evictedCPPod), evictedCPPod)).To(Succeed())
+		originalPod := evictedCPPod.DeepCopy()
+		evictedCPPod.Finalizers = []string{}
+		g.Expect(input.WorkloadClusterProxy.GetClient().Patch(ctx, evictedCPPod, client.MergeFrom(originalPod))).To(Succeed())
+	}, input.WaitForMachineDelete...).Should(Succeed())
+	for _, md := range input.MachineDeployments {
+		Eventually(func(g Gomega) {
+			evictedMDPod := evictedMDPods[md.Name]
+			g.Expect(input.WorkloadClusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(evictedMDPod), evictedMDPod)).To(Succeed())
+			originalPod := evictedMDPod.DeepCopy()
+			evictedMDPod.Finalizers = []string{}
+			g.Expect(input.WorkloadClusterProxy.GetClient().Patch(ctx, evictedMDPod, client.MergeFrom(originalPod))).To(Succeed())
+		}, input.WaitForMachineDelete...).Should(Succeed())
+	}
+}
+
+func verifyPodEvictedAndSucceeded(g Gomega, pod *corev1.Pod) {
+	g.Expect(pod.Status.Phase).To(Equal(corev1.PodSucceeded))
+	podEvicted := false
+	for _, c := range pod.Status.Conditions {
+		if c.Type == corev1.DisruptionTarget && c.Reason == "EvictionByEvictionAPI" && c.Status == corev1.ConditionTrue {
+			podEvicted = true
+			break
+		}
+	}
+	g.Expect(podEvicted).To(BeTrue(), "Expected Pod to be evicted")
+}
+
+func getDrainAndDeleteInterval(deleteInterval []interface{}, drainTimeout *metav1.Duration, replicas int) []interface{} {
+	deleteTimeout, err := time.ParseDuration(deleteInterval[0].(string))
+	Expect(err).ToNot(HaveOccurred())
+	// We add the drain timeout to the specified delete timeout per replica.
+	intervalDuration := (drainTimeout.Duration + deleteTimeout) * time.Duration(replicas)
+	res := []interface{}{intervalDuration.String(), deleteInterval[1]}
+	return res
+}

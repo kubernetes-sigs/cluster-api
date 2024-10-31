@@ -2611,7 +2611,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRule(ref common.Refere
 						},
 					},
 				},
-				Required: []string{"spec"},
+				Required: []string{"metadata", "spec"},
 			},
 		},
 		Dependencies: []string{
@@ -2689,7 +2689,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDrainRuleList(ref common.Re
 						},
 					},
 				},
-				Required: []string{"items"},
+				Required: []string{"metadata", "items"},
 			},
 		},
 		Dependencies: []string{

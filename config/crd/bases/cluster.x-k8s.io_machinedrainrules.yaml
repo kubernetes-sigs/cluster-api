@@ -112,6 +112,8 @@ spec:
                          values:
                          - production
                 items:
+                  description: MachineDrainRuleMachineSelector defines to which Machines
+                    this MachineDrainRule should be applied.
                   minProperties: 1
                   properties:
                     clusterSelector:
@@ -258,6 +260,8 @@ spec:
                        matchLabels:
                          kubernetes.io/metadata.name: monitoring
                 items:
+                  description: MachineDrainRulePodSelector defines to which Pods this
+                    MachineDrainRule should be applied.
                   minProperties: 1
                   properties:
                     namespaceSelector:

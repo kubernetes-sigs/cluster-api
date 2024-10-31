@@ -134,8 +134,9 @@ type MachineDrainRuleDrainConfig struct {
 	Order *int32 `json:"order,omitempty"`
 }
 
+// MachineDrainRuleMachineSelector defines to which Machines this MachineDrainRule should be applied.
 // +kubebuilder:validation:MinProperties=1
-type MachineDrainRuleMachineSelector struct { //nolint:revive // Intentionally not adding a godoc comment as it would show up additionally to the field comment in the CRD
+type MachineDrainRuleMachineSelector struct {
 	// selector is a label selector which selects Machines by their labels.
 	// This field follows standard label selector semantics; if not present or
 	// empty, it selects all Machines.
@@ -160,8 +161,9 @@ type MachineDrainRuleMachineSelector struct { //nolint:revive // Intentionally n
 	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
 }
 
+// MachineDrainRulePodSelector defines to which Pods this MachineDrainRule should be applied.
 // +kubebuilder:validation:MinProperties=1
-type MachineDrainRulePodSelector struct { //nolint:revive // Intentionally not adding a godoc comment as it would show up additionally to the field comment in the CRD
+type MachineDrainRulePodSelector struct {
 	// selector is a label selector which selects Pods by their labels.
 	// This field follows standard label selector semantics; if not present or
 	// empty, it selects all Pods.

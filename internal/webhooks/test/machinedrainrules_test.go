@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package webhooks
+package test
 
 import (
 	"testing"
@@ -44,7 +44,8 @@ func Test_validate(t *testing.T) {
 			name: "Return no error if MachineDrainRule is valid",
 			machineDrainRule: &clusterv1.MachineDrainRule{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "mdr",
+					Name:      "mdr",
+					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
@@ -86,7 +87,8 @@ func Test_validate(t *testing.T) {
 			name: "Return error if order is set with drain behavior Skip",
 			machineDrainRule: &clusterv1.MachineDrainRule{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "mdr",
+					Name:      "mdr",
+					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
@@ -95,14 +97,16 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
+			wantErr: "admission webhook \"validation.machinedrainrule.cluster.x-k8s.io\" denied the request: " +
+				"MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: " +
 				"spec.drain.order: Invalid value: 5: order must not be set if drain behavior is \"Skip\"",
 		},
 		{
 			name: "Return error for MachineDrainRules with invalid selector",
 			machineDrainRule: &clusterv1.MachineDrainRule{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "mdr",
+					Name:      "mdr",
+					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: clusterv1.MachineDrainRuleSpec{
 					Drain: clusterv1.MachineDrainRuleDrainConfig{
@@ -122,11 +126,81 @@ func Test_validate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: [" +
+			wantErr: "admission webhook \"validation.machinedrainrule.cluster.x-k8s.io\" denied the request: " +
+				"MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: [" +
 				"spec.machines[0].selector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator, " +
 				"spec.machines[0].clusterSelector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator, " +
 				"spec.pods[0].selector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator, " +
 				"spec.pods[0].namespaceSelector: Invalid value: v1.LabelSelector{MatchLabels:map[string]string(nil), MatchExpressions:[]v1.LabelSelectorRequirement{v1.LabelSelectorRequirement{Key:\"\", Operator:\"Invalid-Operator\", Values:[]string(nil)}}}: \"Invalid-Operator\" is not a valid label selector operator]",
+		},
+		{
+			name: "Return error if selectors are not unique",
+			machineDrainRule: &clusterv1.MachineDrainRule{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mdr",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.MachineDrainRuleSpec{
+					Drain: clusterv1.MachineDrainRuleDrainConfig{
+						Behavior: clusterv1.MachineDrainRuleDrainBehaviorSkip,
+					},
+					Machines: []clusterv1.MachineDrainRuleMachineSelector{
+						{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"os": "linux",
+								},
+							},
+							ClusterSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"stage": "production",
+								},
+							},
+						},
+						{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"os": "linux",
+								},
+							},
+							ClusterSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"stage": "production",
+								},
+							},
+						},
+					},
+					Pods: []clusterv1.MachineDrainRulePodSelector{
+						{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": "does-not-match",
+								},
+							},
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "monitoring",
+								},
+							},
+						},
+						{
+							Selector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"app": "does-not-match",
+								},
+							},
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{
+									"kubernetes.io/metadata.name": "monitoring",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: "MachineDrainRule.cluster.x-k8s.io \"mdr\" is invalid: [" +
+				"spec.machines: Invalid value: \"array\": entries in machines must be unique, " +
+				"spec.pods: Invalid value: \"array\": entries in pods must be unique]",
 		},
 	}
 
@@ -134,12 +208,14 @@ func Test_validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := (&MachineDrainRule{}).validate(tt.machineDrainRule)
+			err := env.CreateAndWait(ctx, tt.machineDrainRule)
+
 			if tt.wantErr != "" {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).To(BeComparableTo(tt.wantErr))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(env.CleanupAndWait(ctx, tt.machineDrainRule)).To(Succeed())
 			}
 		})
 	}

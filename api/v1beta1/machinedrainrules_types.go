@@ -197,8 +197,10 @@ type MachineDrainRulePodSelector struct {
 
 // MachineDrainRule is the Schema for the MachineDrainRule API.
 type MachineDrainRule struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta `json:",inline"`
+
+	// +required
+	metav1.ObjectMeta `json:"metadata"`
 
 	// +required
 	Spec MachineDrainRuleSpec `json:"spec"`
@@ -209,8 +211,12 @@ type MachineDrainRule struct {
 // MachineDrainRuleList contains a list of MachineDrainRules.
 type MachineDrainRuleList struct {
 	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MachineDrainRule `json:"items"`
+
+	// +required
+	metav1.ListMeta `json:"metadata"`
+
+	// +required
+	Items []MachineDrainRule `json:"items"`
 }
 
 func init() {

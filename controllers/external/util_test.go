@@ -63,7 +63,7 @@ func TestGetResourceFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewClientBuilder().WithObjects(testResource.DeepCopy()).Build()
-	got, err := Get(ctx, fakeClient, testResourceReference, metav1.NamespaceDefault)
+	got, err := Get(ctx, fakeClient, testResourceReference)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(got).To(BeComparableTo(testResource))
 }
@@ -79,7 +79,7 @@ func TestGetResourceNotFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewClientBuilder().Build()
-	_, err := Get(ctx, fakeClient, testResourceReference, metav1.NamespaceDefault)
+	_, err := Get(ctx, fakeClient, testResourceReference)
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(apierrors.IsNotFound(errors.Cause(err))).To(BeTrue())
 }

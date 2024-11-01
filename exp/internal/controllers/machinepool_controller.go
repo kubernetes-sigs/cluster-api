@@ -341,10 +341,10 @@ func (r *MachinePoolReconciler) reconcileDeleteExternal(ctx context.Context, mac
 			continue
 		}
 
-		obj, err := external.Get(ctx, r.Client, ref, machinePool.Namespace)
+		obj, err := external.Get(ctx, r.Client, ref)
 		if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 			return false, errors.Wrapf(err, "failed to get %s %q for MachinePool %q in namespace %q",
-				ref.GroupVersionKind(), ref.Name, machinePool.Name, machinePool.Namespace)
+				ref.GroupVersionKind(), ref.Name, machinePool.Name, ref.Namespace)
 		}
 		if obj != nil {
 			objects = append(objects, obj)

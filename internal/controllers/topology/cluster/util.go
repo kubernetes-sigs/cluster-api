@@ -33,7 +33,7 @@ func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReferen
 		return nil, errors.New("reference is not set")
 	}
 
-	obj, err := external.Get(ctx, r.Client, ref, ref.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve %s %s", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
 	}

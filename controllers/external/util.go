@@ -31,7 +31,7 @@ import (
 )
 
 // Get uses the client and reference to get an external, unstructured object.
-func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, _ string) (*unstructured.Unstructured, error) {
+func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if ref == nil {
 		return nil, errors.Errorf("cannot get object - object reference not set")
 	}
@@ -41,7 +41,7 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, _ st
 	obj.SetName(ref.Name)
 	obj.SetNamespace(ref.Namespace)
 	if err := c.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s external object %q/%q", obj.GetKind(), ref.Namespace, ref.Name)
+		return nil, errors.Wrapf(err, "failed to retrieve %s %s/%s", obj.GetKind(), ref.Namespace, ref.Name)
 	}
 	return obj, nil
 }
@@ -92,7 +92,7 @@ type CreateFromTemplateInput struct {
 
 // CreateFromTemplate uses the client and the reference to create a new object from the template.
 func CreateFromTemplate(ctx context.Context, in *CreateFromTemplateInput) (*corev1.ObjectReference, error) {
-	from, err := Get(ctx, in.Client, in.TemplateRef, in.Namespace)
+	from, err := Get(ctx, in.Client, in.TemplateRef)
 	if err != nil {
 		return nil, err
 	}

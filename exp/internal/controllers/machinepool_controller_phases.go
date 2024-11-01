@@ -113,11 +113,11 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, m *expv1.
 		return external.ReconcileOutput{}, err
 	}
 
-	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
+	obj, err := external.Get(ctx, r.Client, ref)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			return external.ReconcileOutput{}, errors.Wrapf(err, "could not find %v %q for MachinePool %q in namespace %q, requeuing",
-				ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)
+				ref.GroupVersionKind(), ref.Name, m.Name, ref.Namespace)
 		}
 		return external.ReconcileOutput{}, err
 	}

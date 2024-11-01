@@ -357,6 +357,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1",
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 						},
@@ -404,6 +405,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Minute},
@@ -466,6 +468,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Minute},
@@ -528,6 +531,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachinePoolKind,
 								Name:       "infra-config1-already-deleted", // Use an InfrastructureMachinePool that doesn't exist, so reconcileDelete doesn't get stuck on deletion
+								Namespace:  metav1.NamespaceDefault,
 							},
 							Bootstrap:           clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 							NodeDeletionTimeout: &metav1.Duration{Duration: 10 * time.Second}, // timeout passed
@@ -761,12 +765,14 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "delete-infra",
+						Namespace:  metav1.NamespaceDefault,
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "delete-bootstrap",
+							Namespace:  metav1.NamespaceDefault,
 						},
 					},
 				},
@@ -864,6 +870,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
+						Namespace:  metav1.NamespaceDefault,
 					},
 					Bootstrap: clusterv1.Bootstrap{DataSecretName: ptr.To("data")},
 				},
@@ -957,12 +964,14 @@ func TestMachinePoolConditions(t *testing.T) {
 						APIVersion: builder.InfrastructureGroupVersion.String(),
 						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra1",
+						Namespace:  metav1.NamespaceDefault,
 					},
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							APIVersion: builder.BootstrapGroupVersion.String(),
 							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap1",
+							Namespace:  metav1.NamespaceDefault,
 						},
 					},
 				},

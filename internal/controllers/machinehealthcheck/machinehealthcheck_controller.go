@@ -689,6 +689,7 @@ func (r *Reconciler) getExternalRemediationRequest(ctx context.Context, m *clust
 		APIVersion: m.Spec.RemediationTemplate.APIVersion,
 		Kind:       strings.TrimSuffix(m.Spec.RemediationTemplate.Kind, clusterv1.TemplateSuffix),
 		Name:       machineName,
+		Namespace:  m.Namespace,
 	}
 	remediationReq, err := external.Get(ctx, r.Client, remediationRef, m.Namespace)
 	if err != nil {

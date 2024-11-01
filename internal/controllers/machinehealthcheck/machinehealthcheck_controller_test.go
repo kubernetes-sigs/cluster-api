@@ -1328,6 +1328,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 							APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 							Kind:       "GenericInfrastructureMachineTemplate",
 							Name:       infraTmpl.GetName(),
+							Namespace:  mhc.Namespace,
 						},
 					},
 				},
@@ -1536,6 +1537,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
+			Namespace:  cluster.Namespace,
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -1690,6 +1692,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			APIVersion: builder.RemediationGroupVersion.String(),
 			Kind:       "GenericExternalRemediationTemplate",
 			Name:       infraRemediationTmpl.GetName(),
+			Namespace:  ns.Name,
 		}
 
 		mhc := newMachineHealthCheck(cluster.Namespace, cluster.Name)
@@ -2530,6 +2533,7 @@ func createMachinesWithNodes(
 			APIVersion: infraMachine.GetAPIVersion(),
 			Kind:       infraMachine.GetKind(),
 			Name:       infraMachine.GetName(),
+			Namespace:  infraMachine.GetNamespace(),
 		}
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		fmt.Printf("machine created: %s\n", machine.GetName())

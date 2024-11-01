@@ -49,6 +49,7 @@ func TestSetBootstrapReadyCondition(t *testing.T) {
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
+					Namespace:  metav1.NamespaceDefault,
 				},
 			},
 		},
@@ -268,6 +269,7 @@ func TestSetInfrastructureReadyCondition(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-machine1",
+				Namespace:  metav1.NamespaceDefault,
 			},
 		},
 	}
@@ -582,6 +584,7 @@ func TestSetNodeHealthyAndReadyConditions(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-machine1",
+				Namespace:  metav1.NamespaceDefault,
 			},
 		},
 	}
@@ -1747,12 +1750,14 @@ func TestReconcileMachinePhases(t *testing.T) {
 					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config1",
+					Namespace:  metav1.NamespaceDefault,
 				},
 			},
 			InfrastructureRef: corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "GenericInfrastructureMachine",
 				Name:       "infra-config1",
+				Namespace:  metav1.NamespaceDefault,
 			},
 		},
 	}
@@ -1801,6 +1806,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		infraMachine.SetNamespace(ns.Name)
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
@@ -1853,6 +1860,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		infraMachine.SetNamespace(ns.Name)
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
@@ -1896,6 +1905,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		infraMachine.SetNamespace(ns.Name)
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
@@ -1956,6 +1967,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(infraMachine.Object, "us-east-2a", "spec", "failureDomain")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 
 		// Create Node.
 		node := &corev1.Node{
@@ -2045,6 +2058,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 
 		// Create Node.
 		node := &corev1.Node{
@@ -2123,6 +2138,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 
 		// Create Node.
 		node := &corev1.Node{
@@ -2200,6 +2217,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 		// Set Machine ProviderID.
 		machine.Spec.ProviderID = ptr.To(nodeProviderID)
 
@@ -2262,6 +2281,8 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
+		machine.Spec.InfrastructureRef.Namespace = ns.Name
+		machine.Spec.Bootstrap.ConfigRef.Namespace = ns.Name
 
 		// Create Node.
 		node := &corev1.Node{
